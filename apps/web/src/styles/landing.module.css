@@ -1,0 +1,140 @@
+.hero {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: clamp(2rem, 5vw, 4rem);
+  align-items: center;
+}
+
+.heroCopy h2 {
+  margin: 0;
+  font-size: clamp(2.2rem, 3.5vw, 3rem);
+  font-weight: 500;
+}
+
+.heroCopy p {
+  margin: 1.5rem 0;
+  max-width: 48ch;
+  line-height: 1.7;
+  color: rgba(226, 232, 240, 0.8);
+}
+
+.heroCTA {
+  display: flex;
+  gap: 1rem;
+}
+
+.heroCTA button {
+  padding: 0.75rem 1.6rem;
+  border-radius: 999px;
+  border: none;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: transform 200ms ease, box-shadow 200ms ease;
+}
+
+.heroCTA button:first-of-type {
+  background: linear-gradient(135deg, rgba(96, 165, 250, 0.85), rgba(14, 165, 233, 0.9));
+  color: #0f172a;
+  box-shadow: 0 20px 40px -24px rgba(96, 165, 250, 0.6);
+}
+
+.heroCTA button:first-of-type:hover {
+  transform: translateY(-1px);
+}
+
+.secondary {
+  background: rgba(15, 23, 42, 0.55);
+  color: rgba(226, 232, 240, 0.9);
+  border: 1px solid rgba(148, 163, 184, 0.3);
+}
+
+.globe {
+  position: relative;
+  min-height: 280px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 30% 30%, rgba(56, 189, 248, 0.25), transparent 60%),
+    radial-gradient(circle at 70% 60%, rgba(59, 130, 246, 0.25), transparent 65%);
+  overflow: hidden;
+}
+
+.isobars {
+  position: absolute;
+  inset: -50%;
+  background: conic-gradient(from 90deg, transparent 0 20%, rgba(56, 189, 248, 0.35) 25% 30%, transparent 35% 55%, rgba(59, 130, 246, 0.4) 60% 65%, transparent 70% 100%);
+  animation: rotate 25s linear infinite;
+}
+
+[data-reduced-motion="true"] .isobars {
+  animation: none;
+}
+
+@keyframes rotate {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.checklist {
+  display: grid;
+  gap: 1.75rem;
+  margin-top: 4rem;
+}
+
+.checklist article {
+  padding: 1.4rem 1.6rem;
+  border-radius: 1rem;
+  background: rgba(15, 23, 42, 0.55);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  box-shadow: 0 18px 40px -28px rgba(15, 23, 42, 0.8);
+}
+
+.checklist h3 {
+  margin: 0 0 0.6rem;
+  font-size: 1.25rem;
+}
+
+.promises {
+  display: grid;
+  gap: 1.5rem;
+  margin-top: 4rem;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.promises article {
+  padding: 1.3rem;
+  border-radius: 1rem;
+  background: rgba(2, 6, 23, 0.6);
+  border: 1px solid rgba(51, 65, 85, 0.4);
+}
+
+.promises h4 {
+  margin: 0 0 0.4rem;
+  font-weight: 600;
+}
+
+.storyCard {
+  margin-top: 4rem;
+  padding: 2rem;
+  border-radius: 1.2rem;
+  background: rgba(15, 23, 42, 0.68);
+  border: 1px solid rgba(71, 85, 105, 0.35);
+  font-style: italic;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.storyCard span {
+  justify-self: end;
+  color: rgba(148, 163, 184, 0.75);
+}
+
+@media (max-width: 768px) {
+  .heroCTA {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

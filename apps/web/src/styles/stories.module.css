@@ -1,0 +1,53 @@
+.header {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.header h2 {
+  margin: 0;
+  font-size: clamp(2rem, 3vw, 2.5rem);
+}
+
+.header p {
+  margin: 0;
+  max-width: 58ch;
+  line-height: 1.7;
+  color: rgba(226, 232, 240, 0.78);
+}
+
+.grid {
+  margin-top: 3rem;
+  display: grid;
+  gap: 1.75rem;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+}
+
+.grid article {
+  display: grid;
+  gap: 0.85rem;
+  padding: 1.75rem;
+  border-radius: 1.2rem;
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid rgba(71, 85, 105, 0.45);
+  box-shadow: 0 22px 50px -38px rgba(15, 23, 42, 0.95);
+}
+
+.grid span {
+  font-size: 2rem;
+}
+
+.grid h3 {
+  margin: 0;
+  font-size: 1.3rem;
+}
+
+.grid p {
+  margin: 0;
+  color: rgba(226, 232, 240, 0.82);
+}
+
+.grid footer {
+  margin-top: 0.5rem;
+  font-size: 0.95rem;
+  color: rgba(148, 163, 184, 0.8);
+}

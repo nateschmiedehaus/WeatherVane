@@ -1,0 +1,59 @@
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "weathervane"
+version = "0.1.0"
+description = "Weather-aware ads allocator"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.111",
+    "uvicorn[standard]>=0.29",
+    "pydantic>=2.7",
+    "sqlalchemy>=2.0",
+    "asyncpg>=0.29",
+    "alembic>=1.13",
+    "polars>=0.20",
+    "duckdb>=0.10",
+    "httpx>=0.27",
+    "python-dotenv>=1.0",
+    "prefect>=2.16",
+    "pandas>=2.2",
+    "numpy>=1.26",
+    "pyyaml>=6.0",
+    "tenacity>=8.2",
+    "scikit-learn>=1.4",
+    "lightgbm>=4.3",
+    "statsmodels>=0.14",
+    "onnxruntime>=1.17",
+    "cvxpy>=1.4",
+    "redis>=5.0",
+    "loguru>=0.7",
+    "pyarrow>=15.0",
+    "typing-extensions>=4.12"
+]
+
+[project.optional-dependencies]
+dev = [
+    "black>=24.4",
+    "ruff>=0.4",
+    "pytest>=8.2",
+    "pytest-asyncio>=0.23"
+]
+
+[tool.black]
+line-length = 100
+target-version = ['py311']
+
+[tool.ruff]
+line-length = 100
+select = ["E", "F", "I", "B", "UP", "N"]
+exclude = [
+    "build",
+    "dist",
+    ".venv",
+    "node_modules"
+]
+

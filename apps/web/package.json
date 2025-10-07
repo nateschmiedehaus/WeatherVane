@@ -1,0 +1,31 @@
+{
+  "name": "weathervane-web",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "format": "prettier --write \"src/**/*.{ts,tsx,js,jsx}\""
+  },
+  "dependencies": {
+    "next": "14.2.5",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "@tanstack/react-query": "5.45.0",
+    "framer-motion": "11.0.3",
+    "maplibre-gl": "4.1.3",
+    "zod": "3.23.8",
+    "clsx": "2.1.1"
+  },
+  "devDependencies": {
+    "@types/node": "20.14.2",
+    "@types/react": "18.3.3",
+    "@types/react-dom": "18.3.0",
+    "typescript": "5.4.5",
+    "eslint": "8.57.0",
+    "eslint-config-next": "14.2.5",
+    "prettier": "3.3.2"
+  }
+}

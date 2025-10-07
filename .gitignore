@@ -1,0 +1,55 @@
+# General
+.DS_Store
+.env*
+*.pyc
+__pycache__/
+*.pyo
+*.pyd
+*.so
+build/
+dist/
+.eggs/
+*.egg-info/
+.coverage
+htmlcov/
+.mypy_cache/
+.pytest_cache/
+*.log
+
+# Python
+.venv/
+.env/
+venv/
+.envrc
+
+# Node/JS
+node_modules/
+.next/
+*.lock
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+dist/
+build/
+
+# Data & cache
+storage/lake/
+storage/metadata/
+.tmp/
+.cache/
+
+# VSCode & IDEs
+.vscode/
+.idea/
+*.iml
+
+# Docker/compose
+localstack-data/
+.docker/
+
+# Mac
+.AppleDouble
+.LSOverride
+Icon?
+
