@@ -10,7 +10,11 @@ from functools import lru_cache
 from typing import Optional, Tuple
 
 import geohash2  # type: ignore
-import pgeocode
+
+try:  # pragma: no cover - optional dependency in test environments
+    import pgeocode
+except ImportError:  # pragma: no cover
+    pgeocode = None  # type: ignore
 
 DEFAULT_COUNTRY = "US"
 DEFAULT_PRECISION = 5
@@ -27,12 +31,14 @@ class Geocoder:
     def __init__(self, country: str = DEFAULT_COUNTRY, precision: int = DEFAULT_PRECISION) -> None:
         self.country = country
         self.precision = precision
-        self._nominatim = pgeocode.Nominatim(country)
+        self._nominatim = pgeocode.Nominatim(country) if pgeocode else None
 
     @lru_cache(maxsize=10_000)
     def lookup(self, postal_code: str, country: Optional[str] = None) -> GeoResult:
         country = country or self.country
-        nominatim = self._nominatim if country == self.country else pgeocode.Nominatim(country)
+        if not pgeocode:
+            return GeoResult(latitude=None, longitude=None, geohash=None)
+        nominatim = self._nominatim if country == self.country and self._nominatim else pgeocode.Nominatim(country)
         record = nominatim.query_postal_code(str(postal_code))
         lat = record.latitude
         lon = record.longitude

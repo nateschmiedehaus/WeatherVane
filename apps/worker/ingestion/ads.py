@@ -4,7 +4,10 @@ from __future__ import annotations
 import os
 from dataclasses import dataclass
 from datetime import datetime
+from pathlib import Path
 from typing import Any, Dict, Iterable, Mapping
+
+import json
 
 from shared.libs.connectors import GoogleAdsConfig, GoogleAdsConnector, MetaAdsConnector, MetaAdsConfig
 from shared.libs.storage.lake import LakeWriter
@@ -97,25 +100,58 @@ def build_ads_ingestor_from_env(lake_root: str) -> AdsIngestor:
     meta = None
     google = None
 
-    meta_access_token = os.getenv("META_ACCESS_TOKEN")
-    meta_account_id = os.getenv("META_ACCOUNT_ID")
-    if meta_access_token and meta_account_id:
-        meta_config = MetaAdsConfig(access_token=meta_access_token, app_id="", app_secret="")
-        meta = MetaAdsConnector(meta_config)
+    meta_fixture = os.getenv("META_INSIGHTS_FIXTURE")
+    if meta_fixture:
+        meta = MetaFixtureConnector(Path(meta_fixture))
+    else:
+        meta_access_token = os.getenv("META_ACCESS_TOKEN")
+        meta_app_id = os.getenv("META_APP_ID")
+        meta_app_secret = os.getenv("META_APP_SECRET")
+        if meta_access_token and meta_app_id and meta_app_secret:
+            meta_config = MetaAdsConfig(
+                access_token=meta_access_token,
+                app_id=meta_app_id,
+                app_secret=meta_app_secret,
+            )
+            meta = MetaAdsConnector(meta_config)
 
-    google_dev_token = os.getenv("GOOGLEADS_DEVELOPER_TOKEN")
-    google_customer_id = os.getenv("GOOGLEADS_CUSTOMER_ID")
-    refresh_token = os.getenv("GOOGLEADS_REFRESH_TOKEN")
-    client_id = os.getenv("GOOGLEADS_OAUTH_CLIENT_ID")
-    client_secret = os.getenv("GOOGLEADS_OAUTH_CLIENT_SECRET")
-    if google_dev_token and google_customer_id and refresh_token and client_id and client_secret:
-        google_config = GoogleAdsConfig(
-            developer_token=google_dev_token,
-            client_id=client_id,
-            client_secret=client_secret,
-            refresh_token=refresh_token,
-            login_customer_id=google_customer_id,
-        )
-        google = GoogleAdsConnector(google_config)
+    google_fixture = os.getenv("GOOGLEADS_FIXTURE")
+    if google_fixture:
+        google = GoogleFixtureConnector(Path(google_fixture))
+    else:
+        google_dev_token = os.getenv("GOOGLEADS_DEVELOPER_TOKEN")
+        google_customer_id = os.getenv("GOOGLEADS_CUSTOMER_ID")
+        refresh_token = os.getenv("GOOGLEADS_REFRESH_TOKEN")
+        client_id = os.getenv("GOOGLEADS_OAUTH_CLIENT_ID")
+        client_secret = os.getenv("GOOGLEADS_OAUTH_CLIENT_SECRET")
+        if google_dev_token and google_customer_id and refresh_token and client_id and client_secret:
+            google_config = GoogleAdsConfig(
+                developer_token=google_dev_token,
+                client_id=client_id,
+                client_secret=client_secret,
+                refresh_token=refresh_token,
+                login_customer_id=google_customer_id,
+            )
+            google = GoogleAdsConnector(google_config)
 
     return AdsIngestor(writer=writer, meta_connector=meta, google_connector=google)
+
+
+class MetaFixtureConnector:
+    name = "meta_ads_fixture"
+
+    def __init__(self, path: Path) -> None:
+        self.path = path
+
+    async def fetch(self, endpoint: str, **params: Any) -> dict[str, Any]:
+        return json.loads(self.path.read_text())
+
+
+class GoogleFixtureConnector:
+    name = "google_ads_fixture"
+
+    def __init__(self, path: Path) -> None:
+        self.path = path
+
+    async def fetch(self, service: str, **params: Any) -> dict[str, Any]:
+        return json.loads(self.path.read_text())

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import datetime
 from pathlib import Path
 from typing import Any, Mapping, Sequence
 
@@ -31,7 +32,8 @@ class LakeWriter:
 
         dataset_dir = self.root / dataset
         dataset_dir.mkdir(parents=True, exist_ok=True)
-        path = dataset_dir / f"{pl.datetime.now().to_python().isoformat().replace(':', '-')}.parquet"
+        timestamp = datetime.utcnow().isoformat().replace(":", "-")
+        path = dataset_dir / f"{timestamp}.parquet"
         frame.write_parquet(path, compression="zstd")
         return path
 

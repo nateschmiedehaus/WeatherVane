@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "FeatureMatrixRow",
+  "type": "object",
+  "properties": {
+    "date": {"type": "string", "format": "date"},
+    "geohash": {"type": ["string", "null"]},
+    "net_revenue": {"type": "number"},
+    "meta_spend": {"type": "number"},
+    "google_spend": {"type": "number"},
+    "promos_sent": {"type": "number"},
+    "temp_c": {"type": "number"},
+    "precip_mm": {"type": "number"},
+    "temp_anomaly": {"type": "number"},
+    "precip_anomaly": {"type": "number"},
+    "temp_roll7": {"type": ["number", "null"]},
+    "precip_roll7": {"type": ["number", "null"]}
+  },
+  "required": [
+    "date",
+    "temp_c",
+    "precip_mm",
+    "temp_anomaly",
+    "precip_anomaly",
+    "temp_roll7",
+    "precip_roll7"
+  ],
+  "additionalProperties": true
+}

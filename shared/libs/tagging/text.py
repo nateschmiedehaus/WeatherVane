@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Iterable, List
 
 WEATHER_KEYWORDS = {
@@ -43,9 +43,9 @@ class TextTagger:
     catalog tagging UI can evolve without blocking on ML ops.
     """
 
-    weather_keywords: dict[str, str] = WEATHER_KEYWORDS
-    season_keywords: dict[str, str] = SEASON_KEYWORDS
-    intent_keywords: dict[str, str] = INTENT_KEYWORDS
+    weather_keywords: dict[str, str] = field(default_factory=lambda: dict(WEATHER_KEYWORDS))
+    season_keywords: dict[str, str] = field(default_factory=lambda: dict(SEASON_KEYWORDS))
+    intent_keywords: dict[str, str] = field(default_factory=lambda: dict(INTENT_KEYWORDS))
 
     def suggest_weather_tags(self, text: str) -> List[str]:
         tokens = self._tokenize(text)

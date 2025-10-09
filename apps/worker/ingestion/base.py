@@ -5,7 +5,7 @@ swap connectors or add new data sources without touching the rest of the pipelin
 """
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any, Iterable, Mapping, Protocol
 
@@ -19,6 +19,7 @@ class IngestionSummary:
     path: str
     row_count: int
     source: str
+    metadata: dict[str, Any] = field(default_factory=dict)
 
 
 class PaginatableConnector(Protocol):
@@ -34,10 +35,21 @@ class BaseIngestor:
 
     writer: LakeWriter
 
-    def _write_records(self, dataset: str, rows: Iterable[Mapping[str, Any]], source: str = "stub") -> IngestionSummary:
+    def _write_records(
+        self,
+        dataset: str,
+        rows: Iterable[Mapping[str, Any]],
+        source: str = "stub",
+        metadata: Mapping[str, Any] | None = None,
+    ) -> IngestionSummary:
         materialised = list(rows)
         path = self.writer.write_records(dataset, materialised)
-        return IngestionSummary(path=str(path), row_count=len(materialised), source=source)
+        return IngestionSummary(
+            path=str(path),
+            row_count=len(materialised),
+            source=source,
+            metadata=dict(metadata or {}),
+        )
 
 
 def iso(dt: datetime) -> str:

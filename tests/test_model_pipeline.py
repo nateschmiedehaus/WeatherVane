@@ -16,3 +16,5 @@ def test_train_poc_models(tmp_path: Path):
     assert bundle.mmm.base_roas >= 0
     assert "row_count" in bundle.diagnostics
     assert "expected_revenue" in bundle.quantiles
+    assert bundle.timeseries is not None
+    assert "timeseries_r2" in bundle.diagnostics

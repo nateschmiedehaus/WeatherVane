@@ -19,7 +19,7 @@ class Tenant(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
 
     connections: Mapped[list["Connection"]] = relationship("Connection", back_populates="tenant")
-    guardrail_policy: Mapped["GuardrailPolicy" | None] = relationship(
+    guardrail_policy: Mapped[GuardrailPolicy | None] = relationship(
         "GuardrailPolicy", back_populates="tenant", uselist=False
     )
 
@@ -51,6 +51,19 @@ class GuardrailPolicy(Base):
     cpa_ceiling: Mapped[float | None] = mapped_column()
     change_windows: Mapped[list[str]] = mapped_column(JSON, default=list)
     autopilot_mode: Mapped[str] = mapped_column(String(16), default="manual")
+    pushes_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
+    push_cap_daily: Mapped[int] = mapped_column(Integer, default=0)
+    push_window_start_utc: Mapped[str | None] = mapped_column(String(8))
+    push_window_end_utc: Mapped[str | None] = mapped_column(String(8))
+    consent_status: Mapped[str] = mapped_column(String(16), default="pending")
+    consent_version: Mapped[str] = mapped_column(String(16), default="1.0")
+    consent_recorded_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    consent_actor: Mapped[str | None] = mapped_column(String(80))
+    retention_days: Mapped[int] = mapped_column(Integer, default=365)
+    last_export_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    last_delete_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    last_settings_update_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    last_settings_actor: Mapped[str | None] = mapped_column(String(80))
     alerts: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow
@@ -68,6 +81,7 @@ class Plan(Base):
     horizon_days: Mapped[int] = mapped_column(Integer, default=7)
     status: Mapped[str] = mapped_column(String(32), default="draft")
     notes: Mapped[str | None] = mapped_column(Text)
+    metadata_payload: Mapped[dict[str, Any] | None] = mapped_column("metadata", JSON, default=dict)
 
     tenant: Mapped[Tenant] = relationship("Tenant")
     slices: Mapped[list["PlanSlice"]] = relationship("PlanSlice", back_populates="plan")
@@ -106,6 +120,21 @@ class Approval(Base):
     decided_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
     plan: Mapped[Plan] = relationship("Plan")
+
+
+class DataRequest(Base):
+    __tablename__ = "data_request"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    tenant_id: Mapped[str] = mapped_column(String(50), ForeignKey("tenant.id"), nullable=False, index=True)
+    request_type: Mapped[str] = mapped_column(String(16), nullable=False)
+    status: Mapped[str] = mapped_column(String(16), default="pending")
+    requested_by: Mapped[str | None] = mapped_column(String(80))
+    notes: Mapped[str | None] = mapped_column(Text)
+    requested_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
+    processed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    tenant: Mapped[Tenant] = relationship("Tenant")
 
 
 class AuditLog(Base):

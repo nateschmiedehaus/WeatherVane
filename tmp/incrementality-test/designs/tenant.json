@@ -1,0 +1,18 @@
+{
+  "design": {
+    "assignment": [
+      {
+        "geo": "g1",
+        "group": "treatment",
+        "weight": 0.5
+      },
+      {
+        "geo": "g2",
+        "group": "control",
+        "weight": 0.5
+      }
+    ],
+    "geo_column": "geo",
+    "status": "ready"
+  }
+}

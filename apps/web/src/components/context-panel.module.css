@@ -1,0 +1,239 @@
+.panel {
+  border-radius: 0.9rem;
+  border: 1px solid rgba(71, 85, 105, 0.45);
+  background:
+    linear-gradient(135deg, rgba(30, 41, 59, 0.72), rgba(15, 23, 42, 0.58)) border-box;
+  padding: 0.9rem 1rem;
+  display: grid;
+  gap: 0.65rem;
+  box-shadow:
+    inset 0 0 0 1px rgba(148, 163, 184, 0.15),
+    0 14px 28px rgba(15, 23, 42, 0.26);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.95rem;
+  color: rgba(226, 232, 240, 0.9);
+}
+
+.badgeCritical {
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  border: 1px solid rgba(239, 68, 68, 0.45);
+  background: rgba(239, 68, 68, 0.18);
+  color: rgba(248, 113, 113, 0.95);
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.tags {
+  margin: 0;
+  font-size: 0.85rem;
+  color: rgba(148, 163, 184, 0.85);
+}
+
+.warningList {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.warningItem {
+  display: grid;
+  gap: 0.3rem;
+  padding: 0.6rem 0.75rem;
+  border-radius: 0.75rem;
+  border: 1px solid transparent;
+  background: rgba(15, 23, 42, 0.46);
+}
+
+.warningItem strong {
+  font-size: 0.75rem;
+  letter-spacing: 0.09em;
+  color: rgba(226, 232, 240, 0.85);
+}
+
+.warningItem span {
+  font-size: 0.9rem;
+  color: rgba(226, 232, 240, 0.92);
+}
+
+.warningInfo {
+  border-color: rgba(56, 189, 248, 0.32);
+  background: rgba(56, 189, 248, 0.18);
+  color: rgba(191, 219, 254, 0.95);
+}
+
+.warningCaution {
+  border-color: rgba(251, 191, 36, 0.4);
+  background: rgba(253, 224, 71, 0.2);
+  color: rgba(254, 240, 138, 0.95);
+}
+
+.warningCritical {
+  border-color: rgba(239, 68, 68, 0.5);
+  background: rgba(239, 68, 68, 0.22);
+  color: rgba(248, 113, 113, 0.97);
+}
+.badgeInfo {
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  border: 1px solid rgba(125, 211, 252, 0.42);
+  background: rgba(56, 189, 248, 0.18);
+  color: rgba(191, 219, 254, 0.95);
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.badgeCaution {
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  border: 1px solid rgba(251, 191, 36, 0.4);
+  background: rgba(253, 224, 71, 0.18);
+  color: rgba(254, 240, 138, 0.95);
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.badgeSuccess {
+  padding: 0.12rem 0.5rem;
+  border-radius: 999px;
+  border: 1px solid rgba(74, 222, 128, 0.45);
+  background: rgba(34, 197, 94, 0.2);
+  color: rgba(187, 247, 208, 0.95);
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.badgeMuted {
+  padding: 0.12rem 0.5rem;
+  border-radius: 999px;
+  border: 1px solid rgba(148, 163, 184, 0.4);
+  background: rgba(71, 85, 105, 0.25);
+  color: rgba(203, 213, 225, 0.85);
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.assignmentTable {
+  display: grid;
+  gap: 0.35rem;
+  padding: 0.35rem 0;
+}
+
+.assignmentHeader,
+.assignmentRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  align-items: center;
+  font-size: 0.85rem;
+  color: rgba(226, 232, 240, 0.9);
+}
+
+.assignmentHeader {
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(148, 163, 184, 0.88);
+}
+
+.assignmentRow {
+  padding: 0.35rem 0.25rem;
+  border-radius: 0.6rem;
+  background: rgba(15, 23, 42, 0.35);
+}
+
+.summaryCard {
+  border-radius: 0.8rem;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  background: rgba(15, 23, 42, 0.4);
+  padding: 0.8rem 0.9rem;
+  display: grid;
+  gap: 0.6rem;
+}
+
+.summaryHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.8rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(148, 163, 184, 0.88);
+}
+
+.liftValue {
+  font-size: 1.6rem;
+  font-weight: 600;
+  color: rgba(248, 250, 252, 0.95);
+}
+
+.summaryGrid {
+  margin: 0;
+  display: grid;
+  gap: 0.55rem;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+}
+
+.summaryGrid div {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.summaryGrid dt {
+  font-size: 0.72rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: rgba(148, 163, 184, 0.7);
+}
+
+.summaryGrid dd {
+  margin: 0;
+  font-size: 0.95rem;
+  color: rgba(226, 232, 240, 0.92);
+}
+
+.summaryMeta {
+  font-size: 0.75rem;
+  color: rgba(148, 163, 184, 0.75);
+}
+
+.keyStats {
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 0.65rem;
+}
+
+.keyStats div {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.keyStats dt {
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(148, 163, 184, 0.85);
+}
+
+.keyStats dd {
+  margin: 0;
+  font-size: 0.95rem;
+  color: rgba(226, 232, 240, 0.95);
+}
+
+.bodyCopy {
+  font-size: 0.9rem;
+  color: rgba(226, 232, 240, 0.85);
+}

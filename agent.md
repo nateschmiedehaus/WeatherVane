@@ -311,6 +311,51 @@ poc/
 
 ## 18. Recommended Free Stack & Operating Posture
 
+### 18.0 Quick CLI Install Macro
+Run once in a network-enabled environment to grab all Python dependencies (runtime, dev, MMM optional):
+
+```
+python -m pip install --upgrade pip && \
+python -m pip install \
+  fastapi \
+  "uvicorn[standard]" \
+  "pydantic>=2.7" \
+  sqlalchemy \
+  asyncpg \
+  alembic \
+  polars \
+  duckdb \
+  httpx \
+  python-dotenv \
+  pandas \
+  numpy \
+  jsonschema \
+  pyyaml \
+  tenacity \
+  scikit-learn \
+  lightgbm \
+  statsmodels \
+  onnxruntime \
+  pygam \
+  scipy \
+  cvxpy \
+  redis \
+  loguru \
+  pyarrow \
+  pgeocode \
+  geohash2 \
+  typing-extensions \
+  black \
+  ruff \
+  pytest \
+  pytest-asyncio \
+  prefect && \
+python -m pip install "packaging<24.3" && \
+python -m pip install lightweight-mmm
+```
+
+If `lightweight-mmm` is unavailable (network/platform), rerun the last line later; everything else stays intact.
+
 ### 18.1 Default Operating Mode
 - Boot in **Read-Only Plan & Proof**: ingest, model, simulate missed opportunities, export reports.
 - Platform pushes disabled until tenant opts into **Assist** (approval-gated) or **Autopilot** (guardrails enforced).

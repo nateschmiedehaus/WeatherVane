@@ -22,12 +22,14 @@ dependencies = [
     "prefect>=2.16",
     "pandas>=2.2",
     "numpy>=1.26",
+    "jsonschema>=4.22",
     "pyyaml>=6.0",
     "tenacity>=8.2",
     "scikit-learn>=1.4",
     "lightgbm>=4.3",
     "statsmodels>=0.14",
     "onnxruntime>=1.17",
+    "pygam>=0.9",
     "scipy>=1.11",
     "cvxpy>=1.4",
     "redis>=5.0",
@@ -59,4 +61,3 @@ exclude = [
     ".venv",
     "node_modules"
 ]
-

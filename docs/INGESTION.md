@@ -9,8 +9,8 @@ This guide explains how to add or modify ingestion tasks. The goals:
 
 | Component | Location | Responsibility |
 | --- | --- | --- |
-| `BaseIngestor`, `IngestionSummary` | `apps/worker/ingestion/base.py` | Shared helpers and return type (path + row count + source) |
-| Connector wrappers | `shared/libs/connectors` | Handle raw HTTP/gRPC calls |
+| `BaseIngestor`, `IngestionSummary` | `apps/worker/ingestion/base.py` | Shared helpers and return type (path + row count + source + metadata) |
+| Connector wrappers | `shared/libs/connectors` | Handle raw HTTP/gRPC calls (pagination, retries, OAuth refresh) |
 | Ingester modules | `apps/worker/ingestion/<source>.py` | Normalise records and store Parquet snapshots |
 | Storage utilities | `shared/libs/storage/lake.py` | Write/read Parquet via Polars (single entry point) |
 | Prefect flows | `apps/worker/flows/*.py` | Call ingestors, log summaries, feed modelling tasks |
@@ -27,12 +27,17 @@ This guide explains how to add or modify ingestion tasks. The goals:
 3. Update Prefect flow (`poc_pipeline.py`) to call the new ingestor.
    - Keep the task wrapper small; it should focus on logging and returning summaries.
 4. Document any required environment variables in this file and `docs/STACK.md` if needed.
+5. Persist incremental state using `JsonStateStore` when the source supports cursors (for example `updated_at_min`).
 
 ## Environment Variables (Shopify example)
 ```
 SHOPIFY_SHOP_DOMAIN=<my-shop.myshopify.com>
 SHOPIFY_ACCESS_TOKEN=<admin api token>
 SHOPIFY_API_VERSION=2024-04  # optional
+# Optional, used for OAuth token refresh
+SHOPIFY_CLIENT_ID=<oauth client id>
+SHOPIFY_CLIENT_SECRET=<oauth client secret>
+SHOPIFY_REFRESH_TOKEN=<oauth refresh token>
 ```
 If an environment variable is missing, the task deliberately falls back to stub data for local
 prototyping. This behaviour is visible in the logs and the returned `source` field.
@@ -41,6 +46,51 @@ prototyping. This behaviour is visible in the logs and the returned `source` fie
 - `DEFAULT_PAGE_LIMIT` keeps requests small; adjust if Shopify introduces new limits.
 - For other connectors, implement exponential backoff or rate limiting if required.
 - Store the raw `next_page_info` (or equivalent token) in your loop to avoid infinite paging.
+
+## Meta Ads
+- Graph API base URL is `https://graph.facebook.com/<graph_version>`.
+- The connector follows `paging.cursors.after` (or parses `paging.next`) until exhausted.
+- Automatic retries/backoff leverage the shared HTTP connector; plug in `AsyncRateLimiter` to stay under burst limits.
+- On HTTP 401 the connector exchanges the short-lived token using `app_id`/`app_secret` and updates headers transparently.
+
+Environment variables:
+
+```
+META_ACCESS_TOKEN=<short-lived or long-lived token>
+META_APP_ID=<facebook app id>
+META_APP_SECRET=<facebook app secret>
+META_GRAPH_VERSION=v19.0
+```
+
+Persist the refreshed token to your secrets store if you want subsequent runs to reuse it; otherwise
+the connector refreshes in-memory whenever Meta invalidates the token.
+
+## Google Ads
+- REST endpoint base: `https://googleads.googleapis.com/<version>/customers/{cid}/googleAds:search`.
+- Requests are POST with GAQL queries; the connector handles `nextPageToken` pagination and yields rows via `search_iter`.
+- Retries/backoff use the shared HTTP connector; add an async rate limiter to respect QPS caps.
+- On HTTP 401 the connector exchanges the refresh token for a new access token (`oauth2.googleapis.com/token`) and updates headers.
+
+Environment variables / secrets:
+
+```
+GOOGLE_ADS_DEVELOPER_TOKEN=<developer token>
+GOOGLE_ADS_CLIENT_ID=<oauth client id>
+GOOGLE_ADS_CLIENT_SECRET=<oauth client secret>
+GOOGLE_ADS_REFRESH_TOKEN=<oauth refresh token>
+GOOGLE_ADS_LOGIN_CUSTOMER_ID=<manager customer id, optional>
+GOOGLE_ADS_ACCESS_TOKEN=<optional bootstrap access token>
+GOOGLE_ADS_API_VERSION=v14
+```
+
+For local smoke tests you can omit `GOOGLE_ADS_ACCESS_TOKEN`; the connector will immediately refresh using the
+refresh token. Persist refreshed tokens centrally if you want to avoid repeated token exchanges across runs.
+
+## Geocoding validation
+- Orders ingestion stores `ship_geohash` alongside the raw record and writes `geocoded_ratio` into the ingestion summary.
+- The helper `apps.worker.validation.geocoding.evaluate_geocoding_coverage` loads the latest orders snapshot, computes coverage, and persists a JSON report under `storage/metadata/state/geocoding/<tenant>.json`.
+- Coverage results bubble into the PoC pipeline response (`geocoding_validation`) and inform context tags (e.g. `geo.partial`, `geo.missing`).
+- Default threshold is 0.8; adjust per tenant if you expect higher sparsity.
 
 ## Why Parquet + LakeWriter?
 - Every ingestor writes via `LakeWriter.write_records(dataset, rows)`.
@@ -56,7 +106,22 @@ class MySourceIngestor(BaseIngestor):
     async def ingest(self, tenant_id: str) -> IngestionSummary:
         payloads = await self.connector.fetch(...)
         rows = [self._normalise(item) for item in payloads]
-        return self._write_records(f"{tenant_id}_mysource", rows, source="mysource_api")
+        metrics = {"geocoded_ratio": 0.94}
+        return self._write_records(
+            f"{tenant_id}_mysource",
+            rows,
+            source="mysource_api",
+            metadata=metrics,
+        )
 ```
 
 Keep things boring and explicit—future contributors will have a much easier time.
+
+
+## Weather Cache
+- Weather fetches are keyed by tenant shipping geohashes (derived from order-level geocoding).
+- Daily metrics stored under `storage/lake/weather/<geohash>/...json` with a running climatology in `climatology.parquet`.
+- Anomalies are computed against day-of-year climatology so downstream models receive stationarised weather deltas.
+- Rolling seven-day means (`temp_roll7`, `precip_roll7`) provide smoother signals for multi-geo aggregation.
+- Feature builder expects columns `temp_c`, `precip_mm`, `temp_anomaly`, `precip_anomaly`, `temp_roll7`, `precip_roll7`.
+- Schema validation runs via `shared.validation.schemas`.

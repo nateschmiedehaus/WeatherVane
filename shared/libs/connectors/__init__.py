@@ -12,6 +12,20 @@ from .google_ads import GoogleAdsConnector
 from .klaviyo import KlaviyoConnector
 from .meta import MetaAdsConnector
 from .rate_limit import AsyncRateLimiter
+from .registry import load_manifest, list_manifests, ConnectorRegistryError
+from .sdk import (
+    AuthMethod,
+    Capability,
+    ConnectorManifest,
+    ConnectorPlugin,
+    ConnectorMessage,
+    RecordMessage,
+    SecretField,
+    StateMessage,
+    StreamSchema,
+    SyncConfig,
+    SyncState,
+)
 from .shopify import ShopifyConnector
 from .weather import WeatherConnector
 
@@ -30,4 +44,18 @@ __all__ = [
     "MetaAdsConnector",
     "ShopifyConnector",
     "WeatherConnector",
+    "ConnectorPlugin",
+    "ConnectorManifest",
+    "StreamSchema",
+    "SyncConfig",
+    "SyncState",
+    "SecretField",
+    "RecordMessage",
+    "StateMessage",
+    "ConnectorMessage",
+    "AuthMethod",
+    "Capability",
+    "load_manifest",
+    "list_manifests",
+    "ConnectorRegistryError",
 ]

@@ -6,13 +6,14 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Iterable
 
+import geohash2  # type: ignore
+import polars as pl
+
 from shared.libs.storage.lake import LakeWriter
 
 
 @dataclass
 class WeatherShock:
-    """Defines a temporary weather perturbation for synthetic data."""
-
     start_day: int
     end_day: int
     temp_delta: float = 0.0
@@ -32,12 +33,6 @@ def seed_synthetic_tenant(
     geos: Iterable[tuple[float, float]] | None = None,
     shocks: Iterable[WeatherShock] | None = None,
 ) -> None:
-    """Create synthetic Parquet snapshots for a tenant.
-
-    - ``geos``: list of (lat, lon) cells to populate.
-    - ``shocks``: list of WeatherShock instances to simulate unusual weather periods.
-    """
-
     geos = list(geos or DEFAULT_GEOS)
     shocks = list(shocks or [])
 
@@ -54,69 +49,77 @@ def seed_synthetic_tenant(
         day = today - timedelta(days=i)
         date_str = day.strftime("%Y-%m-%d")
 
-        # Determine shock multiplier for this day
-        shock_multiplier = 1.0
         temp_bonus = 0.0
         rain_bonus = 0.0
+        multiplier = 1.0
         for shock in shocks:
             if shock.applies(i):
                 temp_bonus += shock.temp_delta
                 rain_bonus += shock.rain_mm
-                shock_multiplier += shock.temp_delta * 0.01
+                multiplier += shock.temp_delta * 0.02
 
-        orders_rows.append(
-            {
-                "tenant_id": tenant_id,
-                "created_at": f"{date_str}T00:00:00Z",
-                "net_revenue": float(100 + i * 5 + temp_bonus * 2),
-            }
-        )
+        orders_rows.append({
+            "tenant_id": tenant_id,
+            "created_at": f"{date_str}T00:00:00Z",
+            "net_revenue": float(120 + i * 4 + temp_bonus * 3),
+            "ship_latitude": geos[0][0],
+            "ship_longitude": geos[0][1],
+            "ship_geohash": geohash2.encode(geos[0][0], geos[0][1], 5),
+        })
 
-        ads_meta_rows.append(
-            {
-                "tenant_id": tenant_id,
-                "date": date_str,
-                "channel": "meta",
-                "spend": float((20 + i) * shock_multiplier),
-                "conversions": float(2 + i * 0.1),
-            }
-        )
+        ads_meta_rows.append({
+            "tenant_id": tenant_id,
+            "date": date_str,
+            "channel": "meta",
+            "spend": float((25 + i) * multiplier),
+            "conversions": float(2 + i * 0.1),
+        })
 
-        ads_google_rows.append(
-            {
-                "tenant_id": tenant_id,
-                "date": date_str,
-                "channel": "google",
-                "spend": float(15 + i * 0.5),
-                "conversions": float(1 + i * 0.05 * shock_multiplier),
-            }
-        )
+        ads_google_rows.append({
+            "tenant_id": tenant_id,
+            "date": date_str,
+            "channel": "google",
+            "spend": float(18 + i * 0.6),
+            "conversions": float(1.2 + i * 0.07 * multiplier),
+        })
 
-        promos_rows.append(
-            {
-                "tenant_id": tenant_id,
-                "send_date": f"{date_str}T12:00:00Z",
-                "campaign_id": f"promo-{i}",
-                "discount_pct": float(5 if i % 3 == 0 else 0),
-            }
-        )
+        promos_rows.append({
+            "tenant_id": tenant_id,
+            "send_date": f"{date_str}T12:00:00Z",
+            "campaign_id": f"promo-{i}",
+            "discount_pct": float(10 if i % 3 == 0 else 0),
+        })
 
         for lat, lon in geos:
-            cell = f"{lat:.2f}_{lon:.2f}"
-            weather_rows.append(
-                {
-                    "tenant_id": tenant_id,
-                    "cell": cell,
-                    "start": date_str,
-                    "end": date_str,
-                    "source": "synthetic",
-                    "rain_mm": float((i % 2) + rain_bonus),
-                    "temp_c": float(20 + i + lat * 0.1 + temp_bonus),
-                }
-            )
+            gh = geohash2.encode(lat, lon, 5)
+            base_temp = 18 + i + lat * 0.05
+            base_precip = (i % 2) * 2
+            weather_rows.append({
+                "tenant_id": tenant_id,
+                "date": date_str,
+                "geohash": gh,
+                "temp_c": float(base_temp + temp_bonus),
+                "precip_mm": float(base_precip + rain_bonus),
+            })
+
+    weather_df = pl.DataFrame(weather_rows)
+    if not weather_df.is_empty():
+        weather_df = weather_df.with_columns([
+            (pl.col("temp_c") - pl.col("temp_c").mean().over("geohash")).alias("temp_anomaly"),
+            (pl.col("precip_mm") - pl.col("precip_mm").mean().over("geohash")).alias("precip_anomaly"),
+            pl.col("temp_c")
+            .rolling_mean(window_size=7, min_periods=1)
+            .over("geohash")
+            .alias("temp_roll7"),
+            pl.col("precip_mm")
+            .rolling_mean(window_size=7, min_periods=1)
+            .over("geohash")
+            .alias("precip_roll7"),
+        ])
+        weather_rows = weather_df.to_dicts()
 
     writer.write_records(f"{tenant_id}_shopify_orders", orders_rows)
     writer.write_records(f"{tenant_id}_meta_ads", ads_meta_rows)
     writer.write_records(f"{tenant_id}_google_ads", ads_google_rows)
     writer.write_records(f"{tenant_id}_promos", promos_rows)
-    writer.write_records(f"{tenant_id}_weather_cells", weather_rows)
+    writer.write_records(f"{tenant_id}_weather_daily", weather_rows)

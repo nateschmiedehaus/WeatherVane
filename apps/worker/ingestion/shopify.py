@@ -17,8 +17,10 @@ from typing import Any, Dict, Iterable, List, Mapping
 
 from shared.libs.connectors import ShopifyConfig, ShopifyConnector
 from shared.libs.storage.lake import LakeWriter
+from shared.libs.storage.state import JsonStateStore
 
 from .base import BaseIngestor, IngestionSummary, iso
+from .geocoding import Geocoder, enrich_order_with_geo
 
 DEFAULT_PAGE_LIMIT = 250
 
@@ -26,6 +28,8 @@ DEFAULT_PAGE_LIMIT = 250
 @dataclass
 class ShopifyIngestor(BaseIngestor):
     connector: ShopifyConnector
+    geocoder: Geocoder | None = None
+    state_store: JsonStateStore | None = None
 
     async def ingest_orders(
         self,
@@ -37,15 +41,45 @@ class ShopifyIngestor(BaseIngestor):
         params = {
             "status": status,
             "limit": DEFAULT_PAGE_LIMIT,
+            "order": "updated_at asc",
             "created_at_min": iso(start_date),
             "created_at_max": iso(end_date),
         }
+
+        state_key = f"{tenant_id}_orders"
+        state = self.state_store.load("shopify", state_key) if self.state_store else {}
+        since = state.get("updated_at_min")
+        if since:
+            params["updated_at_min"] = since
+
         orders = await self._collect_rest("orders", params=params)
-        enriched = [enrich_order_with_geo(order, self.geocoder or Geocoder()) for order in orders]
+        geocoder = self.geocoder or Geocoder()
+        enriched = [enrich_order_with_geo(order, geocoder) for order in orders]
         rows = [self._normalise_order(tenant_id, order) for order in enriched]
-        return self._write_records(
-            dataset=f"{tenant_id}_shopify_orders", rows=rows, source="shopify_api"
+        geocoded_count = sum(1 for row in rows if row.get("ship_geohash"))
+        geocoded_ratio = geocoded_count / len(rows) if rows else 0.0
+        summary = self._write_records(
+            dataset=f"{tenant_id}_shopify_orders",
+            rows=rows,
+            source="shopify_api",
+            metadata={
+                "geocoded_count": geocoded_count,
+                "geocoded_ratio": geocoded_ratio,
+            },
         )
+        if rows and self.state_store:
+            latest_updated = max((order.get("updated_at") for order in orders if order.get("updated_at")), default=None)
+            if latest_updated:
+                self.state_store.save(
+                    "shopify",
+                    state_key,
+                    {
+                        "updated_at_min": latest_updated,
+                        "last_run_at": datetime.utcnow().isoformat(),
+                        "row_count": summary.row_count,
+                    },
+                )
+        return summary
 
     async def ingest_products(self, tenant_id: str) -> IngestionSummary:
         params = {"limit": DEFAULT_PAGE_LIMIT}
@@ -60,25 +94,16 @@ class ShopifyIngestor(BaseIngestor):
 
         cursor = None
         results: List[Mapping[str, Any]] = []
+        base_params = params.copy()
         while True:
-            query = params.copy()
-            if cursor:
-                query["page_info"] = cursor
-            response = await self.connector.fetch(resource, **query)
-            items = self._extract_items(resource, response)
+            payload, cursor = await self.connector.fetch_page(resource, params=base_params, cursor=cursor)
+            items = ShopifyConnector._extract_items(resource, payload)
             if not items:
                 break
             results.extend(items)
-            cursor = response.get("next_page_info")
             if not cursor:
                 break
         return results
-
-    def _extract_items(self, resource: str, response: Mapping[str, Any]) -> Iterable[Mapping[str, Any]]:
-        if resource in response:
-            return response[resource]  # type: ignore[return-value]
-        singular = resource.rstrip("s")
-        return response.get(singular, [])  # type: ignore[return-value]
 
     def _normalise_order(self, tenant_id: str, order: Mapping[str, Any]) -> Dict[str, Any]:
         shipping = order.get("shipping_address") or {}
@@ -119,5 +144,20 @@ def build_shopify_ingestor_from_env(lake_root: str) -> ShopifyIngestor | None:
     if not shop_domain or not access_token:
         return None
     api_version = os.getenv("SHOPIFY_API_VERSION", "2024-04")
-    config = ShopifyConfig(shop_domain=shop_domain, access_token=access_token, api_version=api_version)
-    return ShopifyIngestor(connector=ShopifyConnector(config), writer=LakeWriter(root=lake_root))
+    client_id = os.getenv("SHOPIFY_CLIENT_ID")
+    client_secret = os.getenv("SHOPIFY_CLIENT_SECRET")
+    refresh_token = os.getenv("SHOPIFY_REFRESH_TOKEN")
+    config = ShopifyConfig(
+        shop_domain=shop_domain,
+        access_token=access_token,
+        api_version=api_version,
+        client_id=client_id,
+        client_secret=client_secret,
+        refresh_token=refresh_token,
+    )
+    state_store = JsonStateStore()
+    return ShopifyIngestor(
+        connector=ShopifyConnector(config),
+        writer=LakeWriter(root=lake_root),
+        state_store=state_store,
+    )

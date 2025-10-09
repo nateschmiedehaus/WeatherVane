@@ -1,0 +1,24 @@
+# Prefect deployment for nightly tenant-level retention sweeps.
+# Usage: prefect deployment build deployments/retention.yaml --apply
+
+name: tenant-retention-nightly
+flow_name: tenant-data-retention
+entrypoint: apps/worker/maintenance/retention.py:run_retention_sweep
+parameters:
+  tenant_id: null            # auto-discover tenants unless explicitly overridden
+  tenant_ids: null
+  retention_days: 365
+  lake_root: storage/lake/raw
+  webhook_url: null          # optional: HTTPS endpoint for telemetry alerts
+  summary_root: storage/metadata/state
+  context_root: storage/metadata/data_context
+schedule:
+  cron: 0 7 * * *
+  timezone: UTC
+  day_or: false
+tags:
+  - retention
+  - compliance
+infra_overrides:
+  env:
+    PREFECT_LOGGING_LEVEL: INFO

@@ -4,6 +4,8 @@ WeatherVane turns public weather intelligence, your storefront data, and ad plat
 
 > **Honesty first:** WeatherVane does not guarantee performance. It analyses your history, today’s forecast, and your guardrails to propose plans with expected ranges and clear assumptions. You choose how changes get applied.
 
+> **Causal transparency:** Current models capture historical correlations. See [`docs/CAUSAL_LIMITATIONS.md`](docs/CAUSAL_LIMITATIONS.md) for what we can and cannot claim until causal modelling work (Phase 4) completes.
+
 ---
 
 ## What WeatherVane Delivers
@@ -38,10 +40,10 @@ WeatherVane turns public weather intelligence, your storefront data, and ad plat
 4. **Stories**
    - Digestible narratives: upcoming weather opportunities, underserved geos with headroom, promo synergies.
    - Shareable summaries for execs or teammates.
-5. **Automations & Guardrails**
-   - Choose automation level: Manual (no pushes), Assist (requires approval), Autopilot (auto-push within policy).
-   - Configure guardrails: max day-over-day change, min spend, ROAS/CPA thresholds, change windows, do-not-touch campaigns.
-   - Route alerts to email or Slack.
+5. **Guided Automation & Privacy**
+   - Choose automation level: Manual (no pushes), Assist (requires approval), Autopilot (auto-push within policy) with recorded tenant consent.
+   - Configure guardrails: max day-over-day change, min spend, ROAS/CPA thresholds, push windows, do-not-touch campaigns, and notification routing.
+   - Invoke privacy endpoints for export/delete requests and rely on the retention sweep to purge stale lake snapshots per tenant policy.
 6. **Ad Implementation Help**
    - View which existing ads fit each weather run via tags.
    - For gaps, WeatherVane generates an Ad-Kit: proposed ad set structure, targeting, schedule, budget, and creative brief. Drafts can be created (paused) if write scope was granted, or exported as CSV for manual build.
@@ -68,6 +70,71 @@ WeatherVane turns public weather intelligence, your storefront data, and ad plat
 - **Frontend:** Next.js + Tailwind + shadcn/ui, MapLibre GL (cached OSM tiles), ECharts, Framer Motion respecting reduced motion.
 - **Tagging:** sentence-transformers MiniLM + CLIP/SigLIP heuristics; round-trip tags through Shopify metafields.
 - **Security:** Postgres control plane with RBAC/approvals/audit log; OAuth least-privilege; aggregated geo only.
+
+### Frontend Environment
+Set the following env vars when running `apps/web` locally:
+
+| Variable | Purpose | Default |
+| --- | --- | --- |
+| `NEXT_PUBLIC_API_BASE_URL` | Base URL for WeatherVane API (e.g. `http://localhost:8000/v1`) | `http://localhost:8000/v1` |
+| `NEXT_PUBLIC_TENANT_ID` | Tenant id used for local previews | `demo-tenant` |
+| `NEXT_PUBLIC_OPERATOR_EMAIL` | Email recorded when updating automation settings | `ops@weathervane` |
+| `NEXT_PUBLIC_PLAN_HORIZON` | Days to request for the plan view | `7` |
+
+---
+
+### Worker Commands
+- Run the end-to-end PoC pipeline:
+  ```bash
+  python apps/worker/run.py tenant-123 --start 2024-01-01 --end 2024-07-01
+  ```
+- Perform a retention sweep only (useful for cron/Prefect scheduling). Set `--all-tenants` or pass
+  the literal tenant `ALL` to sweep every tenant discovered in the lake, and provide an optional
+  webhook to receive notifications when files are purged:
+  ```bash
+  python apps/worker/run.py ALL --retention-only --retention-days 365 --lake-root storage/lake/raw \
+    --all-tenants --retention-webhook-url https://example.test/hooks/retention \
+    --retention-summary-root storage/metadata/state \
+    --context-root storage/metadata/data_context
+  ```
+  The worker emits both per-tenant `retention.sweep.completed` notifications and a
+  nightly `retention.sweep.summary` aggregate (including tag coverage and warning counts)
+  when a webhook URL is supplied.
+- Inspect the most recent retention telemetry without running a sweep:
+  ```bash
+  python apps/worker/run.py --retention-report --retention-summary-root storage/metadata/state
+  ```
+- Export NDJSON for dashboards:
+  ```bash
+  make export-observability
+  ```
+  or use the CLI flag: `python apps/worker/run.py tenant-123 --smoke-test --retention-summary-root storage/metadata/state --export-observability observability/out.json`
+- Check connector secrets quickly:
+  ```bash
+  python apps/worker/maintenance/secrets.py
+  ```
+  Add `--json` for CI scripts.
+  Use `make check-secrets` for a Make shortcut.
+- Append a retention sweep after the pipeline by adding `--retention-after` to the first command.
+- Register a nightly Prefect deployment:
+  ```bash
+  prefect deployment build deployments/retention.yaml --apply
+  ```
+  Adjust the `parameters` block for your tenants before applying.
+- Run a PoC smoke test (synthetic data if connectors aren’t configured):
+  ```bash
+  python apps/worker/run.py tenant-123 --smoke-test
+  ```
+  The command prints plan status, geocoding coverage, data sources, and ads summaries so you can
+  spot missing connectors quickly. Append `--export-observability observability/tenant-123.json`
+  (with `--retention-summary-root storage/metadata/state`) to write retention/geocoding telemetry
+  that dashboards or BigQuery jobs can consume. Add `--log-file logs/smoke.ndjson` to append structured
+  events for Loki/stackdriver ingestion.
+
+---
+
+### API Environment
+- `AUTOMATION_WEBHOOK_URL`: optional HTTPS endpoint invoked whenever automation settings change or a tenant submits a privacy export/delete request.
 
 ---
 
@@ -171,4 +238,3 @@ All connectors handle backfills, incremental syncs, idempotent retries, and rate
 
 ## Support & Contact
 Open a ticket from the in-app Help panel with the plan ID, timestamp, and a short description. For partnership or enterprise enquiries, email `hello@weathervane.app`.
-

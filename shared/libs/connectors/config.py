@@ -7,6 +7,8 @@ from dataclasses import dataclass
 class ConnectorConfig:
     timeout: float = 30.0
     max_retries: int = 3
+    backoff_factor: float = 0.5
+    max_backoff: float = 10.0
 
 
 @dataclass(slots=True)
@@ -14,6 +16,9 @@ class ShopifyConfig(ConnectorConfig):
     shop_domain: str = ""
     access_token: str = ""
     api_version: str = "2024-04"
+    client_id: str | None = None
+    client_secret: str | None = None
+    refresh_token: str | None = None
 
 
 @dataclass(slots=True)
@@ -31,6 +36,9 @@ class GoogleAdsConfig(ConnectorConfig):
     client_secret: str = ""
     refresh_token: str = ""
     login_customer_id: str | None = None
+    access_token: str | None = None
+    api_version: str = "v14"
+    token_uri: str = "https://oauth2.googleapis.com/token"
 
 
 @dataclass(slots=True)

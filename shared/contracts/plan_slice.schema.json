@@ -1,0 +1,61 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "PlanSlice",
+  "type": "object",
+  "properties": {
+    "cell": {"type": ["string", "null"]},
+    "recommended_spend": {"type": "number"},
+    "expected_revenue": {
+      "type": "object",
+      "properties": {
+        "p10": {"type": "number"},
+        "p50": {"type": "number"},
+        "p90": {"type": "number"}
+      },
+      "required": ["p10", "p50", "p90"],
+      "additionalProperties": false
+    },
+    "confidence": {"enum": ["HIGH", "MEDIUM", "LOW"]},
+    "assumptions": {
+      "type": "array",
+      "items": {"type": "string"}
+    },
+    "rationale": {
+      "type": "object",
+      "properties": {
+        "primary_driver": {"type": "string"},
+        "supporting_factors": {
+          "type": "array",
+          "items": {"type": "string"}
+        },
+        "confidence_level": {"enum": ["HIGH", "MEDIUM", "LOW"]},
+        "data_quality": {"type": "string"},
+        "assumptions": {
+          "type": "array",
+          "items": {"type": "string"}
+        },
+        "risks": {
+          "type": "array",
+          "items": {"type": "string"}
+        }
+      },
+      "required": [
+        "primary_driver",
+        "supporting_factors",
+        "confidence_level",
+        "data_quality",
+        "assumptions",
+        "risks"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "recommended_spend",
+    "expected_revenue",
+    "confidence",
+    "assumptions",
+    "rationale"
+  ],
+  "additionalProperties": true
+}

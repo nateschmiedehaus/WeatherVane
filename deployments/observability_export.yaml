@@ -1,0 +1,18 @@
+# Prefect deployment to export retention/geocoding telemetry for dashboards.
+
+name: observability-export
+flow_name: observability-export
+entrypoint: apps/worker/maintenance/export_observability.py:main
+parameters:
+  summary_root: storage/metadata/state
+  output: observability/latest
+schedule:
+  cron: 15 7 * * *
+  timezone: UTC
+  day_or: false
+tags:
+  - observability
+  - telemetry
+infra_overrides:
+  env:
+    PREFECT_LOGGING_LEVEL: INFO
