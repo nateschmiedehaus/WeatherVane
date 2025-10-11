@@ -16,7 +16,7 @@ async function main() {
   const runtime = new OrchestratorRuntime(workspaceRoot, {
     targetCodexRatio: 5,
   });
-  runtime.start();
+  // DON'T start runtime yet - wait until after transport is connected
 
   const session = new SessionContext(runtime);
   logInfo("WVO MCP server booting", {
@@ -392,6 +392,10 @@ async function main() {
 
     const transport = new StdioServerTransport();
     await server.connect(transport);
+
+    // DON'T start runtime automatically - it interferes with stdin.
+    // The runtime will be started on-demand by tool calls if needed.
+    // runtime.start();
 
     logInfo("WVO MCP server ready", {
       workspace: session.workspaceRoot,
