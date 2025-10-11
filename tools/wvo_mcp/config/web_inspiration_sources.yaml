@@ -1,0 +1,52 @@
+categories:
+  - id: web_design
+    description: Modern marketing and product sites
+    keywords: [landing, website, marketing, hero, pricing, funnel, conversion]
+    sources:
+      - https://www.awwwards.com/websites/ui-design/
+      - https://www.awwwards.com/websites/landing-page/
+      - https://dribbble.com/shots/popular/web-design
+
+  - id: data_visualization
+    description: Dashboards, analytics, and rich data stories
+    keywords: [dashboard, analytics, chart, graph, visualization, metrics, reporting, kpi]
+    sources:
+      - https://www.siteinspire.com/websites?categories=analytics
+      - https://www.behance.net/search/projects?search=data%20visualization
+      - https://dribbble.com/tags/dashboard
+
+  - id: product_storytelling
+    description: Narrative product launches and campaign storytelling
+    keywords: [story, launch, narrative, campaign, case study, announcement]
+    sources:
+      - https://www.awwwards.com/websites/product/
+      - https://dribbble.com/tags/product_launch
+
+  - id: brand_voice
+    description: Copywriting, brand tone, and content strategy references
+    keywords: [copy, tone, brand, messaging, narrative, manifesto, slogan]
+    sources:
+      - https://www.behance.net/search/projects?search=brand%20identity
+      - https://www.awwwards.com/websites/content/
+
+  - id: hardware
+    description: Physical product and industrial design inspiration
+    keywords: [hardware, industrial, device, physical, equipment, wearable]
+    sources:
+      - https://www.behance.net/search/projects?search=industrial%20design
+      - https://www.behance.net/search/projects?search=hardware%20product
+
+  - id: enterprise_workflows
+    description: Heavy-duty enterprise UX, workflows, and complex systems
+    keywords: [enterprise, workflow, system, configuration, management, admin]
+    sources:
+      - https://dribbble.com/tags/enterprise_ux
+      - https://www.siteinspire.com/websites?categories=business-services
+
+  - id: fallback
+    description: General inspiration fallback if nothing matches
+    keywords: []
+    sources:
+      - https://www.awwwards.com/websites/
+      - https://www.behance.net/
+    fallback: true

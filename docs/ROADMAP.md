@@ -118,6 +118,13 @@ Objective: Move from recommendations to end-to-end campaign execution and collab
    - Approval workflows, comments/annotations, role-based dashboards, scheduled reports, Slack/Teams notifications.
 3. 🛤️ Execution Monitoring & Rollback
    - Performance comparison UI, forecast-change alerts, undo/rollback capabilities.
+4. 🛤️ Creative Intelligence Enhancements
+   - Weather-driven creative inspiration board with brand guard compliance checks.
+   - Creative scoring rubric (story, imagery, compliance) + executive-ready narrative summaries.
+5. 🛤️ Ad Platform Command & Safety Rails
+   - Meta Marketing API + sandbox executor with credential vaulting.
+   - Google Ads API integration (campaign create/update, shared budgets, spend reconciliation).
+   - Dry-run diff visualizer, automated rollback, and alerting when performance regresses.
 
 Dependencies: Phases 2 & 4 deliver reliable metrics and model insights.
 
@@ -128,6 +135,7 @@ Dependencies: Phases 2 & 4 deliver reliable metrics and model insights.
 2. 🔄 Unified telemetry (metrics/logs/traces) into dashboards; on-call runbooks updated.
 3. 🛤️ Data quality dashboards (freshness, anomalies, nulls, schema drift).
 4. 🛤️ Load & cost benchmarking; tenant isolation policies; caching strategy (Redis) + documentation.
+5. 🛤️ Chaos drills & resilience playbook (latency fault injection, disaster recovery runbooks).
 
 ---
 
@@ -152,6 +160,9 @@ Dependencies: Phases 2 & 4 deliver reliable metrics and model insights.
 1. 🔄 Accessibility audit (WCAG AA), keyboard navigation, aria labels, reduced motion, theme toggle.
 2. 🔄 Mobile responsiveness, skeleton loaders, error boundaries, internationalization framework.
 3. 🛤️ Design system deep dive (tokens, iconography, motion guidelines, component docs).
+4. 🛤️ Award-winning visual language
+   - Commission motion/illustration guidelines; ensure layouts meet world-class design benchmarks (Awwwards, Lovie).
+   - Implement dynamic theming and storytelling templates (executive dashboards, brand customisations).
 
 ---
 
@@ -165,8 +176,32 @@ Dependencies: Phases 2 & 4 deliver reliable metrics and model insights.
 
 ---
 
+## Phase 11 · Resource-Aware Intelligence & Personalisation
+Objective: Guarantee WeatherVane runs lean on constrained hardware (e.g., M1 Mac mini) while scaling seamlessly to heavier infra.
+
+1. 🔄 Hardware & capability detection
+   - Runtime probe to detect CPU/GPU/RAM and select the appropriate execution path.
+   - Maintain device profiles (M1, cloud GPU, edge VM) with default batch sizes and concurrency limits.
+   - ✅ Local hardware probe now records structured profiles in `state/device_profiles.json` (CPU, memory, accelerators, recommended batch sizing).
+2. 🔄 Adaptive scheduling & quotas
+   - Work scheduler that staggers heavy tasks (model retrain, calibration, ingest) based on detected capacity.
+   - Idle/off-peak windows for expensive simulations; optional cloud burst hooks when capacity is available.
+3. 🛤️ Degraded-mode UX & model fallbacks
+   - Lightweight heuristics/mini models for low-resource environments; cache reuse across tenants.
+   - Gradual feature elevation when more compute is detected (e.g., enable SHAP, full MMM only on capable nodes).
+4. 🛤️ Performance benchmarking & health dashboards
+   - Track local resource usage, wall-clock times, and surface alerts when workloads exceed safe thresholds.
+5. 🛤️ Future-ready acceleration
+   - Optional connectors for external GPU runners (Modal, RunPod, AWS Batch) when high-end hardware is available—with auto reset to lean mode when those resources disappear.
+
+Exit criteria: WeatherVane auto-detects machine capabilities, routes workloads appropriately, and provides a smooth experience on an M1 Mac mini while scaling up gracefully when more compute is present.
+
+---
+
 ## Quick Wins (Always-On Backlog)
 - CSV export buttons, webhook docs, API examples, loading skeletons, help tooltips, empty states for new tenants, sample dataset toggle.
+- UX polish backlog (micro-interactions, award-level motion demos, global typography review).
+- Resource-aware checklist (confirm hardware probe logs, degrade-mode smoke tests).
 
 ---
 
@@ -176,4 +211,3 @@ Dependencies: Phases 2 & 4 deliver reliable metrics and model insights.
 - Data marketplace & partner portal.
 - Weather derivatives / revenue hedging products.
 - Advanced storytelling map overlays (animated) once telemetry proves stable.
-

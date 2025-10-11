@@ -13,11 +13,12 @@ from __future__ import annotations
 import os
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, Dict, Iterable, List, Mapping
+from typing import Any, Dict, List, Mapping
 
 from shared.libs.connectors import ShopifyConfig, ShopifyConnector
 from shared.libs.storage.lake import LakeWriter
 from shared.libs.storage.state import JsonStateStore
+from shared.validation.schemas import validate_shopify_orders, validate_shopify_products
 
 from .base import BaseIngestor, IngestionSummary, iso
 from .geocoding import Geocoder, enrich_order_with_geo
@@ -53,9 +54,11 @@ class ShopifyIngestor(BaseIngestor):
             params["updated_at_min"] = since
 
         orders = await self._collect_rest("orders", params=params)
-        geocoder = self.geocoder or Geocoder()
+        geocoder = self.geocoder or Geocoder(state_store=self.state_store)
         enriched = [enrich_order_with_geo(order, geocoder) for order in orders]
         rows = [self._normalise_order(tenant_id, order) for order in enriched]
+        if rows:
+            validate_shopify_orders(rows)
         geocoded_count = sum(1 for row in rows if row.get("ship_geohash"))
         geocoded_ratio = geocoded_count / len(rows) if rows else 0.0
         summary = self._write_records(
@@ -85,6 +88,8 @@ class ShopifyIngestor(BaseIngestor):
         params = {"limit": DEFAULT_PAGE_LIMIT}
         products = await self._collect_rest("products", params=params)
         rows = [self._normalise_product(tenant_id, product) for product in products]
+        if rows:
+            validate_shopify_products(rows)
         return self._write_records(
             dataset=f"{tenant_id}_shopify_products", rows=rows, source="shopify_api"
         )
@@ -107,18 +112,25 @@ class ShopifyIngestor(BaseIngestor):
 
     def _normalise_order(self, tenant_id: str, order: Mapping[str, Any]) -> Dict[str, Any]:
         shipping = order.get("shipping_address") or {}
+        order_id = self._coerce_str(order.get("id"))
+        currency = self._coerce_str(order.get("currency"))
+        created_at = self._coerce_str(order.get("created_at"))
         return {
             "tenant_id": tenant_id,
-            "order_id": order.get("id"),
-            "name": order.get("name"),
-            "created_at": order.get("created_at"),
-            "currency": order.get("currency"),
+            "order_id": order_id or "",
+            "name": self._coerce_str(order.get("name")),
+            "created_at": created_at or "",
+            "currency": currency or "",
             "total_price": float(order.get("total_price") or 0),
             "subtotal_price": float(order.get("subtotal_price") or 0),
             "total_tax": float(order.get("total_tax") or 0),
             "total_discounts": float(order.get("total_discounts") or 0),
-            "shipping_postal_code": shipping.get("zip") or shipping.get("postal_code"),
-            "shipping_country": shipping.get("country_code") or shipping.get("country"),
+            "shipping_postal_code": self._coerce_str(
+                shipping.get("zip") or shipping.get("postal_code")
+            ),
+            "shipping_country": self._coerce_str(
+                shipping.get("country_code") or shipping.get("country")
+            ),
             "ship_latitude": order.get("ship_latitude"),
             "ship_longitude": order.get("ship_longitude"),
             "ship_geohash": order.get("ship_geohash"),
@@ -127,16 +139,27 @@ class ShopifyIngestor(BaseIngestor):
     def _normalise_product(self, tenant_id: str, product: Mapping[str, Any]) -> Dict[str, Any]:
         return {
             "tenant_id": tenant_id,
-            "product_id": product.get("id"),
-            "title": product.get("title"),
-            "product_type": product.get("product_type"),
-            "vendor": product.get("vendor"),
-            "created_at": product.get("created_at"),
-            "updated_at": product.get("updated_at"),
+            "product_id": self._coerce_str(product.get("id")) or "",
+            "title": self._coerce_str(product.get("title")),
+            "product_type": self._coerce_str(product.get("product_type")),
+            "vendor": self._coerce_str(product.get("vendor")),
+            "created_at": self._coerce_str(product.get("created_at")),
+            "updated_at": self._coerce_str(product.get("updated_at")),
         }
 
+    @staticmethod
+    def _coerce_str(value: Any) -> str | None:
+        if value is None:
+            return None
+        text = str(value).strip()
+        return text or None
 
-def build_shopify_ingestor_from_env(lake_root: str) -> ShopifyIngestor | None:
+
+def build_shopify_ingestor_from_env(
+    lake_root: str,
+    *,
+    state_root: str | os.PathLike[str] | None = None,
+) -> ShopifyIngestor | None:
     """Convenience factory that returns an ingestor when env vars are present."""
 
     shop_domain = os.getenv("SHOPIFY_SHOP_DOMAIN")
@@ -155,7 +178,7 @@ def build_shopify_ingestor_from_env(lake_root: str) -> ShopifyIngestor | None:
         client_secret=client_secret,
         refresh_token=refresh_token,
     )
-    state_store = JsonStateStore()
+    state_store = JsonStateStore(root=state_root) if state_root else JsonStateStore()
     return ShopifyIngestor(
         connector=ShopifyConnector(config),
         writer=LakeWriter(root=lake_root),

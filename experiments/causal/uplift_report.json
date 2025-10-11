@@ -1,0 +1,94 @@
+{
+  "headline": {
+    "predicted_ate": 1.9167739032013087,
+    "observed_ate": 1.8978313754597615,
+    "ate_stderr": 0.13851076850528435,
+    "conf_low": 1.6263502691894043,
+    "conf_high": 2.169312481730119,
+    "p_value": 0.0,
+    "normalized_qini": 0.5933931276250092,
+    "sample_size": 2000.0
+  },
+  "deciles": [
+    {
+      "decile": 1.0,
+      "count": 200.0,
+      "mean_predicted_uplift": 5.487978589618121,
+      "mean_dr_uplift": 8.41410114842547,
+      "treatment_fraction": 0.615,
+      "mean_propensity": 0.6008247959720324
+    },
+    {
+      "decile": 2.0,
+      "count": 200.0,
+      "mean_predicted_uplift": 3.773907535382762,
+      "mean_dr_uplift": 5.785643961918014,
+      "treatment_fraction": 0.515,
+      "mean_propensity": 0.5509084830181716
+    },
+    {
+      "decile": 3.0,
+      "count": 200.0,
+      "mean_predicted_uplift": 3.0116369211338263,
+      "mean_dr_uplift": 4.323034056681748,
+      "treatment_fraction": 0.53,
+      "mean_propensity": 0.5230534278129456
+    },
+    {
+      "decile": 4.0,
+      "count": 200.0,
+      "mean_predicted_uplift": 2.483769363770427,
+      "mean_dr_uplift": 2.982759456191827,
+      "treatment_fraction": 0.565,
+      "mean_propensity": 0.5171943041511969
+    },
+    {
+      "decile": 5.0,
+      "count": 200.0,
+      "mean_predicted_uplift": 2.0616401616205033,
+      "mean_dr_uplift": 2.6477623199763087,
+      "treatment_fraction": 0.525,
+      "mean_propensity": 0.4902569808028305
+    },
+    {
+      "decile": 6.0,
+      "count": 200.0,
+      "mean_predicted_uplift": 1.6838806203356713,
+      "mean_dr_uplift": 1.2634382260493797,
+      "treatment_fraction": 0.545,
+      "mean_propensity": 0.507187912895404
+    },
+    {
+      "decile": 7.0,
+      "count": 200.0,
+      "mean_predicted_uplift": 1.274007588711872,
+      "mean_dr_uplift": 0.5082858021766937,
+      "treatment_fraction": 0.565,
+      "mean_propensity": 0.4716167366933548
+    },
+    {
+      "decile": 8.0,
+      "count": 200.0,
+      "mean_predicted_uplift": 0.7498564193335386,
+      "mean_dr_uplift": -0.5050564281271551,
+      "treatment_fraction": 0.54,
+      "mean_propensity": 0.4846815898854838
+    },
+    {
+      "decile": 9.0,
+      "count": 200.0,
+      "mean_predicted_uplift": 0.07837713333190954,
+      "mean_dr_uplift": -2.3516790076934604,
+      "treatment_fraction": 0.435,
+      "mean_propensity": 0.4554411174220704
+    },
+    {
+      "decile": 10.0,
+      "count": 200.0,
+      "mean_predicted_uplift": -1.4373153012255457,
+      "mean_dr_uplift": -4.089975781001209,
+      "treatment_fraction": 0.39,
+      "mean_propensity": 0.4157138830099462
+    }
+  ]
+}

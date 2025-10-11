@@ -1,0 +1,40 @@
+import type { PlanNextInput, PlanTaskSummary, RoadmapDocument } from "../utils/types.js";
+
+import { flattenTasks } from "./roadmap_parser.js";
+
+
+export class PlannerEngine {
+  constructor(private readonly roadmap: RoadmapDocument) {}
+
+  next(input: PlanNextInput): PlanTaskSummary[] {
+    const { limit = 5, filters } = input;
+    let tasks = flattenTasks(this.roadmap);
+
+    if (filters?.status?.length) {
+      tasks = tasks.filter((task) => filters.status?.includes(task.status));
+    }
+
+    if (filters?.epic_id) {
+      tasks = tasks.filter((task) => task.epic_id === filters.epic_id);
+    }
+
+    if (filters?.milestone_id) {
+      tasks = tasks.filter((task) => task.milestone_id === filters.milestone_id);
+    }
+
+    const statusOrder: Record<string, number> = {
+      blocked: 0,
+      pending: 1,
+      in_progress: 2,
+      done: 3,
+    };
+
+    tasks.sort((a, b) => {
+      const statusDiff = statusOrder[a.status] - statusOrder[b.status];
+      if (statusDiff !== 0) return statusDiff;
+      return (a.estimate_hours ?? 0) - (b.estimate_hours ?? 0);
+    });
+
+    return tasks.slice(0, limit);
+  }
+}

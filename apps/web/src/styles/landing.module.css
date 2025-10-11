@@ -33,6 +33,11 @@
   transition: transform 200ms ease, box-shadow 200ms ease;
 }
 
+.heroCTA button:focus-visible {
+  outline: 2px solid var(--color-focus-outline, #93c5fd);
+  outline-offset: 3px;
+}
+
 .heroCTA button:first-of-type {
   background: linear-gradient(135deg, rgba(96, 165, 250, 0.85), rgba(14, 165, 233, 0.9));
   color: #0f172a;

@@ -4,13 +4,15 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Dict
+from typing import Dict, List
 
 import polars as pl
+from polars import selectors as cs
 
 from shared.libs.storage.lake import LakeWriter, read_parquet
 from shared.validation.schemas import validate_feature_matrix
 from shared.data_context.models import DatasetProfile, build_profile_from_polars
+from shared.feature_store.feature_generators import LagRollingFeatureGenerator
 
 REQUIRED_WEATHER_COLS = {
     "temp_c",
@@ -21,20 +23,93 @@ REQUIRED_WEATHER_COLS = {
     "precip_roll7",
 }
 
+TARGET_COLUMN = "net_revenue"
+
+
+class FeatureLeakageError(RuntimeError):
+    """Raised when the feature matrix contains potential label leakage."""
+
+    def __init__(
+        self,
+        tenant_id: str,
+        start: datetime,
+        end: datetime,
+        *,
+        leakage_rows: int,
+        leakage_dates: List[str],
+        forward_rows: int,
+        forward_dates: List[str],
+        forecast_rows: int,
+        forecast_dates: List[str],
+        matrix: "FeatureMatrix | None" = None,
+    ) -> None:
+        self.tenant_id = tenant_id
+        self.start = start
+        self.end = end
+        self.leakage_rows = leakage_rows
+        self.leakage_dates = leakage_dates
+        self.forward_rows = forward_rows
+        self.forward_dates = forward_dates
+        self.forecast_rows = forecast_rows
+        self.forecast_dates = forecast_dates
+        self.matrix = matrix
+        summary = (
+            f"Potential leakage detected for tenant={tenant_id} "
+            f"window=[{start.date().isoformat()}, {end.date().isoformat()}]: "
+            f"total_rows={leakage_rows}, forward_rows={forward_rows}, forecast_rows={forecast_rows}, "
+            f"dates={leakage_dates}"
+        )
+        super().__init__(summary)
+
+    def as_dict(self) -> Dict[str, List[str] | int | str]:
+        return {
+            "tenant_id": self.tenant_id,
+            "start": self.start.isoformat(),
+            "end": self.end.isoformat(),
+            "leakage_rows": self.leakage_rows,
+            "leakage_dates": list(self.leakage_dates),
+            "forward_leakage_rows": self.forward_rows,
+            "forward_leakage_dates": list(self.forward_dates),
+            "forecast_leakage_rows": self.forecast_rows,
+            "forecast_leakage_dates": list(self.forecast_dates),
+            "sanitized_rows": self.matrix.frame.height if self.matrix else None,
+        }
+
 
 @dataclass
 class FeatureMatrix:
     frame: pl.DataFrame
+    observed_frame: pl.DataFrame
     orders_rows: int
     ads_rows: int
     promo_rows: int
     weather_rows: int
+    observed_rows: int
+    latest_observed_date: str | None
     profiles: Dict[str, DatasetProfile]
+    leakage_risk_rows: int
+    leakage_risk_dates: List[str]
+    forward_leakage_rows: int
+    forward_leakage_dates: List[str]
+    forecast_leakage_rows: int
+    forecast_leakage_dates: List[str]
 
 
 class FeatureBuilder:
-    def __init__(self, lake_root: Path | str = Path("storage/lake/raw")) -> None:
+    def __init__(
+        self,
+        lake_root: Path | str = Path("storage/lake/raw"),
+        feature_seed: int = 2024,
+        feature_min_rows: int = 14,
+    ) -> None:
         self.writer = LakeWriter(root=lake_root)
+        self.feature_min_rows = max(feature_min_rows, 1)
+        self.feature_generator = LagRollingFeatureGenerator(
+            LagRollingFeatureGenerator.default_specs(),
+            date_col="date",
+            group_cols=["geohash"],
+            seed=feature_seed,
+        )
 
     def build(self, tenant_id: str, start: datetime, end: datetime) -> FeatureMatrix:
         orders = self._load_latest(f"{tenant_id}_shopify_orders")
@@ -63,6 +138,9 @@ class FeatureBuilder:
         else:
             frame = weather_daily
 
+        if TARGET_COLUMN not in frame.columns:
+            frame = frame.with_columns(pl.lit(None, dtype=pl.Float64).alias(TARGET_COLUMN))
+
         frame = frame.with_columns(pl.col("date").cast(pl.Utf8))
 
         ads_join = ads_daily.drop([col for col in ["geohash"] if col in ads_daily.columns])
@@ -70,14 +148,96 @@ class FeatureBuilder:
 
         frame = frame.join(ads_join, on="date", how="full", suffix="_ads")
         if "date_ads" in frame.columns:
-            frame = frame.drop("date_ads")
+            frame = (
+                frame.with_columns(
+                    pl.when(pl.col("date").is_null())
+                    .then(pl.col("date_ads"))
+                    .otherwise(pl.col("date"))
+                    .alias("date")
+                )
+                .drop("date_ads")
+            )
         frame = frame.join(promos_join, on="date", how="full", suffix="_promo")
         if "date_promo" in frame.columns:
-            frame = frame.drop("date_promo")
-        frame = frame.sort("date").fill_null(0)
+            frame = (
+                frame.with_columns(
+                    pl.when(pl.col("date").is_null())
+                    .then(pl.col("date_promo"))
+                    .otherwise(pl.col("date"))
+                    .alias("date")
+                )
+                .drop("date_promo")
+            )
+        frame = frame.sort("date")
         start_str = start.date().isoformat()
         end_str = end.date().isoformat()
         frame = frame.filter(pl.col("date").is_between(pl.lit(start_str), pl.lit(end_str)))
+
+        frame = frame.with_columns(
+            pl.col(TARGET_COLUMN).is_not_null().alias("target_available"),
+        )
+
+        if frame.width > 0:
+            frame = frame.with_columns(cs.numeric().fill_null(0))
+
+        forward_looking_columns = [
+            column
+            for column in frame.columns
+            if column.endswith("_spend")
+            or column.endswith("_conversions")
+            or column == "promos_sent"
+        ]
+        forward_signal_expr = (
+            pl.lit(False)
+            if not forward_looking_columns
+            else pl.any_horizontal(
+                [
+                    pl.col(column).cast(pl.Float64).fill_null(0.0).abs() > 0.0
+                    for column in forward_looking_columns
+                ]
+            )
+        )
+        forward_leakage_expr = (~pl.col("target_available")) & forward_signal_expr
+        forecast_leakage_expr = (
+            pl.col("observation_type")
+            .cast(pl.Utf8)
+            .str.to_lowercase()
+            .eq("forecast")
+            & pl.col("target_available")
+            if "observation_type" in frame.columns
+            else pl.lit(False)
+        )
+        frame = frame.with_columns(
+            [
+                forward_leakage_expr.alias("_forward_leakage"),
+                forecast_leakage_expr.alias("_forecast_leakage"),
+            ]
+        )
+        frame = frame.with_columns(
+            (pl.col("_forward_leakage") | pl.col("_forecast_leakage")).alias("leakage_risk")
+        )
+
+        forward_leakage_frame = frame.filter(pl.col("_forward_leakage"))
+        forward_leakage_rows = int(forward_leakage_frame.height)
+        forward_leakage_dates = (
+            forward_leakage_frame.select(pl.col("date"))
+            .unique(maintain_order=True)["date"]
+            .to_list()
+            if forward_leakage_rows > 0
+            else []
+        )
+
+        forecast_leakage_frame = frame.filter(pl.col("_forecast_leakage"))
+        forecast_leakage_rows = int(forecast_leakage_frame.height)
+        forecast_leakage_dates = (
+            forecast_leakage_frame.select(pl.col("date"))
+            .unique(maintain_order=True)["date"]
+            .to_list()
+            if forecast_leakage_rows > 0
+            else []
+        )
+
+        frame = frame.drop(["_forward_leakage", "_forecast_leakage"])
 
         missing = [col for col in REQUIRED_WEATHER_COLS if col not in frame.columns]
         if missing:
@@ -94,14 +254,54 @@ class FeatureBuilder:
         except Exception:  # pragma: no cover - profiling is best-effort
             profiles = {}
 
-        return FeatureMatrix(
+        leakage_rows = frame.filter(pl.col("leakage_risk"))
+        leakage_risk_rows = int(leakage_rows.height)
+        leakage_risk_dates = (
+            leakage_rows.select(pl.col("date"))
+            .unique(maintain_order=True)["date"]
+            .to_list()
+            if leakage_risk_rows > 0
+            else []
+        )
+
+        frame = frame.filter(~pl.col("leakage_risk")) if leakage_risk_rows > 0 else frame
+        if frame.height >= self.feature_min_rows:
+            frame = self.feature_generator.transform(frame)
+        observed_frame = frame.filter(pl.col("target_available"))
+        observed_rows = int(observed_frame.height)
+        max_observed_date = observed_frame["date"].max() if observed_rows > 0 else None
+        latest_observed_date = str(max_observed_date) if isinstance(max_observed_date, str) else max_observed_date
+        matrix = FeatureMatrix(
             frame=frame,
+            observed_frame=observed_frame,
             orders_rows=int(orders.height),
             ads_rows=int(ads_meta.height + ads_google.height),
             promo_rows=int(promos.height),
             weather_rows=int(weather.height),
+            observed_rows=observed_rows,
+            latest_observed_date=latest_observed_date,
             profiles=profiles,
+            leakage_risk_rows=leakage_risk_rows,
+            leakage_risk_dates=[str(date) for date in leakage_risk_dates],
+            forward_leakage_rows=forward_leakage_rows,
+            forward_leakage_dates=[str(date) for date in forward_leakage_dates],
+            forecast_leakage_rows=forecast_leakage_rows,
+            forecast_leakage_dates=[str(date) for date in forecast_leakage_dates],
         )
+        if leakage_risk_rows > 0:
+            raise FeatureLeakageError(
+                tenant_id,
+                start,
+                end,
+            leakage_rows=leakage_risk_rows,
+                leakage_dates=[str(date) for date in leakage_risk_dates],
+                forward_rows=forward_leakage_rows,
+                forward_dates=matrix.forward_leakage_dates,
+                forecast_rows=forecast_leakage_rows,
+                forecast_dates=matrix.forecast_leakage_dates,
+                matrix=matrix,
+            )
+        return matrix
 
     def _load_latest(self, dataset: str) -> pl.DataFrame:
         path = self.writer.latest(dataset)

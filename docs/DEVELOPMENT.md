@@ -13,6 +13,9 @@ make bootstrap
 ```
 
 This installs Python dependencies in editable mode and installs web dependencies under `apps/web`.
+On Apple Silicon (arm64) hosts, `make bootstrap` automatically pins wheels from
+`requirements/apple-silicon.lock` to avoid NumPy/SciPy crashes stemming from mismatched
+Accelerate/OpenBLAS builds.
 
 ## Running Services Locally
 - **API:** `make api` (runs on http://localhost:8000)
@@ -33,6 +36,9 @@ These run Ruff/ESLint and Pytest/Next.js tests respectively. Formatting helper:
 make format
 ```
 
+Use `make clean-metrics` (or the automatic call at the end of `make test`) to purge
+`tmp/metrics/*` artifacts so repeated local runs do not accumulate stale NDJSON logs.
+
 ### Worker / PoC Pipeline Dependencies
 The worker CLI and PoC pipeline rely on scientific Python packages such as `polars`,
 `numpy`, and `scikit-learn`. Install the editable project dependency set before running
@@ -49,8 +55,10 @@ PYTHONPATH=.deps:. python apps/worker/run.py demo-tenant --start 2024-01-01 --en
 ```
 If native wheels clash with the host BLAS/Accelerate libraries (manifesting as
 segmentation faults on import), rebuild the dependencies inside a dedicated virtualenv or
-Conda environment instead of the `.deps` shortcut. The allocator prefers `scipy` when
-available, and the time-series helpers expect `lightgbm` linked against `libomp`—ensure
+Conda environment instead of the `.deps` shortcut. The allocator runs a pure-Python path by
+default and only enables SciPy's differential-evolution solver when
+`WEATHERVANE_ENABLE_SCIPY=1` is exported; this avoids linking crashes on constrained hosts.
+The time-series helpers expect `lightgbm` linked against `libomp`—ensure
 `libomp.dylib` is present (Homebrew `libomp` or a source build with `USE_OPENMP=OFF`) when
 running the worker end-to-end. If LightGBM is unavailable, the code falls back to
 `HistGradientBoostingRegressor` so toy runs can still succeed, albeit with less accurate

@@ -10,6 +10,21 @@
 
 **Overall Verdict: Beautiful foundation, but CRITICAL user journey gaps prevent adoption.**
 
+## 2025-10-10 Product Update — Story-first Plan Experience
+
+**Shipped enhancements (now live in `/plan`)**
+- Action queue hero cards surface the three most material weather-driven moves with confidence badges, driver context, and direct jump links to detailed rows.
+- Seven-day outlook tiles aggregate spend shifts by day so marketers preview the week’s narrative before diving into granular tables.
+- Confidence insight tiles translate statistical coverage into plain English, clarifying which slices are playbook-ready versus exploratory.
+- Loading skeletons, richer error recovery, and guided empty states keep first-time users anchored while data syncs.
+
+**Still on the roadmap**
+- Interactive sample tenant + scenario builder (demo mode) to reduce pre-data drop-off.
+- Narrative “Today’s briefing” entry point that precedes navigation into Plan/Stories/Proof.
+- Motion language for success states (confetti/checkpoints) once Autopilot approvals wire up.
+
+These updates address the top critiques in Sections “Act 2: The Abyss”, “Problem 3: Information Density Overload”, and “Micro-Interaction Failures” below; the remaining items stay prioritized for subsequent sprints.
+
 ### What Works (Design Excellence) ⭐⭐⭐⭐
 
 **Visual Design:**

@@ -88,6 +88,7 @@ refresh token. Persist refreshed tokens centrally if you want to avoid repeated 
 
 ## Geocoding validation
 - Orders ingestion stores `ship_geohash` alongside the raw record and writes `geocoded_ratio` into the ingestion summary.
+- Existing coordinates on the raw payload (e.g. Shopify shipping latitude/longitude) are normalised and re-encoded before falling back to a lookup, so we avoid redundant external geocoding calls.
 - The helper `apps.worker.validation.geocoding.evaluate_geocoding_coverage` loads the latest orders snapshot, computes coverage, and persists a JSON report under `storage/metadata/state/geocoding/<tenant>.json`.
 - Coverage results bubble into the PoC pipeline response (`geocoding_validation`) and inform context tags (e.g. `geo.partial`, `geo.missing`).
 - Default threshold is 0.8; adjust per tenant if you expect higher sparsity.
@@ -125,3 +126,25 @@ Keep things boring and explicit—future contributors will have a much easier ti
 - Rolling seven-day means (`temp_roll7`, `precip_roll7`) provide smoother signals for multi-geo aggregation.
 - Feature builder expects columns `temp_c`, `precip_mm`, `temp_anomaly`, `precip_anomaly`, `temp_roll7`, `precip_roll7`.
 - Schema validation runs via `shared.validation.schemas`.
+
+### Open-Meteo Daily Weather
+
+`WeatherCache.ensure_range` produces frames validated against `shared/contracts/weather_daily.schema.json`.
+
+| Field | Type | Notes |
+| --- | --- | --- |
+| `date` | string | UTC calendar date used for joins with other datasets |
+| `local_date` | string | Local (timezone-aware) calendar date returned by Open-Meteo |
+| `local_datetime` | string | Local midnight timestamp with timezone offset |
+| `utc_datetime` | string | UTC timestamp corresponding to local midnight |
+| `timezone` | string | IANA timezone identifier (e.g. `America/Los_Angeles`) |
+| `geohash` | string | Precision `5` cell linking back to tenant geo |
+| `temp_c`, `precip_mm` | number | Primary signals used downstream |
+| `temp_anomaly`, `precip_anomaly` | number | Deviations vs climatology |
+| `temp_roll7`, `precip_roll7` | number/null | Rolling seven-day means (null for the warmup window) |
+| `*_lag1` columns | number/null | Previous-day values for leading indicators |
+| `freeze_flag`, `heatwave_flag`, `snow_event_flag`, `high_wind_flag`, `uv_alert_flag`, `high_precip_prob_flag` | integer | Binary threshold events used in downstream feature builders |
+| `observation_type` | string | `observed`, `forecast`, or `stub` provenance tag |
+| `as_of_utc` | string | Timestamp when WeatherVane generated the blended row |
+
+Daily frames keep additional context columns (`temp_max_c`, `humidity_mean`, `uv_index_max`, etc.) so feature engineering can remain declarative.

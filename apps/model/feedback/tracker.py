@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, Iterable, List, Tuple
@@ -47,12 +48,11 @@ def load_performance_records(tenant_id: str, root: str | Path = "storage/metadat
     path = Path(root) / f"{tenant_id}.json"
     if not path.exists():
         return []
-    payload = path.read_text()
-    if not payload:
+    try:
+        with path.open("r", encoding="utf-8") as handle:
+            data = json.load(handle)
+    except json.JSONDecodeError:
         return []
-    import json
-
-    data = json.loads(payload)
     records: List[PerformanceRecord] = []
     for entry in data.get("records", []):
         predicted = entry.get("predicted", {})

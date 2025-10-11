@@ -7,6 +7,24 @@
   color: #e2e8f0;
 }
 
+.skipLink {
+  position: absolute;
+  top: -100%;
+  left: clamp(1rem, 3vw, 2rem);
+  padding: 0.5rem 1rem;
+  background: var(--color-surface-elevated, #0f172a);
+  color: var(--color-text-primary, #f8fafc);
+  border-radius: 0.75rem;
+  border: 2px solid var(--color-focus-outline, #93c5fd);
+  font-weight: 600;
+  transition: top 120ms ease-in-out;
+  z-index: 2;
+}
+
+.skipLink:focus-visible {
+  top: 1rem;
+}
+
 .backdrop {
   position: absolute;
   inset: 0;

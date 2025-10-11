@@ -1,0 +1,28 @@
+{
+  "60f073bd942e": {
+    "accelerators": [
+      {
+        "kind": "apple_mps",
+        "memory_bytes": 17179869184,
+        "name": "Apple Silicon GPU"
+      }
+    ],
+    "architecture": "arm64",
+    "capabilities": {
+      "has_accelerator": true,
+      "recommended_concurrency": 8,
+      "suggested_batch_size": 192,
+      "supports_cuda": false,
+      "supports_mps": true
+    },
+    "collected_at": "2025-10-10T11:43:43.343044+00:00",
+    "cpu_logical": 8,
+    "cpu_model": "arm",
+    "cpu_physical": null,
+    "hostname": "macmini.lan",
+    "memory_total_bytes": 17179869184,
+    "os": "Darwin",
+    "os_version": "Darwin Kernel Version 24.6.0: Mon Jul 14 11:30:34 PDT 2025; root:xnu-11417.140.69~1/RELEASE_ARM64_T8103",
+    "profile_id": "60f073bd942e"
+  }
+}

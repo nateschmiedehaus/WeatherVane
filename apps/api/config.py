@@ -18,11 +18,13 @@ class Settings(BaseSettings):
         model_config = SettingsConfigDict(
             env_file=".env",
             case_sensitive=False,
+            populate_by_name=True,
         )
     else:  # pragma: no cover - compatibility with Pydantic v1 import.
         class Config:
             env_file = ".env"
             case_sensitive = False
+            allow_population_by_field_name = True
 
     app_env: str = Field("dev", alias="APP_ENV")
     api_title: str = "WeatherVane API"

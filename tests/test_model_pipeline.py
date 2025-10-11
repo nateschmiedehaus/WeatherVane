@@ -10,7 +10,7 @@ def test_train_poc_models(tmp_path: Path):
     builder = FeatureBuilder(lake_root=tmp_path)
     matrix = builder.build(tenant, start=datetime(2024,1,5), end=datetime(2024,1,7))
 
-    bundle = train_poc_models(matrix.frame.to_dict(as_series=False))
+    bundle = train_poc_models(matrix.observed_frame.to_dict(as_series=False))
 
     assert bundle.baseline.features
     assert bundle.mmm.base_roas >= 0

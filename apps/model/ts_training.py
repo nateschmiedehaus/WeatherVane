@@ -11,6 +11,7 @@ from typing import Iterable, List, Sequence
 
 import numpy as np
 import polars as pl
+from sklearn.dummy import DummyRegressor
 from sklearn.model_selection import TimeSeriesSplit
 
 try:  # LightGBM is optional during scaffolding; swap in a fallback when missing.
@@ -32,8 +33,9 @@ except (ImportError, OSError):  # pragma: no cover - fall back when native lib m
             reg_lambda: float = 0.1,
             random_state: int | None = None,
         ) -> None:
+            max_iter = min(n_estimators, 50)
             super().__init__(
-                max_iter=n_estimators,
+                max_iter=max_iter,
                 learning_rate=learning_rate,
                 l2_regularization=reg_lambda,
                 random_state=random_state,
@@ -43,7 +45,7 @@ except (ImportError, OSError):  # pragma: no cover - fall back when native lib m
             self.colsample_bytree = colsample_bytree
             self.reg_alpha = reg_alpha
             self.reg_lambda = reg_lambda
-            self.n_estimators = n_estimators
+            self.n_estimators = max_iter
             self.learning_rate = learning_rate
             self.random_state = random_state
 
@@ -63,6 +65,24 @@ class FitResult:
     holdout_r2: float
     features: List[str]
     target: str
+
+
+def _normalise_date_column(frame: pl.DataFrame, date_col: str) -> pl.DataFrame:
+    if date_col not in frame.columns:
+        raise KeyError(f"Date column `{date_col}` not found in feature matrix")
+
+    dtype = frame.get_column(date_col).dtype
+    string_like = {pl.Utf8}
+    # Polars renamed Utf8 -> String in newer versions; guard for both.
+    if hasattr(pl, "String"):
+        string_like.add(pl.String)  # type: ignore[arg-type]
+
+    if dtype in string_like:
+        return frame.with_columns(
+            pl.col(date_col).str.strptime(pl.Date, strict=False).alias(date_col)
+        )
+
+    return frame.with_columns(pl.col(date_col).cast(pl.Date, strict=False).alias(date_col))
 
 
 def _ensure_sorted(frame: pl.DataFrame, date_col: str) -> pl.DataFrame:
@@ -86,7 +106,7 @@ def fit_timeseries(
     if frame.is_empty():
         raise ValueError("Feature matrix is empty; cannot train models")
 
-    frame = frame.with_columns(pl.col(date_col).str.strptime(pl.Date, strict=False).alias(date_col))
+    frame = _normalise_date_column(frame, date_col)
     frame = _ensure_sorted(frame, date_col)
     categorical = set(categorical or [])
 
@@ -96,15 +116,26 @@ def fit_timeseries(
 
     # Prepare holdout split (last HOLDOUT_WEEKS weeks).
     max_date = frame[date_col].max()
+    if not isinstance(max_date, np.datetime64):
+        max_date = np.datetime64(max_date)
     cutoff = max_date - np.timedelta64(HOLDOUT_WEEKS * 7, "D")
     train = frame.filter(pl.col(date_col) < cutoff)
     holdout = frame.filter(pl.col(date_col) >= cutoff)
 
     fallback_mode = train.is_empty() or holdout.is_empty() or train.height < len(features) + 1
 
+    if fallback_mode:
+        return FitResult(
+            model=DummyRegressor(strategy="mean").fit(X_full, y_full),
+            cv_scores=[],
+            holdout_r2=0.0,
+            features=list(features),
+            target=target,
+        )
+
     model = LGBMRegressor(
         objective="regression",
-        n_estimators=600,
+        n_estimators=200,
         learning_rate=0.05,
         subsample=0.8,
         colsample_bytree=0.8,
@@ -112,16 +143,6 @@ def fit_timeseries(
         reg_lambda=0.1,
         random_state=seed,
     )
-
-    if fallback_mode:
-        model.fit(X_full, y_full, categorical_feature=list(categorical), verbose=False)
-        return FitResult(
-            model=model,
-            cv_scores=[],
-            holdout_r2=0.0,
-            features=list(features),
-            target=target,
-        )
 
     X = train.select(features).to_numpy()
     y = train[target].to_numpy()

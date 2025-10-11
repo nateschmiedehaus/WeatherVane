@@ -9,7 +9,7 @@ from prefect import flow, get_run_logger, task
 import polars as pl
 
 from apps.worker.flows.poc_pipeline import TenantContext, fetch_shopify_data
-from apps.validation.incrementality import GeoHoldoutConfig, summarise_experiment
+from apps.validation.incrementality import summarise_experiment
 from apps.worker.validation.incrementality import (
     design_experiment_from_orders,
     summarise_experiment_from_orders,

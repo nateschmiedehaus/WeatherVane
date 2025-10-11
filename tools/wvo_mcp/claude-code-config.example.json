@@ -1,0 +1,15 @@
+{
+  "mcpServers": {
+    "weathervane": {
+      "command": "node",
+      "args": [
+        "/absolute/path/to/WeatherVane/tools/wvo_mcp/dist/index-claude.js",
+        "--workspace",
+        "/absolute/path/to/WeatherVane"
+      ],
+      "env": {
+        "CODEX_PROFILE": "medium"
+      }
+    }
+  }
+}

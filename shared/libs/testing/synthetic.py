@@ -108,11 +108,11 @@ def seed_synthetic_tenant(
             (pl.col("temp_c") - pl.col("temp_c").mean().over("geohash")).alias("temp_anomaly"),
             (pl.col("precip_mm") - pl.col("precip_mm").mean().over("geohash")).alias("precip_anomaly"),
             pl.col("temp_c")
-            .rolling_mean(window_size=7, min_periods=1)
+            .rolling_mean(window_size=7, min_samples=1)
             .over("geohash")
             .alias("temp_roll7"),
             pl.col("precip_mm")
-            .rolling_mean(window_size=7, min_periods=1)
+            .rolling_mean(window_size=7, min_samples=1)
             .over("geohash")
             .alias("precip_roll7"),
         ])

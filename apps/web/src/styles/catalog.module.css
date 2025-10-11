@@ -91,6 +91,11 @@
   transform: translateY(-1px);
 }
 
+.meta button:focus-visible {
+  outline: 2px solid var(--color-focus-outline, #93c5fd);
+  outline-offset: 3px;
+}
+
 .status,
 .error {
   margin-top: 2rem;
@@ -101,15 +106,38 @@
 }
 
 .status {
-  background: rgba(148, 163, 184, 0.2);
-  color: rgba(241, 245, 249, 0.85);
-  border: 1px solid rgba(148, 163, 184, 0.3);
+  background: var(--status-info-bg, #0e7490);
+  color: var(--status-info-text, #f0fdfa);
+  border: 1px solid rgba(103, 232, 249, 0.4);
 }
 
 .error {
-  background: rgba(239, 68, 68, 0.2);
-  color: rgba(248, 113, 113, 0.95);
-  border: 1px solid rgba(239, 68, 68, 0.35);
+  background: var(--status-critical-bg, #7f1d1d);
+  color: var(--status-critical-text, #fee2e2);
+  border: 1px solid rgba(239, 68, 68, 0.55);
+  display: grid;
+  gap: 0.75rem;
+}
+
+.retryButton {
+  justify-self: start;
+  padding: 0.55rem 1.2rem;
+  border-radius: 0.85rem;
+  border: 1px solid rgba(239, 68, 68, 0.55);
+  background: rgba(15, 23, 42, 0.45);
+  color: rgba(254, 202, 202, 0.95);
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 140ms ease;
+}
+
+.retryButton:hover {
+  transform: translateY(-1px);
+}
+
+.retryButton:focus-visible {
+  outline: 2px solid var(--color-focus-outline, #93c5fd);
+  outline-offset: 3px;
 }
 
 .contextSection {
@@ -258,6 +286,11 @@
 
 .manageButton:hover {
   transform: translateY(-1px);
+}
+
+.manageButton:focus-visible {
+  outline: 2px solid var(--color-focus-outline, #93c5fd);
+  outline-offset: 3px;
 }
 
 .placeholder {

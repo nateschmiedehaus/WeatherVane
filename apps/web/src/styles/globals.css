@@ -1,14 +1,36 @@
 :root {
-  color-scheme: light dark;
+  color-scheme: light;
   font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  background-color: #020617;
-  color: #e2e8f0;
+  --color-surface-primary: #020617;
+  --color-surface-muted: #0b1220;
+  --color-surface-elevated: #0f172a;
+  --color-surface-overlay: rgba(15, 23, 42, 0.85);
+  --color-text-primary: #f8fafc;
+  --color-text-secondary: #cbd5f5;
+  --color-text-tertiary: #94a3b8;
+  --color-border-strong: rgba(148, 163, 184, 0.5);
+  --color-border-subtle: rgba(148, 163, 184, 0.25);
+  --color-focus-outline: #93c5fd;
+  --color-focus-ring: 0 0 0 3px rgba(147, 197, 253, 0.45);
+  --status-info-bg: #0e7490;
+  --status-info-text: #f0fdfa;
+  --status-caution-bg: #78350f;
+  --status-caution-text: #fde68a;
+  --status-critical-bg: #7f1d1d;
+  --status-critical-text: #fee2e2;
+  --badge-success-bg: #14532d;
+  --badge-success-text: #bbf7d0;
+  --badge-muted-bg: #1f2937;
+  --badge-muted-text: rgba(203, 213, 225, 0.95);
 }
 
 body {
   margin: 0;
   min-height: 100vh;
-  background: radial-gradient(circle at top, rgba(59, 130, 246, 0.2), transparent 55%),
+  background-color: var(--color-surface-primary);
+  color: var(--color-text-primary);
+  line-height: 1.5;
+  background-image: radial-gradient(circle at top, rgba(59, 130, 246, 0.2), transparent 55%),
     linear-gradient(120deg, rgba(14, 116, 144, 0.35), rgba(30, 41, 59, 0.9));
 }
 
@@ -19,6 +41,28 @@ a {
 
 * {
   box-sizing: border-box;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+:where(a, button, [role="button"], input, select, textarea, summary) {
+  transition: outline-color 120ms ease, box-shadow 120ms ease;
+}
+
+:where(a, button, [role="button"], input, select, textarea, summary):focus-visible {
+  outline: 2px solid var(--color-focus-outline);
+  outline-offset: 3px;
+  box-shadow: var(--color-focus-ring);
 }
 
 [data-reduced-motion="true"] * {

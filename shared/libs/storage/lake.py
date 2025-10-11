@@ -41,8 +41,17 @@ class LakeWriter:
         dataset_dir = self.root / dataset
         if not dataset_dir.exists():
             return None
-        parquet_files = sorted(dataset_dir.glob("*.parquet"), key=lambda p: p.stat().st_mtime, reverse=True)
-        return parquet_files[0] if parquet_files else None
+        newest_path: Path | None = None
+        newest_mtime = float("-inf")
+        for candidate in dataset_dir.glob("*.parquet"):
+            try:
+                mtime = candidate.stat().st_mtime
+            except FileNotFoundError:
+                continue
+            if mtime > newest_mtime:
+                newest_mtime = mtime
+                newest_path = candidate
+        return newest_path
 
 
 def read_parquet(path: Path) -> pl.DataFrame:

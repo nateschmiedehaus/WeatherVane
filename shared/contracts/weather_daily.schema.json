@@ -1,0 +1,199 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "WeatherDailyRecord",
+  "type": "object",
+  "properties": {
+    "date": {
+      "type": "string",
+      "minLength": 1
+    },
+    "local_date": {
+      "type": "string",
+      "minLength": 1
+    },
+    "local_datetime": {
+      "type": "string",
+      "minLength": 1
+    },
+    "utc_datetime": {
+      "type": "string",
+      "minLength": 1
+    },
+    "timezone": {
+      "type": "string",
+      "minLength": 1
+    },
+    "geohash": {
+      "type": "string",
+      "minLength": 1
+    },
+    "day_of_year": {
+      "type": "integer"
+    },
+    "temp_c": {
+      "type": "number"
+    },
+    "temp_max_c": {
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "temp_min_c": {
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "apparent_temp_c": {
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "precip_mm": {
+      "type": "number"
+    },
+    "precip_probability": {
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "humidity_mean": {
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "windspeed_max": {
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "uv_index_max": {
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "snowfall_mm": {
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "temp_anomaly": {
+      "type": "number"
+    },
+    "precip_anomaly": {
+      "type": "number"
+    },
+    "temp_roll7": {
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "precip_roll7": {
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "temp_c_lag1": {
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "precip_mm_lag1": {
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "uv_index_lag1": {
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "precip_probability_lag1": {
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "humidity_lag1": {
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "freeze_flag": {
+      "type": "integer"
+    },
+    "heatwave_flag": {
+      "type": "integer"
+    },
+    "snow_event_flag": {
+      "type": "integer"
+    },
+    "high_wind_flag": {
+      "type": "integer"
+    },
+    "uv_alert_flag": {
+      "type": "integer"
+    },
+    "high_precip_prob_flag": {
+      "type": "integer"
+    },
+    "observation_type": {
+      "type": "string",
+      "minLength": 1
+    },
+    "as_of_utc": {
+      "type": "string",
+      "minLength": 1
+    }
+  },
+  "required": [
+    "date",
+    "local_date",
+    "local_datetime",
+    "utc_datetime",
+    "timezone",
+    "geohash",
+    "day_of_year",
+    "temp_c",
+    "temp_max_c",
+    "temp_min_c",
+    "apparent_temp_c",
+    "precip_mm",
+    "precip_probability",
+    "humidity_mean",
+    "windspeed_max",
+    "uv_index_max",
+    "snowfall_mm",
+    "temp_anomaly",
+    "precip_anomaly",
+    "temp_roll7",
+    "precip_roll7",
+    "temp_c_lag1",
+    "precip_mm_lag1",
+    "uv_index_lag1",
+    "precip_probability_lag1",
+    "humidity_lag1",
+    "freeze_flag",
+    "heatwave_flag",
+    "snow_event_flag",
+    "high_wind_flag",
+    "uv_alert_flag",
+    "high_precip_prob_flag",
+    "observation_type",
+    "as_of_utc"
+  ],
+  "additionalProperties": false
+}

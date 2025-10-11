@@ -22,6 +22,7 @@ export function NavTabs() {
             key={tab.href}
             href={tab.href}
             className={isActive ? styles.active : styles.link}
+            aria-current={isActive ? "page" : undefined}
           >
             {tab.label}
           </Link>

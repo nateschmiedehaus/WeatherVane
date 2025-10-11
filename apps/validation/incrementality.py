@@ -6,7 +6,7 @@ import random
 from dataclasses import dataclass, asdict
 from math import sqrt
 from statistics import NormalDist
-from typing import Iterable, Optional
+from typing import Iterable
 
 import polars as pl
 
