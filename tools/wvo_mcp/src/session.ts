@@ -87,7 +87,7 @@ export class SessionContext {
   private roadmapSyncedOnce = false;
 
   // Cache for plan_next to avoid rebuilding payloads when queue is unchanged
-  private planNextCache = new Map<string, { timestamp: number; result: any[] }>();
+  private planNextCache = new Map<string, { timestamp: number; result: ReturnType<typeof buildPlanSummaries> }>();
   private lastRoadmapChangeMs = Date.now();
 
   constructor(runtime?: OrchestratorRuntime) {
@@ -114,9 +114,23 @@ export class SessionContext {
     }
   }
 
+  private get legacyYamlEnabled(): boolean {
+    return process.env.WVO_ENABLE_LEGACY_YAML === "1";
+  }
+
+  private get syncYamlEnabled(): boolean {
+    return process.env.WVO_SYNC_YAML_TO_DB === "1";
+  }
+
+  private generateCorrelationId(prefix: string): string {
+    return `${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`;
+  }
+
   async planNext(input: PlanNextInput) {
     if (this.stateMachine) {
-      await this.ensureStateMachineSynced();
+      if (this.syncYamlEnabled) {
+        await this.ensureStateMachineSynced();
+      }
       const limit = input.limit ?? 5;
 
       // Create cache key from filters
@@ -144,10 +158,13 @@ export class SessionContext {
 
   async updatePlanStatus(taskId: string, status: TaskStatus) {
     if (this.stateMachine) {
-      await this.ensureStateMachineSynced();
+      if (this.syncYamlEnabled) {
+        await this.ensureStateMachineSynced();
+      }
       try {
+        const correlationId = this.generateCorrelationId("plan_update");
         const mappedStatus = legacyStatusToState(status as LegacyPlanStatus);
-        await this.stateMachine.transition(taskId, mappedStatus);
+        await this.stateMachine.transition(taskId, mappedStatus, undefined, correlationId);
       } catch (error) {
         logWarning("Failed to update orchestrator state", {
           taskId,
@@ -157,14 +174,16 @@ export class SessionContext {
       }
     }
 
-    try {
-      await this.roadmapStore.upsertTaskStatus(taskId, status);
-    } catch (error) {
-      logWarning("Failed to update roadmap.yaml", {
-        taskId,
-        status,
-        error: error instanceof Error ? error.message : String(error),
-      });
+    if (this.legacyYamlEnabled) {
+      try {
+        await this.roadmapStore.upsertTaskStatus(taskId, status);
+      } catch (error) {
+        logWarning("Failed to update roadmap.yaml", {
+          taskId,
+          status,
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
     }
   }
 
@@ -317,7 +336,7 @@ export class SessionContext {
   }
 
   private async ensureStateMachineSynced(): Promise<void> {
-    if (!this.stateMachine) {
+    if (!this.stateMachine || !this.syncYamlEnabled) {
       return;
     }
 

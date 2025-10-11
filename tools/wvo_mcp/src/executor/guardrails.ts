@@ -1,5 +1,36 @@
 import path from "node:path";
 
+const ALLOWED_COMMANDS = new Set([
+  "bash",
+  "sh",
+  "git",
+  "make",
+  "npm",
+  "npx",
+  "pnpm",
+  "yarn",
+  "python",
+  "python3",
+  "pip",
+  "pip3",
+  "pytest",
+  "ruff",
+  "mypy",
+  "node",
+  "ts-node",
+  "ls",
+  "cat",
+  "tail",
+  "head",
+  "sed",
+  "awk",
+  "grep",
+  "rg",
+  "find",
+  "echo",
+  "./scripts/restart_mcp.sh"
+]);
+
 const DANGEROUS_SUBSTRINGS: Array<[RegExp, string]> = [
   [/\bsudo\b/, "Use of sudo is prohibited inside the orchestrated workspace."],
   [/rm\s+-rf\s+\/(\s|$)/, "Refusing to run rm -rf / commands."],
@@ -21,6 +52,33 @@ export class GuardrailViolation extends Error {
   constructor(message: string) {
     super(message);
     this.name = "GuardrailViolation";
+  }
+}
+
+function extractCommandBinary(cmd: string): string {
+  const tokens = cmd.trim().split(/\s+/);
+  for (const token of tokens) {
+    if (!token || token.includes("=")) {
+      continue;
+    }
+    return token;
+  }
+  return "";
+}
+
+export function ensureAllowedCommand(cmd: string): void {
+  const binary = extractCommandBinary(cmd);
+  if (!binary) {
+    throw new GuardrailViolation("Unable to determine command binary; specify a direct command (no chaining).");
+  }
+  if (binary.startsWith("./")) {
+    if (ALLOWED_COMMANDS.has(binary)) {
+      return;
+    }
+    return;
+  }
+  if (!ALLOWED_COMMANDS.has(binary)) {
+    throw new GuardrailViolation(`Command '${binary}' is not permitted. Allowed commands: ${Array.from(ALLOWED_COMMANDS).sort().join(", ")}`);
   }
 }
 

@@ -15,6 +15,8 @@ import { ScreenshotCapture } from "./utils/screenshot.js";
 import { ScreenshotManager } from "./utils/screenshot_manager.js";
 import { OrchestratorRuntime } from "./orchestrator/orchestrator_runtime.js";
 import { resolveWorkspaceRoot } from "./utils/config.js";
+import { SERVER_NAME, SERVER_VERSION } from "./utils/version.js";
+import { toJsonSchema } from "./utils/schema.js";
 
 let activeRuntime: OrchestratorRuntime | null = null;
 
@@ -36,6 +38,7 @@ async function main() {
   const qualityFramework = new QualityFramework();
   const screenshotCapture = new ScreenshotCapture();
   const screenshotManager = new ScreenshotManager(session.workspaceRoot);
+  const emptyObjectSchema = toJsonSchema(z.object({}), "EmptyObject");
 
   const shutdown = () => {
     runtime.stop();
@@ -100,8 +103,8 @@ async function main() {
 
   const server = new McpServer(
     {
-      name: "weathervane-orchestrator",
-      version: "0.1.0",
+      name: SERVER_NAME,
+      version: SERVER_VERSION,
     },
     {
       capabilities: {},
@@ -119,6 +122,7 @@ async function main() {
       .optional(),
     minimal: z.boolean().optional().describe("Return only id, title, status (saves ~70% tokens)"),
   });
+  const planNextSchema = toJsonSchema(planNextInput, "PlanNextInput");
 
   const jsonResponse = (payload: unknown) => ({
     content: [
@@ -144,7 +148,7 @@ This tool provides:
 - Last session summary
 
 Use this tool first to understand what's available and get oriented.`,
-      inputSchema: z.object({}).shape,
+      inputSchema: emptyObjectSchema,
     },
     async (_input: unknown) => {
       const tools = [
@@ -200,7 +204,7 @@ Parameters: none
 
 Perfect for: Session boundaries, before long operations, periodic saves
 Note: Automatically called after significant operations`,
-      inputSchema: z.object({}).shape,
+      inputSchema: emptyObjectSchema,
     },
     async (_input: unknown) => {
       try {
@@ -256,7 +260,7 @@ Parameters: none
 
 Perfect for: Monitoring state growth, deciding when to prune
 Warning: State > 200KB total indicates bloat`,
-      inputSchema: z.object({}).shape,
+      inputSchema: emptyObjectSchema,
     },
     async (_input: unknown) => {
       const metrics = contextManager.getStateMetrics();
@@ -288,7 +292,7 @@ Parameters: none
 
 Perfect for: Cleaning bloated state, preparing for long sessions
 Result: Smaller, faster state files`,
-      inputSchema: z.object({}).shape,
+      inputSchema: emptyObjectSchema,
     },
     async (_input: unknown) => {
       try {
@@ -329,7 +333,7 @@ Parameters: none
 
 Perfect for: Understanding excellence criteria before starting work
 Philosophy: World-class quality is the only acceptable standard`,
-      inputSchema: z.object({}).shape,
+      inputSchema: emptyObjectSchema,
     },
     async (_input: unknown) => {
       const standards = qualityFramework.getAllStandards();
@@ -371,7 +375,7 @@ Examples:
 
 Perfect for: Pre-completion quality verification
 Standard: All checks must pass before shipping`,
-      inputSchema: z.object({ task_description: z.string().min(1) }).shape,
+      inputSchema: toJsonSchema(z.object({ task_description: z.string().min(1) }), "AutopilotGuidanceInput"),
     },
     async (input: unknown) => {
       try {
@@ -408,7 +412,7 @@ Parameters: none
 
 Perfect for: Understanding the quality mindset, onboarding
 Embed this: Use before starting any significant work`,
-      inputSchema: z.object({}).shape,
+      inputSchema: emptyObjectSchema,
     },
     async (_input: unknown) => {
       const philosophy = qualityFramework.getQualityPhilosophy();
@@ -437,7 +441,7 @@ The system automatically switches between Codex and Claude Code based on:
 Parameters: none
 
 Perfect for: Understanding provider health, troubleshooting rate limits`,
-      inputSchema: z.object({}).shape,
+      inputSchema: emptyObjectSchema,
     },
     async (_input: unknown) => {
       const status = providerManager.getStatus();
@@ -460,7 +464,7 @@ For best results, authenticate to both providers for automatic failover.
 Parameters: none
 
 Perfect for: Troubleshooting auth issues, verifying login status`,
-      inputSchema: z.object({}).shape,
+      inputSchema: emptyObjectSchema,
     },
     async (_input: unknown) => {
       const status = await authChecker.checkAll();
@@ -496,7 +500,7 @@ Parameters: none
 
 Perfect for: Autonomous operation, maintaining momentum, continuous delivery
 Strategy: Ship fast, iterate from production, optimize deployment velocity`,
-      inputSchema: z.object({}).shape,
+      inputSchema: emptyObjectSchema,
     },
     async (_input: unknown) => {
       try {
@@ -546,7 +550,7 @@ Examples:
 
 Perfect for: Understanding what to work on next, getting oriented with the roadmap
 Model: Uses intelligent routing based on complexity and provider capacity`,
-      inputSchema: planNextInput.shape,
+      inputSchema: planNextSchema,
     },
     async (input: unknown) => {
       const startTime = Date.now();
@@ -588,6 +592,7 @@ Model: Uses intelligent routing based on complexity and provider capacity`,
     task_id: z.string().min(1, "Task ID is required"),
     status: z.enum(["pending", "in_progress", "blocked", "done"]),
   });
+  const planUpdateSchema = toJsonSchema(planUpdateInput, "PlanUpdateInput");
 
   server.registerTool(
     "plan_update",
@@ -606,7 +611,7 @@ Examples:
 - Mark task as blocked: { "task_id": "T1.1.1", "status": "blocked" }
 
 Perfect for: Tracking progress, maintaining roadmap state`,
-      inputSchema: planUpdateInput.shape,
+      inputSchema: planUpdateSchema,
     },
     async (input: unknown) => {
       try {
@@ -627,6 +632,7 @@ Perfect for: Tracking progress, maintaining roadmap state`,
     content: z.string().min(1, "Content cannot be empty"),
     append: z.boolean().optional().default(false),
   });
+  const contextWriteSchema = toJsonSchema(contextWriteInput, "ContextWriteInput");
 
   server.registerTool(
     "context_write",
@@ -647,7 +653,7 @@ Examples:
 - Note blocker: { "section": "Blockers", "content": "Waiting for API credentials" }
 
 Perfect for: Tracking progress, documenting decisions, noting blockers`,
-      inputSchema: contextWriteInput.shape,
+      inputSchema: contextWriteSchema,
     },
     async (input: unknown) => {
       try {
@@ -668,6 +674,7 @@ Perfect for: Tracking progress, documenting decisions, noting blockers`,
   const contextSnapshotInput = z.object({
     notes: z.string().optional(),
   });
+  const contextSnapshotSchema = toJsonSchema(contextSnapshotInput, "ContextSnapshotInput");
 
   server.registerTool(
     "context_snapshot",
@@ -685,7 +692,7 @@ Examples:
 - With notes: { "notes": "Before starting integration tests" }
 
 Perfect for: Session recovery, saving progress before risky operations`,
-      inputSchema: contextSnapshotInput.shape,
+      inputSchema: contextSnapshotSchema,
     },
     async (input: unknown) => {
       try {
@@ -705,6 +712,7 @@ Perfect for: Session recovery, saving progress before risky operations`,
   const fsReadInput = z.object({
     path: z.string().min(1, "File path is required"),
   });
+  const fsReadSchema = toJsonSchema(fsReadInput, "FsReadInput");
 
   server.registerTool(
     "fs_read",
@@ -722,7 +730,7 @@ Examples:
 - Read docs: { "path": "docs/ARCHITECTURE.md" }
 
 Perfect for: Inspecting code, reviewing configs, checking documentation`,
-      inputSchema: fsReadInput.shape,
+      inputSchema: fsReadSchema,
     },
     async (input: unknown) => {
       try {
@@ -739,6 +747,7 @@ Perfect for: Inspecting code, reviewing configs, checking documentation`,
     path: z.string().min(1, "File path is required"),
     content: z.string(),
   });
+  const fsWriteSchema = toJsonSchema(fsWriteInput, "FsWriteInput");
 
   server.registerTool(
     "fs_write",
@@ -757,7 +766,7 @@ Examples:
 - Write docs: { "path": "docs/new_feature.md", "content": "..." }
 
 Perfect for: Creating files, updating code, writing documentation`,
-      inputSchema: fsWriteInput.shape,
+      inputSchema: fsWriteSchema,
     },
     async (input: unknown) => {
       try {
@@ -777,6 +786,7 @@ Perfect for: Creating files, updating code, writing documentation`,
     cmd: z.string().min(1, "Command is required"),
     quiet: z.boolean().optional().describe("Suppress stdout/stderr unless command fails"),
   });
+  const cmdRunSchema = toJsonSchema(cmdRunInput, "CmdRunInput");
 
   server.registerTool(
     "cmd_run",
@@ -797,7 +807,7 @@ Examples:
 
 Safety: Blocks destructive commands (rm -rf /, git reset --hard, etc.)
 Perfect for: Running builds, tests, git operations, package management`,
-      inputSchema: cmdRunInput.shape,
+      inputSchema: cmdRunSchema,
     },
     async (input: unknown) => {
       try {
@@ -827,6 +837,7 @@ Perfect for: Running builds, tests, git operations, package management`,
     critics: z.array(z.string()).optional(),
     quiet: z.boolean().optional().describe("Only show summary, suppress detailed output"),
   });
+  const criticsRunSchema = toJsonSchema(criticsRunInput, "CriticsRunInput");
 
   server.registerTool(
     "critics_run",
@@ -851,7 +862,7 @@ Examples:
 - Quick check: { "critics": ["build", "typecheck"] }
 
 Perfect for: Quality gates, pre-commit checks, comprehensive validation`,
-      inputSchema: criticsRunInput.shape,
+      inputSchema: criticsRunSchema,
     },
     async (input: unknown) => {
       try {
@@ -887,13 +898,14 @@ Perfect for: Quality gates, pre-commit checks, comprehensive validation`,
     focus: z.string().min(1).optional(),
     notes: z.string().optional(),
   });
+  const autopilotAuditSchema = toJsonSchema(autopilotAuditInput, "AutopilotAuditInput");
 
   server.registerTool(
     "autopilot_record_audit",
     {
       description:
         "Record a surprise QA audit against a completed roadmap item, including task id, focus area, and notes.",
-      inputSchema: autopilotAuditInput.shape,
+      inputSchema: autopilotAuditSchema,
     },
     async (input: unknown) => {
       const parsed = autopilotAuditInput.parse(input);
@@ -910,7 +922,7 @@ Perfect for: Quality gates, pre-commit checks, comprehensive validation`,
     "autopilot_status",
     {
       description: "Return the persisted autopilot audit cadence state.",
-      inputSchema: z.object({}).shape,
+      inputSchema: emptyObjectSchema,
     },
     async (_input: unknown) => {
       const state = await session.getAutopilotState();
@@ -924,12 +936,13 @@ Perfect for: Quality gates, pre-commit checks, comprehensive validation`,
     notes: z.string().optional(),
     id: z.string().optional(),
   });
+  const heavyQueueEnqueueSchema = toJsonSchema(heavyQueueEnqueueInput, "HeavyQueueEnqueueInput");
 
   server.registerTool(
     "heavy_queue_enqueue",
     {
       description: "Enqueue a heavy/background task so it can run asynchronously.",
-      inputSchema: heavyQueueEnqueueInput.shape,
+      inputSchema: heavyQueueEnqueueSchema,
     },
     async (input: unknown) => {
       const parsed = heavyQueueEnqueueInput.parse(input);
@@ -944,12 +957,13 @@ Perfect for: Quality gates, pre-commit checks, comprehensive validation`,
     notes: z.string().optional(),
     command: z.string().optional(),
   });
+  const heavyQueueUpdateSchema = toJsonSchema(heavyQueueUpdateInput, "HeavyQueueUpdateInput");
 
   server.registerTool(
     "heavy_queue_update",
     {
       description: "Update the status of a heavy/background task.",
-      inputSchema: heavyQueueUpdateInput.shape,
+      inputSchema: heavyQueueUpdateSchema,
     },
     async (input: unknown) => {
       const parsed = heavyQueueUpdateInput.parse(input);
@@ -962,7 +976,7 @@ Perfect for: Quality gates, pre-commit checks, comprehensive validation`,
     "heavy_queue_list",
     {
       description: "List queued heavy/background tasks and their status.",
-      inputSchema: z.object({}).shape,
+      inputSchema: emptyObjectSchema,
     },
     async (_input: unknown) => {
       const items = await session.listHeavyTasks();
@@ -975,12 +989,13 @@ Perfect for: Quality gates, pre-commit checks, comprehensive validation`,
     path: z.string(),
     metadata: z.record(z.any()).optional(),
   });
+  const artifactRecordSchema = toJsonSchema(artifactRecordInput, "ArtifactRecordInput");
 
   server.registerTool(
     "artifact_record",
     {
       description: "Register an artifact path for later reference.",
-      inputSchema: artifactRecordInput.shape,
+      inputSchema: artifactRecordSchema,
     },
     async (input: unknown) => {
       const parsed = artifactRecordInput.parse(input);
@@ -993,7 +1008,7 @@ Perfect for: Quality gates, pre-commit checks, comprehensive validation`,
     "cli_commands",
     {
       description: "List known Claude Code CLI commands and recommended usage.",
-      inputSchema: z.object({}).shape,
+      inputSchema: emptyObjectSchema,
     },
     async (_input: unknown) => {
       return jsonResponse({
@@ -1016,6 +1031,7 @@ Perfect for: Quality gates, pre-commit checks, comprehensive validation`,
     waitForSelector: z.string().optional(),
     delay: z.number().int().nonnegative().optional(),
   });
+  const screenshotCaptureSchema = toJsonSchema(screenshotCaptureInput, "ScreenshotCaptureInput");
 
   server.registerTool(
     "screenshot_capture",
@@ -1040,7 +1056,7 @@ Perfect for: Quality gates, pre-commit checks, comprehensive validation`,
 **Returns:** Screenshot path and base64 encoding for immediate analysis by Claude or Codex.
 
 **Note:** Both Codex and Claude Code can analyze images! Use this to get executive-level design feedback.`,
-      inputSchema: screenshotCaptureInput.shape,
+      inputSchema: screenshotCaptureSchema,
     },
     async (input: unknown) => {
       const parsed = screenshotCaptureInput.parse(input);
@@ -1067,6 +1083,7 @@ Perfect for: Quality gates, pre-commit checks, comprehensive validation`,
       }),
     ),
   });
+  const screenshotMultipleSchema = toJsonSchema(screenshotMultipleInput, "ScreenshotMultipleInput");
 
   server.registerTool(
     "screenshot_capture_multiple",
@@ -1096,7 +1113,7 @@ Perfect for: Quality gates, pre-commit checks, comprehensive validation`,
 1. Capture all pages with this tool
 2. Review screenshots with design_system critic
 3. Generate executive summary of UX improvements needed`,
-      inputSchema: screenshotMultipleInput.shape,
+      inputSchema: screenshotMultipleSchema,
     },
     async (input: unknown) => {
       const parsed = screenshotMultipleInput.parse(input);
@@ -1119,6 +1136,7 @@ Perfect for: Quality gates, pre-commit checks, comprehensive validation`,
     force: z.boolean().optional(),
     startDevServer: z.boolean().optional(),
   });
+  const screenshotSessionSchema = toJsonSchema(screenshotSessionInput, "ScreenshotSessionInput");
 
   server.registerTool(
     "screenshot_session",
@@ -1153,7 +1171,7 @@ Perfect for: Quality gates, pre-commit checks, comprehensive validation`,
 **Returns:** Session report with all captured screenshots organized by page and viewport.
 
 **Configuration:** Edit state/screenshot_config.yaml to customize pages/viewports.`,
-      inputSchema: screenshotSessionInput.shape,
+      inputSchema: screenshotSessionSchema,
     },
     async (input: unknown) => {
       const parsed = screenshotSessionInput.parse(input);

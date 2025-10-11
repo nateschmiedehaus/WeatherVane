@@ -254,7 +254,7 @@ export class StateMachine extends EventEmitter {
   // Task Operations
   // ==========================================================================
 
-  createTask(task: Omit<Task, 'created_at'>): Task {
+  createTask(task: Omit<Task, 'created_at'>, correlationId?: string): Task {
     const now = Date.now();
     const fullTask: Task = {
       ...task,
@@ -282,7 +282,8 @@ export class StateMachine extends EventEmitter {
       timestamp: now,
       event_type: 'task_created',
       task_id: fullTask.id,
-      data: { task: fullTask }
+      data: { task: fullTask },
+      correlation_id: correlationId
     });
 
     this.invalidateHealthCache();
@@ -365,7 +366,7 @@ export class StateMachine extends EventEmitter {
     return rows.map(row => this.rowToTask(row));
   }
 
-  async transition(taskId: string, newStatus: TaskStatus, metadata?: Record<string, unknown>): Promise<Task> {
+  async transition(taskId: string, newStatus: TaskStatus, metadata?: Record<string, unknown>, correlationId?: string): Promise<Task> {
     const task = this.getTask(taskId);
     if (!task) {
       throw new Error(`Task ${taskId} not found`);
@@ -397,7 +398,8 @@ export class StateMachine extends EventEmitter {
       timestamp: now,
       event_type: 'task_transition',
       task_id: taskId,
-      data: { from: task.status, to: newStatus, metadata }
+      data: { from: task.status, to: newStatus, metadata },
+      correlation_id: correlationId
     });
 
     const updatedTask = this.getTask(taskId)!;
@@ -411,7 +413,7 @@ export class StateMachine extends EventEmitter {
     return updatedTask;
   }
 
-  assignTask(taskId: string, agent: string): Task {
+  assignTask(taskId: string, agent: string, correlationId?: string): Task {
     const task = this.getTask(taskId);
     if (!task) {
       throw new Error(`Task ${taskId} not found`);
@@ -424,7 +426,8 @@ export class StateMachine extends EventEmitter {
       event_type: 'task_assigned',
       task_id: taskId,
       agent,
-      data: { agent }
+      data: { agent },
+      correlation_id: correlationId
     });
 
     const updatedTask = this.getTask(taskId)!;

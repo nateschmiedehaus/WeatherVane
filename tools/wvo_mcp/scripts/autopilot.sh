@@ -16,6 +16,14 @@ BASE_INSTRUCTIONS="${BASE_INSTRUCTIONS:-$ROOT/docs/wvo_prompt.md}"
 CONFIG_SCRIPT="$ROOT/tools/wvo_mcp/scripts/configure_codex_profile.py"
 USAGE_LIMIT_BACKOFF=${USAGE_LIMIT_BACKOFF:-300}
 
+# Optionally restart MCP before doing anything else unless skipped explicitly.
+if [ "${WVO_AUTOPILOT_FORCE_RESTART:-0}" = "1" ] && [ -x "$ROOT/scripts/restart_mcp.sh" ]; then
+  echo "[autopilot] restarting MCP via scripts/restart_mcp.sh" >>"$LOG_FILE"
+  if ! "$ROOT/scripts/restart_mcp.sh" >>"$LOG_FILE" 2>&1; then
+    echo "[autopilot] restart_mcp.sh exited with non-zero status; continuing" >>"$LOG_FILE"
+  fi
+fi
+
 ACCOUNT_MANAGER="$ROOT/tools/wvo_mcp/scripts/account_manager.py"
 ACCOUNTS_CONFIG="$ROOT/state/accounts.yaml"
 ACCOUNT_MANAGER_ENABLED=1

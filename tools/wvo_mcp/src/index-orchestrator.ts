@@ -20,7 +20,9 @@ import { ResilienceManager } from './orchestrator/resilience_manager.js';
 import type { TaskType, TaskStatus } from './orchestrator/state_machine.js';
 import { logInfo, logError, logWarning } from './telemetry/logger.js';
 import { formatData, formatError, formatSuccess } from './utils/response_formatter.js';
+import { toJsonSchema } from './utils/schema.js';
 import { InspirationFetcher } from './web_tools/inspiration_fetcher.js';
+import { SERVER_NAME, SERVER_VERSION } from './utils/version.js';
 
 // ============================================================================
 // Configuration
@@ -60,13 +62,15 @@ async function main() {
 
   const stateMachine = runtime.getStateMachine();
   const opsManager = runtime.getOperationsManager();
+  const agentPool = runtime.getAgentPool();
   const webInspirationManager = runtime.getWebInspirationManager();
-  const inspirationFetcher = new InspirationFetcher(workspaceRoot);
+  const inspirationFetcher = new InspirationFetcher(runtime.getWorkspaceRoot());
+  const emptyObjectSchema = toJsonSchema(z.object({}), 'EmptyObject');
 
   // Initialize resilience manager
   const resilience = new ResilienceManager(
     stateMachine,
-    opsManager['agentPool'] // Access private field (safe in runtime context)
+    agentPool
   );
 
   // Handle graceful shutdown
@@ -91,8 +95,8 @@ async function main() {
 
   const server = new McpServer(
     {
-      name: 'weathervane-orchestrator',
-      version: '2.0.0'
+      name: SERVER_NAME,
+      version: SERVER_VERSION
     },
     {
       capabilities: {}
@@ -117,7 +121,7 @@ Shows:
 - System health
 
 Use this to monitor autonomous operation.`,
-      inputSchema: z.object({}).shape
+      inputSchema: emptyObjectSchema
     },
     async (_input: unknown) => {
       try {
@@ -179,6 +183,19 @@ Use this to monitor autonomous operation.`,
   );
 
   // Web inspiration capture
+  const webInspirationCaptureInput = z.object({
+    url: z.string().url(),
+    taskId: z.string().optional(),
+    viewport: z
+      .object({
+        width: z.number().min(640).max(3840),
+        height: z.number().min(480).max(2160)
+      })
+      .optional(),
+    timeoutMs: z.number().min(1000).max(15000).optional()
+  });
+  const webInspirationCaptureSchema = toJsonSchema(webInspirationCaptureInput, 'WebInspirationCaptureInput');
+
   server.registerTool(
     'web_inspiration_capture',
     {
@@ -191,31 +208,11 @@ Parameters:
 - timeoutMs (optional): Navigation timeout in milliseconds (default 10000)
 
 Returns: screenshot path, HTML snapshot path, and metadata including size and duration. If assets already exist for the task they are returned from cache.`,
-      inputSchema: z.object({
-        url: z.string().url(),
-        taskId: z.string().optional(),
-        viewport: z
-          .object({
-            width: z.number().min(640).max(3840),
-            height: z.number().min(480).max(2160)
-          })
-          .optional(),
-        timeoutMs: z.number().min(1000).max(15000).optional()
-      }).shape
+      inputSchema: webInspirationCaptureSchema
     },
     async (input: unknown) => {
       try {
-        const parsed = z.object({
-          url: z.string().url(),
-          taskId: z.string().optional(),
-          viewport: z
-            .object({
-              width: z.number().min(640).max(3840),
-              height: z.number().min(480).max(2160)
-            })
-            .optional(),
-          timeoutMs: z.number().min(1000).max(15000).optional()
-        }).parse(input);
+        const parsed = webInspirationCaptureInput.parse(input);
 
         const result = await inspirationFetcher.capture(parsed);
 
@@ -234,6 +231,12 @@ Returns: screenshot path, HTML snapshot path, and metadata including size and du
     }
   );
 
+  const webInspirationStatusInput = z.object({
+    taskId: z.string().optional(),
+    limit: z.number().min(1).max(100).optional()
+  });
+  const webInspirationStatusSchema = toJsonSchema(webInspirationStatusInput, 'WebInspirationStatusInput');
+
   server.registerTool(
     'web_inspiration_status',
     {
@@ -244,10 +247,7 @@ Parameters:
 - limit (optional): Maximum number of results (default 20)
 
 Returns: metadata for each inspiration asset including relative paths, sizes, and timestamps.` ,
-      inputSchema: z.object({
-        taskId: z.string().optional(),
-        limit: z.number().min(1).max(100).optional()
-      }).shape
+      inputSchema: webInspirationStatusSchema
     },
     async (input: unknown) => {
       try {
@@ -255,10 +255,7 @@ Returns: metadata for each inspiration asset including relative paths, sizes, an
           return formatError('Web inspiration feature is disabled', 'Set WVO_ENABLE_WEB_INSPIRATION=1 to enable');
         }
 
-        const parsed = z.object({
-          taskId: z.string().optional(),
-          limit: z.number().min(1).max(100).optional()
-        }).parse(input ?? {});
+        const parsed = webInspirationStatusInput.parse(input ?? {});
 
         const assets = await webInspirationManager.listAssets({
           taskId: parsed.taskId,
@@ -283,6 +280,19 @@ Returns: metadata for each inspiration asset including relative paths, sizes, an
   );
 
   // Create Task
+  const taskCreateInput = z.object({
+    id: z.string().min(1),
+    title: z.string().min(1),
+    description: z.string().optional(),
+    type: z.enum(['epic', 'story', 'task', 'bug']).optional(),
+    status: z.enum(['pending', 'in_progress', 'needs_review', 'needs_improvement', 'done', 'blocked']).optional(),
+    epic_id: z.string().optional(),
+    parent_id: z.string().optional(),
+    estimated_complexity: z.number().int().min(1).max(10).optional(),
+    depends_on: z.array(z.string()).optional()
+  });
+  const taskCreateSchema = toJsonSchema(taskCreateInput, 'TaskCreateInput');
+
   server.registerTool(
     'task_create',
     {
@@ -314,33 +324,14 @@ Example:
   "estimated_complexity": 6,
   "depends_on": ["T2.1.0"]
 }`,
-      inputSchema: z.object({
-        id: z.string().min(1),
-        title: z.string().min(1),
-        description: z.string().optional(),
-        type: z.enum(['epic', 'story', 'task', 'bug']).optional(),
-        status: z.enum(['pending', 'in_progress', 'needs_review', 'needs_improvement', 'done', 'blocked']).optional(),
-        epic_id: z.string().optional(),
-        parent_id: z.string().optional(),
-        estimated_complexity: z.number().int().min(1).max(10).optional(),
-        depends_on: z.array(z.string()).optional()
-      }).shape
+      inputSchema: taskCreateSchema
     },
     async (input: unknown) => {
       try {
-        const parsed = z.object({
-          id: z.string().min(1),
-          title: z.string().min(1),
-          description: z.string().optional(),
-          type: z.enum(['epic', 'story', 'task', 'bug']).optional(),
-          status: z.enum(['pending', 'in_progress', 'needs_review', 'needs_improvement', 'done', 'blocked']).optional(),
-          epic_id: z.string().optional(),
-          parent_id: z.string().optional(),
-          estimated_complexity: z.number().int().min(1).max(10).optional(),
-          depends_on: z.array(z.string()).optional()
-        }).parse(input);
+        const parsed = taskCreateInput.parse(input);
 
         // Create task
+        const correlationId = `task_create_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`;
         const task = stateMachine.createTask({
           id: parsed.id,
           title: parsed.title,
@@ -350,7 +341,7 @@ Example:
           epic_id: parsed.epic_id,
           parent_id: parsed.parent_id,
           estimated_complexity: parsed.estimated_complexity
-        });
+        }, correlationId);
 
         // Add dependencies
         if (parsed.depends_on) {
@@ -375,6 +366,11 @@ Example:
   );
 
   // Get Task Status
+  const taskStatusInput = z.object({
+    task_id: z.string().min(1)
+  });
+  const taskStatusSchema = toJsonSchema(taskStatusInput, 'TaskStatusInput');
+
   server.registerTool(
     'task_status',
     {
@@ -389,13 +385,11 @@ Shows:
 
 Parameters:
 - task_id (required): Task ID to query`,
-      inputSchema: z.object({
-        task_id: z.string().min(1)
-      }).shape
+      inputSchema: taskStatusSchema
     },
     async (input: unknown) => {
       try {
-        const parsed = z.object({ task_id: z.string().min(1) }).parse(input);
+        const parsed = taskStatusInput.parse(input);
 
         const task = stateMachine.getTask(parsed.task_id);
         if (!task) {
@@ -463,7 +457,7 @@ A task is "ready" when:
 These are the tasks the orchestrator will assign next.
 
 Parameters: none`,
-      inputSchema: z.object({}).shape
+      inputSchema: emptyObjectSchema
     },
     async (_input: unknown) => {
       try {
