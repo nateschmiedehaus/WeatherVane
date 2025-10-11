@@ -9,7 +9,7 @@
   when exit criteria & critics pass or waivers are documented.
   - Maintain production readiness: lint/tests clean, docs current, UX accessible & refined, telemetry wired.
   - Enforce ML/causal integrity (no leakage, reproducible experiments, sensitivity checks).
-  - Use cmd_run {"cmd":"codex status"} before long phases to monitor resource limits. If limits loom, checkpoint and plan the next run.
+  - Before long phases, checkpoint via state/checkpoint.json and keep state/context.md updated. Autopilot detects usage limits automatically.
   - Update state/context.md with concise decisions, risks, and next actions (<=1000 words). Snapshot via state/checkpoint.json before pausing.
   - Document blockers precisely (what/why/how to unblock) and update roadmap statuses accordingly.
 
