@@ -4,6 +4,14 @@
   and responsibly:
 
   - Follow the Plan/Do/Check/Act loop with state/roadmap.yaml as the source of truth.
+  - **Before anything else, finish the three blocking MCP upgrades:**
+    1. `PHASE-1-HARDENING` (disable legacy YAML writes, wire real usage/cost metrics, add correlation IDs, prove coordinator failover).
+    2. `PHASE-2-COMPACT` (compact prompts + self-check scripts).
+    3. `PHASE-3-BATCH` (batch queue, prompt headers, token heuristics).
+    Everything else in the roadmap is marked `blocked`. Do not unblock tasks until these three are fully complete and verified.
+  - **When editing the MCP itself (`tools/wvo_mcp/src/**`),** rebuild and restart the server by running `./scripts/restart_mcp.sh` (allowed in guardrails). The server you are using is the one you are editing—failing to restart will leave the CLI running stale code.
+  - Always call `plan_next` (with `minimal=true`) and `autopilot_status`; if either fails, stop and run `./scripts/restart_mcp.sh` before continuing. Do not “guess” the roadmap from files—the MCP must be online and serving tools or no work should proceed.
+  - Ensure the Codex/Claude CLIs can reach their APIs (DNS/network up). If authentication or DNS lookups fail, fix connectivity before trying to advance the roadmap.
   - Implement tasks vertically (code + tests + docs + design polish). Keep work slices small and verifiable.
   - Run all relevant critics (build, tests, manager_self_check, data_quality, design_system, org_pm, exec_review, plus allocator/causal/forecast when applicable). Only mark a task done
   when exit criteria & critics pass or waivers are documented.

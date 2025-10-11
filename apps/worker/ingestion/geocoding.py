@@ -215,6 +215,18 @@ def enrich_order_with_geo(order: dict, geocoder: Geocoder) -> dict:
         city_geo = geocoder.lookup_city(city, country=country, region=region)  # type: ignore[arg-type]
         if city_geo.geohash:
             geo = city_geo
+        elif city_geo.latitude is not None and city_geo.longitude is not None:
+            geo = GeoResult(
+                latitude=city_geo.latitude,
+                longitude=city_geo.longitude,
+                geohash=geohash2.encode(city_geo.latitude, city_geo.longitude, precision),
+            )
+    if geo.latitude is not None and geo.longitude is not None and not geo.geohash:
+        geo = GeoResult(
+            latitude=geo.latitude,
+            longitude=geo.longitude,
+            geohash=geohash2.encode(geo.latitude, geo.longitude, precision),
+        )
     return _apply(geo)
 
 

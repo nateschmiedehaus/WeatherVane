@@ -14,6 +14,7 @@ import { HealthCheckCritic } from "./critics/health_check.js";
 import { HumanSyncCritic } from "./critics/human_sync.js";
 import { LeakageCritic } from "./critics/leakage.js";
 import { ManagerSelfCheckCritic } from "./critics/manager_self_check.js";
+import { PromptBudgetCritic } from "./critics/prompt_budget.js";
 import { OrgPmCritic } from "./critics/org_pm.js";
 import { SecurityCritic } from "./critics/security.js";
 import { TestsCritic } from "./critics/tests.js";
@@ -65,6 +66,7 @@ const CRITIC_REGISTRY = {
   manager_self_check: ManagerSelfCheckCritic,
   health_check: HealthCheckCritic,
   human_sync: HumanSyncCritic,
+  prompt_budget: PromptBudgetCritic,
 } as const;
 
 export type CriticKey = keyof typeof CRITIC_REGISTRY;
@@ -85,6 +87,7 @@ export class SessionContext {
   private lastRoadmapSyncMs = 0;
   private roadmapSyncInFlight = false;
   private roadmapSyncedOnce = false;
+  private legacyYamlWarningLogged = false;
 
   // Cache for plan_next to avoid rebuilding payloads when queue is unchanged
   private planNextCache = new Map<string, { timestamp: number; result: ReturnType<typeof buildPlanSummaries> }>();
@@ -115,7 +118,11 @@ export class SessionContext {
   }
 
   private get legacyYamlEnabled(): boolean {
-    return process.env.WVO_ENABLE_LEGACY_YAML === "1";
+    if (process.env.WVO_ENABLE_LEGACY_YAML === "1" && !this.legacyYamlWarningLogged) {
+      logWarning("Legacy roadmap.yaml writes are disabled; ignoring WVO_ENABLE_LEGACY_YAML=1.");
+      this.legacyYamlWarningLogged = true;
+    }
+    return false;
   }
 
   private get syncYamlEnabled(): boolean {

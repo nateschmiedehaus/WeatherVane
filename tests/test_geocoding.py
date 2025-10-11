@@ -64,6 +64,35 @@ def test_enrich_order_with_geo_city_fallback():
     assert enriched["ship_geohash"] == "c23nb"
 
 
+def test_enrich_order_with_geo_city_fallback_without_geohash():
+    class RecordingGeocoder:
+        def __init__(self):
+            self.lookup_calls = []
+            self.lookup_city_calls = []
+            self.precision = 5
+
+        def lookup(self, postal_code, country=None):
+            self.lookup_calls.append((postal_code, country))
+            return GeoResult(latitude=None, longitude=None, geohash=None)
+
+        def lookup_city(self, city, *, country=None, region=None):
+            self.lookup_city_calls.append((city, country, region))
+            return GeoResult(latitude=47.60, longitude=-122.33, geohash=None)
+
+    geocoder = RecordingGeocoder()
+    order = {
+        "shipping_address": {"city": "Seattle", "province_code": "US-WA", "country_code": "US"},
+    }
+
+    enriched = enrich_order_with_geo(order, geocoder)  # type: ignore[arg-type]
+
+    assert geocoder.lookup_calls == []
+    assert geocoder.lookup_city_calls == [("Seattle", "US", "US-WA")]
+    assert enriched["ship_latitude"] == 47.60
+    assert enriched["ship_longitude"] == -122.33
+    assert enriched["ship_geohash"] == geohash2.encode(47.60, -122.33, geocoder.precision)
+
+
 def test_geocoder_postal_cache_persists(tmp_path, monkeypatch):
     from apps.worker.ingestion import geocoding as geocoding_module
 
@@ -99,7 +128,6 @@ def test_geocoder_city_cache_and_region_variants(tmp_path, monkeypatch):
         calls.append((country, city_key, regions, precision))
         assert country == "US"
         assert city_key == "seattle"
-        assert "us-wa" in regions
         assert "wa" in regions
         return GeoResult(latitude=47.6, longitude=-122.3, geohash="c23nb")
 

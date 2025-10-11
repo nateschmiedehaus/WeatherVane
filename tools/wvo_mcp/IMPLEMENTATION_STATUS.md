@@ -281,6 +281,7 @@ state/orchestrator.db
 - [x] **QualityMonitor** - Continuous validation on state transitions (baseline metrics)
 - [x] **OperationsManager** - Dynamic policy & maintenance supervision
 - [x] **Resilience Controls** - Rate/context limit detection with automatic cooldowns
+- [x] **Prompt Budget Guardrail** – Context assembler trims to ≤600 tokens, prompt budget critic/script keeps checkpoints compact
 
 ### Phase 3: Intelligence (2-3 days)
 - [ ] **AdaptiveRoadmap** - Self-extending based on progress

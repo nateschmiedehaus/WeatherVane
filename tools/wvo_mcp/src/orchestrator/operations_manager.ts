@@ -1,6 +1,6 @@
 import { EventEmitter } from 'node:events';
 
-import type { AgentPool } from './agent_pool.js';
+import type { AgentPool, AgentType } from './agent_pool.js';
 import type { ExecutionObserver, ExecutionSummary } from './claude_code_coordinator.js';
 import type { QualityMonitor } from './quality_monitor.js';
 import type { PriorityProfile, TaskScheduler } from './task_scheduler.js';
@@ -28,6 +28,8 @@ export interface OperationsSnapshot {
   timestamp: number;
   rateLimitCodex: number;
   rateLimitClaude: number;
+  coordinatorType: AgentType;
+  coordinatorAvailable: boolean;
   codexPresetStats: Record<string, CodexPresetPerformance>;
   // Additional properties for MCP status tool
   agent_pool: {
@@ -101,14 +103,28 @@ export class OperationsManager extends EventEmitter implements ExecutionObserver
   };
   private lastSnapshotTime = 0;
   private readonly SNAPSHOT_THROTTLE_MS = 2000; // Max 1 snapshot per 2 seconds
+  private readonly COORDINATOR_CHECK_INTERVAL = 30000;
+  private coordinatorCheckTimer: NodeJS.Timeout | null = null;
 
   // Store bound listeners for cleanup
   private readonly boundListeners = {
     qualityEvaluated: () => this.recomputeStrategy('quality'),
     queueUpdated: () => this.recomputeStrategy('queue'),
     taskTransition: () => this.recomputeStrategy('transition'),
-    agentCooldown: () => this.recomputeStrategy('cooldown'),
-    agentCooldownCleared: () => this.recomputeStrategy('cooldown_clear')
+    agentCooldown: (data: { agentId: string; agentType: AgentType; seconds: number; reason: string }) => {
+      this.recomputeStrategy('cooldown');
+      if (data.agentId === 'claude_code') {
+        this.agentPool.promoteCoordinatorRole(`cooldown:${data.reason}:${data.seconds}s`);
+      }
+    },
+    agentCooldownCleared: (data: { agentId: string; agentType: AgentType }) => {
+      this.recomputeStrategy('cooldown_clear');
+      if (data.agentId === 'claude_code') {
+        this.checkCoordinatorAvailability('claude_available');
+      }
+    },
+    coordinatorPromoted: () => this.recomputeStrategy('coordinator_promoted'),
+    coordinatorDemoted: () => this.recomputeStrategy('coordinator_demoted')
   };
 
   constructor(
@@ -126,6 +142,12 @@ export class OperationsManager extends EventEmitter implements ExecutionObserver
     this.stateMachine.on('task:transition', this.boundListeners.taskTransition);
     this.agentPool.on('agent:cooldown', this.boundListeners.agentCooldown);
     this.agentPool.on('agent:cooldown_cleared', this.boundListeners.agentCooldownCleared);
+    this.agentPool.on('coordinator:promoted', this.boundListeners.coordinatorPromoted);
+    this.agentPool.on('coordinator:demoted', this.boundListeners.coordinatorDemoted);
+    this.coordinatorCheckTimer = setInterval(
+      () => this.checkCoordinatorAvailability('periodic'),
+      this.COORDINATOR_CHECK_INTERVAL
+    );
   }
 
   /**
@@ -137,6 +159,12 @@ export class OperationsManager extends EventEmitter implements ExecutionObserver
     this.stateMachine.removeListener('task:transition', this.boundListeners.taskTransition);
     this.agentPool.removeListener('agent:cooldown', this.boundListeners.agentCooldown);
     this.agentPool.removeListener('agent:cooldown_cleared', this.boundListeners.agentCooldownCleared);
+    this.agentPool.removeListener('coordinator:promoted', this.boundListeners.coordinatorPromoted);
+    this.agentPool.removeListener('coordinator:demoted', this.boundListeners.coordinatorDemoted);
+    if (this.coordinatorCheckTimer) {
+      clearInterval(this.coordinatorCheckTimer);
+      this.coordinatorCheckTimer = null;
+    }
     this.telemetryExporter.close();
   }
 
@@ -147,6 +175,25 @@ export class OperationsManager extends EventEmitter implements ExecutionObserver
     }
     this.emit('execution:recorded', summary);
     this.recomputeStrategy('execution');
+  }
+
+  private checkCoordinatorAvailability(trigger: string): void {
+    const currentCoordinator = this.agentPool.getCoordinatorType();
+    if (currentCoordinator === 'claude_code') {
+      return;
+    }
+
+    this.agentPool.demoteCoordinatorRole();
+
+    const updatedCoordinator = this.agentPool.getCoordinatorType();
+    if (updatedCoordinator === 'claude_code') {
+      logInfo('Coordinator switched back to Claude Code', { trigger });
+      this.emit('coordinator:switched', {
+        from: 'codex',
+        to: 'claude_code',
+        trigger
+      });
+    }
   }
 
   recordWebInspiration(event: {
@@ -179,10 +226,10 @@ export class OperationsManager extends EventEmitter implements ExecutionObserver
     const sizeKb = (event.screenshotSizeKb ?? 0) + (event.htmlSizeKb ?? 0);
     this.webInspirationSummary.totalSizeKb += sizeKb;
 
-     if (event.category) {
-       const key = event.category.toLowerCase();
-       this.webInspirationSummary.categories[key] = (this.webInspirationSummary.categories[key] ?? 0) + 1;
-     }
+    if (event.category) {
+      const key = event.category.toLowerCase();
+      this.webInspirationSummary.categories[key] = (this.webInspirationSummary.categories[key] ?? 0) + 1;
+    }
   }
 
   getSnapshot(): OperationsSnapshot | undefined {
@@ -191,6 +238,9 @@ export class OperationsManager extends EventEmitter implements ExecutionObserver
 
   handleRateLimit(agentId: string, agentType: 'codex' | 'claude_code', retryAfterSeconds: number, message: string): void {
     this.rateLimitCounters[agentType] += 1;
+    if (agentId === 'claude_code') {
+      this.agentPool.promoteCoordinatorRole(`claude_rate_limit:${retryAfterSeconds}s`);
+    }
     logWarning('Rate limit encountered', {
       agentId,
       agentType,
@@ -266,6 +316,8 @@ export class OperationsManager extends EventEmitter implements ExecutionObserver
     const totalAgents = this.agentPool.getAvailableAgents().length + usage.codex + usage.claude;
     const busyAgents = usage.codex + usage.claude;
     const idleAgents = this.agentPool.getAvailableAgents().length;
+    const coordinatorType = this.agentPool.getCoordinatorType();
+    const coordinatorAvailable = this.agentPool.isCoordinatorAvailable();
 
     return {
       avgQuality,
@@ -280,6 +332,8 @@ export class OperationsManager extends EventEmitter implements ExecutionObserver
       timestamp: Date.now(),
       rateLimitCodex: this.rateLimitCounters.codex,
       rateLimitClaude: this.rateLimitCounters.claude_code,
+      coordinatorType,
+      coordinatorAvailable,
       codexPresetStats,
       agent_pool: {
         total_agents: totalAgents,
@@ -377,6 +431,8 @@ export class OperationsManager extends EventEmitter implements ExecutionObserver
       totalTasks: snapshot.totalTasks,
       rateLimitCodex: snapshot.rateLimitCodex,
       rateLimitClaude: snapshot.rateLimitClaude,
+      coordinatorType: snapshot.coordinatorType,
+      coordinatorAvailable: snapshot.coordinatorAvailable,
       webInspiration: snapshot.webInspiration
     };
 

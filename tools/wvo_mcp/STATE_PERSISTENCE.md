@@ -220,6 +220,27 @@ Checkpoint persists to disk:
 }
 ```
 
+### `prompt_budget_check` - Validate prompt + checkpoint budget
+
+**Purpose**: Ensure prompts stay under 600 tokens and checkpoints/context remain compact
+
+**When to run**:
+- Before long autonomous loops
+- After large roadmap/context updates
+- During CI to guard prompt regressions
+
+**Command**:
+```bash
+node tools/wvo_mcp/scripts/check_prompt_budget.mjs
+```
+
+**Output**:
+```
+✅ Prompt budget check passed. Context words: 420 Checkpoint size: 34.8KB Prompts checked: 3 Max prompt tokens: 482
+```
+
+Fails with actionable guidance when context exceeds 1000 words, checkpoints grow past 50KB, or sampled prompts cross the 600-token budget.
+
 ---
 
 ## Continuation Workflow

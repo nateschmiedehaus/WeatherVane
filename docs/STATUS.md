@@ -1,20 +1,24 @@
 # WeatherVane Status Digest
-_Generated: 2025-10-10T12:24:50.982Z (profile: medium)_
+_Generated: 2025-10-11T00:51:06.437Z (profile: medium)_
 
 ## Recent Context Highlights
 ## Current Focus
-Epic 4 – Operational Excellence: executing T4.1.4 (Multi-horizon ensemble forecasting) to deliver resilient forecast ensembles and publish ensemble diagnostics.
+T7.1.1 – Complete geocoding integration and caching across Shopify orders.
 
 ## Decisions
-None yet for T4.1.4; decisions will be documented after reviewing existing forecasting interfaces and data contracts.
+- Normalised merchant-provided latitude/longitude hints before calling the geocoder so we reuse coordinates already present on payloads.
+- Derived geohashes from those hints (or decoded existing hashes) with the geocoder precision, letting us bypass redundant lookups and keep cache hits hot.
+- Documented the behaviour in `docs/INGESTION.md` so connector authors understand the precedence order.
+- Encode geohashes when city lookups only return latitude/longitude so cache serialisation stays deterministic across backends.
 
 ## Risks
-Ensemble pipeline may duplicate feature engineering or violate leakage guardrails if feature matrix sourcing is inconsistent with prior tasks; must reuse vetted feature builder outputs to stay compliant.
+- Shopify occasionally emits stale coordinate pairs; we presently trust hints, so coverage monitors must flag suspicious drifts.
+- If upstream geohashes are malformed we silently fall back to lookups, which could hide systematic data-entry issues until validation runs.
 
 ## Next actions
-1. Audit existing forecast + modeling utilities (feature matrices, ts_training, MMM) for reusable components and data requirements.
-2. Design and implement multi-horizon ensemble forecaster (component + worker entry) that blends deterministic + stochastic forecasts and emits diagnostics.
-3. Backfill tests, generate ensemble_metrics artifact, run required critics, and update docs before marking T4.1.4 complete.
+1. Exercise the geocoding coverage harness on a fresh demo snapshot to confirm the new encoding path keeps ratios above the 0.8 floor.
+2. Capture a short design note for connector owners outlining the geohash fallback so they can mirror the precedence order.
+3. Revisit T7.1.2 weather join validation once geocoding ratios stabilise across tenants.
 
 ## Roadmap Snapshot (truncated)
 ```yaml
@@ -150,7 +154,7 @@ epics:
               - artifact: experiments/causal/uplift_report.json
           - id: T4.1.4
             title: Multi-horizon ensemble forecasting
-            status: pending
+            status: done
             exit_criteria:
               - critic: forecast_stitch
               - artifact: experiments/forecast/ensemble_metrics.json

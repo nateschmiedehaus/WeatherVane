@@ -209,7 +209,8 @@ epics:
               - artifact: docs/UX_CRITIQUE.md
   - id: E6
     title: MCP Orchestrator Production Readiness
-    description: Validate and harden the dual-provider MCP orchestrator for autonomous operation.
+    description: Validate and harden the dual-provider MCP orchestrator for
+      autonomous operation.
     milestones:
       - id: M6.1
         title: Core Infrastructure Validation
@@ -288,14 +289,15 @@ epics:
               - artifact: experiments/mcp/autopilot_e2e.json
   - id: E7
     title: Data Pipeline Hardening
-    description: Complete geocoding integration, weather feature joins, and data quality validation.
+    description: Complete geocoding integration, weather feature joins, and data
+      quality validation.
     milestones:
       - id: M7.1
         title: Geocoding & Weather Integration
         tasks:
           - id: T7.1.1
             title: Complete geocoding integration (city->lat/lon, cache strategy)
-            status: in_progress
+            status: done
             exit_criteria:
               - critic: data_quality
               - tests: tests/test_geocoding.py

@@ -15,6 +15,7 @@ import { execa } from 'execa';
 import type { Task } from './state_machine.js';
 import type { AssembledContext } from './context_assembler.js';
 import type { ReasoningLevel } from './model_selector.js';
+import { logInfo, logWarning } from '../telemetry/logger.js';
 
 // ============================================================================
 // Types
@@ -27,6 +28,7 @@ export interface Agent {
   id: string;
   type: AgentType;
   role: AgentRole;
+  baseRole: AgentRole;
   status: 'idle' | 'busy' | 'failed';
   currentTask?: string;
   completedTasks: number;
@@ -34,6 +36,7 @@ export interface Agent {
   avgDurationSeconds: number;
   lastUsed?: number;
   cooldownUntil?: number;
+  promotedAt?: number;
 }
 
 export interface AgentCapabilities {
@@ -94,6 +97,8 @@ export interface ExecutionOutcome {
 export class AgentPool extends EventEmitter {
   private agents: Map<string, Agent> = new Map();
   private assignments: Map<string, TaskAssignment> = new Map();
+  private coordinatorType: AgentType = 'claude_code';
+  private readonly coordinatorCandidates: string[] = [];
 
   private readonly capabilities: Record<AgentType, AgentCapabilities> = {
     claude_code: {
@@ -142,6 +147,7 @@ export class AgentPool extends EventEmitter {
       id: 'claude_code',
       type: 'claude_code',
       role: 'architect',
+      baseRole: 'architect',
       status: 'idle',
       completedTasks: 0,
       failedTasks: 0,
@@ -150,16 +156,110 @@ export class AgentPool extends EventEmitter {
 
     // Initialize Codex workers
     for (let i = 1; i <= this.codexWorkers; i++) {
-      this.agents.set(`codex_worker_${i}`, {
+      const baseRole: AgentRole = i === 1 ? 'engineer' : i === 2 ? 'qa' : 'engineer';
+      const agent: Agent = {
         id: `codex_worker_${i}`,
         type: 'codex',
-        role: i === 1 ? 'engineer' : i === 2 ? 'qa' : 'engineer',
+        role: baseRole,
+        baseRole,
         status: 'idle',
         completedTasks: 0,
         failedTasks: 0,
         avgDurationSeconds: 0
-      });
+      };
+      this.agents.set(agent.id, agent);
+      if (i === 1) {
+        this.coordinatorCandidates.push(agent.id);
+      }
     }
+  }
+
+  private getCoordinatorCandidate(): Agent | undefined {
+    const candidateId = this.coordinatorCandidates[0];
+    return candidateId ? this.agents.get(candidateId) ?? undefined : undefined;
+  }
+
+  promoteCoordinatorRole(reason: string): void {
+    const claudeAgent = this.agents.get('claude_code');
+    if (!claudeAgent) return;
+
+    const claudeOnCooldown = this.isOnCooldown(claudeAgent) || claudeAgent.status !== 'idle';
+    if (!claudeOnCooldown) {
+      return;
+    }
+
+    const candidate = this.getCoordinatorCandidate();
+    if (!candidate) {
+      logWarning('No Codex coordinator candidate available for promotion', { reason });
+      return;
+    }
+
+    if (this.coordinatorType === 'codex') {
+      return;
+    }
+
+    candidate.role = 'architect';
+    candidate.promotedAt = Date.now();
+    this.coordinatorType = 'codex';
+
+    logWarning('Promoted Codex to coordinator role', {
+      codexId: candidate.id,
+      reason,
+      claudeStatus: claudeAgent.status,
+      claudeCooldownMs: claudeAgent.cooldownUntil ? Math.max(claudeAgent.cooldownUntil - Date.now(), 0) : 0,
+    });
+
+    this.emit('coordinator:promoted', {
+      from: 'claude_code',
+      to: candidate.id,
+      reason,
+    });
+  }
+
+  demoteCoordinatorRole(): void {
+    if (this.coordinatorType !== 'codex') {
+      return;
+    }
+
+    const claudeAgent = this.agents.get('claude_code');
+    const candidate = this.getCoordinatorCandidate();
+    if (!claudeAgent || !candidate) {
+      return;
+    }
+
+    const claudeAvailable = claudeAgent.status === 'idle' && !this.isOnCooldown(claudeAgent);
+    if (!claudeAvailable) {
+      return;
+    }
+
+    candidate.role = candidate.baseRole;
+    candidate.promotedAt = undefined;
+    this.coordinatorType = 'claude_code';
+
+    logInfo('Demoted Codex coordinator; Claude available again', {
+      codexId: candidate.id,
+    });
+
+    this.emit('coordinator:demoted', {
+      from: candidate.id,
+      to: 'claude_code',
+    });
+  }
+
+  getCoordinatorType(): AgentType {
+    return this.coordinatorType;
+  }
+
+  isCoordinatorAvailable(): boolean {
+    if (this.coordinatorType === 'claude_code') {
+      const claudeAgent = this.agents.get('claude_code');
+      if (!claudeAgent) return false;
+      return claudeAgent.status === 'idle' && !this.isOnCooldown(claudeAgent);
+    }
+
+    const candidate = this.getCoordinatorCandidate();
+    if (!candidate) return false;
+    return candidate.status === 'idle' && !this.isOnCooldown(candidate);
   }
 
   // ==========================================================================
@@ -211,6 +311,25 @@ export class AgentPool extends EventEmitter {
    * Recommend agent type based on task characteristics
    */
   private recommendAgentType(task: Task, context: AssembledContext): AgentType {
+    if (this.coordinatorType === 'codex') {
+      if (task.status === 'needs_review') {
+        return 'codex';
+      }
+
+      const complexity = task.estimated_complexity ?? 5;
+      if (complexity >= 8) {
+        return 'codex';
+      }
+
+      const hasArchitecturalDecisions = context.relevantDecisions.length > 3;
+      const hasQualityIssues = context.qualityIssuesInArea.length > 0;
+      if (hasArchitecturalDecisions || hasQualityIssues) {
+        return 'codex';
+      }
+
+      return 'codex';
+    }
+
     if (task.status === 'needs_review') {
       return 'claude_code';
     }
@@ -427,7 +546,7 @@ export class AgentPool extends EventEmitter {
   }
 
   getAvailableAgents(): Agent[] {
-    return Array.from(this.agents.values()).filter(a => a.status === 'idle');
+    return Array.from(this.agents.values()).filter((agent) => agent.status === 'idle' && !this.isOnCooldown(agent));
   }
 
   getBusyAgents(): Agent[] {
@@ -483,6 +602,77 @@ export class AgentPool extends EventEmitter {
   // Agent Execution (Interface with actual CLI tools)
   // ==========================================================================
 
+  private extractUsageMetrics(stdout?: string, stderr?: string): { tokenUsage?: { promptTokens: number; completionTokens: number; totalTokens: number }; costUSD?: number } | undefined {
+    const combined = [stdout, stderr].filter((segment) => typeof segment === 'string' && segment.trim().length > 0).join('\n');
+    if (!combined) {
+      return undefined;
+    }
+
+    let promptTokens: number | undefined;
+    let completionTokens: number | undefined;
+    let totalTokens: number | undefined;
+
+    const tokenRegex = /(prompt|completion|total|input|output)[ _-]?tokens?(?:\s*(?:[:=]|is|used|were)\s*|\s+)(\d+)/gi;
+    for (const match of combined.matchAll(tokenRegex)) {
+      const key = match[1]?.toLowerCase();
+      const rawValue = Number.parseInt(match[2] ?? '', 10);
+      if (!Number.isNaN(rawValue)) {
+        if (key === 'prompt' || key === 'input') {
+          promptTokens = rawValue;
+        } else if (key === 'completion' || key === 'output') {
+          completionTokens = rawValue;
+        } else if (key === 'total') {
+          totalTokens = rawValue;
+        }
+      }
+    }
+
+    // Calculate total if we have prompt and completion but not total
+    if (typeof totalTokens !== 'number' && typeof promptTokens === 'number' && typeof completionTokens === 'number') {
+      totalTokens = promptTokens + completionTokens;
+    }
+
+    let costUSD: number | undefined;
+    const costRegexes = [
+      /cost(?:\s*usd)?[^0-9]*(\d+\.\d+|\d+)/gi,
+      /\$(\d+\.\d+)/g,
+    ];
+
+    for (const regex of costRegexes) {
+      for (const match of combined.matchAll(regex)) {
+        const rawCost = Number.parseFloat(match[1] ?? '');
+        if (!Number.isNaN(rawCost)) {
+          costUSD = rawCost;
+        }
+      }
+      if (typeof costUSD === 'number') {
+        break;
+      }
+    }
+
+    const hasUsage = typeof promptTokens === 'number'
+      || typeof completionTokens === 'number'
+      || typeof totalTokens === 'number';
+
+    if (!hasUsage && typeof costUSD !== 'number') {
+      return undefined;
+    }
+
+    // Ensure all fields are defined with defaults of 0 when returning tokenUsage
+    if (hasUsage) {
+      return {
+        tokenUsage: {
+          promptTokens: promptTokens ?? 0,
+          completionTokens: completionTokens ?? 0,
+          totalTokens: totalTokens ?? 0,
+        },
+        costUSD,
+      };
+    }
+
+    return { costUSD };
+  }
+
   /**
    * Execute task with Claude Code
    */
@@ -501,16 +691,20 @@ export class AgentPool extends EventEmitter {
       });
 
       const durationSeconds = Math.floor((Date.now() - startTime) / 1000);
+      const usageMetrics = this.extractUsageMetrics(result.stdout, result.stderr);
 
       return {
         success: result.exitCode === 0,
         output: result.stdout,
-        durationSeconds
+        durationSeconds,
+        tokenUsage: usageMetrics?.tokenUsage,
+        costUSD: usageMetrics?.costUSD
       };
     } catch (error: any) {
       const durationSeconds = Math.floor((Date.now() - startTime) / 1000);
       const message = this.normalizeErrorOutput(error);
       const failure = this.detectFailure(message);
+      const usageMetrics = this.extractUsageMetrics(error?.stdout, error?.stderr);
 
       this.emit('agent:error', {
         agentType: 'claude_code',
@@ -525,7 +719,9 @@ export class AgentPool extends EventEmitter {
         output: message,
         durationSeconds,
         failureType: failure?.failureType,
-        retryAfterSeconds: failure?.retryAfterSeconds
+        retryAfterSeconds: failure?.retryAfterSeconds,
+        tokenUsage: usageMetrics?.tokenUsage,
+        costUSD: usageMetrics?.costUSD
       };
     }
   }
@@ -563,16 +759,20 @@ export class AgentPool extends EventEmitter {
       });
 
       const durationSeconds = Math.floor((Date.now() - startTime) / 1000);
+      const usageMetrics = this.extractUsageMetrics(result.stdout, result.stderr);
 
       return {
         success: result.exitCode === 0,
         output: result.stdout,
-        durationSeconds
+        durationSeconds,
+        tokenUsage: usageMetrics?.tokenUsage,
+        costUSD: usageMetrics?.costUSD
       };
     } catch (error: any) {
       const durationSeconds = Math.floor((Date.now() - startTime) / 1000);
       const message = this.normalizeErrorOutput(error);
       const failure = this.detectFailure(message);
+      const usageMetrics = this.extractUsageMetrics(error?.stdout, error?.stderr);
 
       this.emit('agent:error', {
         agentType: 'codex',
@@ -587,7 +787,9 @@ export class AgentPool extends EventEmitter {
         output: message,
         durationSeconds,
         failureType: failure?.failureType,
-        retryAfterSeconds: failure?.retryAfterSeconds
+        retryAfterSeconds: failure?.retryAfterSeconds,
+        tokenUsage: usageMetrics?.tokenUsage,
+        costUSD: usageMetrics?.costUSD
       };
     }
   }
@@ -630,10 +832,23 @@ export class AgentPool extends EventEmitter {
     this.assignments.delete(taskId);
   }
 
+  clearCooldown(agentId: string): void {
+    const agent = this.agents.get(agentId);
+    if (!agent) return;
+    agent.cooldownUntil = undefined;
+    if (agent.status === 'failed') {
+      agent.status = 'idle';
+    }
+    this.emit('agent:cooldown_cleared', { agentId: agent.id, agentType: agent.type });
+  }
+
   private isOnCooldown(agent: Agent): boolean {
     if (!agent.cooldownUntil) return false;
     if (agent.cooldownUntil <= Date.now()) {
       agent.cooldownUntil = undefined;
+      if (agent.status === 'failed') {
+        agent.status = 'idle';
+      }
       return false;
     }
     return true;

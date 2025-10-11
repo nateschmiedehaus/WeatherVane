@@ -814,6 +814,9 @@ select_codex_account() {
     return 0
   fi
 
+  local max_wait_attempts="${CODEX_WAIT_ATTEMPTS:-2}"
+  local wait_attempt=0
+
   while true; do
     local payload
     payload=$(python "$ACCOUNT_MANAGER" next codex 2>/dev/null)
@@ -880,6 +883,11 @@ PY
       ensure_codex_auth
       return 0
     elif [ $status -eq 2 ]; then
+      wait_attempt=$((wait_attempt + 1))
+      if [ "$wait_attempt" -ge "$max_wait_attempts" ]; then
+        log "All Codex accounts exhausted after $wait_attempt attempts. Signaling fallback to Claude Code."
+        return 2
+      fi
       local wait
       wait=$(python - <<'PY' "$payload"
 import json, sys
@@ -887,7 +895,7 @@ data = json.loads(sys.argv[1])
 print(int(data.get("wait_seconds", 300)))
 PY
 )
-      log "All Codex accounts on cooldown. Sleeping ${wait}s before retry."
+      log "All Codex accounts on cooldown (attempt $wait_attempt/$max_wait_attempts). Sleeping ${wait}s before retry."
       sleep "$wait"
     else
       log "Account manager returned no Codex accounts. Falling back to legacy CODEX_HOME=$DEFAULT_CODEX_HOME."
@@ -1191,6 +1199,101 @@ if seconds <= 0:
     seconds = 300
 print(seconds)
 PY
+}
+
+run_with_claude_code() {
+  local prompt="$1"
+  local run_log="$2"
+  local mcp_config_file
+  mcp_config_file=$(mktemp)
+
+  cat > "$mcp_config_file" <<EOF
+{
+  "mcpServers": {
+    "weathervane": {
+      "command": "node",
+      "args": ["$MCP_ENTRY", "--workspace", "$ROOT"]
+    }
+  }
+}
+EOF
+
+  local claude_payload
+  if claude_payload=$(python "$ACCOUNT_MANAGER" next claude --purpose execution 2>/dev/null); then
+    CURRENT_CLAUDE_ACCOUNT=$(python - <<'PY' "$claude_payload"
+import json, sys
+data = json.loads(sys.argv[1])
+print(data.get("account_id", ""))
+PY
+)
+    CLAUDE_BIN_CMD=$(python - <<'PY' "$claude_payload"
+import json, sys
+data = json.loads(sys.argv[1])
+print(data.get("bin", "claude"))
+PY
+)
+    CLAUDE_ACCOUNT_ENV_JSON=$(python - <<'PY' "$claude_payload"
+import json, sys
+data = json.loads(sys.argv[1])
+env = data.get("env")
+print(json.dumps(env) if env is not None else "null")
+PY
+)
+  else
+    log "No Claude accounts available. Cannot fall back to Claude Code."
+    rm -f "$mcp_config_file"
+    return 1
+  fi
+
+  if ! command -v "$CLAUDE_BIN_CMD" >/dev/null 2>&1; then
+    log "Claude binary $CLAUDE_BIN_CMD not found. Cannot fall back to Claude Code."
+    rm -f "$mcp_config_file"
+    return 1
+  fi
+
+  log "Executing autopilot with Claude Code account $CURRENT_CLAUDE_ACCOUNT..."
+
+  local env_pairs=()
+  if [ -n "$CLAUDE_ACCOUNT_ENV_JSON" ] && [ "$CLAUDE_ACCOUNT_ENV_JSON" != "null" ]; then
+    while IFS= read -r line; do
+      env_pairs+=("$line")
+    done < <(python - <<'PY' "$CLAUDE_ACCOUNT_ENV_JSON"
+import json, sys
+env = json.loads(sys.argv[1])
+for key, value in env.items():
+    if value is None:
+        continue
+    print(f"{key}={value}")
+PY
+)
+  fi
+
+  local exit_code
+  set +e
+  if [ ${#env_pairs[@]} -gt 0 ]; then
+    env "${env_pairs[@]}" "$CLAUDE_BIN_CMD" chat --mcp-config "$mcp_config_file" --message "$prompt" 2>&1 | tee "$run_log"
+    exit_code=${PIPESTATUS[0]}
+  else
+    "$CLAUDE_BIN_CMD" chat --mcp-config "$mcp_config_file" --message "$prompt" 2>&1 | tee "$run_log"
+    exit_code=${PIPESTATUS[0]}
+  fi
+  set -e
+
+  rm -f "$mcp_config_file"
+
+  if grep -qi 'usage limit' "$run_log"; then
+    local wait_seconds
+    if wait_seconds=$(extract_wait_from_text "$(cat "$run_log")" 2>/dev/null); then
+      record_provider_cooldown claude "$CURRENT_CLAUDE_ACCOUNT" "$wait_seconds"
+      log "Claude account $CURRENT_CLAUDE_ACCOUNT hit usage limit; cooling down for ${wait_seconds}s."
+    else
+      record_provider_cooldown claude "$CURRENT_CLAUDE_ACCOUNT" "$USAGE_LIMIT_BACKOFF"
+      log "Claude account $CURRENT_CLAUDE_ACCOUNT hit usage limit; applying default cooldown ${USAGE_LIMIT_BACKOFF}s."
+    fi
+    return 2
+  fi
+
+  return $exit_code
 }
 
 check_all_accounts_auth() {
@@ -1512,7 +1615,13 @@ if [ "${WVO_AUTOPILOT_SMOKE:-0}" = "1" ]; then
 fi
 
 check_all_accounts_auth
-select_codex_account
+
+# Try to select Codex account; if all exhausted, enable Claude Code failover
+USE_CLAUDE_FALLBACK=0
+if ! select_codex_account; then
+  log "All Codex accounts exhausted. Enabling Claude Code fallback mode."
+  USE_CLAUDE_FALLBACK=1
+fi
 
 TELEMETRY_DIR="$ROOT/state/telemetry"
 USAGE_LOG="$TELEMETRY_DIR/usage.jsonl"
@@ -1694,33 +1803,56 @@ BODY
     LAST_FAILURE_REASON=""
     LAST_FAILURE_DETAILS=""
     log "Starting WeatherVane autopilot run (attempt ${attempt_number})..."
-    set +e
-    codex exec \
-      --profile "$CLI_PROFILE" \
-      --model "$AUTOPILOT_MODEL" \
-      --full-auto \
-      --sandbox danger-full-access \
-      --output-schema "$SCHEMA_FILE" \
-      "$PROMPT_CONTENT" 2>&1 | tee "$RUN_LOG"
-    status=${PIPESTATUS[0]}
-    set -e
-    cat "$RUN_LOG" >> "$LOG_FILE"
+
+    if [ "$USE_CLAUDE_FALLBACK" -eq 1 ]; then
+      set +e
+      run_with_claude_code "$PROMPT_CONTENT" "$RUN_LOG"
+      status=$?
+      set -e
+      cat "$RUN_LOG" >> "$LOG_FILE"
+    else
+      set +e
+      codex exec \
+        --profile "$CLI_PROFILE" \
+        --model "$AUTOPILOT_MODEL" \
+        --full-auto \
+        --sandbox danger-full-access \
+        --output-schema "$SCHEMA_FILE" \
+        "$PROMPT_CONTENT" 2>&1 | tee "$RUN_LOG"
+      status=${PIPESTATUS[0]}
+      set -e
+      cat "$RUN_LOG" >> "$LOG_FILE"
+    fi
 
     if grep -qi 'usage limit' "$RUN_LOG"; then
       attempt_end_iso="$(timestamp)"
       attempt_end_epoch=$(date -u +%s)
       duration=$((attempt_end_epoch - attempt_start_epoch))
       append_usage_telemetry "usage_limit" "$attempt_number" "$attempt_start_iso" "$attempt_end_iso" "$duration"
-      wait_seconds=$(parse_usage_wait "$RUN_LOG" 2>/dev/null) || true
-      if [ -n "$wait_seconds" ]; then
-        log "Codex usage limit detected: cooling down current account for ${wait_seconds}s."
+
+      if [ "$USE_CLAUDE_FALLBACK" -eq 1 ]; then
+        # Already using Claude and hit a limit; this is handled by run_with_claude_code
+        # Just continue to retry with next Claude account
+        log "Claude Code usage limit detected; will retry with next available account."
       else
-        wait_seconds=$USAGE_LIMIT_BACKOFF
-        log "Codex usage limit detected (no exact wait supplied). Applying default cooldown ${wait_seconds}s."
+        # Using Codex and hit a limit
+        wait_seconds=$(parse_usage_wait "$RUN_LOG" 2>/dev/null) || true
+        if [ -n "$wait_seconds" ]; then
+          log "Codex usage limit detected: cooling down current account for ${wait_seconds}s."
+        else
+          wait_seconds=$USAGE_LIMIT_BACKOFF
+          log "Codex usage limit detected (no exact wait supplied). Applying default cooldown ${wait_seconds}s."
+        fi
+        record_provider_cooldown codex "$CURRENT_CODEX_ACCOUNT" "$wait_seconds"
+
+        # Try to get another Codex account; if all exhausted, fall back to Claude
+        if ! select_codex_account; then
+          log "All Codex accounts exhausted. Switching to Claude Code fallback mode."
+          USE_CLAUDE_FALLBACK=1
+        fi
       fi
-      record_provider_cooldown codex "$CURRENT_CODEX_ACCOUNT" "$wait_seconds"
+
       rm -f "$RUN_LOG"
-      select_codex_account
       continue 2
     fi
 
