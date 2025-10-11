@@ -101,7 +101,7 @@ The server annotates critic outputs with the profile so audit trails remain inta
 
 ## 6. Ensuring “Never-Fail” Operation
 - Rebuild `dist/` whenever you update `src/` (`make mcp-build` already runs `npm install` + `npm run build`).
-- Use `codex status` and `codex logs` (or `cmd.run`) when debugging. Outputs persist in `state/critics/org_pm.json` if the org critic is enabled.
+- Use `codex logs` (or `cmd_run`) when debugging. Outputs persist in `state/critics/org_pm.json` if the org critic is enabled.
 - Keep `state/context.md` ≤1,000 words; the server appends summaries automatically. If the file grows too large, snapshot and truncate manually while archiving the previous log.
 - Before shutting down or switching tasks, call `context.snapshot` so a clean checkpoint exists.
 - Guardrails: the orchestrator blocks destructive commands (e.g., `sudo`, `rm -rf /`, `git reset --hard`, directory escapes). If a command is refused, you’ll receive the guardrail message via `cmd.run`.

@@ -292,11 +292,9 @@ WVO must adapt behaviour to the Codex CLI environment it runs within. The MCP se
    - `codex reply`
    - `codex plan`
    - `codex tools`
-   - `codex status`
    - `codex config`
    - `codex logs`
    - `codex prune`
-   - `codex status --json`
    Provide command descriptions, required flags, approval implications, and expected outputs in `tools/wvo_mcp/src/executor/codex_commands.ts` (or Python equivalent).
 
 2. **Detect Codex Capability Level** – read from environment variable (e.g., `CODEX_PROFILE`, `CODEX_CAPABILITY`) or MCP session metadata; default to **medium** if unspecified.
@@ -310,7 +308,7 @@ WVO must adapt behaviour to the Codex CLI environment it runs within. The MCP se
 
 5. **Fail-Safe** – if the detected capability conflicts with required work (e.g., low profile but task requires high resources), automatically enqueue a roadmap task to escalate or request approval.
 
-6. **CLI Health Checks** – Before major sessions, run `codex status --json` (and `auth_status`) to confirm compatibility; capture outputs under `state/critics/org_pm.json` or telemetry logs.
+6. **CLI Health Checks** – Before major sessions, run `auth_status` to confirm compatibility; capture outputs under `state/critics/org_pm.json` or telemetry logs.
 
 7. **Test Command Awareness** – When Codex (or collaborators) requests specific tests, the MCP server parses the instruction, verifies availability (e.g., `make test`, targeted pytest commands), and runs them automatically via `cmd.run` if sandbox policy allows. If execution is not possible (capability mismatch, missing dependencies, approval blocked), the server documents the limitation in `state/context.md`, creates a remediation task in the roadmap, and proceeds with alternative verification steps.
 
