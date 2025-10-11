@@ -1656,22 +1656,20 @@ HEADER
     fi
     cat <<'BODY'
 Loop:
-1. Read state/roadmap.yaml and choose the highest-priority task(s) not done.
-2. Call `autopilot_status` to refresh the audit ledger for this session.
-3. Run `cmd_run {"cmd":"codex status --json"}` as a lightweight heartbeat (watch for token/usage warnings) and checkpoint if resource limits appear tight.
-4. For each chosen task:
-   a. Audit docs/code/tests/design to understand requirements.
-   b. Implement the work via fs_read/fs_write/cmd_run (code + tests + docs + design polish). Keep slices small enough to verify quickly.
-   c. Run `critics_run` with ["build","tests","manager_self_check","data_quality","design_system","org_pm","exec_review","health_check","human_sync"] and add allocator/causal/forecast critics when relevant. Use state/critics timestamps/results (including git_sha metadata) to skip suites that have already covered unchanged artifacts this session; rerun when the commit changes or after meaningful edits.
-   d. Fix issues. If blocked, log the blocker clearly and mark the task blocked with `plan_update`.
-   e. Record decisions, risks, and next actions via `context_write` (keep state/context.md <= 1000 words).
+1. Use `plan_next` with minimal=true to get highest-priority tasks (70% token savings vs full details).
+2. Call `autopilot_status` to refresh the audit ledger.
+3. For each chosen task:
+   a. Audit docs/code/tests to understand requirements.
+   b. Implement via fs_read/fs_write/cmd_run (code + tests + docs + design). Keep slices verifiable.
+   c. Run `critics_run` with quiet=true and relevant critics (build, tests, manager_self_check, data_quality, design_system, org_pm, exec_review, health_check, human_sync; add allocator/causal/forecast when applicable). Check state/critics timestamps to skip suites covering unchanged artifacts (same git_sha); rerun after commits or meaningful edits.
+   d. Fix issues. If blocked, log blocker and mark task blocked with `plan_update`.
+   e. Record decisions/risks via `context_write` (keep state/context.md ≤1000 words).
    f. Snapshot via `context_snapshot`.
-   g. Update roadmap status with `plan_update` only after exit criteria are satisfied.
-   h. For work expected to run longer than ~5 minutes, queue it with `heavy_queue_enqueue` (include command/context), monitor via `heavy_queue_list`, and update status with `heavy_queue_update` while continuing other work.
-5. Prioritise shipping real work over repeated self-review loops while still running critics after meaningful changes land; if nothing changed, move forward instead of re-running the same suites.
-6. Approximately once every 100 tasks/messages, deliberately audit a completed roadmap item for hidden gaps or regressions. After each surprise QA, call `autopilot_record_audit` with task_id/focus/notes and, if issues emerge, open fresh tasks to land fixes before resuming new work.
-7. Spread surprise QA audits across different epics/milestones rather than clustering; skip the audit if you already inspected that item in the current session.
-8. Repeat on remaining tasks. Stop only when no further progress is possible without human intervention.
+   g. Update roadmap with `plan_update` only after exit criteria satisfied.
+   h. For work >5min, use `heavy_queue_enqueue` (include cmd/context), monitor via `heavy_queue_list`, update with `heavy_queue_update`.
+4. Ship real work over repeated self-review; if nothing changed, move forward vs re-running same suites.
+5. Every ~100 tasks, audit a completed roadmap item for gaps/regressions. Call `autopilot_record_audit` (task_id/focus/notes); if issues emerge, open fix tasks before resuming new work. Spread audits across epics/milestones; skip if already inspected this session.
+6. Repeat until no progress possible without human intervention.
 Maintain production readiness, enforce ML/causal rigor, polish UX, and communicate like a Staff+/startup leader.
 Return JSON summarizing completed tasks, tasks still in progress, blockers, next focus items, and overall notes.
 BODY
