@@ -294,7 +294,7 @@ async function main() {
       "autopilot_status",
       {
         description: "Return the persisted autopilot audit cadence state.",
-        inputSchema: toJsonSchema(z.object({}), "AutopilotStatusInput"),
+        inputSchema: undefined, // Empty schema - SDK will use default
       },
       async (_input: unknown) => {
         const state = await session.getAutopilotState();
@@ -348,7 +348,7 @@ async function main() {
       "heavy_queue_list",
       {
         description: "List queued heavy/background tasks and their status.",
-        inputSchema: toJsonSchema(z.object({}), "HeavyQueueListInput"),
+        inputSchema: undefined, // Empty schema - SDK will use default
       },
       async (_input: unknown) => {
         const items = await session.listHeavyTasks();
@@ -380,7 +380,7 @@ async function main() {
       "codex_commands",
       {
         description: "List known Codex CLI commands and recommended usage.",
-        inputSchema: toJsonSchema(z.object({}), "CodexCommandsInput"),
+        inputSchema: undefined, // Empty schema - SDK will use default
       },
       async (_input: unknown) => {
         return jsonResponse({
