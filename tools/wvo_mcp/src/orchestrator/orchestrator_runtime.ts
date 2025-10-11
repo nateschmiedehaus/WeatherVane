@@ -90,6 +90,14 @@ export class OrchestratorRuntime {
     return this.stateMachine;
   }
 
+  getAgentPool(): AgentPool {
+    return this.agentPool;
+  }
+
+  getWorkspaceRoot(): string {
+    return this.workspaceRoot;
+  }
+
   getWebInspirationManager(): WebInspirationManager | undefined {
     return this.webInspirationManager;
   }

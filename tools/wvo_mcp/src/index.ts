@@ -8,6 +8,8 @@ import { SessionContext } from "./session.js";
 import { logError, logInfo } from "./telemetry/logger.js";
 import { AuthChecker } from "./utils/auth_checker.js";
 import { resolveWorkspaceRoot } from "./utils/config.js";
+import { toJsonSchema } from "./utils/schema.js";
+import { SERVER_NAME, SERVER_VERSION } from "./utils/version.js";
 
 async function main() {
   const workspaceRoot = resolveWorkspaceRoot();
@@ -32,8 +34,8 @@ async function main() {
   try {
     const server = new McpServer(
       {
-        name: "weathervane-orchestrator",
-        version: "0.1.0",
+        name: SERVER_NAME,
+        version: SERVER_VERSION,
       },
       {
         capabilities: {},
@@ -49,7 +51,9 @@ async function main() {
           milestone_id: z.string().optional(),
         })
         .optional(),
+      minimal: z.boolean().optional(),
     });
+    const planNextSchema = toJsonSchema(planNextInput, "PlanNextInput");
 
     const jsonResponse = (payload: unknown) => ({
       content: [
@@ -61,13 +65,15 @@ async function main() {
     });
 
     const orchestratorStatusInput = z.object({});
+    const orchestratorStatusSchema = toJsonSchema(orchestratorStatusInput, "OrchestratorStatusInput");
     const authStatusInput = z.object({});
+    const authStatusSchema = toJsonSchema(authStatusInput, "AuthStatusInput");
 
     server.registerTool(
       "orchestrator_status",
       {
         description: "Inspect live orchestration metrics (queue length, quality trend, agent usage).",
-        inputSchema: orchestratorStatusInput?.shape,
+        inputSchema: orchestratorStatusSchema,
       },
       async (input: unknown) => {
         orchestratorStatusInput.parse(input ?? {});
@@ -84,7 +90,7 @@ async function main() {
       "auth_status",
       {
         description: "Check Codex and Claude Code authentication state with actionable guidance.",
-        inputSchema: authStatusInput.shape,
+        inputSchema: authStatusSchema,
       },
       async (input: unknown) => {
         authStatusInput.parse(input ?? {});
@@ -111,12 +117,17 @@ async function main() {
       "plan_next",
       {
         description: "Return the highest priority WeatherVane roadmap tasks.",
-        inputSchema: planNextInput.shape,
+        inputSchema: planNextSchema,
       },
       async (input: unknown) => {
         const parsed = planNextInput.parse(input);
+        const tasks = await session.planNext(parsed);
+        const minimalTasks = parsed.minimal
+          ? tasks.map((t) => ({ id: t.id, title: t.title, status: t.status }))
+          : tasks;
+
         return jsonResponse({
-          tasks: await session.planNext(parsed),
+          tasks: minimalTasks,
           profile: session.profile,
         });
       },
@@ -126,12 +137,13 @@ async function main() {
       task_id: z.string(),
       status: z.enum(["pending", "in_progress", "blocked", "done"]),
     });
+    const planUpdateSchema = toJsonSchema(planUpdateInput, "PlanUpdateInput");
 
     server.registerTool(
       "plan_update",
       {
         description: "Update a task status in the WeatherVane roadmap.",
-        inputSchema: planUpdateInput.shape,
+        inputSchema: planUpdateSchema,
       },
       async (input: unknown) => {
         const parsed = planUpdateInput.parse(input);
@@ -145,12 +157,13 @@ async function main() {
       content: z.string().min(1),
       append: z.boolean().optional(),
     });
+    const contextWriteSchema = toJsonSchema(contextWriteInput, "ContextWriteInput");
 
     server.registerTool(
       "context_write",
       {
         description: "Write or append updates to state/context.md.",
-        inputSchema: contextWriteInput.shape,
+        inputSchema: contextWriteSchema,
       },
       async (input: unknown) => {
         const parsed = contextWriteInput.parse(input);
@@ -162,12 +175,13 @@ async function main() {
     const contextSnapshotInput = z.object({
       notes: z.string().optional(),
     });
+    const contextSnapshotSchema = toJsonSchema(contextSnapshotInput, "ContextSnapshotInput");
 
     server.registerTool(
       "context_snapshot",
       {
         description: "Persist a checkpoint for session recovery.",
-        inputSchema: contextSnapshotInput.shape,
+        inputSchema: contextSnapshotSchema,
       },
       async (input: unknown) => {
         const parsed = contextSnapshotInput.parse(input);
@@ -179,12 +193,13 @@ async function main() {
     const fsReadInput = z.object({
       path: z.string().min(1),
     });
+    const fsReadSchema = toJsonSchema(fsReadInput, "FsReadInput");
 
     server.registerTool(
       "fs_read",
       {
         description: "Read a file relative to the WeatherVane workspace.",
-        inputSchema: fsReadInput.shape,
+        inputSchema: fsReadSchema,
       },
       async (input: unknown) => {
         const parsed = fsReadInput.parse(input);
@@ -197,12 +212,13 @@ async function main() {
       path: z.string().min(1),
       content: z.string(),
     });
+    const fsWriteSchema = toJsonSchema(fsWriteInput, "FsWriteInput");
 
     server.registerTool(
       "fs_write",
       {
         description: "Write a file relative to the WeatherVane workspace.",
-        inputSchema: fsWriteInput.shape,
+        inputSchema: fsWriteSchema,
       },
       async (input: unknown) => {
         const parsed = fsWriteInput.parse(input);
@@ -214,12 +230,13 @@ async function main() {
     const cmdRunInput = z.object({
       cmd: z.string().min(1),
     });
+    const cmdRunSchema = toJsonSchema(cmdRunInput, "CmdRunInput");
 
     server.registerTool(
       "cmd_run",
       {
         description: "Execute a shell command inside the WeatherVane workspace.",
-        inputSchema: cmdRunInput.shape,
+        inputSchema: cmdRunSchema,
       },
       async (input: unknown) => {
         const parsed = cmdRunInput.parse(input);
@@ -231,12 +248,13 @@ async function main() {
     const criticsRunInput = z.object({
       critics: z.array(z.string()).optional(),
     });
+    const criticsRunSchema = toJsonSchema(criticsRunInput, "CriticsRunInput");
 
     server.registerTool(
       "critics_run",
       {
         description: "Run one or more WeatherVane critic suites.",
-        inputSchema: criticsRunInput.shape,
+        inputSchema: criticsRunSchema,
       },
       async (input: unknown) => {
         const parsed = criticsRunInput.parse(input);
@@ -252,13 +270,14 @@ async function main() {
       focus: z.string().min(1).optional(),
       notes: z.string().optional(),
     });
+    const autopilotAuditSchema = toJsonSchema(autopilotAuditInput, "AutopilotAuditInput");
 
     server.registerTool(
       "autopilot_record_audit",
       {
         description:
           "Record a surprise QA audit against a completed roadmap item, including task id, focus area, and notes.",
-        inputSchema: autopilotAuditInput.shape,
+        inputSchema: autopilotAuditSchema,
       },
       async (input: unknown) => {
         const parsed = autopilotAuditInput.parse(input);
@@ -275,7 +294,7 @@ async function main() {
       "autopilot_status",
       {
         description: "Return the persisted autopilot audit cadence state.",
-        inputSchema: z.object({}).shape,
+        inputSchema: toJsonSchema(z.object({}), "AutopilotStatusInput"),
       },
       async (_input: unknown) => {
         const state = await session.getAutopilotState();
@@ -289,12 +308,13 @@ async function main() {
       notes: z.string().optional(),
       id: z.string().optional(),
     });
+    const heavyQueueEnqueueSchema = toJsonSchema(heavyQueueEnqueueInput, "HeavyQueueEnqueueInput");
 
     server.registerTool(
       "heavy_queue_enqueue",
       {
         description: "Enqueue a heavy/background task so it can run asynchronously.",
-        inputSchema: heavyQueueEnqueueInput.shape,
+        inputSchema: heavyQueueEnqueueSchema,
       },
       async (input: unknown) => {
         const parsed = heavyQueueEnqueueInput.parse(input);
@@ -309,12 +329,13 @@ async function main() {
       notes: z.string().optional(),
       command: z.string().optional(),
     });
+    const heavyQueueUpdateSchema = toJsonSchema(heavyQueueUpdateInput, "HeavyQueueUpdateInput");
 
     server.registerTool(
       "heavy_queue_update",
       {
         description: "Update the status of a heavy/background task.",
-        inputSchema: heavyQueueUpdateInput.shape,
+        inputSchema: heavyQueueUpdateSchema,
       },
       async (input: unknown) => {
         const parsed = heavyQueueUpdateInput.parse(input);
@@ -327,7 +348,7 @@ async function main() {
       "heavy_queue_list",
       {
         description: "List queued heavy/background tasks and their status.",
-        inputSchema: z.object({}).shape,
+        inputSchema: toJsonSchema(z.object({}), "HeavyQueueListInput"),
       },
       async (_input: unknown) => {
         const items = await session.listHeavyTasks();
@@ -340,12 +361,13 @@ async function main() {
       path: z.string(),
       metadata: z.record(z.any()).optional(),
     });
+    const artifactRecordSchema = toJsonSchema(artifactRecordInput, "ArtifactRecordInput");
 
     server.registerTool(
       "artifact_record",
       {
         description: "Register an artifact path for later reference.",
-        inputSchema: artifactRecordInput.shape,
+        inputSchema: artifactRecordSchema,
       },
       async (input: unknown) => {
         const parsed = artifactRecordInput.parse(input);
@@ -358,7 +380,7 @@ async function main() {
       "codex_commands",
       {
         description: "List known Codex CLI commands and recommended usage.",
-        inputSchema: z.object({}).shape,
+        inputSchema: toJsonSchema(z.object({}), "CodexCommandsInput"),
       },
       async (_input: unknown) => {
         return jsonResponse({
