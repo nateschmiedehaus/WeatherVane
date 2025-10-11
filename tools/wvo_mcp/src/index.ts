@@ -391,7 +391,8 @@ async function main() {
     );
 
     const transport = new StdioServerTransport();
-    await server.connect(transport as unknown as { start: () => Promise<void>; close: () => Promise<void>; send: (message: unknown) => Promise<void> });
+    await server.connect(transport);
+
     logInfo("WVO MCP server ready", {
       workspace: session.workspaceRoot,
       profile: session.profile,
