@@ -378,3 +378,364 @@ epics:
             exit_criteria:
               - critic: manager_self_check
               - artifact: experiments/allocator/rollback_sim.json
+  - id: E8
+    title: PHASE-4-POLISH — MCP Production Hardening
+    description: Critical production readiness tasks for MCP orchestrator. Complete
+      before WeatherVane v1 launch.
+    milestones:
+      - id: M8.1
+        title: MCP Compliance & Security
+        description: Ensure MCP spec compliance and security hardening
+        tasks:
+          - id: T8.1.1
+            title: "Register real JSON Schemas for all MCP tools (SAFE: non-breaking)"
+            status: pending
+            owner: WVO
+            estimate_hours: 4
+            metadata:
+              safeguard: "DO NOT modify protected files. Create NEW utils/json_schema_converter.ts"
+              safe_files:
+                - tools/wvo_mcp/src/utils/json_schema_converter.ts (new)
+                - tools/wvo_mcp/src/index.ts (update tool registrations only)
+                - tools/wvo_mcp/src/index-claude.ts (update tool registrations only)
+                - tools/wvo_mcp/src/index-orchestrator.ts (update tool registrations only)
+              protected_files:
+                - "DO NOT MODIFY: tools/wvo_mcp/src/orchestrator/**/*.ts"
+                - "DO NOT MODIFY: tools/wvo_mcp/scripts/autopilot.sh"
+              implementation_notes: |
+                Install: npm install zod-to-json-schema --save
+                Create new file tools/wvo_mcp/src/utils/json_schema_converter.ts:
+                  import { zodToJsonSchema } from 'zod-to-json-schema';
+                  export function toRealJsonSchema(zodSchema, name) {
+                    return zodToJsonSchema(zodSchema, name);
+                  }
+                Replace toJsonSchema() calls in MCP entry files ONLY.
+                Run 'npm run build' to verify. Do NOT touch orchestrator internals.
+            exit_criteria:
+              - All tools use zodToJsonSchema() instead of .shape
+              - "critic:build passes"
+              - "critic:tests passes"
+              - MCP clients can validate tool inputs
+              - No changes to protected orchestrator files
+          - id: T8.1.2
+            title: "Implement command allow-list in guardrails (SAFE: additive security)"
+            status: pending
+            owner: WVO
+            estimate_hours: 6
+            metadata:
+              safeguard: "Modify ONLY guardrails.ts and command_runner.ts. Test thoroughly."
+              safe_files:
+                - tools/wvo_mcp/src/executor/guardrails.ts
+                - tools/wvo_mcp/src/executor/command_runner.ts
+                - tests/test_command_allowlist.py (new)
+              protected_files:
+                - "DO NOT MODIFY: tools/wvo_mcp/src/orchestrator/**/*.ts"
+                - "DO NOT MODIFY: tools/wvo_mcp/scripts/autopilot.sh"
+              implementation_notes: |
+                Add ALLOWED_COMMANDS constant in guardrails.ts:
+                  const ALLOWED_COMMANDS = ['npm', 'git', 'python', 'pytest', 'node', 'tsc', 'make', 'bash', 'sh', 'docker'];
+                Add isCommandAllowed() check before ensureCommandSafe().
+                Keep deny-list as secondary defense (defense in depth).
+                Add comprehensive tests for allowed/denied commands.
+            exit_criteria:
+              - ALLOWED_COMMANDS constant defined
+              - isCommandAllowed() enforced before execution
+              - Deny-list kept as secondary check
+              - "critic:tests passes with new test_command_allowlist.py"
+              - "critic:manager_self_check passes"
+          - id: T8.1.3
+            title: "Thread correlation IDs through state transitions (SAFE: observability only)"
+            status: pending
+            owner: WVO
+            estimate_hours: 3
+            metadata:
+              safeguard: "ADD ONLY, do not remove existing code. Small targeted changes."
+              safe_files:
+                - tools/wvo_mcp/src/index.ts (add correlationId param)
+                - tools/wvo_mcp/src/index-claude.ts (add correlationId param)
+                - tools/wvo_mcp/src/index-orchestrator.ts (add correlationId param)
+              protected_files:
+                - "DO NOT MODIFY: tools/wvo_mcp/src/orchestrator/state_machine.ts (already supports correlationId)"
+                - "DO NOT MODIFY: tools/wvo_mcp/scripts/autopilot.sh"
+              implementation_notes: |
+                Generate correlationId once per MCP request: crypto.randomUUID()
+                Pass correlationId to stateMachine.createTask(), .transition(), .logEvent()
+                State machine ALREADY supports it - just wire through tool handlers.
+                This is ADDITIVE ONLY - no breaking changes.
+            exit_criteria:
+              - All tool handlers generate correlationId
+              - All state transitions include correlationId
+              - Events in SQLite include correlation_id column populated
+              - "critic:manager_self_check passes"
+              - End-to-end trace visible in state/orchestrator.db
+      - id: M8.2
+        title: Context & Performance Optimization
+        description: Major token reduction and context improvements
+        tasks:
+          - id: T8.2.1
+            title: "Implement compact evidence-pack prompt mode (SAFE: new function, backward compatible)"
+            status: pending
+            owner: WVO
+            estimate_hours: 8
+            metadata:
+              safeguard: "ADD NEW function, keep existing formatForPrompt(). Gradual rollout."
+              safe_files:
+                - tools/wvo_mcp/src/orchestrator/context_assembler.ts (add formatForPromptCompact)
+                - tools/wvo_mcp/src/orchestrator/claude_code_coordinator.ts (switch callers gradually)
+                - tests/test_prompt_compact.py (new)
+              protected_files:
+                - "DO NOT MODIFY: tools/wvo_mcp/scripts/autopilot.sh"
+                - "DO NOT MODIFY: tools/wvo_mcp/src/orchestrator/agent_pool.ts"
+              implementation_notes: |
+                Add NEW method formatForPromptCompact(ctx: AssembledContext) to context_assembler.ts:
+                  Returns JSON format with IDs and minimal text:
+                  { task: { id, title }, decisions: [id1, id2], files: [...], quality_issues: [...] }
+                Keep existing formatForPrompt() for fallback.
+                Update composePrompt() to use compact mode by default.
+                Test token reduction: target 50-70% reduction vs verbose mode.
+                Rollback plan: switch back to verbose if issues arise.
+            exit_criteria:
+              - formatForPromptCompact() returns JSON evidence pack
+              - Token reduction measured: 50-70% vs verbose
+              - All coordinator calls use compact mode
+              - "critic:build passes"
+              - "critic:manager_self_check passes"
+              - Rollback tested: can switch back to verbose
+          - id: T8.2.2
+            title: "Finalize Claude↔Codex coordinator failover (SAFE: expose existing functionality)"
+            status: pending
+            owner: WVO
+            estimate_hours: 4
+            metadata:
+              safeguard: "EXPOSE ONLY, do not modify core logic. AgentPool already handles this."
+              safe_files:
+                - tools/wvo_mcp/src/index-orchestrator.ts (update orchestrator_status tool)
+                - tools/wvo_mcp/src/orchestrator/operations_manager.ts (expose coordinator type)
+              protected_files:
+                - "DO NOT MODIFY: tools/wvo_mcp/src/orchestrator/agent_pool.ts (already complete)"
+                - "DO NOT MODIFY: tools/wvo_mcp/scripts/autopilot.sh"
+              implementation_notes: |
+                AgentPool already implements failover - just expose visibility.
+                Update orchestrator_status MCP tool to include:
+                  coordinator: { type: 'claude' | 'codex', available: boolean, reason: string }
+                Add coordinator type to execution telemetry/logs.
+                Document failover behavior in IMPLEMENTATION_STATUS.md.
+                No breaking changes - this is observability only.
+            exit_criteria:
+              - orchestrator_status tool shows coordinator type and availability
+              - Telemetry includes coordinator field in execution logs
+              - Documentation updated in IMPLEMENTATION_STATUS.md
+              - "critic:manager_self_check passes"
+              - Failover behavior visible and logged
+  - id: E9
+    title: PHASE-5-OPTIMIZATION — Performance & Observability
+    description: Post-v1 performance improvements and production observability. High
+      ROI optimizations.
+    milestones:
+      - id: M9.1
+        title: Cost Optimization & Caching
+        description: Major cost reduction through provider caching
+        tasks:
+          - id: T9.1.1
+            title: "Stable prompt headers with provider caching (SAFE: additive optimization)"
+            status: blocked
+            blocked_by:
+              - E8
+            owner: WVO
+            estimate_hours: 4
+            metadata:
+              safeguard: "NEW utility only. Do not modify core orchestrator logic."
+              safe_files:
+                - tools/wvo_mcp/src/utils/prompt_headers.ts (new)
+                - tools/wvo_mcp/src/orchestrator/claude_code_coordinator.ts (prepend header)
+              protected_files:
+                - "DO NOT MODIFY: tools/wvo_mcp/scripts/autopilot.sh"
+                - "DO NOT MODIFY: tools/wvo_mcp/src/orchestrator/state_machine.ts"
+              implementation_notes: |
+                Create tools/wvo_mcp/src/utils/prompt_headers.ts:
+                  export function standardPromptHeader(ctx): string {
+                    return deterministic header with system rules, version, project context
+                  }
+                Prepend to all provider prompts in composePrompt().
+                Headers must be deterministic (same ctx → same header) for caching.
+                Enables Anthropic/OpenAI prompt caching (50-90% cost reduction).
+            exit_criteria:
+              - standardPromptHeader() returns deterministic header
+              - All prompts include standard header
+              - Header enables provider caching (verified with API logs)
+              - "critic:cost_perf shows token cache hit rate"
+              - "critic:manager_self_check passes"
+          - id: T9.1.2
+            title: "Batch queue for non-urgent prompts (SAFE: new queueing system)"
+            status: blocked
+            blocked_by:
+              - E8
+            owner: WVO
+            estimate_hours: 12
+            metadata:
+              safeguard: "NEW module. Do not modify existing task scheduler logic."
+              safe_files:
+                - tools/wvo_mcp/src/utils/batch_queue.ts (new)
+                - tools/wvo_mcp/src/orchestrator/operations_manager.ts (integrate)
+              protected_files:
+                - "DO NOT MODIFY: tools/wvo_mcp/src/orchestrator/task_scheduler.ts (keep existing)"
+              implementation_notes: |
+                Create batch_queue.ts with priority lanes: interactive, background, batch.
+                Semaphores per lane: interactive=3, background=2, batch=1.
+                Tools self-classify: fs_write → interactive, repo.analyze → batch.
+                Integrate in operations_manager without breaking existing scheduler.
+            exit_criteria:
+              - Priority queue with 3 lanes operational
+              - Semaphore limits enforced per lane
+              - Interactive tasks always get priority
+              - "critic:tests passes"
+              - "critic:manager_self_check passes"
+      - id: M9.2
+        title: Reliability & Quality Improvements
+        description: Reduce retries and improve output quality
+        tasks:
+          - id: T9.2.1
+            title: "Strict output DSL validation (SAFE: validation layer only)"
+            status: blocked
+            blocked_by:
+              - E8
+            owner: WVO
+            estimate_hours: 6
+            metadata:
+              safeguard: "Validation wrapper only. No changes to core execution."
+              safe_files:
+                - tools/wvo_mcp/src/utils/output_validator.ts (new)
+                - tools/wvo_mcp/src/orchestrator/agent_pool.ts (wrap outputs)
+              implementation_notes: |
+                Create output_validator.ts with validateDiff() and validateJSON().
+                Wrap model outputs in validation before returning to caller.
+                Hard-fail on invalid format (forces model to retry correctly).
+                Reduces parse failures and retry loops.
+            exit_criteria:
+              - validateDiff() rejects non-diff outputs
+              - validateJSON() rejects invalid JSON
+              - Retry rate reduction measured
+              - "critic:tests passes"
+          - id: T9.2.2
+            title: "Idempotency keys for mutating tools (SAFE: caching layer)"
+            status: blocked
+            blocked_by:
+              - E8
+            owner: WVO
+            estimate_hours: 8
+            metadata:
+              safeguard: "Cache wrapper only. No changes to tool implementations."
+              safe_files:
+                - tools/wvo_mcp/src/utils/idempotency_cache.ts (new)
+                - tools/wvo_mcp/src/index*.ts (wrap tool handlers)
+              implementation_notes: |
+                Create idempotency_cache.ts: hash (tool_name, input_json) → cache key.
+                Cache results for 1 hour (in-memory + optional Redis).
+                Wrap fs_write, repo.apply_patch, tests.run with cache.
+                Return cached result on duplicate request (safe retries).
+            exit_criteria:
+              - Idempotency cache operational
+              - Duplicate operations return cached results
+              - 1-hour TTL enforced
+              - "critic:tests passes"
+      - id: M9.3
+        title: Production Observability
+        description: OpenTelemetry and performance monitoring
+        tasks:
+          - id: T9.3.1
+            title: "OpenTelemetry spans for all operations (SAFE: tracing wrapper)"
+            status: blocked
+            blocked_by:
+              - E8
+            owner: WVO
+            estimate_hours: 10
+            metadata:
+              safeguard: "Instrumentation wrapper only. No logic changes."
+              safe_files:
+                - tools/wvo_mcp/src/utils/telemetry.ts (new)
+                - tools/wvo_mcp/src/index*.ts (wrap handlers with spans)
+              implementation_notes: |
+                Install @opentelemetry/api and SDK packages.
+                Create telemetry.ts with span wrappers.
+                Wrap all tool handlers: startSpan() → execute → endSpan().
+                Export to Jaeger/DataDog/Honeycomb.
+                Trace: MCP request → tool → provider call → result.
+            exit_criteria:
+              - All tool handlers instrumented
+              - Spans exported to tracing backend
+              - End-to-end traces visible
+              - Performance insights available
+              - "critic:manager_self_check passes"
+          - id: T9.3.2
+            title: "Sandbox pooling for test execution (SAFE: new executor)"
+            status: blocked
+            blocked_by:
+              - E8
+            owner: WVO
+            estimate_hours: 16
+            metadata:
+              safeguard: "New executor module. Keep existing command_runner as fallback."
+              safe_files:
+                - tools/wvo_mcp/src/executor/sandbox_pool.ts (new)
+                - tools/wvo_mcp/src/executor/command_runner.ts (add pool option)
+              implementation_notes: |
+                Pre-warm 3 sandboxes (bwrap or Docker containers).
+                Pool manager with acquire() → execute → release().
+                Install deps once, COW snapshots for test runs.
+                10x faster test execution (no cold starts).
+                Keep existing command_runner for non-pooled execution.
+            exit_criteria:
+              - Sandbox pool with 3 pre-warmed containers
+              - Test execution uses pooled sandboxes
+              - 10x speedup measured
+              - Fallback to non-pooled works
+              - "critic:tests passes"
+      - id: M9.4
+        title: Advanced Context & Search
+        description: Better context selection and code search
+        tasks:
+          - id: T9.4.1
+            title: "SQLite FTS5 index for code search (SAFE: new index)"
+            status: blocked
+            blocked_by:
+              - E8
+            owner: WVO
+            estimate_hours: 6
+            metadata:
+              safeguard: "New virtual table. No changes to existing queries."
+              safe_files:
+                - tools/wvo_mcp/src/orchestrator/state_machine.ts (add FTS5 table)
+                - tools/wvo_mcp/src/utils/code_search.ts (new)
+              implementation_notes: |
+                Add FTS5 virtual table in state_machine.ts initialization:
+                  CREATE VIRTUAL TABLE code_fts USING fts5(file_path, content, language);
+                Populate on repo sync or file changes.
+                Fast sub-50ms code search for context assembly.
+            exit_criteria:
+              - code_fts virtual table created
+              - Index populated on repo sync
+              - Search performance <50ms
+              - "critic:tests passes"
+          - id: T9.4.2
+            title: "LSP proxy tools for symbol-aware context (SAFE: new tools)"
+            status: blocked
+            blocked_by:
+              - E8
+            owner: WVO
+            estimate_hours: 20
+            metadata:
+              safeguard: "New MCP tools. Do not modify context_assembler core logic."
+              safe_files:
+                - tools/wvo_mcp/src/lsp/lsp_proxy.ts (new)
+                - tools/wvo_mcp/src/index*.ts (add lsp.definition, lsp.references tools)
+              implementation_notes: |
+                Spawn tsserver/pyright in background process.
+                Expose MCP tools: lsp.definition, lsp.references, lsp.hover.
+                Use in context_assembler to fetch symbol-aware code slices.
+                Much better context quality (70%+ relevance improvement).
+            exit_criteria:
+              - tsserver and pyright proxies running
+              - lsp.definition and lsp.references tools work
+              - Context assembler uses LSP for code slices
+              - Context relevance measured and improved
+              - "critic:tests passes"
