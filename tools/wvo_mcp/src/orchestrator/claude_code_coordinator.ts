@@ -13,8 +13,11 @@ import type { OperationsManager, OperationsSnapshot } from './operations_manager
 import { logError, logInfo, logWarning } from '../telemetry/logger.js';
 import { CriticEnforcer } from './critic_enforcer.js';
 import type { WebInspirationManager } from './web_inspiration_manager.js';
+import type { SelfImprovementManager } from './self_improvement_manager.js';
 
 const TOKEN_ESTIMATE_CHAR_RATIO = 4;
+const MAX_PROMPT_TOKENS = 600;
+const MAX_PROMPT_CHARACTERS = MAX_PROMPT_TOKENS * TOKEN_ESTIMATE_CHAR_RATIO;
 
 const MODEL_COST_TABLE: Record<string, { prompt: number; completion: number }> = {
   'gpt-5-codex': { prompt: 0.012, completion: 0.024 },
@@ -75,6 +78,7 @@ export interface ExecutionSummary {
   tokenEstimateStrategy: 'reported' | 'estimated';
   criticsRequired?: string[];
   criticsFailed?: string[];
+  correlationId?: string;
 }
 
 export interface ExecutionObserver {
@@ -93,6 +97,7 @@ interface ActiveExecution {
   agent: Agent;
   context: AssembledContext;
   startedAt: number;
+  correlationId: string;
 }
 
 /**
@@ -106,6 +111,7 @@ export class ClaudeCodeCoordinator extends EventEmitter {
   private tickScheduled = false;
   private readonly dispatching = new Set<string>(); // Race guard: tasks currently being dispatched
   private readonly criticEnforcer: CriticEnforcer;
+  private readonly selfImprovementManager?: SelfImprovementManager;
 
   // Store bound listeners for proper cleanup
   private readonly boundListeners = {
@@ -123,10 +129,12 @@ export class ClaudeCodeCoordinator extends EventEmitter {
     private readonly qualityMonitor: QualityMonitor,
     private readonly webInspirationManager: WebInspirationManager | undefined,
     private readonly operationsManager?: OperationsManager,
-    private readonly observer?: ExecutionObserver
+    private readonly observer?: ExecutionObserver,
+    selfImprovementManager?: SelfImprovementManager
   ) {
     super();
     this.criticEnforcer = new CriticEnforcer(workspaceRoot, { stateMachine });
+    this.selfImprovementManager = selfImprovementManager;
 
     this.stateMachine.on('task:created', this.boundListeners.taskCreated);
     this.stateMachine.on('task:transition', this.boundListeners.taskTransition);
@@ -161,8 +169,26 @@ export class ClaudeCodeCoordinator extends EventEmitter {
     });
   }
 
+  private createExecutionCorrelation(taskId: string): string {
+    return `exec_${taskId}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`;
+  }
+
+  private stageCorrelation(executionId: string, stage: string): string {
+    return `${executionId}:${stage}`;
+  }
+
   private async dispatchWork(): Promise<void> {
     if (!this.running) return;
+
+    // Check if MCP infrastructure phases are complete
+    if (this.selfImprovementManager) {
+      const metaComplete = await this.selfImprovementManager.checkPhaseCompletion();
+
+      if (metaComplete) {
+        // Phase completion event is emitted by SelfImprovementManager
+        this.emit('meta-work:complete');
+      }
+    }
 
     let safetyCounter = 0;
     const maxDispatchesPerTick = 5;
@@ -223,6 +249,8 @@ export class ClaudeCodeCoordinator extends EventEmitter {
         });
       }
 
+      const executionCorrelation = this.createExecutionCorrelation(task.id);
+
       const agent = await this.agentPool.assignTask(task, initialContext, {
         codexModel: codexModelHint.modelSlug,
         codexReasoning: codexModelHint.reasoning,
@@ -232,10 +260,15 @@ export class ClaudeCodeCoordinator extends EventEmitter {
 
       const promptPackage = await this.preparePrompt(task, agent, initialContext, strategies);
       const { context, prompt } = promptPackage;
-      await this.stateMachine.assignTask(task.id, agent.id);
+      await this.stateMachine.assignTask(task.id, agent.id, this.stageCorrelation(executionCorrelation, 'assign'));
 
       if (task.status === 'pending') {
-        await this.stateMachine.transition(task.id, 'in_progress', { assigned_at: Date.now(), agent: agent.id });
+        await this.stateMachine.transition(
+          task.id,
+          'in_progress',
+          { assigned_at: Date.now(), agent: agent.id },
+          this.stageCorrelation(executionCorrelation, 'start')
+        );
       }
 
       const executionPromise: Promise<ExecutionOutcome> = agent.type === 'claude_code'
@@ -263,6 +296,7 @@ export class ClaudeCodeCoordinator extends EventEmitter {
         agent,
         context,
         startedAt: Date.now(),
+        correlationId: executionCorrelation,
       });
 
       const result = await executionPromise;
@@ -289,15 +323,28 @@ export class ClaudeCodeCoordinator extends EventEmitter {
           taskId: task.id,
           agent: agent.id,
         });
-        await this.stateMachine.transition(task.id, 'needs_improvement', {
-          agent: agent.id,
-          quality_score: 0,
-          quality_issues: ['context_limit'],
-        });
+        await this.stateMachine.transition(
+          task.id,
+          'needs_improvement',
+          {
+            agent: agent.id,
+            quality_score: 0,
+            quality_issues: ['context_limit'],
+          },
+          this.stageCorrelation(executionCorrelation, 'context_limit')
+        );
         return;
       }
 
-      await this.handleExecutionResult(task, agent, promptPackage.context, promptPackage.prompt, result, codexModelHint);
+      await this.handleExecutionResult(
+        task,
+        agent,
+        promptPackage.context,
+        promptPackage.prompt,
+        result,
+        codexModelHint,
+        executionCorrelation
+      );
     } catch (error) {
       logError('Task dispatch failed', { taskId: task.id, error: error instanceof Error ? error.message : String(error) });
       this.scheduler.releaseTask(task.id);
@@ -315,8 +362,15 @@ export class ClaudeCodeCoordinator extends EventEmitter {
     context: AssembledContext,
     prompt: string,
     result: ExecutionOutcome,
-    codexModelHint?: ReturnType<typeof selectCodexModel>
+    codexModelHint?: ReturnType<typeof selectCodexModel>,
+    executionCorrelation?: string
   ): Promise<void> {
+    const correlationId =
+      executionCorrelation ??
+      this.activeExecutions.get(task.id)?.correlationId ??
+      this.createExecutionCorrelation(task.id);
+    const stage = (name: string) => this.stageCorrelation(correlationId, name);
+
     this.agentPool.completeTask(task.id, result.success, result.durationSeconds, {
       failureType: result.success ? undefined : result.failureType,
       retryAfterSeconds: result.retryAfterSeconds,
@@ -369,7 +423,7 @@ export class ClaudeCodeCoordinator extends EventEmitter {
 
     if (finalStatus === 'needs_improvement') {
       transitionMetadata.quality_issues = combinedIssues;
-      await this.stateMachine.transition(task.id, 'needs_improvement', transitionMetadata);
+      await this.stateMachine.transition(task.id, 'needs_improvement', transitionMetadata, stage('needs_improvement'));
       this.scheduler.releaseTask(task.id);
       logWarning('Task requires additional work', {
         taskId: task.id,
@@ -377,11 +431,47 @@ export class ClaudeCodeCoordinator extends EventEmitter {
         issues: combinedIssues,
       });
     } else if (finalStatus === 'done') {
-      await this.stateMachine.transition(task.id, 'done', transitionMetadata);
+      await this.stateMachine.transition(task.id, 'done', transitionMetadata, stage('done'));
       this.scheduler.completeTask(task.id);
       logInfo('Task completed', { taskId: task.id, agent: agent.id, status: 'done' });
+
+      // Check for self-modification and trigger restart if needed
+      if (this.selfImprovementManager) {
+        const selfModified = await this.selfImprovementManager.checkForSelfModification(task);
+
+        if (selfModified) {
+          // Only restart if all critics passed (safe to apply changes)
+          const safeToRestart = !criticOutcome || criticOutcome.passed;
+
+          if (safeToRestart) {
+            logInfo('Orchestrator self-modification detected, preparing restart', {
+              taskId: task.id,
+              taskTitle: task.title,
+            });
+
+            // Schedule restart after current execution completes
+            queueMicrotask(async () => {
+              const restarted = await this.selfImprovementManager!.executeRestart(
+                task.id,
+                `Self-modification: ${task.title}`
+              );
+
+              if (restarted) {
+                // Note: This process will be replaced by the restart
+                // New process will resume from SQLite state
+                logInfo('Restart successful, new process will take over');
+              }
+            });
+          } else {
+            logWarning('Self-modification detected but critics failed, skipping restart', {
+              taskId: task.id,
+              failedCritics: criticOutcome?.failedCritics,
+            });
+          }
+        }
+      }
     } else {
-      await this.stateMachine.transition(task.id, 'needs_review', transitionMetadata);
+      await this.stateMachine.transition(task.id, 'needs_review', transitionMetadata, stage('needs_review'));
       this.scheduler.releaseTask(task.id);
       logInfo('Task ready for review', { taskId: task.id, agent: agent.id });
     }
@@ -423,6 +513,7 @@ export class ClaudeCodeCoordinator extends EventEmitter {
       criticsRequired: criticOutcome?.required?.length ? criticOutcome.required : undefined,
       criticsFailed:
         criticOutcome && criticOutcome.failedCritics.length > 0 ? criticOutcome.failedCritics : undefined,
+      correlationId,
     };
 
     this.emit('execution:completed', summary);
@@ -507,34 +598,104 @@ export class ClaudeCodeCoordinator extends EventEmitter {
       hoursBack: number;
     }>
   ): Promise<{ context: AssembledContext; prompt: string }> {
-    const MAX_PROMPT_CHARACTERS = 32000;
+    let lastContext = initialContext;
+    let lastPrompt = this.composePrompt(task, agent, initialContext);
+    let lastTokens = estimateTokenCount(lastPrompt);
 
-    for (let index = 0; index < strategies.length; index++) {
+    if (lastTokens <= MAX_PROMPT_TOKENS && lastPrompt.length <= MAX_PROMPT_CHARACTERS) {
+      return { context: initialContext, prompt: lastPrompt };
+    }
+
+    for (let index = 1; index < strategies.length; index++) {
       const options = strategies[index];
-      const context =
-        index === 0 && agent.type === 'codex'
-          ? initialContext
-          : await this.contextAssembler.assembleForTask(task.id, options);
+      const context = await this.contextAssembler.assembleForTask(task.id, options);
       const prompt = this.composePrompt(task, agent, context);
-      if (prompt.length <= MAX_PROMPT_CHARACTERS) {
+      const tokenEstimate = estimateTokenCount(prompt);
+      lastContext = context;
+      lastPrompt = prompt;
+      lastTokens = tokenEstimate;
+
+      if (tokenEstimate <= MAX_PROMPT_TOKENS && prompt.length <= MAX_PROMPT_CHARACTERS) {
         return { context, prompt };
       }
     }
 
-    const fallbackOptions = strategies[strategies.length - 1];
-    const fallbackContext = await this.contextAssembler.assembleForTask(task.id, fallbackOptions);
-    const fallbackPrompt = this.composePrompt(task, agent, fallbackContext);
-    logWarning('Prompt exceeded target length even after reductions', {
-      taskId: task.id,
-      length: fallbackPrompt.length,
+    const minimalContext = await this.contextAssembler.assembleForTask(task.id, {
+      includeCodeContext: agent.type === 'codex',
+      includeQualityHistory: false,
+      maxDecisions: 1,
+      maxLearnings: 1,
+      hoursBack: Math.min(6, strategies[strategies.length - 1]?.hoursBack ?? 6),
     });
-    return { context: fallbackContext, prompt: fallbackPrompt };
+    const minimalPrompt = this.composeMinimalPrompt(task, agent, minimalContext);
+    const minimalTokens = estimateTokenCount(minimalPrompt);
+    const minimalLength = minimalPrompt.length;
+
+    logWarning('Prompt exceeded compact budget; using minimal context', {
+      taskId: task.id,
+      previousTokens: lastTokens,
+      minimalTokens,
+      minimalLength,
+    });
+
+    if (minimalTokens > MAX_PROMPT_TOKENS || minimalLength > MAX_PROMPT_CHARACTERS) {
+      logWarning('Minimal prompt still above target; proceeding with best effort', {
+        taskId: task.id,
+        tokens: minimalTokens,
+        characters: minimalLength,
+      });
+    }
+
+    return { context: minimalContext, prompt: minimalPrompt };
   }
 
   private composePrompt(task: Task, agent: Agent, context: AssembledContext): string {
     const contextBlock = this.contextAssembler.formatForPrompt(context);
     const directive = this.buildDirective(task, agent);
     return `${contextBlock}\n\n---\n\n${directive}`;
+  }
+
+  private composeMinimalPrompt(task: Task, agent: Agent, context: AssembledContext): string {
+    const sections: string[] = [];
+
+    const summary = [
+      '## Current Task',
+      `**${this.clampText(`[${task.id}] ${task.title}`, 140)}**`,
+      task.description ? this.clampText(task.description, 200) : '',
+      `Status: ${task.status} | Complexity: ${task.estimated_complexity ?? 'TBD'}`
+    ].filter(Boolean).join('\n');
+    sections.push(summary);
+
+    if (context.relevantDecisions.length > 0) {
+      const decision = context.relevantDecisions[0];
+      sections.push(`## Key Decision\n- ${this.clampText(`${decision.topic}: ${decision.content}`, 200)}`);
+    }
+
+    if (context.relevantConstraints.length > 0) {
+      const constraint = context.relevantConstraints[0];
+      sections.push(`## Constraint\n- ${this.clampText(`${constraint.topic}: ${constraint.content}`, 200)}`);
+    }
+
+    if (context.recentLearnings.length > 0) {
+      const learning = context.recentLearnings[0];
+      sections.push(`## Learning\n- ${this.clampText(`${learning.topic}: ${learning.content}`, 200)}`);
+    }
+
+    if (context.filesToRead && context.filesToRead.length > 0) {
+      sections.push(`## File\n- ${this.clampText(context.filesToRead[0], 160)}`);
+    }
+
+    const directive = this.buildDirective(task, agent);
+    return `${sections.join('\n\n')}\n\n---\n\n${directive}`;
+  }
+
+  private clampText(text: string, maxLength = 200): string {
+    const normalized = text.replace(/\s+/g, ' ').trim();
+    if (normalized.length <= maxLength) {
+      return normalized;
+    }
+    const truncated = normalized.slice(0, Math.max(0, maxLength - 3)).trimEnd();
+    return `${truncated}...`;
   }
 
   private getContextStrategies(agentType: AgentType): ReadonlyArray<{

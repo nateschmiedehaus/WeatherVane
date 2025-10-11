@@ -134,6 +134,13 @@ Use this to monitor autonomous operation.`,
         const resilienceMetrics = resilience.getMetrics();
 
         return formatData({
+          coordinator: {
+            type: snapshot.coordinatorType,
+            available: snapshot.coordinatorAvailable,
+            note: snapshot.coordinatorType === 'codex'
+              ? 'Codex promoted due to Claude unavailability'
+              : 'Claude Code acting as primary coordinator'
+          },
           agents: {
             total: snapshot.agent_pool.total_agents,
             busy: snapshot.agent_pool.busy_agents,
@@ -178,6 +185,52 @@ Use this to monitor autonomous operation.`,
         }, '🎯 Orchestrator Status');
       } catch (error) {
         return formatError('Failed to get status', error instanceof Error ? error.message : String(error));
+      }
+    }
+  );
+
+  // Self-Improvement Status - Get self-modification and phase completion status
+  server.registerTool(
+    'self_improvement_status',
+    {
+      description: `Get self-improvement and phase completion status.
+
+Shows:
+- Meta-work completion (MCP infrastructure phases)
+- Recent self-modification restarts
+- Phase completion status (PHASE-1, PHASE-2, PHASE-3)
+- Restart loop risk detection
+- Product work unblocking status
+
+Use this to monitor the orchestrator's self-improvement cycle and transition to product work.`,
+      inputSchema: emptyObjectSchema
+    },
+    async (_input: unknown) => {
+      try {
+        const status = runtime.getImprovementStatus();
+
+        return formatData({
+          meta_work_complete: status.metaWorkComplete,
+          phases: status.phases.map((phase) => ({
+            phase: phase.phase,
+            complete: phase.complete,
+            task_count: phase.taskIds.length,
+            task_ids: phase.taskIds,
+            last_checked: new Date(phase.lastChecked).toISOString()
+          })),
+          recent_restarts: status.recentRestarts.map((restart) => ({
+            timestamp: new Date(restart.timestamp).toISOString(),
+            task_id: restart.taskId,
+            reason: restart.reason,
+            success: restart.success
+          })),
+          restart_loop_risk: status.restartLoopRisk,
+          message: status.metaWorkComplete
+            ? '✅ MCP infrastructure complete - Working on product features'
+            : '🔧 MCP infrastructure in progress - Self-improvement mode'
+        }, '🚀 Self-Improvement Status');
+      } catch (error) {
+        return formatError('Failed to get self-improvement status', error instanceof Error ? error.message : String(error));
       }
     }
   );
@@ -494,6 +547,7 @@ Parameters: none`,
   logInfo('✅ MCP Server connected and ready', {
     tools: [
       'orchestrator_status',
+      'self_improvement_status',
       'web_inspiration_capture',
       'web_inspiration_status',
       'task_create',

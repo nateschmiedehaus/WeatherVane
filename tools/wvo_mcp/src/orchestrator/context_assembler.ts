@@ -60,6 +60,12 @@ export interface ContextAssemblyOptions {
   hoursBack?: number;  // How far back to look for relevant history
 }
 
+const DEFAULT_ENTRY_MAX_LENGTH = 220;
+const DEFAULT_SECTION_MAX_ITEMS = 6;
+const MAX_COMPLETED_DEPENDENCIES = 5;
+const MAX_BLOCKING_DEPENDENCIES = 3;
+const MAX_FILES_REFERENCED = 5;
+
 // ============================================================================
 // Context Assembler
 // ============================================================================
@@ -96,15 +102,7 @@ export class ContextAssembler {
     const relatedTasks = await this.getRelatedTasks(task);
 
     // Assemble remaining context pieces in parallel for speed
-    const [
-      relevantDecisions,
-      relevantConstraints,
-      recentLearnings,
-      qualityIssues,
-      qualityTrends,
-      filesToRead,
-      velocityMetrics
-    ] = await Promise.all([
+    const settled = await Promise.allSettled([
       this.getRelevantDecisions(task, maxDecisions),
       this.getRelevantConstraints(task),
       this.getRecentLearnings(cutoffTime, maxLearnings),
@@ -113,6 +111,43 @@ export class ContextAssembler {
       includeCodeContext ? this.inferFilesToRead(task) : Promise.resolve(undefined),
       this.getVelocityMetrics()
     ]);
+
+    const [
+      relevantDecisions,
+      relevantConstraints,
+      recentLearnings,
+      qualityIssues,
+      qualityTrends,
+      filesToRead,
+      velocityMetrics
+    ] = settled.map((result, index) => {
+      if (result.status === 'fulfilled') {
+        return result.value;
+      }
+
+      switch (index) {
+        case 0:
+        case 1:
+        case 2:
+          return [];
+        case 3:
+        case 4:
+          return [];
+        case 5:
+          return undefined;
+        case 6:
+        default:
+          return { tasksCompletedToday: 0, averageTaskDuration: 0, qualityTrendOverall: 'unknown' };
+      }
+    }) as [
+      ContextEntry[],
+      ContextEntry[],
+      ContextEntry[],
+      QualityMetric[],
+      AssembledContext['overallQualityTrend'],
+      string[] | undefined,
+      AssembledContext['velocityMetrics']
+    ];
 
     const health = this.stateMachine.getRoadmapHealth();
 
@@ -124,7 +159,7 @@ export class ContextAssembler {
       recentLearnings,
       qualityIssuesInArea: qualityIssues,
       overallQualityTrend: qualityTrends,
-      filesToRead,
+      filesToRead: filesToRead ? filesToRead.slice(0, MAX_FILES_REFERENCED) : undefined,
       projectPhase: health.currentPhase,
       velocityMetrics
     };
@@ -137,53 +172,84 @@ export class ContextAssembler {
   formatForPrompt(context: AssembledContext): string {
     const sections: string[] = [];
 
-    // 1. Task overview (always first)
-    sections.push(`## Current Task\n\n**[${context.task.id}] ${context.task.title}**\n${context.task.description || ''}\n\nType: ${context.task.type} | Status: ${context.task.status} | Complexity: ${context.task.estimated_complexity || 'TBD'}`);
+    const taskHeader = [
+      '## Current Task',
+      '',
+      `**${this.limitContent(`[${context.task.id}] ${context.task.title}`, DEFAULT_ENTRY_MAX_LENGTH)}**`,
+      context.task.description ? this.limitContent(context.task.description, DEFAULT_ENTRY_MAX_LENGTH) : '',
+      '',
+      `Type: ${context.task.type} | Status: ${context.task.status} | Complexity: ${context.task.estimated_complexity || 'TBD'}`
+    ].filter(Boolean).join('\n');
+    sections.push(taskHeader);
 
-    // 2. Dependencies (if any)
     if (context.relatedTasks.length > 0) {
-      const deps = context.relatedTasks.filter(t => t.status === 'done');
-      const blocking = context.relatedTasks.filter(t => t.status !== 'done');
+      const completedDependencies = context.relatedTasks
+        .filter(task => task.status === 'done')
+        .slice(0, MAX_COMPLETED_DEPENDENCIES);
+      const blockingDependencies = context.relatedTasks
+        .filter(task => task.status !== 'done')
+        .slice(0, MAX_BLOCKING_DEPENDENCIES);
 
-      if (deps.length > 0) {
-        sections.push(`## Completed Dependencies\n${deps.map(t => `- [${t.id}] ${t.title}`).join('\n')}`);
+      if (completedDependencies.length > 0) {
+        const lines = completedDependencies
+          .map(task => `- ${this.limitContent(`[${task.id}] ${task.title}`, DEFAULT_ENTRY_MAX_LENGTH)}`)
+          .join('\n');
+        sections.push(`## Completed Dependencies\n${lines}`);
       }
 
-      if (blocking.length > 0) {
-        sections.push(`## ⚠️ Blocking Dependencies (Not Ready)\n${blocking.map(t => `- [${t.id}] ${t.title} (${t.status})`).join('\n')}`);
+      if (blockingDependencies.length > 0) {
+        const lines = blockingDependencies
+          .map(task => `- ${this.limitContent(`[${task.id}] ${task.title} (${task.status})`, DEFAULT_ENTRY_MAX_LENGTH)}`)
+          .join('\n');
+        sections.push(`## ⚠️ Blocking Dependencies (Not Ready)\n${lines}`);
       }
     }
 
-    // 3. Relevant architectural decisions (critical context)
     if (context.relevantDecisions.length > 0) {
-      sections.push(`## Architectural Decisions (Context)\n${context.relevantDecisions.map(d => `- **${d.topic}**: ${d.content}`).join('\n')}`);
+      const lines = context.relevantDecisions
+        .slice(0, DEFAULT_SECTION_MAX_ITEMS)
+        .map(decision => {
+          const topic = this.limitContent(decision.topic, 80);
+          const content = this.limitContent(decision.content, DEFAULT_ENTRY_MAX_LENGTH);
+          return `- **${topic}**: ${content}`;
+        })
+        .join('\n');
+      sections.push(`## Architectural Decisions (Context)\n${lines}`);
     }
 
-    // 4. Constraints (things you can't change)
     if (context.relevantConstraints.length > 0) {
-      sections.push(`## Constraints (Do Not Violate)\n${context.relevantConstraints.map(c => `- ${c.topic}: ${c.content}`).join('\n')}`);
+      const lines = context.relevantConstraints
+        .slice(0, DEFAULT_SECTION_MAX_ITEMS)
+        .map(constraint => `- ${this.limitContent(constraint.topic, 80)}: ${this.limitContent(constraint.content, DEFAULT_ENTRY_MAX_LENGTH)}`)
+        .join('\n');
+      sections.push(`## Constraints (Do Not Violate)\n${lines}`);
     }
 
-    // 5. Recent learnings (avoid past mistakes)
     if (context.recentLearnings.length > 0) {
-      sections.push(`## Recent Learnings\n${context.recentLearnings.map(l => `- ${l.topic}: ${l.content}`).join('\n')}`);
+      const lines = context.recentLearnings
+        .slice(0, DEFAULT_SECTION_MAX_ITEMS)
+        .map(learning => `- ${this.limitContent(learning.topic, 80)}: ${this.limitContent(learning.content, DEFAULT_ENTRY_MAX_LENGTH)}`)
+        .join('\n');
+      sections.push(`## Recent Learnings\n${lines}`);
     }
 
-    // 6. Quality issues in this area (be aware of patterns)
     if (context.qualityIssuesInArea.length > 0) {
-      const issuesSummary = this.summarizeQualityIssues(context.qualityIssuesInArea);
-      if (issuesSummary) {
-        sections.push(`## Quality Watch Points\n${issuesSummary}`);
+      const summary = this.summarizeQualityIssues(context.qualityIssuesInArea);
+      if (summary) {
+        sections.push(`## Quality Watch Points\n${summary}`);
       }
     }
 
-    // 7. Files to examine (code context)
     if (context.filesToRead && context.filesToRead.length > 0) {
-      sections.push(`## Relevant Files\n${context.filesToRead.map(f => `- ${f}`).join('\n')}\n*Use fs_read to examine these files before implementing*`);
+      const lines = context.filesToRead
+        .slice(0, MAX_FILES_REFERENCED)
+        .map(filePath => `- ${this.limitContent(filePath, DEFAULT_ENTRY_MAX_LENGTH)}`)
+        .join('\n');
+      sections.push(`## Relevant Files\n${lines}\n*Use fs_read to examine these files before implementing*`);
     }
 
-    // 8. Project context (one-liner)
-    sections.push(`## Project Status\nPhase: **${context.projectPhase}** | Tasks completed today: ${context.velocityMetrics.tasksCompletedToday} | Avg task duration: ${Math.round(context.velocityMetrics.averageTaskDuration / 60)}min | Quality trend: ${context.velocityMetrics.qualityTrendOverall}`);
+    const averageMinutes = Math.round((context.velocityMetrics.averageTaskDuration || 0) / 60);
+    sections.push(`## Project Status\nPhase: **${context.projectPhase}** | Tasks completed today: ${context.velocityMetrics.tasksCompletedToday} | Avg task duration: ${averageMinutes}min | Quality trend: ${context.velocityMetrics.qualityTrendOverall}`);
 
     return sections.join('\n\n');
   }
@@ -332,7 +398,7 @@ export class ContextAssembler {
       }
     }
 
-    return files.length > 0 ? files.slice(0, 5) : undefined;  // Max 5 files
+    return files.length > 0 ? files.slice(0, MAX_FILES_REFERENCED) : undefined;
   }
 
   private async getVelocityMetrics(): Promise<AssembledContext['velocityMetrics']> {
@@ -389,6 +455,16 @@ export class ContextAssembler {
     return score;
   }
 
+  private limitContent(value: string, maxLength = DEFAULT_ENTRY_MAX_LENGTH): string {
+    if (!value) return '';
+    const normalized = value.replace(/\s+/g, ' ').trim();
+    if (normalized.length <= maxLength) {
+      return normalized;
+    }
+    const truncated = normalized.slice(0, Math.max(0, maxLength - 3)).trimEnd();
+    return `${truncated}...`;
+  }
+
   private summarizeQualityIssues(issues: QualityMetric[]): string | null {
     if (issues.length === 0) return null;
 
@@ -397,10 +473,16 @@ export class ContextAssembler {
       byDimension.set(issue.dimension, (byDimension.get(issue.dimension) || 0) + 1);
     }
 
-    const summary = Array.from(byDimension.entries())
-      .map(([dim, count]) => `${dim}: ${count} recent issues`)
-      .join('\n- ');
+    const topDimensions = Array.from(byDimension.entries())
+      .sort(([, countA], [, countB]) => countB - countA)
+      .slice(0, 3);
 
-    return `- ${summary}`;
+    if (topDimensions.length === 0) {
+      return null;
+    }
+
+    return topDimensions
+      .map(([dimension, count]) => `- ${dimension}: ${count}`)
+      .join('\n');
   }
 }

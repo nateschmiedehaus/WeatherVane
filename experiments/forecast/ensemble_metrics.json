@@ -1,149 +1,176 @@
 {
   "diagnostics": {
-    "baseline_has_gam": true,
+    "baseline_has_gam": false,
     "feature_columns": [
+      "day_of_year",
       "temp_c",
-      "temp_roll7",
+      "temp_max_c",
+      "temp_min_c",
+      "apparent_temp_c",
       "precip_mm",
-      "meta_spend"
+      "precip_probability",
+      "humidity_mean",
+      "windspeed_max",
+      "uv_index_max",
+      "snowfall_mm",
+      "temp_anomaly",
+      "precip_anomaly",
+      "temp_roll7",
+      "precip_roll7",
+      "temp_c_lag1",
+      "precip_mm_lag1",
+      "uv_index_lag1",
+      "precip_probability_lag1",
+      "humidity_lag1",
+      "freeze_flag",
+      "heatwave_flag",
+      "snow_event_flag",
+      "high_wind_flag",
+      "uv_alert_flag",
+      "high_precip_prob_flag",
+      "meta_spend",
+      "meta_conversions",
+      "google_spend",
+      "google_conversions",
+      "promos_sent"
     ],
-    "residual_mean": 3.8484947911380614e-05,
-    "residual_std": 0.006599589985391928,
-    "row_count": 30,
+    "residual_mean": 0.0,
+    "residual_std": 0.0,
+    "row_count": 2,
     "timeseries_cv_scores": []
   },
   "forecasts": [
     {
       "components": {
-        "baseline": 221.03056589392665,
-        "naive_mean": 272.5,
-        "timeseries": 272.5
+        "baseline": 0.0,
+        "naive_mean": 0.0,
+        "timeseries": 0.0
       },
-      "date": "2024-01-31",
+      "date": "2025-09-12",
       "horizon_days": 1,
-      "prediction": 221.03759487220944,
+      "prediction": 0.0,
       "quantiles": {
-        "p10": 221.02744490986973,
-        "p50": 221.0380033450279,
-        "p90": 221.04734608624656
+        "p10": 0.0,
+        "p50": 0.0,
+        "p90": 0.0
       }
     },
     {
       "components": {
-        "baseline": 344.99956026198834,
-        "naive_mean": 272.5,
-        "timeseries": 272.5
+        "baseline": 0.0,
+        "naive_mean": 0.0,
+        "timeseries": 0.0
       },
-      "date": "2024-02-01",
+      "date": "2025-09-13",
       "horizon_days": 2,
-      "prediction": 344.98965928204876,
+      "prediction": 0.0,
       "quantiles": {
-        "p10": 344.97530506765037,
-        "p50": 344.9903634748478,
-        "p90": 345.0032876329971
+        "p10": 0.0,
+        "p50": 0.0,
+        "p90": 0.0
       }
     },
     {
       "components": {
-        "baseline": 344.99956026198834,
-        "naive_mean": 272.5,
-        "timeseries": 272.5
+        "baseline": 0.0,
+        "naive_mean": 0.0,
+        "timeseries": 0.0
       },
-      "date": "2024-02-02",
+      "date": "2025-09-14",
       "horizon_days": 3,
-      "prediction": 344.98965928204876,
+      "prediction": 0.0,
       "quantiles": {
-        "p10": 344.9739063508381,
-        "p50": 344.9912300536461,
-        "p90": 345.00637036950013
+        "p10": 0.0,
+        "p50": 0.0,
+        "p90": 0.0
       }
     },
     {
       "components": {
-        "baseline": 344.99956026198834,
-        "naive_mean": 272.5,
-        "timeseries": 272.5
+        "baseline": 0.0,
+        "naive_mean": 0.0,
+        "timeseries": 0.0
       },
-      "date": "2024-02-03",
+      "date": "2025-09-15",
       "horizon_days": 4,
-      "prediction": 344.98965928204876,
+      "prediction": 0.0,
       "quantiles": {
-        "p10": 344.97146936389873,
-        "p50": 344.9911271100561,
-        "p90": 345.009161710123
+        "p10": 0.0,
+        "p50": 0.0,
+        "p90": 0.0
       }
     },
     {
       "components": {
-        "baseline": 344.99956026198834,
-        "naive_mean": 272.5,
-        "timeseries": 272.5
+        "baseline": 0.0,
+        "naive_mean": 0.0,
+        "timeseries": 0.0
       },
-      "date": "2024-02-04",
+      "date": "2025-09-16",
       "horizon_days": 5,
-      "prediction": 344.98965928204876,
+      "prediction": 0.0,
       "quantiles": {
-        "p10": 344.9669632762881,
-        "p50": 344.99168713946113,
-        "p90": 345.01146365949893
+        "p10": 0.0,
+        "p50": 0.0,
+        "p90": 0.0
       }
     },
     {
       "components": {
-        "baseline": 344.99956026198834,
-        "naive_mean": 272.5,
-        "timeseries": 272.5
+        "baseline": 0.0,
+        "naive_mean": 0.0,
+        "timeseries": 0.0
       },
-      "date": "2024-02-05",
+      "date": "2025-09-17",
       "horizon_days": 6,
-      "prediction": 344.98965928204876,
+      "prediction": 0.0,
       "quantiles": {
-        "p10": 344.9673812730835,
-        "p50": 344.99145699687284,
-        "p90": 345.01354478081237
+        "p10": 0.0,
+        "p50": 0.0,
+        "p90": 0.0
       }
     },
     {
       "components": {
-        "baseline": 344.99956026198834,
-        "naive_mean": 272.5,
-        "timeseries": 272.5
+        "baseline": 0.0,
+        "naive_mean": 0.0,
+        "timeseries": 0.0
       },
-      "date": "2024-02-06",
+      "date": "2025-09-18",
       "horizon_days": 7,
-      "prediction": 344.98965928204876,
+      "prediction": 0.0,
       "quantiles": {
-        "p10": 344.965596282152,
-        "p50": 344.99097670614293,
-        "p90": 345.01545856937196
+        "p10": 0.0,
+        "p50": 0.0,
+        "p90": 0.0
       }
     }
   ],
   "metrics": {
     "by_horizon": {
       "7": {
-        "bias": 3.8484947911380614e-05,
-        "mae": 0.0052796557346349955,
-        "rmse": 0.006599702195288903
+        "bias": 0.0,
+        "mae": 0.0,
+        "rmse": 0.0
       }
     },
     "component_weights": {
-      "baseline": 0.999863433931132,
-      "naive_mean": 6.828303443407176e-05,
-      "timeseries": 6.828303443407176e-05
+      "baseline": 0.3333333333333333,
+      "naive_mean": 0.3333333333333333,
+      "timeseries": 0.3333333333333333
     },
     "cv_mean": 0.0,
     "ensemble_size": 400,
     "forecast_rows": 7,
     "holdout_r2": 0.0,
-    "holdout_rows": 30,
-    "observed_rows": 30,
+    "holdout_rows": 1,
+    "observed_rows": 2,
     "overall": {
-      "bias": 3.8484947911380614e-05,
-      "mae": 0.0052796557346349955,
-      "mape": 2.0154594260106866e-05,
-      "rmse": 0.006599702195288904
+      "bias": 0.0,
+      "mae": 0.0,
+      "mape": 0.0,
+      "rmse": 0.0
     },
-    "residual_std": 0.006599589985391928
+    "residual_std": 0.0
   }
 }

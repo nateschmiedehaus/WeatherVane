@@ -53,3 +53,13 @@ localstack-data/
 .AppleDouble
 .LSOverride
 Icon?
+
+# WeatherVane MCP Runtime
+.accounts/
+state/orchestrator.db*
+state/telemetry/*.jsonl
+state/checkpoint.json
+state/context.md
+state/accounts_runtime.json
+state/mcp_registry.json
+tools/wvo_mcp/state/
