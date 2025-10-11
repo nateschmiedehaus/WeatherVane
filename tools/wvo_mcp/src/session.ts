@@ -101,16 +101,16 @@ export class SessionContext {
     this.autopilotStore = new AutopilotStore(this.workspaceRoot);
     this.heavyTaskQueue = new HeavyTaskQueueStore(this.workspaceRoot);
     this.stateMachine = runtime?.getStateMachine();
+  }
 
-    // Invalidate plan_next cache when roadmap changes
-    if (this.stateMachine) {
-      const invalidateCache = () => {
-        this.lastRoadmapChangeMs = Date.now();
-        this.planNextCache.clear();
-      };
-      this.stateMachine.on('task:created', invalidateCache);
-      this.stateMachine.on('task:transition', invalidateCache);
-      this.stateMachine.on('task:assigned', invalidateCache);
+  /**
+   * Lazy-start the orchestrator runtime on first use.
+   * This avoids starting timers/event loops that interfere with stdin.
+   */
+  private ensureRuntimeStarted(): void {
+    if (this.orchestratorRuntime && !this.orchestratorRuntime['started']) {
+      logInfo("Starting orchestrator runtime on-demand");
+      this.orchestratorRuntime.start();
     }
   }
 
