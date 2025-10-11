@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Head from "next/head";
 
 import { Layout } from "../components/Layout";
@@ -20,8 +20,9 @@ export default function CatalogPage() {
   const [response, setResponse] = useState<CatalogResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [reloadCount, setReloadCount] = useState(0);
 
-  useEffect(() => {
+  const fetchCatalogData = useCallback(() => {
     let active = true;
     setLoading(true);
     fetchCatalog(TENANT_ID, HORIZON_DAYS)
@@ -42,6 +43,13 @@ export default function CatalogPage() {
       active = false;
     };
   }, []);
+
+  useEffect(() => {
+    const cancel = fetchCatalogData();
+    return cancel;
+  }, [fetchCatalogData, reloadCount]);
+
+  const handleRetry = () => setReloadCount((value) => value + 1);
 
   const categories: CatalogCategory[] = response?.categories ?? [];
   const generatedAt = response?.generated_at ? formatDate(response.generated_at) : "—";
@@ -80,8 +88,19 @@ export default function CatalogPage() {
           </aside>
         </section>
 
-        {loading && <p className={styles.status}>Loading catalog tags…</p>}
-        {error && <p className={styles.error}>{error}</p>}
+        {loading && (
+          <p className={styles.status} role="status" aria-live="polite">
+            Loading catalog tags…
+          </p>
+        )}
+        {error && (
+          <div className={styles.error} role="alert">
+            <p>{error}</p>
+            <button type="button" onClick={handleRetry} className={styles.retryButton}>
+              Retry loading catalog
+            </button>
+          </div>
+        )}
 
         {!loading && !error && (
           <section className={styles.contextSection}>

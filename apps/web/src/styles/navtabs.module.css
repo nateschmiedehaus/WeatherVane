@@ -17,6 +17,12 @@
   transition: all 180ms ease;
 }
 
+.link:focus-visible,
+.active:focus-visible {
+  outline: 2px solid var(--color-focus-outline, #93c5fd);
+  outline-offset: 2px;
+}
+
 .link:hover {
   color: rgba(226, 232, 240, 0.92);
   background: rgba(59, 130, 246, 0.12);

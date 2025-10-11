@@ -1,0 +1,62 @@
+{
+  "datasets": {
+    "google_ads": {
+      "dataset": "google_ads",
+      "issues": [],
+      "metadata": {},
+      "path": "storage/lake/raw/demo-tenant_google_ads/2025-10-10T01-36-52.117474.parquet",
+      "row_count": 1,
+      "source": "stub",
+      "status": "ok"
+    },
+    "meta_ads": {
+      "dataset": "meta_ads",
+      "issues": [],
+      "metadata": {},
+      "path": "storage/lake/raw/demo-tenant_meta_ads/2025-10-10T01-36-52.116767.parquet",
+      "row_count": 1,
+      "source": "stub",
+      "status": "ok"
+    },
+    "promos": {
+      "dataset": "promos",
+      "issues": [],
+      "metadata": {},
+      "path": "storage/lake/raw/demo-tenant_promos/2025-10-10T01-36-52.118288.parquet",
+      "row_count": 1,
+      "source": "stub",
+      "status": "ok"
+    },
+    "shopify_orders": {
+      "dataset": "shopify_orders",
+      "issues": [],
+      "metadata": {
+        "geocoded_ratio": 1.0
+      },
+      "path": "storage/lake/raw/demo-tenant_shopify_orders/2025-10-10T01-36-52.113850.parquet",
+      "row_count": 1,
+      "source": "stub",
+      "status": "ok"
+    },
+    "shopify_products": {
+      "dataset": "shopify_products",
+      "issues": [],
+      "metadata": {},
+      "path": "storage/lake/raw/demo-tenant_shopify_products/2025-10-10T01-36-52.115469.parquet",
+      "row_count": 1,
+      "source": "stub",
+      "status": "ok"
+    }
+  },
+  "generated_at": "2025-10-10T01:36:52.119507",
+  "sources": {
+    "ads": "stub",
+    "promo": "stub",
+    "shopify": "stub"
+  },
+  "tenant_id": "demo-tenant",
+  "window": {
+    "end": "2024-01-02T00:00:00",
+    "start": "2024-01-01T00:00:00"
+  }
+}

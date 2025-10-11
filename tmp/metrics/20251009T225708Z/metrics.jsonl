@@ -1,1 +1,0 @@
-{"timestamp": "2025-10-09T22:57:08.392686+00:00", "event": "performance.check", "payload": {"coverage": 1.0, "mae": 10.0, "mape": 8.333333333333334, "mean_error": 0.0, "count": 2, "failing_horizons": []}, "tags": {"tenant_id": "demo", "status": "ok"}}

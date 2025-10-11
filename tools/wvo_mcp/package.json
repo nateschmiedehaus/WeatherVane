@@ -1,0 +1,46 @@
+{
+  "name": "wvo-mcp-server",
+  "version": "0.1.0",
+  "description": "WeatherVane Orchestrator MCP server for autonomous repo management.",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc --project tsconfig.json",
+    "start": "node dist/index.js",
+    "start:codex": "node dist/index.js",
+    "start:claude": "node dist/index-claude.js",
+    "dev": "ts-node src/index.ts",
+    "dev:codex": "ts-node src/index.ts",
+    "dev:claude": "ts-node src/index-claude.ts",
+    "lint": "eslint \"src/**/*.{ts,tsx}\"",
+    "test": "vitest run",
+    "register:codex": "codex mcp add weathervane -- node dist/index.js --workspace ../../..",
+    "register:claude": "claude mcp add weathervane -- node dist/index-claude.js --workspace ../../..",
+    "auto:codex": "npm run build && npm run register:codex && codex session --profile weathervane_orchestrator",
+    "auto:claude": "npm run build && npm run register:claude && claude chat --mcp weathervane"
+  },
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.20.0",
+    "better-sqlite3": "^11.0.0",
+    "execa": "^8.0.1",
+    "playwright": "^1.56.0",
+    "puppeteer": "^24.24.0",
+    "yaml": "^2.4.5",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.11",
+    "@types/node": "^20.12.7",
+    "@typescript-eslint/eslint-plugin": "^7.18.0",
+    "@typescript-eslint/parser": "^7.18.0",
+    "eslint": "^8.57.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-import": "^2.29.1",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.5.4",
+    "vitest": "^3.2.4"
+  }
+}

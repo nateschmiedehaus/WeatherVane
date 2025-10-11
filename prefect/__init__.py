@@ -39,6 +39,13 @@ def flow(func: FuncT | None = None, *, name: str | None = None) -> FuncT | Calla
     setattr(func, "__prefect_flow__", True)
     if name:
         setattr(func, "__prefect_name__", name)
+    # Mirror Prefect 2 API surface so call sites can use `.fn` or `.with_options`.
+    setattr(func, "fn", func)
+
+    def _with_options(**_: Any) -> FuncT:
+        return func
+
+    setattr(func, "with_options", _with_options)
     return func
 
 
@@ -51,5 +58,10 @@ def task(func: FuncT | None = None, *, name: str | None = None) -> FuncT | Calla
     setattr(func, "__prefect_task__", True)
     if name:
         setattr(func, "__prefect_name__", name)
-    return func
+    setattr(func, "fn", func)
 
+    def _with_options(**_: Any) -> FuncT:
+        return func
+
+    setattr(func, "with_options", _with_options)
+    return func

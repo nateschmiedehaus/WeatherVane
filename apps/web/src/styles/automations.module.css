@@ -53,21 +53,44 @@
 }
 
 .status {
-  background: rgba(148, 163, 184, 0.18);
-  color: rgba(241, 245, 249, 0.9);
-  border: 1px solid rgba(148, 163, 184, 0.28);
+  background: var(--status-info-bg, #0e7490);
+  color: var(--status-info-text, #f0fdfa);
+  border: 1px solid rgba(103, 232, 249, 0.4);
 }
 
 .error {
-  background: rgba(239, 68, 68, 0.18);
-  color: rgba(248, 113, 113, 0.95);
-  border: 1px solid rgba(239, 68, 68, 0.35);
+  background: var(--status-critical-bg, #7f1d1d);
+  color: var(--status-critical-text, #fee2e2);
+  border: 1px solid rgba(239, 68, 68, 0.55);
+  display: grid;
+  gap: 0.75rem;
 }
 
 .success {
-  background: rgba(34, 197, 94, 0.2);
-  color: rgba(134, 239, 172, 0.95);
-  border: 1px solid rgba(22, 163, 74, 0.35);
+  background: var(--badge-success-bg, #14532d);
+  color: var(--badge-success-text, #bbf7d0);
+  border: 1px solid rgba(74, 222, 128, 0.55);
+}
+
+.retryButton {
+  justify-self: start;
+  padding: 0.55rem 1.2rem;
+  border-radius: 0.85rem;
+  border: 1px solid rgba(239, 68, 68, 0.55);
+  background: rgba(15, 23, 42, 0.45);
+  color: var(--status-critical-text, #fee2e2);
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 140ms ease;
+}
+
+.retryButton:hover {
+  transform: translateY(-1px);
+}
+
+.retryButton:focus-visible {
+  outline: 2px solid var(--color-focus-outline, #93c5fd);
+  outline-offset: 3px;
 }
 
 .layout {
@@ -142,6 +165,11 @@
     linear-gradient(135deg, rgba(56, 189, 248, 0.22), rgba(34, 211, 238, 0.18)) border-box;
 }
 
+.modeItem:focus-within {
+  outline: 2px solid var(--color-focus-outline, #93c5fd);
+  outline-offset: 3px;
+}
+
 .modeItem p {
   margin: 0.25rem 0 0;
   font-size: 0.9rem;
@@ -189,10 +217,11 @@
   resize: vertical;
 }
 
-.fieldset input:focus,
-.fieldset select:focus,
-.fieldset textarea:focus {
-  outline: none;
+.fieldset input:focus-visible,
+.fieldset select:focus-visible,
+.fieldset textarea:focus-visible {
+  outline: 2px solid var(--color-focus-outline, #93c5fd);
+  outline-offset: 3px;
   border-color: rgba(165, 243, 252, 0.65);
   box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.18);
 }
@@ -217,6 +246,11 @@
 
 .primaryButton:not(:disabled):hover {
   transform: translateY(-1px);
+}
+
+.primaryButton:focus-visible {
+  outline: 2px solid var(--color-focus-outline, #93c5fd);
+  outline-offset: 3px;
 }
 
 .meta {

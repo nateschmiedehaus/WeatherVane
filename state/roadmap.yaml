@@ -1,0 +1,378 @@
+epics:
+  - id: E1
+    title: Epic 1 — Ingest & Weather Foundations
+    description: Stand up weather + marketing ingestion, harmonise geo/time, and
+      validate data quality.
+    milestones:
+      - id: M1.1
+        title: Connector scaffolding
+        tasks:
+          - id: T1.1.1
+            title: Design Open-Meteo + Shopify connectors and data contracts
+            owner: WVO
+            estimate_hours: 6
+            status: done
+            exit_criteria:
+              - critic: build
+              - critic: tests
+              - doc: docs/INGESTION.md
+          - id: T1.1.2
+            title: Implement ingestion Prefect flow with checkpointing
+            owner: WVO
+            estimate_hours: 8
+            status: done
+            dependencies:
+              - T1.1.1
+            exit_criteria:
+              - critic: data_quality
+              - critic: org_pm
+              - artifact: experiments/ingest/dq_report.json
+      - id: M1.2
+        title: Weather harmonisation
+        tasks:
+          - id: T1.2.1
+            title: Blend historical + forecast weather, enforce timezone alignment
+            owner: WVO
+            estimate_hours: 6
+            status: done
+            exit_criteria:
+              - critic: forecast_stitch
+              - doc: docs/weather/blending.md
+          - id: T1.2.2
+            title: Add leakage guardrails to feature builder
+            owner: WVO
+            estimate_hours: 4
+            status: done
+            dependencies:
+              - T1.2.1
+            exit_criteria:
+              - critic: leakage
+              - critic: tests
+  - id: E2
+    title: Epic 2 — Features & Modeling Baseline
+    description: Ship lagged features, baseline models, and evaluation harness.
+    milestones:
+      - id: M2.1
+        title: Feature pipeline
+        tasks:
+          - id: T2.1.1
+            title: Build lag/rolling feature generators with deterministic seeds
+            owner: WVO
+            estimate_hours: 6
+            status: done
+            exit_criteria:
+              - critic: build
+              - critic: tests
+              - critic: data_quality
+      - id: M2.2
+        title: Baseline modeling
+        tasks:
+          - id: T2.2.1
+            title: Train weather-aware GAM baseline and document methodology
+            owner: WVO
+            estimate_hours: 8
+            status: done
+            exit_criteria:
+              - critic: causal
+              - critic: academic_rigor
+              - doc: docs/models/baseline.md
+  - id: E3
+    title: Epic 3 — Allocation & UX
+    description: Allocator robustness checks, dashboards, and UI polish.
+    milestones:
+      - id: M3.1
+        title: Allocator guardrails
+        tasks:
+          - id: T3.1.1
+            title: Implement budget allocator stress tests and regret bounds
+            owner: WVO
+            estimate_hours: 7
+            status: done
+            exit_criteria:
+              - critic: allocator
+              - critic: cost_perf
+              - artifact: experiments/policy/regret.json
+      - id: M3.2
+        title: Dashboard + UX review
+        tasks:
+          - id: T3.2.1
+            title: Run design system critic and ensure accessibility coverage
+            owner: WVO
+            estimate_hours: 5
+            status: done
+            exit_criteria: null
+          - critic: design_system
+            id: T3.2.2
+            title: Elevate dashboard storytelling & UX
+            status: done
+            exit_criteria:
+              - critic: design_system
+              - doc: docs/UX_CRITIQUE.md
+          - critic: exec_review
+            id: T3.2.2
+            title: Elevate dashboard storytelling & UX
+            status: done
+            exit_criteria:
+              - critic: design_system
+              - doc: docs/UX_CRITIQUE.md
+  - id: E4
+    title: Epic 4 — Operational Excellence
+    description: Maintain velocity while hardening performance and delivery processes.
+    milestones:
+      - id: M4.1
+        title: Optimization sprint
+        tasks:
+          - id: T4.1.3
+            title: Causal uplift modeling & incremental lift validation
+            status: done
+            exit_criteria:
+              - critic: causal
+              - artifact: experiments/causal/uplift_report.json
+          - id: T4.1.4
+            title: Multi-horizon ensemble forecasting
+            status: done
+            exit_criteria:
+              - critic: forecast_stitch
+              - artifact: experiments/forecast/ensemble_metrics.json
+          - id: T4.1.5
+            title: Non-linear allocation optimizer with constraints (ROAS, spend caps)
+            status: pending
+            exit_criteria:
+              - critic: allocator
+              - tests: tests/test_allocator.py
+          - id: T4.1.6
+            title: High-frequency spend response modeling (intraday adjustments)
+            status: pending
+            exit_criteria:
+              - critic: allocator
+              - artifact: experiments/allocator/hf_response.json
+          - id: T4.1.7
+            title: Marketing mix budget solver (multi-channel, weather-aware)
+            status: pending
+            exit_criteria:
+              - critic: allocator
+              - tests: tests/test_marketing_mix_solver.py
+          - id: T4.1.8
+            title: Reinforcement-learning shadow mode (safe exploration)
+            status: pending
+            exit_criteria:
+              - critic: allocator
+              - artifact: experiments/rl/shadow_mode.json
+          - id: T4.1.9
+            title: Creative-level response modeling with brand safety guardrails
+            status: pending
+            exit_criteria:
+              - critic: design_system
+              - artifact: experiments/creative/response_scores.json
+          - id: T4.1.10
+            title: Cross-market saturation optimization (fairness-aware)
+            status: pending
+            exit_criteria:
+              - critic: allocator
+              - artifact: experiments/allocator/saturation_report.json
+  - id: E11
+    title: Resource-Aware Intelligence & Personalisation
+    description: Auto-detect hardware, adapt workloads, and guarantee great
+      performance on constrained machines.
+    milestones:
+      - id: M11.1
+        title: Capability Detection
+        description: Detect CPU/GPU/RAM at runtime and store device profiles.
+        tasks:
+          - id: T11.1.1
+            title: Implement hardware probe & profile persistence
+            status: done
+            exit_criteria:
+              - critic: build
+              - doc: docs/ROADMAP.md
+          - id: T11.1.2
+            title: Adaptive scheduling for heavy tasks
+            status: pending
+            exit_criteria:
+              - critic: tests
+              - artifact: state/device_profiles.json
+      - id: M11.2
+        title: Falcon Design System & Award-ready UX
+        description: Deliver the visual polish required for design award recognition.
+        tasks:
+          - id: T11.2.1
+            title: Design system elevation (motion, typography, theming)
+            status: pending
+            exit_criteria:
+              - critic: design_system
+              - doc: docs/WEB_DESIGN_SYSTEM.md
+          - id: T11.2.2
+            title: Award-level experience audit & remediation
+            status: pending
+            exit_criteria:
+              - critic: exec_review
+              - artifact: docs/UX_CRITIQUE.md
+  - id: E6
+    title: MCP Orchestrator Production Readiness
+    description: Validate and harden the dual-provider MCP orchestrator for autonomous operation.
+    milestones:
+      - id: M6.1
+        title: Core Infrastructure Validation
+        tasks:
+          - id: T6.1.1
+            title: MCP server integration tests (all 25 tools across both providers)
+            status: pending
+            exit_criteria:
+              - critic: tests
+              - artifact: tests/test_mcp_tools.py
+          - id: T6.1.2
+            title: Provider failover testing (token limit simulation & automatic switching)
+            status: pending
+            exit_criteria:
+              - critic: manager_self_check
+              - artifact: experiments/mcp/failover_test.json
+          - id: T6.1.3
+            title: State persistence testing (checkpoint recovery across sessions)
+            status: pending
+            exit_criteria:
+              - critic: tests
+              - artifact: tests/test_state_persistence.py
+          - id: T6.1.4
+            title: Quality framework validation (10 dimensions operational)
+            status: pending
+            exit_criteria:
+              - critic: manager_self_check
+              - artifact: state/quality/assessment_log.json
+      - id: M6.2
+        title: Security & Reliability Hardening
+        tasks:
+          - id: T6.2.1
+            title: Credentials security audit (auth.json, API keys, token rotation)
+            status: pending
+            exit_criteria:
+              - critic: security
+              - doc: docs/SECURITY_AUDIT.md
+          - id: T6.2.2
+            title: Error recovery testing (graceful degradation, retry logic)
+            status: pending
+            exit_criteria:
+              - critic: tests
+              - artifact: experiments/mcp/error_recovery.json
+          - id: T6.2.3
+            title: Schema validation enforcement (all data contracts validated)
+            status: pending
+            exit_criteria:
+              - critic: data_quality
+              - artifact: shared/contracts/*.schema.json
+          - id: T6.2.4
+            title: API rate limiting & exponential backoff (Open-Meteo, Shopify, Ads APIs)
+            status: pending
+            exit_criteria:
+              - critic: allocator
+              - tests: tests/test_rate_limiting.py
+      - id: M6.3
+        title: Observability & Performance
+        tasks:
+          - id: T6.3.1
+            title: Performance benchmarking (MCP overhead, checkpoint size, token usage)
+            status: pending
+            exit_criteria:
+              - critic: cost_perf
+              - artifact: experiments/mcp/performance_benchmarks.json
+          - id: T6.3.2
+            title: Enhanced observability export (structured logs, metrics dashboards)
+            status: pending
+            exit_criteria:
+              - critic: manager_self_check
+              - artifact: state/telemetry/metrics_summary.json
+          - id: T6.3.3
+            title: Autopilot loop end-to-end testing (full autonomous cycle validation)
+            status: pending
+            exit_criteria:
+              - critic: manager_self_check
+              - artifact: experiments/mcp/autopilot_e2e.json
+  - id: E7
+    title: Data Pipeline Hardening
+    description: Complete geocoding integration, weather feature joins, and data quality validation.
+    milestones:
+      - id: M7.1
+        title: Geocoding & Weather Integration
+        tasks:
+          - id: T7.1.1
+            title: Complete geocoding integration (city->lat/lon, cache strategy)
+            status: in_progress
+            exit_criteria:
+              - critic: data_quality
+              - tests: tests/test_geocoding.py
+          - id: T7.1.2
+            title: Weather feature join to model matrix (prevent future leakage)
+            status: in_progress
+            exit_criteria:
+              - critic: leakage
+              - artifact: experiments/features/weather_join_validation.json
+          - id: T7.1.3
+            title: Data contract schema validation (Shopify, weather, ads)
+            status: pending
+            exit_criteria:
+              - critic: data_quality
+              - tests: tests/test_schema_validation.py
+      - id: M7.2
+        title: Pipeline Robustness
+        tasks:
+          - id: T7.2.1
+            title: Incremental ingestion with deduplication & checkpointing
+            status: pending
+            exit_criteria:
+              - critic: data_quality
+              - tests: tests/test_incremental_ingest.py
+          - id: T7.2.2
+            title: Data quality monitoring & alerting (anomaly detection)
+            status: pending
+            exit_criteria:
+              - critic: data_quality
+              - artifact: state/dq_monitoring.json
+  - id: E5
+    title: Ad Platform Execution & Automation
+    description: Enable WeatherVane to programmatically create, update, monitor, and
+      rollback ads across major platforms.
+    milestones:
+      - id: M5.1
+        title: Meta Ads Command Pipeline
+        tasks:
+          - id: T5.1.1
+            title: Implement Meta Marketing API client (creative + campaign management)
+            status: pending
+            exit_criteria:
+              - critic: allocator
+              - tests: tests/apps/test_meta_ads.py
+          - id: T5.1.2
+            title: Meta sandbox and dry-run executor with credential vaulting
+            status: pending
+            exit_criteria:
+              - critic: security
+              - artifact: experiments/meta/sandbox_run.json
+      - id: M5.2
+        title: Google Ads Execution & Budget Sync
+        tasks:
+          - id: T5.2.1
+            title: Google Ads API integration (campaign create/update, shared budgets)
+            status: pending
+            exit_criteria:
+              - critic: allocator
+              - tests: tests/apps/test_google_ads.py
+          - id: T5.2.2
+            title: Budget reconciliation & spend guardrails across platforms
+            status: pending
+            exit_criteria:
+              - critic: allocator
+              - artifact: experiments/allocator/spend_guardrails.json
+      - id: M5.3
+        title: QA, Rollback & Safety Harness
+        tasks:
+          - id: T5.3.1
+            title: Dry-run & diff visualizer for ad pushes (pre-flight checks)
+            status: pending
+            exit_criteria:
+              - critic: tests
+              - artifact: state/ad_push_diffs.json
+          - id: T5.3.2
+            title: Automated rollback + alerting when performance/regression detected
+            status: pending
+            exit_criteria:
+              - critic: manager_self_check
+              - artifact: experiments/allocator/rollback_sim.json

@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import Head from "next/head";
 
 import styles from "../styles/automations.module.css";
@@ -47,8 +47,9 @@ export default function AutomationsPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
+  const [reloadCount, setReloadCount] = useState(0);
 
-  useEffect(() => {
+  const loadSettings = useCallback(() => {
     let active = true;
     setLoading(true);
     fetchAutomationSettings(TENANT_ID)
@@ -71,6 +72,13 @@ export default function AutomationsPage() {
       active = false;
     };
   }, []);
+
+  useEffect(() => {
+    const cancel = loadSettings();
+    return cancel;
+  }, [loadSettings, reloadCount]);
+
+  const handleRetry = () => setReloadCount((value) => value + 1);
 
   const changeWindowsText = useMemo(
     () => settings?.guardrails.change_windows.join(", ") ?? "",
@@ -190,9 +198,24 @@ export default function AutomationsPage() {
         </p>
         </section>
 
-      {loading && <p className={styles.status}>Loading automation settings…</p>}
-      {error && <p className={styles.error}>{error}</p>}
-      {statusMessage && <p className={styles.success}>{statusMessage}</p>}
+      {loading && (
+        <p className={styles.status} role="status" aria-live="polite">
+          Loading automation settings…
+        </p>
+      )}
+      {error && (
+        <div className={styles.error} role="alert">
+          <p>{error}</p>
+          <button type="button" onClick={handleRetry} className={styles.retryButton}>
+            Retry loading settings
+          </button>
+        </div>
+      )}
+      {statusMessage && (
+        <p className={styles.success} role="status" aria-live="polite">
+          {statusMessage}
+        </p>
+      )}
 
       {!loading && settings && (
         <div className={styles.layout}>

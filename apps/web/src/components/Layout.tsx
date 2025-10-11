@@ -20,6 +20,9 @@ export function Layout({ children }: LayoutProps) {
 
   return (
     <div className={styles.shell} data-reduced-motion={prefersReducedMotion}>
+      <a href="#main-content" className={styles.skipLink}>
+        Skip to main content
+      </a>
       <div className={styles.backdrop} aria-hidden />
       <header className={styles.header}>
         <div>
@@ -28,7 +31,9 @@ export function Layout({ children }: LayoutProps) {
         </div>
         <NavTabs />
       </header>
-      <main className={styles.main}>{children}</main>
+      <main id="main-content" className={styles.main}>
+        {children}
+      </main>
       <footer className={styles.footer}>
         Built for teams who want weather science without sacrificing simplicity.
       </footer>

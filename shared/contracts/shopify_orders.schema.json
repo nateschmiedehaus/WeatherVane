@@ -1,0 +1,82 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ShopifyOrderRecord",
+  "type": "object",
+  "properties": {
+    "tenant_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "order_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "name": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "created_at": {
+      "type": "string",
+      "minLength": 1
+    },
+    "currency": {
+      "type": "string",
+      "minLength": 1
+    },
+    "total_price": {
+      "type": "number"
+    },
+    "subtotal_price": {
+      "type": "number"
+    },
+    "total_tax": {
+      "type": "number"
+    },
+    "total_discounts": {
+      "type": "number"
+    },
+    "shipping_postal_code": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "shipping_country": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "ship_latitude": {
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "ship_longitude": {
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "ship_geohash": {
+      "type": [
+        "string",
+        "null"
+      ]
+    }
+  },
+  "required": [
+    "tenant_id",
+    "order_id",
+    "created_at",
+    "currency",
+    "total_price",
+    "subtotal_price",
+    "total_tax",
+    "total_discounts"
+  ],
+  "additionalProperties": false
+}

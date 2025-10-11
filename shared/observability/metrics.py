@@ -2,13 +2,15 @@
 
 from __future__ import annotations
 
+import argparse
 import json
 import logging
 import os
+import shutil
 import threading
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Mapping, MutableMapping, Optional
+from typing import Any, Iterable, Mapping, MutableMapping, Optional
 
 LOGGER = logging.getLogger("weathervane.metrics")
 
@@ -76,6 +78,54 @@ def reset_run_directory() -> None:
         _RUN_DIR = None
 
 
+def purge_run_artifacts(
+    base_dir: Optional[str] = None,
+    *,
+    dry_run: bool = False,
+    remove_base_dir: bool = False,
+) -> list[Path]:
+    """Remove metrics run artifacts that accumulate during local testing.
+
+    This keeps `tmp/metrics` from ballooning between runs while preserving the base
+    directory by default so subsequent tests can reuse the same path safely.
+    """
+
+    resolved_base = _resolve_base_dir(base_dir)
+    if not resolved_base.exists():
+        return []
+
+    removed: list[Path] = []
+
+    def _delete_candidates(candidates: Iterable[Path]) -> None:
+        for item in candidates:
+            removed.append(item)
+            if dry_run:
+                continue
+            if item.is_dir():
+                shutil.rmtree(item, ignore_errors=True)
+            else:
+                try:
+                    item.unlink()
+                except FileNotFoundError:
+                    pass
+
+    directories = []
+    files = []
+    for child in sorted(resolved_base.iterdir()):
+        (directories if child.is_dir() else files).append(child)
+
+    _delete_candidates(directories + files)
+
+    if remove_base_dir and not dry_run:
+        try:
+            resolved_base.rmdir()
+        except OSError:
+            # Directory not empty or removal failed; leave it in place.
+            pass
+
+    return removed
+
+
 def emit(
     event: str,
     payload: Mapping[str, Any],
@@ -140,3 +190,43 @@ def _json_default(value: Any) -> Any:
     if isinstance(value, (datetime,)):
         return value.isoformat()
     return str(value)
+
+
+def _cli() -> int:
+    parser = argparse.ArgumentParser(description="Purge metrics run artifacts.")
+    parser.add_argument(
+        "--base-dir",
+        type=str,
+        default=None,
+        help="Base metrics directory (default: resolve via METRICS_OUTPUT_DIR or tmp/metrics).",
+    )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Preview which paths would be removed without deleting them.",
+    )
+    parser.add_argument(
+        "--remove-base-dir",
+        action="store_true",
+        help="Remove the base directory itself after cleaning child artifacts.",
+    )
+    args = parser.parse_args()
+
+    removed = purge_run_artifacts(
+        args.base_dir,
+        dry_run=args.dry_run,
+        remove_base_dir=args.remove_base_dir,
+    )
+
+    for path in removed:
+        prefix = "Would remove" if args.dry_run else "Removed"
+        print(f"{prefix}: {path}")
+
+    if not removed:
+        print("Nothing to clean.")
+
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(_cli())

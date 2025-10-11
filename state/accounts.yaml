@@ -1,0 +1,20 @@
+# WeatherVane autopilot accounts configuration
+# Add additional accounts by copying the sample entries below.
+# Home directories / CLAUDE_CONFIG_DIR will be auto-generated under
+#   $ROOT/.accounts/<provider>/<account_id>
+# after you supply an id.
+
+codex:
+  - id: codex_personal
+    profile: weathervane_orchestrator
+    email: natems6@gmail.com
+    label: personal
+  - id: codex_client
+    profile: weathervane_orchestrator
+    email: nate@schmiedehaus.com
+    label: client
+
+claude:
+  - id: claude_primary
+    env:
+      CLAUDE_CONFIG_DIR: /Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/.accounts/claude/claude_primary

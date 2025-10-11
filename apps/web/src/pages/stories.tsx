@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Head from "next/head";
 
 import { Layout } from "../components/Layout";
@@ -23,8 +23,9 @@ export default function StoriesPage() {
   const [response, setResponse] = useState<StoriesResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [reloadCount, setReloadCount] = useState(0);
 
-  useEffect(() => {
+  const fetchStoriesData = useCallback(() => {
     let active = true;
     setLoading(true);
     fetchStories(TENANT_ID, HORIZON_DAYS)
@@ -45,6 +46,13 @@ export default function StoriesPage() {
       active = false;
     };
   }, []);
+
+  useEffect(() => {
+    const cancel = fetchStoriesData();
+    return cancel;
+  }, [fetchStoriesData, reloadCount]);
+
+  const handleRetry = () => setReloadCount((value) => value + 1);
 
   const stories: WeatherStory[] = response?.stories ?? [];
   const generatedAt = response?.generated_at
@@ -87,8 +95,19 @@ export default function StoriesPage() {
           </aside>
         </section>
 
-        {loading && <p className={styles.status}>Loading stories…</p>}
-        {error && <p className={styles.error}>{error}</p>}
+        {loading && (
+          <p className={styles.status} role="status" aria-live="polite">
+            Loading stories…
+          </p>
+        )}
+        {error && (
+          <div className={styles.error} role="alert">
+            <p>{error}</p>
+            <button type="button" onClick={handleRetry} className={styles.retryButton}>
+              Retry loading stories
+            </button>
+          </div>
+        )}
 
         {!loading && !error && (
           <section className={styles.contextSection}>

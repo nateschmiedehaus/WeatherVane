@@ -15,8 +15,28 @@ class FakeConnector:
     async def fetch_page(self, resource, params=None, cursor=None):
         self.calls.append((resource, params, cursor))
         if cursor is None:
-            return {"orders": [{"id": 1, "updated_at": "2024-01-01T00:00:00Z", "shipping_address": {"zip": "98052"}}]}, "cursor1"
-        return {"orders": [{"id": 2, "updated_at": "2024-01-02T00:00:00Z", "shipping_address": {"zip": "98052"}}]}, None
+            return {
+                "orders": [
+                    {
+                        "id": 1,
+                        "updated_at": "2024-01-01T00:00:00Z",
+                        "created_at": "2024-01-01T00:00:00Z",
+                        "currency": "USD",
+                        "shipping_address": {"zip": "98052"},
+                    }
+                ]
+            }, "cursor1"
+        return {
+            "orders": [
+                {
+                    "id": 2,
+                    "updated_at": "2024-01-02T00:00:00Z",
+                    "created_at": "2024-01-02T00:00:00Z",
+                    "currency": "USD",
+                    "shipping_address": {"zip": "98052"},
+                }
+            ]
+        }, None
 
 
 class StubGeocoder:

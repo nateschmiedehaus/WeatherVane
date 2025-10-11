@@ -37,6 +37,7 @@ build/
 storage/lake/
 storage/metadata/
 .tmp/
+tmp/
 .cache/
 
 # VSCode & IDEs
@@ -52,4 +53,3 @@ localstack-data/
 .AppleDouble
 .LSOverride
 Icon?
-

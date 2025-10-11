@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import os
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -18,7 +18,11 @@ from apps.worker.ingestion import ShopifyIngestor, IngestionSummary
 from apps.worker.ingestion.ads import build_ads_ingestor_from_env
 from apps.worker.ingestion.promo import build_promo_ingestor_from_env
 from shared.feature_store.weather_cache import WeatherCache, make_geocell
-from shared.feature_store.feature_builder import FeatureBuilder
+from shared.feature_store.feature_builder import FeatureBuilder, FeatureLeakageError
+from apps.model.ensemble import (
+    run_multi_horizon_ensemble,
+    save_ensemble_metrics_as_json,
+)
 from apps.model.pipelines.poc_models import train_poc_models
 from shared.libs.connectors import ShopifyConfig, ShopifyConnector
 from shared.libs.storage.lake import LakeWriter, read_parquet
@@ -31,6 +35,7 @@ from apps.validation.incrementality import GeoHoldoutConfig, design_holdout_from
 DEFAULT_LOOKBACK_DAYS = 365
 FALLBACK_COORDINATES = [(37.7749, -122.4194)]
 COORDINATE_LIMIT = 8
+FORECAST_HORIZON_DAYS = 7
 
 
 def _derive_weather_source(weather_payload: Dict[str, Any]) -> str:
@@ -357,13 +362,28 @@ async def fetch_weather_data(
     cache = WeatherCache(root=cache_root)
     start_date = context.start_date.date()
     end_date = context.end_date.date()
+    target_end_date = end_date + timedelta(days=FORECAST_HORIZON_DAYS)
 
     rows: list[dict[str, Any]] = []
-    sources: dict[str, str] = {}
+    sources: dict[str, Any] = {}
     for lat, lon in coordinates:
         try:
-            result = await cache.ensure_range(lat=lat, lon=lon, start=start_date, end=end_date)
-            sources[result.cell] = result.source
+            result = await cache.ensure_range(
+                lat=lat,
+                lon=lon,
+                start=start_date,
+                end=target_end_date,
+            )
+            observed_rows = int(
+                result.frame.filter(pl.col("observation_type") == "observed").height
+            )
+            forecast_rows = int(result.frame.height - observed_rows)
+            sources[result.cell] = {
+                "source": result.source,
+                "observed_rows": observed_rows,
+                "forecast_rows": forecast_rows,
+                "timezone": result.timezone,
+            }
             rows.extend(result.frame.to_dicts())
         except Exception as exc:  # pragma: no cover - network or connector failures
             logger.warning(
@@ -373,25 +393,57 @@ async def fetch_weather_data(
                 exc,
             )
             cell = make_geocell(lat, lon)
-            sources[cell] = "stub"
-            days = (end_date - start_date).days + 1
+            sources[cell] = {
+                "source": "stub",
+                "observed_rows": 0,
+                "forecast_rows": 0,
+                "timezone": "UTC",
+            }
+            days = (target_end_date - start_date).days + 1
             for offset in range(max(days, 1)):
                 current = start_date + timedelta(days=offset)
                 rows.append(
                     {
                         "date": current.isoformat(),
+                        "local_date": current.isoformat(),
+                        "local_datetime": f"{current.isoformat()}T00:00:00+00:00",
+                        "utc_datetime": f"{current.isoformat()}T00:00:00+00:00",
+                        "timezone": "UTC",
                         "geohash": cell,
+                        "day_of_year": current.timetuple().tm_yday,
                         "temp_c": 15.0,
+                        "temp_max_c": 16.0,
+                        "temp_min_c": 14.0,
+                        "apparent_temp_c": 15.0,
                         "precip_mm": 0.5,
+                        "precip_probability": 0.2,
+                        "humidity_mean": 0.5,
+                        "windspeed_max": 10.0,
+                        "uv_index_max": 3.0,
+                        "snowfall_mm": 0.0,
                         "temp_anomaly": 0.0,
                         "precip_anomaly": 0.0,
                         "temp_roll7": 15.0,
                         "precip_roll7": 0.5,
+                        "temp_c_lag1": None,
+                        "precip_mm_lag1": None,
+                        "uv_index_lag1": None,
+                        "precip_probability_lag1": None,
+                        "humidity_lag1": None,
+                        "freeze_flag": 0,
+                        "heatwave_flag": 0,
+                        "snow_event_flag": 0,
+                        "high_wind_flag": 0,
+                        "uv_alert_flag": 0,
+                        "high_precip_prob_flag": 0,
+                        "observation_type": "observed" if current <= end_date else "forecast",
+                        "as_of_utc": datetime.utcnow().replace(tzinfo=timezone.utc).isoformat(),
                     }
                 )
 
     if rows:
-        df = pl.DataFrame(rows).unique(subset=["date", "geohash"])
+        df = pl.DataFrame(rows).unique(subset=["date", "geohash", "observation_type"])
+        df = df.sort(["date", "geohash", "observation_type"])
         rows = df.to_dicts()
 
     writer = LakeWriter(root=lake_root)
@@ -416,7 +468,27 @@ async def build_feature_matrix(
     logger = get_run_logger()
     logger.info("Building feature matrix for tenant %s", context.tenant_id)
     builder = FeatureBuilder(lake_root=lake_root)
-    matrix = builder.build(context.tenant_id, context.start_date, context.end_date)
+    guardrail_status = "clean"
+    guardrail_notes: Dict[str, Any] = {}
+    try:
+        matrix = builder.build(context.tenant_id, context.start_date, context.end_date)
+    except FeatureLeakageError as exc:
+        guardrail_status = "sanitized"
+        guardrail_notes = {
+            "message": str(exc),
+            "removed_rows": exc.leakage_rows,
+            "remediation": "dropped_leakage_rows",
+            "forward_trigger_dates": exc.forward_dates,
+            "forecast_trigger_dates": exc.forecast_dates,
+        }
+        matrix = exc.matrix
+        if matrix is None:
+            raise
+        logger.warning(
+            "Feature leakage guardrail triggered for tenant %s; sanitized %d rows",
+            context.tenant_id,
+            exc.leakage_rows,
+        )
 
     # Record dataset profiles for downstream context tagging.
     default_context_service.reset(context.tenant_id)
@@ -425,6 +497,7 @@ async def build_feature_matrix(
 
     return {
         "design_matrix": matrix.frame.to_dict(as_series=False),
+        "observed_design_matrix": matrix.observed_frame.to_dict(as_series=False),
         "metadata": {
             "start": context.start_date.isoformat(),
             "end": context.end_date.isoformat(),
@@ -432,6 +505,22 @@ async def build_feature_matrix(
             "ads_rows": matrix.ads_rows,
             "promo_rows": matrix.promo_rows,
             "weather_rows": matrix.weather_rows,
+            "observed_rows": matrix.observed_rows,
+            "latest_observed_target_date": matrix.latest_observed_date,
+            "leakage_guardrail": {
+                "target_available_column": "target_available",
+                "observed_rows": matrix.observed_rows,
+                "total_rows": int(matrix.frame.height),
+                "leakage_risk_rows": matrix.leakage_risk_rows,
+                "leakage_risk_dates": matrix.leakage_risk_dates,
+                "forward_leakage_rows": matrix.forward_leakage_rows,
+                "forward_leakage_dates": matrix.forward_leakage_dates,
+                "forecast_leakage_rows": matrix.forecast_leakage_rows,
+                "forecast_leakage_dates": matrix.forecast_leakage_dates,
+                "passes": matrix.leakage_risk_rows == 0,
+                "status": guardrail_status,
+                **guardrail_notes,
+            },
             "shopify_summary": shopify_payload.get("summary", {}),
             "ads_summary": ads_payload.get("summary", {}),
             "promo_summary": promo_payload.get("summary", {}),
@@ -445,7 +534,8 @@ async def fit_models(feature_payload: Dict[str, Any], context: TenantContext) ->
     logger = get_run_logger()
     logger.info("Fitting baseline + MMM models for tenant %s", context.tenant_id)
 
-    matrix_dict = feature_payload.get("design_matrix") or {}
+    observed_matrix_dict = feature_payload.get("observed_design_matrix")
+    matrix_dict = observed_matrix_dict if observed_matrix_dict is not None else (feature_payload.get("design_matrix") or {})
     bundle = train_poc_models(matrix_dict)
 
     return {
@@ -653,7 +743,6 @@ async def allocate_budget(
 
     slices = []
     for cell, spend in allocation.spends.items():
-        roas = _roas_from_curve(cell, spend)
         revenue_mid = _revenue_from_curve(cell, spend)
         p50_factor = quantiles.get("p50") or 1.0
         if p50_factor <= 0:
@@ -703,6 +792,32 @@ async def allocate_budget(
         "guardrails": allocation.diagnostics,
         "status": "FULL" if allocation.diagnostics.get("success") else "DEGRADED",
     }
+
+
+@task(name="Generate ensemble forecast")
+async def generate_ensemble_forecast(
+    feature_payload: Dict[str, Any],
+    weather_payload: Dict[str, Any],
+    context: TenantContext,
+    *,
+    output_path: str = "experiments/forecast/ensemble_metrics.json",
+    horizon_days: int = FORECAST_HORIZON_DAYS,
+) -> Dict[str, Any]:
+    logger = get_run_logger()
+    logger.info(
+        "Running multi-horizon ensemble forecast for tenant %s with horizon=%d",
+        context.tenant_id,
+        horizon_days,
+    )
+    design_matrix = feature_payload.get("design_matrix") or {}
+    weather_rows = weather_payload.get("rows") or []
+    result = run_multi_horizon_ensemble(
+        design_matrix,
+        weather_rows,
+        horizon_days=horizon_days,
+    )
+    save_ensemble_metrics_as_json(result, output_path)
+    return result.to_dict()
 
 
 @task(name="Generate PoC report")
@@ -760,6 +875,12 @@ async def orchestrate_poc_flow(
     models = await fit_models(features, context)
     simulations = await simulate_counterfactuals(models, features, context)
     plan = await allocate_budget(models, simulations, context, context_tags=context_tags)
+    ensemble = await generate_ensemble_forecast(
+        features,
+        weather_payload,
+        context,
+        horizon_days=FORECAST_HORIZON_DAYS,
+    )
     report = await generate_poc_report(plan, context)
 
     context_snapshot = default_context_service.snapshot(
@@ -794,4 +915,5 @@ async def orchestrate_poc_flow(
             "weather": weather_payload.get("source"),
         },
         "incrementality_design": incrementality_design,
+        "forecast_ensemble": ensemble,
     }

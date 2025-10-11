@@ -6,11 +6,15 @@ interface DisclaimerBannerProps {
 
 export function DisclaimerBanner({ message = "Predictions reflect historical correlations; causal lift remains under validation." }: DisclaimerBannerProps) {
   return (
-    <div className={`${styles.panel} ${styles.warningInfo}`}>
+    <section
+      className={`${styles.panel} ${styles.warningInfo}`}
+      role="note"
+      aria-label="Causal inference disclaimer"
+    >
       <div className={styles.header}>
-        <span>Causal Notice</span>
+        <h3 className={styles.heading}>Causal Notice</h3>
       </div>
       <p className={styles.bodyCopy}>{message}</p>
-    </div>
+    </section>
   );
 }

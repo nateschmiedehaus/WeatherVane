@@ -5,7 +5,7 @@ import os
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, Iterable, Mapping
+from typing import Any, Dict, Mapping
 
 import json
 
@@ -13,6 +13,10 @@ from shared.libs.connectors import GoogleAdsConfig, GoogleAdsConnector, MetaAdsC
 from shared.libs.storage.lake import LakeWriter
 
 from .base import BaseIngestor, IngestionSummary, iso
+from shared.validation.schemas import (
+    validate_google_ads,
+    validate_meta_ads,
+)
 
 DEFAULT_DAYS_LOOKBACK = 90
 
@@ -39,6 +43,8 @@ class AdsIngestor(BaseIngestor):
         response = await self.meta_connector.fetch("insights", **params)
         data = response.get("data", [])
         rows = [self._normalise_meta_row(tenant_id, row) for row in data]
+        if rows:
+            validate_meta_ads(rows)
         if not rows:
             return IngestionSummary(path=str(self.writer.write_records(f"{tenant_id}_meta_ads", [])), row_count=0, source="meta_api")
         return self._write_records(f"{tenant_id}_meta_ads", rows, source="meta_api")
@@ -62,6 +68,8 @@ class AdsIngestor(BaseIngestor):
         response = await self.google_connector.fetch(service, **params)
         data = response.get("results", [])
         rows = [self._normalise_google_row(tenant_id, row) for row in data]
+        if rows:
+            validate_google_ads(rows)
         if not rows:
             return IngestionSummary(path=str(self.writer.write_records(f"{tenant_id}_google_ads", [])), row_count=0, source="google_api")
         return self._write_records(f"{tenant_id}_google_ads", rows, source="google_api")

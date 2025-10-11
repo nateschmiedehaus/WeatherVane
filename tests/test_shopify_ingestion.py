@@ -6,6 +6,7 @@ import pytest
 
 from apps.worker.ingestion.shopify import ShopifyIngestor
 from shared.libs.storage.lake import LakeWriter
+from shared.validation.schemas import validate_shopify_orders, validate_shopify_products
 
 
 class StubConnector:
@@ -17,12 +18,36 @@ class StubConnector:
         self.calls.append((resource, params))
         return self.responses.pop(0)
 
+    async def fetch_page(self, resource, params, cursor=None):
+        payload = await self.fetch(resource, **params)
+        return payload, None
+
 
 @pytest.mark.asyncio
 async def test_ingest_orders_and_products(tmp_path: Path):
     responses = [
-        {"orders": [{"id": 1, "name": "#1001", "total_price": "12.34"}]},
-        {"products": [{"id": 5, "title": "Rain Jacket"}]},
+        {
+            "orders": [
+                {
+                    "id": 1,
+                    "name": "#1001",
+                    "total_price": "12.34",
+                    "created_at": "2024-01-01T00:00:00Z",
+                    "currency": "USD",
+                    "shipping_address": {"zip": "98052", "country_code": "US"},
+                }
+            ]
+        },
+        {
+            "products": [
+                {
+                    "id": 5,
+                    "title": "Rain Jacket",
+                    "product_type": "Outerwear",
+                    "vendor": "WeatherVane",
+                }
+            ]
+        },
     ]
     connector = StubConnector(responses)
     ingestor = ShopifyIngestor(connector=connector, writer=LakeWriter(root=tmp_path))
@@ -34,6 +59,9 @@ async def test_ingest_orders_and_products(tmp_path: Path):
 
     orders_frame = pl.read_parquet(orders_summary.path)
     products_frame = pl.read_parquet(products_summary.path)
+
+    validate_shopify_orders(orders_frame)
+    validate_shopify_products(products_frame)
 
     assert orders_summary.row_count == 1
     assert products_summary.row_count == 1

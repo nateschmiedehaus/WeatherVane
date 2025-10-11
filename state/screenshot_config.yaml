@@ -1,0 +1,79 @@
+# WeatherVane Screenshot Configuration
+# Defines when and how to capture UI screenshots for design review
+
+dev_server:
+  # Command to start dev server (run from workspace root)
+  command: "npm run dev --prefix apps/web"
+  port: 3000
+  ready_check: "http://localhost:3000"
+  working_directory: null  # Uses workspace root if null
+
+# Pages to capture (auto-discovered if not specified)
+pages:
+  - path: "/"
+    name: "homepage"
+    wait_for_selector: "main"
+  - path: "/dashboard"
+    name: "dashboard"
+    wait_for_selector: "[data-testid='dashboard']"
+  - path: "/catalog"
+    name: "catalog"
+    wait_for_selector: "main"
+  - path: "/plan"
+    name: "plan"
+    wait_for_selector: "main"
+  - path: "/automations"
+    name: "automations"
+    wait_for_selector: "main"
+
+# Viewports to test (mobile, tablet, desktop)
+viewports:
+  - name: "mobile"
+    width: 375
+    height: 667
+    device_scale_factor: 2
+  - name: "tablet"
+    width: 768
+    height: 1024
+    device_scale_factor: 2
+  - name: "desktop"
+    width: 1920
+    height: 1080
+    device_scale_factor: 1
+
+# When to trigger screenshots
+trigger_rules:
+  # Take screenshots when UI files change
+  on_ui_changes: true
+
+  # File patterns that indicate UI changes
+  ui_file_patterns:
+    - "apps/web/**/*.tsx"
+    - "apps/web/**/*.ts"
+    - "apps/web/**/*.css"
+    - "apps/web/**/*.scss"
+    - "apps/web/components/**/*"
+    - "apps/web/pages/**/*"
+
+  # Minimum time between screenshot sessions (minutes)
+  cooldown_minutes: 30
+
+  # Take screenshots after completing design-related tasks
+  on_task_completion:
+    - "T3.2.1"  # Design system critic
+    - "T3.2.2"  # UX elevation
+    - "T11.2.1" # Design system elevation
+    - "T11.2.2" # Award-level experience audit
+
+  # Take screenshots before running these critics
+  before_critics:
+    - "design_system"
+    - "exec_review"
+
+# Cleanup policy
+cleanup:
+  # Keep last N screenshot sessions
+  keep_last: 5
+
+  # Delete sessions older than N days
+  max_age_days: 7

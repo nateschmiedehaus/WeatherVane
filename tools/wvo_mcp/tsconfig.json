@@ -1,0 +1,25 @@
+{
+  "compilerOptions": {
+    "target": "ES2021",
+    "module": "ES2022",
+    "moduleResolution": "Bundler",
+    "baseUrl": ".",
+    "paths": {
+      "@modelcontextprotocol/sdk/server": ["node_modules/@modelcontextprotocol/sdk/dist/esm/server/index.d.ts"],
+      "@modelcontextprotocol/sdk/server/index.js": ["node_modules/@modelcontextprotocol/sdk/dist/esm/server/index.d.ts"],
+      "@modelcontextprotocol/sdk/server/stdio.js": ["node_modules/@modelcontextprotocol/sdk/dist/esm/server/stdio.d.ts"],
+      "@modelcontextprotocol/sdk/transports/stdio": ["node_modules/@modelcontextprotocol/sdk/dist/esm/server/stdio.d.ts"]
+    },
+    "declaration": true,
+    "outDir": "dist",
+    "rootDir": "src",
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "strict": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "types": ["node"]
+  },
+  "include": ["src/**/*.ts", "src/**/*.d.ts"],
+  "exclude": ["node_modules", "dist"]
+}

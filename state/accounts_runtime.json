@@ -1,0 +1,14 @@
+{
+  "codex": {
+    "codex_personal": {
+      "last_selected": "2025-10-11T00:07:04.242683+00:00"
+    },
+    "codex_client": {}
+  },
+  "claude": {
+    "claude_primary": {
+      "last_selected": "2025-10-10T21:11:36.531216+00:00",
+      "last_purpose": "evaluation"
+    }
+  }
+}

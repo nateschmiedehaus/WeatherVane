@@ -4,12 +4,13 @@ from __future__ import annotations
 import os
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, Dict, Iterable, Mapping
+from typing import Any, Dict, Mapping
 
 from shared.libs.connectors import KlaviyoConfig, KlaviyoConnector
 from shared.libs.storage.lake import LakeWriter
 
 from .base import BaseIngestor, IngestionSummary
+from shared.validation.schemas import validate_promos
 
 DEFAULT_PAGE_SIZE = 100
 
@@ -33,6 +34,8 @@ class PromoIngestor(BaseIngestor):
         payload = await self.connector.fetch("campaigns", **params)
         data = payload.get("data", [])
         rows = [self._normalise_campaign(tenant_id, campaign) for campaign in data]
+        if rows:
+            validate_promos(rows)
         return self._write_records(f"{tenant_id}_promos", rows, source="klaviyo_api")
 
     def _normalise_campaign(self, tenant_id: str, campaign: Mapping[str, Any]) -> Dict[str, Any]:
@@ -53,4 +56,3 @@ def build_promo_ingestor_from_env(lake_root: str):
         return PromoIngestor(writer=LakeWriter(root=lake_root), connector=None)
     config = KlaviyoConfig(api_key=api_key)
     return PromoIngestor(writer=LakeWriter(root=lake_root), connector=KlaviyoConnector(config))
-

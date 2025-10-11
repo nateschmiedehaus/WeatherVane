@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "GoogleAdsRecord",
+  "type": "object",
+  "properties": {
+    "tenant_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "date": {
+      "type": "string",
+      "minLength": 1
+    },
+    "campaign_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "spend": {
+      "type": "number"
+    },
+    "impressions": {
+      "type": "integer"
+    },
+    "clicks": {
+      "type": "integer"
+    },
+    "conversions": {
+      "type": "number"
+    }
+  },
+  "required": [
+    "tenant_id",
+    "date",
+    "spend",
+    "impressions",
+    "clicks",
+    "conversions"
+  ],
+  "additionalProperties": false
+}
