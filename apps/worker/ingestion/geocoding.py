@@ -15,13 +15,8 @@ import geohash2  # type: ignore
 
 from shared.libs.storage.state import JsonStateStore
 
-if os.getenv("WEATHERVANE_DISABLE_PGEOCODE") == "1":  # pragma: no cover - env override for incompatible builds
-    pgeocode = None  # type: ignore
-else:  # pragma: no cover - optional dependency in production environments
-    try:
-        import pgeocode
-    except ImportError:
-        pgeocode = None  # type: ignore
+_PGEOCODE_SENTINEL = object()
+_pgeocode_module: object = _PGEOCODE_SENTINEL
 
 DEFAULT_COUNTRY = "US"
 DEFAULT_PRECISION = 5
@@ -252,9 +247,10 @@ def _safe_float(value: object) -> Optional[float]:
 
 @lru_cache(maxsize=32)
 def _get_nominatim(country: str):
-    if not pgeocode:
+    module = _load_pgeocode()
+    if not module:
         return None
-    return pgeocode.Nominatim(country)
+    return module.Nominatim(country)
 
 
 def _lookup_postal(country: str, postal_code: str, precision: int) -> GeoResult:
@@ -315,3 +311,21 @@ def _lookup_city(
             geoh = geohash2.encode(lat, lon, precision)
             return GeoResult(latitude=lat, longitude=lon, geohash=geoh)
     return GeoResult(latitude=None, longitude=None, geohash=None)
+
+
+def _load_pgeocode():
+    global _pgeocode_module
+    if os.getenv("WEATHERVANE_DISABLE_PGEOCODE") == "1":
+        _pgeocode_module = None
+        return None
+    if _pgeocode_module is None:
+        return None
+    if _pgeocode_module is not _PGEOCODE_SENTINEL:
+        return _pgeocode_module
+    try:
+        import pgeocode  # type: ignore
+    except ImportError:
+        _pgeocode_module = None
+    else:
+        _pgeocode_module = pgeocode
+    return _pgeocode_module

@@ -21,7 +21,15 @@ class Connector(ABC):
         rate_limiter: AsyncRateLimiter | None = None,
     ) -> None:
         self.config = config
-        self.rate_limiter = rate_limiter or NullRateLimiter()
+        if rate_limiter is not None:
+            self.rate_limiter = rate_limiter
+        elif config.rate_limit_per_second is not None:
+            self.rate_limiter = AsyncRateLimiter(
+                config.rate_limit_per_second,
+                config.rate_limit_capacity,
+            )
+        else:
+            self.rate_limiter = NullRateLimiter()
 
     @abstractmethod
     async def close(self) -> None:

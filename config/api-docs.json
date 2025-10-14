@@ -1,0 +1,37 @@
+[
+  {
+    "id": "meta-marketing",
+    "query": "Meta Marketing API",
+    "url": "https://developers.facebook.com/docs/marketing-api/reference",
+    "output": "docs/api/meta_marketing.md",
+    "type": "json"
+  },
+  {
+    "id": "google-ads",
+    "query": "Google Ads API",
+    "url": "https://developers.google.com/google-ads/api/reference/rpc/latest",
+    "output": "docs/api/google_ads.md",
+    "type": "json"
+  },
+  {
+    "id": "shopify-admin-rest",
+    "query": "Shopify Admin REST API",
+    "url": "https://shopify.dev/docs/api/admin-rest",
+    "output": "docs/api/shopify_admin_rest.md",
+    "type": "json"
+  },
+  {
+    "id": "open-meteo",
+    "query": "Open-Meteo API",
+    "url": "https://open-meteo.com/en/docs",
+    "output": "docs/api/open_meteo.md",
+    "type": "json"
+  },
+  {
+    "id": "prefect-flows",
+    "query": "Prefect Flows",
+    "url": "https://docs.prefect.io/latest/concepts/flows/",
+    "output": "docs/api/prefect_flows.md",
+    "type": "json"
+  }
+]

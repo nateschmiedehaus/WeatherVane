@@ -11,6 +11,44 @@ from typing import Iterable
 import polars as pl
 
 
+def _ensure_net_revenue(frame: pl.DataFrame) -> pl.DataFrame:
+    """Ensure a non-negative net_revenue column exists for downstream metrics."""
+
+    if "net_revenue" in frame.columns:
+        return frame
+
+    if "subtotal_price" in frame.columns:
+        subtotal_expr = pl.col("subtotal_price").cast(pl.Float64, strict=False)
+        net_expr = subtotal_expr
+        if "total_discounts" in frame.columns:
+            discount_expr = pl.col("total_discounts").cast(pl.Float64, strict=False).fill_null(0.0)
+            net_expr = net_expr - discount_expr
+        net_expr = net_expr.fill_null(0.0)
+        return frame.with_columns(
+            pl.max_horizontal(net_expr, pl.lit(0.0))
+            .cast(pl.Float64)
+            .alias("net_revenue")
+        )
+
+    if "total_price" in frame.columns:
+        total_expr = pl.col("total_price").cast(pl.Float64, strict=False).fill_null(0.0)
+        return frame.with_columns(
+            pl.max_horizontal(total_expr, pl.lit(0.0))
+            .cast(pl.Float64)
+            .alias("net_revenue")
+        )
+
+    if "gross_revenue" in frame.columns:
+        gross_expr = pl.col("gross_revenue").cast(pl.Float64, strict=False).fill_null(0.0)
+        return frame.with_columns(
+            pl.max_horizontal(gross_expr, pl.lit(0.0))
+            .cast(pl.Float64)
+            .alias("net_revenue")
+        )
+
+    return frame
+
+
 @dataclass(frozen=True)
 class GeoHoldoutConfig:
     holdout_ratio: float = 0.2
@@ -116,7 +154,11 @@ def geo_revenue_metrics(orders: pl.DataFrame) -> tuple[pl.DataFrame, str | None]
     if geo_column is None:
         return pl.DataFrame(), None
 
-    frame = orders.drop_nulls(subset=[geo_column, "net_revenue"])
+    orders_with_revenue = _ensure_net_revenue(orders)
+    if "net_revenue" not in orders_with_revenue.columns:
+        return pl.DataFrame(), geo_column
+
+    frame = orders_with_revenue.drop_nulls(subset=[geo_column, "net_revenue"])
     if frame.is_empty():
         return pl.DataFrame(), geo_column
 

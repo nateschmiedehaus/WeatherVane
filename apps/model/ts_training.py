@@ -11,51 +11,161 @@ from typing import Iterable, List, Sequence
 
 import numpy as np
 import polars as pl
-from sklearn.dummy import DummyRegressor
-from sklearn.model_selection import TimeSeriesSplit
-
-try:  # LightGBM is optional during scaffolding; swap in a fallback when missing.
-    from lightgbm import LGBMRegressor
-except (ImportError, OSError):  # pragma: no cover - fall back when native lib missing.
-    from sklearn.ensemble import HistGradientBoostingRegressor
-
-    class LGBMRegressor(HistGradientBoostingRegressor):  # type: ignore[misc]
-        """Minimal LightGBM lookalike so pipelines continue in constrained envs."""
-
-        def __init__(
-            self,
-            objective: str = "regression",
-            n_estimators: int = 600,
-            learning_rate: float = 0.05,
-            subsample: float = 0.8,
-            colsample_bytree: float = 0.8,
-            reg_alpha: float = 0.1,
-            reg_lambda: float = 0.1,
-            random_state: int | None = None,
-        ) -> None:
-            max_iter = min(n_estimators, 50)
-            super().__init__(
-                max_iter=max_iter,
-                learning_rate=learning_rate,
-                l2_regularization=reg_lambda,
-                random_state=random_state,
-            )
-            self.objective = objective
-            self.subsample = subsample
-            self.colsample_bytree = colsample_bytree
-            self.reg_alpha = reg_alpha
-            self.reg_lambda = reg_lambda
-            self.n_estimators = max_iter
-            self.learning_rate = learning_rate
-            self.random_state = random_state
-
-        # Align the API surface expected by the pipeline.
-        def fit(self, X, y, categorical_feature=None, verbose=False):  # type: ignore[override]
-            return super().fit(X, y)
 
 GAP_DAYS = 7
 CV_SPLITS = 5
 HOLDOUT_WEEKS = 8
+
+
+def _probe_import(module: str) -> bool:
+    import subprocess
+    import sys
+
+    try:
+        result = subprocess.run(
+            [sys.executable, "-c", f"import {module}"],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            check=False,
+            timeout=5,
+        )
+    except Exception:
+        return False
+    return result.returncode == 0
+
+
+_HAS_SKLEARN = _probe_import("sklearn")
+
+if _HAS_SKLEARN:  # pragma: no cover - exercised when sklearn is available
+    from sklearn.dummy import DummyRegressor as _SkDummyRegressor
+    from sklearn.model_selection import TimeSeriesSplit as _SkTimeSeriesSplit
+else:
+    _SkDummyRegressor = None
+    _SkTimeSeriesSplit = None
+
+try:  # pragma: no cover - exercised when lightgbm is available
+    if _probe_import("lightgbm"):
+        from lightgbm import LGBMRegressor as _RealLGBMRegressor  # type: ignore[misc]
+    else:
+        _RealLGBMRegressor = None
+except Exception:  # pragma: no cover - missing native lightgbm
+    _RealLGBMRegressor = None
+
+
+class _FallbackDummyRegressor:
+    """Simple mean predictor used when sklearn is unavailable."""
+
+    def __init__(self) -> None:
+        self._mean = 0.0
+
+    def fit(self, X, y, **_: object) -> "_FallbackDummyRegressor":
+        values = np.asarray(y, dtype=float)
+        self._mean = float(values.mean()) if values.size else 0.0
+        return self
+
+    def predict(self, X) -> np.ndarray:
+        X = np.asarray(X)
+        length = X.shape[0] if X.ndim > 0 else 1
+        return np.full(length, self._mean, dtype=float)
+
+    def score(self, X, y) -> float:
+        targets = np.asarray(y, dtype=float)
+        if targets.size == 0:
+            return 0.0
+        preds = self.predict(X)
+        ss_tot = float(((targets - targets.mean()) ** 2).sum())
+        if ss_tot == 0:
+            return 0.0
+        ss_res = float(((targets - preds) ** 2).sum())
+        return 1.0 - ss_res / ss_tot
+
+
+class _FallbackTimeSeriesSplit:
+    """Lightweight time-series splitter mirroring sklearn API."""
+
+    def __init__(self, n_splits: int, gap: int = 0) -> None:
+        self.n_splits = max(1, int(n_splits))
+        self.gap = max(0, int(gap))
+
+    def split(self, X):
+        X = np.asarray(X)
+        n_samples = len(X)
+        if n_samples < 2:
+            return
+        fold_size = max(1, n_samples // (self.n_splits + 1))
+        for idx in range(self.n_splits):
+            train_end = fold_size * (idx + 1)
+            if train_end <= 0:
+                continue
+            test_start = min(train_end + self.gap, n_samples)
+            test_end = min(test_start + fold_size, n_samples)
+            if test_start >= test_end:
+                continue
+            yield np.arange(train_end), np.arange(test_start, test_end)
+
+
+class _FallbackLinearRegressor:
+    """Minimal linear regressor used when LightGBM is unavailable."""
+
+    def __init__(
+        self,
+        objective: str = "regression",
+        n_estimators: int = 200,
+        learning_rate: float = 0.05,
+        subsample: float = 0.8,
+        colsample_bytree: float = 0.8,
+        reg_alpha: float = 0.1,
+        reg_lambda: float = 0.1,
+        random_state: int | None = None,
+    ) -> None:
+        self.objective = objective
+        self.learning_rate = learning_rate
+        self.subsample = subsample
+        self.colsample_bytree = colsample_bytree
+        self.reg_alpha = reg_alpha
+        self.reg_lambda = reg_lambda
+        self.random_state = random_state
+        self._coef = np.array([], dtype=float)
+        self._intercept = 0.0
+
+    def fit(self, X, y, categorical_feature=None, verbose=False):  # type: ignore[override]
+        features = np.asarray(X, dtype=float)
+        targets = np.asarray(y, dtype=float)
+        if features.ndim == 1:
+            features = features.reshape(-1, 1)
+        if features.size == 0 or targets.size == 0:
+            self._coef = np.zeros(features.shape[1] if features.ndim == 2 else 0, dtype=float)
+            self._intercept = float(targets.mean()) if targets.size else 0.0
+            return self
+        design = np.column_stack([np.ones(features.shape[0]), features])
+        coef, *_ = np.linalg.lstsq(design, targets, rcond=None)
+        self._intercept = float(coef[0])
+        self._coef = np.asarray(coef[1:], dtype=float)
+        return self
+
+    def predict(self, X) -> np.ndarray:
+        features = np.asarray(X, dtype=float)
+        if features.ndim == 1:
+            features = features.reshape(-1, 1)
+        if self._coef.size == 0:
+            return np.full(features.shape[0], self._intercept, dtype=float)
+        return np.asarray(self._intercept + features @ self._coef, dtype=float)
+
+    def score(self, X, y) -> float:
+        targets = np.asarray(y, dtype=float)
+        if targets.size == 0:
+            return 0.0
+        preds = self.predict(X)
+        ss_tot = float(((targets - targets.mean()) ** 2).sum())
+        if ss_tot == 0:
+            return 0.0
+        ss_res = float(((targets - preds) ** 2).sum())
+        return 1.0 - ss_res / ss_tot
+
+
+DummyRegressor = _SkDummyRegressor or _FallbackDummyRegressor
+TimeSeriesSplit = _SkTimeSeriesSplit or _FallbackTimeSeriesSplit
+LGBMRegressor = _RealLGBMRegressor or _FallbackLinearRegressor
 
 
 @dataclass
@@ -125,8 +235,9 @@ def fit_timeseries(
     fallback_mode = train.is_empty() or holdout.is_empty() or train.height < len(features) + 1
 
     if fallback_mode:
+        dummy = DummyRegressor(strategy="mean") if _HAS_SKLEARN else DummyRegressor()
         return FitResult(
-            model=DummyRegressor(strategy="mean").fit(X_full, y_full),
+            model=dummy.fit(X_full, y_full),
             cv_scores=[],
             holdout_r2=0.0,
             features=list(features),

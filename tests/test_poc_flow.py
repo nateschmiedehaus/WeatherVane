@@ -15,6 +15,7 @@ async def test_orchestrate_flow_with_synthetic_data(tmp_path: Path, monkeypatch)
 
     monkeypatch.setenv("STORAGE_LAKE_ROOT", str(tmp_path))
     monkeypatch.setenv("STORAGE_WEATHER_ROOT", str(tmp_path / "weather"))
+    monkeypatch.setenv("STORAGE_STATE_ROOT", str(tmp_path / "state"))
 
     result = await orchestrate_poc_flow(tenant_id=tenant_id, start_date=datetime(2024, 1, 3), end_date=datetime(2024, 1, 7))
 

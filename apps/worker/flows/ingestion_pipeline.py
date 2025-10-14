@@ -9,10 +9,11 @@ from typing import Any, Dict, Optional
 import geohash2  # type: ignore
 from prefect import flow, get_run_logger
 
-from apps.worker.ingestion import IngestionSummary
+from apps.worker.ingestion import BaseIngestor, IngestionSummary
 from apps.worker.ingestion.ads import build_ads_ingestor_from_env
 from apps.worker.ingestion.promo import build_promo_ingestor_from_env
 from apps.worker.ingestion.shopify import build_shopify_ingestor_from_env
+from apps.worker.monitoring import update_dq_monitoring
 from shared.libs.storage.lake import LakeWriter
 from shared.libs.storage.state import JsonStateStore
 from shared.validation.schemas import (
@@ -78,9 +79,16 @@ def _evaluate_dataset(name: str, summary: IngestionSummary | None) -> Dict[str, 
         metadata = dict(summary.metadata)
         path = summary.path
         source = summary.source
+        total_rows = metadata.get("total_rows")
+        new_rows = metadata.get("new_rows")
+        updated_rows = metadata.get("updated_rows")
         if row_count <= 0:
-            status = "empty"
-            issues.append("no_rows_persisted")
+            if isinstance(total_rows, (int, float)) and total_rows > 0:
+                status = "stale"
+                issues.append("no_new_rows")
+            else:
+                status = "empty"
+                issues.append("no_rows_persisted")
         if name == "shopify_orders":
             ratio = metadata.get("geocoded_ratio")
             if ratio is None:
@@ -88,6 +96,14 @@ def _evaluate_dataset(name: str, summary: IngestionSummary | None) -> Dict[str, 
             elif isinstance(ratio, (int, float)) and ratio < GEOCODE_RATIO_FLOOR:
                 status = "needs_attention"
                 issues.append("low_geocoded_ratio")
+
+        # Normalise numeric metadata for downstream reporting.
+        if isinstance(total_rows, (int, float)):
+            metadata["total_rows"] = int(total_rows)
+        if isinstance(new_rows, (int, float)):
+            metadata["new_rows"] = int(new_rows)
+        if isinstance(updated_rows, (int, float)):
+            metadata["updated_rows"] = int(updated_rows)
 
     return {
         "dataset": name,
@@ -105,6 +121,7 @@ def _emit_shopify_stub(
     lake_root: str,
 ) -> tuple[IngestionSummary, IngestionSummary, str]:
     writer = LakeWriter(root=lake_root)
+    base = BaseIngestor(writer=writer)
     geohash = geohash2.encode(FALLBACK_COORDINATES[0], FALLBACK_COORDINATES[1], 5)
     created_at = context.start_date.isoformat()
     orders_payload = [
@@ -126,10 +143,10 @@ def _emit_shopify_stub(
         }
     ]
     validate_shopify_orders(orders_payload)
-    orders_path = writer.write_records(f"{context.tenant_id}_shopify_orders", orders_payload)
-    orders_summary = IngestionSummary(
-        path=str(orders_path),
-        row_count=len(orders_payload),
+    orders_summary = base._write_incremental(
+        dataset=f"{context.tenant_id}_shopify_orders",
+        rows=orders_payload,
+        unique_keys=("tenant_id", "order_id"),
         source="stub",
         metadata={"geocoded_ratio": 1.0, "geocoded_count": len(orders_payload)},
     )
@@ -146,10 +163,10 @@ def _emit_shopify_stub(
         }
     ]
     validate_shopify_products(products_payload)
-    products_path = writer.write_records(f"{context.tenant_id}_shopify_products", products_payload)
-    products_summary = IngestionSummary(
-        path=str(products_path),
-        row_count=len(products_payload),
+    products_summary = base._write_incremental(
+        dataset=f"{context.tenant_id}_shopify_products",
+        rows=products_payload,
+        unique_keys=("tenant_id", "product_id"),
         source="stub",
     )
     return orders_summary, products_summary, "stub"
@@ -160,6 +177,7 @@ def _emit_ads_stub(
     lake_root: str,
 ) -> tuple[IngestionSummary, IngestionSummary, str]:
     writer = LakeWriter(root=lake_root)
+    base = BaseIngestor(writer=writer)
     stub_date = context.start_date.date().isoformat()
     meta_payload = [
         {
@@ -174,10 +192,10 @@ def _emit_ads_stub(
         }
     ]
     validate_meta_ads(meta_payload)
-    meta_path = writer.write_records(f"{context.tenant_id}_meta_ads", meta_payload)
-    meta_summary = IngestionSummary(
-        path=str(meta_path),
-        row_count=len(meta_payload),
+    meta_summary = base._write_incremental(
+        dataset=f"{context.tenant_id}_meta_ads",
+        rows=meta_payload,
+        unique_keys=("tenant_id", "date", "campaign_id", "adset_id"),
         source="stub",
     )
 
@@ -193,10 +211,10 @@ def _emit_ads_stub(
         }
     ]
     validate_google_ads(google_payload)
-    google_path = writer.write_records(f"{context.tenant_id}_google_ads", google_payload)
-    google_summary = IngestionSummary(
-        path=str(google_path),
-        row_count=len(google_payload),
+    google_summary = base._write_incremental(
+        dataset=f"{context.tenant_id}_google_ads",
+        rows=google_payload,
+        unique_keys=("tenant_id", "date", "campaign_id"),
         source="stub",
     )
     return meta_summary, google_summary, "stub"
@@ -207,6 +225,7 @@ def _emit_promo_stub(
     lake_root: str,
 ) -> tuple[IngestionSummary, str]:
     writer = LakeWriter(root=lake_root)
+    base = BaseIngestor(writer=writer)
     scheduled_at = context.start_date.isoformat()
     promo_payload = [
         {
@@ -219,10 +238,10 @@ def _emit_promo_stub(
         }
     ]
     validate_promos(promo_payload)
-    promo_path = writer.write_records(f"{context.tenant_id}_promos", promo_payload)
-    promo_summary = IngestionSummary(
-        path=str(promo_path),
-        row_count=len(promo_payload),
+    promo_summary = base._write_incremental(
+        dataset=f"{context.tenant_id}_promos",
+        rows=promo_payload,
+        unique_keys=("tenant_id", "campaign_id"),
         source="stub",
     )
     return promo_summary, "stub"
@@ -256,8 +275,14 @@ async def ingest_shopify(
             "last_end": context.end_date.isoformat(),
             "orders_path": orders_summary.path,
             "orders_row_count": orders_summary.row_count,
+            "orders_total_rows": orders_summary.metadata.get("total_rows"),
+            "orders_new_rows": orders_summary.metadata.get("new_rows"),
+            "orders_updated_rows": orders_summary.metadata.get("updated_rows"),
             "products_path": products_summary.path,
             "products_row_count": products_summary.row_count,
+            "products_total_rows": products_summary.metadata.get("total_rows"),
+            "products_new_rows": products_summary.metadata.get("new_rows"),
+            "products_updated_rows": products_summary.metadata.get("updated_rows"),
             "orders_geocoded_ratio": orders_summary.metadata.get("geocoded_ratio"),
             "source": source,
             "updated_at": datetime.utcnow().isoformat(),
@@ -300,8 +325,14 @@ async def ingest_ads(
             "last_end": context.end_date.isoformat(),
             "meta_path": meta_summary.path if meta_summary else None,
             "meta_rows": meta_summary.row_count if meta_summary else 0,
+            "meta_total_rows": meta_summary.metadata.get("total_rows") if meta_summary else None,
+            "meta_new_rows": meta_summary.metadata.get("new_rows") if meta_summary else None,
+            "meta_updated_rows": meta_summary.metadata.get("updated_rows") if meta_summary else None,
             "google_path": google_summary.path if google_summary else None,
             "google_rows": google_summary.row_count if google_summary else 0,
+            "google_total_rows": google_summary.metadata.get("total_rows") if google_summary else None,
+            "google_new_rows": google_summary.metadata.get("new_rows") if google_summary else None,
+            "google_updated_rows": google_summary.metadata.get("updated_rows") if google_summary else None,
             "source": source,
             "updated_at": datetime.utcnow().isoformat(),
         },
@@ -341,6 +372,9 @@ async def ingest_promo(
             "last_end": context.end_date.isoformat(),
             "promo_path": summary.path,
             "promo_rows": summary.row_count,
+            "promo_total_rows": summary.metadata.get("total_rows"),
+            "promo_new_rows": summary.metadata.get("new_rows"),
+            "promo_updated_rows": summary.metadata.get("updated_rows"),
             "source": source,
             "updated_at": datetime.utcnow().isoformat(),
         },
@@ -391,11 +425,13 @@ async def orchestrate_ingestion_flow(
     lake_root: str | Path | None = None,
     state_root: str | Path | None = None,
     dq_report_path: str | Path | None = None,
+    dq_monitoring_path: str | Path | None = None,
 ) -> Dict[str, Any]:
     logger = get_run_logger()
     resolved_lake_root = str(lake_root or Path("storage/lake/raw"))
     resolved_state_root = str(state_root or Path("storage/metadata/state"))
     resolved_report_path = Path(dq_report_path or Path("experiments/ingest/dq_report.json"))
+    resolved_monitor_path = Path(dq_monitoring_path) if dq_monitoring_path else Path("state/dq_monitoring.json")
 
     store = JsonStateStore(root=resolved_state_root)
     context = _resolve_window(store, tenant_id, start_date, end_date)
@@ -413,6 +449,15 @@ async def orchestrate_ingestion_flow(
 
     dq_report = assemble_dq_report(context, shopify_payload, ads_payload, promo_payload)
     _write_report(resolved_report_path, dq_report)
+    monitoring_snapshot = update_dq_monitoring(
+        dq_report,
+        monitoring_path=resolved_monitor_path,
+    )
+    logger.info(
+        "Data quality monitoring severity %s (alerts=%s)",
+        monitoring_snapshot["overall_severity"],
+        ", ".join(monitoring_snapshot["alerts"]) or "none",
+    )
 
     store.save(
         "ingestion",
@@ -443,4 +488,5 @@ async def orchestrate_ingestion_flow(
             "google_ads": _summary_to_dict(ads_payload.get("google")),
             "promos": _summary_to_dict(promo_payload.get("promo")),
         },
+        "dq_monitoring": monitoring_snapshot,
     }

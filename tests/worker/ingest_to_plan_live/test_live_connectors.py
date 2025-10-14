@@ -13,6 +13,7 @@ from shared.observability import metrics
 
 SYNTHETIC_LOOKBACK_DAYS = int(os.getenv("HARNESS_SYNTHETIC_LOOKBACK_DAYS", "30"))
 LIVE_LOOKBACK_DAYS = int(os.getenv("HARNESS_LIVE_LOOKBACK_DAYS", "30"))
+RUN_HARNESS_TESTS = os.getenv("WEATHERVANE_RUN_HARNESS_TESTS", "").lower() in {"1", "true", "yes"}
 
 LIVE_SHOPIFY_VARS = ("SHOPIFY_SHOP_DOMAIN", "SHOPIFY_ACCESS_TOKEN")
 LIVE_META_VARS = ("META_ACCESS_TOKEN", "META_APP_ID", "META_APP_SECRET")
@@ -47,6 +48,7 @@ def _has_live_connectors() -> bool:
     )
 
 
+@pytest.mark.skipif(not RUN_HARNESS_TESTS, reason="Harness tests disabled in sandbox environment")
 @pytest.mark.asyncio
 async def test_ingest_to_plan_harness_synthetic(metrics_run: Path) -> None:
     tenant_id = os.getenv("HARNESS_SYNTHETIC_TENANT", "synthetic-harness")
@@ -73,6 +75,7 @@ async def test_ingest_to_plan_harness_synthetic(metrics_run: Path) -> None:
 
 @pytest.mark.asyncio
 @pytest.mark.skipif(not _has_live_connectors(), reason="Live connector credentials not configured.")
+@pytest.mark.skipif(not RUN_HARNESS_TESTS, reason="Harness tests disabled in sandbox environment")
 async def test_ingest_to_plan_harness_live_connectors(metrics_run: Path) -> None:
     tenant_id = os.getenv("HARNESS_LIVE_TENANT", "live-harness")
     end = datetime.utcnow()

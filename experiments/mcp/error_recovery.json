@@ -1,0 +1,113 @@
+{
+  "generated_at": "2025-10-13T01:45:11.584Z",
+  "task_id": "T-error-recovery",
+  "samples": [
+    {
+      "step": "task_created",
+      "timestamp": "2025-10-13T01:45:11.554Z",
+      "task_status": "in_progress",
+      "metadata": {
+        "synthetic": true,
+        "owner": "resilience_sim"
+      }
+    },
+    {
+      "step": "generic_failure",
+      "action": {
+        "action": "retry",
+        "delaySeconds": 30,
+        "reasoning": "Generic failure - retry with exponential backoff (30s)"
+      },
+      "attemptsRecorded": 1
+    },
+    {
+      "step": "context_limit_recovery",
+      "action": {
+        "action": "checkpoint_and_retry",
+        "delaySeconds": 10,
+        "reasoning": "Context limit exceeded - saved checkpoint, will retry with fresh session"
+      },
+      "checkpointCreated": true,
+      "checkpointSession": "emergency_1760319911556"
+    },
+    {
+      "step": "second_context_limit",
+      "action": {
+        "action": "fail_task",
+        "reasoning": "Context limits happening too frequently - prompt may be too large"
+      },
+      "killSwitchBefore": false,
+      "killSwitchAfter": false,
+      "incidentsLogged": 1
+    }
+  ],
+  "checkpoint": {
+    "session_id": "emergency_1760319911556",
+    "notes": "Context limit on task T-error-recovery - session will restart fresh",
+    "snapshot_keys": [
+      "trigger",
+      "taskId",
+      "agentId",
+      "roadmap_health",
+      "timestamp",
+      "notes"
+    ]
+  },
+  "safety_window": {
+    "initial_state": {
+      "mode": "stabilize",
+      "killSwitchEngaged": false,
+      "upgradeLockActive": false,
+      "incidents": [],
+      "metadata": {},
+      "lastUpdated": null
+    },
+    "engaged_state": {
+      "mode": "contain",
+      "killSwitchEngaged": true,
+      "upgradeLockActive": false,
+      "incidents": [
+        {
+          "id": "incident-1760319911556",
+          "timestamp": "2025-10-13T01:45:11.556Z",
+          "severity": "critical",
+          "summary": "Emergency rollback engaged after repeated context limits",
+          "details": {
+            "taskId": "T-error-recovery",
+            "action": "fail_task"
+          }
+        }
+      ],
+      "metadata": {
+        "origin": "error_recovery_sim",
+        "observation_started_at": "2025-10-13T01:45:11.556Z"
+      },
+      "lastUpdated": "2025-10-13T01:45:11.556Z"
+    },
+    "final_state": {
+      "mode": "stabilize",
+      "killSwitchEngaged": false,
+      "upgradeLockActive": false,
+      "incidents": [
+        {
+          "id": "incident-1760319911556",
+          "timestamp": "2025-10-13T01:45:11.556Z",
+          "severity": "critical",
+          "summary": "Emergency rollback engaged after repeated context limits",
+          "details": {
+            "taskId": "T-error-recovery",
+            "action": "fail_task"
+          }
+        }
+      ],
+      "metadata": {
+        "origin": "error_recovery_sim",
+        "observation_started_at": "2025-10-13T01:45:11.556Z",
+        "observation_window_seconds": 600,
+        "rollback_completed_at": "2025-10-13T01:45:11.584Z"
+      },
+      "lastUpdated": "2025-10-13T01:45:11.584Z"
+    }
+  },
+  "workspace_relative": "experiments/mcp/.tmp/error_recovery_HRWVfv"
+}

@@ -430,48 +430,114 @@ def allocate(input_data: AllocationInput, seed: int = 42) -> AllocationResult:
             roas_caps=roas_caps,
         )
 
-    if "history.short" not in input_data.context_tags:
+    def _solve_with_differential() -> AllocationResult | None:
+        if (
+            differential_evolution is None
+            or LinearConstraint is None
+            or np is None
+            or not cells
+        ):
+            return None
+        try:
+            constraint = LinearConstraint(
+                np.ones(len(cells)),
+                input_data.total_budget,
+                input_data.total_budget,
+            )
+            result = differential_evolution(
+                objective,
+                bounds=bounds,
+                seed=seed,
+                maxiter=300,
+                polish=True,
+                constraints=(constraint,),
+            )
+        except Exception:
+            return None
+
+        if not getattr(result, "success", False):
+            return None
+
+        spends = {cell: float(result.x[idx]) for idx, cell in enumerate(cells)}
+        return _build_allocation_result(
+            cells=cells,
+            spends=spends,
+            guardrails=guardrails,
+            evaluate_fn=evaluate,
+            roas_for=roas_for,
+            input_data=input_data,
+            base_diagnostics={
+                "success": float(result.success),
+                "nfev": float(result.nfev),
+                "optimizer": "differential_evolution",
+            },
+            min_bounds=min_bounds,
+            max_bounds=max_bounds,
+            roas_caps=roas_caps,
+        )
+
+    def _summaries(candidates: Sequence[AllocationResult]) -> List[Dict[str, float | str]]:
+        summary: List[Dict[str, float | str]] = []
+        for candidate in candidates:
+            optimizer_name = str(candidate.diagnostics.get("optimizer", "unknown"))
+            success_val = candidate.diagnostics.get("success")
+            try:
+                success_float = float(success_val) if success_val is not None else 0.0
+            except (TypeError, ValueError):
+                success_float = 0.0
+            summary.append(
+                {
+                    "optimizer": optimizer_name,
+                    "profit": float(candidate.profit),
+                    "success": success_float,
+                }
+            )
+        return summary
+
+    def _select_best(candidates: Sequence[AllocationResult]) -> AllocationResult | None:
+        best: AllocationResult | None = None
+        best_profit = float("-inf")
+        for candidate in candidates:
+            if candidate.profit > best_profit + 1e-6:
+                best = candidate
+                best_profit = candidate.profit
+        return best
+
+    allow_heavy = "history.short" not in input_data.context_tags
+
+    candidates: List[AllocationResult] = []
+
+    if allow_heavy:
         nonlinear_allocation = _solve_with_trust_constr()
         if nonlinear_allocation is not None:
-            return nonlinear_allocation
+            candidates.append(nonlinear_allocation)
 
-    if differential_evolution is None or "history.short" in input_data.context_tags:
-        return _solve_with_coordinate()
+    coordinate_allocation = _solve_with_coordinate()
+    candidates.append(coordinate_allocation)
 
-    try:
-        constraint = LinearConstraint(np.ones(len(cells)), input_data.total_budget, input_data.total_budget)
-        result = differential_evolution(
-            objective,
-            bounds=bounds,
-            seed=seed,
-            maxiter=300,
-            polish=True,
-            constraints=(constraint,),
-        )
-    except Exception:
-        return _solve_with_coordinate()
+    if allow_heavy:
+        differential_allocation = _solve_with_differential()
+        if differential_allocation is not None:
+            candidates.append(differential_allocation)
 
-    if not getattr(result, "success", False):
-        return _solve_with_coordinate()
+    best_candidate = _select_best(candidates) if candidates else None
 
-    spends = {cell: float(result.x[idx]) for idx, cell in enumerate(cells)}
-    allocation = _build_allocation_result(
-        cells=cells,
-        spends=spends,
-        guardrails=guardrails,
-        evaluate_fn=evaluate,
-        roas_for=roas_for,
+    if best_candidate is not None:
+        best_candidate.diagnostics["optimizer_candidates"] = _summaries(candidates)
+        best_candidate.diagnostics.setdefault("optimizer_winner", best_candidate.diagnostics.get("optimizer", "unknown"))
+        return best_candidate
+
+    fallback = _fallback_allocate(
         input_data=input_data,
-        base_diagnostics={
-            "success": float(result.success),
-            "nfev": float(result.nfev),
-            "optimizer": "differential_evolution",
-        },
-        min_bounds=min_bounds,
-        max_bounds=max_bounds,
-        roas_caps=roas_caps,
+        revenue_for=revenue_for,
+        roas_for=roas_for,
     )
-    return allocation
+    fallback_candidates = _summaries(candidates) if candidates else []
+    if fallback_candidates:
+        fallback.diagnostics["optimizer_candidates"] = fallback_candidates
+    fallback.diagnostics.setdefault("optimizer", "fallback")
+    fallback.diagnostics.setdefault("optimizer_winner", fallback.diagnostics.get("optimizer"))
+    return fallback
 
 
 def _build_allocation_result(
@@ -826,6 +892,7 @@ def _fallback_allocate(
         ],
         "binding_learning_cap": [],
         "fallback_alloc": True,
+        "optimizer": "fallback",
         "scenario_profit_p50": float(profit),
         "risk_penalty": 0.0,
         "roas_penalty": 0.0,

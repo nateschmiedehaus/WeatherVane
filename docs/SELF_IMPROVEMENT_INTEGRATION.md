@@ -223,7 +223,9 @@ case 'self_improvement_status': {
 3. Checks status of:
    ├─ PHASE-1-HARDENING
    ├─ PHASE-2-COMPACT
-   └─ PHASE-3-BATCH
+   ├─ PHASE-3-BATCH
+   ├─ PHASE-4-POLISH
+   └─ PHASE-5-OPTIMIZATION
    ↓
 4. If all tasks in phases are 'done':
    ├─ Mark metaWorkComplete = true
@@ -233,9 +235,12 @@ case 'self_improvement_status': {
    └─ Emit 'product-work:unblocked' event
    ↓
 5. Scheduler now includes product work tasks ✅
-   ↓
+  ↓
 6. Agents start working on WeatherVane features
 ```
+
+> **Note:** If any MCP phase re-opens (new tasks added, regressions discovered), the SelfImprovementManager automatically re-blocks downstream product epics so only the outstanding MCP work remains in the queue until the phase finishes.
+> The roadmap YAML is synced into the orchestrator state automatically (`WVO_SYNC_YAML_TO_DB` defaults to `1`), so newly-added MCP tasks appear in the queue on the next dispatch cycle.
 
 ## Safety Mechanisms
 
@@ -323,13 +328,17 @@ make mcp-autopilot
 
 # 4. Complete PHASE-3-BATCH tasks
 
-# 5. Wait for next dispatch cycle (checks every 60s)
+# 5. Complete PHASE-4-POLISH tasks
 
-# 6. Watch logs for:
+# 6. Complete PHASE-5-OPTIMIZATION tasks
+
+# 7. Wait for next dispatch cycle (checks every 60s)
+
+# 8. Watch logs for:
 # "🎉 MCP infrastructure phases complete! Transitioning to product work."
 # "Unblocked X product work tasks"
 
-# 7. Verify product tasks now appear in schedule
+# 9. Verify product tasks now appear in schedule
 # Via MCP: plan_next(minimal=true)
 ```
 

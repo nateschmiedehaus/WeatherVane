@@ -320,6 +320,427 @@ Document these behaviours in `tools/wvo_mcp/README.md` so operators understand h
 
 ---
 
+## 11. Zero-downtime Self-Upgrade Roadmap (Milestone M6.4)
+
+Short answer: **Yes**—the MCP can upgrade itself during a live run, only enable features after they prove safe, and do so with zero downtime plus automatic rollback. The roadmap entries under `E6 > M6.4` capture the implementation work required to make this real while ensuring anti-kill safeguards.
+
+### 11.1 Architecture Overview
+
+- **Front-end (stable)**: The MCP server process that owns STDIO transport and tool registry; it never restarts during routine upgrades.
+- **Back-end workers (swappable)**: Child processes wired over IPC. You may run two in parallel:
+  - `active` serves traffic.
+  - `canary` runs the new code in shadow mode.
+- **Runtime feature flags**: Stored in SQLite rather than env vars so toggles occur live.
+- **Canary harness**: Builds the new worker, runs it beside the active worker, and promotes only after shadow checks succeed.
+
+### 11.2 Live Feature Flags (`T6.4.1`)
+
+Replace environment toggles with a `settings` table in `state/state.db`, seeded with defaults and a global kill switch.
+
+```sql
+CREATE TABLE IF NOT EXISTS settings (
+  key TEXT PRIMARY KEY,
+  val TEXT NOT NULL,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+INSERT OR IGNORE INTO settings(key,val) VALUES
+ ('PROMPT_MODE','verbose'),
+ ('SANDBOX_MODE','none'),
+ ('OTEL_ENABLED','0'),
+ ('SCHEDULER_MODE','legacy'),
+ ('SELECTIVE_TESTS','0'),
+ ('DANGER_GATES','0'),
+ ('UI_ENABLED','0'),
+ ('MO_ENGINE','0'),
+ ('DISABLE_NEW','0');
+```
+
+Runtime loader (polling every 500 ms) keeps a hot cache and honours the `DISABLE_NEW` kill switch.
+
+```ts
+import Database from "better-sqlite3";
+type Flags = {
+  PROMPT_MODE: "verbose"|"compact";
+  SANDBOX_MODE: "none"|"pool";
+  OTEL_ENABLED: "0"|"1";
+  SCHEDULER_MODE: "legacy"|"wsjf";
+  SELECTIVE_TESTS: "0"|"1";
+  DANGER_GATES: "0"|"1";
+  UI_ENABLED: "0"|"1";
+  MO_ENGINE: "0"|"1";
+  DISABLE_NEW: "0"|"1";
+};
+const DEFAULTS: Flags = {
+  PROMPT_MODE: "verbose", SANDBOX_MODE: "none", OTEL_ENABLED: "0",
+  SCHEDULER_MODE: "legacy", SELECTIVE_TESTS: "0", DANGER_GATES: "0",
+  UI_ENABLED: "0", MO_ENGINE: "0", DISABLE_NEW: "0"
+};
+
+export class LiveFlags {
+  private cache: Flags = { ...DEFAULTS };
+  private db: Database.Database;
+  private getStmt: Database.Statement;
+
+  constructor(dbPath = "state/state.db") {
+    this.db = new (Database as any)(dbPath);
+    this.getStmt = this.db.prepare("SELECT key,val FROM settings");
+    this.refresh();
+    setInterval(()=>this.refresh(), 500);
+  }
+
+  refresh() {
+    try {
+      const rows = this.getStmt.all();
+      const f: any = { ...DEFAULTS };
+      for (const r of rows) f[r.key] = r.val;
+      if (f.DISABLE_NEW === "1") {
+        this.cache = { ...DEFAULTS, DISABLE_NEW: "1" };
+      } else {
+        this.cache = f;
+      }
+    } catch {}
+  }
+  get(): Flags { return this.cache; }
+}
+export const liveFlags = new LiveFlags();
+```
+
+All callers read `liveFlags.get()` so they pick up flips during the run.
+
+### 11.3 Blue/Green Worker Manager (`T6.4.2`)
+
+Add a `WorkerManager` that keeps the front-end process stable while managing active and canary workers.
+
+```ts
+import { fork } from "node:child_process";
+import { EventEmitter } from "node:events";
+
+type RpcReq = { id: string, method: string, params: any };
+type RpcRes = { id: string, ok: boolean, result?: any, error?: string };
+
+class Worker extends EventEmitter {
+  private child: any;
+  private pending = new Map<string,(r:RpcRes)=>void>();
+  public readonly tag: "active"|"canary";
+  public ready = false;
+
+  constructor(entryJs: string, env: Record<string,string>, tag:"active"|"canary") {
+    super();
+    this.tag = tag;
+    this.child = fork(entryJs, { env: { ...process.env, ...env }});
+    this.child.on("message", (m: any) => this.onMsg(m));
+    this.child.on("exit", (code: number) => { this.ready = false; this.emit("exit", code); });
+  }
+  onMsg(m: any) {
+    if (m?.type === "ready") { this.ready = true; this.emit("ready"); return; }
+    if (m?.id && this.pending.has(m.id)) { const cb = this.pending.get(m.id)!; this.pending.delete(m.id); cb(m); }
+  }
+  async call(method: string, params: any): Promise<any> {
+    if (!this.ready) throw new Error(`Worker ${this.tag} not ready`);
+    const id = Math.random().toString(36).slice(2);
+    const p = new Promise<RpcRes>((res)=>this.pending.set(id, res));
+    this.child.send({ id, method, params } satisfies RpcReq);
+    const r = await p;
+    if (!r.ok) throw new Error(r.error || "worker_error");
+    return r.result;
+  }
+  stop() { try { this.child.kill("SIGTERM"); } catch {} }
+}
+
+export class WorkerManager {
+  private active?: Worker;
+  private canary?: Worker;
+
+  startActive(entryJs="dist/worker.js") {
+    this.active = new Worker(entryJs, { WVO_ROLE: "active" }, "active");
+    return new Promise<void>((ok)=> this.active!.once("ready", ()=> ok()));
+  }
+  startCanary(entryJs="dist-next/worker.js", dry=true) {
+    this.canary = new Worker(entryJs, { WVO_ROLE: "canary", WVO_DRY_RUN: dry ? "1":"0" }, "canary");
+    return new Promise<void>((ok)=> this.canary!.once("ready", ()=> ok()));
+  }
+  getActive() { if (!this.active) throw new Error("no_active_worker"); return this.active; }
+  async switchToCanary(): Promise<void> {
+    if (!this.canary?.ready) throw new Error("canary_not_ready");
+    const old = this.active;
+    this.active = this.canary;
+    this.canary = undefined;
+    if (old) old.stop();
+  }
+}
+export const workers = new WorkerManager();
+```
+
+Tool handlers call `workers.getActive().call(...)`, enabling atomic swaps when the canary is certified.
+
+### 11.4 Worker Entrypoint & DRY_RUN Safeguards (`T6.4.3`)
+
+Create a worker entry that routes RPCs, honours runtime flags, and blocks mutations in dry-run mode.
+
+```ts
+import { liveFlags } from "./runtime/live_flags.js";
+import { orchestrator } from "./runtime/orchestrator_runtime.js";
+
+process.send?.({ type: "ready" });
+
+process.on("message", async (m: any) => {
+  const { id, method, params } = m || {};
+  if (!id) return;
+  try {
+    const out = await route(method, params);
+    process.send?.({ id, ok: true, result: out });
+  } catch (e: any) {
+    process.send?.({ id, ok: false, error: String(e?.message ?? e) });
+  }
+});
+
+async function route(method: string, params: any) {
+  const flags = liveFlags.get();
+  if (process.env.WVO_DRY_RUN === "1") {
+    if (method === "applyPatch" || method === "mutateState") {
+      throw new Error("dry_run_no_mutation");
+    }
+  }
+  switch (method) {
+    case "health": return { ok: true, flags };
+    case "plan":   return orchestrator.plan(params, flags);
+    case "dispatch": return orchestrator.dispatch(params, flags);
+    case "runTool":  return orchestrator.runTool(params, flags);
+    case "verify":   return orchestrator.verify(params, flags);
+    case "report.mo": return orchestrator.moReport(params, flags);
+    default: throw new Error("unknown_method");
+  }
+}
+```
+
+### 11.5 Canary Harness & Promotion Flow (`T6.4.4`)
+
+Upgrade script runs the flow end-to-end with automatic rollback on any failure.
+
+```ts
+async function safeUpgrade({ patchPath }: { patchPath: string }) {
+  await sh("git worktree add ../wv-next");
+  await sh("cp " + patchPath + " ../wv-next/upgrade.patch");
+  await sh("cd ../wv-next && git checkout -b chore/canary && git apply upgrade.patch");
+  await sh("cd ../wv-next && npm ci && npm run build && npm test");
+
+  await workers.startCanary("../wv-next/dist/worker.js", /*dry=*/true);
+
+  await workers.getActive().call("health", {});
+  await workers["canary"]?.call("health", {});
+  await workers["canary"]?.call("plan", samplePlanInput());
+  await workers["canary"]?.call("report.mo", sampleMoInput());
+
+  await workers.switchToCanary();
+
+  await workers.startCanary("../wv-next/dist/worker.js", /*dry=*/false);
+  await workers.switchToCanary();
+
+  return { ok: true };
+}
+```
+
+Any error leaves the original worker active and surfaces a structured failure.
+
+### 11.6 Feature Flag Gating (`T6.4.5`)
+
+| Feature | Location | Proof before enabling |
+| --- | --- | --- |
+| Compact prompts + stable header | Planner/context builder | Run `plan` in canary, inspect prompts, flip `PROMPT_MODE='compact'` |
+| Sandbox pool (bwrap/docker) | Executor | Execute read-only commands in pool during dry run, verify outputs, flip `SANDBOX_MODE='pool'` |
+| Strict output DSL + idempotency | Tool handlers | Generate outputs in canary, validate formatting, then route apply through v2 implementation |
+| WSJF scheduler + WIP lanes | Scheduler | Shadow plan backlog, diff vs legacy, flip `SCHEDULER_MODE='wsjf'` |
+| Selective tests | Verifier | Run impacted test selection in canary, flip `SELECTIVE_TESTS='1'` |
+| Danger gates & approvals | Verifier | Compute risk in shadow mode, flip `DANGER_GATES='1'` |
+| Missed Opportunity engine | Reporter | Produce sample report with fixtures, flip `MO_ENGINE='1'` |
+| OpenTelemetry spans | Front-end + worker | Enable in canary, confirm exports, flip `OTEL_ENABLED='1'` |
+| Minimal UI | Separate process | Can start/stop independently; flag can log readiness |
+
+> **Implementation status:** Compact evidence-pack prompts now ship by default. Set `WVO_PROMPT_MODE=verbose` to restore the legacy markdown payload during debugging or staged rollbacks.
+
+### 11.7 Safe Write-Protection for Canary (`T6.4.3`)
+
+- Open SQLite using `file:state.db?mode=ro` whenever `WVO_DRY_RUN=1`.
+- Wrap filesystem writes so apply/commit commands fail fast during dry runs.
+- Sandbox canary with `--network none` and refuse `git commit`, `fs.write`, or `applyPatch` until promoted.
+
+Violations throw `dry_run_no_mutation`, keeping the active worker untouchable.
+
+### 11.8 Runtime Tool Registration (`T6.4.6`)
+
+- Keep tool names stable (e.g., `repo.apply_patch`) and route internally to legacy or v2 handlers based on flags.
+- Optionally pre-register v2 tools and return `{ error: "disabled" }` until flags flip.
+- Provide `settings.update` admin MCP tool so operators adjust flags without restarts.
+
+### 11.9 Flag Management Workflow (`T6.4.6`)
+
+```ts
+await db.prepare(
+  "UPDATE settings SET val=?, updated_at=CURRENT_TIMESTAMP WHERE key=?"
+).run(val, key);
+```
+
+Both workers poll `settings` so flips apply within 500 ms and survive process swaps.
+
+### 11.10 Failure Paths & Automatic Rollback (`T6.4.7`)
+
+- Build/test failures in the staged worktree → promotion aborted.
+- Canary not ready within timeout → abort.
+- Shadow checks diverge → abort.
+- Post-promotion health degradation → automatic switch back to standby worker and reset of flags (including flipping `DISABLE_NEW=1`).
+
+### 11.11 Operator Checklist (`M6.4` Summary)
+
+1. Add new modules (`live_flags.ts`, `worker_manager.ts`, `worker_entry.ts`) and seed SQLite table.
+2. Route MCP tool handlers through the worker proxy.
+3. Start the active worker under manager control.
+4. During upgrade: create worktree, apply patch, build/test, spawn canary in `DRY_RUN=1`.
+5. Run shadow checks (`health`, `plan`, `report.mo`) and compare outputs.
+6. Switch routing to canary, restart without `DRY_RUN`, and switch again for final promotion.
+7. Flip feature flags one at a time after proof.
+8. Monitor health; if thresholds breach, auto-rollback and set `DISABLE_NEW=1`.
+
+### 11.12 Assurance
+
+With blue/green workers, live flags, DRY_RUN safeguards, and auto-rollback, the MCP upgrades itself mid-flight and keeps the session alive even if the new code fails. The new roadmap milestone ensures these capabilities ship with clear exit criteria and anti-kill protections.
+
+---
+
+### 11.13 Tight Integration Playbook (Steps 0–15)
+
+Use this playbook when implementing or operating the zero-downtime upgrade path. Each step maps directly to roadmap milestone `M6.4`.
+
+#### Step 0 — Non-negotiable invariants
+- Build new code in a separate worktree (`../wv-next`).
+- Promotion requires four gates: build ✓ → unit ✓ → selfchecks ✓ → canary READY ✓; any failure aborts.
+- Tool handlers never throw; they always return `{ error: "<msg>" }` on failure.
+- Canary booted with `DRY_RUN=1`, DB opened read-only, and all writes/network calls blocked.
+- Ship a single behavioral change per upgrade (one flag flip, tool swap, or migration).
+- Keep the previous worker alive until the new worker survives the observation window.
+
+#### Step 1 — Preconditions & single-flight lock
+- Assert `git status` clean, Node/npm match `.nvmrc`/`package.json`, sandbox tooling (Docker/bwrap) available, disk free ≥500 MB, and SQLite responds to `BEGIN; ROLLBACK;`.
+- Ensure no concurrent upgrade by checking `state/upgrade.lock`; create it before work, remove it on both success and failure.
+
+```bash
+printf "%s\n" "$(date -Is)" > state/upgrade.lock
+```
+
+Use `ts-node tools/wvo_mcp/scripts/mcp_upgrade_preflight.ts` to enforce these checks.
+The script acquires `state/upgrade.lock` while running and records the outcome under
+`experiments/mcp/upgrade/<timestamp>/preflight.json`, including the four gate placeholders
+(`build → unit → selfchecks → canary_ready`).
+
+#### Step 2 — IPC protocol (front-end ↔ worker)
+- Requests: `{ "id": "<uuid>", "method": "plan|dispatch|runTool|verify|report.mo|health", "params": { ... } }`.
+- Responses: `{ "id": "<uuid>", "ok": true, "result": { ... } }` or `{ "id": "<uuid>", "ok": false, "error": "string" }`.
+- Worker announces `{ "type": "ready" }` once booted.
+- Enforce a 30 s timeout per RPC (configurable). On timeout, return `{ error: "worker_timeout" }` and increment the error counter.
+
+#### Step 3 — Health, heartbeats, circuit-breakers
+- Send `health` every 2 s; three consecutive failures trip the circuit, triggering rollback and `DISABLE_NEW=1`.
+- SLOs: health RTT p95 <100 ms; interactive `runTool` p95 <400 ms; `plan` p95 <3 s.
+- Error budget: rollback if `{ error: ... }` exceeds 5 % of calls over any 2 min observation after a switch.
+
+#### Step 4 — DRY_RUN guarantees
+- Start canary with `WVO_DRY_RUN=1`.
+- Open SQLite via `file:state/state.db?mode=ro`.
+- Disable network/shell writes; `applyPatch`, `fs.write`, `git commit`, etc. must respond with `{ error: "dry_run_no_mutation" }`.
+
+#### Step 5 — Safe schema migrations
+- Follow expand → cutover → contract pattern; dual-write during cutover; drop legacy structures only after ≥48 h of clean operation.
+- Validate migrations in the staged worktree’s private DB copy before the front-end touches the live DB.
+
+#### Step 6 — Blue/green worker switch sequence
+1. `git worktree add ../wv-next`; apply patch; `npm ci`; `npm run build`; `npm test`.
+2. `await workers.startCanary("../wv-next/dist/worker.js", /*dry=*/true);`
+3. Shadow calls: `health`, `plan`, `report.mo`; compare outputs against active worker.
+4. Route read-only traffic to the dry canary for ~60 s while logging diffs.
+5. Spawn live canary (`dry=false`) and call `switchToCanary()` again.
+6. Observe for 10 min; if SLOs or error budgets breach, `routeBackToPreviousWorker()` and set `DISABLE_NEW=1`.
+7. Keep old worker alive for at least 30 min as hot standby before termination.
+8. When observation passes, automatically mark the upgrade as stable, clear `state/upgrade.lock`, persist new flags, and retire the old worker after the standby window without manual intervention.
+
+#### Step 7 — Tool handler safety contract
+- Validate inputs (AJV), enforce shell allow-list, invoke `callWorker`, catch exceptions, and return `{ error }`.
+- Wrap calls in OTel spans when enabled; never leak exceptions past the registration wrapper.
+
+```ts
+registerToolSafe(server, "repo.apply_patch", PatchInput, { description: "Apply diff" }, async (input) => {
+  if (!isAllowedDiff(input.diff)) return { error: "diff_not_allowed" };
+  try {
+    return await callWorker("runTool", { name: "repo.apply_patch", args: input });
+  } catch (e: any) {
+    return { error: String(e?.message ?? e) };
+  }
+});
+```
+
+#### Step 8 — Live flags API
+- Read via `const flags = liveFlags.get();`
+- Write through the admin tool using:
+
+```sql
+UPDATE settings
+   SET val = ?, updated_at = CURRENT_TIMESTAMP
+ WHERE key = ?;
+```
+
+- Flip only one flag per upgrade; emergency shutdown uses `UPDATE settings SET val='1' WHERE key='DISABLE_NEW';`.
+
+#### Step 9 — Determinism checks per feature
+- Compact prompts: assert header present and body JSON parses.
+- Sandbox pool: compare outputs (regex equivalence) with legacy executor.
+- Strict DSL/idempotency: ensure diffs match `^@@ ` or `^diff --git`; JSON outputs parse.
+- WSJF scheduler: verify ≥80 % overlap with legacy task ordering.
+- Selective tests: impacted set must be non-empty; otherwise fall back to full suite.
+- MO engine: confirm CSV/PDF artifacts exist and are non-zero sized.
+- Abort flag flip on any mismatch.
+
+#### Step 10 — Resource & time limits
+- Default timeout 30 s; allow 120 s for `tests.run` and `report.mo`.
+- Lane concurrency caps: interactive ≤2, batch ≤2; throttle batch to 1 if worker RSS >1.5× baseline for 60 s.
+- Sandbox pool size 2–3 per workspace.
+
+#### Step 11 — Observability
+- Emit OTel attributes (or structured logs) with `task.id`, `task.type`, `lane`, `method`, `ok`, `error`, `duration.ms`, `risk.score`, `changed.paths.count`, `tests.count`.
+- Example fallback log:
+
+```json
+{"ts":"2025-10-11T01:23:45Z","span":"tool:tests.run","ok":true,"duration.ms":321,"lane":"interactive","task.id":"T6.4.9"}
+```
+
+#### Step 12 — Automated rollback
+- Trigger rollback on heartbeat trip, error-budget breach, determinism failure, or manual `DISABLE_NEW=1`.
+- Steps: `routeBackToPreviousWorker()`, reset flags to defaults (including `DISABLE_NEW=1`), log `rollback_complete`, keep failed worker alive for post-mortem.
+
+#### Step 13 — Post-switch self-checks
+- Run `health`, `plan → dispatch` on fixture (with call-level DRY_RUN), `repo.read_file`, `tests.run -k smoke`, `report.mo`.
+- Require `{ error: ... }` rate <1 %, no DB write errors, no sandbox failures.
+- Rollback if any check violates thresholds.
+
+#### Step 14 — Operator commands
+- Provide MCP tools: `upgrade.applyPatch(path)`, `flags.set(key,val)`, `route.switchToCanary()`, `route.backToPrevious()`, `health.summary()`, `panic.disableNew()`.
+- All commands return structured `{ ok, result|error }` envelopes; no thrown exceptions.
+
+#### Step 15 — Final flag flip order
+1. Promote worker (dry → live) per Step 6.
+2. Flip flags one at a time, running determinism checks between each:
+   - `PROMPT_MODE=compact`
+   - `SANDBOX_MODE=pool`
+   - Switch single tool to v2 (strict DSL/idempotent apply)
+   - `SCHEDULER_MODE=wsjf`
+   - `SELECTIVE_TESTS=1`
+   - `MO_ENGINE=1`
+   - `DANGER_GATES=1`
+   - `OTEL_ENABLED=1`
+   - `UI_ENABLED=1`
+3. Observe for 10 min; if clean, mark upgrade “stable”; otherwise rollback route and flags.
+4. When stable, the MCP keeps the promoted worker and flag set active going forward—no operator action required.
+
+---
+
 ## 11. Interaction with External MCP Servers
 - Launch bundled MCP servers (`filesystem`, `git`, `fetch`, `memory`) when the client does not supply them. Expose them via proxy tools or instruct the client to configure them separately (`docs/MCP_ORCHESTRATOR.md` cross-references quick-start JSON).
 - Provide a helper CLI (`npx wvo-mcp bootstrap`) that writes the recommended `mcp.json` snippet and `.prompt/wvo.md` file from the master instructions.

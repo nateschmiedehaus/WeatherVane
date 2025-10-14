@@ -67,8 +67,8 @@ export default function CatalogPage() {
       <div className={styles.root}>
         <section className={styles.header}>
           <div>
-            <h2>Catalog & ad tagging</h2>
-            <p>
+            <h2 className="ds-title">Catalog &amp; ad tagging</h2>
+            <p className="ds-body">
               Approve suggested weather & seasonal tags, sync them back to Shopify metafields, and see
               which ads are available for each run.
             </p>
@@ -76,27 +76,29 @@ export default function CatalogPage() {
           <aside className={styles.meta}>
             <dl>
               <div>
-                <dt>Generated</dt>
-                <dd>{generatedAt}</dd>
+                <dt className="ds-caption">Generated</dt>
+                <dd className="ds-body-strong">{generatedAt}</dd>
               </div>
               <div>
-                <dt>Entries</dt>
-                <dd>{categories.length}</dd>
+                <dt className="ds-caption">Entries</dt>
+                <dd className="ds-body-strong">{categories.length}</dd>
               </div>
             </dl>
-            <button type="button">Sync tags to Shopify</button>
+            <button type="button" className={`${styles.metaButton} ds-pill ds-body-strong`}>
+              Sync tags to Shopify
+            </button>
           </aside>
         </section>
 
         {loading && (
-          <p className={styles.status} role="status" aria-live="polite">
+          <p className={`${styles.status} ds-body`} role="status" aria-live="polite">
             Loading catalog tags…
           </p>
         )}
         {error && (
           <div className={styles.error} role="alert">
-            <p>{error}</p>
-            <button type="button" onClick={handleRetry} className={styles.retryButton}>
+            <p className="ds-body">{error}</p>
+            <button type="button" onClick={handleRetry} className={`${styles.retryButton} ds-body-strong`}>
               Retry loading catalog
             </button>
           </div>
@@ -107,15 +109,17 @@ export default function CatalogPage() {
             <ContextPanel tags={contextTags} warnings={contextWarnings} />
             <div className={styles.contextMeta}>
               <div className={styles.metaRow}>
-                <span className={styles.metaLabel}>Weather source</span>
-                <span className={styles.metaValue}>{weatherSource}</span>
+                <span className={`${styles.metaLabel} ds-caption`}>Weather source</span>
+                <span className={`${styles.metaValue} ds-body-strong`}>{weatherSource}</span>
               </div>
               {Object.keys(datasetRows).length > 0 && (
                 <dl className={styles.datasetStats}>
                   {Object.entries(datasetRows).map(([name, value]) => (
                     <div key={name}>
-                      <dt>{name}</dt>
-                      <dd>{typeof value === "number" ? value.toLocaleString() : String(value ?? "—")}</dd>
+                      <dt className="ds-caption">{name}</dt>
+                      <dd className="ds-body-strong">
+                        {typeof value === "number" ? value.toLocaleString() : String(value ?? "—")}
+                      </dd>
                     </div>
                   ))}
                 </dl>
@@ -130,36 +134,36 @@ export default function CatalogPage() {
               <article key={`${category.geo_group_id}-${category.name}-${category.channel}`}>
                 <header>
                   <div>
-                    <h3>{category.name}</h3>
-                    <p className={styles.metaLine}>
+                    <h3 className="ds-title">{category.name}</h3>
+                    <p className={`${styles.metaLine} ds-caption`}>
                       {category.geo_group_id} · {category.channel}
                     </p>
                   </div>
-                  <span className={styles.statusBadge}>{category.status}</span>
+                  <span className={`${styles.statusBadge} ds-caption`}>{category.status}</span>
                 </header>
                 <dl>
                   <div>
-                    <dt>Weather tags</dt>
-                    <dd>{category.weather_tags.join(", ")}</dd>
+                    <dt className="ds-caption">Weather tags</dt>
+                    <dd className="ds-body">{category.weather_tags.join(", ")}</dd>
                   </div>
                   <div>
-                    <dt>Season tags</dt>
-                    <dd>{category.season_tags.join(", ") || "—"}</dd>
+                    <dt className="ds-caption">Season tags</dt>
+                    <dd className="ds-body">{category.season_tags.join(", ") || "—"}</dd>
                   </div>
                   <div>
-                    <dt>Lift</dt>
-                    <dd>{category.lift}</dd>
+                    <dt className="ds-caption">Lift</dt>
+                    <dd className="ds-body">{category.lift}</dd>
                   </div>
                 </dl>
-                <button type="button" className={styles.manageButton}>
+                <button type="button" className={`${styles.manageButton} ds-pill ds-body-strong`}>
                   Manage ads
                 </button>
               </article>
             ))}
             {!categories.length && (
               <article className={styles.placeholder}>
-                <h3>No tagged categories yet</h3>
-                <p>
+                <h3 className="ds-title">No tagged categories yet</h3>
+                <p className="ds-body">
                   Run tagging to discover weather-season combinations that move revenue. Approved tags
                   sync back to Shopify and drive ad pairing suggestions.
                 </p>

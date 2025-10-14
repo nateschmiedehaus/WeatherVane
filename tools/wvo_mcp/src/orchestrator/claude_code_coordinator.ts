@@ -1,11 +1,24 @@
 import { EventEmitter } from 'node:events';
+import { randomUUID } from 'node:crypto';
 
-import type { Agent, AgentType, AssignmentOptions, ExecutionOutcome } from './agent_pool.js';
+import type {
+  Agent,
+  AgentType,
+  AssignmentOptions,
+  ExecutionOutcome,
+  ExecutionFailureType,
+  PromptCacheStatus,
+} from './agent_pool.js';
 import { AgentPool } from './agent_pool.js';
 import type { AssembledContext } from './context_assembler.js';
 import { ContextAssembler } from './context_assembler.js';
 import type { QualityCheckInput, QualityMonitor } from './quality_monitor.js';
-import type { ScheduledTask, TaskScheduler } from './task_scheduler.js';
+import type {
+  ScheduledTask,
+  TaskScheduler,
+  SchedulingReason,
+  BatchInfo,
+} from './task_scheduler.js';
 import type { StateMachine, Task } from './state_machine.js';
 import { selectCodexModel } from './model_selector.js';
 import type { CodexOperationalSnapshot, ReasoningLevel } from './model_selector.js';
@@ -14,6 +27,11 @@ import { logError, logInfo, logWarning } from '../telemetry/logger.js';
 import { CriticEnforcer } from './critic_enforcer.js';
 import type { WebInspirationManager } from './web_inspiration_manager.js';
 import type { SelfImprovementManager } from './self_improvement_manager.js';
+import { standardPromptHeader } from '../utils/prompt_headers.js';
+import type { PromptIntent } from '../utils/prompt_headers.js';
+import { ResilienceManager } from './resilience_manager.js';
+import { resolveOutputValidationSettings } from '../utils/output_validator.js';
+import type { LiveFlagsReader } from './live_flags.js';
 
 const TOKEN_ESTIMATE_CHAR_RATIO = 4;
 const MAX_PROMPT_TOKENS = 600;
@@ -24,6 +42,10 @@ const MODEL_COST_TABLE: Record<string, { prompt: number; completion: number }> =
   'gpt-5': { prompt: 0.012, completion: 0.03 },
   claude_code: { prompt: 0.011, completion: 0.033 },
 };
+
+const COST_TRACKING_DISABLED =
+  typeof process.env.WVO_DISABLE_COST_TRACKING === 'string' &&
+  ['1', 'true', 'yes'].includes(process.env.WVO_DISABLE_COST_TRACKING.toLowerCase());
 
 function estimateTokenCount(text: string | undefined): number {
   if (!text) return 0;
@@ -38,6 +60,9 @@ function estimateModelCost(
   promptTokens: number,
   completionTokens: number
 ): number | undefined {
+  if (COST_TRACKING_DISABLED) {
+    return undefined;
+  }
   const pricingKey = agentType === 'codex' ? modelSlug ?? 'gpt-5-codex' : 'claude_code';
   if (!pricingKey) return undefined;
 
@@ -62,12 +87,16 @@ export interface ExecutionSummary {
   agentId: string;
   agentType: Agent['type'];
   success: boolean;
+  failureType?: ExecutionFailureType;
   finalStatus: FinalExecutionStatus;
   durationSeconds: number;
   qualityScore: number;
   issues: string[];
   timestamp: number;
   projectPhase: string;
+  coordinatorType?: Agent['type'];
+  coordinatorReason?: string;
+  coordinatorAvailable?: boolean;
   codexPreset?: string;
   codexModel?: string;
   codexReasoning?: ReasoningLevel;
@@ -79,6 +108,13 @@ export interface ExecutionSummary {
   criticsRequired?: string[];
   criticsFailed?: string[];
   correlationId?: string;
+  promptCacheStatus?: PromptCacheStatus | 'unknown';
+  promptCacheTier?: string;
+  promptCacheId?: string;
+  promptCacheHit?: boolean;
+  promptCacheStore?: boolean;
+  promptCacheEligible?: boolean;
+  promptCacheRaw?: string;
 }
 
 export interface ExecutionObserver {
@@ -90,6 +126,12 @@ export interface ExecutionObserver {
     message: string
   ): void;
   handleContextLimit?(taskId: string, agentId: string, agentType: Agent['type']): void;
+  handleNetworkFailure?(
+    taskId: string,
+    agentId: string,
+    agentType: Agent['type'],
+    message: string
+  ): void;
 }
 
 interface ActiveExecution {
@@ -110,6 +152,8 @@ export class ClaudeCodeCoordinator extends EventEmitter {
   private running = false;
   private tickScheduled = false;
   private readonly dispatching = new Set<string>(); // Race guard: tasks currently being dispatched
+  private readonly agentCapacityWarnings = new Map<string, number>();
+  private readonly resilienceManager: ResilienceManager;
   private readonly criticEnforcer: CriticEnforcer;
   private readonly selfImprovementManager?: SelfImprovementManager;
 
@@ -126,14 +170,17 @@ export class ClaudeCodeCoordinator extends EventEmitter {
     private readonly scheduler: TaskScheduler,
     private readonly agentPool: AgentPool,
     private readonly contextAssembler: ContextAssembler,
+    private readonly liveFlags: LiveFlagsReader,
     private readonly qualityMonitor: QualityMonitor,
     private readonly webInspirationManager: WebInspirationManager | undefined,
     private readonly operationsManager?: OperationsManager,
     private readonly observer?: ExecutionObserver,
+    resilienceManager?: ResilienceManager,
     selfImprovementManager?: SelfImprovementManager
   ) {
     super();
     this.criticEnforcer = new CriticEnforcer(workspaceRoot, { stateMachine });
+    this.resilienceManager = resilienceManager ?? new ResilienceManager(this.stateMachine, this.agentPool);
     this.selfImprovementManager = selfImprovementManager;
 
     this.stateMachine.on('task:created', this.boundListeners.taskCreated);
@@ -170,7 +217,7 @@ export class ClaudeCodeCoordinator extends EventEmitter {
   }
 
   private createExecutionCorrelation(taskId: string): string {
-    return `exec_${taskId}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`;
+    return `exec:${taskId}:${randomUUID()}`;
   }
 
   private stageCorrelation(executionId: string, stage: string): string {
@@ -218,7 +265,11 @@ export class ClaudeCodeCoordinator extends EventEmitter {
     const task = candidate.task;
 
     try {
-      const initialStrategies = this.getContextStrategies('codex');
+      const operationalSnapshot = this.operationsManager?.getSnapshot?.();
+      const initialStrategies = this.getContextStrategies(
+        'codex',
+        operationalSnapshot?.tokenMetrics.pressure,
+      );
       const initialOptions = initialStrategies[0];
       const initialContext = await this.contextAssembler.assembleForTask(task.id, initialOptions);
 
@@ -227,7 +278,6 @@ export class ClaudeCodeCoordinator extends EventEmitter {
         await this.webInspirationManager.ensureInspiration(task);
       }
 
-      const operationalSnapshot = this.operationsManager?.getSnapshot?.();
       const codexOperational: CodexOperationalSnapshot | undefined = operationalSnapshot
         ? {
             mode: operationalSnapshot.mode,
@@ -256,9 +306,19 @@ export class ClaudeCodeCoordinator extends EventEmitter {
         codexReasoning: codexModelHint.reasoning,
         codexPreset: codexModelHint.presetId,
       }, assignmentOptions ?? {});
-      const strategies = this.getContextStrategies(agent.type);
+      const strategies = this.getContextStrategies(agent.type, operationalSnapshot?.tokenMetrics.pressure);
 
-      const promptPackage = await this.preparePrompt(task, agent, initialContext, strategies);
+      const promptPackage = await this.preparePrompt(
+        task,
+        agent,
+        initialContext,
+        strategies,
+        {
+          reason: candidate.reason,
+          batch: candidate.batch,
+          operations: operationalSnapshot,
+        },
+      );
       const { context, prompt } = promptPackage;
       await this.stateMachine.assignTask(task.id, agent.id, this.stageCorrelation(executionCorrelation, 'assign'));
 
@@ -313,6 +373,31 @@ export class ClaudeCodeCoordinator extends EventEmitter {
         return;
       }
 
+      if (!result.success && result.failureType === 'network') {
+        this.scheduler.releaseTask(task.id);
+        this.agentPool.completeTask(task.id, false, result.durationSeconds, {
+          failureType: 'network',
+        });
+        const metadata = {
+          agent: agent.id,
+          blocker_reason: 'network_offline',
+          quality_score: 0,
+          quality_issues: ['network_error'],
+        };
+        await this.stateMachine.transition(
+          task.id,
+          'blocked',
+          metadata,
+          this.stageCorrelation(executionCorrelation, 'network_failure')
+        );
+        logWarning('Network failure detected; task marked as blocked', {
+          taskId: task.id,
+          agent: agent.id,
+        });
+        this.observer?.handleNetworkFailure?.(task.id, agent.id, agent.type, result.output);
+        return;
+      }
+
       if (!result.success && result.failureType === 'context_limit') {
         this.scheduler.releaseTask(task.id);
         this.agentPool.completeTask(task.id, false, result.durationSeconds, {
@@ -336,6 +421,11 @@ export class ClaudeCodeCoordinator extends EventEmitter {
         return;
       }
 
+      if (!result.success && result.failureType === 'validation') {
+        await this.handleValidationFailure(task, agent, result, executionCorrelation);
+        return;
+      }
+
       await this.handleExecutionResult(
         task,
         agent,
@@ -346,7 +436,21 @@ export class ClaudeCodeCoordinator extends EventEmitter {
         executionCorrelation
       );
     } catch (error) {
-      logError('Task dispatch failed', { taskId: task.id, error: error instanceof Error ? error.message : String(error) });
+      const message = error instanceof Error ? error.message : String(error);
+      if (message.includes('No agents available')) {
+        const now = Date.now();
+        const lastLogged = this.agentCapacityWarnings.get(task.id) ?? 0;
+        if (now - lastLogged > 30_000) {
+          logWarning('All agents busy; deferring task dispatch', {
+            taskId: task.id,
+            availableAgents: this.agentPool.getAvailableAgents().length,
+          });
+          this.agentCapacityWarnings.set(task.id, now);
+        }
+        this.scheduler.releaseTask(task.id);
+        return;
+      }
+      logError('Task dispatch failed', { taskId: task.id, error: message });
       this.scheduler.releaseTask(task.id);
       throw error;
     } finally {
@@ -412,6 +516,9 @@ export class ClaudeCodeCoordinator extends EventEmitter {
     }
 
     const combinedIssues = [...qualityResult.issues, ...criticIssues];
+    if (!result.success && result.failureType === 'validation') {
+      combinedIssues.push('output_validation_failed');
+    }
 
     const transitionMetadata: Record<string, unknown> = {
       agent: agent.id,
@@ -487,9 +594,52 @@ export class ClaudeCodeCoordinator extends EventEmitter {
     const tokenEstimateStrategy: 'reported' | 'estimated' = reportedTokens ? 'reported' : 'estimated';
 
     const modelSlug = agent.type === 'codex' ? codexModelHint?.modelSlug : undefined;
-    const tokenCostUSD =
-      result.costUSD ??
-      estimateModelCost(agent.type, modelSlug, promptTokens, completionTokens);
+    const tokenCostUSD = COST_TRACKING_DISABLED
+      ? undefined
+      : result.costUSD ??
+        estimateModelCost(agent.type, modelSlug, promptTokens, completionTokens);
+
+    const coordinatorStatus =
+      this.operationsManager?.getCoordinatorStatus() ?? {
+        type: this.agentPool.getCoordinatorType(),
+        available: this.agentPool.isCoordinatorAvailable(),
+        reason:
+          this.agentPool.getCoordinatorType() === 'claude_code'
+            ? 'primary'
+            : 'failover:unknown',
+      };
+
+    const promptCache = result.promptCache;
+    const promptCacheStatus: PromptCacheStatus | 'unknown' = promptCache?.status ?? 'unknown';
+    const promptCacheHit = promptCache?.status === 'hit';
+    const promptCacheStore = promptCache?.status === 'store';
+    const promptCacheEligible =
+      promptCache ? promptCache.status !== 'bypass' && promptCache.status !== 'error' : false;
+
+    if (promptCache?.status === 'hit') {
+      logInfo('Prompt cache hit detected', {
+        taskId: task.id,
+        agent: agent.id,
+        agentType: agent.type,
+        tier: promptCache.tier,
+        cacheId: promptCache.cacheId,
+      });
+    } else if (promptCache?.status === 'store') {
+      logInfo('Prompt cache store event', {
+        taskId: task.id,
+        agent: agent.id,
+        agentType: agent.type,
+        tier: promptCache.tier,
+        cacheId: promptCache.cacheId,
+      });
+    } else if (promptCache?.status === 'error') {
+      logWarning('Prompt cache error reported by provider', {
+        taskId: task.id,
+        agent: agent.id,
+        agentType: agent.type,
+        details: promptCache.rawLine,
+      });
+    }
 
     const summary: ExecutionSummary = {
       taskId: task.id,
@@ -502,6 +652,9 @@ export class ClaudeCodeCoordinator extends EventEmitter {
       issues: combinedIssues,
       timestamp: Date.now(),
       projectPhase: context.projectPhase,
+      coordinatorType: coordinatorStatus.type,
+      coordinatorReason: coordinatorStatus.reason,
+      coordinatorAvailable: coordinatorStatus.available,
       codexPreset: agent.type === 'codex' ? codexModelHint?.presetId : undefined,
       codexModel: agent.type === 'codex' ? codexModelHint?.modelSlug : undefined,
       codexReasoning: agent.type === 'codex' ? codexModelHint?.reasoning : undefined,
@@ -514,10 +667,22 @@ export class ClaudeCodeCoordinator extends EventEmitter {
       criticsFailed:
         criticOutcome && criticOutcome.failedCritics.length > 0 ? criticOutcome.failedCritics : undefined,
       correlationId,
+      failureType: result.success ? undefined : result.failureType ?? 'other',
+      promptCacheStatus: promptCache ? promptCacheStatus : undefined,
+      promptCacheTier: promptCache?.tier,
+      promptCacheId: promptCache?.cacheId,
+      promptCacheHit: promptCache ? promptCacheHit : undefined,
+      promptCacheStore: promptCache ? promptCacheStore : undefined,
+      promptCacheEligible: promptCache ? promptCacheEligible : undefined,
+      promptCacheRaw: promptCache?.rawLine,
     };
 
     this.emit('execution:completed', summary);
     this.observer?.recordExecution(summary);
+
+    if (result.success) {
+      this.resilienceManager.resetRetries(task.id);
+    }
   }
 
   private computeAssignmentOptions(
@@ -568,6 +733,92 @@ export class ClaudeCodeCoordinator extends EventEmitter {
     return options;
   }
 
+  private getPromptMode(): 'compact' | 'verbose' {
+    return this.liveFlags.getValue('PROMPT_MODE') as 'compact' | 'verbose';
+  }
+
+  private resolvePromptIntent(status: Task['status']): PromptIntent {
+    if (status === 'needs_review') return 'review';
+    if (status === 'needs_improvement') return 'remediation';
+    return 'execute';
+  }
+
+  private buildStandardPromptHeader(
+    task: Task,
+    agent: Agent,
+    context: AssembledContext,
+    promptMode: 'compact' | 'verbose',
+  ): string {
+    const projectName = process.env.WVO_PROJECT_NAME?.trim() || 'WeatherVane';
+    const environment = process.env.WVO_ENVIRONMENT?.trim() || 'production';
+
+    return standardPromptHeader({
+      projectName,
+      projectPhase: context.projectPhase,
+      environment,
+      promptMode,
+      agentType: agent.type,
+      agentRole: agent.role,
+      intent: this.resolvePromptIntent(task.status),
+    });
+  }
+
+  private buildPromptHeader(
+    task: Task,
+    agent: Agent,
+    options: {
+      reason: SchedulingReason;
+      batch?: BatchInfo;
+      operations?: OperationsSnapshot;
+    },
+  ): string {
+    const reasonLabels: Record<SchedulingReason, string> = {
+      requires_review: 'Review queue',
+      requires_follow_up: 'Fix-up queue',
+      dependencies_cleared: 'Ready queue',
+    };
+
+    const agentDescriptor =
+      agent.type === 'codex'
+        ? `Codex • ${agent.role}`
+        : `Claude Code • ${agent.role}`;
+
+    const batch = options.batch;
+    const reasonLabel = reasonLabels[options.reason];
+    const reasonLine = batch
+      ? `${reasonLabel} — batch ${batch.position} of ${batch.size}`
+      : reasonLabel;
+
+    const queueSummary = options.operations
+      ? `Queue: total ${options.operations.queueLength} | review ${options.operations.queue.review_count} | fix-ups ${options.operations.queue.improvement_count} | ready ${options.operations.queue.ready_count}`
+      : undefined;
+
+    const tokenLine = options.operations?.tokenMetrics
+      ? `Token budget: ≤${options.operations.tokenMetrics.targetPromptBudget} tokens (pressure: ${options.operations.tokenMetrics.pressure})`
+      : `Token budget: ≤${MAX_PROMPT_TOKENS} tokens`;
+
+    const operationsLine = options.operations
+      ? `Operations mode: ${options.operations.mode} | Health: ${options.operations.health_status}`
+      : undefined;
+
+    const lines = [
+      '### WeatherVane Execution Brief',
+      `Task: [${task.id}] ${task.title}`,
+      `Agent: ${agent.id} (${agentDescriptor})`,
+      `Queue reason: ${reasonLine}`,
+    ];
+
+    if (queueSummary) {
+      lines.push(queueSummary);
+    }
+    lines.push(tokenLine);
+    if (operationsLine) {
+      lines.push(operationsLine);
+    }
+
+    return lines.join('\n');
+  }
+
   private buildDirective(task: Task, agent: Agent): string {
     const base = `You are ${agent.type === 'claude_code' ? 'Claude Code' : 'Codex'}, working inside a shared repository.`;
 
@@ -596,26 +847,36 @@ export class ClaudeCodeCoordinator extends EventEmitter {
       maxDecisions: number;
       maxLearnings: number;
       hoursBack: number;
-    }>
+    }>,
+    promptOptions: {
+      reason: SchedulingReason;
+      batch?: BatchInfo;
+      operations?: OperationsSnapshot;
+    },
   ): Promise<{ context: AssembledContext; prompt: string }> {
+    const targetPromptBudget = Math.min(
+      MAX_PROMPT_TOKENS,
+      promptOptions.operations?.tokenMetrics?.targetPromptBudget ?? MAX_PROMPT_TOKENS,
+    );
+
     let lastContext = initialContext;
-    let lastPrompt = this.composePrompt(task, agent, initialContext);
+    let lastPrompt = this.composePrompt(task, agent, initialContext, promptOptions);
     let lastTokens = estimateTokenCount(lastPrompt);
 
-    if (lastTokens <= MAX_PROMPT_TOKENS && lastPrompt.length <= MAX_PROMPT_CHARACTERS) {
+    if (lastTokens <= targetPromptBudget && lastPrompt.length <= MAX_PROMPT_CHARACTERS) {
       return { context: initialContext, prompt: lastPrompt };
     }
 
     for (let index = 1; index < strategies.length; index++) {
       const options = strategies[index];
       const context = await this.contextAssembler.assembleForTask(task.id, options);
-      const prompt = this.composePrompt(task, agent, context);
+      const prompt = this.composePrompt(task, agent, context, promptOptions);
       const tokenEstimate = estimateTokenCount(prompt);
       lastContext = context;
       lastPrompt = prompt;
       lastTokens = tokenEstimate;
 
-      if (tokenEstimate <= MAX_PROMPT_TOKENS && prompt.length <= MAX_PROMPT_CHARACTERS) {
+      if (tokenEstimate <= targetPromptBudget && prompt.length <= MAX_PROMPT_CHARACTERS) {
         return { context, prompt };
       }
     }
@@ -627,7 +888,7 @@ export class ClaudeCodeCoordinator extends EventEmitter {
       maxLearnings: 1,
       hoursBack: Math.min(6, strategies[strategies.length - 1]?.hoursBack ?? 6),
     });
-    const minimalPrompt = this.composeMinimalPrompt(task, agent, minimalContext);
+    const minimalPrompt = this.composeMinimalPrompt(task, agent, minimalContext, promptOptions);
     const minimalTokens = estimateTokenCount(minimalPrompt);
     const minimalLength = minimalPrompt.length;
 
@@ -636,26 +897,120 @@ export class ClaudeCodeCoordinator extends EventEmitter {
       previousTokens: lastTokens,
       minimalTokens,
       minimalLength,
+      targetPromptBudget,
     });
 
-    if (minimalTokens > MAX_PROMPT_TOKENS || minimalLength > MAX_PROMPT_CHARACTERS) {
+    if (minimalTokens > targetPromptBudget || minimalLength > MAX_PROMPT_CHARACTERS) {
       logWarning('Minimal prompt still above target; proceeding with best effort', {
         taskId: task.id,
         tokens: minimalTokens,
         characters: minimalLength,
+        targetPromptBudget,
       });
     }
 
     return { context: minimalContext, prompt: minimalPrompt };
   }
 
-  private composePrompt(task: Task, agent: Agent, context: AssembledContext): string {
-    const contextBlock = this.contextAssembler.formatForPrompt(context);
+  private composePrompt(
+    task: Task,
+    agent: Agent,
+    context: AssembledContext,
+    options: {
+      reason: SchedulingReason;
+      batch?: BatchInfo;
+      operations?: OperationsSnapshot;
+    },
+  ): string {
+    const promptMode = this.getPromptMode();
+    const useCompact = promptMode !== 'verbose';
+    const contextBlock = useCompact
+      ? this.contextAssembler.formatForPromptCompact(context)
+      : this.contextAssembler.formatForPrompt(context);
+    const contextSection = useCompact
+      ? `## Evidence Pack (compact)\n${contextBlock}`
+      : contextBlock;
     const directive = this.buildDirective(task, agent);
-    return `${contextBlock}\n\n---\n\n${directive}`;
+    const standardHeader = this.buildStandardPromptHeader(task, agent, context, promptMode);
+    const executionBrief = this.buildPromptHeader(task, agent, options);
+    return `${standardHeader}\n\n${executionBrief}\n\n${contextSection}\n\n---\n\n${directive}`;
   }
 
-  private composeMinimalPrompt(task: Task, agent: Agent, context: AssembledContext): string {
+  private async handleValidationFailure(
+    task: Task,
+    agent: Agent,
+    result: ExecutionOutcome,
+    executionCorrelation: string
+  ): Promise<void> {
+    const attemptNumber = this.resilienceManager.getAttemptNumber(task.id);
+    const validationSettings = resolveOutputValidationSettings();
+    const recovery = await this.resilienceManager.handleFailure({
+      taskId: task.id,
+      agentId: agent.id,
+      failureType: 'validation',
+      retryAfterSeconds: result.retryAfterSeconds,
+      attemptNumber,
+      originalError: result.output,
+    });
+
+    this.operationsManager?.recordValidationRecovery({
+      taskId: task.id,
+      agentType: agent.type,
+      action: recovery.action,
+      mode: validationSettings.effectiveMode,
+      enforced: validationSettings.effectiveMode !== 'disabled',
+      reasoning: recovery.reasoning,
+      delaySeconds: recovery.delaySeconds,
+    });
+
+    this.agentPool.completeTask(task.id, false, result.durationSeconds, {
+      failureType: 'validation',
+    });
+
+    if (recovery.action === 'fail_task') {
+      const metadata: Record<string, unknown> = {
+        agent: agent.id,
+        quality_score: 0,
+        quality_issues: ['output_validation_failed'],
+        recovery_reason: recovery.reasoning,
+      };
+      await this.stateMachine.transition(
+        task.id,
+        'needs_improvement',
+        metadata,
+        this.stageCorrelation(executionCorrelation, 'validation_failed')
+      );
+      this.scheduler.releaseTask(task.id);
+      logWarning('Validation failures exhausted retries; task requires follow-up', {
+        taskId: task.id,
+        agent: agent.id,
+        reasoning: recovery.reasoning,
+      });
+      return;
+    }
+
+    this.scheduler.releaseTask(task.id);
+
+    logInfo('Validation failure recovery scheduled', {
+      taskId: task.id,
+      agent: agent.id,
+      action: recovery.action,
+      reasoning: recovery.reasoning,
+      delaySeconds: recovery.delaySeconds ?? 0,
+      requestedAgentType: recovery.newAgentType,
+    });
+  }
+
+  private composeMinimalPrompt(
+    task: Task,
+    agent: Agent,
+    context: AssembledContext,
+    options: {
+      reason: SchedulingReason;
+      batch?: BatchInfo;
+      operations?: OperationsSnapshot;
+    },
+  ): string {
     const sections: string[] = [];
 
     const summary = [
@@ -686,7 +1041,10 @@ export class ClaudeCodeCoordinator extends EventEmitter {
     }
 
     const directive = this.buildDirective(task, agent);
-    return `${sections.join('\n\n')}\n\n---\n\n${directive}`;
+    const promptMode = this.getPromptMode();
+    const standardHeader = this.buildStandardPromptHeader(task, agent, context, promptMode);
+    const executionBrief = this.buildPromptHeader(task, agent, options);
+    return `${standardHeader}\n\n${executionBrief}\n\n${sections.join('\n\n')}\n\n---\n\n${directive}`;
   }
 
   private clampText(text: string, maxLength = 200): string {
@@ -698,7 +1056,10 @@ export class ClaudeCodeCoordinator extends EventEmitter {
     return `${truncated}...`;
   }
 
-  private getContextStrategies(agentType: AgentType): ReadonlyArray<{
+  private getContextStrategies(
+    agentType: AgentType,
+    pressure: OperationsSnapshot['tokenMetrics']['pressure'] | undefined = 'normal',
+  ): ReadonlyArray<{
     includeCodeContext: boolean;
     includeQualityHistory: boolean;
     maxDecisions: number;
@@ -706,6 +1067,24 @@ export class ClaudeCodeCoordinator extends EventEmitter {
     hoursBack: number;
   }> {
     const includeCodeByDefault = agentType === 'codex';
+
+    if (pressure === 'critical') {
+      return [
+        { includeCodeContext: includeCodeByDefault, includeQualityHistory: false, maxDecisions: 3, maxLearnings: 1, hoursBack: 6 },
+        { includeCodeContext: includeCodeByDefault, includeQualityHistory: false, maxDecisions: 2, maxLearnings: 1, hoursBack: 4 },
+        { includeCodeContext: includeCodeByDefault, includeQualityHistory: false, maxDecisions: 1, maxLearnings: 0, hoursBack: 2 },
+      ];
+    }
+
+    if (pressure === 'elevated') {
+      return [
+        { includeCodeContext: true, includeQualityHistory: agentType !== 'codex', maxDecisions: 5, maxLearnings: 2, hoursBack: 18 },
+        { includeCodeContext: includeCodeByDefault, includeQualityHistory: false, maxDecisions: 4, maxLearnings: 2, hoursBack: 12 },
+        { includeCodeContext: includeCodeByDefault, includeQualityHistory: false, maxDecisions: 2, maxLearnings: 1, hoursBack: 8 },
+        { includeCodeContext: includeCodeByDefault, includeQualityHistory: false, maxDecisions: 1, maxLearnings: 1, hoursBack: 6 },
+      ];
+    }
+
     return [
       { includeCodeContext: true, includeQualityHistory: true, maxDecisions: 6, maxLearnings: 3, hoursBack: 24 },
       { includeCodeContext: true, includeQualityHistory: true, maxDecisions: 4, maxLearnings: 2, hoursBack: 12 },

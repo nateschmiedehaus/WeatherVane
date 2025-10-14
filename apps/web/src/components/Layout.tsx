@@ -1,5 +1,7 @@
 import { ReactNode, useEffect, useState } from "react";
 import { NavTabs } from "./NavTabs";
+import { ThemeToggle } from "./ThemeToggle";
+import { DemoTourDrawer } from "./DemoTourDrawer";
 import styles from "../styles/layout.module.css";
 
 interface LayoutProps {
@@ -20,23 +22,29 @@ export function Layout({ children }: LayoutProps) {
 
   return (
     <div className={styles.shell} data-reduced-motion={prefersReducedMotion}>
-      <a href="#main-content" className={styles.skipLink}>
+      <a href="#main-content" className={`${styles.skipLink} ds-pill ds-caption`}>
         Skip to main content
       </a>
       <div className={styles.backdrop} aria-hidden />
       <header className={styles.header}>
-        <div>
-          <h1>WeatherVane</h1>
-          <p>Weather-intelligent planning that keeps marketers in control.</p>
+        <div className={styles.branding}>
+          <h1 className={`ds-display ${styles.productName}`}>WeatherVane</h1>
+          <p className={`ds-subtitle ${styles.tagline}`}>
+            Weather-intelligent planning that keeps marketers in control.
+          </p>
         </div>
-        <NavTabs />
+        <div className={styles.toolbar}>
+          <ThemeToggle />
+          <NavTabs />
+        </div>
       </header>
       <main id="main-content" className={styles.main}>
         {children}
       </main>
-      <footer className={styles.footer}>
+      <footer className={`${styles.footer} ds-caption`}>
         Built for teams who want weather science without sacrificing simplicity.
       </footer>
+      <DemoTourDrawer />
     </div>
   );
 }

@@ -1,0 +1,9 @@
+{
+  "critic": "productcompleteness",
+  "code": 1,
+  "stdout": "",
+  "stderr": "Product milestones lack progress: M3.3, M3.4 (all tasks still pending)",
+  "passed": false,
+  "git_sha": "31548e1c9ba25b8b0f94df5d6f596ec1be26414a",
+  "timestamp": "2025-10-13T15:38:55.403Z"
+}

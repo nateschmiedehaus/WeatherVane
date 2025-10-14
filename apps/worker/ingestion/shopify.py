@@ -61,9 +61,10 @@ class ShopifyIngestor(BaseIngestor):
             validate_shopify_orders(rows)
         geocoded_count = sum(1 for row in rows if row.get("ship_geohash"))
         geocoded_ratio = geocoded_count / len(rows) if rows else 0.0
-        summary = self._write_records(
+        summary = self._write_incremental(
             dataset=f"{tenant_id}_shopify_orders",
             rows=rows,
+            unique_keys=("tenant_id", "order_id"),
             source="shopify_api",
             metadata={
                 "geocoded_count": geocoded_count,
@@ -90,8 +91,11 @@ class ShopifyIngestor(BaseIngestor):
         rows = [self._normalise_product(tenant_id, product) for product in products]
         if rows:
             validate_shopify_products(rows)
-        return self._write_records(
-            dataset=f"{tenant_id}_shopify_products", rows=rows, source="shopify_api"
+        return self._write_incremental(
+            dataset=f"{tenant_id}_shopify_products",
+            rows=rows,
+            unique_keys=("tenant_id", "product_id"),
+            source="shopify_api",
         )
 
     async def _collect_rest(self, resource: str, params: Dict[str, Any]) -> List[Mapping[str, Any]]:

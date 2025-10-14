@@ -17,6 +17,28 @@ On Apple Silicon (arm64) hosts, `make bootstrap` automatically pins wheels from
 `requirements/apple-silicon.lock` to avoid NumPy/SciPy crashes stemming from mismatched
 Accelerate/OpenBLAS builds.
 
+### Offline web toolchain bootstrap
+If the sandbox blocks outbound npm traffic, seed the offline cache on a machine with
+network access and sync the artifacts back into the repo before installing locally:
+
+```bash
+# Audit the cache from any host to refresh the missing list
+python apps/web/scripts/audit_offline_cache.py \
+  --write-missing apps/web/offline-cache/missing-packages.txt
+
+# On a networked host, fetch every missing package into the shared cache
+xargs -a apps/web/offline-cache/missing-packages.txt -I{} \
+  npm cache add {} --cache apps/web/offline-cache
+
+# Once the cache is hydrated, install in the sandbox without touching the network
+npm run install:offline --prefix apps/web
+```
+
+The audit step produces a JSON/text report and keeps
+`apps/web/offline-cache/missing-packages.txt` aligned with the dependency set (`package.json`
+plus devDependencies). Commit the refreshed list so anyone without outbound access can
+immediately hydrate the cache from an online machine.
+
 ## Running Services Locally
 - **API:** `make api` (runs on http://localhost:8000)
 - **Web:** `make web` (Next.js dev server on http://localhost:3000)

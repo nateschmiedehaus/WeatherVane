@@ -1,6 +1,4 @@
-"""Model training package exports with lazy imports to avoid heavy dependencies at import time."""
-
-from . import causal_uplift as _causal_uplift
+"""Model training package exports with lazy imports to avoid heavy dependencies."""
 
 __all__ = [
     "MMMModel",
@@ -17,6 +15,10 @@ __all__ = [
     "ForecastPoint",
     "run_multi_horizon_ensemble",
     "save_ensemble_metrics_as_json",
+    "BrandSafetyPolicy",
+    "generate_response_report",
+    "generate_synthetic_creative_dataset",
+    "score_creatives",
 ]
 
 
@@ -88,17 +90,27 @@ def __getattr__(name):
             }
         )
         return globals()[name]
-    raise AttributeError(f"module 'apps.model' has no attribute {name!r}")
-
-
-globals().update(
-    {
-        "CausalUpliftModel": _causal_uplift.CausalUpliftModel,
-        "IncrementalLiftReport": _causal_uplift.IncrementalLiftReport,
-        "fit_causal_uplift": _causal_uplift.fit_causal_uplift,
-        "validate_incremental_lift": _causal_uplift.validate_incremental_lift,
-        "generate_synthetic_dataset": _causal_uplift.generate_synthetic_dataset,
-        "compute_synthetic_report": _causal_uplift.compute_synthetic_report,
-        "save_report_as_json": _causal_uplift.save_report_as_json,
+    creative_exports = {
+        "BrandSafetyPolicy",
+        "generate_response_report",
+        "generate_synthetic_creative_dataset",
+        "score_creatives",
     }
-)
+    if name in creative_exports:
+        from .creative_response import (
+            BrandSafetyPolicy,
+            generate_response_report,
+            generate_synthetic_creative_dataset,
+            score_creatives,
+        )
+
+        globals().update(
+            {
+                "BrandSafetyPolicy": BrandSafetyPolicy,
+                "generate_response_report": generate_response_report,
+                "generate_synthetic_creative_dataset": generate_synthetic_creative_dataset,
+                "score_creatives": score_creatives,
+            }
+        )
+        return globals()[name]
+    raise AttributeError(f"module 'apps.model' has no attribute {name!r}")

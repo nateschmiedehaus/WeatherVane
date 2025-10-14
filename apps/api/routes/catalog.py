@@ -1,12 +1,13 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, Path, Response
+from fastapi import APIRouter, Depends, HTTPException, Path, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.schemas.base import CatalogResponse
 
 from apps.api.config import get_settings
 from apps.api.dependencies import db_session
+from apps.api.services.exceptions import SchemaValidationError
 from apps.api.services.catalog_service import CatalogService
 from apps.api.services.plan_service import PlanService
 from apps.api.services.repositories import PlanRepository
@@ -31,7 +32,10 @@ async def get_catalog(
     limit: int = 12,
     service: CatalogService = Depends(get_catalog_service),
 ) -> CatalogResponse:
-    catalog = await service.fetch_catalog(tenant_id, horizon_days=horizon_days, limit=limit)
+    try:
+        catalog = await service.fetch_catalog(tenant_id, horizon_days=horizon_days, limit=limit)
+    except SchemaValidationError as exc:
+        raise HTTPException(status_code=500, detail=exc.to_detail()) from exc
     if catalog.context_tags:
         response.headers["X-WeatherVane-Context"] = ",".join(catalog.context_tags)
     if catalog.context_warnings:

@@ -1,0 +1,50 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "DataRequestResponse",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "request_id",
+    "tenant_id",
+    "request_type",
+    "status",
+    "requested_at"
+  ],
+  "properties": {
+    "request_id": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "tenant_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "request_type": {
+      "type": "string",
+      "enum": [
+        "export",
+        "delete"
+      ]
+    },
+    "status": {
+      "type": "string"
+    },
+    "requested_by": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "requested_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "processed_at": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "date-time"
+    }
+  }
+}

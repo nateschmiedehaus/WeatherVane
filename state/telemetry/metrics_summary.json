@@ -1,0 +1,261 @@
+{
+  "executions": {
+    "average_duration_seconds": 0.007352941176470588,
+    "average_quality_score": 0.5,
+    "by_agent_type": {
+      "claude_code": 34,
+      "codex": 102
+    },
+    "by_final_status": {
+      "needs_improvement": 136
+    },
+    "critics_failed": {},
+    "failures": 136,
+    "issues": {
+      "execution_failed": 136
+    },
+    "recent_runs": [
+      {
+        "agent_type": "claude_code",
+        "codex_preset": null,
+        "critics_failed": [],
+        "duration_seconds": 0,
+        "final_status": "needs_improvement",
+        "issues": [
+          "execution_failed"
+        ],
+        "quality_score": 0.5,
+        "success": false,
+        "task_id": "E11",
+        "timestamp": "2025-10-12T13:23:00.531000+00:00",
+        "token_cost_usd": 0.005
+      },
+      {
+        "agent_type": "codex",
+        "codex_preset": "gpt-5-codex-low",
+        "critics_failed": [],
+        "duration_seconds": 0,
+        "final_status": "needs_improvement",
+        "issues": [
+          "execution_failed"
+        ],
+        "quality_score": 0.5,
+        "success": false,
+        "task_id": "E7",
+        "timestamp": "2025-10-12T13:23:00.035000+00:00",
+        "token_cost_usd": 0.007
+      },
+      {
+        "agent_type": "codex",
+        "codex_preset": "gpt-5-codex-high",
+        "critics_failed": [],
+        "duration_seconds": 0,
+        "final_status": "needs_improvement",
+        "issues": [
+          "execution_failed"
+        ],
+        "quality_score": 0.5,
+        "success": false,
+        "task_id": "E6",
+        "timestamp": "2025-10-12T13:23:00.033000+00:00",
+        "token_cost_usd": 0.007
+      },
+      {
+        "agent_type": "codex",
+        "codex_preset": "gpt-5-codex-low",
+        "critics_failed": [],
+        "duration_seconds": 0,
+        "final_status": "needs_improvement",
+        "issues": [
+          "execution_failed"
+        ],
+        "quality_score": 0.5,
+        "success": false,
+        "task_id": "E5",
+        "timestamp": "2025-10-12T13:23:00.030000+00:00",
+        "token_cost_usd": 0.007
+      },
+      {
+        "agent_type": "claude_code",
+        "codex_preset": null,
+        "critics_failed": [],
+        "duration_seconds": 0,
+        "final_status": "needs_improvement",
+        "issues": [
+          "execution_failed"
+        ],
+        "quality_score": 0.5,
+        "success": false,
+        "task_id": "E11",
+        "timestamp": "2025-10-12T13:21:23.584000+00:00",
+        "token_cost_usd": 0.005
+      },
+      {
+        "agent_type": "codex",
+        "codex_preset": "gpt-5-codex-low",
+        "critics_failed": [],
+        "duration_seconds": 0,
+        "final_status": "needs_improvement",
+        "issues": [
+          "execution_failed"
+        ],
+        "quality_score": 0.5,
+        "success": false,
+        "task_id": "E7",
+        "timestamp": "2025-10-12T13:21:23.027000+00:00",
+        "token_cost_usd": 0.007
+      },
+      {
+        "agent_type": "codex",
+        "codex_preset": "gpt-5-codex-high",
+        "critics_failed": [],
+        "duration_seconds": 0,
+        "final_status": "needs_improvement",
+        "issues": [
+          "execution_failed"
+        ],
+        "quality_score": 0.5,
+        "success": false,
+        "task_id": "E6",
+        "timestamp": "2025-10-12T13:21:23.025000+00:00",
+        "token_cost_usd": 0.007
+      },
+      {
+        "agent_type": "codex",
+        "codex_preset": "gpt-5-codex-low",
+        "critics_failed": [],
+        "duration_seconds": 0,
+        "final_status": "needs_improvement",
+        "issues": [
+          "execution_failed"
+        ],
+        "quality_score": 0.5,
+        "success": false,
+        "task_id": "E5",
+        "timestamp": "2025-10-12T13:21:23.021000+00:00",
+        "token_cost_usd": 0.007
+      },
+      {
+        "agent_type": "claude_code",
+        "codex_preset": null,
+        "critics_failed": [],
+        "duration_seconds": 0,
+        "final_status": "needs_improvement",
+        "issues": [
+          "execution_failed"
+        ],
+        "quality_score": 0.5,
+        "success": false,
+        "task_id": "E11",
+        "timestamp": "2025-10-12T13:16:55.435000+00:00",
+        "token_cost_usd": 0.003
+      },
+      {
+        "agent_type": "codex",
+        "codex_preset": "gpt-5-codex-low",
+        "critics_failed": [],
+        "duration_seconds": 0,
+        "final_status": "needs_improvement",
+        "issues": [
+          "execution_failed"
+        ],
+        "quality_score": 0.5,
+        "success": false,
+        "task_id": "E7",
+        "timestamp": "2025-10-12T13:16:54.887000+00:00",
+        "token_cost_usd": 0.004
+      }
+    ],
+    "success_rate": 0.0,
+    "successes": 0,
+    "tokens": {
+      "completion": 7020,
+      "prompt": 54721,
+      "total": 61741
+    },
+    "top_failed_tasks": [
+      {
+        "failures": 27,
+        "task_id": "E8"
+      },
+      {
+        "failures": 25,
+        "task_id": "T8.2.2"
+      },
+      {
+        "failures": 21,
+        "task_id": "T8.1.2"
+      },
+      {
+        "failures": 15,
+        "task_id": "T8.2.1"
+      },
+      {
+        "failures": 11,
+        "task_id": "T8.1.3"
+      }
+    ],
+    "total_runs": 136,
+    "total_token_cost_usd": 0.803
+  },
+  "generated_at": "2025-10-12T23:22:50.712062+00:00",
+  "operations": {
+    "average_failure_rate": 0.001910828025477707,
+    "average_queue_length": 7.52484076433121,
+    "latest_snapshot": {
+      "avgQuality": 0.5,
+      "blockedTasks": 18,
+      "claudeUsagePercent": 0,
+      "codexUsagePercent": 0,
+      "failureRate": 0,
+      "mode": "stabilize",
+      "queueLength": 35,
+      "timestamp": "2025-10-12T23:17:02.291000+00:00",
+      "totalTasks": 81
+    },
+    "max_queue_length": 53,
+    "modes_seen": {
+      "balance": 143,
+      "stabilize": 1427
+    },
+    "total_snapshots": 1570
+  },
+  "sources": {
+    "files": {
+      "executions": {
+        "exists": true,
+        "path": "state/telemetry/executions.jsonl",
+        "records": 136
+      },
+      "operations": {
+        "exists": true,
+        "path": "state/telemetry/operations.jsonl",
+        "records": 1570
+      },
+      "usage": {
+        "exists": true,
+        "path": "state/telemetry/usage.jsonl",
+        "records": 585
+      }
+    },
+    "telemetry_dir": "state/telemetry"
+  },
+  "usage": {
+    "average_duration_seconds": 164.41709401709403,
+    "capabilities": {
+      "medium": 585
+    },
+    "models": {
+      "gpt-5-codex": 585
+    },
+    "statuses": {
+      "error": 425,
+      "invalid_summary": 4,
+      "retry": 1,
+      "success": 96,
+      "usage_limit": 59
+    },
+    "total_records": 585
+  },
+  "version": 1
+}

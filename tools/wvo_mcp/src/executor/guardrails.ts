@@ -1,6 +1,6 @@
 import path from "node:path";
 
-const ALLOWED_COMMANDS = new Set([
+export const ALLOWED_COMMANDS = [
   "bash",
   "sh",
   "git",
@@ -18,6 +18,10 @@ const ALLOWED_COMMANDS = new Set([
   "mypy",
   "node",
   "ts-node",
+  "tsc",
+  "cd",
+  "which",
+  "nl",
   "ls",
   "cat",
   "tail",
@@ -28,8 +32,79 @@ const ALLOWED_COMMANDS = new Set([
   "rg",
   "find",
   "echo",
+  "docker",
   "./scripts/restart_mcp.sh"
-]);
+] as const;
+
+const ALLOWED_COMMAND_SET = new Set<string>(ALLOWED_COMMANDS);
+
+type CommandSyntaxScan = {
+  hasMultiline: boolean;
+  hasChaining: boolean;
+  hasCommandSubstitution: boolean;
+};
+
+function analyzeCommandSyntax(cmd: string): CommandSyntaxScan {
+  let inSingleQuote = false;
+  let inDoubleQuote = false;
+
+  const scan: CommandSyntaxScan = {
+    hasMultiline: false,
+    hasChaining: false,
+    hasCommandSubstitution: false,
+  };
+
+  for (let index = 0; index < cmd.length; index += 1) {
+    const char = cmd[index];
+    const prevChar = index > 0 ? cmd[index - 1] : "";
+    const nextChar = index + 1 < cmd.length ? cmd[index + 1] : "";
+
+    if (char === "\n" || char === "\r") {
+      scan.hasMultiline = true;
+      continue;
+    }
+
+    if (char === "'" && !inDoubleQuote) {
+      inSingleQuote = !inSingleQuote;
+      continue;
+    }
+
+    if (char === '"' && !inSingleQuote && prevChar !== "\\") {
+      inDoubleQuote = !inDoubleQuote;
+      continue;
+    }
+
+    if (inSingleQuote || inDoubleQuote) {
+      continue;
+    }
+
+    if (char === "&") {
+      if (nextChar === "&") {
+        scan.hasChaining = true;
+        index += 1;
+        continue;
+      }
+      scan.hasChaining = true;
+      continue;
+    }
+
+    if (char === "|" || char === ";") {
+      scan.hasChaining = true;
+      continue;
+    }
+
+    if (char === "$" && nextChar === "(") {
+      scan.hasCommandSubstitution = true;
+      continue;
+    }
+
+    if (char === "`") {
+      scan.hasCommandSubstitution = true;
+    }
+  }
+
+  return scan;
+}
 
 const DANGEROUS_SUBSTRINGS: Array<[RegExp, string]> = [
   [/\bsudo\b/, "Use of sudo is prohibited inside the orchestrated workspace."],
@@ -66,24 +141,53 @@ function extractCommandBinary(cmd: string): string {
   return "";
 }
 
+function assertCommandSyntax(cmd: string): void {
+  const syntax = analyzeCommandSyntax(cmd);
+  if (syntax.hasMultiline) {
+    throw new GuardrailViolation("Multi-line commands are not permitted; invoke a single command per request.");
+  }
+  if (syntax.hasChaining) {
+    throw new GuardrailViolation("Command chaining, pipes, backgrounding, or separators (&&, ||, |, ;, &) are not allowed.");
+  }
+  if (syntax.hasCommandSubstitution) {
+    throw new GuardrailViolation("Command substitution ($(…) or backticks) is not permitted; invoke the target binary directly.");
+  }
+}
+
 export function ensureAllowedCommand(cmd: string): void {
+  assertCommandSyntax(cmd);
   const binary = extractCommandBinary(cmd);
   if (!binary) {
     throw new GuardrailViolation("Unable to determine command binary; specify a direct command (no chaining).");
   }
+
+  if (!isCommandAllowed(cmd)) {
+    const allowList = Array.from(ALLOWED_COMMAND_SET).sort().join(", ");
+    throw new GuardrailViolation(`Command '${binary}' is not permitted. Allowed commands: ${allowList}`);
+  }
+}
+
+export function isCommandAllowed(cmd: string): boolean {
+  const syntax = analyzeCommandSyntax(cmd);
+  if (syntax.hasMultiline || syntax.hasChaining || syntax.hasCommandSubstitution) {
+    return false;
+  }
+
+  const binary = extractCommandBinary(cmd);
+  if (!binary) {
+    return false;
+  }
+
   if (binary.startsWith("./")) {
-    if (ALLOWED_COMMANDS.has(binary)) {
-      return;
-    }
-    return;
+    return ALLOWED_COMMAND_SET.has(binary);
   }
-  if (!ALLOWED_COMMANDS.has(binary)) {
-    throw new GuardrailViolation(`Command '${binary}' is not permitted. Allowed commands: ${Array.from(ALLOWED_COMMANDS).sort().join(", ")}`);
-  }
+
+  return ALLOWED_COMMAND_SET.has(binary);
 }
 
 export function ensureCommandSafe(cmd: string, workspaceRoot: string): void {
   const lower = cmd.toLowerCase();
+  const root = path.resolve(workspaceRoot);
 
   for (const [pattern, message] of DANGEROUS_SUBSTRINGS) {
     if (pattern.test(lower)) {
@@ -94,11 +198,14 @@ export function ensureCommandSafe(cmd: string, workspaceRoot: string): void {
   const cdMatches = lower.match(/cd\s+([^\s;&|]+)/g) ?? [];
   for (const cdMatch of cdMatches) {
     const target = cdMatch.replace(/cd\s+/, "");
+    if (target === "" || target === "." || target === "./") {
+      continue;
+    }
     if (target.startsWith("..") || target.startsWith("/")) {
       throw new GuardrailViolation(`Changing directories outside the workspace is not allowed: ${target}`);
     }
     const resolved = path.resolve(workspaceRoot, target);
-    if (!resolved.startsWith(path.resolve(workspaceRoot))) {
+    if (!resolved.startsWith(root)) {
       throw new GuardrailViolation(`Command attempts to leave workspace: ${cdMatch}`);
     }
   }

@@ -2,13 +2,19 @@ import { AgentPool } from './agent_pool.js';
 import { ClaudeCodeCoordinator } from './claude_code_coordinator.js';
 import { ContextAssembler } from './context_assembler.js';
 import { OperationsManager } from './operations_manager.js';
+import { ResilienceManager } from './resilience_manager.js';
 import { WebInspirationManager } from './web_inspiration_manager.js';
 import { QualityMonitor } from './quality_monitor.js';
 import { TaskScheduler } from './task_scheduler.js';
 import { StateMachine } from './state_machine.js';
 import { SelfImprovementManager } from './self_improvement_manager.js';
+import { LiveFlags } from './live_flags.js';
 import { logInfo, logWarning, logError } from '../telemetry/logger.js';
 import { AuthChecker } from '../utils/auth_checker.js';
+import { CodeSearchIndex } from '../utils/code_search.js';
+import { deriveResourceLimits, loadActiveDeviceProfile } from '../utils/device_profile.js';
+import { ResearchManager } from '../intelligence/research_manager.js';
+import { ResearchOrchestrator } from './research_orchestrator.js';
 
 export interface OrchestratorRuntimeOptions {
   codexWorkers?: number;
@@ -16,6 +22,7 @@ export interface OrchestratorRuntimeOptions {
   enableAutoRestart?: boolean;
   maxRestartsPerWindow?: number;
   restartWindowMinutes?: number;
+  heavyTaskLimit?: number;
 }
 
 export class OrchestratorRuntime {
@@ -25,22 +32,66 @@ export class OrchestratorRuntime {
   private readonly contextAssembler: ContextAssembler;
   private readonly qualityMonitor: QualityMonitor;
   private readonly operationsManager: OperationsManager;
+  private readonly resilienceManager: ResilienceManager;
   private readonly webInspirationManager: WebInspirationManager | undefined;
   private readonly selfImprovementManager: SelfImprovementManager;
   private readonly coordinator: ClaudeCodeCoordinator;
+  private readonly codeSearchIndex: CodeSearchIndex;
+  private readonly liveFlags: LiveFlags;
+  private readonly researchManager: ResearchManager | undefined;
+  private readonly researchOrchestrator: ResearchOrchestrator | undefined;
   private started = false;
 
   constructor(
     private readonly workspaceRoot: string,
     options: OrchestratorRuntimeOptions = {}
   ) {
-    const codexWorkers = options.codexWorkers ?? 3;
+    const deviceProfile = loadActiveDeviceProfile(workspaceRoot);
+    const resourcePlan = deriveResourceLimits(deviceProfile);
+    const codexWorkers = options.codexWorkers ?? resourcePlan.codexWorkers;
+    const heavyTaskLimit = options.heavyTaskLimit ?? resourcePlan.heavyTaskConcurrency;
 
     this.stateMachine = new StateMachine(workspaceRoot);
-    this.scheduler = new TaskScheduler(this.stateMachine);
+    this.liveFlags = new LiveFlags({ workspaceRoot });
+    const researchFlagEnabled = this.liveFlags.getValue('RESEARCH_LAYER') === '1';
+    this.researchManager = researchFlagEnabled
+      ? new ResearchManager({ stateMachine: this.stateMachine })
+      : undefined;
+    if (researchFlagEnabled) {
+      logInfo('Strategic research layer enabled');
+    }
+    const researchSensitivity = this.parseResearchSensitivity(
+      this.liveFlags.getValue('RESEARCH_TRIGGER_SENSITIVITY'),
+    );
+    this.scheduler = new TaskScheduler(this.stateMachine, {
+      heavyTaskLimit,
+      researchSignalsEnabled: researchFlagEnabled,
+      researchSensitivity,
+    });
+    this.scheduler.setResearchConfig({
+      enabled: researchFlagEnabled,
+      sensitivity: researchSensitivity,
+    });
+    if (this.researchManager) {
+      this.researchOrchestrator = new ResearchOrchestrator(
+        this.scheduler,
+        this.researchManager,
+        this.stateMachine,
+      );
+    } else {
+      this.researchOrchestrator = undefined;
+    }
     this.agentPool = new AgentPool(workspaceRoot, codexWorkers);
-    this.contextAssembler = new ContextAssembler(this.stateMachine, workspaceRoot);
-    this.qualityMonitor = new QualityMonitor(this.stateMachine);
+    this.codeSearchIndex = new CodeSearchIndex(this.stateMachine, workspaceRoot);
+    this.contextAssembler = new ContextAssembler(this.stateMachine, workspaceRoot, {
+      codeSearch: this.codeSearchIndex,
+      liveFlags: this.liveFlags,
+      maxHistoryItems: 3,
+    });
+    this.qualityMonitor = new QualityMonitor(this.stateMachine, {
+      workspaceRoot,
+      liveFlags: this.liveFlags,
+    });
     this.operationsManager = new OperationsManager(
       this.stateMachine,
       this.scheduler,
@@ -48,7 +99,12 @@ export class OrchestratorRuntime {
       this.qualityMonitor,
       {
         targetCodexRatio: options.targetCodexRatio,
+        liveFlags: this.liveFlags,
       }
+    );
+    this.resilienceManager = new ResilienceManager(
+      this.stateMachine,
+      this.agentPool
     );
 
     // Initialize self-improvement manager
@@ -91,12 +147,22 @@ export class OrchestratorRuntime {
       this.scheduler,
       this.agentPool,
       this.contextAssembler,
+      this.liveFlags,
       this.qualityMonitor,
       this.webInspirationManager,
       this.operationsManager,
       this.operationsManager,
+      this.resilienceManager,
       this.selfImprovementManager
     );
+
+    logInfo('Adaptive resource scheduling initialised', {
+      codexWorkers,
+      heavyTaskLimit,
+      recommendedConcurrency: resourcePlan.recommendedConcurrency,
+      hasAccelerator: resourcePlan.hasAccelerator,
+      deviceProfileId: resourcePlan.profileId,
+    });
   }
 
   start(): void {
@@ -113,14 +179,20 @@ export class OrchestratorRuntime {
     this.coordinator.stop();
     this.operationsManager.stop();
     this.scheduler.destroy();
+    this.researchOrchestrator?.dispose();
     this.agentPool.removeAllListeners();
     this.qualityMonitor.removeAllListeners();
+    this.liveFlags.dispose();
     this.stateMachine.close();
     logInfo('Orchestrator runtime stopped');
   }
 
   getOperationsManager(): OperationsManager {
     return this.operationsManager;
+  }
+
+  getResilienceManager(): ResilienceManager {
+    return this.resilienceManager;
   }
 
   getStateMachine(): StateMachine {
@@ -135,6 +207,18 @@ export class OrchestratorRuntime {
     return this.workspaceRoot;
   }
 
+  getLiveFlags(): LiveFlags {
+    return this.liveFlags;
+  }
+
+  getResearchManager(): ResearchManager | undefined {
+    return this.researchManager;
+  }
+
+  getResearchOrchestrator(): ResearchOrchestrator | undefined {
+    return this.researchOrchestrator;
+  }
+
   getWebInspirationManager(): WebInspirationManager | undefined {
     return this.webInspirationManager;
   }
@@ -145,6 +229,16 @@ export class OrchestratorRuntime {
 
   getImprovementStatus() {
     return this.selfImprovementManager.getStatus();
+  }
+
+  private parseResearchSensitivity(raw: string): number {
+    const parsed = Number.parseFloat(raw);
+    if (Number.isNaN(parsed)) {
+      return 0.5;
+    }
+    if (parsed <= 0) return 0;
+    if (parsed >= 1) return 1;
+    return Math.round(parsed * 100) / 100;
   }
 
   private async performAuthCheck(): Promise<void> {

@@ -1,6 +1,7 @@
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import Head from "next/head";
 
+import { AutomationAuditList } from "../components/AutomationAuditList";
 import styles from "../styles/automations.module.css";
 import { Layout } from "../components/Layout";
 import { ContextPanel } from "../components/ContextPanel";
@@ -8,6 +9,8 @@ import {
   fetchAutomationSettings,
   updateAutomationSettings,
 } from "../lib/api";
+import { useDemo } from "../lib/demo";
+import { useOnboardingProgress } from "../hooks/useOnboardingProgress";
 import type {
   AutomationMode,
   AutomationSettings,
@@ -48,6 +51,13 @@ export default function AutomationsPage() {
   const [error, setError] = useState<string | null>(null);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [reloadCount, setReloadCount] = useState(0);
+  const { isDemoActive } = useDemo();
+  const onboarding = useOnboardingProgress({
+    tenantId: TENANT_ID,
+    mode: isDemoActive ? "demo" : "live",
+  });
+  const onboardingAudits = onboarding.audits;
+  const onboardingErrorMessage = onboarding.error?.message ?? null;
 
   const loadSettings = useCallback(() => {
     let active = true;
@@ -191,28 +201,28 @@ export default function AutomationsPage() {
       </Head>
       <div className={styles.root}>
         <section className={styles.header}>
-        <h2>Guided automation & guardrails</h2>
-        <p>
-          Control how WeatherVane pushes budgets, maintain tenant consent, and keep your guardrails in
-          sync with finance. Changes sync instantly to the API and are captured in the audit log.
-        </p>
+          <h2 className="ds-title">Guided automation &amp; guardrails</h2>
+          <p className="ds-body">
+            Control how WeatherVane pushes budgets, maintain tenant consent, and keep your guardrails in
+            sync with finance. Changes sync instantly to the API and are captured in the audit log.
+          </p>
         </section>
 
       {loading && (
-        <p className={styles.status} role="status" aria-live="polite">
+        <p className={`${styles.status} ds-body`} role="status" aria-live="polite">
           Loading automation settings…
         </p>
       )}
       {error && (
         <div className={styles.error} role="alert">
-          <p>{error}</p>
-          <button type="button" onClick={handleRetry} className={styles.retryButton}>
+          <p className="ds-body">{error}</p>
+          <button type="button" onClick={handleRetry} className={`${styles.retryButton} ds-body-strong`}>
             Retry loading settings
           </button>
         </div>
       )}
       {statusMessage && (
-        <p className={styles.success} role="status" aria-live="polite">
+        <p className={`${styles.success} ds-body`} role="status" aria-live="polite">
           {statusMessage}
         </p>
       )}
@@ -221,7 +231,7 @@ export default function AutomationsPage() {
         <div className={styles.layout}>
           <form className={styles.form} onSubmit={handleSubmit}>
             <fieldset className={styles.fieldset}>
-              <legend>Automation mode</legend>
+              <legend className="ds-caption">Automation mode</legend>
               <div className={styles.modeList}>
                 {automationModes.map((mode) => (
                   <label key={mode.value} className={styles.modeItem}>
@@ -233,8 +243,8 @@ export default function AutomationsPage() {
                       onChange={() => handleModeChange(mode.value)}
                     />
                     <div>
-                      <strong>{mode.label}</strong>
-                      <p>{mode.description}</p>
+                      <strong className="ds-body-strong">{mode.label}</strong>
+                      <p className="ds-caption">{mode.description}</p>
                     </div>
                   </label>
                 ))}
@@ -242,10 +252,10 @@ export default function AutomationsPage() {
             </fieldset>
 
             <fieldset className={styles.fieldset}>
-              <legend>Push guardrails</legend>
+              <legend className="ds-caption">Push guardrails</legend>
               <div className={styles.gridRow}>
                 <label>
-                  Daily push cap
+                  <span className="ds-caption">Daily push cap</span>
                   <input
                     type="number"
                     min={0}
@@ -256,7 +266,7 @@ export default function AutomationsPage() {
                   />
                 </label>
                 <label>
-                  Push window start (UTC)
+                  <span className="ds-caption">Push window start (UTC)</span>
                   <input
                     type="time"
                     value={settings.push_window_start_utc ?? ""}
@@ -266,7 +276,7 @@ export default function AutomationsPage() {
                   />
                 </label>
                 <label>
-                  Push window end (UTC)
+                  <span className="ds-caption">Push window end (UTC)</span>
                   <input
                     type="time"
                     value={settings.push_window_end_utc ?? ""}
@@ -283,11 +293,11 @@ export default function AutomationsPage() {
                   checked={settings.pushes_enabled}
                   onChange={(event) => handleInputChange("pushes_enabled", event.target.checked)}
                 />
-                Enable automated pushes within guardrails
+                <span className="ds-body">Enable automated pushes within guardrails</span>
               </label>
 
               <label>
-                Change windows (comma separated)
+                <span className="ds-caption">Change windows (comma separated)</span>
                 <input
                   type="text"
                   value={changeWindowsText}
@@ -298,7 +308,7 @@ export default function AutomationsPage() {
 
               <div className={styles.gridRow}>
                 <label>
-                  Max daily delta %
+                  <span className="ds-caption">Max daily delta %</span>
                   <input
                     type="number"
                     min={0}
@@ -309,7 +319,7 @@ export default function AutomationsPage() {
                   />
                 </label>
                 <label>
-                  Min daily spend
+                  <span className="ds-caption">Min daily spend</span>
                   <input
                     type="number"
                     min={0}
@@ -320,7 +330,7 @@ export default function AutomationsPage() {
                   />
                 </label>
                 <label>
-                  ROAS floor
+                  <span className="ds-caption">ROAS floor</span>
                   <input
                     type="number"
                     step="0.1"
@@ -332,7 +342,7 @@ export default function AutomationsPage() {
                   />
                 </label>
                 <label>
-                  CPA ceiling
+                  <span className="ds-caption">CPA ceiling</span>
                   <input
                     type="number"
                     step="0.1"
@@ -347,10 +357,10 @@ export default function AutomationsPage() {
             </fieldset>
 
             <fieldset className={styles.fieldset}>
-              <legend>Consent & retention</legend>
+              <legend className="ds-caption">Consent &amp; retention</legend>
               <div className={styles.gridRow}>
                 <label>
-                  Consent status
+                  <span className="ds-caption">Consent status</span>
                   <select
                     value={settings.consent.status}
                     onChange={(event) =>
@@ -365,7 +375,7 @@ export default function AutomationsPage() {
                   </select>
                 </label>
                 <label>
-                  Consent actor
+                  <span className="ds-caption">Consent actor</span>
                   <input
                     type="email"
                     value={settings.consent.actor ?? ""}
@@ -385,7 +395,7 @@ export default function AutomationsPage() {
                   />
                 </label>
                 <label>
-                  Consent version
+                  <span className="ds-caption">Consent version</span>
                   <input
                     type="text"
                     value={settings.consent.version}
@@ -406,7 +416,7 @@ export default function AutomationsPage() {
                 </label>
               </div>
               <label>
-                Data retention (days)
+                <span className="ds-caption">Data retention (days)</span>
                 <input
                   type="number"
                   min={0}
@@ -417,7 +427,7 @@ export default function AutomationsPage() {
                 />
               </label>
               <label>
-                Notes
+                <span className="ds-caption">Notes</span>
                 <textarea
                   value={settings.notes ?? ""}
                   onChange={(event) => handleInputChange("notes", event.target.value || null)}
@@ -426,46 +436,60 @@ export default function AutomationsPage() {
               </label>
             </fieldset>
 
-            <button className={styles.primaryButton} type="submit" disabled={saving}>
+            <button
+              className={`${styles.primaryButton} ds-pill ds-body-strong`}
+              type="submit"
+              disabled={saving}
+            >
               {saving ? "Saving…" : "Save automation settings"}
             </button>
           </form>
 
           <aside className={styles.meta}>
-            <h3>Current status</h3>
+            <h3 className="ds-title">Current status</h3>
+            <AutomationAuditList
+              audits={onboardingAudits}
+              loading={onboarding.loading}
+              isFallback={onboarding.isFallback}
+              errorMessage={onboardingErrorMessage}
+              limit={5}
+              className={styles.auditRail}
+            />
             <ContextPanel tags={contextTags} warnings={contextWarnings} />
             <dl>
               <div>
-                <dt>Mode</dt>
-                <dd>{settings.mode}</dd>
+                <dt className="ds-caption">Mode</dt>
+                <dd className="ds-body">{settings.mode}</dd>
               </div>
               <div>
-                <dt>Pushes enabled</dt>
-                <dd>{settings.pushes_enabled ? "Yes" : "No"}</dd>
+                <dt className="ds-caption">Pushes enabled</dt>
+                <dd className="ds-body">{settings.pushes_enabled ? "Yes" : "No"}</dd>
               </div>
               <div>
-                <dt>Consent status</dt>
-                <dd>{settings.consent.status}</dd>
+                <dt className="ds-caption">Consent status</dt>
+                <dd className="ds-body">{settings.consent.status}</dd>
               </div>
               <div>
-                <dt>Consent actor</dt>
-                <dd>{settings.consent.actor ?? "—"}</dd>
+                <dt className="ds-caption">Consent actor</dt>
+                <dd className="ds-body">{settings.consent.actor ?? "—"}</dd>
               </div>
               <div>
-                <dt>Last export</dt>
-                <dd>{formatDateTime(settings.last_export_at)}</dd>
+                <dt className="ds-caption">Last export</dt>
+                <dd className="ds-body">{formatDateTime(settings.last_export_at)}</dd>
               </div>
               <div>
-                <dt>Last delete</dt>
-                <dd>{formatDateTime(settings.last_delete_at)}</dd>
+                <dt className="ds-caption">Last delete</dt>
+                <dd className="ds-body">{formatDateTime(settings.last_delete_at)}</dd>
               </div>
               <div>
-                <dt>Last updated</dt>
-                <dd>{formatDateTime(responseMeta?.updated_at ?? settings.last_updated_at)}</dd>
+                <dt className="ds-caption">Last updated</dt>
+                <dd className="ds-body">
+                  {formatDateTime(responseMeta?.updated_at ?? settings.last_updated_at)}
+                </dd>
               </div>
               <div>
-                <dt>Updated by</dt>
-                <dd>{settings.updated_by ?? "—"}</dd>
+                <dt className="ds-caption">Updated by</dt>
+                <dd className="ds-body">{settings.updated_by ?? "—"}</dd>
               </div>
             </dl>
           </aside>

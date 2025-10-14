@@ -1,9 +1,9 @@
 {
   "critic": "costperf",
   "code": 0,
-  "stdout": "skipped due to capability profile",
+  "stdout": "window_observed: 136\nprompt_cache_eligible: 0\nprompt_cache_hits: 0\nprompt_cache_stores: 0\nprompt_cache_hit_rate: 0.0%",
   "stderr": "",
   "passed": true,
-  "git_sha": "35b9e5194726d4cca461ec2f0cc2ca484aab591a",
-  "timestamp": "2025-10-10T10:25:19.953Z"
+  "git_sha": "31548e1c9ba25b8b0f94df5d6f596ec1be26414a",
+  "timestamp": "2025-10-12T14:59:49.520Z"
 }

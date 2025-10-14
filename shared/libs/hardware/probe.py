@@ -36,6 +36,7 @@ class DeviceProfile:
     accelerators: list[dict[str, Any]]
     capabilities: dict[str, Any]
     collected_at: str
+    scheduler_plan: dict[str, Any] | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -55,6 +56,9 @@ class DeviceProfile:
             accelerators=list(payload.get("accelerators", [])),
             capabilities=dict(payload.get("capabilities", {})),
             collected_at=payload["collected_at"],
+            scheduler_plan=dict(payload["scheduler_plan"])
+            if isinstance(payload.get("scheduler_plan"), Mapping)
+            else None,
         )
 
 
@@ -83,6 +87,21 @@ class DeviceProfileStore:
             if key != profile.profile_id:
                 registry.pop(key, None)
         registry[profile.profile_id] = profile.to_dict()
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        self.path.write_text(json.dumps(registry, indent=2, sort_keys=True))
+        return self.path
+
+    def save_scheduler_plan(
+        self,
+        profile_id: str,
+        scheduler_plan: Mapping[str, Any],
+    ) -> Path:
+        registry = self.load_all()
+        if profile_id not in registry:
+            raise KeyError(f"profile_id not found: {profile_id}")
+        entry = dict(registry[profile_id])
+        entry["scheduler_plan"] = dict(scheduler_plan)
+        registry[profile_id] = entry
         self.path.parent.mkdir(parents=True, exist_ok=True)
         self.path.write_text(json.dumps(registry, indent=2, sort_keys=True))
         return self.path

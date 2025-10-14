@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+import logging
 import os
 from datetime import datetime, timedelta
 from functools import lru_cache
 from pathlib import Path
 
+import jsonschema
 from shared.schemas.base import (
     ConfidenceLevel,
     ContextWarning,
@@ -23,6 +25,9 @@ from apps.api.db import models
 from .repositories import PlanRepository
 from shared.libs.storage.state import JsonStateStore
 from shared.schemas.incrementality import IncrementalityDesign, IncrementalitySummary
+from shared.validation.schemas import validate_plan_slices
+
+from apps.api.services.exceptions import SchemaValidationError
 
 
 @lru_cache(maxsize=1)
@@ -32,6 +37,8 @@ def _incrementality_store() -> JsonStateStore:
 
 
 class PlanService:
+    logger = logging.getLogger(__name__)
+
     def __init__(
         self,
         repository: PlanRepository,
@@ -53,7 +60,7 @@ class PlanService:
         metadata = plan.metadata_payload or {}
         incrementality_design, incrementality_summary = self._resolve_incrementality(plan.tenant_id, metadata)
 
-        return PlanResponse(
+        response = PlanResponse(
             tenant_id=plan.tenant_id,
             generated_at=plan.generated_at,
             horizon_days=plan.horizon_days,
@@ -64,6 +71,8 @@ class PlanService:
             incrementality_design=incrementality_design,
             incrementality_summary=incrementality_summary,
         )
+        self._validate_plan_contract(response)
+        return response
 
     def _resolve_incrementality(
         self,
@@ -306,7 +315,7 @@ class PlanService:
             )
         context_tags, data_context, warnings = self._context_payload(tenant_id)
         incrementality_design, incrementality_summary = self._resolve_incrementality(tenant_id, None)
-        return PlanResponse(
+        response = PlanResponse(
             tenant_id=tenant_id,
             generated_at=now,
             horizon_days=horizon_days,
@@ -317,6 +326,8 @@ class PlanService:
             incrementality_design=incrementality_design,
             incrementality_summary=incrementality_summary,
         )
+        self._validate_plan_contract(response)
+        return response
 
     def _context_payload(
         self, tenant_id: str
@@ -343,3 +354,27 @@ class PlanService:
             for item in warning_payloads
         ]
         return tags, payload, warnings
+
+    def _validate_plan_contract(self, plan: PlanResponse) -> None:
+        try:
+            validate_plan_slices(plan.slices)
+        except (jsonschema.ValidationError, jsonschema.SchemaError) as error:
+            if isinstance(error, jsonschema.ValidationError):
+                path = list(error.absolute_path)
+                reason = error.message
+            else:
+                path = []
+                reason = str(error)
+            self.logger.exception(
+                "Plan schema validation failed for tenant %s at %s: %s",
+                plan.tenant_id,
+                path or "<root>",
+                reason,
+            )
+            raise SchemaValidationError(
+                "Plan slice contract violated",
+                schema="plan_slice",
+                tenant_id=plan.tenant_id,
+                path=path,
+                reason=reason,
+            ) from error

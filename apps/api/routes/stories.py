@@ -1,12 +1,13 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, Path, Response
+from fastapi import APIRouter, Depends, HTTPException, Path, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.schemas.base import StoriesResponse
 
 from apps.api.config import get_settings
 from apps.api.dependencies import db_session
+from apps.api.services.exceptions import SchemaValidationError
 from apps.api.services.plan_service import PlanService
 from apps.api.services.repositories import PlanRepository
 from apps.api.services.story_service import StoryService
@@ -32,7 +33,10 @@ async def get_stories(
     service: StoryService = Depends(get_story_service),
 ) -> StoriesResponse:
     """Return narrative weather stories derived from the latest plan."""
-    stories = await service.latest_stories(tenant_id, horizon_days=horizon_days, limit=limit)
+    try:
+        stories = await service.latest_stories(tenant_id, horizon_days=horizon_days, limit=limit)
+    except SchemaValidationError as exc:
+        raise HTTPException(status_code=500, detail=exc.to_detail()) from exc
     if stories.context_tags:
         response.headers["X-WeatherVane-Context"] = ",".join(stories.context_tags)
     if stories.context_warnings:

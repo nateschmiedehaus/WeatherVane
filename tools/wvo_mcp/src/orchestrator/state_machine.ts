@@ -11,8 +11,11 @@
 
 import Database from 'better-sqlite3';
 import { EventEmitter } from 'node:events';
+import { randomUUID } from 'node:crypto';
 import path from 'node:path';
 import fs from 'node:fs';
+
+import { seedLiveFlagDefaults } from '../state/live_flags.js';
 
 // ============================================================================
 // Types
@@ -73,6 +76,25 @@ export interface QualityMetric {
   details?: Record<string, unknown>;
 }
 
+export interface CriticHistoryRecord {
+  id?: number;
+  critic: string;
+  category: string;
+  passed: boolean;
+  stderr_sample?: string;
+  created_at: number;
+  metadata?: Record<string, unknown>;
+}
+
+export interface ResearchCacheRecord {
+  id?: number;
+  cache_key: string;
+  payload: unknown;
+  stored_at: number;
+  expires_at: number;
+  metadata?: Record<string, unknown>;
+}
+
 export interface Checkpoint {
   id?: number;
   timestamp: number;
@@ -93,6 +115,24 @@ export interface ContextEntry {
   metadata?: Record<string, unknown>;
 }
 
+export interface CodeIndexEntry {
+  file_path: string;
+  content: string;
+  language: string;
+}
+
+export interface CodeSearchResult {
+  filePath: string;
+  language: string;
+  snippet?: string;
+  score: number;
+}
+
+export interface CodeIndexMetadata {
+  updatedAt?: number;
+  entryCount: number;
+}
+
 export interface RoadmapHealth {
   totalTasks: number;
   pendingTasks: number;
@@ -102,6 +142,39 @@ export interface RoadmapHealth {
   completionRate: number;
   averageQualityScore: number;
   currentPhase: string;
+}
+
+function mergeMetadata(
+  existing: Record<string, unknown> | undefined,
+  patch: Record<string, unknown> | undefined,
+): Record<string, unknown> | undefined {
+  if (!patch || Object.keys(patch).length === 0) {
+    return existing ? { ...existing } : undefined;
+  }
+
+  const base: Record<string, unknown> = existing ? { ...existing } : {};
+  let changed = false;
+
+  for (const [key, value] of Object.entries(patch)) {
+    if (value === null || typeof value === 'undefined') {
+      if (key in base) {
+        delete base[key];
+        changed = true;
+      }
+      continue;
+    }
+
+    if (!Object.is(base[key], value)) {
+      base[key] = value;
+      changed = true;
+    }
+  }
+
+  if (!changed) {
+    return existing ? { ...existing } : undefined;
+  }
+
+  return Object.keys(base).length > 0 ? base : undefined;
 }
 
 // ============================================================================
@@ -200,6 +273,25 @@ export class StateMachine extends EventEmitter {
         FOREIGN KEY (task_id) REFERENCES tasks(id)
       );
 
+      CREATE TABLE IF NOT EXISTS critic_history (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        critic TEXT NOT NULL,
+        category TEXT NOT NULL,
+        passed INTEGER NOT NULL,
+        stderr_sample TEXT,
+        created_at INTEGER NOT NULL,
+        metadata JSON
+      );
+
+      CREATE TABLE IF NOT EXISTS research_cache (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        cache_key TEXT NOT NULL UNIQUE,
+        payload JSON NOT NULL,
+        stored_at INTEGER NOT NULL,
+        expires_at INTEGER NOT NULL,
+        metadata JSON
+      );
+
       -- Checkpoints (versioned snapshots)
       CREATE TABLE IF NOT EXISTS checkpoints (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -220,6 +312,27 @@ export class StateMachine extends EventEmitter {
         related_tasks TEXT,
         confidence REAL,
         metadata JSON
+      );
+
+      -- Runtime settings and feature flags
+      CREATE TABLE IF NOT EXISTS settings (
+        key TEXT PRIMARY KEY,
+        val TEXT NOT NULL,
+        updated_at INTEGER NOT NULL DEFAULT (CAST(strftime('%s','now') AS INTEGER) * 1000),
+        metadata JSON
+      );
+
+      -- Code search index (FTS5)
+      CREATE VIRTUAL TABLE IF NOT EXISTS code_fts USING fts5(
+        file_path UNINDEXED,
+        content,
+        language,
+        tokenize = 'unicode61 remove_diacritics 2'
+      );
+
+      CREATE TABLE IF NOT EXISTS code_index_metadata (
+        key TEXT PRIMARY KEY,
+        value TEXT NOT NULL
       );
 
       -- Indexes for performance
@@ -244,10 +357,17 @@ export class StateMachine extends EventEmitter {
       CREATE INDEX IF NOT EXISTS idx_quality_dimension ON quality_metrics(dimension);
       CREATE INDEX IF NOT EXISTS idx_quality_task_dim ON quality_metrics(task_id, dimension);
 
+      CREATE INDEX IF NOT EXISTS idx_critic_history_critic ON critic_history(critic, created_at DESC);
+
+      CREATE INDEX IF NOT EXISTS idx_research_cache_expires ON research_cache(expires_at);
+
       CREATE INDEX IF NOT EXISTS idx_context_type ON context_entries(entry_type);
       CREATE INDEX IF NOT EXISTS idx_context_topic ON context_entries(topic);
       CREATE INDEX IF NOT EXISTS idx_context_timestamp ON context_entries(timestamp);
+      CREATE INDEX IF NOT EXISTS idx_settings_updated_at ON settings(updated_at);
     `);
+
+    seedLiveFlagDefaults(this.db);
   }
 
   // ==========================================================================
@@ -297,7 +417,11 @@ export class StateMachine extends EventEmitter {
     return this.rowToTask(row);
   }
 
-  updateTaskDetails(taskId: string, updates: { title?: string; description?: string }): Task {
+  updateTaskDetails(
+    taskId: string,
+    updates: { title?: string; description?: string },
+    correlationId?: string
+  ): Task {
     const allowed: Array<keyof typeof updates> = ['title', 'description'];
     const setFragments: string[] = [];
     const values: any[] = [];
@@ -331,6 +455,7 @@ export class StateMachine extends EventEmitter {
       event_type: 'task_updated',
       task_id: taskId,
       data: { updates },
+      correlation_id: correlationId
     });
 
     return updatedTask;
@@ -373,7 +498,8 @@ export class StateMachine extends EventEmitter {
     }
 
     const now = Date.now();
-    const updates: any = { status: newStatus };
+    const updates: Record<string, unknown> = { status: newStatus };
+    const previousStatus = task.status;
 
     if (newStatus === 'in_progress' && !task.started_at) {
       updates.started_at = now;
@@ -386,8 +512,10 @@ export class StateMachine extends EventEmitter {
       }
     }
 
+    let mergedMetadata = task.metadata as Record<string, unknown> | undefined;
     if (metadata) {
-      updates.metadata = JSON.stringify({ ...(task.metadata || {}), ...metadata });
+      mergedMetadata = mergeMetadata(task.metadata as Record<string, unknown> | undefined, metadata);
+      updates.metadata = mergedMetadata ? JSON.stringify(mergedMetadata) : null;
     }
 
     const setClauses = Object.keys(updates).map(k => `${k} = ?`).join(', ');
@@ -403,12 +531,17 @@ export class StateMachine extends EventEmitter {
     });
 
     const updatedTask = this.getTask(taskId)!;
+    if (metadata) {
+      updatedTask.metadata = mergedMetadata;
+    }
     this.invalidateHealthCache();
     this.emit('task:transition', updatedTask, task.status, newStatus);
 
     if (newStatus === 'done') {
       this.emit('task:completed', updatedTask);
     }
+
+    await this.reconcileDependentStatuses(updatedTask, previousStatus, newStatus, correlationId);
 
     return updatedTask;
   }
@@ -533,6 +666,87 @@ export class StateMachine extends EventEmitter {
     return false;
   }
 
+  private async reconcileDependentStatuses(task: Task, previousStatus: TaskStatus, newStatus: TaskStatus, correlationId?: string): Promise<void> {
+    if (newStatus === previousStatus) {
+      return;
+    }
+
+    const dependents = this.getDependents(task.id).filter(dep => dep.dependency_type === 'blocks');
+    if (dependents.length === 0) {
+      return;
+    }
+
+    const correlationBase = correlationId ? `${correlationId}:dependents` : `deps:${task.id}:${randomUUID()}`;
+    const nowIso = new Date().toISOString();
+
+    const checkOutstanding = (dependentTaskId: string): number => {
+      const blockingDeps = this.getDependencies(dependentTaskId).filter(dep => dep.dependency_type === 'blocks');
+      const outstandingDeps = blockingDeps.filter(dep => {
+        const depTask = this.getTask(dep.depends_on_task_id);
+        return !depTask || depTask.status !== 'done';
+      });
+      return outstandingDeps.length;
+    };
+
+    // Handle regression: if a dependency re-opens (done -> anything else), push dependents back to blocked.
+    if (previousStatus === 'done' && newStatus !== 'done') {
+      for (const dependent of dependents) {
+        const dependentTask = this.getTask(dependent.task_id);
+        if (!dependentTask) continue;
+        if (dependentTask.status === 'done' || dependentTask.status === 'blocked') continue;
+
+        const outstanding = checkOutstanding(dependentTask.id);
+        if (outstanding > 0) {
+          await this.transition(
+            dependentTask.id,
+            'blocked',
+            {
+              auto_reblocked: true,
+              auto_reblocked_by: task.id,
+              auto_reblocked_at: nowIso,
+            },
+            `${correlationBase}:${dependentTask.id}:reblocked`
+          );
+        }
+      }
+      return;
+    }
+
+    // Handle completion: unblock dependents only when all blockers are done.
+    if (newStatus !== 'done') {
+      return;
+    }
+
+    for (const dependent of dependents) {
+      const dependentTask = this.getTask(dependent.task_id);
+      if (!dependentTask) continue;
+
+      const metadata = dependentTask.metadata as Record<string, unknown> | undefined;
+      const blockedByMeta = metadata?.['blocked_by_meta_work'] === true;
+      const blockingPhasesValue = metadata?.['blocking_phases'];
+      const blockedByPhase = Array.isArray(blockingPhasesValue) && blockingPhasesValue.length > 0;
+
+      if (blockedByMeta || blockedByPhase) {
+        continue;
+      }
+
+      const outstanding = checkOutstanding(dependentTask.id);
+
+      if (outstanding === 0 && dependentTask.status === 'blocked') {
+        await this.transition(
+          dependentTask.id,
+          'pending',
+          {
+            auto_unblocked: true,
+            auto_unblocked_by: task.id,
+            auto_unblocked_at: nowIso,
+          },
+          `${correlationBase}:${dependentTask.id}:unblocked`
+        );
+      }
+    }
+  }
+
   // ==========================================================================
   // Event Logging
   // ==========================================================================
@@ -649,6 +863,165 @@ export class StateMachine extends EventEmitter {
 
     const row = this.db.prepare(query).get(...params) as any;
     return row.avg || 0;
+  }
+
+  // ==========================================================================
+  // Critic History
+  // ==========================================================================
+
+  recordCriticHistory(entry: Omit<CriticHistoryRecord, 'id'>): CriticHistoryRecord {
+    const createdAt = entry.created_at ?? Date.now();
+    const metadata = entry.metadata ? JSON.stringify(entry.metadata) : null;
+    const result = this.db.prepare(
+      `INSERT INTO critic_history (critic, category, passed, stderr_sample, created_at, metadata)
+       VALUES (?, ?, ?, ?, ?, ?)`
+    ).run(entry.critic, entry.category, entry.passed ? 1 : 0, entry.stderr_sample ?? null, createdAt, metadata);
+
+    return {
+      ...entry,
+      id: result.lastInsertRowid as number,
+      created_at: createdAt,
+    };
+  }
+
+  getCriticHistory(critic: string, options: { limit?: number } = {}): CriticHistoryRecord[] {
+    const limit = Math.max(1, options.limit ?? 20);
+    const rows = this.db
+      .prepare(
+        `SELECT id, critic, category, passed, stderr_sample, created_at, metadata
+         FROM critic_history
+         WHERE critic = ?
+         ORDER BY created_at DESC
+         LIMIT ?`
+      )
+      .all(critic, limit) as Array<{
+        id: number;
+        critic: string;
+        category: string;
+        passed: number;
+        stderr_sample?: string;
+        created_at: number;
+        metadata?: string | null;
+      }>;
+
+    return rows.map((row) => ({
+      id: row.id,
+      critic: row.critic,
+      category: row.category,
+      passed: row.passed === 1,
+      stderr_sample: row.stderr_sample ?? undefined,
+      created_at: row.created_at,
+      metadata: row.metadata ? JSON.parse(row.metadata) : undefined,
+    }));
+  }
+
+  recordResearchCache(entry: {
+    cacheKey: string;
+    payload: unknown;
+    ttlMs?: number;
+    metadata?: Record<string, unknown>;
+    stored_at?: number;
+  }): ResearchCacheRecord {
+    const storedAt = entry.stored_at ?? Date.now();
+    const ttl = Math.max(1, entry.ttlMs ?? 90 * 24 * 60 * 60 * 1000);
+    const expiresAt = storedAt + ttl;
+    const metadata = entry.metadata ? JSON.stringify(entry.metadata) : null;
+
+    this.db.prepare(
+      `INSERT INTO research_cache (cache_key, payload, stored_at, expires_at, metadata)
+       VALUES (?, ?, ?, ?, ?)
+       ON CONFLICT(cache_key) DO UPDATE SET
+         payload = excluded.payload,
+         stored_at = excluded.stored_at,
+         expires_at = excluded.expires_at,
+         metadata = excluded.metadata`
+    ).run(entry.cacheKey, JSON.stringify(entry.payload), storedAt, expiresAt, metadata);
+
+    return {
+      cache_key: entry.cacheKey,
+      payload: entry.payload,
+      stored_at: storedAt,
+      expires_at: expiresAt,
+      metadata: entry.metadata,
+    };
+  }
+
+  getResearchCache(cacheKey: string): ResearchCacheRecord | null {
+    const row = this.db
+      .prepare(
+        `SELECT id, cache_key, payload, stored_at, expires_at, metadata
+         FROM research_cache
+         WHERE cache_key = ?`
+      )
+      .get(cacheKey) as
+      | {
+          id: number;
+          cache_key: string;
+          payload: string;
+          stored_at: number;
+          expires_at: number;
+          metadata?: string | null;
+        }
+      | undefined;
+
+    if (!row) {
+      return null;
+    }
+
+    let payload: unknown;
+    try {
+      payload = row.payload ? JSON.parse(row.payload) : null;
+    } catch {
+      payload = null;
+    }
+
+    return {
+      id: row.id,
+      cache_key: row.cache_key,
+      payload,
+      stored_at: row.stored_at,
+      expires_at: row.expires_at,
+      metadata: row.metadata ? JSON.parse(row.metadata) : undefined,
+    };
+  }
+
+  pruneResearchCache(now: number = Date.now()): number {
+    const result = this.db.prepare(`DELETE FROM research_cache WHERE expires_at <= ?`).run(now);
+    return typeof result.changes === 'number' ? result.changes : 0;
+  }
+
+  getRecentResearchCache(options: { limit?: number; kind?: string } = {}): ResearchCacheRecord[] {
+    const limit = Math.max(1, options.limit ?? 20);
+    const rows = this.db.prepare(
+      `SELECT id, cache_key, payload, stored_at, expires_at, metadata
+       FROM research_cache
+       ORDER BY stored_at DESC
+       LIMIT ?`
+    ).all(limit) as Array<{
+      id: number;
+      cache_key: string;
+      payload: string;
+      stored_at: number;
+      expires_at: number;
+      metadata?: string | null;
+    }>;
+
+    const normalized = rows.map((row) => ({
+      id: row.id,
+      cache_key: row.cache_key,
+      payload: row.payload ? JSON.parse(row.payload) : null,
+      stored_at: row.stored_at,
+      expires_at: row.expires_at,
+      metadata: row.metadata ? JSON.parse(row.metadata) : undefined,
+    }));
+
+    if (!options.kind) {
+      return normalized;
+    }
+
+    return normalized.filter((record) =>
+      typeof record.metadata?.kind === 'string' && record.metadata.kind === options.kind
+    );
   }
 
   // ==========================================================================
@@ -788,6 +1161,99 @@ export class StateMachine extends EventEmitter {
 
     this.healthCacheValid = true;
     return { ...this.cachedHealth };
+  }
+
+  replaceCodeIndex(entries: CodeIndexEntry[], updatedAt: number): void {
+    const insert = this.db.prepare(
+      'INSERT INTO code_fts(file_path, content, language) VALUES (?, ?, ?)'
+    );
+    const upsertMeta = this.db.prepare(
+      'REPLACE INTO code_index_metadata(key, value) VALUES (?, ?)'
+    );
+
+    const transaction = this.db.transaction((rows: CodeIndexEntry[]) => {
+      this.db.prepare('DELETE FROM code_fts').run();
+      for (const row of rows) {
+        insert.run(row.file_path, row.content, row.language);
+      }
+      upsertMeta.run('updated_at', String(updatedAt));
+      upsertMeta.run('entry_count', String(rows.length));
+    });
+
+    transaction(entries);
+  }
+
+  getCodeIndexMetadata(): CodeIndexMetadata {
+    const rows = this.db
+      .prepare('SELECT key, value FROM code_index_metadata WHERE key IN (\'updated_at\', \'entry_count\')')
+      .all() as Array<{ key: string; value: string }>;
+
+    const metadata: CodeIndexMetadata = { entryCount: 0 };
+    for (const row of rows) {
+      if (row.key === 'updated_at') {
+        const parsed = Number.parseInt(row.value, 10);
+        if (!Number.isNaN(parsed)) {
+          metadata.updatedAt = parsed;
+        }
+      } else if (row.key === 'entry_count') {
+        const parsed = Number.parseInt(row.value, 10);
+        if (!Number.isNaN(parsed)) {
+          metadata.entryCount = parsed;
+        }
+      }
+    }
+
+    if (typeof metadata.entryCount !== 'number') {
+      metadata.entryCount = 0;
+    }
+
+    return metadata;
+  }
+
+  searchCodeIndex(
+    matchQuery: string,
+    options: { limit?: number; languages?: string[] } = {}
+  ): CodeSearchResult[] {
+    const trimmed = matchQuery.trim();
+    if (!trimmed) {
+      return [];
+    }
+
+    const limit = Math.max(1, Math.min(options.limit ?? 10, 50));
+    const params: any[] = [trimmed];
+    const languageFilters = options.languages?.map(lang => lang.toLowerCase()) ?? [];
+
+    let sql = `
+      SELECT
+        file_path,
+        language,
+        snippet(code_fts, 1, '', '', ' … ', 12) AS snippet,
+        bm25(code_fts) AS score
+      FROM code_fts
+      WHERE code_fts MATCH ?
+    `;
+
+    if (languageFilters.length > 0) {
+      sql += ` AND language IN (${languageFilters.map(() => '?').join(',')})`;
+      params.push(...languageFilters);
+    }
+
+    sql += ' ORDER BY score ASC LIMIT ?';
+    params.push(limit);
+
+    const rows = this.db.prepare(sql).all(...params) as Array<{
+      file_path: string;
+      language: string;
+      snippet?: string;
+      score?: number;
+    }>;
+
+    return rows.map(row => ({
+      filePath: row.file_path,
+      language: row.language,
+      snippet: row.snippet,
+      score: typeof row.score === 'number' ? row.score : 0,
+    }));
   }
 
   // ==========================================================================

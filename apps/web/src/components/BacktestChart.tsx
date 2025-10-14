@@ -15,8 +15,10 @@ export function BacktestChart({ points, title }: BacktestChartProps) {
   if (!points || points.length < 2) {
     return (
       <div className={styles.chartCard}>
-        <h3>{title ?? "Backtest timeline"}</h3>
-        <p className={styles.chartEmpty}>Backtest data will appear once at least two performance snapshots are stored.</p>
+        <h3 className="ds-title">{title ?? "Backtest timeline"}</h3>
+        <p className={`${styles.chartEmpty} ds-body`}>
+          Backtest data will appear once at least two performance snapshots are stored.
+        </p>
       </div>
     );
   }
@@ -94,17 +96,17 @@ export function BacktestChart({ points, title }: BacktestChartProps) {
   return (
     <div className={styles.chartCard}>
       <div className={styles.chartHeader}>
-        <h3>{title ?? "Backtest timeline"}</h3>
-        <div className={styles.chartMeta}>
+        <h3 className="ds-title">{title ?? "Backtest timeline"}</h3>
+        <div className={`${styles.chartMeta} ds-caption`}>
           <span>
-            Last updated: <strong>{latestTimestamp}</strong>
+            Last updated: <strong className="ds-body-strong">{latestTimestamp}</strong>
           </span>
           <span>
-            Cumulative lift: <strong>{latestLiftPct}</strong>
+            Cumulative lift: <strong className="ds-body-strong">{latestLiftPct}</strong>
           </span>
         </div>
       </div>
-      <div className={styles.chartLegend}>
+      <div className={`${styles.chartLegend} ds-caption`}>
         <span className={styles.legendActual}>Actual observed</span>
         <span className={styles.legendPredicted}>Predicted p50</span>
         {cumulativePath && <span className={styles.legendCumulative}>Cumulative lift</span>}
@@ -149,7 +151,7 @@ export function BacktestChart({ points, title }: BacktestChartProps) {
           className={styles.chartPredictedMarker}
         />
       </svg>
-      <div className={styles.chartFootnote}>
+      <div className={`${styles.chartFootnote} ds-caption`}>
         Daily points plot actual performance versus the model’s median forecast. Cumulative lift tracks the running
         delta between predicted and actual outcomes.
       </div>

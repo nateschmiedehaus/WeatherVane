@@ -9,7 +9,13 @@ from typing import Iterable
 
 import polars as pl
 
+from apps.allocator.saturation_fairness import generate_saturation_report
+from apps.worker.flows.creative_response_pipeline import (
+    orchestrate_creative_response_flow,
+)
 from apps.worker.flows.poc_pipeline import orchestrate_poc_flow
+from apps.worker.flows.rl_shadow_pipeline import run_shadow_simulation
+from apps.worker.scheduling import AdaptiveWorkerScheduler, WorkloadClass
 from apps.model.feedback import run_performance_check
 from apps.worker.maintenance.retention import load_retention_summary, run_retention_sweep
 from apps.worker.maintenance.reporting import (
@@ -94,6 +100,106 @@ def parse_args(argv: Iterable[str] | None = None) -> argparse.Namespace:
         help="Append structured observability events (NDJSON)",
     )
     parser.add_argument(
+        "--rl-shadow",
+        action="store_true",
+        help="Run reinforcement-learning shadow mode simulation and exit",
+    )
+    parser.add_argument(
+        "--rl-episodes",
+        type=int,
+        default=30,
+        help="Episode count for RL shadow simulation (default: 30)",
+    )
+    parser.add_argument(
+        "--rl-epsilon",
+        type=float,
+        default=0.25,
+        help="Exploration rate epsilon for RL shadow simulation (default: 0.25)",
+    )
+    parser.add_argument(
+        "--rl-noise",
+        type=float,
+        default=0.06,
+        help="Reward noise (Gaussian sigma) for RL shadow simulation",
+    )
+    parser.add_argument(
+        "--rl-seed",
+        type=int,
+        default=17,
+        help="Random seed for RL shadow simulation",
+    )
+    parser.add_argument(
+        "--rl-max-guardrail-breaches",
+        dest="rl_max_guardrail_breaches",
+        type=int,
+        default=2,
+        help="Number of guardrail breaches before disabling a variant (default: 2)",
+    )
+    parser.add_argument(
+        "--rl-min-baseline-fraction",
+        dest="rl_min_baseline_fraction",
+        type=float,
+        default=0.2,
+        help="Minimum fraction of episodes reserved for the baseline policy (default: 0.2)",
+    )
+    parser.add_argument(
+        "--rl-max-variant-fraction",
+        dest="rl_max_variant_fraction",
+        type=float,
+        default=0.5,
+        help="Maximum fraction of episodes assigned to any single exploratory variant (default: 0.5)",
+    )
+    parser.add_argument(
+        "--rl-output",
+        dest="rl_output",
+        help="Destination path for RL shadow report JSON (defaults to experiments/rl/shadow_mode.json)",
+    )
+    parser.add_argument(
+        "--creative-report",
+        action="store_true",
+        help="Generate creative response report with brand safety guardrails and exit",
+    )
+    parser.add_argument(
+        "--creative-dataset",
+        dest="creative_dataset",
+        help="Optional dataset path (CSV/JSON/Parquet) for creative response scoring",
+    )
+    parser.add_argument(
+        "--creative-output",
+        dest="creative_output",
+        help="Destination path for creative response JSON (defaults to experiments/creative/response_scores.json)",
+    )
+    parser.add_argument(
+        "--saturation-report",
+        action="store_true",
+        help="Generate cross-market saturation optimisation report and exit",
+    )
+    parser.add_argument(
+        "--saturation-output",
+        dest="saturation_output",
+        help="Destination path for saturation report JSON (defaults to experiments/allocator/saturation_report.json)",
+    )
+    parser.add_argument(
+        "--fairness-floor",
+        dest="fairness_floor",
+        type=float,
+        default=0.8,
+        help="Minimum share multiplier applied to each market's fairness weight (default: 0.8)",
+    )
+    parser.add_argument(
+        "--saturation-roas-floor",
+        dest="saturation_roas_floor",
+        type=float,
+        default=1.15,
+        help="ROAS floor constraint for saturation optimisation (default: 1.15)",
+    )
+    parser.add_argument(
+        "--saturation-budget",
+        dest="saturation_budget",
+        type=float,
+        help="Override the total budget used for saturation optimisation",
+    )
+    parser.add_argument(
         "--check-performance",
         action="store_true",
         help="Summarise prediction accuracy and quantile coverage for stored outcomes",
@@ -171,11 +277,55 @@ async def _run_pipeline(args: argparse.Namespace) -> dict[str, object]:
 
 def main(argv: Iterable[str] | None = None) -> None:
     args = parse_args(argv)
+    scheduler = AdaptiveWorkerScheduler.from_environment()
 
     if args.check_performance:
-        summary = run_performance_check(args.tenant, root=args.performance_root, coverage_threshold=args.alert_threshold)
+        with scheduler.reserve(WorkloadClass.STANDARD):
+            summary = run_performance_check(
+                args.tenant,
+                root=args.performance_root,
+                coverage_threshold=args.alert_threshold,
+            )
         print(json.dumps(summary, indent=2, sort_keys=True))
         _append_log(args.log_file, "performance.check", summary)
+        return
+
+    if args.rl_shadow:
+        with scheduler.reserve(WorkloadClass.HEAVY):
+            payload = run_shadow_simulation(
+                episodes=args.rl_episodes,
+                epsilon=args.rl_epsilon,
+                reward_noise=args.rl_noise,
+                seed=args.rl_seed,
+                max_guardrail_breaches=args.rl_max_guardrail_breaches,
+                min_baseline_fraction=args.rl_min_baseline_fraction,
+                max_variant_fraction=args.rl_max_variant_fraction,
+                output_path=args.rl_output,
+            )
+        print(json.dumps(payload, indent=2, sort_keys=True))
+        _append_log(args.log_file, "allocator.rl_shadow", payload)
+        return
+
+    if args.creative_report:
+        with scheduler.reserve(WorkloadClass.HEAVY):
+            report = orchestrate_creative_response_flow.fn(
+                dataset_path=args.creative_dataset,
+                output_path=args.creative_output,
+            )
+        print(json.dumps(report, indent=2, sort_keys=True))
+        _append_log(args.log_file, "creative.response", report)
+        return
+
+    if args.saturation_report:
+        with scheduler.reserve(WorkloadClass.HEAVY):
+            report = generate_saturation_report(
+                total_budget=args.saturation_budget,
+                fairness_floor=args.fairness_floor,
+                roas_floor=args.saturation_roas_floor,
+                output_path=args.saturation_output,
+            )
+        print(json.dumps(report, indent=2, sort_keys=True))
+        _append_log(args.log_file, "allocator.saturation", report)
         return
 
     if args.experiment_observations:
@@ -198,7 +348,8 @@ def main(argv: Iterable[str] | None = None) -> None:
         else:
             payload = pl.read_parquet(observations_path)
 
-        result = record_experiment_observations(args.tenant, payload)
+        with scheduler.reserve(WorkloadClass.STANDARD):
+            result = record_experiment_observations(args.tenant, payload)
         output = {
             "tenant_id": args.tenant,
             "summary": result["summary"],
@@ -231,36 +382,41 @@ def main(argv: Iterable[str] | None = None) -> None:
     if args.retention_report:
         if not args.retention_summary_root:
             raise SystemExit("--retention-summary-root is required when using --retention-report")
-        summary = load_retention_summary(
-            args.retention_summary_root,
-            day=args.retention_report_day,
-        )
+        with scheduler.reserve(WorkloadClass.STANDARD):
+            summary = load_retention_summary(
+                args.retention_summary_root,
+                day=args.retention_report_day,
+            )
         print(json.dumps(summary, indent=2, sort_keys=True))
         if args.export_observability:
-            report = load_retention_report_full(args.retention_summary_root)
-            export_retention_report(report, args.export_observability)
+            with scheduler.reserve(WorkloadClass.STANDARD):
+                report = load_retention_report_full(args.retention_summary_root)
+                export_retention_report(report, args.export_observability)
             print(f"[observability] wrote retention report to {args.export_observability}")
         _append_log(args.log_file, "retention.report", summary)
         return
 
     if args.smoke_test:
-        summary = run_smoke_test_sync(
-            args.tenant,
-            start_date=_parse_datetime(args.start),
-            end_date=_parse_datetime(args.end),
-        )
+        with scheduler.reserve(WorkloadClass.HEAVY):
+            summary = run_smoke_test_sync(
+                args.tenant,
+                start_date=_parse_datetime(args.start),
+                end_date=_parse_datetime(args.end),
+            )
         print(json.dumps(summary.to_dict(), indent=2, sort_keys=True))
         if args.export_observability and args.retention_summary_root:
-            retention = load_retention_report_full(args.retention_summary_root)
-            geocoding = load_geocoding_reports(args.retention_summary_root)
-            export_retention_report(retention, Path(args.export_observability).with_name("retention.json"))
-            export_geocoding_reports(geocoding, Path(args.export_observability).with_name("geocoding.json"))
+            with scheduler.reserve(WorkloadClass.STANDARD):
+                retention = load_retention_report_full(args.retention_summary_root)
+                geocoding = load_geocoding_reports(args.retention_summary_root)
+                export_retention_report(retention, Path(args.export_observability).with_name("retention.json"))
+                export_geocoding_reports(geocoding, Path(args.export_observability).with_name("geocoding.json"))
             print(f"[observability] wrote telemetry to {Path(args.export_observability).parent}")
         _append_log(args.log_file, "smoke.test", summary.to_dict())
         return
 
     if args.retention_only:
-        result = _run_retention(args)
+        with scheduler.reserve(WorkloadClass.HEAVY):
+            result = _run_retention(args)
         print("[weathervane-worker] Retention sweep complete")
         if result:
             print(result)
@@ -269,13 +425,15 @@ def main(argv: Iterable[str] | None = None) -> None:
     if args.all_tenants or args.tenant.upper() == "ALL":
         raise SystemExit("Pipeline requires a specific tenant; use --retention-only for bulk retention")
 
-    pipeline_result = asyncio.run(_run_pipeline(args))
+    with scheduler.reserve(WorkloadClass.HEAVY):
+        pipeline_result = asyncio.run(_run_pipeline(args))
     print("[weathervane-worker] PoC pipeline complete")
     if pipeline_result:
         print(pipeline_result)
 
     if args.retention_after:
-        retention_result = _run_retention(args)
+        with scheduler.reserve(WorkloadClass.HEAVY):
+            retention_result = _run_retention(args)
         print("[weathervane-worker] Retention sweep complete")
         if retention_result:
             print(retention_result)

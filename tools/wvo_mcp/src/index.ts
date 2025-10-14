@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
@@ -5,9 +6,10 @@ import { z } from "zod";
 import { describeCodexCommands } from "./executor/codex_commands.js";
 import { OrchestratorRuntime } from "./orchestrator/orchestrator_runtime.js";
 import { SessionContext } from "./session.js";
-import { logError, logInfo } from "./telemetry/logger.js";
+import { logError, logInfo, logWarning } from "./telemetry/logger.js";
 import { AuthChecker } from "./utils/auth_checker.js";
 import { resolveWorkspaceRoot } from "./utils/config.js";
+import { buildClusterSummaries } from "./utils/cluster.js";
 import { toJsonSchema } from "./utils/schema.js";
 import { SERVER_NAME, SERVER_VERSION } from "./utils/version.js";
 
@@ -16,9 +18,10 @@ async function main() {
   const runtime = new OrchestratorRuntime(workspaceRoot, {
     targetCodexRatio: 5,
   });
-  // DON'T start runtime yet - wait until after transport is connected
-
+  // DON'T start runtime - it triggers autonomous task execution
+  // Tools should work without runtime started
   const session = new SessionContext(runtime);
+  const stateMachine = runtime.getStateMachine();
   logInfo("WVO MCP server booting", {
     workspace: session.workspaceRoot,
     profile: session.profile,
@@ -42,18 +45,20 @@ async function main() {
       },
     );
 
-    const planNextInput = z.object({
+    const planNextInputSchema = z.object({
       limit: z.number().int().positive().max(20).optional(),
+      max_tasks: z.number().int().positive().max(20).optional(),
       filters: z
         .object({
           status: z.array(z.enum(["pending", "in_progress", "blocked", "done"])).optional(),
           epic_id: z.string().optional(),
           milestone_id: z.string().optional(),
-        })
+          domain: z.enum(["product", "mcp"]).optional(),
+      })
         .optional(),
       minimal: z.boolean().optional(),
     });
-    const planNextSchema = toJsonSchema(planNextInput, "PlanNextInput");
+    const planNextSchema = toJsonSchema(planNextInputSchema, "PlanNextInput");
 
     const jsonResponse = (payload: unknown) => ({
       content: [
@@ -65,9 +70,15 @@ async function main() {
     });
 
     const orchestratorStatusInput = z.object({});
-    const orchestratorStatusSchema = toJsonSchema(orchestratorStatusInput, "OrchestratorStatusInput");
+    const orchestratorStatusSchema = toJsonSchema(
+      orchestratorStatusInput,
+      "OrchestratorStatusInput"
+    );
     const authStatusInput = z.object({});
-    const authStatusSchema = toJsonSchema(authStatusInput, "AuthStatusInput");
+    const authStatusSchema = toJsonSchema(
+      authStatusInput,
+      "AuthStatusInput"
+    );
 
     server.registerTool(
       "orchestrator_status",
@@ -120,16 +131,28 @@ async function main() {
         inputSchema: planNextSchema,
       },
       async (input: unknown) => {
-        const parsed = planNextInput.parse(input);
-        const tasks = await session.planNext(parsed);
-        const minimalTasks = parsed.minimal
-          ? tasks.map((t) => ({ id: t.id, title: t.title, status: t.status }))
-          : tasks;
+        try {
+          const parsed = planNextInputSchema.parse(input);
+          const normalizedInput = {
+            limit: parsed.limit ?? parsed.max_tasks,
+            filters: parsed.filters,
+          };
+          const correlationBase = `mcp:plan_next:${randomUUID()}`;
+          const tasks = await session.planNext(normalizedInput, { correlationId: correlationBase });
+          const clusters = buildClusterSummaries(tasks);
+          const minimalTasks = parsed.minimal
+            ? tasks.map((t) => ({ id: t.id, title: t.title, status: t.status, domain: t.domain }))
+            : tasks;
 
-        return jsonResponse({
-          tasks: minimalTasks,
-          profile: session.profile,
-        });
+          return jsonResponse({
+            tasks: minimalTasks,
+            clusters,
+            profile: session.profile,
+            correlation_id: correlationBase,
+          });
+        } catch (error) {
+          throw error;
+        }
       },
     );
 
@@ -137,7 +160,10 @@ async function main() {
       task_id: z.string(),
       status: z.enum(["pending", "in_progress", "blocked", "done"]),
     });
-    const planUpdateSchema = toJsonSchema(planUpdateInput, "PlanUpdateInput");
+    const planUpdateSchema = toJsonSchema(
+      planUpdateInput,
+      "PlanUpdateInput"
+    );
 
     server.registerTool(
       "plan_update",
@@ -147,8 +173,34 @@ async function main() {
       },
       async (input: unknown) => {
         const parsed = planUpdateInput.parse(input);
-        await session.updatePlanStatus(parsed.task_id, parsed.status);
-        return jsonResponse({ ok: true });
+        const correlationBase = `mcp:plan_update:${randomUUID()}`;
+        const transitionCorrelation = `${correlationBase}:transition`;
+        const decisionCorrelation = `${correlationBase}:decision`;
+        await session.updatePlanStatus(parsed.task_id, parsed.status, transitionCorrelation);
+        try {
+          stateMachine.logEvent({
+            timestamp: Date.now(),
+            event_type: "agent_decision",
+            task_id: parsed.task_id,
+            data: {
+              tool: "plan_update",
+              requested_status: parsed.status,
+              profile: session.profile,
+            },
+            correlation_id: decisionCorrelation,
+          });
+        } catch (error) {
+          logWarning("Failed to record plan_update event", {
+            taskId: parsed.task_id,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+        return jsonResponse({
+          ok: true,
+          correlation_id: correlationBase,
+          transition_correlation_id: transitionCorrelation,
+          decision_correlation_id: decisionCorrelation,
+        });
       },
     );
 
@@ -157,7 +209,10 @@ async function main() {
       content: z.string().min(1),
       append: z.boolean().optional(),
     });
-    const contextWriteSchema = toJsonSchema(contextWriteInput, "ContextWriteInput");
+    const contextWriteSchema = toJsonSchema(
+      contextWriteInput,
+      "ContextWriteInput"
+    );
 
     server.registerTool(
       "context_write",
@@ -175,7 +230,10 @@ async function main() {
     const contextSnapshotInput = z.object({
       notes: z.string().optional(),
     });
-    const contextSnapshotSchema = toJsonSchema(contextSnapshotInput, "ContextSnapshotInput");
+    const contextSnapshotSchema = toJsonSchema(
+      contextSnapshotInput,
+      "ContextSnapshotInput"
+    );
 
     server.registerTool(
       "context_snapshot",
@@ -248,7 +306,10 @@ async function main() {
     const criticsRunInput = z.object({
       critics: z.array(z.string()).optional(),
     });
-    const criticsRunSchema = toJsonSchema(criticsRunInput, "CriticsRunInput");
+    const criticsRunSchema = toJsonSchema(
+      criticsRunInput,
+      "CriticsRunInput"
+    );
 
     server.registerTool(
       "critics_run",
@@ -270,7 +331,10 @@ async function main() {
       focus: z.string().min(1).optional(),
       notes: z.string().optional(),
     });
-    const autopilotAuditSchema = toJsonSchema(autopilotAuditInput, "AutopilotAuditInput");
+    const autopilotAuditSchema = toJsonSchema(
+      autopilotAuditInput,
+      "AutopilotAuditInput"
+    );
 
     server.registerTool(
       "autopilot_record_audit",
@@ -308,7 +372,10 @@ async function main() {
       notes: z.string().optional(),
       id: z.string().optional(),
     });
-    const heavyQueueEnqueueSchema = toJsonSchema(heavyQueueEnqueueInput, "HeavyQueueEnqueueInput");
+    const heavyQueueEnqueueSchema = toJsonSchema(
+      heavyQueueEnqueueInput,
+      "HeavyQueueEnqueueInput"
+    );
 
     server.registerTool(
       "heavy_queue_enqueue",
@@ -325,11 +392,16 @@ async function main() {
 
     const heavyQueueUpdateInput = z.object({
       id: z.string().min(1),
-      status: z.enum(["queued", "running", "completed", "cancelled"]).optional(),
+      status: z
+        .enum(["queued", "running", "completed", "cancelled"])
+        .optional(),
       notes: z.string().optional(),
       command: z.string().optional(),
     });
-    const heavyQueueUpdateSchema = toJsonSchema(heavyQueueUpdateInput, "HeavyQueueUpdateInput");
+    const heavyQueueUpdateSchema = toJsonSchema(
+      heavyQueueUpdateInput,
+      "HeavyQueueUpdateInput"
+    );
 
     server.registerTool(
       "heavy_queue_update",
@@ -361,7 +433,10 @@ async function main() {
       path: z.string(),
       metadata: z.record(z.any()).optional(),
     });
-    const artifactRecordSchema = toJsonSchema(artifactRecordInput, "ArtifactRecordInput");
+    const artifactRecordSchema = toJsonSchema(
+      artifactRecordInput,
+      "ArtifactRecordInput"
+    );
 
     server.registerTool(
       "artifact_record",
@@ -393,10 +468,6 @@ async function main() {
     const transport = new StdioServerTransport();
     await server.connect(transport);
 
-    // DON'T start runtime automatically - it interferes with stdin.
-    // The runtime will be started on-demand by tool calls if needed.
-    // runtime.start();
-
     logInfo("WVO MCP server ready", {
       workspace: session.workspaceRoot,
       profile: session.profile,
@@ -408,8 +479,8 @@ async function main() {
 }
 
 main().catch((error) => {
-  logError("Fatal MCP server error", {
+  logError("Unhandled MCP server error", {
     error: error instanceof Error ? error.stack ?? error.message : String(error),
   });
-  process.exit(1);
+  process.exitCode = 1;
 });

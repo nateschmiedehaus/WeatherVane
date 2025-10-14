@@ -1,0 +1,50 @@
+{
+  "default": {
+    "codex": {
+      "daily_limit_usd": 25,
+      "hourly_limit_usd": 5,
+      "alert_threshold_percent": 0.8
+    },
+    "claude_code": {
+      "daily_limit_usd": 20,
+      "hourly_limit_usd": 4,
+      "alert_threshold_percent": 0.8
+    }
+  },
+  "development": {
+    "codex": {
+      "daily_limit_usd": 15,
+      "hourly_limit_usd": 3,
+      "alert_threshold_percent": 0.75
+    },
+    "claude_code": {
+      "daily_limit_usd": 12,
+      "hourly_limit_usd": 2.5,
+      "alert_threshold_percent": 0.75
+    }
+  },
+  "staging": {
+    "codex": {
+      "daily_limit_usd": 30,
+      "hourly_limit_usd": 6,
+      "alert_threshold_percent": 0.8
+    },
+    "claude_code": {
+      "daily_limit_usd": 24,
+      "hourly_limit_usd": 4.5,
+      "alert_threshold_percent": 0.8
+    }
+  },
+  "production": {
+    "codex": {
+      "daily_limit_usd": 60,
+      "hourly_limit_usd": 12,
+      "alert_threshold_percent": 0.85
+    },
+    "claude_code": {
+      "daily_limit_usd": 48,
+      "hourly_limit_usd": 9,
+      "alert_threshold_percent": 0.85
+    }
+  }
+}

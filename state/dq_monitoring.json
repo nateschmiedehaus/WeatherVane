@@ -1,0 +1,97 @@
+{
+  "generated_at": "2025-10-13T13:34:18.175762+00:00",
+  "runs": [
+    {
+      "alerts": [],
+      "datasets": {
+        "shopify_orders": {
+          "alerts": [],
+          "history": {
+            "geocoded_ratio": [
+              0.92
+            ],
+            "new_rows": [
+              48
+            ],
+            "row_count": [
+              240
+            ]
+          },
+          "issues": [],
+          "metadata": {
+            "geocoded_ratio": 0.92,
+            "new_rows": 48,
+            "updated_rows": 12
+          },
+          "metrics": {
+            "geocoded_ratio": 0.92,
+            "new_rows": 48,
+            "updated_rows": 12
+          },
+          "path": "lake/tenant_shopify_orders/2025-10-14T00-00-00.parquet",
+          "previous_row_count": null,
+          "row_count": 240,
+          "severity": "ok",
+          "source": "shopify_api",
+          "status": "ok"
+        }
+      },
+      "overall_severity": "ok",
+      "tenant_id": "tenant-demo",
+      "timestamp": "2025-10-13T13:34:18.175430+00:00",
+      "window": {
+        "end": "2025-10-13T13:34:18.174980+00:00",
+        "start": "2025-10-12T13:34:18.174980+00:00"
+      }
+    },
+    {
+      "alerts": [],
+      "datasets": {
+        "shopify_orders": {
+          "alerts": [],
+          "history": {
+            "geocoded_ratio": [
+              0.92,
+              0.9
+            ],
+            "new_rows": [
+              48,
+              52
+            ],
+            "row_count": [
+              240,
+              250
+            ]
+          },
+          "issues": [],
+          "metadata": {
+            "geocoded_ratio": 0.9,
+            "new_rows": 52,
+            "updated_rows": 15
+          },
+          "metrics": {
+            "geocoded_ratio": 0.9,
+            "new_rows": 52,
+            "new_rows_change_pct": 0.08333333333333333,
+            "row_count_change_pct": 0.041666666666666664,
+            "updated_rows": 15
+          },
+          "path": "lake/tenant_shopify_orders/2025-10-15T00-00-00.parquet",
+          "previous_row_count": 240,
+          "row_count": 250,
+          "severity": "ok",
+          "source": "shopify_api",
+          "status": "ok"
+        }
+      },
+      "overall_severity": "ok",
+      "tenant_id": "tenant-demo",
+      "timestamp": "2025-10-13T13:34:18.175762+00:00",
+      "window": {
+        "end": "2025-10-14T13:34:18.174980+00:00",
+        "start": "2025-10-13T13:34:18.174980+00:00"
+      }
+    }
+  ],
+  "version": 1
+}

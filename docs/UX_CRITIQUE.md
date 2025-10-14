@@ -1,10 +1,78 @@
 # WeatherVane UX/UI Critique: Product Design Assessment
 
-**Date:** 2025-10-09
-**Perspective:** World-class product design (Jobs, Ive, Norman, Zhuo, Rams principles)
-**Focus:** Time-to-value, cognitive load, flow state, trust velocity, emotional resonance
+**Last updated:** 2025-10-13  
+**Perspective:** World-class product design (Jobs, Ive, Norman, Zhuo, Rams principles)  
+**Scope:** Landing, Plan, Stories, Catalog, Automations surfaces (`apps/web/src/pages/*`)  
+**Method:** Code and UX artifact review within sandbox (no live data; relying on stateful mocks and component analysis)
 
 ---
+
+## Executive Synthesis (2025-10-13 Refresh)
+
+- `/setup` now bridges demo visitors into live execution with connector readiness, guardrail audit proofs, and a mode toggle for demo vs. live tenants (`apps/web/src/pages/setup.tsx`, `apps/web/src/components/DemoTourDrawer.tsx`).
+- `Plan`, `Stories`, `Catalog`, and `Automations` still ship cohesive calm/aero theming with resilient loading, error, and empty states; the experience reads premium when data exists (`apps/web/src/pages/plan.tsx`, `apps/web/src/pages/stories.tsx`, `apps/web/src/pages/catalog.tsx`, `apps/web/src/pages/automations.tsx`).
+- Landing `See a sample plan` CTA now launches the guided tour and offers a direct `Start live setup` path so execs can transition from narrative to action (`apps/web/src/pages/index.tsx`, `apps/web/src/components/DemoTourDrawer.tsx`).
+- Credential capture and inline automation proofs remain manual, so teams still rely on out-of-band invites and screenshots before the exec_review critic can sign off (`apps/web/src/pages/setup.tsx`, `apps/web/src/pages/automations.tsx`).
+
+## Signals of Progress
+
+- Setup bridge inventories live connector runs, automation audits, and actionable blockers so GTM has a single launch hub (`apps/web/src/pages/setup.tsx`, `apps/web/src/components/OnboardingConnectorList.tsx`).
+- Plan page scaffolds the full narrative—hero summary, action queue, seven-day outlook, and rich empty state guidance—backed by accessible markup (`apps/web/src/pages/plan.tsx`).
+- Stories and Catalog surfaces mirror the context panel and metadata atoms, keeping copy and structure aligned (`apps/web/src/pages/stories.tsx`, `apps/web/src/pages/catalog.tsx`).
+- Automations exposes a mature guardrail form with data-theme support and optimistic status messaging (`apps/web/src/pages/automations.tsx`, `apps/web/src/styles/automations.module.css`).
+- Guided demo tour replaces the inert landing CTA, collects channel + automation intent, and routes into seeded plan data for exec storytelling (`apps/web/src/components/DemoTourDrawer.tsx`, `apps/web/src/demo/plan.ts`, `apps/web/src/pages/index.tsx`).
+
+## Critical Gaps Blocking Award-Level Polish
+
+- Setup bridge still depends on out-of-band OAuth invites and scripts; we need inline credential capture, pipeline triggers, and status webhooks to keep teams inside the product (`apps/web/src/pages/setup.tsx`, `shared/services/onboarding/progress.py`).
+- Plan empty state still points to manual pipeline runs; the experience should embed a one-click launch or live progress widget instead of external instructions (`apps/web/src/pages/plan.tsx`, `apps/web/src/components/OnboardingConnectorList.tsx`).
+- Automations lacks proof of safety—no inline history, cannot visualize guardrail breaches, and form inputs accept invalid sequences without inline validation (`apps/web/src/pages/automations.tsx`).
+- Stories/Catalog lack storytelling polish: cards are static text blocks with no motion, bookmarking, or action affordances beyond placeholder copy (`apps/web/src/pages/stories.tsx`, `apps/web/src/pages/catalog.tsx`).
+
+## Remediation Playbook (prioritized)
+
+1. **Inline connector activation** – Embed OAuth flows, credential upload, and pipeline triggers directly in `/setup` so GTM never leaves the product during hand-off.
+2. **Design system debt cleanup** – Promote calm/aero tokens into a shared `theme.css`, unify badge/button styles, and add motion primitives for hero transitions and success states.
+3. **Automation trust surfaces** – Add inline validation, last-run audit log, and guardrail breach visualization so consent + pushes feel reviewable.
+4. **Storytelling upgrades** – Layer interaction affordances (save/share, copy briefing), tasteful motion, and highlight weather deltas to deliver the "award-level" narrative.
+
+## Surface Notes
+
+### Plan
+
+- Strengths: comprehensive structure, contextual metrics, strong empty state copy, and consistent badges.
+- Gaps: still lacks filtering/search, export to briefing, and inline connector status; empty state links to setup but needs inline pipeline triggers and live progress updates.
+
+### Stories
+
+- Strengths: cohesive metadata block, context panel reuse, and consistent theming.
+- Gaps: cards are monolithic paragraphs; add hierarchy (lead sentence vs proof points), CTA to push to Slack/email, and grouping by confidence.
+
+### Catalog
+
+- Strengths: clear tagging matrix and Shopify sync CTA placeholder.
+- Gaps: no inline edit, status badges static, manage ads button lacks flow; need diff view for tag changes and ad preview.
+
+### Automations
+
+- Strengths: guardrail controls, consent block, success messaging, theme tokens.
+- Gaps: no audit history, limited validation, pushes enabled toggle lacks contextual warnings; add change review + simulation panel.
+
+### Landing
+
+- Strengths: hero copy and design consistent with brand.
+- Gaps: CTAs lack destinations, no social proof, no product walkthrough; add interactive demo and proof tiles.
+
+## Next Steps Toward Exec Review Exit Criteria
+
+- Produce wireframes for demo onboarding and automation audit surfaces.
+- Implement at least one end-to-end demo flow so exec_review critic has evidence beyond copy.
+- When capability profile permits, run `critics_run(exec_review)` to validate storytelling and leadership readiness.
+
+---
+
+<details>
+<summary>Historical Baseline (2025-10-09 Audit)</summary>
 
 ## Executive Summary
 
@@ -521,10 +589,10 @@ If they had, projected lift: +$18,000 in revenue."
 
 **Critical flaws:**
 
-1. **"See a sample plan" button is a LIE**
-   - Button exists but goes nowhere
-   - This is the MOST IMPORTANT CTA (low commitment)
-   - Fix: Actually implement sample tenant demo
+1. **"See a sample plan" CTA stops short of setup**
+   - Guided drawer now previews demo content, but there is no continuity into connectors or progress
+   - This remains the MOST IMPORTANT CTA (low commitment) for exec storytelling
+   - Fix: Link the final tour step directly into connector checklist + progress tracker so users continue the journey
 
 2. **No social proof**
    - No logos, testimonials, case studies
@@ -2047,3 +2115,5 @@ But the **driving experience** is a **1990s manual transmission** (confusing, hi
 Great products nail BOTH engineering AND experience.
 
 **Fix the UX, and this could be a breakout product.** 🚀
+
+</details>

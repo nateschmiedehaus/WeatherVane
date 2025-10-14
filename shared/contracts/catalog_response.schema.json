@@ -1,0 +1,118 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "CatalogResponse",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "tenant_id",
+    "generated_at",
+    "categories",
+    "context_tags",
+    "context_warnings"
+  ],
+  "properties": {
+    "tenant_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "generated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "categories": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/CatalogCategory"
+      }
+    },
+    "context_tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "data_context": {
+      "type": [
+        "object",
+        "null"
+      ]
+    },
+    "context_warnings": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/ContextWarning"
+      }
+    }
+  },
+  "$defs": {
+    "CatalogCategory": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "geo_group_id",
+        "channel",
+        "weather_tags",
+        "season_tags",
+        "status",
+        "lift"
+      ],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "geo_group_id": {
+          "type": "string"
+        },
+        "channel": {
+          "type": "string"
+        },
+        "weather_tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "season_tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "status": {
+          "type": "string"
+        },
+        "lift": {
+          "type": "string"
+        }
+      }
+    },
+    "ContextWarning": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "code",
+        "message",
+        "severity",
+        "tags"
+      ],
+      "properties": {
+        "code": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        },
+        "severity": {
+          "type": "string"
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

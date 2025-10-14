@@ -62,4 +62,8 @@ state/checkpoint.json
 state/context.md
 state/accounts_runtime.json
 state/mcp_registry.json
+state/task_memos/
 tools/wvo_mcp/state/
+
+.gemini/
+gha-creds-*.json

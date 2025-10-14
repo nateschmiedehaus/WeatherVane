@@ -15,7 +15,9 @@
  * - NOT: Full event log, all metrics, entire roadmap
  */
 
-import type { StateMachine, Task, ContextEntry, QualityMetric } from './state_machine.js';
+import type { StateMachine, Task, ContextEntry, QualityMetric, ResearchCacheRecord } from './state_machine.js';
+import { CodeSearchIndex } from '../utils/code_search.js';
+import type { LiveFlagsReader } from './live_flags.js';
 
 // ============================================================================
 // Types
@@ -38,6 +40,9 @@ export interface AssembledContext {
     currentScore: number;
     trend: 'improving' | 'stable' | 'declining';
   }[];
+
+  // Research insight
+  researchHighlights?: string[];
 
   // Code context (if applicable)
   filesToRead?: string[];
@@ -65,16 +70,37 @@ const DEFAULT_SECTION_MAX_ITEMS = 6;
 const MAX_COMPLETED_DEPENDENCIES = 5;
 const MAX_BLOCKING_DEPENDENCIES = 3;
 const MAX_FILES_REFERENCED = 5;
+const COMPACT_ENTRY_MAX_LENGTH = 120;
+const COMPACT_TOPIC_MAX_LENGTH = 60;
+const COMPACT_MAX_ITEMS = 5;
+
+export interface ContextAssemblerConfig {
+  codeSearch?: CodeSearchIndex | null;
+  enableCodeSearch?: boolean;
+  liveFlags?: LiveFlagsReader;
+  maxHistoryItems?: number;
+}
 
 // ============================================================================
 // Context Assembler
 // ============================================================================
 
 export class ContextAssembler {
+  private codeSearch: CodeSearchIndex | null;
+  private readonly codeSearchEnabled: boolean;
+  private readonly liveFlags?: LiveFlagsReader;
+  private readonly maxHistoryItems: number;
+
   constructor(
     private stateMachine: StateMachine,
-    private readonly _workspaceRoot: string
-  ) {}
+    private readonly _workspaceRoot: string,
+    config: ContextAssemblerConfig = {}
+  ) {
+    this.codeSearch = config.codeSearch ?? null;
+    this.codeSearchEnabled = config.enableCodeSearch ?? true;
+    this.liveFlags = config.liveFlags;
+    this.maxHistoryItems = Math.max(1, config.maxHistoryItems ?? 3);
+  }
 
   /**
    * Assemble minimal, focused context for a specific task
@@ -92,24 +118,41 @@ export class ContextAssembler {
       hoursBack = 24
     } = options;
 
+    const adaptiveMaxItems = this.lazyContextEnabled()
+      ? Math.max(1, Math.min(this.maxHistoryItems, 5))
+      : Math.max(1, this.maxHistoryItems);
+    const effectiveDecisions = this.lazyContextEnabled()
+      ? Math.min(maxDecisions, adaptiveMaxItems)
+      : maxDecisions;
+    const effectiveLearnings = this.lazyContextEnabled()
+      ? Math.min(maxLearnings, adaptiveMaxItems)
+      : maxLearnings;
+    const effectiveHoursBack = this.lazyContextEnabled()
+      ? Math.min(hoursBack, 12)
+      : hoursBack;
+
     const task = this.stateMachine.getTask(taskId);
     if (!task) {
       throw new Error(`Task ${taskId} not found`);
     }
 
-    const cutoffTime = Date.now() - (hoursBack * 60 * 60 * 1000);
+    const cutoffTime = Date.now() - (effectiveHoursBack * 60 * 60 * 1000);
 
     const relatedTasks = await this.getRelatedTasks(task);
+    if (this.lazyContextEnabled() && relatedTasks.length > adaptiveMaxItems) {
+      relatedTasks.splice(adaptiveMaxItems);
+    }
 
     // Assemble remaining context pieces in parallel for speed
     const settled = await Promise.allSettled([
-      this.getRelevantDecisions(task, maxDecisions),
+      this.getRelevantDecisions(task, effectiveDecisions),
       this.getRelevantConstraints(task),
-      this.getRecentLearnings(cutoffTime, maxLearnings),
+      this.getRecentLearnings(cutoffTime, effectiveLearnings),
       includeQualityHistory ? this.getQualityIssuesInArea(task, relatedTasks) : Promise.resolve([]),
       includeQualityHistory ? this.getQualityTrends() : Promise.resolve([]),
       includeCodeContext ? this.inferFilesToRead(task) : Promise.resolve(undefined),
-      this.getVelocityMetrics()
+      this.getVelocityMetrics(),
+      this.fetchResearchHighlights(task)
     ]);
 
     const [
@@ -119,7 +162,8 @@ export class ContextAssembler {
       qualityIssues,
       qualityTrends,
       filesToRead,
-      velocityMetrics
+      velocityMetrics,
+      researchHighlights
     ] = settled.map((result, index) => {
       if (result.status === 'fulfilled') {
         return result.value;
@@ -136,8 +180,10 @@ export class ContextAssembler {
         case 5:
           return undefined;
         case 6:
-        default:
           return { tasksCompletedToday: 0, averageTaskDuration: 0, qualityTrendOverall: 'unknown' };
+        case 7:
+        default:
+          return undefined;
       }
     }) as [
       ContextEntry[],
@@ -146,20 +192,38 @@ export class ContextAssembler {
       QualityMetric[],
       AssembledContext['overallQualityTrend'],
       string[] | undefined,
-      AssembledContext['velocityMetrics']
+      AssembledContext['velocityMetrics'],
+      string[] | undefined
     ];
 
     const health = this.stateMachine.getRoadmapHealth();
+    const trimmedDecisions = this.lazyContextEnabled()
+      ? relevantDecisions.slice(0, adaptiveMaxItems)
+      : relevantDecisions;
+    const trimmedConstraints = this.lazyContextEnabled()
+      ? relevantConstraints.slice(0, adaptiveMaxItems)
+      : relevantConstraints;
+    const trimmedLearnings = this.lazyContextEnabled()
+      ? recentLearnings.slice(0, adaptiveMaxItems)
+      : recentLearnings;
+    const trimmedIssues = this.lazyContextEnabled()
+      ? qualityIssues.slice(0, adaptiveMaxItems * 2)
+      : qualityIssues;
+    const trimmedResearch = researchHighlights && researchHighlights.length > 0
+      ? researchHighlights.slice(0, adaptiveMaxItems)
+      : undefined;
+    const trimmedFiles = filesToRead ? filesToRead.slice(0, this.maxFilesToReference()) : undefined;
 
     return {
       task,
       relatedTasks,
-      relevantDecisions,
-      relevantConstraints,
-      recentLearnings,
-      qualityIssuesInArea: qualityIssues,
+      relevantDecisions: trimmedDecisions,
+      relevantConstraints: trimmedConstraints,
+      recentLearnings: trimmedLearnings,
+      qualityIssuesInArea: trimmedIssues,
       overallQualityTrend: qualityTrends,
-      filesToRead: filesToRead ? filesToRead.slice(0, MAX_FILES_REFERENCED) : undefined,
+      filesToRead: trimmedFiles,
+      researchHighlights: trimmedResearch,
       projectPhase: health.currentPhase,
       velocityMetrics
     };
@@ -233,6 +297,14 @@ export class ContextAssembler {
       sections.push(`## Recent Learnings\n${lines}`);
     }
 
+    if (context.researchHighlights && context.researchHighlights.length > 0) {
+      const lines = context.researchHighlights
+        .slice(0, DEFAULT_SECTION_MAX_ITEMS)
+        .map((highlight) => `- ${this.limitContent(highlight, DEFAULT_ENTRY_MAX_LENGTH)}`)
+        .join('\n');
+      sections.push(`## Research Highlights\n${lines}`);
+    }
+
     if (context.qualityIssuesInArea.length > 0) {
       const summary = this.summarizeQualityIssues(context.qualityIssuesInArea);
       if (summary) {
@@ -252,6 +324,75 @@ export class ContextAssembler {
     sections.push(`## Project Status\nPhase: **${context.projectPhase}** | Tasks completed today: ${context.velocityMetrics.tasksCompletedToday} | Avg task duration: ${averageMinutes}min | Quality trend: ${context.velocityMetrics.qualityTrendOverall}`);
 
     return sections.join('\n\n');
+  }
+
+  /**
+   * Format assembled context as a compact JSON evidence pack.
+   * Designed for low-token prompts while preserving key signals.
+   */
+  formatForPromptCompact(context: AssembledContext): string {
+    const completedDeps = context.relatedTasks
+      .filter(task => task.status === 'done')
+      .slice(0, MAX_COMPLETED_DEPENDENCIES)
+      .map(task => `${task.id}:${this.limitContent(task.title, COMPACT_TOPIC_MAX_LENGTH)}`);
+
+    const blockingDeps = context.relatedTasks
+      .filter(task => task.status !== 'done')
+      .slice(0, MAX_BLOCKING_DEPENDENCIES)
+      .map(task => `${task.id}:${task.status}`);
+
+    const decisions = context.relevantDecisions
+      .slice(0, COMPACT_MAX_ITEMS)
+      .map(decision => ({
+        topic: this.limitContent(decision.topic, COMPACT_TOPIC_MAX_LENGTH),
+        summary: this.limitContent(decision.content, COMPACT_ENTRY_MAX_LENGTH),
+      }));
+
+    const constraints = context.relevantConstraints
+      .slice(0, COMPACT_MAX_ITEMS)
+      .map(constraint => this.limitContent(constraint.topic, COMPACT_TOPIC_MAX_LENGTH));
+
+    const learnings = context.recentLearnings
+      .slice(0, COMPACT_MAX_ITEMS)
+      .map(learning => this.limitContent(learning.topic, COMPACT_TOPIC_MAX_LENGTH));
+
+    const researchHighlights = (context.researchHighlights ?? [])
+      .slice(0, COMPACT_MAX_ITEMS)
+      .map((highlight) => this.limitContent(highlight, COMPACT_ENTRY_MAX_LENGTH));
+
+    const qualityIssues = context.qualityIssuesInArea
+      .slice(0, COMPACT_MAX_ITEMS)
+      .map(issue => `${issue.dimension}:${Number(issue.score.toFixed(2))}`);
+
+    const qualityTrend = context.overallQualityTrend
+      .slice(0, COMPACT_MAX_ITEMS)
+      .map(trend => `${trend.dimension}:${trend.trend}:${Number(trend.currentScore.toFixed(2))}`);
+
+    const payload = {
+      task: {
+        id: context.task.id,
+        title: this.limitContent(context.task.title, COMPACT_ENTRY_MAX_LENGTH),
+        status: context.task.status,
+        type: context.task.type,
+        complexity: context.task.estimated_complexity ?? null,
+        phase: context.projectPhase,
+      },
+      deps: {
+        completed: completedDeps,
+        blocking: blockingDeps,
+      },
+      decisions,
+      constraints,
+      learnings,
+      research: researchHighlights,
+      files: (context.filesToRead ?? []).slice(0, MAX_FILES_REFERENCED),
+      quality: {
+        issues: qualityIssues,
+        trend: qualityTrend,
+      },
+    };
+
+    return JSON.stringify(payload);
   }
 
   /**
@@ -352,6 +493,54 @@ export class ContextAssembler {
     return issues;
   }
 
+  private lazyContextEnabled(): boolean {
+    return this.liveFlags?.getValue('EFFICIENT_OPERATIONS') === '1';
+  }
+
+  private maxFilesToReference(): number {
+    return this.lazyContextEnabled() ? Math.min(MAX_FILES_REFERENCED, 3) : MAX_FILES_REFERENCED;
+  }
+
+  private async fetchResearchHighlights(task: Task): Promise<string[] | undefined> {
+    if (!this.lazyContextEnabled()) {
+      return undefined;
+    }
+
+    const since = Date.now() - 90 * 24 * 60 * 60 * 1000;
+    const entries = this.stateMachine.getContextEntries({ type: 'learning', since });
+    const filtered = entries
+      .filter((entry) => Array.isArray(entry.related_tasks) && entry.related_tasks.includes(task.id))
+      .filter((entry) => entry.topic.toLowerCase().includes('research'))
+      .slice(0, this.maxHistoryItems);
+
+    if (filtered.length === 0) {
+      const cacheEntries = this.stateMachine.getRecentResearchCache?.({
+        limit: this.maxHistoryItems * 3,
+      }) ?? [];
+
+      const relevant = cacheEntries
+        .filter((record) => this.isResearchRecordRelevant(record, task))
+        .slice(0, this.maxHistoryItems);
+
+      if (relevant.length === 0) {
+        return undefined;
+      }
+
+      const highlights = relevant
+        .map((record) => this.formatResearchHighlight(record))
+        .filter((value): value is string => Boolean(value))
+        .map((text) =>
+          this.limitContent(text, this.lazyContextEnabled() ? COMPACT_ENTRY_MAX_LENGTH : DEFAULT_ENTRY_MAX_LENGTH)
+        );
+
+      return highlights.length > 0 ? highlights : undefined;
+    }
+
+    return filtered.map((entry) =>
+      this.limitContent(entry.content, this.lazyContextEnabled() ? COMPACT_ENTRY_MAX_LENGTH : DEFAULT_ENTRY_MAX_LENGTH)
+    );
+  }
+
   private async getQualityTrends(): Promise<AssembledContext['overallQualityTrend']> {
     const dimensions = ['code_elegance', 'test_coverage', 'security', 'performance', 'ux_clarity'];
     const trends: AssembledContext['overallQualityTrend'] = [];
@@ -382,6 +571,24 @@ export class ContextAssembler {
     // Smart inference based on task title/description
     const text = `${task.title} ${task.description || ''}`.toLowerCase();
 
+    const heuristicMatches = this.matchHeuristicFiles(text);
+    const searchMatches = await this.lookupFilesWithCodeSearch(text);
+
+    const combined = new Set<string>();
+    for (const file of [...searchMatches, ...heuristicMatches]) {
+      if (file) {
+        combined.add(file);
+      }
+    }
+
+    if (combined.size === 0) {
+      return undefined;
+    }
+
+    return Array.from(combined).slice(0, MAX_FILES_REFERENCED);
+  }
+
+  private matchHeuristicFiles(text: string): string[] {
     const fileMap: Record<string, string[]> = {
       'api': ['apps/api/main.py', 'apps/api/routes/__init__.py', 'apps/api/routes/catalog.py', 'apps/api/config.py'],
       'model': ['apps/model/baseline.py', 'apps/model/train.py'],
@@ -398,14 +605,40 @@ export class ContextAssembler {
       }
     }
 
-    return files.length > 0 ? files.slice(0, MAX_FILES_REFERENCED) : undefined;
+    return files.slice(0, MAX_FILES_REFERENCED);
+  }
+
+  private async lookupFilesWithCodeSearch(rawText: string): Promise<string[]> {
+    const codeSearch = await this.getCodeSearch();
+    if (!codeSearch) {
+      return [];
+    }
+
+    try {
+      const results = await codeSearch.search(rawText, {
+        limit: MAX_FILES_REFERENCED * 3,
+      });
+      return results.map((hit) => hit.filePath);
+    } catch (error) {
+      return [];
+    }
+  }
+
+  private async getCodeSearch(): Promise<CodeSearchIndex | null> {
+    if (!this.codeSearchEnabled) {
+      return null;
+    }
+    if (!this.codeSearch) {
+      this.codeSearch = new CodeSearchIndex(this.stateMachine, this._workspaceRoot);
+    }
+    return this.codeSearch;
   }
 
   private async getVelocityMetrics(): Promise<AssembledContext['velocityMetrics']> {
     const todayStart = new Date().setHours(0, 0, 0, 0);
-    const completedToday = this.stateMachine.getTasks({ status: ['done'] }).filter(t => t.completed_at && t.completed_at >= todayStart);
-
-    const tasksWithDuration = this.stateMachine.getTasks({ status: ['done'] }).filter(t => t.actual_duration_seconds);
+    const doneTasks = this.stateMachine.getTasks({ status: ['done'] });
+    const completedToday = doneTasks.filter(t => t.completed_at && t.completed_at >= todayStart);
+    const tasksWithDuration = doneTasks.filter(t => t.actual_duration_seconds);
     const avgDuration = tasksWithDuration.length > 0
       ? tasksWithDuration.reduce((sum, t) => sum + (t.actual_duration_seconds || 0), 0) / tasksWithDuration.length
       : 0;
@@ -427,6 +660,74 @@ export class ContextAssembler {
       averageTaskDuration: avgDuration,
       qualityTrendOverall: qualityTrend
     };
+  }
+
+  private isResearchRecordRelevant(record: ResearchCacheRecord, task: Task): boolean {
+    const metadata = record.metadata ?? {};
+    if (typeof metadata.taskId === 'string' && metadata.taskId === task.id) {
+      return true;
+    }
+
+    const taskText = `${task.title ?? ''} ${task.description ?? ''}`.toLowerCase();
+    const metaTextParts: string[] = [];
+    for (const key of ['topic', 'problem', 'taskTitle']) {
+      const value = metadata[key as keyof typeof metadata];
+      if (typeof value === 'string') {
+        metaTextParts.push(value);
+      }
+    }
+
+    if (metaTextParts.length === 0) {
+      return false;
+    }
+
+    const metaText = metaTextParts.join(' ').toLowerCase();
+    return this.hasTokenOverlap(metaText, taskText);
+  }
+
+  private formatResearchHighlight(record: ResearchCacheRecord): string | null {
+    const metadata = record.metadata ?? {};
+    const kind = typeof metadata.kind === 'string' ? metadata.kind : 'research';
+    const payload = record.payload;
+
+    if (Array.isArray(payload) && payload.length > 0) {
+      const first = payload[0] as Record<string, unknown>;
+      if (kind === 'query' && typeof metadata.topic === 'string') {
+        const title = typeof first.title === 'string' ? first.title : 'new findings discovered';
+        return `Research on ${metadata.topic}: ${title}`;
+      }
+      if (kind === 'patterns' && typeof metadata.problem === 'string') {
+        const title = typeof first.title === 'string' ? first.title : 'pattern discovered';
+        return `Patterns for ${metadata.problem}: ${title}`;
+      }
+      if (kind === 'alternatives' && typeof metadata.taskTitle === 'string') {
+        const title = typeof first.title === 'string' ? first.title : 'alternative approach available';
+        return `Alternative for ${metadata.taskTitle}: ${title}`;
+      }
+      const title = typeof first.title === 'string' ? first.title : JSON.stringify(first);
+      return `Research update: ${title}`;
+    }
+
+    if (typeof payload === 'string' && payload.length > 0) {
+      return `Research update: ${payload.slice(0, 160)}`;
+    }
+
+    return null;
+  }
+
+  private hasTokenOverlap(a: string, b: string): boolean {
+    const tokenize = (text: string): Set<string> => {
+      return new Set(text.split(/[^a-z0-9]+/).filter((token) => token.length >= 4));
+    };
+
+    const tokensA = tokenize(a);
+    const tokensB = tokenize(b);
+    for (const token of tokensA) {
+      if (tokensB.has(token)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   private calculateRelevance(decision: ContextEntry, task: Task): number {

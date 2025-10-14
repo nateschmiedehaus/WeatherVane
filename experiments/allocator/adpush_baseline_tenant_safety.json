@@ -1,0 +1,42 @@
+{
+  "entities": [
+    {
+      "entity_type": "ad_set",
+      "entity_id": "adset-101",
+      "name": "Retargeting",
+      "metadata": {
+        "platform": "meta"
+      },
+      "sections": {
+        "spend": {
+          "daily_budget": {
+            "field_path": "ad_set.daily_budget",
+            "label": "Daily budget",
+            "kind": "numeric",
+            "unit": "usd",
+            "value": 260.0
+          }
+        }
+      }
+    },
+    {
+      "entity_type": "ad_set",
+      "entity_id": "adset-202",
+      "name": "Prospecting",
+      "metadata": {
+        "platform": "google"
+      },
+      "sections": {
+        "spend": {
+          "daily_budget": {
+            "field_path": "ad_set.daily_budget",
+            "label": "Daily budget",
+            "kind": "numeric",
+            "unit": "usd",
+            "value": 320.0
+          }
+        }
+      }
+    }
+  ]
+}

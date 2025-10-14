@@ -1,0 +1,17 @@
+{
+  "design_system": {
+    "reviewer": "Director Dana",
+    "note": "Escalated to Director Dana for design-system review. Awaiting manual sign-off before rerunning the critic.",
+    "next": "Coordinate with Director Dana to complete the design-system review and capture the required evidence."
+  },
+  "data_quality": {
+    "reviewer": "Data Steward",
+    "note": "Awaiting Data Steward review for data quality findings. Provide fixes or sign-off before retrying the critic.",
+    "next": "Partner with the Data Steward to resolve outstanding data quality issues, then rerun the critic."
+  },
+  "org_pm": {
+    "reviewer": "Director Dana",
+    "note": "Escalated to Director Dana for product/PM review. Capture stakeholder sign-off before resuming automation.",
+    "next": "Work with Director Dana to close out the product/PM review, then resume automated execution."
+  }
+}

@@ -1,9 +1,10 @@
 {
   "critic": "build",
   "code": 0,
-  "stdout": "ruff check apps shared --select E,F --ignore E501\nAll checks passed!\nnpm run lint --prefix apps/web || true\n\n> weathervane-web@0.1.0 lint\n> next lint\n",
-  "stderr": "/Volumes/BigSSD4/nathanielschmiedehaus/.bash_profile: line 39: /usr/local/bin/brew: No such file or directory\nwarning: The top-level linter settings are deprecated in favour of their counterparts in the `lint` section. Please update the following options in `pyproject.toml`:\n  - 'select' -> 'lint.select'\nsh: next: command not found",
+  "stdout": "ruff check apps shared --select E,F --ignore E501\nAll checks passed!\nnpm run lint --prefix apps/web || true\n\n> weathervane-web@0.1.0 lint\n> next lint\n\n✔ No ESLint warnings or errors",
+  "stderr": "warning: The top-level linter settings are deprecated in favour of their counterparts in the `lint` section. Please update the following options in `pyproject.toml`:\n  - 'select' -> 'lint.select'",
   "passed": true,
-  "git_sha": "7dbb20b58859e7bc0ba415e3ffbb230c17f13a1b",
-  "timestamp": "2025-10-11T11:41:48.861Z"
+  "analysis": null,
+  "git_sha": "31548e1c9ba25b8b0f94df5d6f596ec1be26414a",
+  "timestamp": "2025-10-13T23:49:36.002Z"
 }

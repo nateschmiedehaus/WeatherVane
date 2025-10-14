@@ -16,6 +16,13 @@ import type { Task } from './state_machine.js';
 import type { AssembledContext } from './context_assembler.js';
 import type { ReasoningLevel } from './model_selector.js';
 import { logInfo, logWarning } from '../telemetry/logger.js';
+import {
+  detectOutputFormat,
+  OutputValidationError,
+  resolveOutputValidationSettings,
+  type OutputValidationMode,
+  type OutputValidationSettings,
+} from '../utils/output_validator.js';
 
 // ============================================================================
 // Types
@@ -74,7 +81,29 @@ export interface AgentPoolMetrics {
   codexUsagePercent: number;
 }
 
-export type ExecutionFailureType = 'rate_limit' | 'context_limit' | 'other';
+export type ExecutionFailureType = 'rate_limit' | 'context_limit' | 'network' | 'validation' | 'other';
+
+export type PromptCacheStatus = 'hit' | 'miss' | 'store' | 'bypass' | 'error';
+
+export interface PromptCacheMetadata {
+  status: PromptCacheStatus;
+  tier?: string;
+  cacheId?: string;
+  rawLine?: string;
+}
+
+export interface OutputValidationFailureEvent {
+  taskId: string;
+  agentType: AgentType;
+  code?: string;
+  message: string;
+  mode: OutputValidationMode;
+  enforced: boolean;
+}
+
+const COST_TRACKING_DISABLED =
+  typeof process.env.WVO_DISABLE_COST_TRACKING === 'string' &&
+  ['1', 'true', 'yes'].includes(process.env.WVO_DISABLE_COST_TRACKING.toLowerCase());
 
 export interface ExecutionOutcome {
   success: boolean;
@@ -88,6 +117,133 @@ export interface ExecutionOutcome {
     totalTokens: number;
   };
   costUSD?: number;
+  promptCache?: PromptCacheMetadata;
+}
+
+function mapCacheStatusWord(word: string): PromptCacheStatus | undefined {
+  const normalized = word.toLowerCase();
+  switch (normalized) {
+    case 'hit':
+    case 'warm':
+    case 'cached':
+    case 'cache_hit':
+      return 'hit';
+    case 'miss':
+    case 'cache_miss':
+    case 'notfound':
+    case 'nohit':
+    case 'nomatch':
+      return 'miss';
+    case 'store':
+    case 'write':
+    case 'saving':
+    case 'saved':
+    case 'storing':
+    case 'fill':
+    case 'populate':
+    case 'eligible':
+    case 'commit':
+      return 'store';
+    case 'skip':
+    case 'bypass':
+    case 'disabled':
+    case 'none':
+    case 'ignored':
+    case 'n/a':
+    case 'na':
+      return 'bypass';
+    case 'error':
+    case 'failed':
+    case 'failure':
+      return 'error';
+    default:
+      return undefined;
+  }
+}
+
+export function parsePromptCacheMetadata(output: string): PromptCacheMetadata | undefined {
+  if (!output || !/\bcache\b/i.test(output)) {
+    return undefined;
+  }
+
+  const lines = output
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0);
+
+  let sawHit = false;
+  let sawStore = false;
+  let sawMiss = false;
+  let sawBypass = false;
+  let sawError = false;
+  let tier: string | undefined;
+  let cacheId: string | undefined;
+  let rawLine: string | undefined;
+
+  for (const line of lines) {
+    if (!/\bcache\b/i.test(line)) {
+      continue;
+    }
+
+    if (!rawLine) {
+      rawLine = line;
+    }
+
+    const tierMatch = line.match(/\b(?:tier|bucket|level)\b[^A-Za-z0-9]*([A-Za-z0-9._-]+)/i);
+    if (tierMatch && !tier) {
+      tier = tierMatch[1];
+    }
+
+    const idMatch = line.match(/\bcache[-_\s]*(?:id|key)\b[^A-Za-z0-9]*([A-Za-z0-9._:/-]+)/i);
+    if (idMatch && !cacheId) {
+      cacheId = idMatch[1];
+    }
+
+    const statusMatches = line.match(/\b(hit|miss|store|write|saving|saved|storing|fill|warm|cached|eligible|skip|bypass|disabled|none|ignored|error|failed|failure|commit)\b/gi);
+    if (statusMatches) {
+      for (const match of statusMatches) {
+        const status = mapCacheStatusWord(match);
+        if (!status) continue;
+        if (status === 'hit') {
+          sawHit = true;
+        } else if (status === 'store') {
+          sawStore = true;
+        } else if (status === 'miss') {
+          sawMiss = true;
+        } else if (status === 'bypass') {
+          sawBypass = true;
+        } else if (status === 'error') {
+          sawError = true;
+        }
+      }
+    } else if (line.toLowerCase().includes('miss')) {
+      sawMiss = true;
+    }
+  }
+
+  let status: PromptCacheStatus | undefined;
+  if (sawHit) {
+    status = 'hit';
+  } else if (sawStore) {
+    status = 'store';
+  } else if (sawMiss) {
+    status = 'miss';
+  } else if (sawBypass) {
+    status = 'bypass';
+  } else if (sawError) {
+    status = 'error';
+  }
+
+  if (!status && !tier && !cacheId) {
+    return undefined;
+  }
+
+  return {
+    status: status ?? 'bypass',
+    tier,
+    cacheId,
+    rawLine,
+  };
 }
 
 // ============================================================================
@@ -99,6 +255,7 @@ export class AgentPool extends EventEmitter {
   private assignments: Map<string, TaskAssignment> = new Map();
   private coordinatorType: AgentType = 'claude_code';
   private readonly coordinatorCandidates: string[] = [];
+  private outputValidationCanaryWarningLogged = false;
 
   private readonly capabilities: Record<AgentType, AgentCapabilities> = {
     claude_code: {
@@ -602,7 +759,7 @@ export class AgentPool extends EventEmitter {
   // Agent Execution (Interface with actual CLI tools)
   // ==========================================================================
 
-  private extractUsageMetrics(stdout?: string, stderr?: string): { tokenUsage?: { promptTokens: number; completionTokens: number; totalTokens: number }; costUSD?: number } | undefined {
+  private extractUsageMetrics(stdout?: string, stderr?: string): { tokenUsage?: { promptTokens: number; completionTokens: number; totalTokens: number }; costUSD?: number; promptCache?: PromptCacheMetadata } | undefined {
     const combined = [stdout, stderr].filter((segment) => typeof segment === 'string' && segment.trim().length > 0).join('\n');
     if (!combined) {
       return undefined;
@@ -633,20 +790,22 @@ export class AgentPool extends EventEmitter {
     }
 
     let costUSD: number | undefined;
-    const costRegexes = [
-      /cost(?:\s*usd)?[^0-9]*(\d+\.\d+|\d+)/gi,
-      /\$(\d+\.\d+)/g,
-    ];
+    if (!COST_TRACKING_DISABLED) {
+      const costRegexes = [
+        /cost(?:\s*usd)?[^0-9]*(\d+\.\d+|\d+)/gi,
+        /\$(\d+\.\d+)/g,
+      ];
 
-    for (const regex of costRegexes) {
-      for (const match of combined.matchAll(regex)) {
-        const rawCost = Number.parseFloat(match[1] ?? '');
-        if (!Number.isNaN(rawCost)) {
-          costUSD = rawCost;
+      for (const regex of costRegexes) {
+        for (const match of combined.matchAll(regex)) {
+          const rawCost = Number.parseFloat(match[1] ?? '');
+          if (!Number.isNaN(rawCost)) {
+            costUSD = rawCost;
+          }
         }
-      }
-      if (typeof costUSD === 'number') {
-        break;
+        if (typeof costUSD === 'number') {
+          break;
+        }
       }
     }
 
@@ -654,26 +813,34 @@ export class AgentPool extends EventEmitter {
       || typeof completionTokens === 'number'
       || typeof totalTokens === 'number';
 
-    if (!hasUsage && typeof costUSD !== 'number') {
+    const promptCache = parsePromptCacheMetadata(combined);
+
+    if (!hasUsage && typeof costUSD !== 'number' && !promptCache) {
       return undefined;
     }
 
-    // Ensure all fields are defined with defaults of 0 when returning tokenUsage
+    const result: { tokenUsage?: { promptTokens: number; completionTokens: number; totalTokens: number }; costUSD?: number; promptCache?: PromptCacheMetadata } = {};
+
     if (hasUsage) {
-      return {
-        tokenUsage: {
-          promptTokens: promptTokens ?? 0,
-          completionTokens: completionTokens ?? 0,
-          totalTokens: totalTokens ?? 0,
-        },
-        costUSD,
+      result.tokenUsage = {
+        promptTokens: promptTokens ?? 0,
+        completionTokens: completionTokens ?? 0,
+        totalTokens: totalTokens ?? 0,
       };
     }
 
-    return { costUSD };
+    if (!COST_TRACKING_DISABLED && typeof costUSD === 'number') {
+      result.costUSD = costUSD;
+    }
+
+    if (promptCache) {
+      result.promptCache = promptCache;
+    }
+
+    return result;
   }
 
-  /**
+  /** 
    * Execute task with Claude Code
    */
   async executeWithClaudeCode(
@@ -693,12 +860,27 @@ export class AgentPool extends EventEmitter {
       const durationSeconds = Math.floor((Date.now() - startTime) / 1000);
       const usageMetrics = this.extractUsageMetrics(result.stdout, result.stderr);
 
+      const normalizedOutput = (result.stdout ?? '').replace(/\r\n/g, '\n');
+      if (result.exitCode === 0) {
+        const validation = this.enforceOutputValidation(taskId, 'claude_code', normalizedOutput);
+        if (validation.violation && validation.settings.effectiveMode !== 'disabled') {
+          const outputExcerpt = normalizedOutput.trim().slice(0, 2000);
+          return {
+            success: false,
+            output: `output_validation_failed:${validation.message ?? 'output_validation_failed'}\n\n${outputExcerpt}`,
+            durationSeconds,
+            failureType: 'validation',
+          };
+        }
+      }
+
       return {
         success: result.exitCode === 0,
-        output: result.stdout,
+        output: result.exitCode === 0 ? normalizedOutput.trim() : normalizedOutput,
         durationSeconds,
         tokenUsage: usageMetrics?.tokenUsage,
-        costUSD: usageMetrics?.costUSD
+        costUSD: usageMetrics?.costUSD,
+        promptCache: usageMetrics?.promptCache,
       };
     } catch (error: any) {
       const durationSeconds = Math.floor((Date.now() - startTime) / 1000);
@@ -721,7 +903,8 @@ export class AgentPool extends EventEmitter {
         failureType: failure?.failureType,
         retryAfterSeconds: failure?.retryAfterSeconds,
         tokenUsage: usageMetrics?.tokenUsage,
-        costUSD: usageMetrics?.costUSD
+        costUSD: usageMetrics?.costUSD,
+        promptCache: usageMetrics?.promptCache,
       };
     }
   }
@@ -761,12 +944,27 @@ export class AgentPool extends EventEmitter {
       const durationSeconds = Math.floor((Date.now() - startTime) / 1000);
       const usageMetrics = this.extractUsageMetrics(result.stdout, result.stderr);
 
+      const normalizedOutput = (result.stdout ?? '').replace(/\r\n/g, '\n');
+      if (result.exitCode === 0) {
+        const validation = this.enforceOutputValidation(taskId, 'codex', normalizedOutput);
+        if (validation.violation && validation.settings.effectiveMode !== 'disabled') {
+          const outputExcerpt = normalizedOutput.trim().slice(0, 2000);
+          return {
+            success: false,
+            output: `output_validation_failed:${validation.message ?? 'output_validation_failed'}\n\n${outputExcerpt}`,
+            durationSeconds,
+            failureType: 'validation',
+          };
+        }
+      }
+
       return {
         success: result.exitCode === 0,
-        output: result.stdout,
+        output: result.exitCode === 0 ? normalizedOutput.trim() : normalizedOutput,
         durationSeconds,
         tokenUsage: usageMetrics?.tokenUsage,
-        costUSD: usageMetrics?.costUSD
+        costUSD: usageMetrics?.costUSD,
+        promptCache: usageMetrics?.promptCache,
       };
     } catch (error: any) {
       const durationSeconds = Math.floor((Date.now() - startTime) / 1000);
@@ -789,7 +987,8 @@ export class AgentPool extends EventEmitter {
         failureType: failure?.failureType,
         retryAfterSeconds: failure?.retryAfterSeconds,
         tokenUsage: usageMetrics?.tokenUsage,
-        costUSD: usageMetrics?.costUSD
+        costUSD: usageMetrics?.costUSD,
+        promptCache: usageMetrics?.promptCache,
       };
     }
   }
@@ -867,6 +1066,21 @@ export class AgentPool extends EventEmitter {
     if (!output) return undefined;
     const text = output.toLowerCase();
 
+    if (
+      text.includes('error sending request') ||
+      text.includes('resolve host') ||
+      text.includes('name or service not known') ||
+      text.includes('getaddrinfo') ||
+      text.includes('temporary failure in name resolution') ||
+      text.includes('enotfound') ||
+      text.includes('econnreset') ||
+      text.includes('econnrefused') ||
+      text.includes('connection refused') ||
+      text.includes('connect econn')
+    ) {
+      return { failureType: 'network' };
+    }
+
     if (text.includes('rate limit') || text.includes('usage limit') || text.includes('too many requests')) {
       const retryAfterSeconds = this.extractRetryAfter(output);
       return { failureType: 'rate_limit', retryAfterSeconds };
@@ -877,6 +1091,61 @@ export class AgentPool extends EventEmitter {
     }
 
     return undefined;
+  }
+
+  private enforceOutputValidation(
+    taskId: string,
+    agentType: AgentType,
+    rawOutput: string
+  ): { settings: OutputValidationSettings; violation: boolean; message?: string; code?: string } {
+    const settings = resolveOutputValidationSettings();
+
+    if (
+      settings.configuredMode === 'enforce' &&
+      settings.effectiveMode !== 'enforce' &&
+      !this.outputValidationCanaryWarningLogged
+    ) {
+      logWarning('Output validation enforcement requested without canary acknowledgement', {
+        taskId,
+        agentType,
+        configuredMode: settings.configuredMode,
+      });
+      this.outputValidationCanaryWarningLogged = true;
+    }
+
+    const shouldValidate = settings.effectiveMode !== 'disabled';
+    if (!shouldValidate) {
+      return { settings, violation: false };
+    }
+
+    const normalized = rawOutput.trim();
+
+    try {
+      detectOutputFormat(normalized);
+      return { settings, violation: false };
+    } catch (error: unknown) {
+      const validationError = error instanceof OutputValidationError ? error : undefined;
+      const message = validationError
+        ? `${validationError.code}: ${validationError.message}`
+        : `unexpected_output_validation_error: ${String(error)}`;
+      const code = validationError?.code ?? 'unknown';
+      logWarning(`${agentType === 'claude_code' ? 'Claude Code' : 'Codex'} output validation failed`, {
+        taskId,
+        agentType,
+        code,
+        mode: settings.effectiveMode,
+        enforced: shouldValidate,
+      });
+      this.emit('output:validation_failed', {
+        taskId,
+        agentType,
+        code: validationError?.code,
+        message,
+        mode: settings.effectiveMode,
+        enforced: shouldValidate,
+      } satisfies OutputValidationFailureEvent);
+      return { settings, violation: true, message, code };
+    }
   }
 
   private extractRetryAfter(output: string): number | undefined {

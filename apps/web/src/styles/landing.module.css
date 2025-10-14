@@ -5,53 +5,53 @@
   align-items: center;
 }
 
-.heroCopy h2 {
+.heroTitle {
   margin: 0;
-  font-size: clamp(2.2rem, 3.5vw, 3rem);
-  font-weight: 500;
+  letter-spacing: var(--font-letter-tight);
 }
 
-.heroCopy p {
-  margin: 1.5rem 0;
+.heroSummary {
+  margin: 1.25rem 0 0;
   max-width: 48ch;
-  line-height: 1.7;
-  color: rgba(226, 232, 240, 0.8);
+  line-height: var(--line-height-relaxed);
+  color: var(--color-text-secondary);
 }
 
 .heroCTA {
   display: flex;
   gap: 1rem;
+  flex-wrap: wrap;
 }
 
-.heroCTA button {
+.ctaButton {
   padding: 0.75rem 1.6rem;
-  border-radius: 999px;
   border: none;
-  font-size: 1rem;
-  font-weight: 500;
   cursor: pointer;
-  transition: transform 200ms ease, box-shadow 200ms ease;
+  transition:
+    transform var(--motion-duration-standard) var(--motion-easing-standard),
+    box-shadow var(--motion-duration-standard) var(--motion-easing-standard);
 }
 
-.heroCTA button:focus-visible {
+.ctaButton:focus-visible {
   outline: 2px solid var(--color-focus-outline, #93c5fd);
   outline-offset: 3px;
 }
 
-.heroCTA button:first-of-type {
+.primaryAction {
   background: linear-gradient(135deg, rgba(96, 165, 250, 0.85), rgba(14, 165, 233, 0.9));
   color: #0f172a;
   box-shadow: 0 20px 40px -24px rgba(96, 165, 250, 0.6);
 }
 
-.heroCTA button:first-of-type:hover {
+.primaryAction:hover {
   transform: translateY(-1px);
 }
 
-.secondary {
+.secondaryAction {
   background: rgba(15, 23, 42, 0.55);
-  color: rgba(226, 232, 240, 0.9);
-  border: 1px solid rgba(148, 163, 184, 0.3);
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-border-subtle);
+  box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.08);
 }
 
 .globe {
@@ -99,7 +99,6 @@
 
 .checklist h3 {
   margin: 0 0 0.6rem;
-  font-size: 1.25rem;
 }
 
 .promises {
@@ -134,7 +133,7 @@
 
 .storyCard span {
   justify-self: end;
-  color: rgba(148, 163, 184, 0.75);
+  color: var(--color-text-tertiary);
 }
 
 @media (max-width: 768px) {

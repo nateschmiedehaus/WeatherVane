@@ -17,6 +17,7 @@ import { OrchestratorRuntime } from "./orchestrator/orchestrator_runtime.js";
 import { resolveWorkspaceRoot } from "./utils/config.js";
 import { SERVER_NAME, SERVER_VERSION } from "./utils/version.js";
 import { toJsonSchema } from "./utils/schema.js";
+import { buildClusterSummaries } from "./utils/cluster.js";
 
 let activeRuntime: OrchestratorRuntime | null = null;
 
@@ -26,7 +27,8 @@ async function main() {
     codexWorkers: 3,
     targetCodexRatio: 5,
   });
-  runtime.start();
+  // NOTE: Don't start runtime for Claude Code MCP - let it be passive and tool-driven
+  // runtime.start();
   activeRuntime = runtime;
 
   const session = new SessionContext(runtime);
@@ -53,20 +55,14 @@ async function main() {
     profile: session.profile,
   });
 
-  // Check authentication for both providers
-  const authStatus = await authChecker.checkAll();
+  // Skip authentication check for Claude Code MCP to avoid deadlock
+  // (Claude is already running the server, can't check Claude auth)
+  const authStatus = {
+    codex: { authenticated: false, error: "Auth check deferred for MCP mode" },
+    claude_code: { authenticated: true, user: "claude_mcp_host" },
+  };
 
-  if (!authChecker.canProceed(authStatus)) {
-    logError("❌ Cannot proceed - no providers authenticated");
-    console.error(authChecker.getAuthGuidance(authStatus));
-    process.exit(1);
-  }
-
-  // Log warning if only partial auth
-  const warning = authChecker.getWarning(authStatus);
-  if (warning) {
-    logWarning(warning);
-  }
+  logInfo("Claude Code MCP mode - auth checks deferred");
 
   // Configure provider manager based on available auth
   const preferredProvider: Provider | null = (() => {
@@ -90,16 +86,9 @@ async function main() {
     providerManager.switchProvider(preferredProvider, reason);
   }
 
-  // Load compact checkpoint for quick resume
-  const lastCheckpoint = await contextManager.loadCompactCheckpoint();
-  const quickSummary = await contextManager.getQuickSummary();
-
-  logInfo("WVO MCP server ready", {
-    providerManager: providerManager.getStatus(),
-    authStatus,
-    lastSession: lastCheckpoint ? lastCheckpoint.session_id : "none",
-    quickSummary,
-  });
+  // Skip checkpoint loading during boot for fast startup
+  // Checkpoints will be loaded lazily when tools are called
+  logInfo("WVO MCP server ready (lazy initialization mode)");
 
   const server = new McpServer(
     {
@@ -118,6 +107,7 @@ async function main() {
         status: z.array(z.enum(["pending", "in_progress", "blocked", "done"])).optional(),
         epic_id: z.string().optional(),
         milestone_id: z.string().optional(),
+        domain: z.enum(["product", "mcp"]).optional(),
       })
       .optional(),
     minimal: z.boolean().optional().describe("Return only id, title, status (saves ~70% tokens)"),
@@ -559,10 +549,11 @@ Model: Uses intelligent routing based on complexity and provider capacity`,
       try {
         const parsed = planNextInput.parse(input);
         const tasks = await session.planNext(parsed);
+        const clusters = buildClusterSummaries(tasks);
 
         // Minimal mode: return only essential fields (70% token savings)
         const minimalTasks = parsed.minimal
-          ? tasks.map(t => ({ id: t.id, title: t.title, status: t.status }))
+          ? tasks.map(t => ({ id: t.id, title: t.title, status: t.status, domain: t.domain }))
           : tasks;
 
         // Estimate tokens used (rough approximation)
@@ -581,6 +572,7 @@ Model: Uses intelligent routing based on complexity and provider capacity`,
           count: tasks.length,
           tasks: minimalTasks,
           profile: session.profile,
+          clusters,
         }, `📋 Next ${tasks.length} Task(s)`);
       } catch (error) {
         return formatError("Failed to get next tasks", error instanceof Error ? error.message : String(error));
@@ -1231,7 +1223,7 @@ Perfect for: Quality gates, pre-commit checks, comprehensive validation`,
   );
 
   const transport = new StdioServerTransport();
-  await server.connect(transport as unknown as { start: () => Promise<void>; close: () => Promise<void>; send: (message: unknown) => Promise<void> });
+  await server.connect(transport);
   logInfo("WVO MCP server (Claude Code) ready", {
     workspace: session.workspaceRoot,
     profile: session.profile,

@@ -4,8 +4,8 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 LOG_FILE="${LOG_FILE:-/tmp/wvo_autopilot.log}"
 STATE_FILE="${STATE_FILE:-/tmp/wvo_autopilot_last.json}"
-MAX_RETRY=${MAX_RETRY:-5}
-SLEEP_SECONDS=${SLEEP_SECONDS:-300}
+MAX_RETRY=${MAX_RETRY:-20}
+SLEEP_SECONDS=${SLEEP_SECONDS:-120}
 STOP_ON_BLOCKER=${STOP_ON_BLOCKER:-0}
 MCP_ENTRY="${WVO_AUTOPILOT_ENTRY:-$ROOT/tools/wvo_mcp/dist/index.js}"
 CLI_PROFILE="${CODEX_PROFILE_NAME:-weathervane_orchestrator}"
@@ -14,7 +14,11 @@ AUTOPILOT_MODEL="${CODEX_AUTOPILOT_MODEL:-gpt-5-codex}"
 AUTOPILOT_REASONING="${CODEX_AUTOPILOT_REASONING:-auto}"
 BASE_INSTRUCTIONS="${BASE_INSTRUCTIONS:-$ROOT/docs/wvo_prompt.md}"
 CONFIG_SCRIPT="$ROOT/tools/wvo_mcp/scripts/configure_codex_profile.py"
-USAGE_LIMIT_BACKOFF=${USAGE_LIMIT_BACKOFF:-300}
+USAGE_LIMIT_BACKOFF=${USAGE_LIMIT_BACKOFF:-120}
+TASK_MEMO_DIR="$ROOT/state/task_memos"
+ESCALATION_CONFIG="$ROOT/tools/wvo_mcp/config/critic_escalations.json"
+ESCALATION_LOG="$ROOT/state/escalations.log"
+export USAGE_LIMIT_BACKOFF
 
 # Optionally restart MCP before doing anything else unless skipped explicitly.
 if [ "${WVO_AUTOPILOT_FORCE_RESTART:-0}" = "1" ] && [ -x "$ROOT/scripts/restart_mcp.sh" ]; then
@@ -28,7 +32,7 @@ ACCOUNT_MANAGER="$ROOT/tools/wvo_mcp/scripts/account_manager.py"
 ACCOUNTS_CONFIG="$ROOT/state/accounts.yaml"
 ACCOUNT_MANAGER_ENABLED=1
 DEFAULT_CODEX_HOME="${CODEX_HOME:-$ROOT/.accounts/codex/default}"
-ENABLE_CLAUDE_EVAL=${ENABLE_CLAUDE_EVAL:-0}
+ENABLE_CLAUDE_EVAL=${ENABLE_CLAUDE_EVAL:-1}
 CLAUDE_EVAL_COOLDOWN=${CLAUDE_EVAL_COOLDOWN:-900}
 CLAUDE_EVAL_FILE="${CLAUDE_EVAL_FILE:-$ROOT/state/autopilot_claude_eval.txt}"
 CURRENT_CODEX_ACCOUNT=""
@@ -46,6 +50,7 @@ CURRENT_CODEX_EXPECTED_EMAIL=""
 CURRENT_CODEX_LABEL=""
 LAST_FAILURE_REASON=""
 LAST_FAILURE_DETAILS=""
+CLAUDE_ACCOUNTS_AVAILABLE=0
 WVO_ENABLE_WEB_INSPIRATION=${WVO_ENABLE_WEB_INSPIRATION:-0}
 export WVO_ENABLE_WEB_INSPIRATION
 
@@ -503,6 +508,7 @@ export CODEX_HOME
 export CODEX_PROFILE="$WVO_CAPABILITY"
 WVO_DEFAULT_PROVIDER="${WVO_DEFAULT_PROVIDER:-codex}"
 export WVO_DEFAULT_PROVIDER
+export WVO_ALLOW_PROTECTED_WRITES="${WVO_ALLOW_PROTECTED_WRITES:-1}"
 
 if ! command -v codex >/dev/null 2>&1; then
   echo "Codex CLI not found in PATH. Install Codex CLI before running autopilot." >&2
@@ -633,6 +639,94 @@ ensure_codex_auth() {
 
   log "Codex authentication still missing after login. Aborting."
   exit 1
+}
+
+ensure_claude_auth() {
+  local account_id="${1:-claude}"
+  local bin_cmd="${2:-claude}"
+  local env_json="${3:-}"
+  local display="$account_id"
+  local -a env_pairs=()
+  local env_line
+
+  if [ -n "$env_json" ] && [ "$env_json" != "null" ]; then
+    while IFS= read -r env_line; do
+      [ -n "$env_line" ] && env_pairs+=("$env_line")
+    done < <(python - <<'PY' "$env_json"
+import json, sys
+env = json.loads(sys.argv[1])
+for key, value in env.items():
+    if value is None:
+        continue
+    print(f"{key}={value}")
+PY
+)
+  fi
+
+  local whoami_output=""
+  local status=0
+  if [ ${#env_pairs[@]} -gt 0 ]; then
+    whoami_output=$(env "${env_pairs[@]}" "$bin_cmd" whoami 2>&1)
+    status=$?
+  else
+    whoami_output=$("$bin_cmd" whoami 2>&1)
+    status=$?
+  fi
+
+  if [ $status -eq 0 ] && ! printf '%s\n' "$whoami_output" | grep -qi 'invalid api key'; then
+    if [ -n "$whoami_output" ]; then
+      log "✅ Claude $display authenticated: ${whoami_output}"
+    else
+      log "✅ Claude $display authenticated."
+    fi
+    return 0
+  fi
+
+  # Skip interactive login during autopilot to avoid blocking
+  if [ "${WVO_AUTOPILOT_SKIP_INTERACTIVE_LOGIN:-1}" = "1" ]; then
+    log "⚠️ Claude $display not authenticated. Skipping (autopilot mode)."
+    if [ ${#env_pairs[@]} -gt 0 ]; then
+      log "   To authenticate manually, run: env ${env_pairs[*]} $bin_cmd login"
+    else
+      log "   To authenticate manually, run: $bin_cmd login"
+    fi
+    return 1
+  fi
+
+  log "Claude $display not authenticated. Launching login..."
+  local login_output=""
+  if [ ${#env_pairs[@]} -gt 0 ]; then
+    login_output=$(run_with_ptty env "${env_pairs[@]}" "$bin_cmd" login)
+    status=$?
+  else
+    login_output=$(run_with_ptty "$bin_cmd" login)
+    status=$?
+  fi
+  printf '%s\n' "$login_output" >> "$LOG_FILE"
+  if [ $status -ne 0 ]; then
+    log "⚠️ Claude login failed for $display (exit $status)."
+    return 1
+  fi
+
+  if [ ${#env_pairs[@]} -gt 0 ]; then
+    whoami_output=$(env "${env_pairs[@]}" "$bin_cmd" whoami 2>&1)
+    status=$?
+  else
+    whoami_output=$("$bin_cmd" whoami 2>&1)
+    status=$?
+  fi
+
+  if [ $status -eq 0 ] && ! printf '%s\n' "$whoami_output" | grep -qi 'invalid api key'; then
+    if [ -n "$whoami_output" ]; then
+      log "✅ Claude $display authenticated after login: ${whoami_output}"
+    else
+      log "✅ Claude $display authenticated after login."
+    fi
+    return 0
+  fi
+
+  log "⚠️ Claude $display still not authenticated after login attempt."
+  return 1
 }
 
 log_accounts_overview() {
@@ -783,11 +877,17 @@ PY
     if [ -n "$whoami_output" ]; then
       log "  ✅ Claude CLI responded: $whoami_output"
     else
-      log "  ⚠️ Claude login not detected. Launching '$bin_cmd login' for '$acc_id'..."
-      if run_with_ptty env CLAUDE_CONFIG_DIR="$CLAUDE_CONFIG_DIR" $bin_cmd login >/dev/null; then
-        log "  ✅ Claude login completed for '$acc_id'"
+      # Skip interactive login during autopilot initialization
+      if [ "${WVO_AUTOPILOT_SKIP_INTERACTIVE_LOGIN:-1}" = "1" ]; then
+        log "  ⚠️ Claude $acc_id not authenticated. Skipping (autopilot mode)."
+        log "     To authenticate manually, run: CLAUDE_CONFIG_DIR=$CLAUDE_CONFIG_DIR $bin_cmd login"
       else
-        log "  ⚠️ Claude login exited without success for '$acc_id'. Run 'CLAUDE_CONFIG_DIR=$CLAUDE_CONFIG_DIR $bin_cmd login' manually."
+        log "  ⚠️ Claude login not detected. Launching '$bin_cmd login' for '$acc_id'..."
+        if run_with_ptty env CLAUDE_CONFIG_DIR="$CLAUDE_CONFIG_DIR" $bin_cmd login >/dev/null; then
+          log "  ✅ Claude login completed for '$acc_id'"
+        else
+          log "  ⚠️ Claude login exited without success for '$acc_id'. Run 'CLAUDE_CONFIG_DIR=$CLAUDE_CONFIG_DIR $bin_cmd login' manually."
+        fi
       fi
     fi
 
@@ -923,18 +1023,31 @@ record_provider_cooldown() {
 
 parse_usage_wait() {
   python - <<'PY' "$1"
-import re, sys
+import os, re, sys
 from pathlib import Path
-text = Path(sys.argv[1]).read_text(encoding='utf-8', errors='ignore')
-match = re.search(r'try again in (?:(\d+)\s*hour[s]?)?(?:\s*(\d+)\s*minute[s]?)?', text, re.I)
+
+text = Path(sys.argv[1]).read_text(encoding="utf-8", errors="ignore")
+pattern = (
+    r"try again in\s*"
+    r"(?:(\d+)\s*day[s]?)?\s*"
+    r"(?:(\d+)\s*hour[s]?)?\s*"
+    r"(?:(\d+)\s*minute[s]?)?\s*"
+    r"(?:(\d+)\s*second[s]?)?"
+)
+match = re.search(pattern, text, re.IGNORECASE)
 if not match:
     raise SystemExit(1)
-hours = int(match.group(1) or 0)
-minutes = int(match.group(2) or 0)
-seconds = hours * 3600 + minutes * 60
-if seconds <= 0:
-    seconds = 300
-print(seconds)
+
+days = int(match.group(1) or 0)
+hours = int(match.group(2) or 0)
+minutes = int(match.group(3) or 0)
+seconds = int(match.group(4) or 0)
+
+total = days * 86400 + hours * 3600 + minutes * 60 + seconds
+fallback = int(os.environ.get("USAGE_LIMIT_BACKOFF", "120") or 120)
+if total <= 0:
+    total = fallback
+print(total)
 PY
 }
 
@@ -1010,6 +1123,354 @@ PY
   unset __wvo_dns_services __wvo_service
 }
 
+update_task_memos_from_summary() {
+  local summary_json="${1:-}"
+  if [ -z "$summary_json" ]; then
+    return
+  fi
+  SUMMARY_PAYLOAD="$summary_json" python - "$TASK_MEMO_DIR" "$ESCALATION_CONFIG" "$ESCALATION_LOG" <<'PY'
+import json
+import os
+import re
+import sys
+import hashlib
+from datetime import datetime, timezone
+from pathlib import Path
+
+memo_dir = Path(sys.argv[1])
+config_path = Path(sys.argv[2]) if len(sys.argv) > 2 else None
+log_path = Path(sys.argv[3]) if len(sys.argv) > 3 else None
+payload = os.environ.get("SUMMARY_PAYLOAD", "").strip()
+if not payload:
+    raise SystemExit(0)
+
+try:
+    summary = json.loads(payload)
+except json.JSONDecodeError:
+    raise SystemExit(0)
+
+if config_path and config_path.exists():
+    try:
+        escalation_config = json.loads(config_path.read_text(encoding="utf-8"))
+    except Exception:
+        escalation_config = {}
+else:
+    escalation_config = {}
+
+memo_dir.mkdir(parents=True, exist_ok=True)
+
+critics_from_log: dict[str, dict] = {}
+if log_path and log_path.exists():
+    try:
+        raw_lines = log_path.read_text(encoding="utf-8").splitlines()
+    except Exception:
+        raw_lines = []
+    now_dt_for_log = datetime.now(timezone.utc)
+    for line in raw_lines:
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            entry = json.loads(line)
+        except Exception:
+            continue
+        critic_name = entry.get("critic")
+        status = entry.get("status")
+        timestamp_str = entry.get("timestamp")
+        dt = parse_timestamp(timestamp_str)
+        if not critic_name or not status or not dt:
+            continue
+        if (now_dt_for_log - dt).total_seconds() > 7 * 24 * 3600:
+            continue
+        existing = critics_from_log.get(critic_name)
+        if not existing or dt > existing["dt"]:
+            critics_from_log[critic_name] = {"entry": entry, "dt": dt}
+else:
+    critics_from_log = {}
+
+def clean_list(values):
+    result = []
+    for item in values or []:
+        if isinstance(item, str):
+            text = item.strip()
+            if text:
+                result.append(text)
+    return result
+
+def squash(text, limit=360):
+    if not text:
+        return ""
+    squashed = re.sub(r"\s+", " ", text).strip()
+    if len(squashed) > limit:
+        return squashed[: max(0, limit - 3)].rstrip() + "..."
+    return squashed
+
+TIMESTAMP_PATTERN = re.compile(
+    r"\b20\d{2}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2})?(?:\.\d+)?(?:Z|\+00:00)?\b"
+)
+
+def canonicalize_note(text):
+    if not text:
+        return ""
+    text = TIMESTAMP_PATTERN.sub("<timestamp>", text)
+    lowered = text.lower()
+    if "design_system" in lowered and "skip" in lowered:
+        text = "Design system critic currently unavailable; awaiting manual review."
+    return squash(text, 420)
+
+def parse_timestamp(value):
+    if not value:
+        return None
+    try:
+        return datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except Exception:
+        return None
+
+def detect_critic(*sources):
+    for source in sources:
+        if not source:
+            continue
+        lowered = source.lower()
+        for critic in escalation_config.keys():
+            if critic.lower() in lowered:
+                return critic
+    return None
+
+def extract_ids(label):
+    if not label:
+        return (None, None)
+    label = label.strip()
+    if not label:
+        return (None, None)
+    match = re.match(r"^([A-Za-z]+[0-9][A-Za-z0-9.\-]*)", label)
+    task_id = match.group(1) if match else None
+    if task_id:
+        key = task_id
+    else:
+        slug = re.sub(r"[^a-z0-9]+", "-", label.lower()).strip("-")
+        if not slug:
+            slug = hashlib.sha1(label.encode("utf-8")).hexdigest()[:12]
+        key = f"label-{slug[:48]}"
+    return (key, task_id)
+
+def related(items, task_id, label, limit=2):
+    matches = []
+    base = ""
+    if label:
+        base = re.split(r"[\-\u2013]", label, maxsplit=1)[0].strip()
+    for text in items:
+        if not text:
+            continue
+        lowered = text.lower()
+        if task_id and task_id.lower() in lowered:
+            matches.append(text)
+            continue
+        if base and base.lower() in lowered:
+            matches.append(text)
+    trimmed = []
+    for value in matches[:limit]:
+        trimmed.append(squash(value, 280))
+    return trimmed
+
+notes = canonicalize_note(summary.get("notes"))
+blockers = clean_list(summary.get("blockers"))
+in_progress = clean_list(summary.get("in_progress"))
+next_focus = clean_list(summary.get("next_focus"))
+completed = clean_list(summary.get("completed_tasks"))
+
+now_dt = datetime.now(timezone.utc)
+timestamp = now_dt.isoformat(timespec="seconds")
+active_keys = set()
+memos = {}
+STALLED_THRESHOLD = 3
+escalated = []
+
+for label in in_progress:
+    key, task_id = extract_ids(label)
+    if not key:
+        continue
+    memo = memos.get(key, {"key": key})
+    memo["task_id"] = task_id
+    memo["label"] = label
+    memo["updated_at"] = timestamp
+    statuses = set(memo.get("statuses", []))
+    statuses.add("in_progress")
+    memo["statuses"] = sorted(statuses)
+    memo["note"] = notes
+    memo["blockers"] = related(blockers, task_id, label, limit=2)
+    memo["next"] = related(next_focus, task_id, label, limit=2)
+    memos[key] = memo
+    active_keys.add(key)
+
+for label in next_focus:
+    key, task_id = extract_ids(label)
+    if not key:
+        continue
+    memo = memos.get(key, {"key": key})
+    memo.setdefault("label", label)
+    if memo.get("task_id") is None:
+        memo["task_id"] = task_id
+    memo["updated_at"] = timestamp
+    statuses = set(memo.get("statuses", []))
+    statuses.add("next_focus")
+    memo["statuses"] = sorted(statuses)
+    if notes and not memo.get("note"):
+        memo["note"] = notes
+    blockers_hint = related(blockers, task_id, label, limit=2)
+    if blockers_hint and not memo.get("blockers"):
+        memo["blockers"] = blockers_hint
+    current_next = memo.get("next") or []
+    extras = related(next_focus, task_id, label, limit=2)
+    if extras:
+        combined = current_next + [item for item in extras if item not in current_next]
+        memo["next"] = combined[:2]
+    memos[key] = memo
+    active_keys.add(key)
+
+for key, data in memos.items():
+    path = memo_dir / f"{key}.json"
+    new_payload = dict(data)
+    if new_payload.get("note"):
+        new_payload["note"] = canonicalize_note(new_payload["note"])
+    else:
+        new_payload.pop("note", None)
+    def normalize(record):
+        norm = {
+            "label": record.get("label"),
+            "task_id": record.get("task_id"),
+            "statuses": sorted(set(record.get("statuses") or [])),
+            "note": canonicalize_note(record.get("note")),
+            "blockers": sorted({canonicalize_note(v) for v in record.get("blockers") or [] if v}),
+            "next": sorted({canonicalize_note(v) for v in record.get("next") or [] if v}),
+            "reviewer": record.get("reviewer"),
+        }
+        return norm
+    existing = None
+    previous_statuses = []
+    stalled_cycles = 0
+    if path.exists():
+        try:
+            existing = json.loads(path.read_text(encoding="utf-8"))
+        except Exception:
+            existing = None
+    if existing:
+        previous_statuses = sorted(set(existing.get("statuses") or []))
+        if normalize(existing) == normalize(new_payload):
+            stalled_cycles = int(existing.get("stalled_cycles") or 0) + 1
+        else:
+            stalled_cycles = 0
+    else:
+        stalled_cycles = 0
+    if stalled_cycles > STALLED_THRESHOLD:
+        stalled_cycles = STALLED_THRESHOLD
+    new_payload["stalled_cycles"] = stalled_cycles
+    statuses = set(new_payload.get("statuses") or [])
+    critic = detect_critic(
+        new_payload.get("label"),
+        new_payload.get("note"),
+        " ".join(new_payload.get("blockers") or []),
+        " ".join(new_payload.get("next") or [])
+    )
+    escalated_now = False
+    if critic and stalled_cycles >= STALLED_THRESHOLD:
+        info = escalation_config.get(critic, {})
+        reviewer = info.get("reviewer")
+        if reviewer:
+            new_payload["reviewer"] = reviewer
+        statuses.add("needs_review")
+        statuses.add("escalate")
+        blocker_msg = info.get("note") or f"Awaiting {reviewer or 'reviewer'} response for {critic} critic."
+        blockers_list = list(new_payload.get("blockers") or [])
+        if blocker_msg not in blockers_list:
+            blockers_list.append(blocker_msg)
+        new_payload["blockers"] = blockers_list
+        if info.get("note"):
+            new_payload["note"] = info["note"]
+        if info.get("next"):
+            new_payload["next"] = [info["next"]]
+        if "needs_review" not in previous_statuses:
+            escalated_now = True
+    else:
+        statuses.discard("needs_review")
+        statuses.discard("escalate")
+        new_payload.pop("reviewer", None)
+    new_payload["statuses"] = sorted(statuses)
+
+    skip_write = False
+    if existing:
+        existing_norm = normalize(existing)
+        new_norm = normalize(new_payload)
+        if (
+            existing_norm == new_norm
+            and int(existing.get("stalled_cycles") or 0) == stalled_cycles
+            and sorted(existing.get("statuses") or []) == new_payload["statuses"]
+            and existing.get("reviewer") == new_payload.get("reviewer")
+        ):
+            skip_write = True
+
+    if not skip_write:
+        with open(path, "w", encoding="utf-8") as handle:
+            json.dump(new_payload, handle, indent=2)
+
+    if escalated_now:
+        escalated.append({
+            "label": new_payload.get("label"),
+            "task_id": new_payload.get("task_id"),
+            "critic": critic,
+            "reviewer": new_payload.get("reviewer"),
+            "timestamp": timestamp
+        })
+
+if escalated:
+    summaries = []
+    for entry in escalated:
+        label = entry.get("label") or entry.get("task_id") or "unknown"
+        critic_name = entry.get("critic") or "critic"
+        reviewer = entry.get("reviewer") or "reviewer"
+        summaries.append(f"{label} → {critic_name} → {reviewer}")
+    print("[autopilot] escalation recommended for:", "; ".join(summaries))
+    if log_path:
+        try:
+            log_path.parent.mkdir(parents=True, exist_ok=True)
+        except Exception:
+            pass
+        try:
+            with open(log_path, "a", encoding="utf-8") as handle:
+                for entry in escalated:
+                    handle.write(f"{entry.get('timestamp')} {entry.get('critic')} {entry.get('label')} reviewer={entry.get('reviewer') or '-'}\\n")
+        except Exception:
+            pass
+
+for label in completed:
+    key, _ = extract_ids(label)
+    if not key:
+        continue
+    path = memo_dir / f"{key}.json"
+    if path.exists():
+        path.unlink()
+
+max_age_seconds = 7 * 24 * 3600
+now_ts = now_dt
+for path in memo_dir.glob("*.json"):
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except Exception:
+        path.unlink()
+        continue
+    if data.get("key") in active_keys:
+        continue
+    updated_at = data.get("updated_at")
+    if not updated_at:
+        continue
+    try:
+        parsed = datetime.fromisoformat(updated_at.replace("Z", "+00:00"))
+    except Exception:
+        continue
+    if (now_ts - parsed).total_seconds() > max_age_seconds:
+        path.unlink()
+PY
+}
+
 detect_claude_capabilities() {
   if [ "$ENABLE_CLAUDE_EVAL" != "1" ]; then
     return
@@ -1021,7 +1482,7 @@ detect_claude_capabilities() {
     return
   fi
   # Check for --mcp-config support (Claude Code 2.x+)
-  if "$bin" chat --help 2>&1 | grep -qE '\s--mcp-config\s'; then
+  if "$bin" --help 2>&1 | grep -qE '\s--mcp-config\s'; then
     CLAUDE_SUPPORTS_MCP=1
     log "Claude MCP support detected via --mcp-config."
     return
@@ -1105,6 +1566,12 @@ run_claude_evaluation() {
     return
   fi
 
+  if ! ensure_claude_auth "$CURRENT_CLAUDE_ACCOUNT" "$CLAUDE_BIN_CMD" "$CLAUDE_ACCOUNT_ENV_JSON"; then
+    log "Claude evaluations disabled: authentication required for $CURRENT_CLAUDE_ACCOUNT."
+    ENABLE_CLAUDE_EVAL=0
+    return
+  fi
+
   local prompt_file
   prompt_file=$(mktemp)
   cat <<'PROMPT' > "$prompt_file"
@@ -1131,14 +1598,20 @@ PY
   fi
 
   # Create MCP config JSON for weathervane server
+  # Use index-claude.js for Claude Code evaluation (not index.js which is for Codex)
+  local CLAUDE_MCP_ENTRY="${MCP_ENTRY/index.js/index-claude.js}"
   local mcp_config_file
   mcp_config_file=$(mktemp)
+  if [ -z "$mcp_config_file" ]; then
+    log "Failed to create temporary MCP config file."
+    return
+  fi
   cat > "$mcp_config_file" <<EOF
 {
   "mcpServers": {
     "weathervane": {
       "command": "node",
-      "args": ["$MCP_ENTRY", "--workspace", "$ROOT"]
+      "args": ["$CLAUDE_MCP_ENTRY", "--workspace", "$ROOT"]
     }
   }
 }
@@ -1146,14 +1619,16 @@ EOF
 
   local output
   local exit_code
+  local -a claude_args
+  claude_args=(--print "--mcp-config=$mcp_config_file")
 
   # Disable set -e temporarily to prevent script exit on Claude failure
   set +e
   if [ ${#env_pairs[@]} -gt 0 ]; then
-    output=$(env "${env_pairs[@]}" "$CLAUDE_BIN_CMD" chat --mcp-config "$mcp_config_file" --message "$message" 2>&1)
+    output=$(env "${env_pairs[@]}" "$CLAUDE_BIN_CMD" "${claude_args[@]}" "$message" 2>&1)
     exit_code=$?
   else
-    output=$("$CLAUDE_BIN_CMD" chat --mcp-config "$mcp_config_file" --message "$message" 2>&1)
+    output=$("$CLAUDE_BIN_CMD" "${claude_args[@]}" "$message" 2>&1)
     exit_code=$?
   fi
   set -e
@@ -1189,12 +1664,21 @@ extract_wait_from_text() {
   python - <<'PY' "$1"
 import re, sys
 text = sys.argv[1]
-match = re.search(r'try again in (?:(\d+)\s*hour[s]?)?(?:\s*(\d+)\s*minute[s]?)?', text, re.I)
+pattern = (
+    r"try again in\s*"
+    r"(?:(\d+)\s*day[s]?)?\s*"
+    r"(?:(\d+)\s*hour[s]?)?\s*"
+    r"(?:(\d+)\s*minute[s]?)?\s*"
+    r"(?:(\d+)\s*second[s]?)?"
+)
+match = re.search(pattern, text, re.I)
 if not match:
     raise SystemExit(1)
-hours = int(match.group(1) or 0)
-minutes = int(match.group(2) or 0)
-seconds = hours * 3600 + minutes * 60
+days = int(match.group(1) or 0)
+hours = int(match.group(2) or 0)
+minutes = int(match.group(3) or 0)
+seconds = int(match.group(4) or 0)
+seconds += days * 86400 + hours * 3600 + minutes * 60
 if seconds <= 0:
     seconds = 300
 print(seconds)
@@ -1206,13 +1690,20 @@ run_with_claude_code() {
   local run_log="$2"
   local mcp_config_file
   mcp_config_file=$(mktemp)
+  if [ -z "$mcp_config_file" ]; then
+    log "Failed to create temporary MCP config file for Claude run."
+    return 1
+  fi
+
+  # Use index-claude.js for Claude Code (not index.js which is for Codex)
+  local CLAUDE_MCP_ENTRY="${MCP_ENTRY/index.js/index-claude.js}"
 
   cat > "$mcp_config_file" <<EOF
 {
   "mcpServers": {
     "weathervane": {
       "command": "node",
-      "args": ["$MCP_ENTRY", "--workspace", "$ROOT"]
+      "args": ["$CLAUDE_MCP_ENTRY", "--workspace", "$ROOT"]
     }
   }
 }
@@ -1241,6 +1732,7 @@ PY
 )
   else
     log "No Claude accounts available. Cannot fall back to Claude Code."
+    USE_CLAUDE_FALLBACK=0
     rm -f "$mcp_config_file"
     return 1
   fi
@@ -1248,6 +1740,23 @@ PY
   if ! command -v "$CLAUDE_BIN_CMD" >/dev/null 2>&1; then
     log "Claude binary $CLAUDE_BIN_CMD not found. Cannot fall back to Claude Code."
     rm -f "$mcp_config_file"
+    return 1
+  fi
+
+  if ! ensure_claude_auth "$CURRENT_CLAUDE_ACCOUNT" "$CLAUDE_BIN_CMD" "$CLAUDE_ACCOUNT_ENV_JSON"; then
+    log "Claude account $CURRENT_CLAUDE_ACCOUNT requires authentication. Skipping this account."
+    record_provider_cooldown claude "$CURRENT_CLAUDE_ACCOUNT" 3600  # Cool down for 1 hour
+    rm -f "$mcp_config_file"
+
+    # Try to get next Claude account instead of aborting completely
+    if claude_payload=$(python "$ACCOUNT_MANAGER" next claude --purpose execution 2>/dev/null); then
+      log "Trying next available Claude account..."
+      # Recursive call with updated account will happen on next iteration
+      rm -f "$mcp_config_file"
+      return 1  # Return 1 to trigger retry with new account
+    fi
+
+    log "No more Claude accounts available. Cannot fall back to Claude Code."
     return 1
   fi
 
@@ -1269,12 +1778,15 @@ PY
   fi
 
   local exit_code
+  local -a claude_args
+  claude_args=(--print "--mcp-config=$mcp_config_file")
+
   set +e
   if [ ${#env_pairs[@]} -gt 0 ]; then
-    env "${env_pairs[@]}" "$CLAUDE_BIN_CMD" chat --mcp-config "$mcp_config_file" --message "$prompt" 2>&1 | tee "$run_log"
+    env "${env_pairs[@]}" "$CLAUDE_BIN_CMD" "${claude_args[@]}" "$prompt" 2>&1 | tee "$run_log"
     exit_code=${PIPESTATUS[0]}
   else
-    "$CLAUDE_BIN_CMD" chat --mcp-config "$mcp_config_file" --message "$prompt" 2>&1 | tee "$run_log"
+    "$CLAUDE_BIN_CMD" "${claude_args[@]}" "$prompt" 2>&1 | tee "$run_log"
     exit_code=${PIPESTATUS[0]}
   fi
   set -e
@@ -1283,7 +1795,7 @@ PY
 
   if grep -qi 'usage limit' "$run_log"; then
     local wait_seconds
-    if wait_seconds=$(extract_wait_from_text "$(cat "$run_log")" 2>/dev/null); then
+    if wait_seconds=$(parse_usage_wait "$run_log" 2>/dev/null); then
       record_provider_cooldown claude "$CURRENT_CLAUDE_ACCOUNT" "$wait_seconds"
       log "Claude account $CURRENT_CLAUDE_ACCOUNT hit usage limit; cooling down for ${wait_seconds}s."
     else
@@ -1302,21 +1814,53 @@ check_all_accounts_auth() {
   local -a needs_auth=()
   local -a codex_accounts=()
   local -a claude_accounts=()
+  CLAUDE_ACCOUNTS_AVAILABLE=0
 
   # Get all codex accounts from config
   if [ "$ACCOUNT_MANAGER_ENABLED" -eq 1 ]; then
     local codex_json
     if codex_json=$(python "$ACCOUNT_MANAGER" list codex 2>/dev/null); then
-      while IFS= read -r line; do
-        [ -n "$line" ] && codex_accounts+=("$line")
-      done < <(python - <<'PY' "$codex_json"
-import json, sys
-for account in json.loads(sys.argv[1]):
+      local codex_tmp codex_out codex_err
+      codex_tmp=$(mktemp)
+      codex_out=$(mktemp)
+      codex_err=$(mktemp)
+      printf '%s\n' "$codex_json" >"$codex_tmp"
+      if python - <<'PY' "$codex_tmp" >"$codex_out" 2>"$codex_err"; then
+import json
+import sys
+from pathlib import Path
+
+path = Path(sys.argv[1])
+payload = path.read_text(encoding="utf-8")
+if not payload.strip():
+    raise SystemExit(10)
+try:
+    accounts = json.loads(payload)
+except json.JSONDecodeError as exc:
+    print(f"JSON decode error: {exc}", file=sys.stderr)
+    raise SystemExit(11)
+if not isinstance(accounts, list):
+    print("Expected a list of accounts in state/accounts.yaml", file=sys.stderr)
+    raise SystemExit(12)
+for account in accounts:
+    account_id = account.get("id", "")
+    home = account.get("home", "")
     email = account.get("email") or ""
     label = account.get("label") or ""
-    print(f"{account.get('id', '')}|{account.get('home', '')}|{email}|{label}")
+    print(f"{account_id}|{home}|{email}|{label}")
 PY
-)
+        while IFS= read -r line; do
+          [ -n "$line" ] && codex_accounts+=("$line")
+        done <"$codex_out"
+      else
+        log "⚠️ Unable to parse Codex accounts from state/accounts.yaml. Verify the configuration and JSON structure."
+        if [ -s "$codex_err" ]; then
+          while IFS= read -r err_line; do
+            [ -n "$err_line" ] && log "   $err_line"
+          done <"$codex_err"
+        fi
+      fi
+      rm -f "$codex_tmp" "$codex_out" "$codex_err"
     else
       ACCOUNT_MANAGER_ENABLED=0
       codex_accounts=("legacy|$DEFAULT_CODEX_HOME||")
@@ -1338,6 +1882,12 @@ PY
   else
     # Single account mode
     codex_accounts=("legacy|$DEFAULT_CODEX_HOME||")
+  fi
+
+  if [ ${#claude_accounts[@]} -gt 0 ]; then
+    CLAUDE_ACCOUNTS_AVAILABLE=1
+  else
+    CLAUDE_ACCOUNTS_AVAILABLE=0
   fi
 
   # Check each codex account
@@ -1527,6 +2077,231 @@ PY
   echo ""
 }
 
+ensure_at_least_one_provider() {
+  # Verify at least one provider (Codex or Claude) is authenticated
+  local has_codex=0
+  local has_claude=0
+
+  # Check if any Codex account is authenticated
+  if [ "$ACCOUNT_MANAGER_ENABLED" -eq 1 ]; then
+    local codex_json
+    if codex_json=$(python "$ACCOUNT_MANAGER" list codex 2>/dev/null); then
+      local codex_tmp codex_out codex_err
+      codex_tmp=$(mktemp)
+      codex_out=$(mktemp)
+      codex_err=$(mktemp)
+      printf '%s\n' "$codex_json" >"$codex_tmp"
+      if python - <<'PY' "$codex_tmp" >"$codex_out" 2>"$codex_err"; then
+import json
+import sys
+from pathlib import Path
+
+path = Path(sys.argv[1])
+payload = path.read_text(encoding="utf-8")
+if not payload.strip():
+    raise SystemExit(10)
+try:
+    accounts = json.loads(payload)
+except json.JSONDecodeError as exc:
+    print(f"JSON decode error: {exc}", file=sys.stderr)
+    raise SystemExit(11)
+if not isinstance(accounts, list):
+    print("Expected a list of accounts in state/accounts.yaml", file=sys.stderr)
+    raise SystemExit(12)
+for account in accounts:
+    account_id = account.get("id", "")
+    home = account.get("home", "")
+    email = account.get("email") or ""
+    label = account.get("label") or ""
+    print(f"{account_id}|{home}|{email}|{label}")
+PY
+        local codex_count
+        codex_count=$(grep -c '.' "$codex_out" 2>/dev/null || echo "0")
+        if [ "$codex_count" -gt 0 ]; then
+          while IFS='|' read -r account_id account_home account_email account_label; do
+            [ -z "$account_id" ] && continue
+            local previous_home="$CODEX_HOME"
+            CODEX_HOME="$account_home"
+            export CODEX_HOME
+            if fetch_auth_status codex 2>/dev/null && [ "$(provider_authenticated codex)" = "true" ]; then
+              has_codex=1
+            fi
+            CODEX_HOME="$previous_home"
+            export CODEX_HOME
+            [ $has_codex -eq 1 ] && break
+          done <"$codex_out"
+        fi
+      else
+        log "⚠️ Unable to parse Codex accounts during provider check. Verify state/accounts.yaml."
+        if [ -s "$codex_err" ]; then
+          while IFS= read -r err_line; do
+            [ -n "$err_line" ] && log "   $err_line"
+          done <"$codex_err"
+        fi
+      fi
+      rm -f "$codex_tmp" "$codex_out" "$codex_err"
+    fi
+  else
+    # Legacy mode - check default CODEX_HOME
+    if fetch_auth_status codex 2>/dev/null && [ "$(provider_authenticated codex)" = "true" ]; then
+      has_codex=1
+    fi
+  fi
+
+  # Check if any Claude account is authenticated
+  if [ "$ENABLE_CLAUDE_EVAL" -eq 1 ]; then
+    local claude_json
+    if claude_json=$(python "$ACCOUNT_MANAGER" list claude 2>/dev/null); then
+      while IFS=$'\t' read -r acc_id acc_bin claude_config_dir; do
+        [ -z "$acc_id" ] && continue
+        local bin_cmd="${acc_bin:-claude}"
+        if command -v "$bin_cmd" >/dev/null 2>&1; then
+          local config="${claude_config_dir:-$ROOT/.accounts/claude/$acc_id}"
+          if CLAUDE_CONFIG_DIR="$config" "$bin_cmd" whoami >/dev/null 2>&1; then
+            has_claude=1
+            break
+          fi
+        fi
+      done < <(echo "$claude_json" | python - <<'PY'
+import json, sys
+for acc in json.load(sys.stdin):
+    env = acc.get('env') or {}
+    print(f"{acc.get('id', '')}\t{acc.get('bin', 'claude')}\t{env.get('CLAUDE_CONFIG_DIR', '')}")
+PY
+)
+    fi
+  fi
+
+  # Exit if no providers are available
+  if [ $has_codex -eq 0 ] && [ $has_claude -eq 0 ]; then
+    echo ""
+    echo "❌ No authenticated providers available!"
+    echo ""
+    echo "Autopilot requires at least one authenticated provider to run:"
+    echo "  - Codex (OpenAI): Run 'CODEX_HOME=<path> codex login'"
+    echo "  - Claude Code: Run 'CLAUDE_CONFIG_DIR=<path> claude login'"
+    echo ""
+    echo "Configured accounts:"
+    if [ "$ACCOUNT_MANAGER_ENABLED" -eq 1 ]; then
+      if codex_json=$(python "$ACCOUNT_MANAGER" list codex 2>/dev/null); then
+        local codex_tmp codex_err
+        codex_tmp=$(mktemp)
+        codex_err=$(mktemp)
+        printf '%s\n' "$codex_json" >"$codex_tmp"
+        if ! python - <<'PY' "$codex_tmp" 2>"$codex_err"
+import json
+import sys
+from pathlib import Path
+
+path = Path(sys.argv[1])
+payload = path.read_text(encoding="utf-8")
+if not payload.strip():
+    raise SystemExit(10)
+try:
+    accounts = json.loads(payload)
+except json.JSONDecodeError as exc:
+    print(f"    ⚠️ Codex account JSON invalid: {exc}", file=sys.stderr)
+    raise SystemExit(11)
+if not isinstance(accounts, list):
+    print("    ⚠️ Codex accounts entry must be a list in state/accounts.yaml", file=sys.stderr)
+    raise SystemExit(12)
+if not accounts:
+    print("    ⚠️ No Codex accounts defined in state/accounts.yaml", file=sys.stderr)
+    raise SystemExit(13)
+for acc in accounts:
+    email = acc.get("email") or acc.get("id") or "unknown"
+    home = acc.get("home", "N/A")
+    print(f"  - Codex: {email} (CODEX_HOME={home})")
+PY
+        then
+          if [ -s "$codex_err" ]; then
+            while IFS= read -r err_line; do
+              [ -n "$err_line" ] && echo "$err_line"
+            done <"$codex_err"
+          fi
+        fi
+        rm -f "$codex_tmp" "$codex_err"
+      fi
+      if claude_json=$(python "$ACCOUNT_MANAGER" list claude 2>/dev/null); then
+        local claude_tmp claude_err
+        claude_tmp=$(mktemp)
+        claude_err=$(mktemp)
+        printf '%s\n' "$claude_json" >"$claude_tmp"
+        if ! python - <<'PY' "$claude_tmp" 2>"$claude_err"
+import json
+import sys
+from pathlib import Path
+
+path = Path(sys.argv[1])
+payload = path.read_text(encoding="utf-8")
+if not payload.strip():
+    raise SystemExit(10)
+try:
+    accounts = json.loads(payload)
+except json.JSONDecodeError as exc:
+    print(f"    ⚠️ Claude account JSON invalid: {exc}", file=sys.stderr)
+    raise SystemExit(11)
+if not isinstance(accounts, list):
+    print("    ⚠️ Claude accounts entry must be a list in state/accounts.yaml", file=sys.stderr)
+    raise SystemExit(12)
+if not accounts:
+    print("    ⚠️ No Claude accounts defined in state/accounts.yaml", file=sys.stderr)
+    raise SystemExit(13)
+for acc in accounts:
+    env = acc.get("env") or {}
+    config_dir = env.get("CLAUDE_CONFIG_DIR", "N/A")
+    identifier = acc.get("id") or "claude"
+    print(f"  - Claude: {identifier} (CLAUDE_CONFIG_DIR={config_dir})")
+PY
+        then
+          if [ -s "$claude_err" ]; then
+            while IFS= read -r err_line; do
+              [ -n "$err_line" ] && echo "$err_line"
+            done <"$claude_err"
+          fi
+        fi
+        rm -f "$claude_tmp" "$claude_err"
+      fi
+    else
+      echo "  - Codex (legacy): CODEX_HOME=$CODEX_HOME"
+    fi
+    echo ""
+    echo "Please authenticate at least one provider and rerun autopilot."
+    exit 1
+  fi
+
+  # Log which providers are available
+  if [ $has_codex -eq 1 ] && [ $has_claude -eq 1 ]; then
+    log "✅ Both Codex and Claude Code providers are authenticated and ready"
+  elif [ $has_codex -eq 1 ]; then
+    log "✅ Codex provider is authenticated and ready (Claude Code not available)"
+  elif [ $has_claude -eq 1 ]; then
+    log "✅ Claude Code provider is authenticated and ready (Codex not available)"
+  fi
+}
+
+ensure_network_reachable() {
+  if [ "${WVO_AUTOPILOT_SKIP_NETWORK_CHECK:-0}" = "1" ]; then
+    log "Skipping network connectivity preflight (WVO_AUTOPILOT_SKIP_NETWORK_CHECK=1)."
+    return
+  fi
+
+  log "Running network connectivity preflight check..."
+  local endpoints=(
+    "https://api.openai.com"
+    "https://chatgpt.com"
+  )
+  local endpoint
+  for endpoint in "${endpoints[@]}"; do
+    if ! curl --silent --head --max-time 5 "$endpoint" >/dev/null 2>&1; then
+      log "❌ Unable to reach $endpoint. Autopilot requires outbound network access."
+      log "   Launch the autopilot from your macOS Terminal (not the sandboxed CLI) so Codex/Claude can reach their APIs."
+      exit 1
+    fi
+  done
+  log "✅ Network connectivity check passed."
+}
+
 ensure_accounts_config
 ensure_web_inspiration_ready
 summarize_web_inspiration_cache() {
@@ -1598,6 +2373,7 @@ if [ "${WVO_AUTOPILOT_SMOKE:-0}" != "1" ]; then
     write_offline_summary "dns-lookup-failed" "$DNS_CHECK"
     exit 0
   fi
+  ensure_network_reachable
 fi
 
 if [ "${WVO_AUTOPILOT_SMOKE:-0}" = "1" ]; then
@@ -1615,12 +2391,19 @@ if [ "${WVO_AUTOPILOT_SMOKE:-0}" = "1" ]; then
 fi
 
 check_all_accounts_auth
+ensure_at_least_one_provider
 
 # Try to select Codex account; if all exhausted, enable Claude Code failover
 USE_CLAUDE_FALLBACK=0
+CODEX_RETRY_AT=0
 if ! select_codex_account; then
-  log "All Codex accounts exhausted. Enabling Claude Code fallback mode."
-  USE_CLAUDE_FALLBACK=1
+  if [ "${CLAUDE_ACCOUNTS_AVAILABLE:-0}" -eq 1 ]; then
+    log "All Codex accounts exhausted. Enabling Claude Code fallback mode."
+    USE_CLAUDE_FALLBACK=1
+  else
+    log "All Codex accounts exhausted, but no Claude accounts configured. Waiting on Codex cooldown."
+    USE_CLAUDE_FALLBACK=0
+  fi
 fi
 
 TELEMETRY_DIR="$ROOT/state/telemetry"
@@ -1756,16 +2539,76 @@ if (history.length > 1) {
   }
 }
 
-console.log(lines.join("\n"));
+  console.log(lines.join("\n"));
 NODE
 )
 
+  TASK_MEMO_SNIPPET=$(python - <<'PY' "$TASK_MEMO_DIR"
+import json
+from pathlib import Path
+import sys
+
+memo_dir = Path(sys.argv[1])
+if not memo_dir.exists():
+    print("- No active task memos recorded yet.")
+    raise SystemExit(0)
+
+records = []
+for path in memo_dir.glob("*.json"):
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except Exception:
+        continue
+    statuses = data.get("statuses") or []
+    if not statuses:
+        continue
+    if set(statuses).issubset({"done"}):
+        continue
+    updated = data.get("updated_at") or ""
+    records.append((updated, path.name, data))
+
+if not records:
+    print("- No active task memos recorded yet.")
+    raise SystemExit(0)
+
+records.sort(key=lambda item: item[0], reverse=True)
+lines = []
+limit = 5
+note_printed = False
+for updated, _, data in records[:limit]:
+    label = data.get("label") or data.get("task_id") or data.get("key")
+    statuses = ", ".join(data.get("statuses", [])) or "unknown"
+    stamp = updated or "unknown"
+    lines.append(f"- {label} (status: {statuses}, updated {stamp})")
+    note = (data.get("note") or "").strip()
+    if note and not note_printed:
+        if len(note) > 260:
+            note = note[:257].rstrip() + "..."
+        lines.append(f"  • Session note: {note}")
+        note_printed = True
+    next_items = data.get("next") or []
+    if next_items:
+        lines.append(f"  • Next: {next_items[0]}")
+        if len(next_items) > 1:
+            lines.append(f"  • Next+: {next_items[1]}")
+    blockers = data.get("blockers") or []
+    if blockers:
+        lines.append(f"  • Blockers: {', '.join(blockers[:2])}")
+
+print("\n".join(lines))
+PY
+)
+  if [ -z "$TASK_MEMO_SNIPPET" ]; then
+    TASK_MEMO_SNIPPET="- No active task memos recorded yet."
+  fi
+
   {
     cat <<'HEADER'
-Operate autonomously as the WeatherVane super-team. Your goal is to drive the roadmap to completion with world-class engineering, data/ML, product, and design rigor.
+Operate under the Autopilot Captain persona—Atlas—and escalate to Director Dana when needed. Your goal is to drive the roadmap to completion with world-class engineering, data/ML, product, and design rigor.
 
 HEADER
     printf 'Current surprise QA ledger:\n%s\n\n' "$AUTOPILOT_STATE_SNIPPET"
+    printf 'Task memo cache (recent updates first):\n%s\n\n' "$TASK_MEMO_SNIPPET"
     if [ -s "$CLAUDE_EVAL_FILE" ]; then
       echo "Most recent Claude evaluation:"
       sed 's/^/  /' "$CLAUDE_EVAL_FILE"
@@ -1773,20 +2616,32 @@ HEADER
     fi
     cat <<'BODY'
 Loop:
-1. Use `plan_next` with minimal=true to get highest-priority tasks (70% token savings vs full details).
+- Respect roadmap domains: default to WeatherVane product work (domain=`product`, e.g. E1/E4/E5/E7/E11). Only pick MCP platform items (domain=`mcp`, e.g. E6/E8/E9/E10) when product tasks are blocked or explicitly requested. Bundle E6+E10 as one upgrade programme; run PHASE‑5A immediately after, and leave PHASE‑5B items blocked behind E5.
+0. Skim cached task memos in state/task_memos to resume active work before loading large contexts; refresh them if reality diverges.
+1. Call `plan_next` with `filters: { domain: 'product' }` and `minimal=true`. Only if that queue is empty should you issue a second `plan_next` for `domain: 'mcp'`. Re-run this selection every cycle regardless of which task you just finished.
 2. Call `autopilot_status` to refresh the audit ledger.
-3. For each chosen task:
+3. Run `critics_run` with `network_navigator` at session start. If it fails, restart MCP with 
+   `make mcp-autopilot danger=1` so both Codex and Claude have full network access.
+4. Run `critics_run` with `product_completeness` weekly (or when roadmap changes) to ensure UX milestones are in flight.
+5. Run `critics_run` with `integration_fury` after major merges or before releases to exercise the full stack.
+6. The `design_system` critic is currently offline (capability skipped). Leave T3.3.x/T3.4.x blocked until a designer reviews them; do **not** loop on “Director Dana” escalations.
+7. When any other critic fails or flags work, create/adjust roadmap tasks immediately—critics own the standard and can overrule earlier plans.
+8. If any task memo is marked `escalate` (stalled for multiple loops), hand it off to a human reviewer with higher autonomy before taking further automated action.
+9. For each chosen task:
    a. Audit docs/code/tests to understand requirements.
    b. Implement via fs_read/fs_write/cmd_run (code + tests + docs + design). Keep slices verifiable.
-   c. Run `critics_run` with quiet=true and relevant critics (build, tests, manager_self_check, data_quality, design_system, org_pm, exec_review, health_check, human_sync; add allocator/causal/forecast when applicable). Check state/critics timestamps to skip suites covering unchanged artifacts (same git_sha); rerun after commits or meaningful edits.
-   d. Fix issues. If blocked, log blocker and mark task blocked with `plan_update`.
+   c. Run `critics_run` with quiet=true and relevant critics (build, tests, manager_self_check, data_quality, org_pm, exec_review, health_check, human_sync; add allocator/causal/forecast when applicable). Check state/critics timestamps to skip suites covering unchanged artifacts (same git_sha); rerun after commits or meaningful edits.
+   d. Fix issues. If blocked (missing critic/test capacity, sandbox limits, outstanding approvals), log the blocker, mark the task blocked with `plan_update`, and move on—do **not** manufacture substitute deliverables or sign-off docs to bypass exit criteria.
    e. Record decisions/risks via `context_write` (keep state/context.md ≤1000 words).
    f. Snapshot via `context_snapshot`.
    g. Update roadmap with `plan_update` only after exit criteria satisfied.
-   h. For work >5min, use `heavy_queue_enqueue` (include cmd/context), monitor via `heavy_queue_list`, update with `heavy_queue_update`.
-4. Ship real work over repeated self-review; if nothing changed, move forward vs re-running same suites.
-5. Every ~100 tasks, audit a completed roadmap item for gaps/regressions. Call `autopilot_record_audit` (task_id/focus/notes); if issues emerge, open fix tasks before resuming new work. Spread audits across epics/milestones; skip if already inspected this session.
-6. Repeat until no progress possible without human intervention.
+   h. After each loop, sanity-check the product roadmap: make sure M3.3/M3.4 tasks exist and are on deck. Escalate if the roadmap lacks full product experience work.
+   i. Review the roadmap (state/roadmap.yaml) weekly: confirm domain balance, that product experience work (M3.3/M3.4) remains on deck, and that blocked critics are tracked. Escalate if gaps persist.
+   j. For work >5min, use `heavy_queue_enqueue` (include cmd/context), monitor via `heavy_queue_list`, update with `heavy_queue_update`.
+10. At least once per day (or after major roadmap edits), run `critics_run` with `roadmap_completeness` to ensure future enhancement notes have matching tasks.
+11. Ship real work over repeated self-review; if nothing changed, move forward vs re-running same suites.
+12. Every ~100 tasks, audit a completed roadmap item for gaps/regressions. Call `autopilot_record_audit` (task_id/focus/notes); if issues emerge, open fix tasks before resuming new work. Spread audits across epics/milestones; skip if already inspected this session.
+13. Repeat until no progress possible without human intervention.
 Maintain production readiness, enforce ML/causal rigor, polish UX, and communicate like a Staff+/startup leader.
 Return JSON summarizing completed tasks, tasks still in progress, blockers, next focus items, and overall notes.
 BODY
@@ -1799,12 +2654,42 @@ BODY
     RUN_LOG="$(mktemp)"
     attempt_number=$((attempt + 1))
     attempt_start_iso="$(timestamp)"
-    attempt_start_epoch=$(date -u +%s)
-    LAST_FAILURE_REASON=""
-    LAST_FAILURE_DETAILS=""
-    log "Starting WeatherVane autopilot run (attempt ${attempt_number})..."
+  attempt_start_epoch=$(date -u +%s)
+  LAST_FAILURE_REASON=""
+  LAST_FAILURE_DETAILS=""
+  now_epoch=$(date -u +%s)
+  if [ "${CODEX_RETRY_AT:-0}" -gt 0 ]; then
+    if [ "$now_epoch" -lt "$CODEX_RETRY_AT" ]; then
+      remaining=$(( CODEX_RETRY_AT - now_epoch ))
+      if [ "${CLAUDE_ACCOUNTS_AVAILABLE:-0}" -eq 1 ]; then
+        if [ "$USE_CLAUDE_FALLBACK" -ne 1 ]; then
+          log "Codex cooldown remains for ${remaining}s; running in Claude fallback mode."
+        fi
+        USE_CLAUDE_FALLBACK=1
+      else
+        if [ "$USE_CLAUDE_FALLBACK" -ne 0 ]; then
+          log "Claude fallback disabled; waiting ${remaining}s for Codex cooldown."
+        else
+          log "Codex cooldown remains for ${remaining}s; no Claude fallback configured."
+        fi
+        USE_CLAUDE_FALLBACK=0
+        sleep_seconds=$(( remaining < 30 ? remaining : 30 ))
+        if [ "$sleep_seconds" -gt 0 ]; then
+          sleep "$sleep_seconds"
+        fi
+        continue
+      fi
+    else
+      if [ "$USE_CLAUDE_FALLBACK" -eq 1 ]; then
+        log "Codex cooldown window elapsed; resuming Codex mode."
+      fi
+      USE_CLAUDE_FALLBACK=0
+      CODEX_RETRY_AT=0
+    fi
+  fi
+  log "Starting WeatherVane autopilot run (attempt ${attempt_number})..."
 
-    if [ "$USE_CLAUDE_FALLBACK" -eq 1 ]; then
+  if [ "$USE_CLAUDE_FALLBACK" -eq 1 ]; then
       set +e
       run_with_claude_code "$PROMPT_CONTENT" "$RUN_LOG"
       status=$?
@@ -1815,11 +2700,10 @@ BODY
       codex exec \
         --profile "$CLI_PROFILE" \
         --model "$AUTOPILOT_MODEL" \
-        --full-auto \
-        --sandbox danger-full-access \
+        --dangerously-bypass-approvals-and-sandbox \
         --output-schema "$SCHEMA_FILE" \
-        "$PROMPT_CONTENT" 2>&1 | tee "$RUN_LOG"
-      status=${PIPESTATUS[0]}
+        "$PROMPT_CONTENT" >"$RUN_LOG" 2>&1
+      status=$?
       set -e
       cat "$RUN_LOG" >> "$LOG_FILE"
     fi
@@ -1845,10 +2729,34 @@ BODY
         fi
         record_provider_cooldown codex "$CURRENT_CODEX_ACCOUNT" "$wait_seconds"
 
-        # Try to get another Codex account; if all exhausted, fall back to Claude
-        if ! select_codex_account; then
-          log "All Codex accounts exhausted. Switching to Claude Code fallback mode."
+        # Try to switch to another Codex account without blocking; otherwise fall back to Claude
+        prev_wait_attempts="${CODEX_WAIT_ATTEMPTS-}"
+        CODEX_WAIT_ATTEMPTS=0
+        codex_switch_status=1
+        if select_codex_account; then
+          codex_switch_status=0
+        else
+          codex_switch_status=$?
+        fi
+        if [ -n "${prev_wait_attempts}" ]; then
+          CODEX_WAIT_ATTEMPTS="$prev_wait_attempts"
+        else
+          unset CODEX_WAIT_ATTEMPTS 2>/dev/null || true
+        fi
+
+        if [ "$codex_switch_status" -eq 0 ]; then
+          log "Switched to alternate Codex account after usage limit; retrying Codex mode."
+          rm -f "$RUN_LOG"
+          continue 2
+        fi
+
+        CODEX_RETRY_AT=$(( $(date -u +%s) + wait_seconds ))
+        if [ "${CLAUDE_ACCOUNTS_AVAILABLE:-0}" -eq 1 ]; then
           USE_CLAUDE_FALLBACK=1
+          log "Codex accounts cooling down; using Claude fallback for approximately ${wait_seconds}s."
+        else
+          USE_CLAUDE_FALLBACK=0
+          log "Codex accounts cooling down for approximately ${wait_seconds}s; no Claude fallback configured."
         fi
       fi
 
@@ -1954,6 +2862,7 @@ PY
       continue
     }
     printf '%s\n' "$SUMMARY_JSON"
+    update_task_memos_from_summary "$SUMMARY_JSON" || true
     rm -f "$RUN_LOG"
     log "Summary saved to $STATE_FILE"
     attempt_end_iso="$(timestamp)"

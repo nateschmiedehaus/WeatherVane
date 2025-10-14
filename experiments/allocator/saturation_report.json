@@ -1,0 +1,97 @@
+{
+  "allocator": {
+    "diagnostics": {
+      "binding_learning_cap": [],
+      "binding_max_spend": [],
+      "binding_min_spend": [],
+      "binding_roas_floor": [],
+      "expected_profit_raw": 406.9918562015177,
+      "inventory_penalty": 0.0,
+      "iterations_with_improvement": 4.0,
+      "learning_penalty": 0.0,
+      "min_softened": 0.0,
+      "nfev": 170.0,
+      "objective_value": -359.86449202404344,
+      "optimizer": "coordinate_ascent",
+      "optimizer_candidates": [
+        {
+          "optimizer": "coordinate_ascent",
+          "profit": 359.86449202404344,
+          "success": 1.0
+        }
+      ],
+      "optimizer_winner": "coordinate_ascent",
+      "projection_residual_lower": 0.0,
+      "projection_residual_upper": 2.0789221244767954e-09,
+      "projection_target": 820.8000000000001,
+      "risk_penalty": 47.12736417747425,
+      "roas_caps": {
+        "europe": 322.38609375
+      },
+      "roas_penalty": 0.0,
+      "scenario_profit_p10": 171.35503531414645,
+      "scenario_profit_p50": 419.3937941429582,
+      "scenario_profit_p90": 605.4228632645674,
+      "success": 1.0,
+      "worst_case_profit": 171.35503531414645
+    },
+    "profit": 359.86449202404344
+  },
+  "fairness_floor": 0.8,
+  "generated_at": "2025-10-12T20:36:36.181980",
+  "markets": [
+    {
+      "allocated_spend": 344.9193181869237,
+      "current_spend": 320.0,
+      "fair_share": 0.37037037037037035,
+      "guardrail_binding": false,
+      "lift_vs_current": 0.07787286933413658,
+      "min_share": 0.2962962962962963,
+      "name": "north_america",
+      "revenue": 523.2456995269574,
+      "roas": 1.5170089697422877,
+      "saturation_ratio": 0.8212364718736279,
+      "share": 0.4202233408704443,
+      "weather_multiplier": 1.08
+    },
+    {
+      "allocated_spend": 233.88250611992868,
+      "current_spend": 260.0,
+      "fair_share": 0.3333333333333333,
+      "guardrail_binding": false,
+      "lift_vs_current": -0.10045189953873586,
+      "min_share": 0.26666666666666666,
+      "name": "europe",
+      "revenue": 323.89373291371396,
+      "roas": 1.3848566029458824,
+      "saturation_ratio": 0.649673628110913,
+      "share": 0.28494457373247406,
+      "weather_multiplier": 1.02
+    },
+    {
+      "allocated_spend": 241.9981756942495,
+      "current_spend": 180.0,
+      "fair_share": 0.2962962962962963,
+      "guardrail_binding": false,
+      "lift_vs_current": 0.3444343094124973,
+      "min_share": 0.23703703703703705,
+      "name": "apac",
+      "revenue": 400.48826500228614,
+      "roas": 1.654922661517414,
+      "saturation_ratio": 0.864279198908034,
+      "share": 0.29483208539708167,
+      "weather_multiplier": 1.12
+    }
+  ],
+  "roas_floor": 1.15,
+  "summary": {
+    "baseline_profit": 437.5855901981181,
+    "max_fairness_gap": 0.04985297050007392,
+    "profit": 426.82769744185555,
+    "profit_lift": -10.75789275626255,
+    "total_revenue": 1247.6276974429575,
+    "total_spend": 820.8000000011019,
+    "weighted_fairness_gap": 0.09457422286021895
+  },
+  "total_budget": 820.8000000000001
+}
