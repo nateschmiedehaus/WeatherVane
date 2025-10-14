@@ -1,6 +1,67 @@
 .root {
   position: relative;
   padding-bottom: 4rem;
+  --stories-backdrop:
+    radial-gradient(circle at 18% 22%, rgba(147, 197, 253, 0.22), transparent 55%),
+    radial-gradient(circle at 82% 18%, rgba(192, 132, 252, 0.18), transparent 55%),
+    radial-gradient(circle at 48% 84%, rgba(45, 212, 191, 0.16), transparent 55%),
+    linear-gradient(135deg, rgba(10, 20, 35, 0.94), rgba(15, 23, 42, 0.82));
+  --stories-backdrop-blur: 36px;
+  --stories-header-text: rgba(226, 232, 240, 0.84);
+  --stories-muted-text: rgba(148, 163, 184, 0.82);
+  --stories-panel-border: rgba(99, 102, 241, 0.32);
+  --stories-panel-bg: linear-gradient(135deg, rgba(79, 70, 229, 0.25), rgba(59, 130, 246, 0.2));
+  --stories-panel-shadow:
+    inset 0 0 0 1px rgba(148, 163, 184, 0.12),
+    0 20px 44px rgba(15, 23, 42, 0.32);
+  --stories-meta-border: rgba(99, 102, 241, 0.28);
+  --stories-meta-bg: linear-gradient(135deg, rgba(59, 130, 246, 0.22), rgba(129, 140, 248, 0.16));
+  --stories-meta-shadow:
+    inset 0 0 0 1px rgba(148, 163, 184, 0.1),
+    0 18px 34px rgba(15, 23, 42, 0.3);
+  --stories-card-border: rgba(79, 70, 229, 0.3);
+  --stories-card-bg: linear-gradient(135deg, rgba(49, 46, 129, 0.4), rgba(30, 64, 175, 0.4));
+  --stories-card-shadow:
+    inset 0 0 0 1px rgba(148, 163, 184, 0.08),
+    0 24px 48px rgba(15, 23, 42, 0.4);
+  --stories-icon-bg: rgba(15, 23, 42, 0.4);
+  --stories-footer-text: rgba(165, 180, 252, 0.85);
+  --stories-placeholder-border: rgba(148, 163, 184, 0.4);
+  --stories-placeholder-bg: linear-gradient(135deg, rgba(30, 41, 59, 0.55), rgba(15, 23, 42, 0.5));
+  --stories-placeholder-text: rgba(148, 163, 184, 0.85);
+  --stories-button-bg: rgba(15, 23, 42, 0.45);
+  --stories-error-border: rgba(239, 68, 68, 0.55);
+}
+
+:global([data-theme="calm"]) .root {
+  --stories-backdrop:
+    radial-gradient(circle at 20% 24%, rgba(148, 205, 255, 0.2), transparent 55%),
+    radial-gradient(circle at 78% 18%, rgba(167, 196, 255, 0.18), transparent 56%),
+    radial-gradient(circle at 50% 82%, rgba(125, 211, 252, 0.14), transparent 60%),
+    linear-gradient(138deg, rgba(6, 16, 30, 0.95), rgba(8, 23, 36, 0.86));
+  --stories-header-text: rgba(224, 239, 255, 0.86);
+  --stories-muted-text: rgba(186, 200, 233, 0.82);
+  --stories-panel-border: rgba(129, 140, 248, 0.28);
+  --stories-panel-bg: linear-gradient(135deg, rgba(64, 87, 196, 0.26), rgba(14, 56, 138, 0.22));
+  --stories-panel-shadow:
+    inset 0 0 0 1px rgba(148, 191, 233, 0.14),
+    0 24px 48px rgba(6, 17, 29, 0.38);
+  --stories-meta-border: rgba(129, 140, 248, 0.26);
+  --stories-meta-bg: linear-gradient(135deg, rgba(48, 78, 153, 0.24), rgba(20, 65, 148, 0.2));
+  --stories-meta-shadow:
+    inset 0 0 0 1px rgba(148, 191, 233, 0.12),
+    0 22px 44px rgba(6, 17, 29, 0.36);
+  --stories-card-border: rgba(165, 180, 252, 0.32);
+  --stories-card-bg: linear-gradient(135deg, rgba(26, 47, 110, 0.42), rgba(14, 56, 138, 0.4));
+  --stories-card-shadow:
+    inset 0 0 0 1px rgba(148, 191, 233, 0.1),
+    0 28px 52px rgba(6, 17, 29, 0.4);
+  --stories-icon-bg: rgba(7, 16, 28, 0.48);
+  --stories-footer-text: rgba(196, 210, 254, 0.92);
+  --stories-placeholder-border: rgba(148, 191, 233, 0.42);
+  --stories-placeholder-bg: linear-gradient(135deg, rgba(12, 27, 45, 0.58), rgba(7, 18, 31, 0.52));
+  --stories-placeholder-text: rgba(186, 200, 233, 0.85);
+  --stories-button-bg: rgba(7, 16, 28, 0.52);
 }
 
 .root::before {
@@ -8,18 +69,14 @@
   position: fixed;
   inset: 0;
   z-index: -2;
-  background:
-    radial-gradient(circle at 18% 22%, rgba(147, 197, 253, 0.22), transparent 55%),
-    radial-gradient(circle at 82% 18%, rgba(192, 132, 252, 0.18), transparent 55%),
-    radial-gradient(circle at 48% 84%, rgba(45, 212, 191, 0.16), transparent 55%),
-    linear-gradient(135deg, rgba(10, 20, 35, 0.94), rgba(15, 23, 42, 0.82));
+  background: var(--stories-backdrop);
 }
 
 .root::after {
   content: "";
   position: fixed;
   inset: 0;
-  backdrop-filter: blur(36px) saturate(145%);
+  backdrop-filter: blur(var(--stories-backdrop-blur)) saturate(145%);
   z-index: -1;
 }
 
@@ -31,26 +88,22 @@
 
 .header h2 {
   margin: 0;
-  font-size: clamp(2rem, 3vw, 2.6rem);
-  letter-spacing: -0.01em;
+  letter-spacing: var(--font-letter-tight);
 }
 
 .header p {
   margin: 0.75rem 0 0;
   max-width: 65ch;
-  line-height: 1.7;
-  color: rgba(226, 232, 240, 0.82);
+  line-height: var(--line-height-relaxed);
+  color: var(--stories-header-text);
 }
 
 .meta {
   padding: 1.4rem;
   border-radius: 1.1rem;
-  border: 1px solid rgba(99, 102, 241, 0.32);
-  background:
-    linear-gradient(135deg, rgba(79, 70, 229, 0.25), rgba(59, 130, 246, 0.2)) border-box;
-  box-shadow:
-    inset 0 0 0 1px rgba(148, 163, 184, 0.12),
-    0 20px 44px rgba(15, 23, 42, 0.32);
+  border: 1px solid var(--stories-panel-border);
+  background: var(--stories-panel-bg) border-box;
+  box-shadow: var(--stories-panel-shadow);
 }
 
 .meta dl {
@@ -60,15 +113,12 @@
 }
 
 .meta dt {
-  font-size: 0.85rem;
-  color: rgba(148, 163, 184, 0.85);
+  color: var(--stories-muted-text);
 }
 
 .meta dd {
   margin: 0;
-  font-size: 1.05rem;
-  color: rgba(241, 245, 249, 0.94);
-  font-weight: 600;
+  color: var(--color-text-primary);
 }
 
 .status,
@@ -89,7 +139,7 @@
 .error {
   background: var(--status-critical-bg, #7f1d1d);
   color: var(--status-critical-text, #fee2e2);
-  border: 1px solid rgba(239, 68, 68, 0.55);
+  border: 1px solid var(--stories-error-border);
   display: grid;
   gap: 0.75rem;
 }
@@ -98,12 +148,12 @@
   justify-self: start;
   padding: 0.55rem 1.2rem;
   border-radius: 0.85rem;
-  border: 1px solid rgba(239, 68, 68, 0.55);
-  background: rgba(15, 23, 42, 0.45);
+  border: 1px solid var(--stories-error-border);
+  background: var(--stories-button-bg);
   color: var(--status-critical-text, #fee2e2);
   font-weight: 600;
   cursor: pointer;
-  transition: transform 140ms ease;
+  transition: transform var(--motion-duration-snappy) var(--motion-easing-standard);
 }
 
 .retryButton:hover {
@@ -128,23 +178,18 @@
   gap: 1rem;
   padding: 0.9rem 1.1rem;
   border-radius: 1rem;
-  border: 1px solid rgba(99, 102, 241, 0.28);
-  background:
-    linear-gradient(135deg, rgba(59, 130, 246, 0.22), rgba(129, 140, 248, 0.16)) border-box;
-  box-shadow:
-    inset 0 0 0 1px rgba(148, 163, 184, 0.1),
-    0 18px 34px rgba(15, 23, 42, 0.3);
+  border: 1px solid var(--stories-meta-border);
+  background: var(--stories-meta-bg) border-box;
+  box-shadow: var(--stories-meta-shadow);
 }
 
 .metaLabel {
   font-size: 0.82rem;
-  color: rgba(148, 163, 184, 0.8);
+  color: var(--stories-muted-text);
 }
 
 .metaValue {
-  font-size: 0.95rem;
-  color: rgba(226, 232, 240, 0.96);
-  font-weight: 500;
+  color: var(--color-text-secondary);
 }
 
 .grid {
@@ -157,12 +202,9 @@
   position: relative;
   padding: 1.6rem;
   border-radius: 1.2rem;
-  border: 1px solid rgba(79, 70, 229, 0.3);
-  background:
-    linear-gradient(135deg, rgba(49, 46, 129, 0.4), rgba(30, 64, 175, 0.4)) border-box;
-  box-shadow:
-    inset 0 0 0 1px rgba(148, 163, 184, 0.08),
-    0 24px 48px rgba(15, 23, 42, 0.4);
+  border: 1px solid var(--stories-card-border);
+  background: var(--stories-card-bg) border-box;
+  box-shadow: var(--stories-card-shadow);
   display: grid;
   gap: 1rem;
   min-height: 220px;
@@ -181,47 +223,53 @@
   width: 3rem;
   height: 3rem;
   border-radius: 0.9rem;
-  background: rgba(15, 23, 42, 0.4);
+  background: var(--stories-icon-bg);
   font-size: 1.6rem;
 }
 
 .grid h3 {
   margin: 0;
   font-size: 1.2rem;
-  color: rgba(241, 245, 249, 0.96);
+  color: var(--color-text-primary);
 }
 
 .metaLine {
   margin: 0.35rem 0 0;
-  font-size: 0.85rem;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  color: rgba(148, 163, 184, 0.8);
+  color: var(--stories-muted-text);
 }
 
 .summary {
   margin: 0;
-  color: rgba(226, 232, 240, 0.9);
-  line-height: 1.6;
+  color: var(--stories-header-text);
+  line-height: var(--line-height-relaxed);
 }
 
 .grid article footer {
   margin: 0;
-  color: rgba(165, 180, 252, 0.85);
+  color: var(--stories-footer-text);
   font-size: 0.95rem;
 }
 
 .placeholder {
   text-align: center;
-  background:
-    linear-gradient(135deg, rgba(30, 41, 59, 0.55), rgba(15, 23, 42, 0.5)) border-box;
-  border: 1px dashed rgba(148, 163, 184, 0.4);
-  color: rgba(148, 163, 184, 0.85);
+  background: var(--stories-placeholder-bg) border-box;
+  border: 1px dashed var(--stories-placeholder-border);
+  color: var(--stories-placeholder-text);
 }
 
 .placeholder h3 {
   margin-top: 0.5rem;
-  color: rgba(226, 232, 240, 0.92);
+  color: var(--color-text-primary);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .retryButton {
+    transition: none;
+  }
+
+  .retryButton:hover {
+    transform: none;
+  }
 }
 
 @media (max-width: 768px) {

@@ -1,24 +1,46 @@
 # WeatherVane Status Digest
-_Generated: 2025-10-11T00:51:06.437Z (profile: medium)_
+_Generated: 2025-10-12T04:53:53.681Z (profile: medium)_
 
 ## Recent Context Highlights
 ## Current Focus
-T7.1.1 – Complete geocoding integration and caching across Shopify orders.
+- Phase 4 polish: ship Claude↔Codex coordinator resilience, harden guardrails, keep telemetry actionable.
 
-## Decisions
-- Normalised merchant-provided latitude/longitude hints before calling the geocoder so we reuse coordinates already present on payloads.
-- Derived geohashes from those hints (or decoded existing hashes) with the geocoder precision, letting us bypass redundant lookups and keep cache hits hot.
-- Documented the behaviour in `docs/INGESTION.md` so connector authors understand the precedence order.
-- Encode geohashes when city lookups only return latitude/longitude so cache serialisation stays deterministic across backends.
+## Key Decisions
+- Roadmap writes funnel through the SQLite state machine; legacy YAML sink stays read-only unless manually toggled for incident response.
+- All MCP entrypoints stamp correlation IDs so telemetry, SQLite events, and operator tooling stay traceable end-to-end.
+- AgentPool parses provider CLI footers to capture real token counts and emits promotion/demotion events; operations snapshots include coordinator type, availability, reason, and token pressure.
+- Execution summaries in `state/telemetry/executions.jsonl` persist coordinator fields plus critic outcomes so we can audit failovers retrospectively.
+- Guardrails enforce a curated allow-list for shell execution (with `which`/`nl` exceptions). `runCommand` invokes guardrails before spawning, locking the behaviour via Vitest.
+- Compact evidence packs default to JSON mode; set `WVO_PROMPT_MODE=verbose` to recover the legacy markdown format when debugging.
+- Guardrail critic `failover_guardrail` runs `scripts/check_failover_guardrail.mjs` to enforce Codex share ≤50 %, sustained failover <15 min, Claude downtime <10 min, and telemetry freshness ≤5 min.
 
 ## Risks
-- Shopify occasionally emits stale coordinate pairs; we presently trust hints, so coverage monitors must flag suspicious drifts.
-- If upstream geohashes are malformed we silently fall back to lookups, which could hide systematic data-entry issues until validation runs.
+- Provider CLI footers may change format; add a smoke check around AgentPool parsing to avoid silent telemetry regressions.
+- TypeScript build is not exercised in this environment—run `npm run build --prefix tools/wvo_mcp` before packaging releases.
+- Token pressure heuristics use rolling averages; sudden prompt spikes may exceed limits until the window stabilises.
+- Sandbox network restrictions block live Codex/Claude calls; coordinator reports `network_offline` until outbound access returns.
 
-## Next actions
-1. Exercise the geocoding coverage harness on a fresh demo snapshot to confirm the new encoding path keeps ratios above the 0.8 floor.
-2. Capture a short design note for connector owners outlining the geohash fallback so they can mirror the precedence order.
-3. Revisit T7.1.2 weather join validation once geocoding ratios stabilise across tenants.
+## Next Actions
+- Build dashboards summarising `executions.jsonl` (token burn, coordinator mix, critic failures).
+- Extend `orchestrator_status` visualisation with queue batch summaries plus token pressure history.
+- Schedule nightly geocoding coverage validation to detect regressions automatically.
+- Document the compact evidence-pack rollout plan in `context_assembler` before flipping defaults in production.
+
+## Task Notes
+- **T8.2.2 – Coordinator failover**: Orchestrator status, operations snapshots, and execution telemetry all emit `coordinator.type|available|reason`. Guardrail script enforces the SLO and is wired into the critic registry (`failover_guardrail`). Docs updated in `docs/OBSERVABILITY.md` with quick checks and rollback guidance. Critics (`tests`, `manager_self_check`) pass.
+- **T8.1.2 – Guardrail allow-list**: `ensureAllowedCommand` protects `runCommand`, Vitest `command_allowlist` suite covers the behaviour, and critic `tests` runs remain green.
+- **T8.2.1 – Compact evidence pack**: `composePrompt` defaults to JSON payloads; `WVO_PROMPT_MODE=verbose` restores the old prompt. Vitest `context_assembler_prompt` suite passes alongside build + manager critics.
+- **T4.1.5 – Non-linear allocator**: Trust-constr + differential-evolution solvers enforce ROAS floors and spend caps. `pytest tests/test_allocator.py` and `critic:allocator` stay green (skipped under medium profile but reported).
+- **T4.1.6 – Intraday allocator**: Hourly ROI curves under `apps/allocator/hf_response.py` with canonical run saved to `experiments/allocator/hf_response.json`. Tests `tests/test_allocator_hf_response.py` pass; allocator critic skip acknowledged.
+
+## Telemetry Reminders
+- Operations snapshots live at `state/telemetry/operations.jsonl`; guardrail reads the latest 400 lines and fails if stale or out of SLO.
+- Execution telemetry accrues in `state/telemetry/executions.jsonl`; older entries pre-2025-10-12 may miss coordinator fields.
+- `orchestrator_status` remains the fastest check for current coordinator and failover reason.
+
+### 2025-10-13
+- Revalidated coordinator failover guardrail via critics (`tests`, `manager_self_check`) and confirmed orchestration telemetry/doc updates remain current.
+- Trimmed `state/context.md` to focused summary (<1000 words) while preserving guardrail and allocator learnings.
 
 ## Roadmap Snapshot (truncated)
 ```yaml
@@ -172,7 +194,7 @@ epics:
               - artifact: experiments/allocator/hf_response.json
           - id: T4.1.7
             title: Marketing mix budget solver (multi-channel, weather-aware)
-            status: pending
+            status: done
             exit_criteria:
               - critic: allocator
               - tests: tests/test_marketing_mix_solver.py

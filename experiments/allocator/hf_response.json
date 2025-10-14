@@ -1,0 +1,644 @@
+{
+  "budget": 7200.0,
+  "total_revenue": 17012.28,
+  "profit": 9812.28,
+  "average_roas": 2.363,
+  "roas_floor": 1.15,
+  "channels": [
+    {
+      "channel": "meta",
+      "total_spend": 3089.66,
+      "total_revenue": 9138.49,
+      "average_roas": 2.958,
+      "peak_roas": 3.2,
+      "saturation_spend": 420.0,
+      "max_hourly_spend": 220.0
+    },
+    {
+      "channel": "search",
+      "total_spend": 2327.34,
+      "total_revenue": 5178.15,
+      "average_roas": 2.225,
+      "peak_roas": 2.4,
+      "saturation_spend": 360.0,
+      "max_hourly_spend": 190.0
+    },
+    {
+      "channel": "display",
+      "total_spend": 1783.0,
+      "total_revenue": 2695.64,
+      "average_roas": 1.512,
+      "peak_roas": 1.8,
+      "saturation_spend": 240.0,
+      "max_hourly_spend": 140.0
+    }
+  ],
+  "timeline": [
+    {
+      "hour": 0,
+      "spend": {
+        "meta": 49.23,
+        "search": 44.08,
+        "display": 5.0
+      },
+      "revenue": {
+        "meta": 72.96,
+        "search": 64.76,
+        "display": 5.97
+      },
+      "roi": {
+        "meta": 1.482,
+        "search": 1.469,
+        "display": 1.194
+      }
+    },
+    {
+      "hour": 1,
+      "spend": {
+        "meta": 57.71,
+        "search": 76.55,
+        "display": 24.48
+      },
+      "revenue": {
+        "meta": 85.5,
+        "search": 106.44,
+        "display": 28.22
+      },
+      "roi": {
+        "meta": 1.482,
+        "search": 1.39,
+        "display": 1.153
+      }
+    },
+    {
+      "hour": 2,
+      "spend": {
+        "meta": 59.1,
+        "search": 44.32,
+        "display": 28.06
+      },
+      "revenue": {
+        "meta": 89.54,
+        "search": 65.68,
+        "display": 32.54
+      },
+      "roi": {
+        "meta": 1.515,
+        "search": 1.482,
+        "display": 1.16
+      }
+    },
+    {
+      "hour": 3,
+      "spend": {
+        "meta": 62.77,
+        "search": 46.8,
+        "display": 35.88
+      },
+      "revenue": {
+        "meta": 100.14,
+        "search": 70.87,
+        "display": 41.77
+      },
+      "roi": {
+        "meta": 1.595,
+        "search": 1.514,
+        "display": 1.164
+      }
+    },
+    {
+      "hour": 4,
+      "spend": {
+        "meta": 50.44,
+        "search": 53.33,
+        "display": 52.6
+      },
+      "revenue": {
+        "meta": 90.84,
+        "search": 85.69,
+        "display": 60.62
+      },
+      "roi": {
+        "meta": 1.801,
+        "search": 1.607,
+        "display": 1.152
+      }
+    },
+    {
+      "hour": 5,
+      "spend": {
+        "meta": 84.9,
+        "search": 68.05,
+        "display": 68.25
+      },
+      "revenue": {
+        "meta": 173.75,
+        "search": 122.93,
+        "display": 79.1
+      },
+      "roi": {
+        "meta": 2.047,
+        "search": 1.806,
+        "display": 1.159
+      }
+    },
+    {
+      "hour": 6,
+      "spend": {
+        "meta": 115.3,
+        "search": 91.2,
+        "display": 83.44
+      },
+      "revenue": {
+        "meta": 279.77,
+        "search": 194.92,
+        "display": 98.66
+      },
+      "roi": {
+        "meta": 2.426,
+        "search": 2.137,
+        "display": 1.182
+      }
+    },
+    {
+      "hour": 7,
+      "spend": {
+        "meta": 143.52,
+        "search": 150.58,
+        "display": 59.9
+      },
+      "revenue": {
+        "meta": 415.38,
+        "search": 358.17,
+        "display": 82.35
+      },
+      "roi": {
+        "meta": 2.894,
+        "search": 2.379,
+        "display": 1.375
+      }
+    },
+    {
+      "hour": 8,
+      "spend": {
+        "meta": 172.67,
+        "search": 148.34,
+        "display": 70.63
+      },
+      "revenue": {
+        "meta": 573.72,
+        "search": 424.47,
+        "display": 101.72
+      },
+      "roi": {
+        "meta": 3.323,
+        "search": 2.861,
+        "display": 1.44
+      }
+    },
+    {
+      "hour": 9,
+      "spend": {
+        "meta": 194.78,
+        "search": 195.95,
+        "display": 109.52
+      },
+      "revenue": {
+        "meta": 704.65,
+        "search": 553.65,
+        "display": 150.23
+      },
+      "roi": {
+        "meta": 3.618,
+        "search": 2.825,
+        "display": 1.372
+      }
+    },
+    {
+      "hour": 10,
+      "spend": {
+        "meta": 202.72,
+        "search": 185.07,
+        "display": 86.08
+      },
+      "revenue": {
+        "meta": 756.28,
+        "search": 530.15,
+        "display": 134.92
+      },
+      "roi": {
+        "meta": 3.731,
+        "search": 2.865,
+        "display": 1.567
+      }
+    },
+    {
+      "hour": 11,
+      "spend": {
+        "meta": 194.16,
+        "search": 149.34,
+        "display": 90.9
+      },
+      "revenue": {
+        "meta": 709.04,
+        "search": 425.22,
+        "display": 145.85
+      },
+      "roi": {
+        "meta": 3.652,
+        "search": 2.847,
+        "display": 1.605
+      }
+    },
+    {
+      "hour": 12,
+      "spend": {
+        "meta": 173.24,
+        "search": 127.0,
+        "display": 91.81
+      },
+      "revenue": {
+        "meta": 589.75,
+        "search": 340.33,
+        "display": 148.99
+      },
+      "roi": {
+        "meta": 3.404,
+        "search": 2.68,
+        "display": 1.623
+      }
+    },
+    {
+      "hour": 13,
+      "spend": {
+        "meta": 148.62,
+        "search": 144.77,
+        "display": 80.37
+      },
+      "revenue": {
+        "meta": 455.49,
+        "search": 341.13,
+        "display": 133.85
+      },
+      "roi": {
+        "meta": 3.065,
+        "search": 2.356,
+        "display": 1.665
+      }
+    },
+    {
+      "hour": 14,
+      "spend": {
+        "meta": 129.37,
+        "search": 135.04,
+        "display": 87.86
+      },
+      "revenue": {
+        "meta": 357.92,
+        "search": 303.62,
+        "display": 138.85
+      },
+      "roi": {
+        "meta": 2.767,
+        "search": 2.248,
+        "display": 1.58
+      }
+    },
+    {
+      "hour": 15,
+      "spend": {
+        "meta": 121.2,
+        "search": 97.09,
+        "display": 74.18
+      },
+      "revenue": {
+        "meta": 319.47,
+        "search": 221.45,
+        "display": 118.16
+      },
+      "roi": {
+        "meta": 2.636,
+        "search": 2.281,
+        "display": 1.593
+      }
+    },
+    {
+      "hour": 16,
+      "spend": {
+        "meta": 124.8,
+        "search": 86.77,
+        "display": 79.84
+      },
+      "revenue": {
+        "meta": 337.98,
+        "search": 186.68,
+        "display": 122.29
+      },
+      "roi": {
+        "meta": 2.708,
+        "search": 2.151,
+        "display": 1.532
+      }
+    },
+    {
+      "hour": 17,
+      "spend": {
+        "meta": 136.34,
+        "search": 76.22,
+        "display": 82.3
+      },
+      "revenue": {
+        "meta": 397.22,
+        "search": 151.89,
+        "display": 126.55
+      },
+      "roi": {
+        "meta": 2.913,
+        "search": 1.993,
+        "display": 1.538
+      }
+    },
+    {
+      "hour": 18,
+      "spend": {
+        "meta": 149.34,
+        "search": 63.71,
+        "display": 117.88
+      },
+      "revenue": {
+        "meta": 468.02,
+        "search": 117.13,
+        "display": 170.28
+      },
+      "roi": {
+        "meta": 3.134,
+        "search": 1.838,
+        "display": 1.445
+      }
+    },
+    {
+      "hour": 19,
+      "spend": {
+        "meta": 165.63,
+        "search": 54.74,
+        "display": 95.08
+      },
+      "revenue": {
+        "meta": 533.58,
+        "search": 93.08,
+        "display": 158.01
+      },
+      "roi": {
+        "meta": 3.222,
+        "search": 1.7,
+        "display": 1.662
+      }
+    },
+    {
+      "hour": 20,
+      "spend": {
+        "meta": 156.09,
+        "search": 63.61,
+        "display": 92.13
+      },
+      "revenue": {
+        "meta": 509.63,
+        "search": 99.13,
+        "display": 163.15
+      },
+      "roi": {
+        "meta": 3.265,
+        "search": 1.558,
+        "display": 1.771
+      }
+    },
+    {
+      "hour": 21,
+      "spend": {
+        "meta": 153.5,
+        "search": 76.6,
+        "display": 94.2
+      },
+      "revenue": {
+        "meta": 470.55,
+        "search": 111.27,
+        "display": 167.52
+      },
+      "roi": {
+        "meta": 3.065,
+        "search": 1.453,
+        "display": 1.778
+      }
+    },
+    {
+      "hour": 22,
+      "spend": {
+        "meta": 136.07,
+        "search": 74.58,
+        "display": 96.51
+      },
+      "revenue": {
+        "meta": 379.43,
+        "search": 105.99,
+        "display": 162.53
+      },
+      "roi": {
+        "meta": 2.788,
+        "search": 1.421,
+        "display": 1.684
+      }
+    },
+    {
+      "hour": 23,
+      "spend": {
+        "meta": 108.18,
+        "search": 73.59,
+        "display": 76.07
+      },
+      "revenue": {
+        "meta": 267.9,
+        "search": 103.49,
+        "display": 123.48
+      },
+      "roi": {
+        "meta": 2.476,
+        "search": 1.406,
+        "display": 1.623
+      }
+    }
+  ],
+  "optimizer_diagnostics": {
+    "objective_value": 3848.6811263995314,
+    "binding_min_spend": [],
+    "binding_max_spend": [],
+    "binding_roas_floor": [
+      "display_h01",
+      "display_h02",
+      "display_h03",
+      "display_h04",
+      "display_h05"
+    ],
+    "binding_learning_cap": [
+      "meta_h06",
+      "display_h00",
+      "display_h01",
+      "display_h02",
+      "display_h03"
+    ],
+    "success": 1.0,
+    "nfev": 4000.0,
+    "optimizer": "coordinate_ascent",
+    "projection_target": 7200.0,
+    "projection_residual_lower": 0.0,
+    "projection_residual_upper": 3.184488994373871e-08,
+    "iterations_with_improvement": 62.0,
+    "min_softened": 0.0,
+    "binding_min_spend_by_cell": [
+      "display_h00"
+    ],
+    "binding_max_spend_by_cell": [
+      "display_h00",
+      "display_h01",
+      "display_h02",
+      "display_h04",
+      "display_h05"
+    ],
+    "scenario_profit_p10": 6283.262486407072,
+    "scenario_profit_p50": 9654.078108017413,
+    "scenario_profit_p90": 13867.597635030364,
+    "risk_penalty": 884.8391006727159,
+    "roas_penalty": 388.0064750742651,
+    "learning_penalty": 12398.454439750485,
+    "inventory_penalty": 0.0,
+    "expected_profit_raw": 9822.618889097936,
+    "worst_case_profit": 6283.262486407072,
+    "roas_caps": {
+      "display_h00": 5.0,
+      "display_h01": 24.484661521537685,
+      "display_h02": 28.062053042805225,
+      "display_h03": 35.90579951407186,
+      "display_h04": 52.59948684681086,
+      "display_h05": 68.24780506557607,
+      "display_h06": 91.24506891954101,
+      "display_h07": 115.35208725425557
+    },
+    "optimizer_candidates": [
+      {
+        "optimizer": "coordinate_ascent",
+        "profit": -3848.6811263995314,
+        "success": 1.0
+      }
+    ],
+    "optimizer_winner": "coordinate_ascent"
+  },
+  "scenario": {
+    "total_budget": 7200.0,
+    "roas_floor": 1.15,
+    "channels": [
+      {
+        "name": "meta",
+        "peak_roas": 3.2,
+        "saturation_spend": 420.0,
+        "diminishing": 1.6,
+        "max_hourly_spend": 220.0,
+        "min_hourly_spend": 12.0
+      },
+      {
+        "name": "search",
+        "peak_roas": 2.4,
+        "saturation_spend": 360.0,
+        "diminishing": 1.4,
+        "max_hourly_spend": 190.0,
+        "min_hourly_spend": 8.0
+      },
+      {
+        "name": "display",
+        "peak_roas": 1.8,
+        "saturation_spend": 240.0,
+        "diminishing": 1.3,
+        "max_hourly_spend": 140.0,
+        "min_hourly_spend": 5.0
+      }
+    ],
+    "demand_profile": {
+      "meta": [
+        0.478,
+        0.482,
+        0.494,
+        0.522,
+        0.582,
+        0.689,
+        0.854,
+        1.067,
+        1.289,
+        1.461,
+        1.529,
+        1.473,
+        1.322,
+        1.139,
+        0.996,
+        0.937,
+        0.968,
+        1.061,
+        1.167,
+        1.234,
+        1.23,
+        1.149,
+        1.015,
+        0.862
+      ],
+      "search": [
+        0.645,
+        0.646,
+        0.65,
+        0.667,
+        0.716,
+        0.826,
+        1.021,
+        1.284,
+        1.537,
+        1.68,
+        1.664,
+        1.532,
+        1.376,
+        1.256,
+        1.174,
+        1.102,
+        1.019,
+        0.925,
+        0.834,
+        0.759,
+        0.707,
+        0.675,
+        0.658,
+        0.649
+      ],
+      "display": [
+        0.668,
+        0.673,
+        0.684,
+        0.702,
+        0.729,
+        0.769,
+        0.823,
+        0.889,
+        0.963,
+        1.037,
+        1.1,
+        1.144,
+        1.16,
+        1.148,
+        1.116,
+        1.077,
+        1.054,
+        1.067,
+        1.121,
+        1.2,
+        1.267,
+        1.281,
+        1.222,
+        1.104
+      ]
+    }
+  }
+}

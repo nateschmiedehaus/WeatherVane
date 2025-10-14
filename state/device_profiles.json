@@ -23,6 +23,39 @@
     "memory_total_bytes": 17179869184,
     "os": "Darwin",
     "os_version": "Darwin Kernel Version 24.6.0: Mon Jul 14 11:30:34 PDT 2025; root:xnu-11417.140.69~1/RELEASE_ARM64_T8103",
-    "profile_id": "60f073bd942e"
+    "profile_id": "60f073bd942e",
+    "scheduler_plan": {
+      "burst_mode": false,
+      "codex_workers": 4,
+      "degraded": false,
+      "generated_at": "2025-10-13T00:10:37.087301+00:00",
+      "heavy_slots": 2,
+      "light_slots": 8,
+      "notes": [
+        "recommended:8",
+        "codex_workers:4",
+        "burst_mode:disabled",
+        "offpeak_window:1260-360",
+        "mode:unrestricted"
+      ],
+      "offpeak_window": {
+        "end_minute": 360,
+        "local_timezone": "local",
+        "start_minute": 1260
+      },
+      "profile_id": "60f073bd942e",
+      "profile_summary": {
+        "architecture": "arm64",
+        "has_accelerator": true,
+        "hostname": "macmini.lan",
+        "os": "Darwin",
+        "recommended_concurrency": 8,
+        "suggested_batch_size": 192
+      },
+      "recommended_concurrency": 8,
+      "require_offpeak": false,
+      "standard_slots": 4,
+      "version": 1
+    }
   }
 }

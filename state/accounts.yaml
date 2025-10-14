@@ -16,5 +16,5 @@ codex:
 
 claude:
   - id: claude_primary
-    env:
-      CLAUDE_CONFIG_DIR: /Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/.accounts/claude/claude_primary
+    email: nathanielschmiedehaus
+    label: primary

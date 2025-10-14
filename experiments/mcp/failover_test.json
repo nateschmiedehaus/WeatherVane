@@ -1,0 +1,65 @@
+{
+  "generated_at": "2025-10-12T21:34:48.705Z",
+  "workspace_used": "experiments/mcp/.tmp/failover_1760304888698_8572da37-c66e-4cca-8a7f-53cb328f4a58",
+  "scenario": "provider_failover_simulation",
+  "samples": [
+    {
+      "step": "initial_state",
+      "timestamp": "2025-10-12T21:34:48.703Z",
+      "coordinator": {
+        "type": "claude_code",
+        "available": true
+      },
+      "killSwitchEngaged": false
+    },
+    {
+      "step": "post_failover",
+      "timestamp": "2025-10-12T21:34:48.704Z",
+      "coordinator": {
+        "type": "codex",
+        "available": true
+      },
+      "recoveryAction": {
+        "action": "reassign",
+        "newAgentType": "codex",
+        "delaySeconds": 5,
+        "reasoning": "Rate limit on claude_code, switching to codex"
+      },
+      "killSwitchEngaged": false,
+      "failoverLatencyMs": 0
+    },
+    {
+      "step": "kill_switch_engaged",
+      "timestamp": "2025-10-12T21:34:48.705Z",
+      "coordinator": {
+        "type": "codex",
+        "available": false
+      },
+      "recoveryAction": {
+        "action": "retry",
+        "delaySeconds": 8,
+        "reasoning": "All agents busy, waiting 8s for cooldown"
+      },
+      "killSwitchEngaged": true,
+      "additionalLatencyMs": 0,
+      "incidentsRecorded": 1
+    },
+    {
+      "step": "post_rollback",
+      "timestamp": "2025-10-12T21:34:48.705Z",
+      "coordinator": {
+        "type": "claude_code",
+        "available": true
+      },
+      "killSwitchEngaged": false,
+      "incidentCount": 2
+    }
+  ],
+  "summary": {
+    "failoverPromotedCodex": true,
+    "killSwitchEngagedDuringIncident": true,
+    "rollbackRestoredClaude": true,
+    "failoverLatencyMs": 0,
+    "rollbackIncidentCount": 2
+  }
+}

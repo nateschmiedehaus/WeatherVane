@@ -1,12 +1,17 @@
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Iterable, List
 
+import jsonschema
+
 from shared.schemas.base import CatalogCategory, CatalogResponse
 
 from apps.api.services.plan_service import PlanService
+from apps.api.services.exceptions import SchemaValidationError
+from shared.validation.schemas import validate_catalog_response
 
 SEASON_KEYWORDS = {
     "winter": "Winter",
@@ -31,6 +36,7 @@ WEATHER_KEYWORDS = {
 @dataclass
 class CatalogService:
     plan_service: PlanService
+    logger = logging.getLogger(__name__)
 
     async def fetch_catalog(
         self,
@@ -42,7 +48,7 @@ class CatalogService:
         slices = list(plan.slices[:limit]) if plan.slices else []
         categories = self._derive_categories(slices)
         generated_at = plan.generated_at if hasattr(plan, "generated_at") else datetime.utcnow()
-        return CatalogResponse(
+        response = CatalogResponse(
             tenant_id=tenant_id,
             generated_at=generated_at,
             categories=categories,
@@ -50,6 +56,8 @@ class CatalogService:
             data_context=getattr(plan, "data_context", None),
             context_warnings=list(getattr(plan, "context_warnings", []) or []),
         )
+        self._validate_catalog_contract(response, tenant_id=tenant_id)
+        return response
 
     def _derive_categories(self, slices: Iterable) -> List[CatalogCategory]:  # type: ignore[no-untyped-def]
         categories: List[CatalogCategory] = []
@@ -90,3 +98,27 @@ class CatalogService:
         if slice_.expected_roas:
             return f"Median ROAS {slice_.expected_roas.p50:.1f}×"
         return "Guardrails respected"
+
+    def _validate_catalog_contract(self, payload: CatalogResponse, *, tenant_id: str) -> None:
+        try:
+            validate_catalog_response(payload)
+        except (jsonschema.ValidationError, jsonschema.SchemaError) as error:
+            if isinstance(error, jsonschema.ValidationError):
+                path = list(error.absolute_path)
+                reason = error.message
+            else:
+                path = []
+                reason = str(error)
+            self.logger.exception(
+                "Catalog schema validation failed for tenant %s at %s: %s",
+                tenant_id,
+                path or "<root>",
+                reason,
+            )
+            raise SchemaValidationError(
+                "Catalog contract violated",
+                schema="catalog_response",
+                tenant_id=tenant_id,
+                path=path,
+                reason=reason,
+            ) from error

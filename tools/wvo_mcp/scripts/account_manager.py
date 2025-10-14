@@ -11,7 +11,7 @@ import argparse
 import json
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Set
 
 import yaml
 
@@ -59,15 +59,55 @@ def normalize_config(data: Dict[str, List[Dict[str, Any]]]) -> Dict[str, List[Di
 
     ACCOUNTS_ROOT.mkdir(parents=True, exist_ok=True)
 
+    seen_codex_ids: Set[str] = set()
+    seen_codex_homes: Dict[str, str] = {}
+    seen_codex_emails: Dict[str, str] = {}
+
     for account in data["codex"]:
-        account_id = account.get("id") or "codex"
+        account_id = (account.get("id") or "").strip()
+        if not account_id:
+            raise ValueError(
+                "Codex account entry missing 'id'. Update state/accounts.yaml with unique ids for each account."
+            )
+        if account_id in seen_codex_ids:
+            raise ValueError(
+                f"Duplicate Codex account id '{account_id}' detected in state/accounts.yaml. "
+                "Use unique ids for each Codex login."
+            )
+        seen_codex_ids.add(account_id)
+
+        email = (account.get("email") or "").strip()
+        if not email:
+            raise ValueError(
+                f"Codex account '{account_id}' missing required email in state/accounts.yaml. "
+                "Add an 'email:' field so the autopilot can verify each login."
+            )
+        account["email"] = email
+        email_key = email.lower()
+        existing_email_id = seen_codex_emails.get(email_key)
+        if existing_email_id and existing_email_id != account_id:
+            raise ValueError(
+                f"Codex accounts '{existing_email_id}' and '{account_id}' share the same email '{email}'. "
+                "Each Codex account must map to a unique login."
+            )
+        seen_codex_emails[email_key] = account_id
+
         slug = slugify(account_id)
         if not account.get("home"):
             default_home = ACCOUNTS_ROOT / "codex" / slug
             account["home"] = str(default_home)
+        home_path = Path(account["home"]).expanduser().resolve()
+        existing_home_id = seen_codex_homes.get(str(home_path))
+        if existing_home_id and existing_home_id != account_id:
+            raise ValueError(
+                f"Codex accounts '{existing_home_id}' and '{account_id}' point to the same CODEX_HOME '{home_path}'. "
+                "Assign distinct 'home' directories in state/accounts.yaml."
+            )
+        seen_codex_homes[str(home_path)] = account_id
         if not account.get("profile"):
             account["profile"] = "weathervane_orchestrator"
-        Path(account["home"]).mkdir(parents=True, exist_ok=True)
+        home_path.mkdir(parents=True, exist_ok=True)
+        account["home"] = str(home_path)
     for account in data["claude"]:
         account_id = account.get("id") or "claude"
         slug = slugify(account_id)
@@ -134,6 +174,16 @@ def next_account(provider: str, purpose: str | None = None) -> Dict[str, Any]:
         available.append(account)
 
     if available:
+        def sort_key(account: Dict[str, Any]) -> datetime:
+            account_id = account.get("id")
+            entry = runtime[provider].get(account_id, {}) if account_id else {}
+            last_selected = parse_iso(entry.get("last_selected"))
+            if last_selected is None:
+                # Prioritise accounts that have never been selected.
+                return datetime.min.replace(tzinfo=timezone.utc)
+            return last_selected
+
+        available.sort(key=sort_key)
         account = available[0]
         account_id = account.get("id")
         if account_id:

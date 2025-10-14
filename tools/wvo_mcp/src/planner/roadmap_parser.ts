@@ -5,6 +5,7 @@ import type {
   RoadmapMilestone,
   RoadmapTask,
 } from "../utils/types.js";
+import { normalizeClusterSpec } from "../utils/cluster.js";
 
 export function flattenTasks(document: RoadmapDocument): PlanTaskSummary[] {
   const summaries: PlanTaskSummary[] = [];
@@ -28,6 +29,8 @@ export function flattenTasks(document: RoadmapDocument): PlanTaskSummary[] {
               if ("note" in criteria) return `note:${criteria.note}`;
               return "unknown";
             }) ?? [],
+          domain: (epic as unknown as { domain?: "product" | "mcp" }).domain,
+          cluster: normalizeClusterSpec(task.cluster),
         });
       });
     });

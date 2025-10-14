@@ -2,6 +2,7 @@ import jsonschema
 import polars as pl
 import pytest
 
+from shared.libs.storage.lake import LakeWriter
 from shared.validation.schemas import (
     validate_google_ads,
     validate_meta_ads,
@@ -108,3 +109,38 @@ def test_weather_daily_invalid_types() -> None:
     with pytest.raises(jsonschema.ValidationError):
         validate_weather_daily(frame)
 
+
+def test_lake_writer_enforces_dataset_contracts(tmp_path) -> None:
+    lake_root = tmp_path / "lake"
+    writer = LakeWriter(root=lake_root)
+    valid_record = {
+        "tenant_id": "tenant-1",
+        "order_id": "order-1",
+        "name": "Sample Order",
+        "created_at": "2024-01-01T00:00:00Z",
+        "currency": "USD",
+        "total_price": 100.0,
+        "subtotal_price": 90.0,
+        "total_tax": 5.0,
+        "total_discounts": 10.0,
+        "net_revenue": 80.0,
+        "shipping_postal_code": "94103",
+        "shipping_country": "US",
+        "ship_latitude": 37.77,
+        "ship_longitude": -122.42,
+        "ship_geohash": "9q8yy",
+    }
+    writer.write_records("tenant_shopify_orders", [valid_record])
+
+    invalid_record = {
+        "tenant_id": "tenant-1",
+        "name": "Invalid",
+        "created_at": "2024-01-01T00:00:00Z",
+        "currency": "USD",
+        "total_price": 100.0,
+        "subtotal_price": 90.0,
+        "total_tax": 5.0,
+        "total_discounts": 10.0,
+    }
+    with pytest.raises(jsonschema.ValidationError):
+        writer.write_records("tenant_shopify_orders", [invalid_record])

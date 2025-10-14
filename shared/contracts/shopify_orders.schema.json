@@ -37,6 +37,12 @@
     "total_discounts": {
       "type": "number"
     },
+    "net_revenue": {
+      "type": [
+        "number",
+        "null"
+      ]
+    },
     "shipping_postal_code": {
       "type": [
         "string",

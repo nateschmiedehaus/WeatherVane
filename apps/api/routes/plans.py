@@ -1,13 +1,13 @@
-from fastapi import APIRouter, Depends, Path, Response
+from fastapi import APIRouter, Depends, HTTPException, Path, Response
 from sqlalchemy.ext.asyncio import AsyncSession
-
-from shared.schemas.base import PlanResponse
 
 from apps.api.config import get_settings
 from apps.api.dependencies import db_session
+from apps.api.services.exceptions import SchemaValidationError
 from apps.api.services.plan_service import PlanService
-from shared.data_context import default_context_service
 from apps.api.services.repositories import PlanRepository
+from shared.data_context import default_context_service
+from shared.schemas.base import PlanResponse
 
 router = APIRouter()
 
@@ -30,7 +30,10 @@ async def get_plan(
 
     Falls back to a synthetic example plan if no persisted plan exists yet.
     """
-    plan = await service.get_latest_plan(tenant_id, horizon_days=horizon_days)
+    try:
+        plan = await service.get_latest_plan(tenant_id, horizon_days=horizon_days)
+    except SchemaValidationError as exc:
+        raise HTTPException(status_code=500, detail=exc.to_detail()) from exc
     if plan.context_tags:
         response.headers["X-WeatherVane-Context"] = ",".join(plan.context_tags)
     if plan.context_warnings:

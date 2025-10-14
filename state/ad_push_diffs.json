@@ -1,0 +1,640 @@
+[
+  {
+    "entities": [
+      {
+        "change_type": "update",
+        "entity_id": "adset-101",
+        "entity_type": "ad_set",
+        "guardrails": [
+          {
+            "code": "budget_delta_exceeds_limit",
+            "limit": 35.0,
+            "message": "Daily budget changed by -57.7% exceeding limit of 35.0%",
+            "observed": -57.692307692307686,
+            "severity": "warning"
+          },
+          {
+            "code": "spend_below_minimum",
+            "limit": 200.0,
+            "message": "Daily budget falls below minimum spend of 200.00",
+            "observed": 110.0,
+            "severity": "critical"
+          }
+        ],
+        "name": "Retargeting",
+        "sections": [
+          {
+            "changes": [
+              {
+                "after": 110.0,
+                "before": 260.0,
+                "delta": -150.0,
+                "field_path": "ad_set.daily_budget",
+                "forecast_delta": null,
+                "guardrails": [
+                  {
+                    "code": "budget_delta_exceeds_limit",
+                    "limit": 35.0,
+                    "message": "Daily budget changed by -57.7% exceeding limit of 35.0%",
+                    "observed": -57.692307692307686,
+                    "severity": "warning"
+                  },
+                  {
+                    "code": "spend_below_minimum",
+                    "limit": 200.0,
+                    "message": "Daily budget falls below minimum spend of 200.00",
+                    "observed": 110.0,
+                    "severity": "critical"
+                  }
+                ],
+                "label": "Daily budget",
+                "percent_delta": -57.692307692307686,
+                "unit": "usd"
+              }
+            ],
+            "section": "spend",
+            "summary": [
+              {
+                "direction": "decrease",
+                "label": "Section spend after",
+                "name": "spend_spend_after",
+                "unit": "usd",
+                "value": 110.0
+              },
+              {
+                "direction": "decrease",
+                "label": "Section spend delta",
+                "name": "spend_spend_delta",
+                "unit": "usd",
+                "value": -150.0
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "change_type": "update",
+        "entity_id": "adset-202",
+        "entity_type": "ad_set",
+        "guardrails": [
+          {
+            "code": "budget_delta_exceeds_limit",
+            "limit": 35.0,
+            "message": "Daily budget changed by -56.2% exceeding limit of 35.0%",
+            "observed": -56.25,
+            "severity": "warning"
+          },
+          {
+            "code": "spend_below_minimum",
+            "limit": 200.0,
+            "message": "Daily budget falls below minimum spend of 200.00",
+            "observed": 140.0,
+            "severity": "critical"
+          }
+        ],
+        "name": "Prospecting",
+        "sections": [
+          {
+            "changes": [
+              {
+                "after": 140.0,
+                "before": 320.0,
+                "delta": -180.0,
+                "field_path": "ad_set.daily_budget",
+                "forecast_delta": null,
+                "guardrails": [
+                  {
+                    "code": "budget_delta_exceeds_limit",
+                    "limit": 35.0,
+                    "message": "Daily budget changed by -56.2% exceeding limit of 35.0%",
+                    "observed": -56.25,
+                    "severity": "warning"
+                  },
+                  {
+                    "code": "spend_below_minimum",
+                    "limit": 200.0,
+                    "message": "Daily budget falls below minimum spend of 200.00",
+                    "observed": 140.0,
+                    "severity": "critical"
+                  }
+                ],
+                "label": "Daily budget",
+                "percent_delta": -56.25,
+                "unit": "usd"
+              }
+            ],
+            "section": "spend",
+            "summary": [
+              {
+                "direction": "decrease",
+                "label": "Section spend after",
+                "name": "spend_spend_after",
+                "unit": "usd",
+                "value": 140.0
+              },
+              {
+                "direction": "decrease",
+                "label": "Section spend delta",
+                "name": "spend_spend_delta",
+                "unit": "usd",
+                "value": -180.0
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "generated_at": "2025-10-13T22:34:11.470133+00:00",
+    "generation_mode": "assist",
+    "guardrails": [
+      {
+        "code": "budget_delta_exceeds_limit",
+        "limit": 35.0,
+        "message": "Daily budget changed by -57.7% exceeding limit of 35.0%",
+        "observed": -57.692307692307686,
+        "severity": "warning"
+      },
+      {
+        "code": "spend_below_minimum",
+        "limit": 200.0,
+        "message": "Daily budget falls below minimum spend of 200.00",
+        "observed": 110.0,
+        "severity": "critical"
+      },
+      {
+        "code": "budget_delta_exceeds_limit",
+        "limit": 35.0,
+        "message": "Daily budget changed by -56.2% exceeding limit of 35.0%",
+        "observed": -56.25,
+        "severity": "warning"
+      },
+      {
+        "code": "spend_below_minimum",
+        "limit": 200.0,
+        "message": "Daily budget falls below minimum spend of 200.00",
+        "observed": 140.0,
+        "severity": "critical"
+      },
+      {
+        "code": "platform_spend_delta_exceeds_limit",
+        "limit": 35.0,
+        "message": "google spend changed by -56.2% exceeding limit of 35.0%",
+        "observed": -56.25,
+        "severity": "warning"
+      },
+      {
+        "code": "platform_spend_below_minimum",
+        "limit": 200.0,
+        "message": "google spend (140.00) falls below minimum spend of 200.00",
+        "observed": 140.0,
+        "severity": "critical"
+      },
+      {
+        "code": "platform_spend_delta_exceeds_limit",
+        "limit": 35.0,
+        "message": "meta spend changed by -57.7% exceeding limit of 35.0%",
+        "observed": -57.692307692307686,
+        "severity": "warning"
+      },
+      {
+        "code": "platform_spend_below_minimum",
+        "limit": 200.0,
+        "message": "meta spend (110.00) falls below minimum spend of 200.00",
+        "observed": 110.0,
+        "severity": "critical"
+      }
+    ],
+    "notes": [
+      "QA evidence: spend guardrail report via atlas autopilot"
+    ],
+    "run_id": "adpush-20251013223411",
+    "source_plan_id": null,
+    "spend_guardrail_report": {
+      "guardrails": [
+        {
+          "code": "platform_spend_delta_exceeds_limit",
+          "limit": 35.0,
+          "message": "google spend changed by -56.2% exceeding limit of 35.0%",
+          "observed": -56.25,
+          "severity": "warning"
+        },
+        {
+          "code": "platform_spend_below_minimum",
+          "limit": 200.0,
+          "message": "google spend (140.00) falls below minimum spend of 200.00",
+          "observed": 140.0,
+          "severity": "critical"
+        },
+        {
+          "code": "platform_spend_delta_exceeds_limit",
+          "limit": 35.0,
+          "message": "meta spend changed by -57.7% exceeding limit of 35.0%",
+          "observed": -57.692307692307686,
+          "severity": "warning"
+        },
+        {
+          "code": "platform_spend_below_minimum",
+          "limit": 200.0,
+          "message": "meta spend (110.00) falls below minimum spend of 200.00",
+          "observed": 110.0,
+          "severity": "critical"
+        }
+      ],
+      "platforms": [
+        {
+          "baseline_spend": 320.0,
+          "direction": "decrease",
+          "guardrails": [
+            {
+              "code": "platform_spend_delta_exceeds_limit",
+              "limit": 35.0,
+              "message": "google spend changed by -56.2% exceeding limit of 35.0%",
+              "observed": -56.25,
+              "severity": "warning"
+            },
+            {
+              "code": "platform_spend_below_minimum",
+              "limit": 200.0,
+              "message": "google spend (140.00) falls below minimum spend of 200.00",
+              "observed": 140.0,
+              "severity": "critical"
+            }
+          ],
+          "percent_delta": -56.25,
+          "platform": "google",
+          "proposed_spend": 140.0,
+          "spend_delta": -180.0
+        },
+        {
+          "baseline_spend": 260.0,
+          "direction": "decrease",
+          "guardrails": [
+            {
+              "code": "platform_spend_delta_exceeds_limit",
+              "limit": 35.0,
+              "message": "meta spend changed by -57.7% exceeding limit of 35.0%",
+              "observed": -57.692307692307686,
+              "severity": "warning"
+            },
+            {
+              "code": "platform_spend_below_minimum",
+              "limit": 200.0,
+              "message": "meta spend (110.00) falls below minimum spend of 200.00",
+              "observed": 110.0,
+              "severity": "critical"
+            }
+          ],
+          "percent_delta": -57.692307692307686,
+          "platform": "meta",
+          "proposed_spend": 110.0,
+          "spend_delta": -150.0
+        }
+      ],
+      "totals": {
+        "baseline_spend": 580.0,
+        "direction": "decrease",
+        "percent_delta": -56.896551724137936,
+        "proposed_spend": 250.0,
+        "spend_delta": -330.0
+      }
+    },
+    "summary": [
+      {
+        "direction": "decrease",
+        "label": "Total daily spend after",
+        "name": "total_spend_after",
+        "unit": "usd",
+        "value": 250.0
+      },
+      {
+        "direction": "decrease",
+        "label": "Spend delta",
+        "name": "total_spend_delta",
+        "unit": "usd",
+        "value": -330.0
+      }
+    ],
+    "tenant_id": "tenant-safety",
+    "window_end": null,
+    "window_start": null
+  },
+  {
+    "entities": [
+      {
+        "change_type": "update",
+        "entity_id": "adset-101",
+        "entity_type": "ad_set",
+        "guardrails": [
+          {
+            "code": "budget_delta_exceeds_limit",
+            "limit": 35.0,
+            "message": "Daily budget changed by -57.7% exceeding limit of 35.0%",
+            "observed": -57.692307692307686,
+            "severity": "warning"
+          },
+          {
+            "code": "spend_below_minimum",
+            "limit": 200.0,
+            "message": "Daily budget falls below minimum spend of 200.00",
+            "observed": 110.0,
+            "severity": "critical"
+          }
+        ],
+        "name": "Retargeting",
+        "sections": [
+          {
+            "changes": [
+              {
+                "after": 110.0,
+                "before": 260.0,
+                "delta": -150.0,
+                "field_path": "ad_set.daily_budget",
+                "forecast_delta": null,
+                "guardrails": [
+                  {
+                    "code": "budget_delta_exceeds_limit",
+                    "limit": 35.0,
+                    "message": "Daily budget changed by -57.7% exceeding limit of 35.0%",
+                    "observed": -57.692307692307686,
+                    "severity": "warning"
+                  },
+                  {
+                    "code": "spend_below_minimum",
+                    "limit": 200.0,
+                    "message": "Daily budget falls below minimum spend of 200.00",
+                    "observed": 110.0,
+                    "severity": "critical"
+                  }
+                ],
+                "label": "Daily budget",
+                "percent_delta": -57.692307692307686,
+                "unit": "usd"
+              }
+            ],
+            "section": "spend",
+            "summary": [
+              {
+                "direction": "decrease",
+                "label": "Section spend after",
+                "name": "spend_spend_after",
+                "unit": "usd",
+                "value": 110.0
+              },
+              {
+                "direction": "decrease",
+                "label": "Section spend delta",
+                "name": "spend_spend_delta",
+                "unit": "usd",
+                "value": -150.0
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "change_type": "update",
+        "entity_id": "adset-202",
+        "entity_type": "ad_set",
+        "guardrails": [
+          {
+            "code": "budget_delta_exceeds_limit",
+            "limit": 35.0,
+            "message": "Daily budget changed by -56.2% exceeding limit of 35.0%",
+            "observed": -56.25,
+            "severity": "warning"
+          },
+          {
+            "code": "spend_below_minimum",
+            "limit": 200.0,
+            "message": "Daily budget falls below minimum spend of 200.00",
+            "observed": 140.0,
+            "severity": "critical"
+          }
+        ],
+        "name": "Prospecting",
+        "sections": [
+          {
+            "changes": [
+              {
+                "after": 140.0,
+                "before": 320.0,
+                "delta": -180.0,
+                "field_path": "ad_set.daily_budget",
+                "forecast_delta": null,
+                "guardrails": [
+                  {
+                    "code": "budget_delta_exceeds_limit",
+                    "limit": 35.0,
+                    "message": "Daily budget changed by -56.2% exceeding limit of 35.0%",
+                    "observed": -56.25,
+                    "severity": "warning"
+                  },
+                  {
+                    "code": "spend_below_minimum",
+                    "limit": 200.0,
+                    "message": "Daily budget falls below minimum spend of 200.00",
+                    "observed": 140.0,
+                    "severity": "critical"
+                  }
+                ],
+                "label": "Daily budget",
+                "percent_delta": -56.25,
+                "unit": "usd"
+              }
+            ],
+            "section": "spend",
+            "summary": [
+              {
+                "direction": "decrease",
+                "label": "Section spend after",
+                "name": "spend_spend_after",
+                "unit": "usd",
+                "value": 140.0
+              },
+              {
+                "direction": "decrease",
+                "label": "Section spend delta",
+                "name": "spend_spend_delta",
+                "unit": "usd",
+                "value": -180.0
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "generated_at": "2025-10-13T20:55:00+00:00",
+    "generation_mode": "autopilot",
+    "guardrails": [
+      {
+        "code": "budget_delta_exceeds_limit",
+        "limit": 35.0,
+        "message": "Daily budget changed by -57.7% exceeding limit of 35.0%",
+        "observed": -57.692307692307686,
+        "severity": "warning"
+      },
+      {
+        "code": "spend_below_minimum",
+        "limit": 200.0,
+        "message": "Daily budget falls below minimum spend of 200.00",
+        "observed": 110.0,
+        "severity": "critical"
+      },
+      {
+        "code": "budget_delta_exceeds_limit",
+        "limit": 35.0,
+        "message": "Daily budget changed by -56.2% exceeding limit of 35.0%",
+        "observed": -56.25,
+        "severity": "warning"
+      },
+      {
+        "code": "spend_below_minimum",
+        "limit": 200.0,
+        "message": "Daily budget falls below minimum spend of 200.00",
+        "observed": 140.0,
+        "severity": "critical"
+      },
+      {
+        "code": "platform_spend_delta_exceeds_limit",
+        "limit": 35.0,
+        "message": "google spend changed by -56.2% exceeding limit of 35.0%",
+        "observed": -56.25,
+        "severity": "warning"
+      },
+      {
+        "code": "platform_spend_below_minimum",
+        "limit": 200.0,
+        "message": "google spend (140.00) falls below minimum spend of 200.00",
+        "observed": 140.0,
+        "severity": "critical"
+      },
+      {
+        "code": "platform_spend_delta_exceeds_limit",
+        "limit": 35.0,
+        "message": "meta spend changed by -57.7% exceeding limit of 35.0%",
+        "observed": -57.692307692307686,
+        "severity": "warning"
+      },
+      {
+        "code": "platform_spend_below_minimum",
+        "limit": 200.0,
+        "message": "meta spend (110.00) falls below minimum spend of 200.00",
+        "observed": 110.0,
+        "severity": "critical"
+      }
+    ],
+    "notes": [
+      "Rollback rehearsal"
+    ],
+    "run_id": "adpush-rollback-smoke",
+    "source_plan_id": null,
+    "spend_guardrail_report": {
+      "guardrails": [
+        {
+          "code": "platform_spend_delta_exceeds_limit",
+          "limit": 35.0,
+          "message": "google spend changed by -56.2% exceeding limit of 35.0%",
+          "observed": -56.25,
+          "severity": "warning"
+        },
+        {
+          "code": "platform_spend_below_minimum",
+          "limit": 200.0,
+          "message": "google spend (140.00) falls below minimum spend of 200.00",
+          "observed": 140.0,
+          "severity": "critical"
+        },
+        {
+          "code": "platform_spend_delta_exceeds_limit",
+          "limit": 35.0,
+          "message": "meta spend changed by -57.7% exceeding limit of 35.0%",
+          "observed": -57.692307692307686,
+          "severity": "warning"
+        },
+        {
+          "code": "platform_spend_below_minimum",
+          "limit": 200.0,
+          "message": "meta spend (110.00) falls below minimum spend of 200.00",
+          "observed": 110.0,
+          "severity": "critical"
+        }
+      ],
+      "platforms": [
+        {
+          "baseline_spend": 320.0,
+          "direction": "decrease",
+          "guardrails": [
+            {
+              "code": "platform_spend_delta_exceeds_limit",
+              "limit": 35.0,
+              "message": "google spend changed by -56.2% exceeding limit of 35.0%",
+              "observed": -56.25,
+              "severity": "warning"
+            },
+            {
+              "code": "platform_spend_below_minimum",
+              "limit": 200.0,
+              "message": "google spend (140.00) falls below minimum spend of 200.00",
+              "observed": 140.0,
+              "severity": "critical"
+            }
+          ],
+          "percent_delta": -56.25,
+          "platform": "google",
+          "proposed_spend": 140.0,
+          "spend_delta": -180.0
+        },
+        {
+          "baseline_spend": 260.0,
+          "direction": "decrease",
+          "guardrails": [
+            {
+              "code": "platform_spend_delta_exceeds_limit",
+              "limit": 35.0,
+              "message": "meta spend changed by -57.7% exceeding limit of 35.0%",
+              "observed": -57.692307692307686,
+              "severity": "warning"
+            },
+            {
+              "code": "platform_spend_below_minimum",
+              "limit": 200.0,
+              "message": "meta spend (110.00) falls below minimum spend of 200.00",
+              "observed": 110.0,
+              "severity": "critical"
+            }
+          ],
+          "percent_delta": -57.692307692307686,
+          "platform": "meta",
+          "proposed_spend": 110.0,
+          "spend_delta": -150.0
+        }
+      ],
+      "totals": {
+        "baseline_spend": 580.0,
+        "direction": "decrease",
+        "percent_delta": -56.896551724137936,
+        "proposed_spend": 250.0,
+        "spend_delta": -330.0
+      }
+    },
+    "summary": [
+      {
+        "direction": "decrease",
+        "label": "Total daily spend after",
+        "name": "total_spend_after",
+        "unit": "usd",
+        "value": 250.0
+      },
+      {
+        "direction": "decrease",
+        "label": "Spend delta",
+        "name": "total_spend_delta",
+        "unit": "usd",
+        "value": -330.0
+      }
+    ],
+    "tenant_id": "tenant-safety",
+    "window_end": null,
+    "window_start": null
+  }
+]

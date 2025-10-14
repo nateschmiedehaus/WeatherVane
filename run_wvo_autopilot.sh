@@ -21,10 +21,13 @@
   SCHEMA
 
   cat <<'PROMPT' > "$PROMPT_FILE"
-  Operate autonomously as the WeatherVane super-team. Your goal is to drive the roadmap to completion with world-class engineering, data/ML, product, and design rigor.
+Operate autonomously as the WeatherVane super-team. Your goal is to drive the roadmap to completion with world-class engineering, data/ML, product, and design rigor.
 
-  Loop:
-  1. Read state/roadmap.yaml and choose the highest-priority task(s) not done.
+Loop:
+- Keep command outputs focused on repo sources; skip runtime caches (`.accounts/`, `tmp/`, `node_modules/`) so prompts stay compact.
+- Skim cached task memos in `state/task_memos/` before reloading large docs; update them when plans shift.
+
+1. Read state/roadmap.yaml and choose the highest-priority task(s) not done.
   2. For each chosen task:
      a. Audit docs/code/tests/design to understand requirements.
      b. Implement the work via fs_read, fs_write, and cmd_run (code + tests + docs + design polish). Keep slices small enough to verify quickly.

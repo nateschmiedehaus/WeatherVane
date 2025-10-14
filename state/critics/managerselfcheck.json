@@ -2,8 +2,9 @@
   "critic": "managerselfcheck",
   "code": 0,
   "stdout": "Manager self-check passed: context fresh, roadmap actionable.",
-  "stderr": "/Volumes/BigSSD4/nathanielschmiedehaus/.bash_profile: line 39: /usr/local/bin/brew: No such file or directory",
+  "stderr": "",
   "passed": true,
-  "git_sha": "7dbb20b58859e7bc0ba415e3ffbb230c17f13a1b",
-  "timestamp": "2025-10-11T11:42:00.422Z"
+  "analysis": null,
+  "git_sha": "31548e1c9ba25b8b0f94df5d6f596ec1be26414a",
+  "timestamp": "2025-10-13T22:29:23.487Z"
 }

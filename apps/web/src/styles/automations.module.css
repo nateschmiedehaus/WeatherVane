@@ -1,6 +1,65 @@
 .root {
   position: relative;
   padding-bottom: 4rem;
+  --automations-backdrop:
+    radial-gradient(circle at 15% 20%, rgba(147, 197, 253, 0.18), transparent 55%),
+    radial-gradient(circle at 85% 20%, rgba(165, 243, 252, 0.16), transparent 55%),
+    radial-gradient(circle at 50% 80%, rgba(94, 234, 212, 0.15), transparent 55%),
+    linear-gradient(135deg, rgba(13, 25, 43, 0.94), rgba(15, 23, 42, 0.82));
+  --automations-header-text: rgba(226, 232, 240, 0.78);
+  --automations-panel-border: rgba(71, 85, 105, 0.35);
+  --automations-panel-bg: linear-gradient(135deg, rgba(30, 41, 59, 0.62), rgba(15, 23, 42, 0.54));
+  --automations-panel-shadow:
+    inset 0 0 0 1px rgba(148, 163, 184, 0.1),
+    0 20px 44px rgba(15, 23, 42, 0.35);
+  --automations-muted-text: rgba(148, 163, 184, 0.85);
+  --automations-label-text: rgba(226, 232, 240, 0.92);
+  --automations-input-bg: rgba(15, 23, 42, 0.45);
+  --automations-input-border: rgba(148, 163, 184, 0.35);
+  --automations-input-focus-border: rgba(165, 243, 252, 0.65);
+  --automations-input-focus-shadow: 0 0 0 3px rgba(56, 189, 248, 0.18);
+  --automations-mode-active-border: rgba(129, 230, 217, 0.55);
+  --automations-mode-active-bg: linear-gradient(135deg, rgba(56, 189, 248, 0.22), rgba(34, 211, 238, 0.18));
+  --automations-mode-shadow: 0 20px 45px rgba(56, 189, 248, 0.18);
+  --automations-primary-button-bg: linear-gradient(135deg, rgba(59, 130, 246, 0.4), rgba(56, 189, 248, 0.35));
+  --automations-primary-button-border: rgba(59, 130, 246, 0.5);
+  --automations-primary-button-shadow: 0 20px 42px rgba(56, 189, 248, 0.24);
+  --automations-meta-border: rgba(71, 85, 105, 0.35);
+  --automations-meta-bg: linear-gradient(135deg, rgba(30, 41, 59, 0.6), rgba(15, 23, 42, 0.55));
+  --automations-meta-shadow:
+    inset 0 0 0 1px rgba(148, 163, 184, 0.1),
+    0 18px 38px rgba(15, 23, 42, 0.32);
+}
+
+:global([data-theme="calm"]) .root {
+  --automations-backdrop:
+    radial-gradient(circle at 18% 18%, rgba(148, 205, 255, 0.18), transparent 55%),
+    radial-gradient(circle at 82% 26%, rgba(103, 232, 249, 0.16), transparent 58%),
+    radial-gradient(circle at 50% 80%, rgba(125, 211, 252, 0.14), transparent 60%),
+    linear-gradient(138deg, rgba(6, 16, 30, 0.95), rgba(8, 23, 36, 0.88));
+  --automations-header-text: rgba(224, 242, 254, 0.82);
+  --automations-panel-border: rgba(94, 109, 130, 0.28);
+  --automations-panel-bg: linear-gradient(135deg, rgba(14, 27, 44, 0.68), rgba(7, 17, 30, 0.58));
+  --automations-panel-shadow:
+    inset 0 0 0 1px rgba(148, 191, 233, 0.14),
+    0 24px 46px rgba(8, 19, 33, 0.4);
+  --automations-muted-text: rgba(186, 209, 234, 0.78);
+  --automations-label-text: rgba(232, 244, 255, 0.94);
+  --automations-input-bg: rgba(7, 16, 28, 0.52);
+  --automations-input-border: rgba(102, 123, 146, 0.34);
+  --automations-input-focus-border: rgba(125, 211, 252, 0.6);
+  --automations-input-focus-shadow: 0 0 0 3px rgba(56, 189, 248, 0.24);
+  --automations-mode-active-border: rgba(99, 179, 237, 0.58);
+  --automations-mode-active-bg: linear-gradient(135deg, rgba(56, 189, 248, 0.26), rgba(14, 165, 233, 0.2));
+  --automations-mode-shadow: 0 24px 48px rgba(56, 189, 248, 0.22);
+  --automations-primary-button-bg: linear-gradient(135deg, rgba(14, 165, 233, 0.45), rgba(125, 211, 252, 0.38));
+  --automations-primary-button-border: rgba(56, 189, 248, 0.52);
+  --automations-primary-button-shadow: 0 24px 48px rgba(56, 189, 248, 0.26);
+  --automations-meta-border: rgba(82, 105, 130, 0.3);
+  --automations-meta-bg: linear-gradient(135deg, rgba(12, 27, 45, 0.64), rgba(8, 19, 33, 0.58));
+  --automations-meta-shadow:
+    inset 0 0 0 1px rgba(148, 191, 233, 0.12),
+    0 20px 40px rgba(6, 18, 30, 0.38);
 }
 
 .root::before {
@@ -8,11 +67,7 @@
   position: fixed;
   inset: 0;
   z-index: -2;
-  background:
-    radial-gradient(circle at 15% 20%, rgba(147, 197, 253, 0.18), transparent 55%),
-    radial-gradient(circle at 85% 20%, rgba(165, 243, 252, 0.16), transparent 55%),
-    radial-gradient(circle at 50% 80%, rgba(94, 234, 212, 0.15), transparent 55%),
-    linear-gradient(135deg, rgba(13, 25, 43, 0.94), rgba(15, 23, 42, 0.82));
+  background: var(--automations-backdrop);
 }
 
 .root::after {
@@ -31,15 +86,14 @@
 
 .header h2 {
   margin: 0;
-  font-size: clamp(2rem, 3vw, 2.5rem);
-  letter-spacing: -0.01em;
+  letter-spacing: var(--font-letter-tight);
 }
 
 .header p {
   margin: 0;
   max-width: 65ch;
-  color: rgba(226, 232, 240, 0.78);
-  line-height: 1.7;
+  color: var(--automations-header-text);
+  line-height: var(--line-height-relaxed);
 }
 
 .status,
@@ -77,11 +131,11 @@
   padding: 0.55rem 1.2rem;
   border-radius: 0.85rem;
   border: 1px solid rgba(239, 68, 68, 0.55);
-  background: rgba(15, 23, 42, 0.45);
+  background: var(--automations-input-bg);
   color: var(--status-critical-text, #fee2e2);
   font-weight: 600;
   cursor: pointer;
-  transition: transform 140ms ease;
+  transition: transform var(--motion-duration-snappy) var(--motion-easing-standard);
 }
 
 .retryButton:hover {
@@ -115,12 +169,9 @@
   margin: 0;
   padding: 1.6rem;
   border-radius: 1rem;
-  border: 1px solid rgba(71, 85, 105, 0.35);
-  background:
-    linear-gradient(135deg, rgba(30, 41, 59, 0.62), rgba(15, 23, 42, 0.54)) border-box;
-  box-shadow:
-    inset 0 0 0 1px rgba(148, 163, 184, 0.1),
-    0 20px 44px rgba(15, 23, 42, 0.35);
+  border: 1px solid var(--automations-panel-border);
+  background: var(--automations-panel-bg) border-box;
+  box-shadow: var(--automations-panel-shadow);
   display: grid;
   gap: 1.25rem;
 }
@@ -128,7 +179,7 @@
 .fieldset legend {
   padding: 0 0.5rem;
   font-weight: 600;
-  color: rgba(226, 232, 240, 0.92);
+  color: var(--automations-label-text);
 }
 
 .modeList {
@@ -142,11 +193,13 @@
   align-items: flex-start;
   padding: 1rem;
   border-radius: 0.9rem;
-  border: 1px solid rgba(71, 85, 105, 0.35);
-  background:
-    linear-gradient(135deg, rgba(30, 41, 59, 0.55), rgba(15, 23, 42, 0.52)) border-box;
+  border: 1px solid var(--automations-panel-border);
+  background: var(--automations-panel-bg) border-box;
   cursor: pointer;
-  transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+  transition:
+    transform var(--motion-duration-standard) var(--motion-easing-emphasized),
+    border-color var(--motion-duration-standard) var(--motion-easing-standard),
+    box-shadow var(--motion-duration-standard) var(--motion-easing-standard);
 }
 
 .modeItem input {
@@ -155,14 +208,13 @@
 
 .modeItem:hover,
 .modeItem:has(input:checked) {
-  border-color: rgba(129, 230, 217, 0.55);
-  box-shadow: 0 20px 45px rgba(56, 189, 248, 0.18);
+  border-color: var(--automations-mode-active-border);
+  box-shadow: var(--automations-mode-shadow);
   transform: translateY(-1px);
 }
 
 .modeItem:has(input:checked) {
-  background:
-    linear-gradient(135deg, rgba(56, 189, 248, 0.22), rgba(34, 211, 238, 0.18)) border-box;
+  background: var(--automations-mode-active-bg) border-box;
 }
 
 .modeItem:focus-within {
@@ -172,8 +224,7 @@
 
 .modeItem p {
   margin: 0.25rem 0 0;
-  font-size: 0.9rem;
-  color: rgba(148, 163, 184, 0.85);
+  color: var(--automations-muted-text);
 }
 
 .gridRow {
@@ -191,14 +242,12 @@
   display: flex;
   gap: 0.6rem;
   align-items: center;
-  font-size: 0.95rem;
 }
 
 .fieldset label {
   display: grid;
   gap: 0.4rem;
-  font-size: 0.95rem;
-  color: rgba(226, 232, 240, 0.92);
+  color: var(--automations-label-text);
 }
 
 .fieldset input,
@@ -206,11 +255,13 @@
 .fieldset textarea {
   padding: 0.55rem 0.75rem;
   border-radius: 0.65rem;
-  border: 1px solid rgba(148, 163, 184, 0.35);
-  background: rgba(15, 23, 42, 0.45);
-  color: rgba(226, 232, 240, 0.92);
+  border: 1px solid var(--automations-input-border);
+  background: var(--automations-input-bg);
+  color: var(--automations-label-text);
   font: inherit;
-  transition: border-color 140ms ease, box-shadow 140ms ease;
+  transition:
+    border-color var(--motion-duration-snappy) var(--motion-easing-standard),
+    box-shadow var(--motion-duration-snappy) var(--motion-easing-standard);
 }
 
 .fieldset textarea {
@@ -222,21 +273,21 @@
 .fieldset textarea:focus-visible {
   outline: 2px solid var(--color-focus-outline, #93c5fd);
   outline-offset: 3px;
-  border-color: rgba(165, 243, 252, 0.65);
-  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.18);
+  border-color: var(--automations-input-focus-border);
+  box-shadow: var(--automations-input-focus-shadow);
 }
 
 .primaryButton {
   justify-self: flex-start;
   padding: 0.7rem 1.6rem;
   border-radius: 0.9rem;
-  border: 1px solid rgba(59, 130, 246, 0.5);
-  background: linear-gradient(135deg, rgba(59, 130, 246, 0.4), rgba(56, 189, 248, 0.35));
-  color: rgba(226, 232, 240, 0.96);
+  border: 1px solid var(--automations-primary-button-border);
+  background: var(--automations-primary-button-bg);
+  color: var(--color-text-primary);
   font-weight: 600;
   cursor: pointer;
-  transition: transform 120ms ease;
-  box-shadow: 0 20px 42px rgba(56, 189, 248, 0.24);
+  transition: transform var(--motion-duration-snappy) var(--motion-easing-emphasized);
+  box-shadow: var(--automations-primary-button-shadow);
 }
 
 .primaryButton:disabled {
@@ -256,19 +307,19 @@
 .meta {
   padding: 1.6rem;
   border-radius: 1rem;
-  border: 1px solid rgba(71, 85, 105, 0.35);
-  background:
-    linear-gradient(135deg, rgba(30, 41, 59, 0.6), rgba(15, 23, 42, 0.55)) border-box;
+  border: 1px solid var(--automations-meta-border);
+  background: var(--automations-meta-bg) border-box;
   display: grid;
   gap: 1rem;
-  box-shadow:
-    inset 0 0 0 1px rgba(148, 163, 184, 0.1),
-    0 18px 38px rgba(15, 23, 42, 0.32);
+  box-shadow: var(--automations-meta-shadow);
 }
 
 .meta h3 {
   margin: 0;
-  font-size: 1.2rem;
+}
+
+.auditRail {
+  margin-top: 0.3rem;
 }
 
 .meta dl {
@@ -278,12 +329,28 @@
 }
 
 .meta dt {
-  font-size: 0.85rem;
-  color: rgba(148, 163, 184, 0.85);
+  color: var(--automations-muted-text);
 }
 
 .meta dd {
   margin: 0;
-  font-size: 0.95rem;
-  color: rgba(226, 232, 240, 0.92);
+  color: var(--color-text-primary);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .retryButton,
+  .modeItem,
+  .primaryButton,
+  .fieldset input,
+  .fieldset select,
+  .fieldset textarea {
+    transition: none;
+  }
+
+  .retryButton:hover,
+  .modeItem:hover,
+  .modeItem:has(input:checked),
+  .primaryButton:not(:disabled):hover {
+    transform: none;
+  }
 }

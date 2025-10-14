@@ -1,33 +1,38 @@
 from __future__ import annotations
 
+import math
 import os
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Mapping, Optional
 
 from prefect import flow, get_run_logger, task
 
 import polars as pl
 
 import geohash2  # type: ignore
-import numpy as np
 
 from apps.allocator.heuristics import AllocationInput, Guardrails, allocate
-from apps.worker.ingestion import ShopifyIngestor, IngestionSummary
+from apps.worker.ingestion import BaseIngestor
 from apps.worker.ingestion.ads import build_ads_ingestor_from_env
 from apps.worker.ingestion.promo import build_promo_ingestor_from_env
+from apps.worker.ingestion.shopify import build_shopify_ingestor_from_env
 from shared.feature_store.weather_cache import WeatherCache, make_geocell
 from shared.feature_store.feature_builder import FeatureBuilder, FeatureLeakageError
-from apps.model.ensemble import (
-    run_multi_horizon_ensemble,
-    save_ensemble_metrics_as_json,
-)
-from apps.model.pipelines.poc_models import train_poc_models
-from shared.libs.connectors import ShopifyConfig, ShopifyConnector
+from shared.feature_store.reports import generate_weather_join_report
 from shared.libs.storage.lake import LakeWriter, read_parquet
+from shared.libs.storage.state import JsonStateStore
 from apps.worker.validation.geocoding import evaluate_geocoding_coverage
-from shared.validation.schemas import validate_plan_slices
+from shared.validation.schemas import (
+    validate_google_ads,
+    validate_meta_ads,
+    validate_plan_slices,
+    validate_promos,
+    validate_shopify_orders,
+    validate_shopify_products,
+    validate_weather_daily,
+)
 from shared.schemas.base import ConfidenceLevel
 from shared.data_context import default_context_service
 from apps.validation.incrementality import GeoHoldoutConfig, design_holdout_from_orders
@@ -37,14 +42,36 @@ FALLBACK_COORDINATES = [(37.7749, -122.4194)]
 COORDINATE_LIMIT = 8
 FORECAST_HORIZON_DAYS = 7
 
+MODELING_DISABLED = os.getenv("WEATHERVANE_DISABLE_MODELING", "").lower() in {"1", "true", "yes"}
+
 
 def _derive_weather_source(weather_payload: Dict[str, Any]) -> str:
-    sources = weather_payload.get("sources", {}) if isinstance(weather_payload, dict) else {}
-    if sources and all(source == "stub" for source in sources.values()):
+    """Infer overall weather source classification from payload metadata."""
+
+    if not isinstance(weather_payload, dict):
+        return "unknown"
+
+    raw_sources = weather_payload.get("sources", {})
+    if not raw_sources:
+        return "unknown"
+
+    normalized: list[str] = []
+    for value in raw_sources.values():
+        if isinstance(value, Mapping):
+            source = value.get("source")
+            if isinstance(source, str):
+                normalized.append(source)
+        elif isinstance(value, str):
+            normalized.append(value)
+
+    if not normalized:
+        return "unknown"
+
+    if all(source == "stub" for source in normalized):
         return "stub"
-    if sources and any(source == "stub" for source in sources.values()):
+    if any(source == "stub" for source in normalized):
         return "mixed"
-    if sources:
+    if normalized:
         return "live"
     return "unknown"
 
@@ -149,7 +176,11 @@ def _risk_from_metrics(metrics: Dict[str, Any]) -> float:
 
 
 @task(name="Fetch Shopify data")
-async def fetch_shopify_data(context: TenantContext, lake_root: str = "storage/lake/raw") -> Dict[str, Any]:
+async def fetch_shopify_data(
+    context: TenantContext,
+    lake_root: str = "storage/lake/raw",
+    state_root: str = "storage/metadata/state",
+) -> Dict[str, Any]:
     """Fetch Shopify orders/products when credentials exist, fallback to synthetic snapshot otherwise."""
 
     logger = get_run_logger()
@@ -160,69 +191,117 @@ async def fetch_shopify_data(context: TenantContext, lake_root: str = "storage/l
         context.end_date.isoformat(),
     )
 
-    shop_domain = os.getenv("SHOPIFY_SHOP_DOMAIN")
-    access_token = os.getenv("SHOPIFY_ACCESS_TOKEN")
-    api_version = os.getenv("SHOPIFY_API_VERSION", "2024-04")
-
     writer = LakeWriter(root=lake_root)
+    store = JsonStateStore(root=state_root)
+    ingestor = build_shopify_ingestor_from_env(lake_root, state_root=state_root)
 
-    if shop_domain and access_token:
-        config = ShopifyConfig(shop_domain=shop_domain, access_token=access_token, api_version=api_version)
-        ingestor = ShopifyIngestor(connector=ShopifyConnector(config), writer=writer)
+    if ingestor:
         orders_result = await ingestor.ingest_orders(context.tenant_id, context.start_date, context.end_date)
         products_result = await ingestor.ingest_products(context.tenant_id)
-        return {
-            "orders_path": orders_result.path,
-            "products_path": products_result.path,
-            "summary": {
-                "orders": orders_result.row_count,
-                "products": products_result.row_count,
-                "orders_geocoded_ratio": orders_result.metadata.get("geocoded_ratio"),
+        source = "shopify_api"
+    else:
+        logger.warning(
+            "Shopify credentials missing; emitting stub payload for tenant %s",
+            context.tenant_id,
+        )
+        fallback_lat, fallback_lon = FALLBACK_COORDINATES[0]
+        fallback_geohash = geohash2.encode(fallback_lat, fallback_lon, 5)
+        created_at = context.start_date.isoformat()
+        base = BaseIngestor(writer=writer)
+        sample_orders = [
+            {
+                "tenant_id": context.tenant_id,
+                "order_id": "sample-order",
+                "name": "Sample order",
+                "created_at": created_at,
+                "currency": "USD",
+                "total_price": 0.0,
+                "subtotal_price": 0.0,
+                "total_tax": 0.0,
+                "total_discounts": 0.0,
+                "shipping_postal_code": "94107",
+                "shipping_country": "US",
+                "ship_latitude": fallback_lat,
+                "ship_longitude": fallback_lon,
+                "ship_geohash": fallback_geohash,
+            }
+        ]
+        for record in sample_orders:
+            subtotal = float(record.get("subtotal_price") or 0.0)
+            discounts = float(record.get("total_discounts") or 0.0)
+            net_revenue = subtotal - discounts
+            record["net_revenue"] = max(net_revenue, 0.0)
+        validate_shopify_orders(sample_orders)
+        geocoded_count = sum(1 for row in sample_orders if row.get("ship_geohash"))
+        geocoded_ratio = geocoded_count / len(sample_orders) if sample_orders else 0.0
+        orders_result = base._write_incremental(
+            dataset=f"{context.tenant_id}_shopify_orders",
+            rows=sample_orders,
+            unique_keys=("tenant_id", "order_id"),
+            source="stub",
+            metadata={
+                "geocoded_count": geocoded_count,
+                "geocoded_ratio": geocoded_ratio,
             },
-            "source": "shopify_api",
-        }
+        )
 
-    # Synthetic fallback for dev environments
-    sample_orders = [
-        {
-            "tenant_id": context.tenant_id,
-            "order_id": "sample-order",
-            "created_at": f"{context.start_date.isoformat()}T00:00:00Z",
-            "ship_geohash": geohash2.encode(FALLBACK_COORDINATES[0][0], FALLBACK_COORDINATES[0][1], 5),
-            "ship_latitude": FALLBACK_COORDINATES[0][0],
-            "ship_longitude": FALLBACK_COORDINATES[0][1],
-            "net_revenue": 0.0,
-        }
-    ]
-    orders_summary = IngestionSummary(
-        path=str(writer.write_records(f"{context.tenant_id}_shopify_orders", sample_orders)),
-        row_count=len(sample_orders),
-        source="stub",
-    )
+        sample_products = [
+            {
+                "tenant_id": context.tenant_id,
+                "product_id": "sample-product",
+                "title": "Rain Jacket",
+                "product_type": "Outerwear",
+                "vendor": "WeatherVane",
+                "created_at": created_at,
+                "updated_at": context.end_date.isoformat(),
+            }
+        ]
+        validate_shopify_products(sample_products)
+        products_result = base._write_incremental(
+            dataset=f"{context.tenant_id}_shopify_products",
+            rows=sample_products,
+            unique_keys=("tenant_id", "product_id"),
+            source="stub",
+        )
+        source = "stub"
 
-    sample_products = [
+    store.save(
+        "ingestion",
+        f"{context.tenant_id}_shopify",
         {
-            "tenant_id": context.tenant_id,
-            "product_id": "sample-product",
-            "title": "Rain Jacket",
-            "category": "Outerwear",
-        }
-    ]
-    products_summary = IngestionSummary(
-        path=str(writer.write_records(f"{context.tenant_id}_shopify_products", sample_products)),
-        row_count=len(sample_products),
-        source="stub",
+            "last_start": context.start_date.isoformat(),
+            "last_end": context.end_date.isoformat(),
+            "orders_path": orders_result.path,
+            "orders_row_count": orders_result.row_count,
+            "orders_total_rows": orders_result.metadata.get("total_rows"),
+            "orders_new_rows": orders_result.metadata.get("new_rows"),
+            "orders_updated_rows": orders_result.metadata.get("updated_rows"),
+            "orders_geocoded_ratio": orders_result.metadata.get("geocoded_ratio"),
+            "products_path": products_result.path,
+            "products_row_count": products_result.row_count,
+            "products_total_rows": products_result.metadata.get("total_rows"),
+            "products_new_rows": products_result.metadata.get("new_rows"),
+            "products_updated_rows": products_result.metadata.get("updated_rows"),
+            "source": source,
+            "updated_at": datetime.utcnow().isoformat(),
+        },
     )
 
     return {
-        "orders_path": orders_summary.path,
-        "products_path": products_summary.path,
+        "orders_path": orders_result.path,
+        "products_path": products_result.path,
         "summary": {
-            "orders": orders_summary.row_count,
-            "products": products_summary.row_count,
-            "orders_geocoded_ratio": orders_summary.metadata.get("geocoded_ratio"),
+            "orders": orders_result.row_count,
+            "products": products_result.row_count,
+            "orders_geocoded_ratio": orders_result.metadata.get("geocoded_ratio"),
+            "orders_new_rows": orders_result.metadata.get("new_rows"),
+            "orders_updated_rows": orders_result.metadata.get("updated_rows"),
+            "orders_total_rows": orders_result.metadata.get("total_rows"),
+            "products_new_rows": products_result.metadata.get("new_rows"),
+            "products_updated_rows": products_result.metadata.get("updated_rows"),
+            "products_total_rows": products_result.metadata.get("total_rows"),
         },
-        "source": "stub",
+        "source": source,
     }
 
 
@@ -256,86 +335,187 @@ async def design_geo_incrementality_experiment(
 
 
 @task(name="Fetch ads data")
-async def fetch_ads_data(context: TenantContext, lake_root: str = "storage/lake/raw") -> Dict[str, Any]:
+async def fetch_ads_data(
+    context: TenantContext,
+    lake_root: str = "storage/lake/raw",
+    state_root: str = "storage/metadata/state",
+) -> Dict[str, Any]:
     logger = get_run_logger()
     logger.info("Fetching Meta/Google ads data for tenant %s", context.tenant_id)
 
-    ingestor = build_ads_ingestor_from_env(lake_root)
-    meta_summary = await ingestor.ingest_meta(context.tenant_id, context.start_date, context.end_date) if ingestor.meta_connector else None
-    google_summary = await ingestor.ingest_google(context.tenant_id, context.start_date, context.end_date) if ingestor.google_connector else None
-
-    if meta_summary or google_summary:
-        return {
-            "meta_path": meta_summary.path if meta_summary else None,
-            "google_path": google_summary.path if google_summary else None,
-            "summary": {
-                "meta_rows": meta_summary.row_count if meta_summary else 0,
-                "google_rows": google_summary.row_count if google_summary else 0,
-            },
-            "source": "ads_api",
-        }
-
     writer = LakeWriter(root=lake_root)
-    sample_meta = [
-        {
-            "tenant_id": context.tenant_id,
-            "date": context.start_date.isoformat(),
-            "channel": "meta",
-            "spend": 0.0,
-            "conversions": 0,
-        }
-    ]
-    meta_path = writer.write_records(f"{context.tenant_id}_meta_ads", sample_meta)
+    store = JsonStateStore(root=state_root)
+    ingestor = build_ads_ingestor_from_env(lake_root)
 
-    sample_google = [
+    meta_summary = (
+        await ingestor.ingest_meta(context.tenant_id, context.start_date, context.end_date)
+        if ingestor.meta_connector
+        else None
+    )
+    google_summary = (
+        await ingestor.ingest_google(context.tenant_id, context.start_date, context.end_date)
+        if ingestor.google_connector
+        else None
+    )
+
+    if not meta_summary and not google_summary:
+        logger.warning(
+            "Ads connectors not configured; emitting stub payload for tenant %s",
+            context.tenant_id,
+        )
+        base = BaseIngestor(writer=writer)
+        stub_date = context.start_date.date().isoformat()
+        sample_meta = [
+            {
+                "tenant_id": context.tenant_id,
+                "date": stub_date,
+                "campaign_id": "sample-meta-campaign",
+                "adset_id": "sample-meta-adset",
+                "spend": 0.0,
+                "impressions": 0,
+                "clicks": 0,
+                "conversions": 0.0,
+            }
+        ]
+        validate_meta_ads(sample_meta)
+        meta_summary = base._write_incremental(
+            dataset=f"{context.tenant_id}_meta_ads",
+            rows=sample_meta,
+            unique_keys=("tenant_id", "date", "campaign_id", "adset_id"),
+            source="stub",
+        )
+
+        sample_google = [
+            {
+                "tenant_id": context.tenant_id,
+                "date": stub_date,
+                "campaign_id": "sample-google-campaign",
+                "spend": 0.0,
+                "impressions": 0,
+                "clicks": 0,
+                "conversions": 0.0,
+            }
+        ]
+        validate_google_ads(sample_google)
+        google_summary = base._write_incremental(
+            dataset=f"{context.tenant_id}_google_ads",
+            rows=sample_google,
+            unique_keys=("tenant_id", "date", "campaign_id"),
+            source="stub",
+        )
+        source = "stub"
+    else:
+        source = "ads_api"
+
+    store.save(
+        "ingestion",
+        f"{context.tenant_id}_ads",
         {
-            "tenant_id": context.tenant_id,
-            "date": context.start_date.isoformat(),
-            "channel": "google",
-            "spend": 0.0,
-            "conversions": 0,
-        }
-    ]
-    google_path = writer.write_records(f"{context.tenant_id}_google_ads", sample_google)
+            "last_start": context.start_date.isoformat(),
+            "last_end": context.end_date.isoformat(),
+            "meta_path": meta_summary.path if meta_summary else None,
+            "meta_rows": meta_summary.row_count if meta_summary else 0,
+            "meta_total_rows": meta_summary.metadata.get("total_rows") if meta_summary else None,
+            "meta_new_rows": meta_summary.metadata.get("new_rows") if meta_summary else None,
+            "meta_updated_rows": meta_summary.metadata.get("updated_rows") if meta_summary else None,
+            "google_path": google_summary.path if google_summary else None,
+            "google_rows": google_summary.row_count if google_summary else 0,
+            "google_total_rows": google_summary.metadata.get("total_rows") if google_summary else None,
+            "google_new_rows": google_summary.metadata.get("new_rows") if google_summary else None,
+            "google_updated_rows": google_summary.metadata.get("updated_rows") if google_summary else None,
+            "source": source,
+            "updated_at": datetime.utcnow().isoformat(),
+        },
+    )
 
     return {
-        "meta_path": str(meta_path),
-        "google_path": str(google_path),
-        "summary": {"meta_rows": len(sample_meta), "google_rows": len(sample_google)},
-        "source": "stub",
+        "meta_path": meta_summary.path if meta_summary else None,
+        "google_path": google_summary.path if google_summary else None,
+        "summary": {
+            "meta_rows": meta_summary.row_count if meta_summary else 0,
+            "google_rows": google_summary.row_count if google_summary else 0,
+            "meta_new_rows": meta_summary.metadata.get("new_rows") if meta_summary else None,
+            "meta_updated_rows": meta_summary.metadata.get("updated_rows") if meta_summary else None,
+            "meta_total_rows": meta_summary.metadata.get("total_rows") if meta_summary else None,
+            "google_new_rows": google_summary.metadata.get("new_rows") if google_summary else None,
+            "google_updated_rows": google_summary.metadata.get("updated_rows") if google_summary else None,
+            "google_total_rows": google_summary.metadata.get("total_rows") if google_summary else None,
+        },
+        "source": source,
     }
 
 
 @task(name="Fetch promo data")
-async def fetch_promo_data(context: TenantContext, lake_root: str = "storage/lake/raw") -> Dict[str, Any]:
+async def fetch_promo_data(
+    context: TenantContext,
+    lake_root: str = "storage/lake/raw",
+    state_root: str = "storage/metadata/state",
+) -> Dict[str, Any]:
     logger = get_run_logger()
     logger.info("Fetching Klaviyo promo data for tenant %s", context.tenant_id)
 
-    ingestor = build_promo_ingestor_from_env(lake_root)
-    summary = await ingestor.ingest_campaigns(context.tenant_id, context.start_date, context.end_date) if ingestor.connector else None
-
-    if summary:
-        return {
-            "promo_path": summary.path,
-            "summary": {"campaigns": summary.row_count},
-            "source": "klaviyo_api",
-        }
-
     writer = LakeWriter(root=lake_root)
-    sample_promos = [
+    store = JsonStateStore(root=state_root)
+    ingestor = build_promo_ingestor_from_env(lake_root)
+    summary = (
+        await ingestor.ingest_campaigns(context.tenant_id, context.start_date, context.end_date)
+        if ingestor.connector
+        else None
+    )
+
+    if summary is None:
+        logger.warning(
+            "Promo connector not configured; emitting stub payload for tenant %s",
+            context.tenant_id,
+        )
+        base = BaseIngestor(writer=writer)
+        scheduled_at = context.start_date.isoformat()
+        sample_promos = [
+            {
+                "tenant_id": context.tenant_id,
+                "campaign_id": "sample-campaign",
+                "name": "Sample Campaign",
+                "channel": "email",
+                "scheduled_at": scheduled_at,
+                "status": "draft",
+            }
+        ]
+        validate_promos(sample_promos)
+        summary = base._write_incremental(
+            dataset=f"{context.tenant_id}_promos",
+            rows=sample_promos,
+            unique_keys=("tenant_id", "campaign_id"),
+            source="stub",
+        )
+        source = "stub"
+    else:
+        source = "klaviyo_api"
+
+    store.save(
+        "ingestion",
+        f"{context.tenant_id}_promo",
         {
-            "tenant_id": context.tenant_id,
-            "campaign_id": "sample-campaign",
-            "send_date": context.start_date.isoformat(),
-            "discount_pct": 0.0,
-        }
-    ]
-    promo_path = writer.write_records(f"{context.tenant_id}_promos", sample_promos)
+            "last_start": context.start_date.isoformat(),
+            "last_end": context.end_date.isoformat(),
+            "promo_path": summary.path,
+            "promo_rows": summary.row_count,
+            "promo_total_rows": summary.metadata.get("total_rows"),
+            "promo_new_rows": summary.metadata.get("new_rows"),
+            "promo_updated_rows": summary.metadata.get("updated_rows"),
+            "source": source,
+            "updated_at": datetime.utcnow().isoformat(),
+        },
+    )
 
     return {
-        "promo_path": str(promo_path),
-        "summary": {"campaigns": len(sample_promos)},
-        "source": "stub",
+        "promo_path": summary.path,
+        "summary": {
+            "campaigns": summary.row_count,
+            "promo_new_rows": summary.metadata.get("new_rows"),
+            "promo_updated_rows": summary.metadata.get("updated_rows"),
+            "promo_total_rows": summary.metadata.get("total_rows"),
+        },
+        "source": source,
     }
 
 
@@ -444,6 +624,7 @@ async def fetch_weather_data(
     if rows:
         df = pl.DataFrame(rows).unique(subset=["date", "geohash", "observation_type"])
         df = df.sort(["date", "geohash", "observation_type"])
+        validate_weather_daily(df)
         rows = df.to_dicts()
 
     writer = LakeWriter(root=lake_root)
@@ -464,6 +645,7 @@ async def build_feature_matrix(
     weather_payload: Dict[str, Any],
     context: TenantContext,
     lake_root: str = "storage/lake/raw",
+    join_report_path: str | Path | None = None,
 ) -> Dict[str, Any]:
     logger = get_run_logger()
     logger.info("Building feature matrix for tenant %s", context.tenant_id)
@@ -495,9 +677,31 @@ async def build_feature_matrix(
     for profile in matrix.profiles.values():
         default_context_service.record_profile(context.tenant_id, profile)
 
+    fallback_report_path = os.getenv("WEATHER_JOIN_VALIDATION_PATH")
+    resolved_report_path_input = join_report_path or fallback_report_path
+    resolved_report_path = Path(resolved_report_path_input) if resolved_report_path_input else Path("experiments/features/weather_join_validation.json")
+    ratio_for_report = matrix.geocoded_order_ratio
+    if ratio_for_report is None:
+        ratio_from_shopify = shopify_payload.get("summary", {}).get("orders_geocoded_ratio")
+        if ratio_from_shopify is not None:
+            try:
+                ratio_for_report = float(ratio_from_shopify)
+            except (TypeError, ValueError):
+                ratio_for_report = None
+
+    weather_join_report = generate_weather_join_report(
+        matrix,
+        tenant_id=context.tenant_id,
+        window_start=context.start_date,
+        window_end=context.end_date,
+        geocoded_ratio=ratio_for_report,
+        output_path=resolved_report_path,
+    )
+
     return {
         "design_matrix": matrix.frame.to_dict(as_series=False),
         "observed_design_matrix": matrix.observed_frame.to_dict(as_series=False),
+        "weather_join_report": weather_join_report,
         "metadata": {
             "start": context.start_date.isoformat(),
             "end": context.end_date.isoformat(),
@@ -507,6 +711,8 @@ async def build_feature_matrix(
             "weather_rows": matrix.weather_rows,
             "observed_rows": matrix.observed_rows,
             "latest_observed_target_date": matrix.latest_observed_date,
+            "join_mode": matrix.join_mode,
+            "geocoded_order_ratio": matrix.geocoded_order_ratio,
             "leakage_guardrail": {
                 "target_available_column": "target_available",
                 "observed_rows": matrix.observed_rows,
@@ -525,6 +731,13 @@ async def build_feature_matrix(
             "ads_summary": ads_payload.get("summary", {}),
             "promo_summary": promo_payload.get("summary", {}),
             "weather_row_count": len(weather_payload.get("rows", [])),
+            "weather_missing_records": matrix.weather_missing_records,
+            "weather_join": {
+                "report_path": str(resolved_report_path),
+                "issues": weather_join_report.get("issues", []),
+                "weather_missing_rows": matrix.weather_missing_rows,
+                "leakage_rows": matrix.leakage_risk_rows,
+            },
         },
     }
 
@@ -533,6 +746,29 @@ async def build_feature_matrix(
 async def fit_models(feature_payload: Dict[str, Any], context: TenantContext) -> Dict[str, Any]:
     logger = get_run_logger()
     logger.info("Fitting baseline + MMM models for tenant %s", context.tenant_id)
+
+    if MODELING_DISABLED:
+        logger.warning(
+            "Model fitting disabled via WEATHERVANE_DISABLE_MODELING for tenant %s",
+            context.tenant_id,
+        )
+        return {
+            "models": {},
+            "metrics": {
+                "row_count": 0.0,
+                "baseline_r2": 0.0,
+                "timeseries_r2": 0.0,
+                "holdout_r2": 0.0,
+                "mae": 0.0,
+                "rmse": 0.0,
+                "bias": 0.0,
+                "prediction_std": 0.0,
+                "quantile_width": 0.0,
+            },
+            "quantiles": {"expected_revenue": {"p10": 0.0, "p50": 0.0, "p90": 0.0}},
+        }
+
+    from apps.model.pipelines.poc_models import train_poc_models  # local import to avoid heavy deps at module load
 
     observed_matrix_dict = feature_payload.get("observed_design_matrix")
     matrix_dict = observed_matrix_dict if observed_matrix_dict is not None else (feature_payload.get("design_matrix") or {})
@@ -571,6 +807,22 @@ async def simulate_counterfactuals(
     logger = get_run_logger()
     logger.info("Simulating counterfactual allocations for tenant %s", context.tenant_id)
 
+    if MODELING_DISABLED:
+        logger.warning(
+            "Counterfactual simulation disabled via WEATHERVANE_DISABLE_MODELING for tenant %s",
+            context.tenant_id,
+        )
+        return {
+            "cells": [],
+            "total_budget": 0.0,
+            "current_spend": {},
+            "expected_roas": {},
+            "guardrails": Guardrails(min_spend=0.0, max_spend=0.0),
+            "metrics": model_payload.get("metrics", {}),
+            "roi_curves": {},
+            "status": "DEGRADED",
+        }
+
     frame_dict = feature_payload.get("design_matrix") or {}
     frame = pl.DataFrame(frame_dict)
     if frame.is_empty():
@@ -606,7 +858,7 @@ async def simulate_counterfactuals(
             return max(base, 0.0)
         ratio = (spend - mean_spend_val) / max(mean_spend_val, 1e-6)
         roas = base + elasticity * ratio
-        if not np.isfinite(roas):  # type: ignore[attr-defined]
+        if not math.isfinite(roas):
             roas = base
         return max(roas, 0.0)
 
@@ -667,6 +919,13 @@ async def allocate_budget(
 ) -> Dict[str, Any]:
     logger = get_run_logger()
     logger.info("Optimising budget allocation for tenant %s", context.tenant_id)
+
+    if MODELING_DISABLED:
+        logger.warning(
+            "Budget allocation disabled via WEATHERVANE_DISABLE_MODELING for tenant %s",
+            context.tenant_id,
+        )
+        return {"plan": [], "guardrails": {}, "status": "DEGRADED"}
 
     cells = simulation_payload.get("cells", [])
     if not cells:
@@ -809,6 +1068,15 @@ async def generate_ensemble_forecast(
         context.tenant_id,
         horizon_days,
     )
+    if MODELING_DISABLED:
+        logger.warning(
+            "Ensemble forecast disabled via WEATHERVANE_DISABLE_MODELING for tenant %s",
+            context.tenant_id,
+        )
+        return {"forecasts": [], "metrics": {}, "diagnostics": {}}
+
+    from apps.model.ensemble import run_multi_horizon_ensemble, save_ensemble_metrics_as_json  # local import to avoid heavy deps at module load
+
     design_matrix = feature_payload.get("design_matrix") or {}
     weather_rows = weather_payload.get("rows") or []
     result = run_multi_horizon_ensemble(
@@ -844,10 +1112,11 @@ async def orchestrate_poc_flow(
 
     lake_root = os.getenv("STORAGE_LAKE_ROOT", "storage/lake/raw")
     weather_root = os.getenv("STORAGE_WEATHER_ROOT", "storage/lake/weather")
+    state_root = os.getenv("STORAGE_STATE_ROOT", "storage/metadata/state")
 
-    shopify_payload = await fetch_shopify_data(context, lake_root=lake_root)
-    ads_payload = await fetch_ads_data(context, lake_root=lake_root)
-    promo_payload = await fetch_promo_data(context, lake_root=lake_root)
+    shopify_payload = await fetch_shopify_data(context, lake_root=lake_root, state_root=state_root)
+    ads_payload = await fetch_ads_data(context, lake_root=lake_root, state_root=state_root)
+    promo_payload = await fetch_promo_data(context, lake_root=lake_root, state_root=state_root)
     incrementality_design = await design_geo_incrementality_experiment(shopify_payload, context)
     weather_payload = await fetch_weather_data(
         context,

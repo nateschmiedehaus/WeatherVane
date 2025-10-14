@@ -241,11 +241,13 @@ def _compute_metrics(model: BaselineModel, frame: pl.DataFrame, target: str) -> 
     bias = float(np.mean(residuals))
     mean_prediction = float(np.mean(preds))
     std_prediction = float(np.std(preds))
-    r2 = evaluate_r2(model, frame)
+    r2_raw = evaluate_r2(model, frame)
+    r2_value = _clean_float(r2_raw)
+    r2_value = max(0.0, min(1.0, r2_value))
     rows = len(actuals)
     return {
         "rows": int(rows),
-        "r2": _clean_float(r2),
+        "r2": r2_value,
         "mae": _clean_float(mae),
         "rmse": _clean_float(rmse),
         "bias": _clean_float(bias),

@@ -7,6 +7,9 @@ reasoning = "auto"
 include_plan_tool = true
 cwd = "/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane"
 
+[projects."/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane"]
+trust_level = "trusted"
+
 [mcp_servers.weathervane]
 command = "node"
 args = ["tools/wvo_mcp/dist/index.js", "--workspace", "/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane"]

@@ -1,0 +1,57 @@
+{
+  "ok": true,
+  "logs": [
+    {
+      "name": "git_clean",
+      "status": "passed",
+      "timestamp": "2025-10-12T23:54:14.824Z"
+    },
+    {
+      "name": "node_version",
+      "status": "passed",
+      "timestamp": "2025-10-12T23:54:14.824Z"
+    },
+    {
+      "name": "npm_version",
+      "status": "passed",
+      "timestamp": "2025-10-12T23:54:14.930Z"
+    },
+    {
+      "name": "disk_space",
+      "status": "passed",
+      "timestamp": "2025-10-12T23:54:14.934Z"
+    },
+    {
+      "name": "sandbox_tooling",
+      "status": "passed",
+      "timestamp": "2025-10-12T23:54:14.938Z"
+    },
+    {
+      "name": "sqlite_roundtrip",
+      "status": "passed",
+      "timestamp": "2025-10-12T23:54:14.941Z"
+    }
+  ],
+  "gates": [
+    {
+      "gate": "build",
+      "status": "pending",
+      "timestamp": "2025-10-12T23:54:14.759Z"
+    },
+    {
+      "gate": "unit",
+      "status": "pending",
+      "timestamp": "2025-10-12T23:54:14.759Z"
+    },
+    {
+      "gate": "selfchecks",
+      "status": "pending",
+      "timestamp": "2025-10-12T23:54:14.759Z"
+    },
+    {
+      "gate": "canary_ready",
+      "status": "pending",
+      "timestamp": "2025-10-12T23:54:14.759Z"
+    }
+  ]
+}

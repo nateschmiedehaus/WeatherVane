@@ -1,8 +1,30 @@
 # Implementation Status
 ## WeatherVane Orchestration V2 - "Genius Mode"
 
-**Last Updated**: October 10, 2025
+**Last Updated**: October 11, 2025
 **Current Phase**: Foundation Complete (30%)
+
+---
+
+## 🔄 Latest Updates (2025-10-11)
+
+- ✅ **Locked MCP input schemas** to use Zod raw shapes only (`utils/schema.ts`, MCP entrypoints). This prevents Autopilot or future tooling from reintroducing JSON Schema conversion that the MCP SDK cannot consume.
+- ✅ **Built guardrail logging** in `ClaudeCodeCoordinator` so “all agents busy” churn is throttled. Keeps logs readable while the scheduler ramps.
+- ✅ **Shell init hardened** (`.bash_profile`) – Homebrew/Pyenv now gated behind existence checks to stop repeated `brew`/`pyenv` noise in every command.
+- ✅ **Failover telemetry exposed** – `orchestrator_status` now reports the active coordinator (`claude` or `codex`), availability, and the latest promotion reason so ops can confirm failovers without digging through logs.
+- ✅ **Execution telemetry augmented** – Every run in `state/telemetry/executions.jsonl` carries `coordinator_available` alongside the existing type/reason fields so SLO monitors can tell whether Claude was actually serving traffic.
+- ✅ **Failover guardrail wired** – `scripts/check_failover_guardrail.mjs` enforces the Codex failover SLO (≤50 % share, <15 min sustained) and blocks rollouts when telemetry is stale or Claude is offline too long.
+- ✅ **Meta-work transition tuned** – SelfImprovementManager now advances to product work once PHASE-1→PHASE-4 are complete; PHASE-5 tasks are tracked but no longer block WeatherVane feature delivery.
+- ✅ **SQLite FTS code index** – `code_fts` virtual table plus `CodeSearchIndex` utility keep a live code search catalog so context assembly can surface the right files in <50 ms without heuristic guesses.
+- ℹ️ Documented the above in `docs/AUTOPILOT_FIXES.md` so Autopilot will not attempt to undo these protections.
+
+### 🧭 Coordinator Failover Observability Contract
+
+- `orchestrator_status` returns `coordinator.type`, `coordinator.available`, and a normalised `coordinator.reason` (e.g., `primary`, `primary_unavailable`, `failover:claude_rate_limit`).
+- Each execution summary written to `state/telemetry/executions.jsonl` includes `coordinator_type`, `coordinator_available`, and `coordinator_reason`, allowing downstream SLO monitors to correlate quality issues with failover events.
+- Operations snapshots persist the coordinator payload alongside queue batches and token pressure so dashboards can highlight degraded states in real time.
+- If Claude is unavailable, coordinator promotions emit `coordinator:promoted` events with a reason string. These are preserved in the telemetry stream for postmortem timelines.
+- `scripts/check_failover_guardrail.mjs` consumes operations telemetry to enforce the failover error budget (<50 % Codex share, <15 min sustained Codex coordinator, Claude downtime <10 min) and aborts automation when the guardrail is breached.
 
 ---
 
@@ -35,7 +57,7 @@ Just-in-time context assembly for token efficiency.
 - ✅ Smart relevance scoring for decisions
 - ✅ Recent learnings (last 24 hours)
 - ✅ Quality issues in specific areas
-- ✅ File inference based on task type
+- ✅ File inference backed by SQLite FTS code search (deterministic ≤50 ms lookups)
 - ✅ Velocity metrics
 - ✅ Formats to 300-500 token prompts (vs 50k+ full dump)
 
@@ -130,6 +152,7 @@ Supervises the runtime so strategy stays aligned with product excellence.
 
 **Features**:
 - ✅ Tracks execution history and quality trends in real time
+- ✅ Streams per-execution usage metrics to `state/telemetry/executions.jsonl` for longitudinal analysis
 - ✅ Dynamically tunes TaskScheduler weights (stabilize vs accelerate modes)
 - ✅ Guards Codex:Claude utilisation toward the 5:1 target
 - ✅ Emits maintenance alerts (blocked backlog, under-utilised agents)
@@ -156,9 +179,16 @@ Single entrypoint that wires the full stack together.
 
 ### User-Facing Enhancements
 - ✅ `orchestrator_status` tool surfaces live queue, quality, and usage metrics
+- ✅ Coordinator failover visibility baked into telemetry/log streams (`executions.jsonl`) so we can correlate quality dips with Claude outages
 - ✅ `auth_status` tool explains Codex/Claude login requirements with actionable guidance
 - ✅ Runtime auto-starts with the MCP server and shuts down cleanly on exit signals
 - ✅ Model selector chooses between `gpt-5-codex` presets (low/medium/high) and `gpt-5` presets for narrative work, logging rationale for each dispatch
+
+#### Coordinator Failover Observability
+- Active coordinator is reported through the MCP `orchestrator_status` tool (`coordinator.type`, availability flag, and human-readable `reason` that captures cooldowns, rate limits, and manual promotions).
+- Every execution record in `state/telemetry/executions.jsonl` now stores `coordinator_type`, `coordinator_available`, and `coordinator_reason`, enabling correlation of failovers with quality or latency regressions.
+- Operations snapshots (`state/telemetry/operations.jsonl`) log the same fields so dashboards can alert when the system is running on Codex failover for extended periods.
+- Failover reasons are normalized to stable strings (`primary`, `failover:start`, `failover:unknown`, `primary_unavailable`, etc.) to make downstream alerting rules deterministic.
 
 ---
 

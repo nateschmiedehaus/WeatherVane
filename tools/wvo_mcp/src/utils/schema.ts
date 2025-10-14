@@ -3,20 +3,20 @@ import type { ZodObject, ZodRawShape } from "zod";
 /**
  * Extract the shape from a Zod object schema for MCP tool registration.
  *
- * The MCP SDK's registerTool() wraps inputSchema in z.object(inputSchema),
- * so we must pass the raw shape, not the full ZodObject.
+ * The MCP SDK's registerTool() wraps `inputSchema` in `z.object(inputSchema)`,
+ * so we must pass the raw shape rather than a full JSON schema.
  *
- * We return `any` to satisfy the type checker while passing the correct runtime value.
+ * ⚠️ Autopilot Guardrail:
+ * Do not change this to return JSON Schema again. MCP clients expect the Zod
+ * raw shape, and converting to JSON Schema breaks tool registration.
  */
 export function toJsonSchema<T extends ZodRawShape>(
   schema: ZodObject<T>,
   _name?: string
-): any {
-  // Return .shape because SDK will wrap it: z.object(inputSchema)
-  // Handle null/undefined gracefully
+): T {
   if (!schema || !schema.shape) {
-    console.error('[toJsonSchema] Invalid schema:', schema);
-    return {};
+    console.error("[toJsonSchema] Invalid schema:", schema);
+    return {} as T;
   }
   return schema.shape;
 }

@@ -17,11 +17,6 @@
       "precip_anomaly",
       "temp_roll7",
       "precip_roll7",
-      "temp_c_lag1",
-      "precip_mm_lag1",
-      "uv_index_lag1",
-      "precip_probability_lag1",
-      "humidity_lag1",
       "freeze_flag",
       "heatwave_flag",
       "snow_event_flag",
@@ -36,7 +31,7 @@
     ],
     "residual_mean": 0.0,
     "residual_std": 0.0,
-    "row_count": 2,
+    "row_count": 1,
     "timeseries_cv_scores": []
   },
   "forecasts": [
@@ -46,7 +41,7 @@
         "naive_mean": 0.0,
         "timeseries": 0.0
       },
-      "date": "2025-09-12",
+      "date": "2024-01-02",
       "horizon_days": 1,
       "prediction": 0.0,
       "quantiles": {
@@ -61,7 +56,7 @@
         "naive_mean": 0.0,
         "timeseries": 0.0
       },
-      "date": "2025-09-13",
+      "date": "2024-01-03",
       "horizon_days": 2,
       "prediction": 0.0,
       "quantiles": {
@@ -76,7 +71,7 @@
         "naive_mean": 0.0,
         "timeseries": 0.0
       },
-      "date": "2025-09-14",
+      "date": "2024-01-04",
       "horizon_days": 3,
       "prediction": 0.0,
       "quantiles": {
@@ -91,7 +86,7 @@
         "naive_mean": 0.0,
         "timeseries": 0.0
       },
-      "date": "2025-09-15",
+      "date": "2024-01-05",
       "horizon_days": 4,
       "prediction": 0.0,
       "quantiles": {
@@ -106,7 +101,7 @@
         "naive_mean": 0.0,
         "timeseries": 0.0
       },
-      "date": "2025-09-16",
+      "date": "2024-01-06",
       "horizon_days": 5,
       "prediction": 0.0,
       "quantiles": {
@@ -121,7 +116,7 @@
         "naive_mean": 0.0,
         "timeseries": 0.0
       },
-      "date": "2025-09-17",
+      "date": "2024-01-07",
       "horizon_days": 6,
       "prediction": 0.0,
       "quantiles": {
@@ -136,7 +131,7 @@
         "naive_mean": 0.0,
         "timeseries": 0.0
       },
-      "date": "2025-09-18",
+      "date": "2024-01-08",
       "horizon_days": 7,
       "prediction": 0.0,
       "quantiles": {
@@ -164,7 +159,7 @@
     "forecast_rows": 7,
     "holdout_r2": 0.0,
     "holdout_rows": 1,
-    "observed_rows": 2,
+    "observed_rows": 1,
     "overall": {
       "bias": 0.0,
       "mae": 0.0,

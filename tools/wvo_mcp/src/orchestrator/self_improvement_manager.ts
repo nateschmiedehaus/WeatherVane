@@ -10,6 +10,7 @@
  */
 
 import { EventEmitter } from 'node:events';
+import { randomUUID } from 'node:crypto';
 import { execa } from 'execa';
 import type { StateMachine, Task } from './state_machine.js';
 import { logInfo, logWarning, logError } from '../telemetry/logger.js';
@@ -26,7 +27,21 @@ const MCP_INFRASTRUCTURE_PHASES = [
   'PHASE-1-HARDENING',
   'PHASE-2-COMPACT',
   'PHASE-3-BATCH',
+  'PHASE-4-POLISH',
+  'PHASE-5-OPTIMIZATION',
 ];
+
+const REQUIRED_MCP_PHASES = [
+  'PHASE-1-HARDENING',
+  'PHASE-2-COMPACT',
+  'PHASE-3-BATCH',
+  'PHASE-4-POLISH',
+];
+
+const PHASE_EPIC_MAP: Record<string, string[]> = {
+  'PHASE-4-POLISH': ['E8'],
+  'PHASE-5-OPTIMIZATION': ['E9'],
+};
 
 export interface RestartAttempt {
   timestamp: number;
@@ -64,6 +79,7 @@ export class SelfImprovementManager extends EventEmitter {
   private metaWorkComplete = false;
   private lastPhaseCheck = 0;
   private readonly PHASE_CHECK_INTERVAL = 60_000; // 1 minute
+  private readonly correlationPrefix = 'self-improvement';
 
   constructor(
     private readonly stateMachine: StateMachine,
@@ -206,37 +222,46 @@ export class SelfImprovementManager extends EventEmitter {
     }
 
     this.lastPhaseCheck = now;
+    const phaseCorrelation = this.createCorrelationBase('phase-check');
 
     // Check each infrastructure phase
+    const allTasks = this.stateMachine.getTasks();
     const phaseStatuses: PhaseCompletionStatus[] = [];
 
     for (const phase of MCP_INFRASTRUCTURE_PHASES) {
-      const status = await this.checkPhaseStatus(phase);
+      const status = this.checkPhaseStatus(phase, allTasks);
       phaseStatuses.push(status);
       this.phaseCompletionCache.set(phase, status);
     }
 
     // All phases must be complete
-    const allComplete = phaseStatuses.every(s => s.complete);
+    const requiredComplete = phaseStatuses
+      .filter(status => REQUIRED_MCP_PHASES.includes(status.phase))
+      .every(status => status.complete);
 
-    if (allComplete && !this.metaWorkComplete) {
+    if (requiredComplete && !this.metaWorkComplete) {
       logInfo('🎉 MCP infrastructure phases complete! Transitioning to product work.', {
-        phases: MCP_INFRASTRUCTURE_PHASES,
+        requiredPhases: REQUIRED_MCP_PHASES,
+        optionalPhasesRemaining: phaseStatuses
+          .filter(status => !REQUIRED_MCP_PHASES.includes(status.phase) && !status.complete)
+          .map(status => status.phase),
         completedTasks: phaseStatuses.flatMap(s => s.taskIds),
       });
 
       this.metaWorkComplete = true;
 
       // Unblock product work tasks
-      await this.unblockProductWork();
+      await this.unblockProductWork(phaseCorrelation);
 
       this.emit('meta-work:complete', {
         phases: MCP_INFRASTRUCTURE_PHASES,
         timestamp: now,
       });
+    } else if (!requiredComplete) {
+      await this.enforceMetaWorkFocus(phaseStatuses, phaseCorrelation);
     }
 
-    return allComplete;
+    return requiredComplete;
   }
 
   /**
@@ -320,61 +345,152 @@ export class SelfImprovementManager extends EventEmitter {
     return `pre-restart-${taskId}-${Date.now()}`;
   }
 
-  private async verifyBuild(): Promise<void> {
-    logInfo('Verifying build before restart...');
+  private createCorrelationBase(operation: string): string {
+    return `${this.correlationPrefix}:${operation}:${randomUUID()}`;
+  }
 
-    const result = await execa('npm', ['run', 'build', '--prefix', 'tools/wvo_mcp'], {
-      cwd: this.config.workspaceRoot,
-      timeout: 120_000,
-    });
+  private async verifyBuild(): Promise<void> {
+    logInfo('Verifying orchestrator TypeScript build before restart...');
+
+    const result = await execa(
+      'npm',
+      [
+        'exec',
+        '--prefix',
+        'tools/wvo_mcp',
+        'tsc',
+        '--',
+        '--project',
+        'tsconfig.json',
+        '--pretty',
+        'false',
+        '--incremental',
+        '--tsBuildInfoFile',
+        'dist/.tsbuildinfo',
+      ],
+      {
+        cwd: this.config.workspaceRoot,
+        timeout: 60_000,
+      }
+    );
 
     if (result.exitCode !== 0) {
       throw new Error(`Build verification failed: ${result.stderr || result.stdout}`);
     }
 
-    logInfo('Build verification passed');
+    logInfo('Type check passed');
   }
 
 
-  private async checkPhaseStatus(phase: string): Promise<PhaseCompletionStatus> {
-    // Find all tasks associated with this phase
-    const allTasks = this.stateMachine.getTasks();
-    const phaseTasks = allTasks.filter(t =>
-      t.id === phase ||
-      t.title.includes(phase) ||
-      t.metadata?.phase === phase ||
-      t.parent_id === phase
-    );
+  private checkPhaseStatus(phase: string, allTasks: Task[]): PhaseCompletionStatus {
+    const relevantTasksMap = new Map<string, Task>();
 
-    if (phaseTasks.length === 0) {
-      // No tasks found for this phase - check if it exists at all
-      const phaseTask = allTasks.find(t => t.id === phase);
-      if (!phaseTask) {
-        logWarning('Phase not found in roadmap', { phase });
-        return {
-          phase,
-          complete: false,
-          taskIds: [],
-          lastChecked: Date.now(),
-        };
+    // Direct matches (legacy meta tasks or explicit markers)
+    for (const task of allTasks) {
+      if (
+        task.id === phase ||
+        task.title.includes(phase) ||
+        task.metadata?.phase === phase ||
+        task.parent_id === phase
+      ) {
+        relevantTasksMap.set(task.id, task);
       }
     }
 
-    // Check if all phase tasks are done
-    const allDone = phaseTasks.length > 0 && phaseTasks.every(t =>
-      t.status === 'done'
-    );
+    // Epic matches (phase-specific epics that should count towards completion)
+    const epicIds = PHASE_EPIC_MAP[phase] ?? [];
+    if (epicIds.length > 0) {
+      for (const task of allTasks) {
+        if (task.epic_id && epicIds.includes(task.epic_id)) {
+          relevantTasksMap.set(task.id, task);
+        }
+      }
+    }
+
+    const phaseTasks = Array.from(relevantTasksMap.values());
+
+    if (phaseTasks.length === 0) {
+      logWarning('Phase not found in roadmap', {
+        phase,
+        epicIds,
+      });
+      return {
+        phase,
+        complete: false,
+        taskIds: [],
+        lastChecked: Date.now(),
+      };
+    }
+
+    const allDone = phaseTasks.every(task => task.status === 'done');
 
     return {
       phase,
       complete: allDone,
-      taskIds: phaseTasks.map(t => t.id),
+      taskIds: phaseTasks.map(task => task.id),
       lastChecked: Date.now(),
     };
   }
 
-  private async unblockProductWork(): Promise<void> {
+  private async enforceMetaWorkFocus(
+    phaseStatuses: PhaseCompletionStatus[],
+    correlationBase?: string
+  ): Promise<void> {
+    const incompletePhases = phaseStatuses.filter(
+      status => REQUIRED_MCP_PHASES.includes(status.phase) && !status.complete
+    );
+    const blockingPhases = incompletePhases.map(status => status.phase);
+    const metaTaskIds = new Set<string>(phaseStatuses.flatMap(status => status.taskIds));
+
+    if (blockingPhases.length === 0) {
+      return;
+    }
+
+    const correlation = correlationBase ?? this.createCorrelationBase('phase-enforce');
+    const stage = (taskId: string, stageName: string) => `${correlation}:enforce:${taskId}:${stageName}`;
+
+    const allTasks = this.stateMachine.getTasks();
+
+    for (const task of allTasks) {
+      if (
+        task.status === 'done' ||
+        task.status === 'blocked' && task.metadata?.blocked_by_meta_work === true ||
+        metaTaskIds.has(task.id)
+      ) {
+        continue;
+      }
+
+      // Skip tasks that belong to meta epics (already in metaTaskIds) or are review items for them
+      const taskEpicId = task.epic_id ?? '';
+      if (taskEpicId && Object.values(PHASE_EPIC_MAP).some(epics => epics.includes(taskEpicId))) {
+        continue;
+      }
+
+      try {
+        await this.stateMachine.transition(
+          task.id,
+          'blocked',
+          {
+            blocked_by_meta_work: true,
+            blocking_phases: blockingPhases,
+            meta_focus_enforced_at: Date.now(),
+          },
+          stage(task.id, 'blocked')
+        );
+      } catch (error: any) {
+        logWarning('Failed to enforce meta work focus on task', {
+          taskId: task.id,
+          error: error.message,
+        });
+      }
+    }
+  }
+
+  private async unblockProductWork(correlationBase?: string): Promise<void> {
     logInfo('Unblocking product work tasks...');
+
+    const correlation = correlationBase ?? this.createCorrelationBase('meta-unblock');
+    const stage = (taskId: string, stageName: string) => `${correlation}:unblock:${taskId}:${stageName}`;
 
     const allTasks = this.stateMachine.getTasks();
 
@@ -406,8 +522,11 @@ export class SelfImprovementManager extends EventEmitter {
           {
             reason: 'MCP infrastructure phases complete',
             meta_work_complete: true,
+            blocked_by_meta_work: null,
+            blocking_phases: null,
+            meta_focus_enforced_at: null,
           },
-          `meta-work-unblock-${Date.now()}`
+          stage(task.id, 'pending')
         );
 
         unblockedCount++;

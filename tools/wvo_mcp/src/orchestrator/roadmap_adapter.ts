@@ -1,13 +1,25 @@
 import path from 'node:path';
 import { promises as fs } from 'node:fs';
+import { randomUUID } from 'node:crypto';
 
-import type { PlanNextInput, PlanTaskSummary } from '../utils/types.js';
+import type {
+  PlanNextInput,
+  PlanTaskSummary,
+  RoadmapDocument,
+  RoadmapEpic,
+  RoadmapMilestone,
+  RoadmapTask,
+  TaskClusterSpec,
+} from '../utils/types.js';
 import type { StateMachine, Task, TaskStatus } from './state_machine.js';
-import type { RoadmapDocument, RoadmapEpic, RoadmapMilestone, RoadmapTask } from '../utils/types.js';
 import { RoadmapStore } from '../state/roadmap_store.js';
 import { logWarning } from '../telemetry/logger.js';
+import { normalizeClusterSpec } from '../utils/cluster.js';
 
 export type LegacyPlanStatus = 'pending' | 'in_progress' | 'blocked' | 'done';
+export interface RoadmapSyncOptions {
+  correlationBase?: string;
+}
 
 export interface LegacyTaskMetadata {
   owner?: string;
@@ -18,6 +30,8 @@ export interface LegacyTaskMetadata {
   exit_criteria?: string[];
   estimate_hours?: number;
   dependencies?: string[];
+  domain?: string;
+  cluster?: TaskClusterSpec;
 }
 
 const LEGACY_TO_STATE_STATUS: Record<LegacyPlanStatus, TaskStatus> = {
@@ -50,10 +64,15 @@ function normaliseExitCriteria(criteria?: RoadmapTask['exit_criteria']): string[
     return [];
   }
   return criteria.map((criterion) => {
-    if ('critic' in criterion) return `critic:${criterion.critic}`;
-    if ('doc' in criterion) return `doc:${criterion.doc}`;
-    if ('artifact' in criterion) return `artifact:${criterion.artifact}`;
-    if ('note' in criterion) return `note:${criterion.note}`;
+    if (typeof criterion === 'string') {
+      return criterion;
+    }
+    if (criterion && typeof criterion === 'object') {
+      if ('critic' in criterion) return `critic:${criterion.critic}`;
+      if ('doc' in criterion) return `doc:${criterion.doc}`;
+      if ('artifact' in criterion) return `artifact:${criterion.artifact}`;
+      if ('note' in criterion) return `note:${criterion.note}`;
+    }
     return 'unknown';
   });
 }
@@ -81,7 +100,7 @@ export function legacyStatusToState(status: LegacyPlanStatus): TaskStatus {
 }
 
 function buildMetadata(task: RoadmapTask, milestone: RoadmapMilestone, epic: RoadmapEpic): LegacyTaskMetadata {
-  return {
+  const metadata: LegacyTaskMetadata = {
     owner: task.owner,
     milestone_id: milestone.id,
     milestone_title: milestone.title,
@@ -90,7 +109,13 @@ function buildMetadata(task: RoadmapTask, milestone: RoadmapMilestone, epic: Roa
     exit_criteria: normaliseExitCriteria(task.exit_criteria),
     estimate_hours: task.estimate_hours,
     dependencies: task.dependencies,
+    domain: (epic as unknown as { domain?: string }).domain,
   };
+  const cluster = normalizeClusterSpec(task.cluster);
+  if (cluster) {
+    metadata.cluster = cluster;
+  }
+  return metadata;
 }
 
 function toMetadataRecord(metadata: LegacyTaskMetadata): Record<string, unknown> {
@@ -159,7 +184,85 @@ function parseMetadata(record: Record<string, unknown> | undefined): LegacyTaskM
   if (Array.isArray(record.dependencies)) {
     metadata.dependencies = record.dependencies.map((item) => String(item));
   }
+  if (record.cluster) {
+    const cluster = normalizeClusterSpec(record.cluster);
+    if (cluster) {
+      metadata.cluster = cluster;
+    }
+  }
+  if (typeof record.domain === 'string') {
+    metadata.domain = String(record.domain);
+  }
   return metadata;
+}
+
+function normaliseEpicStatus(status: unknown): TaskStatus {
+  if (typeof status !== 'string') {
+    return 'pending';
+  }
+
+  const normalised = status.trim().toLowerCase();
+  if (normalised === 'pending' || normalised === 'todo' || normalised === 'backlog') {
+    return 'pending';
+  }
+  if (normalised === 'in_progress' || normalised === 'in-progress' || normalised === 'in progress' || normalised === 'inflight' || normalised === 'in-flight' || normalised === 'active') {
+    return 'in_progress';
+  }
+  if (normalised === 'blocked') {
+    return 'blocked';
+  }
+  if (normalised === 'done' || normalised === 'complete' || normalised === 'completed') {
+    return 'done';
+  }
+
+  // Treat draft/planning states as pending so we can create the epic row safely.
+  if (normalised === 'draft' || normalised === 'planned' || normalised === 'planning') {
+    return 'pending';
+  }
+
+  return 'pending';
+}
+
+function synchroniseEpic(
+  stateMachine: StateMachine,
+  epic: RoadmapEpic,
+  syncCorrelation: string,
+): void {
+  const correlationFor = (stage: string) => `${syncCorrelation}:${epic.id}:${stage}`;
+  const desiredStatus = normaliseEpicStatus(epic.status);
+  const existing = stateMachine.getTask(epic.id);
+
+  if (!existing) {
+    stateMachine.createTask({
+      id: epic.id,
+      title: epic.title,
+      description: epic.description,
+      type: 'epic',
+      status: desiredStatus,
+      metadata: { kind: 'epic' },
+    }, correlationFor('create'));
+    return;
+  }
+
+  const existingMetadata = existing.metadata as Record<string, unknown> | undefined;
+  const metadataKind = typeof existingMetadata?.kind === 'string'
+    ? String(existingMetadata!.kind)
+    : undefined;
+  const needsKindMetadata = metadataKind !== 'epic';
+  const statusChanged = existing.status !== desiredStatus;
+
+  if (statusChanged || needsKindMetadata) {
+    const stage = statusChanged ? `status:${existing.status}->${desiredStatus}` : 'metadata';
+    const patch = needsKindMetadata ? { kind: 'epic' } : undefined;
+    stateMachine.transition(epic.id, desiredStatus, patch, correlationFor(stage));
+  }
+
+  if (existing.title !== epic.title || existing.description !== epic.description) {
+    stateMachine.updateTaskDetails(epic.id, {
+      title: epic.title,
+      description: epic.description,
+    }, correlationFor('details'));
+  }
 }
 
 function synchroniseTask(
@@ -168,7 +271,9 @@ function synchroniseTask(
   milestone: RoadmapMilestone,
   epic: RoadmapEpic,
   dependencyAccumulator: Array<{ taskId: string; dependencies: string[] }>,
+  syncCorrelation: string,
 ): void {
+  const correlationFor = (stage: string) => `${syncCorrelation}:${roadmapTask.id}:${stage}`;
   const metadata = buildMetadata(roadmapTask, milestone, epic);
   const metadataRecord = toMetadataRecord(metadata);
   const desiredStatus = legacyStatusToState(roadmapTask.status);
@@ -185,21 +290,29 @@ function synchroniseTask(
       epic_id: epic.id,
       estimated_complexity,
       metadata: metadataRecord,
-    });
+    }, correlationFor('create'));
   } else {
     const statusChanged = existing.status !== desiredStatus;
     const metadataUpdateRequired = metadataNeedsUpdate(existing.metadata as Record<string, unknown> | undefined, metadataRecord);
     const patch: Record<string, unknown> | undefined = metadataUpdateRequired ? metadataRecord : undefined;
 
     if (statusChanged || metadataUpdateRequired) {
-      stateMachine.transition(roadmapTask.id, desiredStatus, patch);
+      const transitionStage = statusChanged
+        ? `status:${existing.status}->${desiredStatus}`
+        : 'metadata';
+      stateMachine.transition(
+        roadmapTask.id,
+        desiredStatus,
+        patch,
+        correlationFor(transitionStage)
+      );
     }
 
     if (existing.title !== roadmapTask.title || existing.description !== roadmapTask.description) {
       stateMachine.updateTaskDetails(roadmapTask.id, {
         title: roadmapTask.title,
         description: roadmapTask.description,
-      });
+      }, correlationFor('details'));
     }
   }
 
@@ -238,6 +351,8 @@ export function taskToPlanSummary(task: Task): PlanTaskSummary {
     milestone_id: metadata.milestone_id ?? 'unknown_milestone',
     estimate_hours: metadata.estimate_hours,
     exit_criteria: metadata.exit_criteria ?? [],
+    domain: metadata.domain as 'product' | 'mcp' | undefined,
+    cluster: metadata.cluster,
   };
 }
 
@@ -257,6 +372,10 @@ export function buildPlanSummaries(stateMachine: StateMachine, filters?: PlanNex
 
   if (filters?.milestone_id) {
     filtered = filtered.filter((summary) => summary.milestone_id === filters.milestone_id);
+  }
+
+  if (filters?.domain) {
+    filtered = filtered.filter((summary) => summary.domain === filters.domain);
   }
 
   const summarisedById: Record<string, Task> = {};
@@ -282,13 +401,28 @@ export function buildPlanSummaries(stateMachine: StateMachine, filters?: PlanNex
   return filtered;
 }
 
-export async function syncRoadmapDocument(stateMachine: StateMachine, roadmap: RoadmapDocument): Promise<void> {
+export async function syncRoadmapDocument(
+  stateMachine: StateMachine,
+  roadmap: RoadmapDocument,
+  options?: RoadmapSyncOptions
+): Promise<void> {
   const dependencies: Array<{ taskId: string; dependencies: string[] }> = [];
+  const syncCorrelationRoot = options?.correlationBase
+    ? `${options.correlationBase}:sync`
+    : `roadmap_sync:${randomUUID()}`;
 
   for (const epic of roadmap.epics ?? []) {
+    synchroniseEpic(stateMachine, epic, syncCorrelationRoot);
     for (const milestone of epic.milestones ?? []) {
       for (const task of milestone.tasks ?? []) {
-        synchroniseTask(stateMachine, task, milestone, epic, dependencies);
+        synchroniseTask(
+          stateMachine,
+          task,
+          milestone,
+          epic,
+          dependencies,
+          syncCorrelationRoot
+        );
       }
     }
   }
@@ -296,7 +430,11 @@ export async function syncRoadmapDocument(stateMachine: StateMachine, roadmap: R
   addDependencies(stateMachine, dependencies);
 }
 
-export async function syncRoadmapFile(stateMachine: StateMachine, workspaceRoot: string): Promise<void> {
+export async function syncRoadmapFile(
+  stateMachine: StateMachine,
+  workspaceRoot: string,
+  options?: RoadmapSyncOptions
+): Promise<void> {
   const roadmapPath = path.join(workspaceRoot, 'state', 'roadmap.yaml');
 
   try {
@@ -307,5 +445,5 @@ export async function syncRoadmapFile(stateMachine: StateMachine, workspaceRoot:
 
   const store = new RoadmapStore(workspaceRoot);
   const document = await store.read();
-  await syncRoadmapDocument(stateMachine, document);
+  await syncRoadmapDocument(stateMachine, document, options);
 }

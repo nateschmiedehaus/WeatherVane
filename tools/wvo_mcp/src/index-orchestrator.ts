@@ -10,19 +10,20 @@
  * - ClaudeCodeCoordinator (event-driven orchestration)
  */
 
+import { randomUUID } from 'node:crypto';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { z } from 'zod';
 import path from 'node:path';
 
 import { OrchestratorRuntime } from './orchestrator/orchestrator_runtime.js';
-import { ResilienceManager } from './orchestrator/resilience_manager.js';
 import type { TaskType, TaskStatus } from './orchestrator/state_machine.js';
 import { logInfo, logError, logWarning } from './telemetry/logger.js';
 import { formatData, formatError, formatSuccess } from './utils/response_formatter.js';
-import { toJsonSchema } from './utils/schema.js';
 import { InspirationFetcher } from './web_tools/inspiration_fetcher.js';
 import { SERVER_NAME, SERVER_VERSION } from './utils/version.js';
+import { toJsonSchema } from './utils/schema.js';
+import { normalizeClusterSpec } from './utils/cluster.js';
 
 // ============================================================================
 // Configuration
@@ -62,16 +63,12 @@ async function main() {
 
   const stateMachine = runtime.getStateMachine();
   const opsManager = runtime.getOperationsManager();
-  const agentPool = runtime.getAgentPool();
   const webInspirationManager = runtime.getWebInspirationManager();
   const inspirationFetcher = new InspirationFetcher(runtime.getWorkspaceRoot());
-  const emptyObjectSchema = toJsonSchema(z.object({}), 'EmptyObject');
+  const emptyObjectSchema = toJsonSchema(z.object({}), 'EmptyObjectInput');
 
   // Initialize resilience manager
-  const resilience = new ResilienceManager(
-    stateMachine,
-    agentPool
-  );
+  const resilience = runtime.getResilienceManager();
 
   // Handle graceful shutdown
   const shutdown = () => {
@@ -132,14 +129,16 @@ Use this to monitor autonomous operation.`,
 
         const health = stateMachine.getRoadmapHealth();
         const resilienceMetrics = resilience.getMetrics();
+        const coordinatorType = snapshot.coordinatorType === 'claude_code' ? 'claude' : 'codex';
+        const costsSnapshot = snapshot.costs;
+        const codexCosts = costsSnapshot.providers.codex;
+        const claudeCosts = costsSnapshot.providers.claude_code;
 
         return formatData({
           coordinator: {
-            type: snapshot.coordinatorType,
+            type: coordinatorType,
             available: snapshot.coordinatorAvailable,
-            note: snapshot.coordinatorType === 'codex'
-              ? 'Codex promoted due to Claude unavailability'
-              : 'Claude Code acting as primary coordinator'
+            reason: snapshot.coordinatorReason
           },
           agents: {
             total: snapshot.agent_pool.total_agents,
@@ -153,7 +152,8 @@ Use this to monitor autonomous operation.`,
             ready: snapshot.queue.ready_count,
             pending: snapshot.queue.pending_count,
             review: snapshot.queue.review_count,
-            improvement: snapshot.queue.improvement_count
+            improvement: snapshot.queue.improvement_count,
+            batches: snapshot.queue.batches
           },
           roadmap: {
             total_tasks: health.totalTasks,
@@ -166,11 +166,101 @@ Use this to monitor autonomous operation.`,
             recent_executions: snapshot.quality.total_executions,
             average_duration: `${snapshot.quality.avg_duration_seconds.toFixed(0)}s`
           },
-          resilience: {
-            tasks_with_retries: resilienceMetrics.tasksWithRetries,
-            total_retry_attempts: resilienceMetrics.totalRetryAttempts,
-            recent_context_limits: resilienceMetrics.recentContextLimits
+          token_budget: {
+            average_prompt_tokens: snapshot.tokenMetrics.averagePromptTokens.toFixed(1),
+            average_completion_tokens: snapshot.tokenMetrics.averageCompletionTokens.toFixed(1),
+            average_total_tokens: snapshot.tokenMetrics.averageTotalTokens.toFixed(1),
+            pressure: snapshot.tokenMetrics.pressure,
+            target_prompt_budget: snapshot.tokenMetrics.targetPromptBudget,
+            cache_eligible_executions: snapshot.tokenMetrics.cacheEligibleExecutions,
+            cache_hit_executions: snapshot.tokenMetrics.cacheHitExecutions,
+            cache_store_executions: snapshot.tokenMetrics.cacheStoreExecutions,
+            cache_hit_rate_percent: `${(snapshot.tokenMetrics.cacheHitRate * 100).toFixed(1)}%`
           },
+          costs: {
+            last_hour_usd: Number(costsSnapshot.lastHourUSD.toFixed(2)),
+            last_24h_usd: Number(costsSnapshot.last24hUSD.toFixed(2)),
+            budget_pressure: (() => {
+              if (costsSnapshot.alerts.some((alert) => alert.severity === 'critical')) {
+                return 'critical';
+              }
+              if (costsSnapshot.alerts.some((alert) => alert.severity === 'warning')) {
+                return 'warning';
+              }
+              return 'normal';
+            })(),
+            providers: {
+              codex: {
+                last_hour_usd: Number(codexCosts.lastHourUSD.toFixed(2)),
+                last_24h_usd: Number(codexCosts.last24hUSD.toFixed(2)),
+                hourly_limit_usd: codexCosts.budget.hourlyLimitUSD ?? null,
+                daily_limit_usd: codexCosts.budget.dailyLimitUSD ?? null,
+                hourly_utilization_percent:
+                  codexCosts.hourlyUtilizationPercent !== null
+                    ? Number(codexCosts.hourlyUtilizationPercent.toFixed(1))
+                    : null,
+                daily_utilization_percent:
+                  codexCosts.dailyUtilizationPercent !== null
+                    ? Number(codexCosts.dailyUtilizationPercent.toFixed(1))
+                    : null,
+                alert_threshold_percent: Number(
+                  (codexCosts.budget.alertThresholdPercent * 100).toFixed(1),
+                ),
+                status: codexCosts.status,
+              },
+              claude_code: {
+                last_hour_usd: Number(claudeCosts.lastHourUSD.toFixed(2)),
+                last_24h_usd: Number(claudeCosts.last24hUSD.toFixed(2)),
+                hourly_limit_usd: claudeCosts.budget.hourlyLimitUSD ?? null,
+                daily_limit_usd: claudeCosts.budget.dailyLimitUSD ?? null,
+                hourly_utilization_percent:
+                  claudeCosts.hourlyUtilizationPercent !== null
+                    ? Number(claudeCosts.hourlyUtilizationPercent.toFixed(1))
+                    : null,
+                daily_utilization_percent:
+                  claudeCosts.dailyUtilizationPercent !== null
+                    ? Number(claudeCosts.dailyUtilizationPercent.toFixed(1))
+                    : null,
+                alert_threshold_percent: Number(
+                  (claudeCosts.budget.alertThresholdPercent * 100).toFixed(1),
+                ),
+                status: claudeCosts.status,
+              },
+            },
+            alerts: costsSnapshot.alerts.map((alert) => ({
+              severity: alert.severity,
+              provider: alert.provider,
+              period: alert.period,
+              utilization_percent: Number(alert.utilizationPercent.toFixed(1)),
+              limit_usd: Number(alert.limitUSD.toFixed(2)),
+              actual_usd: Number(alert.actualUSD.toFixed(2)),
+              message: alert.message,
+            })),
+          },
+          validation: {
+            total_failures: snapshot.validation.totalFailures,
+            failures_last_hour: snapshot.validation.failuresLastHour,
+            recent_failure_rate_percent: `${(snapshot.validation.recentFailureRate * 100).toFixed(1)}%`,
+            failures_by_code: snapshot.validation.failuresByCode,
+          shadow_failures: snapshot.validation.shadowFailures,
+          enforced_failures: snapshot.validation.enforcedFailures,
+          mode: snapshot.validation.mode,
+          canary_acknowledged: snapshot.validation.canaryAcknowledged,
+          retry_rate_percent: `${(snapshot.validation.retryRate * 100).toFixed(1)}%`,
+          recoveries: {
+            retries: snapshot.validation.recoveries.retries,
+            reassignments: snapshot.validation.recoveries.reassignments,
+            failures: snapshot.validation.recoveries.failures,
+            last_recovery_at: snapshot.validation.recoveries.lastRecoveryAt
+              ? new Date(snapshot.validation.recoveries.lastRecoveryAt).toISOString()
+              : null,
+          },
+        },
+        resilience: {
+          tasks_with_retries: resilienceMetrics.tasksWithRetries,
+          total_retry_attempts: resilienceMetrics.totalRetryAttempts,
+          recent_context_limits: resilienceMetrics.recentContextLimits
+        },
           inspiration: {
             enabled: snapshot.webInspiration.enabled,
             total_fetches: snapshot.webInspiration.totalFetches,
@@ -247,7 +337,10 @@ Use this to monitor the orchestrator's self-improvement cycle and transition to 
       .optional(),
     timeoutMs: z.number().min(1000).max(15000).optional()
   });
-  const webInspirationCaptureSchema = toJsonSchema(webInspirationCaptureInput, 'WebInspirationCaptureInput');
+  const webInspirationCaptureSchema = toJsonSchema(
+    webInspirationCaptureInput,
+    'WebInspirationCaptureInput'
+  );
 
   server.registerTool(
     'web_inspiration_capture',
@@ -288,7 +381,10 @@ Returns: screenshot path, HTML snapshot path, and metadata including size and du
     taskId: z.string().optional(),
     limit: z.number().min(1).max(100).optional()
   });
-  const webInspirationStatusSchema = toJsonSchema(webInspirationStatusInput, 'WebInspirationStatusInput');
+  const webInspirationStatusSchema = toJsonSchema(
+    webInspirationStatusInput,
+    'WebInspirationStatusInput'
+  );
 
   server.registerTool(
     'web_inspiration_status',
@@ -342,7 +438,14 @@ Returns: metadata for each inspiration asset including relative paths, sizes, an
     epic_id: z.string().optional(),
     parent_id: z.string().optional(),
     estimated_complexity: z.number().int().min(1).max(10).optional(),
-    depends_on: z.array(z.string()).optional()
+    depends_on: z.array(z.string()).optional(),
+    cluster: z.object({
+      id: z.string().min(1),
+      instructions: z.string().optional(),
+      tags: z.array(z.string().min(1)).optional(),
+      strategy: z.enum(['clustered', 'sequential']).optional(),
+      max_tasks_per_run: z.number().int().positive().optional()
+    }).optional()
   });
   const taskCreateSchema = toJsonSchema(taskCreateInput, 'TaskCreateInput');
 
@@ -378,13 +481,19 @@ Example:
   "depends_on": ["T2.1.0"]
 }`,
       inputSchema: taskCreateSchema
-    },
+      },
     async (input: unknown) => {
       try {
         const parsed = taskCreateInput.parse(input);
 
+        const clusterSpec = normalizeClusterSpec(parsed.cluster);
+        const metadata: Record<string, unknown> = {};
+        if (clusterSpec) {
+          metadata.cluster = clusterSpec;
+        }
+
         // Create task
-        const correlationId = `task_create_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`;
+        const correlationBase = `mcp:task_create:${randomUUID()}`;
         const task = stateMachine.createTask({
           id: parsed.id,
           title: parsed.title,
@@ -393,8 +502,9 @@ Example:
           status: (parsed.status as TaskStatus) || 'pending',
           epic_id: parsed.epic_id,
           parent_id: parsed.parent_id,
-          estimated_complexity: parsed.estimated_complexity
-        }, correlationId);
+          estimated_complexity: parsed.estimated_complexity,
+          metadata: Object.keys(metadata).length ? metadata : undefined
+        }, `${correlationBase}:create`);
 
         // Add dependencies
         if (parsed.depends_on) {
@@ -404,13 +514,33 @@ Example:
         }
 
         logInfo('Task created via MCP', { taskId: task.id, title: task.title });
+        try {
+          stateMachine.logEvent({
+            timestamp: Date.now(),
+            event_type: 'agent_decision',
+            task_id: task.id,
+            data: {
+              tool: 'task_create',
+              requested_status: task.status,
+              depends_on: parsed.depends_on ?? [],
+              cluster: clusterSpec ?? null,
+            },
+            correlation_id: `${correlationBase}:decision`,
+          });
+        } catch (error) {
+          logWarning('Failed to record task_create event', {
+            taskId: task.id,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
 
         return formatSuccess(`Task ${task.id} created and scheduled`, {
           task_id: task.id,
           title: task.title,
           type: task.type,
           status: task.status,
-          will_execute: 'Orchestrator will auto-assign when dependencies are met'
+          will_execute: 'Orchestrator will auto-assign when dependencies are met',
+          correlation_id: correlationBase,
         });
       } catch (error) {
         return formatError('Failed to create task', error instanceof Error ? error.message : String(error));
@@ -562,8 +692,8 @@ Parameters: none`,
 // ============================================================================
 
 main().catch(error => {
-  logError('Fatal MCP server error', {
+  logError('Unhandled MCP server error', {
     error: error instanceof Error ? error.stack ?? error.message : String(error)
   });
-  process.exit(1);
+  process.exitCode = 1;
 });

@@ -9,8 +9,20 @@ from .config import (
     WeatherConfig,
 )
 from .google_ads import GoogleAdsConnector
+from .google_marketing import (
+    GoogleAdsMarketingClient,
+    GoogleCampaignBudgetSpec,
+    GoogleCampaignSpec,
+)
 from .klaviyo import KlaviyoConnector
 from .meta import MetaAdsConnector
+from .meta_marketing import (
+    MetaMarketingClient,
+    CampaignSpec,
+    AdSetSpec,
+    CreativeSpec,
+    AdSpec,
+)
 from .rate_limit import AsyncRateLimiter
 from .registry import load_manifest, list_manifests, ConnectorRegistryError
 from .sdk import (
@@ -42,8 +54,16 @@ __all__ = [
     "GoogleAdsConnector",
     "KlaviyoConnector",
     "MetaAdsConnector",
+    "GoogleAdsMarketingClient",
+    "MetaMarketingClient",
     "ShopifyConnector",
     "WeatherConnector",
+    "GoogleCampaignBudgetSpec",
+    "GoogleCampaignSpec",
+    "CampaignSpec",
+    "AdSetSpec",
+    "CreativeSpec",
+    "AdSpec",
     "ConnectorPlugin",
     "ConnectorManifest",
     "StreamSchema",

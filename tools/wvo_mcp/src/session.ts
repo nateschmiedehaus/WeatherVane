@@ -1,5 +1,6 @@
 import path from "node:path";
 import { promises as fs } from "node:fs";
+import { randomUUID } from "node:crypto";
 
 import { AcademicRigorCritic } from "./critics/academic_rigor.js";
 import { AllocatorCritic } from "./critics/allocator.js";
@@ -19,6 +20,10 @@ import { OrgPmCritic } from "./critics/org_pm.js";
 import { SecurityCritic } from "./critics/security.js";
 import { TestsCritic } from "./critics/tests.js";
 import { TypecheckCritic } from "./critics/typecheck.js";
+import { FailoverGuardrailCritic } from "./critics/failover_guardrail.js";
+import { ProductCompletenessCritic } from "./critics/product_completeness.js";
+import { IntegrationFuryCritic } from "./critics/integration_fury.js";
+import { NetworkNavigatorCritic } from "./critics/network_navigator.js";
 import { runCommand } from "./executor/command_runner.js";
 import { readFile, writeFile } from "./executor/file_ops.js";
 import { GuardrailViolation } from "./executor/guardrails.js";
@@ -67,6 +72,10 @@ const CRITIC_REGISTRY = {
   health_check: HealthCheckCritic,
   human_sync: HumanSyncCritic,
   prompt_budget: PromptBudgetCritic,
+  failover_guardrail: FailoverGuardrailCritic,
+  product_completeness: ProductCompletenessCritic,
+  integration_fury: IntegrationFuryCritic,
+  network_navigator: NetworkNavigatorCritic,
 } as const;
 
 export type CriticKey = keyof typeof CRITIC_REGISTRY;
@@ -118,25 +127,32 @@ export class SessionContext {
   }
 
   private get legacyYamlEnabled(): boolean {
-    if (process.env.WVO_ENABLE_LEGACY_YAML === "1" && !this.legacyYamlWarningLogged) {
-      logWarning("Legacy roadmap.yaml writes are disabled; ignoring WVO_ENABLE_LEGACY_YAML=1.");
+    const disabled = process.env.WVO_DISABLE_LEGACY_YAML === "1";
+    if (disabled && !this.legacyYamlWarningLogged) {
+      logWarning("Legacy roadmap.yaml writes disabled via WVO_DISABLE_LEGACY_YAML=1.");
       this.legacyYamlWarningLogged = true;
     }
-    return false;
+    return !disabled;
   }
 
   private get syncYamlEnabled(): boolean {
-    return process.env.WVO_SYNC_YAML_TO_DB === "1";
+    return process.env.WVO_SYNC_YAML_TO_DB !== "0";
+  }
+
+  private invalidatePlanCache(): void {
+    this.planNextCache.clear();
+    this.lastRoadmapChangeMs = Date.now();
   }
 
   private generateCorrelationId(prefix: string): string {
-    return `${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`;
+    return `${prefix}:${randomUUID()}`;
   }
 
-  async planNext(input: PlanNextInput) {
+  async planNext(input: PlanNextInput, options?: { correlationId?: string }) {
+    const correlationBase = options?.correlationId;
     if (this.stateMachine) {
       if (this.syncYamlEnabled) {
-        await this.ensureStateMachineSynced();
+        await this.ensureStateMachineSynced(correlationBase);
       }
       const limit = input.limit ?? 5;
 
@@ -163,15 +179,18 @@ export class SessionContext {
     return planner.next(input);
   }
 
-  async updatePlanStatus(taskId: string, status: TaskStatus) {
+  async updatePlanStatus(taskId: string, status: TaskStatus, correlationId?: string) {
+    let mutated = false;
+
     if (this.stateMachine) {
       if (this.syncYamlEnabled) {
-        await this.ensureStateMachineSynced();
+        await this.ensureStateMachineSynced(correlationId);
       }
       try {
-        const correlationId = this.generateCorrelationId("plan_update");
+        const correlation = correlationId ?? this.generateCorrelationId("plan_update");
         const mappedStatus = legacyStatusToState(status as LegacyPlanStatus);
-        await this.stateMachine.transition(taskId, mappedStatus, undefined, correlationId);
+        await this.stateMachine.transition(taskId, mappedStatus, undefined, correlation);
+        mutated = true;
       } catch (error) {
         logWarning("Failed to update orchestrator state", {
           taskId,
@@ -184,6 +203,7 @@ export class SessionContext {
     if (this.legacyYamlEnabled) {
       try {
         await this.roadmapStore.upsertTaskStatus(taskId, status);
+        mutated = true;
       } catch (error) {
         logWarning("Failed to update roadmap.yaml", {
           taskId,
@@ -191,6 +211,10 @@ export class SessionContext {
           error: error instanceof Error ? error.message : String(error),
         });
       }
+    }
+
+    if (mutated) {
+      this.invalidatePlanCache();
     }
   }
 
@@ -285,9 +309,31 @@ export class SessionContext {
     }
 
     const results = [];
+    const liveFlags = this.orchestratorRuntime?.getLiveFlags();
+    const intelligenceEnabled = liveFlags?.getValue('INTELLIGENT_CRITICS') === '1';
+    const intelligenceLevelRaw = liveFlags?.getValue('CRITIC_INTELLIGENCE_LEVEL');
+    const intelligenceLevel = Number.isFinite(Number.parseInt(intelligenceLevelRaw ?? '', 10))
+      ? Number.parseInt(intelligenceLevelRaw ?? '1', 10)
+      : 1;
+    const researchManager = intelligenceEnabled ? this.orchestratorRuntime?.getResearchManager() : undefined;
+    const escalationConfigPath = path.join(
+      this.workspaceRoot,
+      'tools',
+      'wvo_mcp',
+      'config',
+      'critic_escalations.json'
+    );
+    const escalationLogPath = path.join(this.workspaceRoot, 'state', 'escalations.log');
     for (const key of validKeys) {
       const CriticCtor = CRITIC_REGISTRY[key];
-      const critic = new CriticCtor(this.workspaceRoot);
+      const critic = new CriticCtor(this.workspaceRoot, {
+        intelligenceEnabled,
+        intelligenceLevel,
+        researchManager,
+        stateMachine: this.stateMachine,
+        escalationConfigPath,
+        escalationLogPath,
+      });
       try {
         const outcome = await critic.run(this.profile);
         results.push(outcome);
@@ -342,7 +388,7 @@ export class SessionContext {
     return this.heavyTaskQueue.list();
   }
 
-  private async ensureStateMachineSynced(): Promise<void> {
+  private async ensureStateMachineSynced(correlationBase?: string): Promise<void> {
     if (!this.stateMachine || !this.syncYamlEnabled) {
       return;
     }
@@ -354,7 +400,13 @@ export class SessionContext {
       mtimeMs = stats.mtimeMs;
     } catch {
       if (!this.roadmapSyncedOnce) {
-        await syncRoadmapFile(this.stateMachine, this.workspaceRoot);
+        await syncRoadmapFile(
+          this.stateMachine,
+          this.workspaceRoot,
+          correlationBase ? { correlationBase } : undefined
+        );
+        this.invalidatePlanCache();
+        this.lastRoadmapSyncMs = Date.now();
         this.roadmapSyncedOnce = true;
       }
       return;
@@ -370,9 +422,14 @@ export class SessionContext {
 
     this.roadmapSyncInFlight = true;
     try {
-      await syncRoadmapFile(this.stateMachine, this.workspaceRoot);
+      await syncRoadmapFile(
+        this.stateMachine,
+        this.workspaceRoot,
+        correlationBase ? { correlationBase } : undefined
+      );
       this.lastRoadmapSyncMs = mtimeMs || Date.now();
       this.roadmapSyncedOnce = true;
+      this.invalidatePlanCache();
     } finally {
       this.roadmapSyncInFlight = false;
     }

@@ -177,13 +177,19 @@ await coordinator.assignToCodexWorker('T1.2.6', 'worker3');
 stateMachine.on('task:complete_requested', async (task) => {
   // Run quality checks
   const quality = await qualityMonitor.validate(task);
+  const qualityCorrelation = `quality:${task.id}:${Date.now().toString(36)}`;
 
   if (quality.score < 0.85) {
     // Block completion, request fixes
-    await stateMachine.transition(task.id, 'needs_improvement', {
-      issues: quality.issues,
-      suggestions: quality.suggestions
-    });
+    await stateMachine.transition(
+      task.id,
+      'needs_improvement',
+      {
+        issues: quality.issues,
+        suggestions: quality.suggestions
+      },
+      `${qualityCorrelation}:needs_improvement`
+    );
 
     // Assign fix to appropriate agent
     if (quality.needsDeepReasoning) {
@@ -193,7 +199,12 @@ stateMachine.on('task:complete_requested', async (task) => {
     }
   } else {
     // Allow completion
-    await stateMachine.transition(task.id, 'done');
+    await stateMachine.transition(
+      task.id,
+      'done',
+      undefined,
+      `${qualityCorrelation}:done`
+    );
 
     // Update metrics
     await metrics.recordQuality(task.id, quality);

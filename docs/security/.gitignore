@@ -1,0 +1,8 @@
+# Ignore raw secret dumps in this directory
+*.key
+*.secret
+*.secrets
+*.json
+*.txt
+!.gitignore
+!context7.md

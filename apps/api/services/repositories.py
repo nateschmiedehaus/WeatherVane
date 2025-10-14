@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+import json
+import os
 from datetime import datetime
+from pathlib import Path
 from typing import Any
 
 from sqlalchemy import select
@@ -160,6 +163,62 @@ class PlanRepository:
         if hasattr(value, "model_dump"):
             return value.model_dump()
         return {}
+
+
+class AdPushDiffRepository:
+    def __init__(self, state_path: Path | str | None = None) -> None:
+        default_path = os.getenv("AD_PUSH_STATE_PATH", "state/ad_push_diffs.json")
+        self.state_path = Path(state_path or default_path)
+
+    def latest(self, tenant_id: str) -> dict[str, Any] | None:
+        tenant = str(tenant_id)
+        for record in self._load_state():
+            if record.get("tenant_id") == tenant:
+                return record
+        return None
+
+    def get(self, tenant_id: str, run_id: str) -> dict[str, Any] | None:
+        tenant = str(tenant_id)
+        run = str(run_id)
+        for record in self._load_state():
+            if record.get("tenant_id") == tenant and record.get("run_id") == run:
+                return record
+        return None
+
+    def _load_state(self) -> list[dict[str, Any]]:
+        if not self.state_path.exists():
+            return []
+        try:
+            raw = json.loads(self.state_path.read_text())
+        except json.JSONDecodeError:
+            return []
+
+        records: list[dict[str, Any]] = []
+        if isinstance(raw, list):
+            records = [item for item in raw if isinstance(item, dict)]
+        elif isinstance(raw, dict):
+            records = [raw]
+        return records
+
+
+class AdPushRollbackRepository:
+    def __init__(self, root: Path | str | None = None) -> None:
+        default_root = os.getenv("AD_PUSH_ROLLBACK_ROOT", "storage/metadata/ad_push_rollback")
+        self.root = Path(root or default_root)
+
+    def get(self, tenant_id: str, run_id: str) -> dict[str, Any] | None:
+        path = self.root / str(tenant_id) / f"{run_id}.json"
+        if not path.exists():
+            return None
+        try:
+            payload = json.loads(path.read_text())
+        except json.JSONDecodeError:
+            return None
+        if not isinstance(payload, dict):
+            return None
+        payload.setdefault("tenant_id", str(tenant_id))
+        payload.setdefault("run_id", str(run_id))
+        return payload
 
 
 class AutomationRepository:

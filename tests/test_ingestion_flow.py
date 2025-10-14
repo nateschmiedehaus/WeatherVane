@@ -24,6 +24,7 @@ async def test_ingestion_flow_persists_state_and_report(tmp_path: Path) -> None:
     lake_root = tmp_path / "lake"
     state_root = tmp_path / "state"
     report_path = tmp_path / "experiments" / "ingest" / "dq_report.json"
+    monitor_path = tmp_path / "state" / "dq_monitoring.json"
 
     start = datetime(2024, 1, 1)
     end = datetime(2024, 1, 2)
@@ -35,6 +36,7 @@ async def test_ingestion_flow_persists_state_and_report(tmp_path: Path) -> None:
         lake_root=lake_root,
         state_root=state_root,
         dq_report_path=report_path,
+        dq_monitoring_path=monitor_path,
     )
 
     assert report_path.exists()
@@ -43,6 +45,10 @@ async def test_ingestion_flow_persists_state_and_report(tmp_path: Path) -> None:
     assert report["window"]["start"].startswith("2024-01-01")
     assert report["datasets"]["shopify_orders"]["row_count"] >= 0
     assert result["sources"]["shopify"] in {"stub", "shopify_api"}
+    assert monitor_path.exists()
+    monitor_payload = json.loads(monitor_path.read_text())
+    assert monitor_payload["runs"]
+    assert result["dq_monitoring"]["overall_severity"] in {"ok", "warning"}
 
     summaries = result["summaries"]
     shopify_orders_path = Path(summaries["shopify_orders"]["path"])
@@ -73,8 +79,11 @@ async def test_ingestion_flow_persists_state_and_report(tmp_path: Path) -> None:
         lake_root=lake_root,
         state_root=state_root,
         dq_report_path=report_path,
+        dq_monitoring_path=monitor_path,
     )
 
     second_window = second_result["window"]
     assert second_window["start"].startswith("2024-01-02")
     assert second_window["end"].startswith("2024-01-05")
+    refreshed_monitor_payload = json.loads(monitor_path.read_text())
+    assert len(refreshed_monitor_payload["runs"]) == 2

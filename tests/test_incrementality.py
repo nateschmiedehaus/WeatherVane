@@ -72,6 +72,23 @@ def test_geo_revenue_metrics_handles_candidates():
     assert pytest.approx(total_weight, 1e-6) == 1.0
 
 
+def test_geo_revenue_metrics_backfills_missing_net_revenue():
+    orders = pl.DataFrame({
+        "ship_geohash": ["geo_a", "geo_b", "geo_c"],
+        "subtotal_price": [120.0, 140.0, 50.0],
+        "total_discounts": [20.0, None, 80.0],
+    })
+    metrics, geo_column = geo_revenue_metrics(orders)
+
+    assert geo_column == "ship_geohash"
+    assert metrics.height == 2
+
+    lookup = {row["geo"]: row["revenue"] for row in metrics.to_dicts()}
+    assert pytest.approx(lookup["geo_a"], 1e-6) == 100.0
+    assert pytest.approx(lookup["geo_b"], 1e-6) == 140.0
+    assert all(value >= 0 for value in lookup.values())
+
+
 def test_design_incrementality_from_orders_requires_min_geos():
     orders = pl.DataFrame({
         "ship_geohash": ["a", "b", "c"],

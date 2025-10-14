@@ -36,7 +36,12 @@ class PromoIngestor(BaseIngestor):
         rows = [self._normalise_campaign(tenant_id, campaign) for campaign in data]
         if rows:
             validate_promos(rows)
-        return self._write_records(f"{tenant_id}_promos", rows, source="klaviyo_api")
+        return self._write_incremental(
+            dataset=f"{tenant_id}_promos",
+            rows=rows,
+            unique_keys=("tenant_id", "campaign_id"),
+            source="klaviyo_api",
+        )
 
     def _normalise_campaign(self, tenant_id: str, campaign: Mapping[str, Any]) -> Dict[str, Any]:
         attributes = campaign.get("attributes", {})

@@ -22,6 +22,10 @@ export class PlannerEngine {
       tasks = tasks.filter((task) => task.milestone_id === filters.milestone_id);
     }
 
+    if (filters?.domain) {
+      tasks = tasks.filter((task) => task.domain === filters.domain);
+    }
+
     const statusOrder: Record<string, number> = {
       blocked: 0,
       pending: 1,

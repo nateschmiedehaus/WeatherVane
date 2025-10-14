@@ -7,6 +7,8 @@ from typing import Any, Mapping, Sequence
 
 import polars as pl
 
+from shared.validation.schemas import validate_dataset_records
+
 
 @dataclass
 class LakeWriter:
@@ -28,6 +30,7 @@ class LakeWriter:
             # Create an empty frame with no rows to keep pipeline consistent.
             frame = pl.DataFrame([])
         else:
+            validate_dataset_records(dataset, records)
             frame = pl.DataFrame(records)
 
         dataset_dir = self.root / dataset

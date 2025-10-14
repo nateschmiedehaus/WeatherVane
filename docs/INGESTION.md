@@ -44,13 +44,13 @@ prototyping. This behaviour is visible in the logs and the returned `source` fie
 
 ## Pagination & Rate Limits
 - `DEFAULT_PAGE_LIMIT` keeps requests small; adjust if Shopify introduces new limits.
-- For other connectors, implement exponential backoff or rate limiting if required.
+- `WeatherConnector`, `ShopifyConnector`, `MetaAdsConnector`, and `GoogleAdsConnector` enable `AsyncRateLimiter` by default (5 rps for Open-Meteo, 2 rps with 40-token burst for Shopify, 10 rps for Meta, 5 rps for Google Ads). Override `rate_limit_per_second`/`rate_limit_capacity` on each `ConnectorConfig` if partners approve higher quotas.
 - Store the raw `next_page_info` (or equivalent token) in your loop to avoid infinite paging.
 
 ## Meta Ads
 - Graph API base URL is `https://graph.facebook.com/<graph_version>`.
 - The connector follows `paging.cursors.after` (or parses `paging.next`) until exhausted.
-- Automatic retries/backoff leverage the shared HTTP connector; plug in `AsyncRateLimiter` to stay under burst limits.
+- Automatic retries/backoff leverage the shared HTTP connector; the default `AsyncRateLimiter` keeps traffic under a conservative 10 req/s burst 20 policy so we avoid surprises during initial roll-outs.
 - On HTTP 401 the connector exchanges the short-lived token using `app_id`/`app_secret` and updates headers transparently.
 
 Environment variables:
@@ -68,7 +68,7 @@ the connector refreshes in-memory whenever Meta invalidates the token.
 ## Google Ads
 - REST endpoint base: `https://googleads.googleapis.com/<version>/customers/{cid}/googleAds:search`.
 - Requests are POST with GAQL queries; the connector handles `nextPageToken` pagination and yields rows via `search_iter`.
-- Retries/backoff use the shared HTTP connector; add an async rate limiter to respect QPS caps.
+- Retries/backoff use the shared HTTP connector; the default `AsyncRateLimiter` keeps requests to five per second with a modest burst until we negotiate higher quotas.
 - On HTTP 401 the connector exchanges the refresh token for a new access token (`oauth2.googleapis.com/token`) and updates headers.
 
 Environment variables / secrets:
@@ -90,6 +90,7 @@ refresh token. Persist refreshed tokens centrally if you want to avoid repeated 
 - Orders ingestion stores `ship_geohash` alongside the raw record and writes `geocoded_ratio` into the ingestion summary.
 - Existing coordinates on the raw payload (e.g. Shopify shipping latitude/longitude) are normalised and re-encoded before falling back to a lookup, so we avoid redundant external geocoding calls.
 - The helper `apps.worker.validation.geocoding.evaluate_geocoding_coverage` loads the latest orders snapshot, computes coverage, and persists a JSON report under `storage/metadata/state/geocoding/<tenant>.json`.
+- Run `python -m apps.worker.maintenance.geocoding_coverage --lake-root storage/lake/raw --summary-root storage/metadata/state --fail-on-warning` to evaluate coverage for every tenant and surface any below-threshold ratios during CI or local smoke checks.
 - Coverage results bubble into the PoC pipeline response (`geocoding_validation`) and inform context tags (e.g. `geo.partial`, `geo.missing`).
 - Default threshold is 0.8; adjust per tenant if you expect higher sparsity.
 
@@ -126,6 +127,8 @@ Keep things boring and explicit—future contributors will have a much easier ti
 - Rolling seven-day means (`temp_roll7`, `precip_roll7`) provide smoother signals for multi-geo aggregation.
 - Feature builder expects columns `temp_c`, `precip_mm`, `temp_anomaly`, `precip_anomaly`, `temp_roll7`, `precip_roll7`.
 - Schema validation runs via `shared.validation.schemas`.
+- Joining weather to the modelling matrix now emits `experiments/features/weather_join_validation.json`, which captures join mode, leakage guardrail status, and any cells missing weather coverage.
+- Use the weather coverage validation CLI (`docs/weather/coverage.md`) to audit join health, leakage guardrails, and geocoding ratios before enabling allocator automation.
 
 ### Open-Meteo Daily Weather
 
@@ -148,3 +151,9 @@ Keep things boring and explicit—future contributors will have a much easier ti
 | `as_of_utc` | string | Timestamp when WeatherVane generated the blended row |
 
 Daily frames keep additional context columns (`temp_max_c`, `humidity_mean`, `uv_index_max`, etc.) so feature engineering can remain declarative.
+
+## Data Quality Monitoring & Alerts
+- `orchestrate_ingestion_flow` now calls `apps.worker.monitoring.update_dq_monitoring` after persisting the data-quality report. The helper appends a bounded history of run snapshots to `state/dq_monitoring.json` with per-dataset severity, alert codes, and rolling metrics (row counts, geocoded ratio).
+- Alert heuristics flag missing datasets, zero-row snapshots, geocoding regressions, large row-count drops, and sustained periods with no new rows (rolling streak + median-based drop checks). The monitoring payload surfaces an overall severity (`ok`, `warning`, `critical`) plus dataset-specific alert lists so operations dashboards and context tags can escalate quickly.
+- History retention defaults to 90 runs and trims automatically; adjust by passing `max_history` or custom `MonitoringThresholds` when calling `update_dq_monitoring` from bespoke flows or one-off scripts.
+- Tests live under `tests/apps/test_dq_monitoring.py` alongside the ingestion flow regression in `tests/test_ingestion_flow.py`. Update or extend them when introducing new alert types or thresholds.

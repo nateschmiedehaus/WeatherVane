@@ -1,0 +1,57 @@
+{
+  "action_count": 2,
+  "actions": [
+    {
+      "baseline_value": 260.0,
+      "direction": "increase",
+      "entity_id": "adset-101",
+      "entity_name": "Retargeting",
+      "entity_type": "ad_set",
+      "field_label": "Daily budget",
+      "field_path": "ad_set.daily_budget",
+      "proposed_value": 110.0,
+      "rollback_delta": 150.0
+    },
+    {
+      "baseline_value": 320.0,
+      "direction": "increase",
+      "entity_id": "adset-202",
+      "entity_name": "Prospecting",
+      "entity_type": "ad_set",
+      "field_label": "Daily budget",
+      "field_path": "ad_set.daily_budget",
+      "proposed_value": 140.0,
+      "rollback_delta": 180.0
+    }
+  ],
+  "critical_guardrail_codes": [
+    "spend_below_minimum",
+    "spend_below_minimum",
+    "platform_spend_below_minimum",
+    "platform_spend_below_minimum"
+  ],
+  "guardrail_summary": {
+    "critical_codes": [
+      "spend_below_minimum",
+      "spend_below_minimum",
+      "platform_spend_below_minimum",
+      "platform_spend_below_minimum"
+    ],
+    "critical_count": 4,
+    "total": 8
+  },
+  "manifest_generated_at": "2025-10-13T20:55:00+00:00",
+  "notes": [
+    "Rollback rehearsal"
+  ],
+  "rollback_ready": true,
+  "rollback_recommended": true,
+  "run_id": "adpush-rollback-smoke",
+  "simulated_at": "2025-10-13T21:50:00+00:00",
+  "spend_summary": {
+    "total_baseline": 580.0,
+    "total_proposed": 250.0,
+    "total_rollback_delta": 330.0
+  },
+  "tenant_id": "tenant-safety"
+}

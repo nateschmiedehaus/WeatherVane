@@ -3,6 +3,8 @@ epics:
     title: Epic 1 — Ingest & Weather Foundations
     description: Stand up weather + marketing ingestion, harmonise geo/time, and
       validate data quality.
+    status: done
+    domain: product
     milestones:
       - id: M1.1
         title: Connector scaffolding
@@ -51,6 +53,7 @@ epics:
   - id: E2
     title: Epic 2 — Features & Modeling Baseline
     description: Ship lagged features, baseline models, and evaluation harness.
+    domain: product
     milestones:
       - id: M2.1
         title: Feature pipeline
@@ -79,6 +82,7 @@ epics:
   - id: E3
     title: Epic 3 — Allocation & UX
     description: Allocator robustness checks, dashboards, and UI polish.
+    domain: product
     milestones:
       - id: M3.1
         title: Allocator guardrails
@@ -100,24 +104,109 @@ epics:
             owner: WVO
             estimate_hours: 5
             status: done
-            exit_criteria: null
-          - critic: design_system
-            id: T3.2.2
+            exit_criteria:
+              - critic: design_system
+          - id: T3.2.2
             title: Elevate dashboard storytelling & UX
             status: done
             exit_criteria:
               - critic: design_system
+              - critic: exec_review
               - doc: docs/UX_CRITIQUE.md
-          - critic: exec_review
-            id: T3.2.2
-            title: Elevate dashboard storytelling & UX
-            status: done
+              - artifact: docs/product/UX_CRITIQUE.md
+      - id: M3.3
+        title: Product Experience Blueprints
+        description: "Codify WeatherVane UX: personas, journeys, IA, wireframes,
+          component system."
+        tasks:
+          - id: T3.3.1
+            title: Map end-to-end WeatherVane user journeys and personas
+            status: blocked
+            exit_criteria:
+              - artifact: docs/product/user_journeys.md
+              - critic: org_pm
+          - id: T3.3.2
+            title: Document site architecture, navigation, and dashboard IA
+            status: blocked
+            dependencies:
+              - T3.3.1
+            exit_criteria:
+              - artifact: docs/product/information_architecture.md
+              - critic: design_system
+          - id: T3.3.3
+            title: Produce annotated wireframes for core pages (Plan, Dashboard,
+              Experiments, Reports)
+            status: blocked
+            dependencies:
+              - T3.3.2
+            exit_criteria:
+              - artifact: docs/product/wireframes.pdf
+              - critic: design_system
+          - id: T3.3.4
+            title: Define component library and motion guidelines for WeatherVane UI
+            status: blocked
+            dependencies:
+              - T3.3.3
+            exit_criteria:
+              - artifact: docs/product/component_library.md
+              - critic: design_system
+      - id: M3.4
+        title: Experience Implementation
+        description: "Build the WeatherVane product UI: core pages, dashboards,
+          experiments, and reports."
+        tasks:
+          - id: T3.4.1
+            title: Implement Plan overview page with weather-driven insights
+            status: blocked
+            dependencies:
+              - T3.3.3
+            exit_criteria:
+              - artifact: apps/web/pages/plan.tsx
+              - tests: tests/web/test_plan_page.spec.ts
+              - critic: design_system
+          - id: T3.4.2
+            title: Build WeatherOps dashboard with allocator + weather KPIs
+            status: blocked
+            dependencies:
+              - T3.3.3
+            exit_criteria:
+              - artifact: apps/web/pages/dashboard.tsx
+              - tests: tests/web/test_dashboard.spec.ts
+              - critic: design_system
+          - id: T3.4.3
+            title: Ship Experiments hub UI for uplift & incrementality reviews
+            status: blocked
+            dependencies:
+              - T3.3.3
+            exit_criteria:
+              - artifact: apps/web/pages/experiments.tsx
+              - tests: tests/web/test_experiments.spec.ts
+              - critic: design_system
+          - id: T3.4.4
+            title: Deliver storytelling Reports view with weather + spend narratives
+            status: blocked
+            dependencies:
+              - T3.3.4
+            exit_criteria:
+              - artifact: apps/web/pages/reports.tsx
+              - tests: tests/web/test_reports.spec.ts
+              - critic: design_system
+          - id: T3.4.5
+            title: Conduct design_system + UX acceptance review across implemented pages
+            status: blocked
+            dependencies:
+              - T3.4.1
+              - T3.4.2
+              - T3.4.3
+              - T3.4.4
             exit_criteria:
               - critic: design_system
-              - doc: docs/UX_CRITIQUE.md
+              - doc: docs/product/acceptance_report.md
+              - artifact: state/critics/designsystem.json
   - id: E4
     title: Epic 4 — Operational Excellence
     description: Maintain velocity while hardening performance and delivery processes.
+    domain: product
     milestones:
       - id: M4.1
         title: Optimization sprint
@@ -136,37 +225,37 @@ epics:
               - artifact: experiments/forecast/ensemble_metrics.json
           - id: T4.1.5
             title: Non-linear allocation optimizer with constraints (ROAS, spend caps)
-            status: pending
+            status: done
             exit_criteria:
               - critic: allocator
               - tests: tests/test_allocator.py
           - id: T4.1.6
             title: High-frequency spend response modeling (intraday adjustments)
-            status: pending
+            status: done
             exit_criteria:
               - critic: allocator
               - artifact: experiments/allocator/hf_response.json
           - id: T4.1.7
             title: Marketing mix budget solver (multi-channel, weather-aware)
-            status: pending
+            status: done
             exit_criteria:
               - critic: allocator
               - tests: tests/test_marketing_mix_solver.py
           - id: T4.1.8
             title: Reinforcement-learning shadow mode (safe exploration)
-            status: pending
+            status: blocked
             exit_criteria:
               - critic: allocator
               - artifact: experiments/rl/shadow_mode.json
           - id: T4.1.9
             title: Creative-level response modeling with brand safety guardrails
-            status: pending
+            status: blocked
             exit_criteria:
               - critic: design_system
               - artifact: experiments/creative/response_scores.json
           - id: T4.1.10
             title: Cross-market saturation optimization (fairness-aware)
-            status: pending
+            status: blocked
             exit_criteria:
               - critic: allocator
               - artifact: experiments/allocator/saturation_report.json
@@ -174,6 +263,7 @@ epics:
     title: Resource-Aware Intelligence & Personalisation
     description: Auto-detect hardware, adapt workloads, and guarantee great
       performance on constrained machines.
+    domain: product
     milestones:
       - id: M11.1
         title: Capability Detection
@@ -187,7 +277,7 @@ epics:
               - doc: docs/ROADMAP.md
           - id: T11.1.2
             title: Adaptive scheduling for heavy tasks
-            status: pending
+            status: done
             exit_criteria:
               - critic: tests
               - artifact: state/device_profiles.json
@@ -197,75 +287,124 @@ epics:
         tasks:
           - id: T11.2.1
             title: Design system elevation (motion, typography, theming)
-            status: pending
+            status: blocked
             exit_criteria:
               - critic: design_system
               - doc: docs/WEB_DESIGN_SYSTEM.md
           - id: T11.2.2
             title: Award-level experience audit & remediation
-            status: pending
+            status: blocked
             exit_criteria:
               - critic: exec_review
               - artifact: docs/UX_CRITIQUE.md
+          - id: T11.2.3
+            title: Extend calm/aero theme tokens to Automations and Experiments surfaces
+            status: blocked
+            exit_criteria:
+              - artifact: apps/web/styles/themes/calm.ts
+              - artifact: apps/web/styles/themes/aero.ts
+              - critic: design_system
+          - id: T11.2.4
+            title: Refactor landing/marketing gradients into reusable tokens
+            status: blocked
+            exit_criteria:
+              - artifact: apps/web/styles/tokens/gradients.md
+              - critic: design_system
+          - id: T11.2.5
+            title: Centralize retry button styles in shared component once App Router lands
+            status: blocked
+            exit_criteria:
+              - artifact: apps/web/components/buttons/RetryButton.tsx
+              - tests: tests/web/test_retry_button.spec.ts
+              - critic: design_system
+          - id: T11.2.6
+            title: Formalize shared panel mixin (border + shadow) to reduce overrides
+            status: blocked
+            exit_criteria:
+              - artifact: apps/web/styles/mixins/panel.css
+              - critic: design_system
+    status: blocked
   - id: E6
     title: MCP Orchestrator Production Readiness
     description: Validate and harden the dual-provider MCP orchestrator for
-      autonomous operation.
+      autonomous operation while preserving 100% run safety. All milestones
+      under this epic must enforce the blue/green upgrade guardrails defined in
+      docs/MCP_ORCHESTRATOR.md#1113-tight-integration-playbook-steps-0-15.
+    domain: mcp
+    metadata:
+      joint_upgrade_bundle: true
+      bundle_with: E10
     milestones:
       - id: M6.1
         title: Core Infrastructure Validation
         tasks:
           - id: T6.1.1
             title: MCP server integration tests (all 25 tools across both providers)
-            status: pending
+            status: done
             exit_criteria:
               - critic: tests
               - artifact: tests/test_mcp_tools.py
+              - "Guardrail: integration suite enforces blue/green safety
+                invariants (no unhandled throws, DRY_RUN parity)"
           - id: T6.1.2
             title: Provider failover testing (token limit simulation & automatic switching)
-            status: pending
+            status: done
             exit_criteria:
               - critic: manager_self_check
               - artifact: experiments/mcp/failover_test.json
+              - "Guardrail: circuit-breaker rollback and DISABLE_NEW kill switch
+                verified under simulated failures"
           - id: T6.1.3
             title: State persistence testing (checkpoint recovery across sessions)
-            status: pending
+            status: done
             exit_criteria:
               - critic: tests
               - artifact: tests/test_state_persistence.py
+              - "Guardrail: recovery flow preserves upgrade locks and safety
+                state without manual intervention"
           - id: T6.1.4
             title: Quality framework validation (10 dimensions operational)
-            status: pending
+            status: done
             exit_criteria:
               - critic: manager_self_check
               - artifact: state/quality/assessment_log.json
+              - "Guardrail: quality checks confirm run-safety metrics from
+                blue/green playbook remain green"
       - id: M6.2
         title: Security & Reliability Hardening
         tasks:
           - id: T6.2.1
             title: Credentials security audit (auth.json, API keys, token rotation)
-            status: pending
+            status: blocked
             exit_criteria:
               - critic: security
               - doc: docs/SECURITY_AUDIT.md
+              - "Guardrail: audit verifies secrets handling inside blue/green
+                upgrade flow and DRY_RUN constraints"
           - id: T6.2.2
             title: Error recovery testing (graceful degradation, retry logic)
-            status: pending
+            status: done
             exit_criteria:
               - critic: tests
               - artifact: experiments/mcp/error_recovery.json
+              - "Guardrail: automated rollback path exercised with observation
+                window + DISABLE_NEW reset"
           - id: T6.2.3
             title: Schema validation enforcement (all data contracts validated)
-            status: pending
+            status: in_progress
             exit_criteria:
               - critic: data_quality
               - artifact: shared/contracts/*.schema.json
+              - "Guardrail: dual-write / expand-cutover-contract workflow logged
+                for 100% safe migrations"
           - id: T6.2.4
             title: API rate limiting & exponential backoff (Open-Meteo, Shopify, Ads APIs)
             status: pending
             exit_criteria:
               - critic: allocator
               - tests: tests/test_rate_limiting.py
+              - "Guardrail: rate-limit handling respects worker timeouts and
+                prevents cascading failures during upgrades"
       - id: M6.3
         title: Observability & Performance
         tasks:
@@ -275,22 +414,210 @@ epics:
             exit_criteria:
               - critic: cost_perf
               - artifact: experiments/mcp/performance_benchmarks.json
+              - "Guardrail: benchmarks include worker swap scenarios and confirm
+                resource limits (timeouts, RSS) hold"
           - id: T6.3.2
             title: Enhanced observability export (structured logs, metrics dashboards)
-            status: pending
+            status: done
             exit_criteria:
               - critic: manager_self_check
               - artifact: state/telemetry/metrics_summary.json
+              - "Guardrail: telemetry captures Step 0–15 safety signals with
+                alerting on breaches"
           - id: T6.3.3
             title: Autopilot loop end-to-end testing (full autonomous cycle validation)
             status: pending
             exit_criteria:
               - critic: manager_self_check
               - artifact: experiments/mcp/autopilot_e2e.json
+              - "Guardrail: autonomous loop validates automatic promotion +
+                rollback without manual resets"
+      - id: M6.4
+        title: Zero-downtime self-upgrade
+        description: >
+          Introduce blue/green worker orchestration, live feature flags, and
+          automatic rollback so the MCP can upgrade itself during an active run
+          without breaking the front-end session.
+        tasks:
+          - id: T6.4.0
+            title: Upgrade invariants & preflight guardrails
+            description: >
+              Codify non-negotiable rules: clean git tree, version sanity
+              checks,
+
+              disk-space validation, SQLite lock probe, single-flight lock file,
+              and the
+
+              four promotion gates (build → unit → selfchecks → canary ready).
+              Abort
+
+              on any failure and capture structured errors.
+            status: pending
+            exit_criteria:
+              - state/upgrade.lock created before work and removed on exit
+              - Preflight script validates git status, Node/npm versions, disk
+                ≥500MB, sandbox availability
+              - Four-step gate recorded in logs; any failure returns
+                {error:"upgrade_aborted"}
+          - id: T6.4.1
+            title: Live feature flag store with kill switch
+            description: >
+              Replace environment toggles with a SQLite-backed `settings` table,
+              seed
+
+              defaults, and hot-refresh cached flags (≤500 ms poll). Include a
+
+              `DISABLE_NEW` global kill switch that forces legacy behaviour
+              instantly.
+            status: pending
+            exit_criteria:
+              - settings table created with defaults + DISABLE_NEW
+              - LiveFlags poller refreshes in-memory cache during runtime
+              - Integration test flips PROMPT_MODE without restart
+          - id: T6.4.2
+            title: Blue/green worker manager & front-end proxy
+            description: >
+              Keep the MCP front-end process stable while managing active and
+              canary
+
+              worker children over IPC. Ensure requests route through a proxy
+              that can
+
+              atomically switch to the validated canary without disconnecting
+              clients.
+            status: pending
+            exit_criteria:
+              - WorkerManager exposes startActive/startCanary/switchToCanary
+              - Front-end tool handlers call workers.getActive().call(...)
+              - RPC protocol enforces ready handshake, 30s timeouts, and
+                structured {ok,error} results
+              - Test demonstrates zero-downtime swap between worker binaries
+          - id: T6.4.3
+            title: Worker entrypoint with DRY_RUN safeguards
+            description: >
+              Implement a dedicated worker entry that routes RPCs, enforces
+              DRY_RUN=1
+
+              by opening the state DB read-only, refuses mutating calls, and
+              confirms
+
+              legacy behaviour when DRY_RUN=0.
+            status: pending
+            exit_criteria:
+              - Route function covers
+                health/plan/dispatch/runTool/verify/report.mo
+              - SQLite opened via file:state/state.db?mode=ro when DRY_RUN=1
+              - applyPatch/mutate operations rejected while DRY_RUN=1
+              - tests/test_worker_dry_run.py captures read-only guarantees
+          - id: T6.4.4
+            title: Canary upgrade harness & shadow validation
+            description: >
+              Automate the upgrade flow: create a separate git worktree,
+              build/test new
+
+              code, spawn a DRY_RUN canary, run shadow health/plan/report
+              checks, then
+
+              promote only if outputs match expectations.
+            status: pending
+            exit_criteria:
+              - scripts/mcp_safe_upgrade.sh orchestrates worktree build + tests
+              - Shadow checks compare active vs canary outputs in logs
+              - Promotion flow documents gate order and staged routing (DRY →
+                live) with metrics snapshots
+              - experiments/mcp/upgrade/<ts>/report.json recorded for each run
+          - id: T6.4.5
+            title: Feature flag gating for compact prompts & sandbox pool
+            description: >
+              Gate compact prompt headers, sandbox pooling, scheduler WSJF mode,
+
+              selective tests, danger gates, and MO engine behind live flags so
+              they
+
+              only activate after successful canary validation.
+            status: pending
+            exit_criteria:
+              - PROMPT_MODE, SANDBOX_MODE, SCHEDULER_MODE, SELECTIVE_TESTS,
+                DANGER_GATES, MO_ENGINE read from LiveFlags
+              - Regression fixtures cover legacy vs new mode per feature
+              - docs/MCP_ORCHESTRATOR.md updated with flag toggle order
+          - id: T6.4.6
+            title: Runtime tool registration & admin flag controls
+            description: >
+              Ensure tool surfaces remain stable while routing to v1/v2 handlers
+              based
+
+              on flags. Provide an MCP admin tool or CLI to update settings
+              atomically
+
+              without restarts.
+            status: pending
+            exit_criteria:
+              - Tool handlers return 'disabled' until corresponding flag enabled
+              - settings.update, upgrade.applyPatch, route.switch commands
+                exposed with structured errors
+              - Operator guide added under docs/MCP_AUTOMATION.md#live-flags
+          - id: T6.4.7
+            title: Automatic rollback monitors & kill-switch reset
+            description: >
+              Add health monitoring that reverts to the previous worker and
+              resets
+
+              flags when error rates spike post-promotion. Document on-call
+              rollback
+
+              steps and ensure DISABLE_NEW restores legacy behaviour.
+            status: pending
+            exit_criteria:
+              - Heartbeat every 2s with 3-strike circuit breaker routes back to
+                standby
+              - Error budget (5%/2min) and SLO monitors trigger automatic
+                rollback
+              - DISABLE_NEW flag automatically flipped during rollback
+              - docs/MCP_ORCHESTRATOR.md includes rollback playbook
+          - id: T6.4.8
+            title: Observability & resource budgets during upgrade
+            description: >
+              Emit OTel spans (or structured JSON logs) for every worker call
+              with
+
+              timing, lane, task, and outcome metadata. Enforce concurrency,
+              timeout,
+
+              and RSS guards to prevent runaway resource usage.
+            status: pending
+            exit_criteria:
+              - Span/log attributes include method, lane, ok/error, duration,
+                task.id
+              - runTool/plan timeouts (30s/120s) & lane concurrency limits
+                enforced
+              - RSS watchdog throttles batch lane when >1.5x baseline
+          - id: T6.4.9
+            title: Post-switch self-check automation & staged flag flips
+            description: >
+              Automate the 10-minute observation window, deterministic checks
+              per
+
+              feature, final flip order, and self-check suite (health, plan,
+              dispatch,
+
+              repo, tests, report) with rollback on breach.
+            status: pending
+            exit_criteria:
+              - Self-check script loops through health, plan→dispatch,
+                repo.read, tests.run, report.mo
+              - Determinism checks gate each flag; any failure auto-resets to
+                legacy
+              - Observation window metrics recorded and linked in
+                experiments/mcp/upgrade/
+              - On success, upgrade.applyPatch clears state/upgrade.lock and
+                commits new flags as default without manual intervention
+    status: blocked
   - id: E7
     title: Data Pipeline Hardening
     description: Complete geocoding integration, weather feature joins, and data
       quality validation.
+    domain: product
     milestones:
       - id: M7.1
         title: Geocoding & Weather Integration
@@ -303,13 +630,13 @@ epics:
               - tests: tests/test_geocoding.py
           - id: T7.1.2
             title: Weather feature join to model matrix (prevent future leakage)
-            status: in_progress
+            status: blocked
             exit_criteria:
               - critic: leakage
               - artifact: experiments/features/weather_join_validation.json
           - id: T7.1.3
             title: Data contract schema validation (Shopify, weather, ads)
-            status: pending
+            status: done
             exit_criteria:
               - critic: data_quality
               - tests: tests/test_schema_validation.py
@@ -318,33 +645,35 @@ epics:
         tasks:
           - id: T7.2.1
             title: Incremental ingestion with deduplication & checkpointing
-            status: pending
+            status: blocked
             exit_criteria:
               - critic: data_quality
               - tests: tests/test_incremental_ingest.py
           - id: T7.2.2
             title: Data quality monitoring & alerting (anomaly detection)
-            status: pending
+            status: blocked
             exit_criteria:
               - critic: data_quality
               - artifact: state/dq_monitoring.json
+    status: blocked
   - id: E5
     title: Ad Platform Execution & Automation
     description: Enable WeatherVane to programmatically create, update, monitor, and
       rollback ads across major platforms.
+    domain: product
     milestones:
       - id: M5.1
         title: Meta Ads Command Pipeline
         tasks:
           - id: T5.1.1
             title: Implement Meta Marketing API client (creative + campaign management)
-            status: pending
+            status: blocked
             exit_criteria:
               - critic: allocator
               - tests: tests/apps/test_meta_ads.py
           - id: T5.1.2
             title: Meta sandbox and dry-run executor with credential vaulting
-            status: pending
+            status: blocked
             exit_criteria:
               - critic: security
               - artifact: experiments/meta/sandbox_run.json
@@ -353,13 +682,13 @@ epics:
         tasks:
           - id: T5.2.1
             title: Google Ads API integration (campaign create/update, shared budgets)
-            status: pending
+            status: blocked
             exit_criteria:
               - critic: allocator
               - tests: tests/apps/test_google_ads.py
           - id: T5.2.2
             title: Budget reconciliation & spend guardrails across platforms
-            status: pending
+            status: blocked
             exit_criteria:
               - critic: allocator
               - artifact: experiments/allocator/spend_guardrails.json
@@ -368,62 +697,61 @@ epics:
         tasks:
           - id: T5.3.1
             title: Dry-run & diff visualizer for ad pushes (pre-flight checks)
-            status: pending
+            status: done
             exit_criteria:
               - critic: tests
               - artifact: state/ad_push_diffs.json
           - id: T5.3.2
             title: Automated rollback + alerting when performance/regression detected
-            status: pending
+            status: done
             exit_criteria:
               - critic: manager_self_check
               - artifact: experiments/allocator/rollback_sim.json
+    status: blocked
   - id: E8
     title: PHASE-4-POLISH — MCP Production Hardening
     description: Critical production readiness tasks for MCP orchestrator. Complete
-      before WeatherVane v1 launch.
+      before WeatherVane v1 launch while maintaining the Step 0–15 run-safety
+      guardrails
+      (docs/MCP_ORCHESTRATOR.md#1113-tight-integration-playbook-steps-0-15).
+    status: done
+    domain: mcp
     milestones:
       - id: M8.1
         title: MCP Compliance & Security
         description: Ensure MCP spec compliance and security hardening
         tasks:
           - id: T8.1.1
-            title: "Register real JSON Schemas for all MCP tools (SAFE: non-breaking)"
-            status: pending
+            title: "Lock MCP schemas to Zod shapes (SAFE: guardrail)"
+            status: done
             owner: WVO
-            estimate_hours: 4
+            estimate_hours: 2
             metadata:
-              safeguard: "DO NOT modify protected files. Create NEW utils/json_schema_converter.ts"
-              safe_files:
-                - tools/wvo_mcp/src/utils/json_schema_converter.ts (new)
-                - tools/wvo_mcp/src/index.ts (update tool registrations only)
-                - tools/wvo_mcp/src/index-claude.ts (update tool registrations only)
-                - tools/wvo_mcp/src/index-orchestrator.ts (update tool registrations only)
-              protected_files:
-                - "DO NOT MODIFY: tools/wvo_mcp/src/orchestrator/**/*.ts"
-                - "DO NOT MODIFY: tools/wvo_mcp/scripts/autopilot.sh"
-              implementation_notes: |
-                Install: npm install zod-to-json-schema --save
-                Create new file tools/wvo_mcp/src/utils/json_schema_converter.ts:
-                  import { zodToJsonSchema } from 'zod-to-json-schema';
-                  export function toRealJsonSchema(zodSchema, name) {
-                    return zodToJsonSchema(zodSchema, name);
-                  }
-                Replace toJsonSchema() calls in MCP entry files ONLY.
-                Run 'npm run build' to verify. Do NOT touch orchestrator internals.
+              safeguard: Do NOT reintroduce JSON Schema conversion. utils/schema.ts must
+                return schema.shape.
+              implementation_notes: >
+                - Reverted JSON schema converter; MCP SDK expects Zod raw
+                shapes.
+
+                - Added guardrail comment to utils/schema.ts warning against
+                future conversions.
+
+                - Documented in docs/AUTOPILOT_FIXES.md and
+                IMPLEMENTATION_STATUS.md.
             exit_criteria:
-              - All tools use zodToJsonSchema() instead of .shape
-              - "critic:build passes"
-              - "critic:tests passes"
-              - MCP clients can validate tool inputs
-              - No changes to protected orchestrator files
+              - utils/schema.ts returns schema.shape with guardrail comment
+              - MCP entrypoints register raw shapes only
+              - Autopilot documentation updated to reflect guardrail
+              - critic:build passes
+              - "Guardrail: validation confirms schema handling does not weaken
+                blue/green safety gates"
           - id: T8.1.2
             title: "Implement command allow-list in guardrails (SAFE: additive security)"
-            status: pending
+            status: done
             owner: WVO
             estimate_hours: 6
             metadata:
-              safeguard: "Modify ONLY guardrails.ts and command_runner.ts. Test thoroughly."
+              safeguard: Modify ONLY guardrails.ts and command_runner.ts. Test thoroughly.
               safe_files:
                 - tools/wvo_mcp/src/executor/guardrails.ts
                 - tools/wvo_mcp/src/executor/command_runner.ts
@@ -431,165 +759,219 @@ epics:
               protected_files:
                 - "DO NOT MODIFY: tools/wvo_mcp/src/orchestrator/**/*.ts"
                 - "DO NOT MODIFY: tools/wvo_mcp/scripts/autopilot.sh"
-              implementation_notes: |
+              implementation_notes: >
                 Add ALLOWED_COMMANDS constant in guardrails.ts:
                   const ALLOWED_COMMANDS = ['npm', 'git', 'python', 'pytest', 'node', 'tsc', 'make', 'bash', 'sh', 'docker'];
                 Add isCommandAllowed() check before ensureCommandSafe().
+
                 Keep deny-list as secondary defense (defense in depth).
+
                 Add comprehensive tests for allowed/denied commands.
             exit_criteria:
               - ALLOWED_COMMANDS constant defined
               - isCommandAllowed() enforced before execution
               - Deny-list kept as secondary check
-              - "critic:tests passes with new test_command_allowlist.py"
-              - "critic:manager_self_check passes"
+              - critic:tests passes with new test_command_allowlist.py
+              - critic:manager_self_check passes
+              - "Guardrail: allow-list integration verified against blue/green
+                upgrade scenarios"
           - id: T8.1.3
-            title: "Thread correlation IDs through state transitions (SAFE: observability only)"
-            status: pending
+            title: "Thread correlation IDs through state transitions (SAFE: observability
+              only)"
+            status: done
             owner: WVO
             estimate_hours: 3
             metadata:
-              safeguard: "ADD ONLY, do not remove existing code. Small targeted changes."
+              safeguard: ADD ONLY, do not remove existing code. Small targeted changes.
               safe_files:
                 - tools/wvo_mcp/src/index.ts (add correlationId param)
                 - tools/wvo_mcp/src/index-claude.ts (add correlationId param)
-                - tools/wvo_mcp/src/index-orchestrator.ts (add correlationId param)
+                - tools/wvo_mcp/src/index-orchestrator.ts (add correlationId
+                  param)
               protected_files:
-                - "DO NOT MODIFY: tools/wvo_mcp/src/orchestrator/state_machine.ts (already supports correlationId)"
+                - "DO NOT MODIFY:
+                  tools/wvo_mcp/src/orchestrator/state_machine.ts (already
+                  supports correlationId)"
                 - "DO NOT MODIFY: tools/wvo_mcp/scripts/autopilot.sh"
-              implementation_notes: |
+              implementation_notes: >
                 Generate correlationId once per MCP request: crypto.randomUUID()
-                Pass correlationId to stateMachine.createTask(), .transition(), .logEvent()
-                State machine ALREADY supports it - just wire through tool handlers.
+
+                Pass correlationId to stateMachine.createTask(), .transition(),
+                .logEvent()
+
+                State machine ALREADY supports it - just wire through tool
+                handlers.
+
                 This is ADDITIVE ONLY - no breaking changes.
             exit_criteria:
               - All tool handlers generate correlationId
               - All state transitions include correlationId
               - Events in SQLite include correlation_id column populated
-              - "critic:manager_self_check passes"
+              - critic:manager_self_check passes
               - End-to-end trace visible in state/orchestrator.db
+              - "Guardrail: correlation IDs trace compliance with Step 0–15
+                safety checks"
       - id: M8.2
         title: Context & Performance Optimization
         description: Major token reduction and context improvements
         tasks:
           - id: T8.2.1
-            title: "Implement compact evidence-pack prompt mode (SAFE: new function, backward compatible)"
-            status: pending
+            title: "Implement compact evidence-pack prompt mode (SAFE: new function,
+              backward compatible)"
+            status: done
             owner: WVO
             estimate_hours: 8
             metadata:
-              safeguard: "ADD NEW function, keep existing formatForPrompt(). Gradual rollout."
+              safeguard: ADD NEW function, keep existing formatForPrompt(). Gradual rollout.
               safe_files:
-                - tools/wvo_mcp/src/orchestrator/context_assembler.ts (add formatForPromptCompact)
-                - tools/wvo_mcp/src/orchestrator/claude_code_coordinator.ts (switch callers gradually)
+                - tools/wvo_mcp/src/orchestrator/context_assembler.ts (add
+                  formatForPromptCompact)
+                - tools/wvo_mcp/src/orchestrator/claude_code_coordinator.ts
+                  (switch callers gradually)
                 - tests/test_prompt_compact.py (new)
               protected_files:
                 - "DO NOT MODIFY: tools/wvo_mcp/scripts/autopilot.sh"
                 - "DO NOT MODIFY: tools/wvo_mcp/src/orchestrator/agent_pool.ts"
-              implementation_notes: |
-                Add NEW method formatForPromptCompact(ctx: AssembledContext) to context_assembler.ts:
+              implementation_notes: >
+                Add NEW method formatForPromptCompact(ctx: AssembledContext) to
+                context_assembler.ts:
                   Returns JSON format with IDs and minimal text:
                   { task: { id, title }, decisions: [id1, id2], files: [...], quality_issues: [...] }
                 Keep existing formatForPrompt() for fallback.
+
                 Update composePrompt() to use compact mode by default.
+
                 Test token reduction: target 50-70% reduction vs verbose mode.
+
                 Rollback plan: switch back to verbose if issues arise.
             exit_criteria:
               - formatForPromptCompact() returns JSON evidence pack
               - Token reduction measured: 50-70% vs verbose
               - All coordinator calls use compact mode
-              - "critic:build passes"
-              - "critic:manager_self_check passes"
+              - critic:build passes
+              - critic:manager_self_check passes
               - Rollback tested: can switch back to verbose
+              - "Guardrail: compact mode flip integrated with Step 15 staged
+                flag process"
           - id: T8.2.2
-            title: "Finalize Claude↔Codex coordinator failover (SAFE: expose existing functionality)"
-            status: pending
+            title: "Finalize Claude↔Codex coordinator failover (SAFE: expose existing
+              functionality)"
+            status: done
             owner: WVO
             estimate_hours: 4
             metadata:
-              safeguard: "EXPOSE ONLY, do not modify core logic. AgentPool already handles this."
+              safeguard: EXPOSE ONLY, do not modify core logic. AgentPool already handles
+                this.
               safe_files:
-                - tools/wvo_mcp/src/index-orchestrator.ts (update orchestrator_status tool)
-                - tools/wvo_mcp/src/orchestrator/operations_manager.ts (expose coordinator type)
+                - tools/wvo_mcp/src/index-orchestrator.ts (update
+                  orchestrator_status tool)
+                - tools/wvo_mcp/src/orchestrator/operations_manager.ts (expose
+                  coordinator type)
               protected_files:
-                - "DO NOT MODIFY: tools/wvo_mcp/src/orchestrator/agent_pool.ts (already complete)"
+                - "DO NOT MODIFY: tools/wvo_mcp/src/orchestrator/agent_pool.ts
+                  (already complete)"
                 - "DO NOT MODIFY: tools/wvo_mcp/scripts/autopilot.sh"
-              implementation_notes: |
+              implementation_notes: >
                 AgentPool already implements failover - just expose visibility.
+
                 Update orchestrator_status MCP tool to include:
                   coordinator: { type: 'claude' | 'codex', available: boolean, reason: string }
                 Add coordinator type to execution telemetry/logs.
+
                 Document failover behavior in IMPLEMENTATION_STATUS.md.
+
                 No breaking changes - this is observability only.
             exit_criteria:
               - orchestrator_status tool shows coordinator type and availability
               - Telemetry includes coordinator field in execution logs
               - Documentation updated in IMPLEMENTATION_STATUS.md
-              - "critic:manager_self_check passes"
+              - critic:manager_self_check passes
               - Failover behavior visible and logged
+              - "Guardrail: failover reporting feeds SLO/error budget monitors
+                for auto rollback"
   - id: E9
     title: PHASE-5-OPTIMIZATION — Performance & Observability
     description: Post-v1 performance improvements and production observability. High
-      ROI optimizations.
+      ROI optimizations that still honour the blue/green guardrail contract.
+    status: blocked
+    domain: mcp
+    blocked_by:
+      - E10
     milestones:
       - id: M9.1
         title: Cost Optimization & Caching
         description: Major cost reduction through provider caching
         tasks:
           - id: T9.1.1
-            title: "Stable prompt headers with provider caching (SAFE: additive optimization)"
-            status: blocked
-            blocked_by:
-              - E8
+            title: "Stable prompt headers with provider caching (SAFE: additive
+              optimization)"
+            status: done
             owner: WVO
             estimate_hours: 4
             metadata:
-              safeguard: "NEW utility only. Do not modify core orchestrator logic."
+              safeguard: NEW utility only. Do not modify core orchestrator logic.
               safe_files:
                 - tools/wvo_mcp/src/utils/prompt_headers.ts (new)
-                - tools/wvo_mcp/src/orchestrator/claude_code_coordinator.ts (prepend header)
+                - tools/wvo_mcp/src/orchestrator/claude_code_coordinator.ts
+                  (prepend header)
               protected_files:
                 - "DO NOT MODIFY: tools/wvo_mcp/scripts/autopilot.sh"
-                - "DO NOT MODIFY: tools/wvo_mcp/src/orchestrator/state_machine.ts"
-              implementation_notes: |
+                - "DO NOT MODIFY:
+                  tools/wvo_mcp/src/orchestrator/state_machine.ts"
+              implementation_notes: >
                 Create tools/wvo_mcp/src/utils/prompt_headers.ts:
                   export function standardPromptHeader(ctx): string {
                     return deterministic header with system rules, version, project context
                   }
                 Prepend to all provider prompts in composePrompt().
-                Headers must be deterministic (same ctx → same header) for caching.
+
+                Headers must be deterministic (same ctx → same header) for
+                caching.
+
                 Enables Anthropic/OpenAI prompt caching (50-90% cost reduction).
             exit_criteria:
               - standardPromptHeader() returns deterministic header
               - All prompts include standard header
               - Header enables provider caching (verified with API logs)
-              - "critic:cost_perf shows token cache hit rate"
-              - "critic:manager_self_check passes"
+              - critic:cost_perf shows token cache hit rate
+              - critic:manager_self_check passes
+              - "Guardrail: caching rollout assessed via Step 0–15 safety checks
+                before staying live"
           - id: T9.1.2
             title: "Batch queue for non-urgent prompts (SAFE: new queueing system)"
             status: blocked
-            blocked_by:
-              - E8
             owner: WVO
             estimate_hours: 12
             metadata:
-              safeguard: "NEW module. Do not modify existing task scheduler logic."
+              phase_lane: PHASE-5A
+              safeguard: NEW module. Do not modify existing task scheduler logic.
               safe_files:
                 - tools/wvo_mcp/src/utils/batch_queue.ts (new)
-                - tools/wvo_mcp/src/orchestrator/operations_manager.ts (integrate)
+                - tools/wvo_mcp/src/orchestrator/operations_manager.ts
+                  (integrate)
               protected_files:
-                - "DO NOT MODIFY: tools/wvo_mcp/src/orchestrator/task_scheduler.ts (keep existing)"
-              implementation_notes: |
-                Create batch_queue.ts with priority lanes: interactive, background, batch.
+                - "DO NOT MODIFY:
+                  tools/wvo_mcp/src/orchestrator/task_scheduler.ts (keep
+                  existing)"
+              implementation_notes: >
+                Create batch_queue.ts with priority lanes: interactive,
+                background, batch.
+
                 Semaphores per lane: interactive=3, background=2, batch=1.
-                Tools self-classify: fs_write → interactive, repo.analyze → batch.
-                Integrate in operations_manager without breaking existing scheduler.
+
+                Tools self-classify: fs_write → interactive, repo.analyze →
+                batch.
+
+                Integrate in operations_manager without breaking existing
+                scheduler.
             exit_criteria:
               - Priority queue with 3 lanes operational
               - Semaphore limits enforced per lane
               - Interactive tasks always get priority
-              - "critic:tests passes"
-              - "critic:manager_self_check passes"
+              - critic:tests passes
+              - critic:manager_self_check passes
+              - "Guardrail: queue respects worker concurrency caps from
+                blue/green playbook"
       - id: M9.2
         title: Reliability & Quality Improvements
         description: Reduce retries and improve output quality
@@ -597,47 +979,57 @@ epics:
           - id: T9.2.1
             title: "Strict output DSL validation (SAFE: validation layer only)"
             status: blocked
-            blocked_by:
-              - E8
             owner: WVO
             estimate_hours: 6
             metadata:
-              safeguard: "Validation wrapper only. No changes to core execution."
+              phase_lane: PHASE-5A
+              safeguard: Validation wrapper only. No changes to core execution.
               safe_files:
                 - tools/wvo_mcp/src/utils/output_validator.ts (new)
                 - tools/wvo_mcp/src/orchestrator/agent_pool.ts (wrap outputs)
-              implementation_notes: |
-                Create output_validator.ts with validateDiff() and validateJSON().
+              implementation_notes: >
+                Create output_validator.ts with validateDiff() and
+                validateJSON().
+
                 Wrap model outputs in validation before returning to caller.
+
                 Hard-fail on invalid format (forces model to retry correctly).
+
                 Reduces parse failures and retry loops.
             exit_criteria:
               - validateDiff() rejects non-diff outputs
               - validateJSON() rejects invalid JSON
               - Retry rate reduction measured
-              - "critic:tests passes"
+              - critic:tests passes
+              - "Guardrail: validation enforced in canary shadow runs before
+                live promotion"
           - id: T9.2.2
             title: "Idempotency keys for mutating tools (SAFE: caching layer)"
             status: blocked
-            blocked_by:
-              - E8
             owner: WVO
             estimate_hours: 8
             metadata:
-              safeguard: "Cache wrapper only. No changes to tool implementations."
+              phase_lane: PHASE-5A
+              safeguard: Cache wrapper only. No changes to tool implementations.
               safe_files:
                 - tools/wvo_mcp/src/utils/idempotency_cache.ts (new)
                 - tools/wvo_mcp/src/index*.ts (wrap tool handlers)
-              implementation_notes: |
-                Create idempotency_cache.ts: hash (tool_name, input_json) → cache key.
+              implementation_notes: >
+                Create idempotency_cache.ts: hash (tool_name, input_json) →
+                cache key.
+
                 Cache results for 1 hour (in-memory + optional Redis).
+
                 Wrap fs_write, repo.apply_patch, tests.run with cache.
+
                 Return cached result on duplicate request (safe retries).
             exit_criteria:
               - Idempotency cache operational
               - Duplicate operations return cached results
               - 1-hour TTL enforced
-              - "critic:tests passes"
+              - critic:tests passes
+              - "Guardrail: cache respects DRY_RUN mode and avoids side effects
+                during canary runs"
       - id: M9.3
         title: Production Observability
         description: OpenTelemetry and performance monitoring
@@ -645,12 +1037,11 @@ epics:
           - id: T9.3.1
             title: "OpenTelemetry spans for all operations (SAFE: tracing wrapper)"
             status: blocked
-            blocked_by:
-              - E8
             owner: WVO
             estimate_hours: 10
             metadata:
-              safeguard: "Instrumentation wrapper only. No logic changes."
+              phase_lane: PHASE-5A
+              safeguard: Instrumentation wrapper only. No logic changes.
               safe_files:
                 - tools/wvo_mcp/src/utils/telemetry.ts (new)
                 - tools/wvo_mcp/src/index*.ts (wrap handlers with spans)
@@ -665,16 +1056,16 @@ epics:
               - Spans exported to tracing backend
               - End-to-end traces visible
               - Performance insights available
-              - "critic:manager_self_check passes"
+              - critic:manager_self_check passes
+              - "Guardrail: telemetry alerts on Step 0–15 safety breaches"
           - id: T9.3.2
             title: "Sandbox pooling for test execution (SAFE: new executor)"
             status: blocked
-            blocked_by:
-              - E8
             owner: WVO
             estimate_hours: 16
             metadata:
-              safeguard: "New executor module. Keep existing command_runner as fallback."
+              phase_lane: PHASE-5B
+              safeguard: New executor module. Keep existing command_runner as fallback.
               safe_files:
                 - tools/wvo_mcp/src/executor/sandbox_pool.ts (new)
                 - tools/wvo_mcp/src/executor/command_runner.ts (add pool option)
@@ -689,7 +1080,11 @@ epics:
               - Test execution uses pooled sandboxes
               - 10x speedup measured
               - Fallback to non-pooled works
-              - "critic:tests passes"
+              - critic:tests passes
+              - "Guardrail: pool enforces DRY_RUN read-only mode during canary
+                validation"
+            dependencies:
+              - E5
       - id: M9.4
         title: Advanced Context & Search
         description: Better context selection and code search
@@ -697,37 +1092,41 @@ epics:
           - id: T9.4.1
             title: "SQLite FTS5 index for code search (SAFE: new index)"
             status: blocked
-            blocked_by:
-              - E8
             owner: WVO
             estimate_hours: 6
             metadata:
-              safeguard: "New virtual table. No changes to existing queries."
+              phase_lane: PHASE-5B
+              safeguard: New virtual table. No changes to existing queries.
               safe_files:
-                - tools/wvo_mcp/src/orchestrator/state_machine.ts (add FTS5 table)
+                - tools/wvo_mcp/src/orchestrator/state_machine.ts (add FTS5
+                  table)
                 - tools/wvo_mcp/src/utils/code_search.ts (new)
-              implementation_notes: |
+              implementation_notes: >
                 Add FTS5 virtual table in state_machine.ts initialization:
                   CREATE VIRTUAL TABLE code_fts USING fts5(file_path, content, language);
                 Populate on repo sync or file changes.
+
                 Fast sub-50ms code search for context assembly.
             exit_criteria:
               - code_fts virtual table created
               - Index populated on repo sync
               - Search performance <50ms
-              - "critic:tests passes"
+              - critic:tests passes
+            dependencies:
+              - E5
+              - "Guardrail: FTS initialization validated in staged worktree
+                before live migration"
           - id: T9.4.2
             title: "LSP proxy tools for symbol-aware context (SAFE: new tools)"
             status: blocked
-            blocked_by:
-              - E8
             owner: WVO
             estimate_hours: 20
             metadata:
-              safeguard: "New MCP tools. Do not modify context_assembler core logic."
+              safeguard: New MCP tools. Do not modify context_assembler core logic.
               safe_files:
                 - tools/wvo_mcp/src/lsp/lsp_proxy.ts (new)
-                - tools/wvo_mcp/src/index*.ts (add lsp.definition, lsp.references tools)
+                - tools/wvo_mcp/src/index*.ts (add lsp.definition,
+                  lsp.references tools)
               implementation_notes: |
                 Spawn tsserver/pyright in background process.
                 Expose MCP tools: lsp.definition, lsp.references, lsp.hover.
@@ -738,4 +1137,33 @@ epics:
               - lsp.definition and lsp.references tools work
               - Context assembler uses LSP for code slices
               - Context relevance measured and improved
-              - "critic:tests passes"
+              - critic:tests passes
+              - "Guardrail: LSP tools routed through worker proxy with Step 0–15
+                safety enforcement"
+  - id: E10
+    title: PHASE-6-COST — Usage-Based Optimisations
+    description: Cash-cost guardrails, budgeting telemetry, and API usage controls.
+      Activate once we exit the subscription sandbox.
+    status: blocked
+    domain: mcp
+    metadata:
+      joint_upgrade_bundle: true
+      bundle_with: E6
+    milestones:
+      - id: M10.1
+        title: Usage telemetry & guardrails
+        description: Capture per-provider spend and enforce budgets.
+        tasks:
+          - id: T10.1.1
+            title: Cost telemetry and budget alerts
+            status: done
+            owner: WVO
+            estimate_hours: 8
+            metadata:
+              safeguard: Read-only instrumentation first; block actions only after dry-run
+                phase.
+            exit_criteria:
+              - Provider cost telemetry recorded in
+                state/telemetry/operations.jsonl
+              - Budget thresholds configurable per environment
+              - Alert surfaced via state/context.md and orchestration logs

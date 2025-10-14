@@ -45,9 +45,12 @@ class AdsIngestor(BaseIngestor):
         rows = [self._normalise_meta_row(tenant_id, row) for row in data]
         if rows:
             validate_meta_ads(rows)
-        if not rows:
-            return IngestionSummary(path=str(self.writer.write_records(f"{tenant_id}_meta_ads", [])), row_count=0, source="meta_api")
-        return self._write_records(f"{tenant_id}_meta_ads", rows, source="meta_api")
+        return self._write_incremental(
+            dataset=f"{tenant_id}_meta_ads",
+            rows=rows,
+            unique_keys=("tenant_id", "date", "campaign_id", "adset_id"),
+            source="meta_api",
+        )
 
     async def ingest_google(
         self,
@@ -70,9 +73,12 @@ class AdsIngestor(BaseIngestor):
         rows = [self._normalise_google_row(tenant_id, row) for row in data]
         if rows:
             validate_google_ads(rows)
-        if not rows:
-            return IngestionSummary(path=str(self.writer.write_records(f"{tenant_id}_google_ads", [])), row_count=0, source="google_api")
-        return self._write_records(f"{tenant_id}_google_ads", rows, source="google_api")
+        return self._write_incremental(
+            dataset=f"{tenant_id}_google_ads",
+            rows=rows,
+            unique_keys=("tenant_id", "date", "campaign_id"),
+            source="google_api",
+        )
 
     def _normalise_meta_row(self, tenant_id: str, row: Mapping[str, Any]) -> Dict[str, Any]:
         return {

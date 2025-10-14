@@ -5,6 +5,8 @@ from typing import Any
 
 import logging
 
+import jsonschema
+
 from shared.schemas.base import (
     AutomationConsent,
     AutomationSettings,
@@ -22,6 +24,11 @@ from .repositories import AutomationRepository, AuditLogRepository
 from .notifications import WebhookPublisher
 from shared.data_context import ContextService, default_context_service
 from shared.data_context.warnings import ContextWarningEngine, default_warning_engine
+from apps.api.services.exceptions import SchemaValidationError
+from shared.validation.schemas import (
+    validate_automation_settings_response,
+    validate_data_request_response,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -44,7 +51,7 @@ class AutomationService:
         policy = await self.repository.fetch_policy(tenant_id)
         tags, warnings, data_context = self._context_bundle(tenant_id, policy)
         settings = self._to_schema(policy, context_tags=tags)
-        return AutomationSettingsResponse(
+        response = AutomationSettingsResponse(
             tenant_id=tenant_id,
             settings=settings,
             updated_at=policy.last_settings_update_at,
@@ -52,6 +59,8 @@ class AutomationService:
             data_context=data_context,
             context_warnings=warnings,
         )
+        self._validate_settings_response(response, tenant_id=tenant_id)
+        return response
 
     async def update_settings(
         self,
@@ -94,7 +103,7 @@ class AutomationService:
             data_context=data_context,
         )
         settings = self._to_schema(policy, context_tags=context_tags)
-        return AutomationSettingsResponse(
+        response = AutomationSettingsResponse(
             tenant_id=tenant_id,
             settings=settings,
             updated_at=policy.last_settings_update_at,
@@ -102,6 +111,8 @@ class AutomationService:
             data_context=data_context,
             context_warnings=warnings,
         )
+        self._validate_settings_response(response, tenant_id=tenant_id)
+        return response
 
     async def create_data_request(
         self,
@@ -151,7 +162,9 @@ class AutomationService:
             data_context=data_context,
         )
 
-        return self._request_to_schema(request)
+        response = self._request_to_schema(request)
+        self._validate_data_request_response(response, tenant_id=tenant_id)
+        return response
 
     def _apply_policy(self, policy, payload: AutomationSettings) -> None:  # type: ignore[no-untyped-def]
         guardrails = payload.guardrails
@@ -374,3 +387,61 @@ class AutomationService:
             await self.publisher.publish(event, body)
         except Exception:  # pragma: no cover - logging only
             logger.warning("Failed to deliver webhook event %s", event, exc_info=True)
+
+    def _validate_settings_response(
+        self,
+        payload: AutomationSettingsResponse,
+        *,
+        tenant_id: str,
+    ) -> None:
+        try:
+            validate_automation_settings_response(payload)
+        except (jsonschema.ValidationError, jsonschema.SchemaError) as error:
+            if isinstance(error, jsonschema.ValidationError):
+                path = list(error.absolute_path)
+                reason = error.message
+            else:
+                path = []
+                reason = str(error)
+            logger.exception(
+                "Automation settings schema validation failed for tenant %s at %s: %s",
+                tenant_id,
+                path or "<root>",
+                reason,
+            )
+            raise SchemaValidationError(
+                "Automation settings contract violated",
+                schema="automation_settings_response",
+                tenant_id=tenant_id,
+                path=path,
+                reason=reason,
+            ) from error
+
+    def _validate_data_request_response(
+        self,
+        payload: DataRequestResponse,
+        *,
+        tenant_id: str,
+    ) -> None:
+        try:
+            validate_data_request_response(payload)
+        except (jsonschema.ValidationError, jsonschema.SchemaError) as error:
+            if isinstance(error, jsonschema.ValidationError):
+                path = list(error.absolute_path)
+                reason = error.message
+            else:
+                path = []
+                reason = str(error)
+            logger.exception(
+                "Data request schema validation failed for tenant %s at %s: %s",
+                tenant_id,
+                path or "<root>",
+                reason,
+            )
+            raise SchemaValidationError(
+                "Automation data request contract violated",
+                schema="data_request_response",
+                tenant_id=tenant_id,
+                path=path,
+                reason=reason,
+            ) from error

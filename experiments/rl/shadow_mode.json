@@ -1,0 +1,618 @@
+{
+  "average_reward": 2.930589654152781,
+  "baseline_profit": 294.94307785026757,
+  "config": {
+    "episodes": 30,
+    "epsilon": 0.25,
+    "max_guardrail_breaches": 2,
+    "max_variant_fraction": 0.5,
+    "min_baseline_fraction": 0.2,
+    "reward_noise": 0.06,
+    "seed": 17
+  },
+  "diagnostics": {
+    "baseline_fraction": 0.2,
+    "disabled_variant_count": 0.0,
+    "max_reward": 11.100804651087344,
+    "max_variant_fraction": 0.5,
+    "min_reward": -10.301511006058774,
+    "safety_override_rate": 0.16666666666666666,
+    "safety_overrides": 5.0,
+    "std_reward": 6.311288477828699
+  },
+  "disabled_variants": [],
+  "episodes": [
+    {
+      "baseline_profit": 311.35803489683445,
+      "candidate_profit": 307.25437076487043,
+      "disabled_after_episode": false,
+      "guardrail_violated": false,
+      "index": 0,
+      "realised_roas": {
+        "display": 1.4819501054261919,
+        "meta": 2.9935571632181577,
+        "search": 1.3342687924079049
+      },
+      "reward": -4.103664131964024,
+      "safety_override": false,
+      "variant": "weather_aggressive"
+    },
+    {
+      "baseline_profit": 264.87571389939905,
+      "candidate_profit": 264.87571389939905,
+      "disabled_after_episode": false,
+      "guardrail_violated": false,
+      "index": 1,
+      "realised_roas": {
+        "display": 1.4485666381929188,
+        "meta": 2.590060882227715,
+        "search": 1.416806595446919
+      },
+      "reward": 0.0,
+      "safety_override": false,
+      "variant": "baseline"
+    },
+    {
+      "baseline_profit": 299.8713100362582,
+      "candidate_profit": 291.65669468921953,
+      "disabled_after_episode": false,
+      "guardrail_violated": false,
+      "index": 2,
+      "realised_roas": {
+        "display": 1.4131085638476173,
+        "meta": 2.8428011670952387,
+        "search": 1.4571277684047124
+      },
+      "reward": -8.21461534703866,
+      "safety_override": false,
+      "variant": "risk_off"
+    },
+    {
+      "baseline_profit": 344.16489780044475,
+      "candidate_profit": 340.12672344037577,
+      "disabled_after_episode": false,
+      "guardrail_violated": false,
+      "index": 3,
+      "realised_roas": {
+        "display": 1.5528616124623171,
+        "meta": 3.1585228255471884,
+        "search": 1.4173394070453895
+      },
+      "reward": -4.038174360068979,
+      "safety_override": false,
+      "variant": "steady_defensive"
+    },
+    {
+      "baseline_profit": 312.88716400856146,
+      "candidate_profit": 313.69515996185027,
+      "disabled_after_episode": false,
+      "guardrail_violated": false,
+      "index": 4,
+      "realised_roas": {
+        "display": 1.2634038449117977,
+        "meta": 3.012446441445381,
+        "search": 1.4536928143926122
+      },
+      "reward": 0.8079959532888097,
+      "safety_override": false,
+      "variant": "steady_defensive"
+    },
+    {
+      "baseline_profit": 290.07775986509256,
+      "candidate_profit": 282.9151541709278,
+      "disabled_after_episode": false,
+      "guardrail_violated": false,
+      "index": 5,
+      "realised_roas": {
+        "display": 1.582020835381519,
+        "meta": 2.692076539093757,
+        "search": 1.4525177088984167
+      },
+      "reward": -7.1626056941647676,
+      "safety_override": false,
+      "variant": "risk_off"
+    },
+    {
+      "baseline_profit": 331.8923235565291,
+      "candidate_profit": 341.31539290983085,
+      "disabled_after_episode": false,
+      "guardrail_violated": false,
+      "index": 6,
+      "realised_roas": {
+        "display": 1.1915777637179794,
+        "meta": 3.2211720596189317,
+        "search": 1.466851638032852
+      },
+      "reward": 9.423069353301742,
+      "safety_override": false,
+      "variant": "learning_expansion"
+    },
+    {
+      "baseline_profit": 303.0712811732273,
+      "candidate_profit": 312.1244722480638,
+      "disabled_after_episode": false,
+      "guardrail_violated": false,
+      "index": 7,
+      "realised_roas": {
+        "display": 1.285212996180801,
+        "meta": 2.959595880666107,
+        "search": 1.4251811172585331
+      },
+      "reward": 9.05319107483649,
+      "safety_override": false,
+      "variant": "learning_expansion"
+    },
+    {
+      "baseline_profit": 246.2813991711144,
+      "candidate_profit": 246.2813991711144,
+      "disabled_after_episode": false,
+      "guardrail_violated": false,
+      "index": 8,
+      "realised_roas": {
+        "display": 1.4799068986107167,
+        "meta": 2.5273330929021225,
+        "search": 1.2871499241582338
+      },
+      "reward": 0.0,
+      "safety_override": false,
+      "variant": "weather_aggressive"
+    },
+    {
+      "baseline_profit": 289.2462209298098,
+      "candidate_profit": 298.19785842120086,
+      "disabled_after_episode": false,
+      "guardrail_violated": false,
+      "index": 9,
+      "realised_roas": {
+        "display": 1.437580283560974,
+        "meta": 2.81113757648673,
+        "search": 1.411911972716499
+      },
+      "reward": 8.951637491391068,
+      "safety_override": false,
+      "variant": "learning_expansion"
+    },
+    {
+      "baseline_profit": 272.7381868642628,
+      "candidate_profit": 283.62647195948523,
+      "disabled_after_episode": false,
+      "guardrail_violated": false,
+      "index": 10,
+      "realised_roas": {
+        "display": 1.4761961629916005,
+        "meta": 2.70628472734932,
+        "search": 1.3640100523825953
+      },
+      "reward": 10.888285095222443,
+      "safety_override": false,
+      "variant": "learning_expansion"
+    },
+    {
+      "baseline_profit": 331.64040090368366,
+      "candidate_profit": 321.3388898976249,
+      "disabled_after_episode": false,
+      "guardrail_violated": false,
+      "index": 11,
+      "realised_roas": {
+        "display": 1.383666075755636,
+        "meta": 3.144293249928391,
+        "search": 1.4051503526567661
+      },
+      "reward": -10.301511006058774,
+      "safety_override": false,
+      "variant": "risk_off"
+    },
+    {
+      "baseline_profit": 252.28037210744395,
+      "candidate_profit": 255.57380842779537,
+      "disabled_after_episode": false,
+      "guardrail_violated": false,
+      "index": 12,
+      "realised_roas": {
+        "display": 1.4351533383660586,
+        "meta": 2.658001364134603,
+        "search": 1.2029011771873839
+      },
+      "reward": 3.293436320351418,
+      "safety_override": false,
+      "variant": "learning_expansion"
+    },
+    {
+      "baseline_profit": 312.5647603248173,
+      "candidate_profit": 317.8454350665921,
+      "disabled_after_episode": false,
+      "guardrail_violated": false,
+      "index": 13,
+      "realised_roas": {
+        "display": 1.4920513285606398,
+        "meta": 3.0065500746106766,
+        "search": 1.3410128249739082
+      },
+      "reward": 5.28067474177476,
+      "safety_override": false,
+      "variant": "learning_expansion"
+    },
+    {
+      "baseline_profit": 274.0181630240066,
+      "candidate_profit": 283.30215385125945,
+      "disabled_after_episode": false,
+      "guardrail_violated": false,
+      "index": 14,
+      "realised_roas": {
+        "display": 1.3938557145626589,
+        "meta": 2.7320944130147726,
+        "search": 1.3884420381864604
+      },
+      "reward": 9.283990827252865,
+      "safety_override": false,
+      "variant": "learning_expansion"
+    },
+    {
+      "baseline_profit": 261.07451229056943,
+      "candidate_profit": 270.01071529637227,
+      "disabled_after_episode": false,
+      "guardrail_violated": false,
+      "index": 15,
+      "realised_roas": {
+        "display": 1.35117196729699,
+        "meta": 2.660111740704596,
+        "search": 1.3756580878903257
+      },
+      "reward": 8.936203005802838,
+      "safety_override": false,
+      "variant": "learning_expansion"
+    },
+    {
+      "baseline_profit": 280.17725434134246,
+      "candidate_profit": 286.8993294298345,
+      "disabled_after_episode": false,
+      "guardrail_violated": false,
+      "index": 16,
+      "realised_roas": {
+        "display": 1.5952282352487162,
+        "meta": 2.6375365867471783,
+        "search": 1.4417610150924225
+      },
+      "reward": 6.7220750884920335,
+      "safety_override": false,
+      "variant": "learning_expansion"
+    },
+    {
+      "baseline_profit": 307.47005617577423,
+      "candidate_profit": 314.89296594732974,
+      "disabled_after_episode": false,
+      "guardrail_violated": false,
+      "index": 17,
+      "realised_roas": {
+        "display": 1.473817291268577,
+        "meta": 2.8088886135661086,
+        "search": 1.5742416584781322
+      },
+      "reward": 7.42290977155551,
+      "safety_override": false,
+      "variant": "learning_expansion"
+    },
+    {
+      "baseline_profit": 352.9268991948043,
+      "candidate_profit": 361.886681110662,
+      "disabled_after_episode": false,
+      "guardrail_violated": false,
+      "index": 18,
+      "realised_roas": {
+        "display": 1.404860856107686,
+        "meta": 3.3063082918273645,
+        "search": 1.4222477551198485
+      },
+      "reward": 8.959781915857661,
+      "safety_override": false,
+      "variant": "learning_expansion"
+    },
+    {
+      "baseline_profit": 358.0131015655938,
+      "candidate_profit": 369.10611528678857,
+      "disabled_after_episode": false,
+      "guardrail_violated": false,
+      "index": 19,
+      "realised_roas": {
+        "display": 1.5531087389546732,
+        "meta": 3.206063100162615,
+        "search": 1.5541856056827565
+      },
+      "reward": 11.09301372119478,
+      "safety_override": false,
+      "variant": "learning_expansion"
+    },
+    {
+      "baseline_profit": 300.2040234906713,
+      "candidate_profit": 300.0097495559855,
+      "disabled_after_episode": false,
+      "guardrail_violated": false,
+      "index": 20,
+      "realised_roas": {
+        "display": 1.452835603339683,
+        "meta": 2.9890408076396318,
+        "search": 1.2613517740936118
+      },
+      "reward": -0.19427393468583887,
+      "safety_override": false,
+      "variant": "weather_aggressive"
+    },
+    {
+      "baseline_profit": 315.3643799998501,
+      "candidate_profit": 308.83791545777177,
+      "disabled_after_episode": false,
+      "guardrail_violated": false,
+      "index": 21,
+      "realised_roas": {
+        "display": 1.6870362753066446,
+        "meta": 2.8946798497484667,
+        "search": 1.382728688897128
+      },
+      "reward": -6.526464542078315,
+      "safety_override": false,
+      "variant": "steady_defensive"
+    },
+    {
+      "baseline_profit": 334.74428259521295,
+      "candidate_profit": 344.2527562036466,
+      "disabled_after_episode": false,
+      "guardrail_violated": false,
+      "index": 22,
+      "realised_roas": {
+        "display": 1.3269878800584292,
+        "meta": 3.2088702737046315,
+        "search": 1.4060789517576013
+      },
+      "reward": 9.508473608433633,
+      "safety_override": false,
+      "variant": "learning_expansion"
+    },
+    {
+      "baseline_profit": 265.18557776149254,
+      "candidate_profit": 272.91903378229193,
+      "disabled_after_episode": false,
+      "guardrail_violated": false,
+      "index": 23,
+      "realised_roas": {
+        "display": 1.4708829215300663,
+        "meta": 2.700534364861134,
+        "search": 1.2771918629985932
+      },
+      "reward": 7.7334560207993945,
+      "safety_override": false,
+      "variant": "learning_expansion"
+    },
+    {
+      "baseline_profit": 306.0437478175525,
+      "candidate_profit": 317.14455246863986,
+      "disabled_after_episode": false,
+      "guardrail_violated": false,
+      "index": 24,
+      "realised_roas": {
+        "display": 1.5251562495772757,
+        "meta": 2.8861144745737275,
+        "search": 1.4488441282728433
+      },
+      "reward": 11.100804651087344,
+      "safety_override": false,
+      "variant": "learning_expansion"
+    },
+    {
+      "baseline_profit": 304.19453845109086,
+      "candidate_profit": 304.19453845109086,
+      "disabled_after_episode": false,
+      "guardrail_violated": false,
+      "index": 25,
+      "realised_roas": {
+        "display": 1.4433393563329349,
+        "meta": 3.0073331471475617,
+        "search": 1.2850153941562306
+      },
+      "reward": 0.0,
+      "safety_override": true,
+      "variant": "baseline"
+    },
+    {
+      "baseline_profit": 310.1805269629561,
+      "candidate_profit": 310.1805269629561,
+      "disabled_after_episode": false,
+      "guardrail_violated": false,
+      "index": 26,
+      "realised_roas": {
+        "display": 1.5447709058634336,
+        "meta": 2.957888377967042,
+        "search": 1.3520069099463052
+      },
+      "reward": 0.0,
+      "safety_override": true,
+      "variant": "baseline"
+    },
+    {
+      "baseline_profit": 304.62275510494777,
+      "candidate_profit": 304.62275510494777,
+      "disabled_after_episode": false,
+      "guardrail_violated": false,
+      "index": 27,
+      "realised_roas": {
+        "display": 1.480117916576132,
+        "meta": 2.828760445449162,
+        "search": 1.500173510983964
+      },
+      "reward": 0.0,
+      "safety_override": true,
+      "variant": "baseline"
+    },
+    {
+      "baseline_profit": 287.583703002233,
+      "candidate_profit": 287.583703002233,
+      "disabled_after_episode": false,
+      "guardrail_violated": false,
+      "index": 28,
+      "realised_roas": {
+        "display": 1.4920858464178788,
+        "meta": 2.7841321667948304,
+        "search": 1.3744564552177374
+      },
+      "reward": 0.0,
+      "safety_override": true,
+      "variant": "baseline"
+    },
+    {
+      "baseline_profit": 290.437129811269,
+      "candidate_profit": 290.437129811269,
+      "disabled_after_episode": false,
+      "guardrail_violated": false,
+      "index": 29,
+      "realised_roas": {
+        "display": 1.512098485277244,
+        "meta": 2.871507210465659,
+        "search": 1.278690171277952
+      },
+      "reward": 0.0,
+      "safety_override": true,
+      "variant": "baseline"
+    }
+  ],
+  "generated_at": "2025-10-13T01:29:17.561302",
+  "guardrail_breach_counts": {
+    "baseline": 0,
+    "learning_expansion": 0,
+    "risk_off": 0,
+    "steady_defensive": 0,
+    "weather_aggressive": 0
+  },
+  "guardrail_violations": 0,
+  "q_values": {
+    "baseline": 0.0,
+    "learning_expansion": 8.5100668458236,
+    "risk_off": -8.5595773490874,
+    "steady_defensive": -3.252214316286161,
+    "weather_aggressive": -1.432646022216621
+  },
+  "scenario": {
+    "channels": [
+      {
+        "current_spend": 95.0,
+        "max_spend": 180.0,
+        "min_spend": 70.0,
+        "name": "meta",
+        "weather_multiplier": 1.25
+      },
+      {
+        "current_spend": 110.0,
+        "max_spend": 165.0,
+        "min_spend": 60.0,
+        "name": "search",
+        "weather_multiplier": 0.85
+      },
+      {
+        "current_spend": 60.0,
+        "max_spend": 120.0,
+        "min_spend": 35.0,
+        "name": "display",
+        "weather_multiplier": 1.05
+      }
+    ],
+    "learning_cap": 0.32,
+    "risk_aversion": 0.22,
+    "roas_floor": 1.2,
+    "total_budget": 278.25
+  },
+  "selection_counts": {
+    "baseline": 6,
+    "learning_expansion": 15,
+    "risk_off": 3,
+    "steady_defensive": 3,
+    "weather_aggressive": 3
+  },
+  "validation": {
+    "checks": [
+      {
+        "name": "baseline_fraction",
+        "observed_baseline_runs": 6,
+        "required_baseline_runs": 6,
+        "status": true,
+        "threshold": 0.2,
+        "value": 0.2
+      },
+      {
+        "name": "max_variant_fraction",
+        "status": true,
+        "threshold": 0.5,
+        "value": 0.5
+      },
+      {
+        "name": "guardrail_violations",
+        "status": true,
+        "threshold": 2,
+        "value": 0
+      }
+    ],
+    "notes": [
+      "Baseline throttle maintained across simulation without exceeding variant cap.",
+      "Synthetic stress test forces guardrail breach and confirms automatic disablement.",
+      "Safety overrides remain within configured bounds for the main run."
+    ],
+    "stress_test": {
+      "assertions": {
+        "risk_off_disabled": true,
+        "single_violation_recorded": true
+      },
+      "config": {
+        "episodes": 4,
+        "epsilon": 0.0,
+        "max_guardrail_breaches": 1,
+        "seed": 97
+      },
+      "disabled_variants": [
+        "risk_off"
+      ],
+      "episodes": [
+        {
+          "disabled_after_episode": false,
+          "guardrail_violated": false,
+          "index": 0,
+          "variant": "baseline"
+        },
+        {
+          "disabled_after_episode": true,
+          "guardrail_violated": true,
+          "index": 1,
+          "variant": "risk_off"
+        },
+        {
+          "disabled_after_episode": false,
+          "guardrail_violated": false,
+          "index": 2,
+          "variant": "baseline"
+        },
+        {
+          "disabled_after_episode": false,
+          "guardrail_violated": false,
+          "index": 3,
+          "variant": "baseline"
+        }
+      ],
+      "guardrail_breach_counts": {
+        "baseline": 0,
+        "learning_expansion": 0,
+        "risk_off": 1,
+        "steady_defensive": 0,
+        "weather_aggressive": 0
+      },
+      "guardrail_violations": 1,
+      "selection_counts": {
+        "baseline": 3,
+        "learning_expansion": 0,
+        "risk_off": 1,
+        "steady_defensive": 0,
+        "weather_aggressive": 0
+      }
+    },
+    "summary": {
+      "disabled_variants": [],
+      "episodes": 30,
+      "safety_override_rate": 0.16666666666666666
+    }
+  }
+}

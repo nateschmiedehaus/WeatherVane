@@ -70,6 +70,9 @@ export class ResilienceManager extends EventEmitter {
       case 'context_limit':
         return this.handleContextLimit(context, attempts);
 
+      case 'validation':
+        return this.handleValidationFailure(context, attempts);
+
       case 'other':
       default:
         return this.handleGenericFailure(context, attempts);
@@ -176,6 +179,21 @@ export class ResilienceManager extends EventEmitter {
   /**
    * Handle generic failures
    */
+  private handleValidationFailure(context: FailureContext, attempts: number): RecoveryAction {
+    if (attempts < this.maxAttemptsPerTask) {
+      return {
+        action: 'retry',
+        delaySeconds: 5,
+        reasoning: 'Output validation failed - retrying for correct DSL format',
+      };
+    }
+
+    return {
+      action: 'fail_task',
+      reasoning: `Validation failures persisted after ${attempts} attempts`,
+    };
+  }
+
   private handleGenericFailure(context: FailureContext, attempts: number): RecoveryAction {
     if (attempts < this.maxAttemptsPerTask) {
       // Exponential backoff: 30s, 60s, 120s

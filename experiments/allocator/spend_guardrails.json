@@ -1,0 +1,98 @@
+{
+  "tenant_id": "tenant-safety",
+  "run_id": "adpush-spend-guardrails-sample",
+  "generated_at": "2025-10-13T22:05:00+00:00",
+  "guardrail_settings": {
+    "max_daily_budget_delta_pct": 35.0,
+    "min_daily_spend": 200.0
+  },
+  "spend_guardrail_report": {
+    "totals": {
+      "baseline_spend": 580.0,
+      "proposed_spend": 250.0,
+      "spend_delta": -330.0,
+      "percent_delta": -56.896551724137936,
+      "direction": "decrease"
+    },
+    "platforms": [
+      {
+        "platform": "meta",
+        "baseline_spend": 260.0,
+        "proposed_spend": 110.0,
+        "spend_delta": -150.0,
+        "percent_delta": -57.692307692307686,
+        "direction": "decrease",
+        "guardrails": [
+          {
+            "code": "platform_spend_delta_exceeds_limit",
+            "severity": "warning",
+            "message": "meta spend changed by -57.7% exceeding limit of 35.0%",
+            "limit": 35.0,
+            "observed": -57.692307692307686
+          },
+          {
+            "code": "platform_spend_below_minimum",
+            "severity": "critical",
+            "message": "meta spend (110.00) falls below minimum spend of 200.00",
+            "limit": 200.0,
+            "observed": 110.0
+          }
+        ]
+      },
+      {
+        "platform": "google",
+        "baseline_spend": 320.0,
+        "proposed_spend": 140.0,
+        "spend_delta": -180.0,
+        "percent_delta": -56.25,
+        "direction": "decrease",
+        "guardrails": [
+          {
+            "code": "platform_spend_delta_exceeds_limit",
+            "severity": "warning",
+            "message": "google spend changed by -56.2% exceeding limit of 35.0%",
+            "limit": 35.0,
+            "observed": -56.25
+          },
+          {
+            "code": "platform_spend_below_minimum",
+            "severity": "critical",
+            "message": "google spend (140.00) falls below minimum spend of 200.00",
+            "limit": 200.0,
+            "observed": 140.0
+          }
+        ]
+      }
+    ],
+    "guardrails": [
+      {
+        "code": "platform_spend_delta_exceeds_limit",
+        "severity": "warning",
+        "message": "meta spend changed by -57.7% exceeding limit of 35.0%",
+        "limit": 35.0,
+        "observed": -57.692307692307686
+      },
+      {
+        "code": "platform_spend_below_minimum",
+        "severity": "critical",
+        "message": "meta spend (110.00) falls below minimum spend of 200.00",
+        "limit": 200.0,
+        "observed": 110.0
+      },
+      {
+        "code": "platform_spend_delta_exceeds_limit",
+        "severity": "warning",
+        "message": "google spend changed by -56.2% exceeding limit of 35.0%",
+        "limit": 35.0,
+        "observed": -56.25
+      },
+      {
+        "code": "platform_spend_below_minimum",
+        "severity": "critical",
+        "message": "google spend (140.00) falls below minimum spend of 200.00",
+        "limit": 200.0,
+        "observed": 140.0
+      }
+    ]
+  }
+}

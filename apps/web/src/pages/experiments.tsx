@@ -5,9 +5,14 @@ import { Layout } from "../components/Layout";
 import { IncrementalityPanel } from "../components/IncrementalityPanel";
 import { BacktestChart } from "../components/BacktestChart";
 import { DisclaimerBanner } from "../components/DisclaimerBanner";
+import { CreativeGuardrailPanel } from "../components/CreativeGuardrailPanel";
+import { RLShadowPanel } from "../components/RLShadowPanel";
+import { SaturationPanel } from "../components/SaturationPanel";
 import styles from "../styles/plan.module.css";
-import { fetchExperimentReport } from "../lib/api";
+import { fetchCreativeResponse, fetchExperimentReport, fetchSaturationReport, fetchShadowReport } from "../lib/api";
 import type { BacktestPoint, IncrementalityReport } from "../types/incrementality";
+import type { CreativeResponseReport } from "../types/creative";
+import type { SaturationReport, ShadowRunReport } from "../types/allocator";
 
 const TENANT_ID = process.env.NEXT_PUBLIC_TENANT_ID ?? "demo-tenant";
 
@@ -15,6 +20,12 @@ export default function ExperimentsPage() {
   const [report, setReport] = useState<IncrementalityReport | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [creativeReport, setCreativeReport] = useState<CreativeResponseReport | null>(null);
+  const [creativeError, setCreativeError] = useState<string | null>(null);
+  const [shadowReport, setShadowReport] = useState<ShadowRunReport | null>(null);
+  const [shadowError, setShadowError] = useState<string | null>(null);
+  const [saturationReport, setSaturationReport] = useState<SaturationReport | null>(null);
+  const [saturationError, setSaturationError] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -35,6 +46,60 @@ export default function ExperimentsPage() {
       });
     return () => {
         active = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+    fetchCreativeResponse(TENANT_ID)
+      .then((data) => {
+        if (!active) return;
+        setCreativeReport(data);
+        setCreativeError(null);
+      })
+      .catch((err) => {
+        if (!active) return;
+        setCreativeError(err.message ?? "Failed to load creative guardrails");
+        setCreativeReport(null);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+    fetchShadowReport(TENANT_ID)
+      .then((data) => {
+        if (!active) return;
+        setShadowReport(data);
+        setShadowError(null);
+      })
+      .catch((err) => {
+        if (!active) return;
+        setShadowError(err.message ?? "Failed to load RL shadow report");
+        setShadowReport(null);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+    fetchSaturationReport(TENANT_ID)
+      .then((data) => {
+        if (!active) return;
+        setSaturationReport(data);
+        setSaturationError(null);
+      })
+      .catch((err) => {
+        if (!active) return;
+        setSaturationError(err.message ?? "Failed to load saturation optimisation report");
+        setSaturationReport(null);
+      });
+    return () => {
+      active = false;
     };
   }, []);
 
@@ -103,6 +168,15 @@ export default function ExperimentsPage() {
             </div>
           </section>
         )}
+
+        {creativeError && <p className={styles.error}>Creative guardrails unavailable: {creativeError}</p>}
+        {creativeReport && <CreativeGuardrailPanel report={creativeReport} />}
+
+        {shadowError && <p className={styles.error}>RL shadow mode unavailable: {shadowError}</p>}
+        {shadowReport && <RLShadowPanel report={shadowReport} />}
+
+        {saturationError && <p className={styles.error}>Saturation optimisation unavailable: {saturationError}</p>}
+        {saturationReport && <SaturationPanel report={saturationReport} />}
       </div>
     </Layout>
   );

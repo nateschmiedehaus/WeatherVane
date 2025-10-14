@@ -4,7 +4,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 import polars as pl
 from polars import selectors as cs
@@ -21,6 +21,13 @@ REQUIRED_WEATHER_COLS = {
     "precip_anomaly",
     "temp_roll7",
     "precip_roll7",
+}
+
+WEATHER_COVERAGE_COLS = {
+    "temp_c",
+    "precip_mm",
+    "temp_anomaly",
+    "precip_anomaly",
 }
 
 TARGET_COLUMN = "net_revenue"
@@ -93,6 +100,10 @@ class FeatureMatrix:
     forward_leakage_dates: List[str]
     forecast_leakage_rows: int
     forecast_leakage_dates: List[str]
+    join_mode: str
+    geocoded_order_ratio: Optional[float]
+    weather_missing_rows: int
+    weather_missing_records: List[Dict[str, Optional[str]]]
 
 
 class FeatureBuilder:
@@ -118,6 +129,13 @@ class FeatureBuilder:
         promos = self._load_latest(f"{tenant_id}_promos")
         weather = self._load_latest(f"{tenant_id}_weather_daily")
 
+        geocoded_order_ratio: Optional[float] = None
+        if not orders.is_empty() and "ship_geohash" in orders.columns:
+            total_orders = float(orders.height)
+            if total_orders > 0:
+                geocoded = orders.filter(pl.col("ship_geohash").is_not_null()).height
+                geocoded_order_ratio = geocoded / total_orders
+
         orders_daily = self._orders_daily(orders)
         ads_daily = self._ads_daily(ads_meta, ads_google)
         promos_daily = self._promos_daily(promos)
@@ -130,6 +148,11 @@ class FeatureBuilder:
             and not weather_daily.get_column("geohash").is_null().all()
         )
 
+        join_mode = "date_geohash" if join_on_geo else "date_only"
+
+        if not join_on_geo and not weather_daily.is_empty():
+            weather_daily = self._aggregate_weather_by_date(weather_daily)
+
         if not orders_daily.is_empty():
             if join_on_geo:
                 frame = orders_daily.join(weather_daily, on=["date", "geohash"], how="left")
@@ -137,6 +160,30 @@ class FeatureBuilder:
                 frame = orders_daily.join(weather_daily, on=["date"], how="left")
         else:
             frame = weather_daily
+
+        if not join_on_geo:
+            if "geohash_right" in frame.columns:
+                frame = frame.with_columns(
+                    pl.when(
+                        pl.col("geohash").is_null()
+                        | (pl.col("geohash").cast(pl.Utf8).str.len_bytes() == 0)
+                    )
+                    .then(pl.col("geohash_right"))
+                    .otherwise(pl.col("geohash"))
+                    .alias("geohash")
+                ).drop("geohash_right")
+            elif "geohash" in frame.columns:
+                frame = frame.with_columns(
+                    pl.when(
+                        pl.col("geohash").is_null()
+                        | (pl.col("geohash").cast(pl.Utf8).str.len_bytes() == 0)
+                    )
+                    .then(pl.lit("GLOBAL"))
+                    .otherwise(pl.col("geohash"))
+                    .alias("geohash")
+                )
+            else:
+                frame = frame.with_columns(pl.lit("GLOBAL").alias("geohash"))
 
         if TARGET_COLUMN not in frame.columns:
             frame = frame.with_columns(pl.lit(None, dtype=pl.Float64).alias(TARGET_COLUMN))
@@ -168,6 +215,19 @@ class FeatureBuilder:
                 )
                 .drop("date_promo")
             )
+        if join_mode == "date_only":
+            if "geohash" in frame.columns:
+                frame = frame.with_columns(
+                    pl.when(
+                        pl.col("geohash").is_null()
+                        | (pl.col("geohash").cast(pl.Utf8).str.len_bytes() == 0)
+                    )
+                    .then(pl.lit("GLOBAL"))
+                    .otherwise(pl.col("geohash"))
+                    .alias("geohash")
+                )
+            else:
+                frame = frame.with_columns(pl.lit("GLOBAL").alias("geohash"))
         frame = frame.sort("date")
         start_str = start.date().isoformat()
         end_str = end.date().isoformat()
@@ -176,6 +236,27 @@ class FeatureBuilder:
         frame = frame.with_columns(
             pl.col(TARGET_COLUMN).is_not_null().alias("target_available"),
         )
+
+        missing = [col for col in REQUIRED_WEATHER_COLS if col not in frame.columns]
+        if missing:
+            raise ValueError(f"Weather features missing from matrix: {missing}")
+
+        weather_missing_records: List[Dict[str, Optional[str]]] = []
+        weather_missing_rows = 0
+        if frame.height > 0:
+            coverage_checks = [pl.col(col).is_null() for col in WEATHER_COVERAGE_COLS if col in frame.columns]
+            missing_weather_expr = pl.any_horizontal(coverage_checks) if coverage_checks else pl.lit(False)
+            weather_missing_frame = frame.filter(missing_weather_expr)
+            weather_missing_rows = int(weather_missing_frame.height)
+            if weather_missing_rows > 0:
+                capture_cols = ["date"]
+                if "geohash" in weather_missing_frame.columns:
+                    capture_cols.append("geohash")
+                weather_missing_records = (
+                    weather_missing_frame.select([pl.col(column) for column in capture_cols])
+                    .unique(maintain_order=True)
+                    .to_dicts()
+                )
 
         if frame.width > 0:
             frame = frame.with_columns(cs.numeric().fill_null(0))
@@ -239,10 +320,6 @@ class FeatureBuilder:
 
         frame = frame.drop(["_forward_leakage", "_forecast_leakage"])
 
-        missing = [col for col in REQUIRED_WEATHER_COLS if col not in frame.columns]
-        if missing:
-            raise ValueError(f"Weather features missing from matrix: {missing}")
-
         validate_feature_matrix(frame)
         profiles: Dict[str, DatasetProfile] = {}
         try:
@@ -287,6 +364,13 @@ class FeatureBuilder:
             forward_leakage_dates=[str(date) for date in forward_leakage_dates],
             forecast_leakage_rows=forecast_leakage_rows,
             forecast_leakage_dates=[str(date) for date in forecast_leakage_dates],
+            join_mode=join_mode,
+            geocoded_order_ratio=geocoded_order_ratio,
+            weather_missing_rows=weather_missing_rows,
+            weather_missing_records=[
+                {"date": record.get("date"), "geohash": record.get("geohash")}
+                for record in weather_missing_records
+            ],
         )
         if leakage_risk_rows > 0:
             raise FeatureLeakageError(
@@ -314,11 +398,14 @@ class FeatureBuilder:
             return pl.DataFrame({"date": [], "geohash": [], "net_revenue": []})
         if "created_at" not in orders.columns:
             raise ValueError("orders dataset missing `created_at`")
-        frame = orders.with_columns([
-            pl.col("created_at").str.slice(0, 10).alias("date"),
-            pl.col("ship_geohash").alias("geohash"),
-        ])
-        group_cols = ["date", "geohash"] if "ship_geohash" in orders.columns else ["date"]
+        has_geohash = "ship_geohash" in orders.columns
+        frame = orders.with_columns(
+            [
+                pl.col("created_at").str.slice(0, 10).alias("date"),
+                (pl.col("ship_geohash") if has_geohash else pl.lit(None)).alias("geohash"),
+            ]
+        )
+        group_cols = ["date", "geohash"] if has_geohash else ["date"]
         return frame.group_by(group_cols).agg(pl.col("net_revenue").sum())
 
     def _ads_daily(self, meta: pl.DataFrame, google: pl.DataFrame) -> pl.DataFrame:
@@ -407,3 +494,58 @@ class FeatureBuilder:
         )
         frame = frame.with_columns(pl.col("date").cast(pl.Utf8))
         return frame
+
+    def _aggregate_weather_by_date(self, weather: pl.DataFrame) -> pl.DataFrame:
+        if weather.is_empty():
+            return weather
+
+        numeric_columns = [
+            column
+            for column in weather.select(cs.numeric()).columns
+            if column not in {"date", "day_of_year"}
+        ]
+        aggregations = [pl.col(column).mean().alias(column) for column in numeric_columns]
+
+        if "day_of_year" in weather.columns:
+            aggregations.append(pl.col("day_of_year").first().alias("day_of_year"))
+
+        for column in ("local_date", "local_datetime", "utc_datetime", "timezone"):
+            if column in weather.columns:
+                aggregations.append(pl.col(column).first().alias(column))
+
+        if "as_of_utc" in weather.columns:
+            aggregations.append(pl.col("as_of_utc").max().alias("as_of_utc"))
+
+        if "observation_type" in weather.columns:
+            obs_lower = pl.col("observation_type").cast(pl.Utf8).str.to_lowercase()
+            aggregations.extend(
+                [
+                    obs_lower.first().alias("_obs_first"),
+                    obs_lower.n_unique().alias("_obs_unique"),
+                    obs_lower.eq("forecast").any().alias("_obs_has_forecast"),
+                    obs_lower.eq("observed").any().alias("_obs_has_observed"),
+                ]
+            )
+
+        aggregated = weather.group_by("date").agg(aggregations)
+
+        if "observation_type" in weather.columns:
+            aggregated = aggregated.with_columns(
+                pl.when(pl.col("_obs_has_forecast") & pl.col("_obs_has_observed"))
+                .then(pl.lit("mixed"))
+                .when(pl.col("_obs_has_forecast"))
+                .then(pl.lit("forecast"))
+                .when(pl.col("_obs_unique") == 0)
+                .then(pl.lit(None, dtype=pl.Utf8))
+                .otherwise(pl.col("_obs_first"))
+                .alias("observation_type")
+            ).drop(
+                ["_obs_first", "_obs_unique", "_obs_has_forecast", "_obs_has_observed"],
+                strict=False,
+            )
+
+        aggregated = aggregated.with_columns(pl.lit("GLOBAL").alias("geohash"))
+        ordered_columns = ["date", "geohash"] + [
+            column for column in aggregated.columns if column not in {"date", "geohash"}
+        ]
+        return aggregated.select(ordered_columns)

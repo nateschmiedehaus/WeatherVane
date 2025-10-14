@@ -15,7 +15,7 @@ error TS2322: Type 'JsonSchema7Type' is not assignable to type 'ZodRawShape | un
 
 **Root Cause**: The `toJsonSchema()` helper was calling `zodToJsonSchema()` which returns JSON Schema objects, but the MCP SDK's `registerTool()` expects `ZodRawShape`.
 
-**Fix**: Modified `toJsonSchema()` to return `schema.shape` (the raw Zod shape object) instead of converting to JSON Schema. The SDK handles the conversion internally.
+**Fix**: `toJsonSchema()` now intentionally returns `schema.shape` (the raw Zod shape) and carries a guardrail comment so it cannot be converted back to JSON Schema. MCP SDK performs its own wrapping; passing JSON Schema objects breaks registration.
 
 ### 2. MCP Protocol Handshake Timeout ✅
 

@@ -1,6 +1,8 @@
 import Head from "next/head";
+import { useCallback } from "react";
 import { Layout } from "../components/Layout";
 import styles from "../styles/landing.module.css";
+import { useDemo } from "../lib/demo";
 
 const checklist = [
   {
@@ -37,6 +39,11 @@ const promises = [
 ];
 
 export default function Home() {
+  const { openTour } = useDemo();
+  const handleSamplePlan = useCallback(() => {
+    openTour();
+  }, [openTour]);
+
   return (
     <Layout>
       <Head>
@@ -45,14 +52,27 @@ export default function Home() {
 
       <section className={styles.hero}>
         <div className={styles.heroCopy}>
-          <h2>Weather intelligence, without the spreadsheets.</h2>
-          <p>
+          <h2 className={`ds-display ${styles.heroTitle}`}>
+            Weather intelligence, without the spreadsheets.
+          </h2>
+          <p className={`ds-body ${styles.heroSummary}`}>
             WeatherVane ingests your commerce, promo, and ad data, learns how weather shifts demand,
             and hands you a marketer-friendly plan you can trust—and optionally auto-push.
           </p>
           <div className={styles.heroCTA}>
-            <button type="button">Request access</button>
-            <button type="button" className={styles.secondary}>See a sample plan</button>
+            <button
+              type="button"
+              className={`${styles.ctaButton} ${styles.primaryAction} ds-pill ds-body-strong`}
+            >
+              Request access
+            </button>
+            <button
+              type="button"
+              className={`${styles.ctaButton} ${styles.secondaryAction} ds-pill ds-body-strong`}
+              onClick={handleSamplePlan}
+            >
+              See a sample plan
+            </button>
           </div>
         </div>
         <div className={styles.globe} aria-hidden>
@@ -63,8 +83,8 @@ export default function Home() {
       <section className={styles.checklist}>
         {checklist.map((item) => (
           <article key={item.title}>
-            <h3>{item.title}</h3>
-            <p>{item.detail}</p>
+            <h3 className="ds-title">{item.title}</h3>
+            <p className="ds-body">{item.detail}</p>
           </article>
         ))}
       </section>
@@ -72,20 +92,20 @@ export default function Home() {
       <section className={styles.promises}>
         {promises.map((item) => (
           <article key={item.highlight}>
-            <h4>{item.highlight}</h4>
-            <p>{item.copy}</p>
+            <h4 className="ds-body-strong">{item.highlight}</h4>
+            <p className="ds-body">{item.copy}</p>
           </article>
         ))}
       </section>
 
       <section className={styles.storyCard}>
-        <h3>This week&apos;s weather story</h3>
-        <p>
-          "Heat spike rolling through Texas increases sunscreen uplift 18–24% Thursday–Saturday. We
+        <h3 className="ds-title">This week&apos;s weather story</h3>
+        <p className="ds-body">
+          &ldquo;Heat spike rolling through Texas increases sunscreen uplift 18–24% Thursday–Saturday. We
           rebalanced +$4.5k to high-ROAS campaigns while keeping Smart Bidding within learning
-          thresholds."
+          thresholds.&rdquo;
         </p>
-        <span>— WeatherVane Planner</span>
+        <span className="ds-caption">— WeatherVane Planner</span>
       </section>
     </Layout>
   );

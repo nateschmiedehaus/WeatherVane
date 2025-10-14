@@ -1,0 +1,244 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "AutomationSettingsResponse",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "tenant_id",
+    "settings",
+    "context_tags",
+    "context_warnings"
+  ],
+  "properties": {
+    "tenant_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "settings": {
+      "$ref": "#/$defs/AutomationSettings"
+    },
+    "updated_at": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "date-time"
+    },
+    "context_tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "data_context": {
+      "type": [
+        "object",
+        "null"
+      ]
+    },
+    "context_warnings": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/ContextWarning"
+      }
+    }
+  },
+  "$defs": {
+    "AutomationSettings": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "mode",
+        "pushes_enabled",
+        "daily_push_cap",
+        "guardrails",
+        "consent",
+        "retention_days",
+        "data_context_tags"
+      ],
+      "properties": {
+        "mode": {
+          "type": "string",
+          "enum": [
+            "manual",
+            "assist",
+            "autopilot"
+          ]
+        },
+        "pushes_enabled": {
+          "type": "boolean"
+        },
+        "daily_push_cap": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "push_window_start_utc": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "push_window_end_utc": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "guardrails": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "max_daily_budget_delta_pct",
+            "min_daily_spend",
+            "roas_floor",
+            "cpa_ceiling",
+            "change_windows"
+          ],
+          "properties": {
+            "max_daily_budget_delta_pct": {
+              "type": "number"
+            },
+            "min_daily_spend": {
+              "type": "number"
+            },
+            "roas_floor": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "cpa_ceiling": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "change_windows": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "consent": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "status",
+            "version"
+          ],
+          "properties": {
+            "status": {
+              "type": "string",
+              "enum": [
+                "pending",
+                "granted",
+                "revoked"
+              ]
+            },
+            "version": {
+              "type": "string"
+            },
+            "granted_at": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "format": "date-time"
+            },
+            "revoked_at": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "format": "date-time"
+            },
+            "actor": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "channel": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          }
+        },
+        "retention_days": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "last_export_at": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time"
+        },
+        "last_delete_at": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time"
+        },
+        "last_updated_at": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time"
+        },
+        "updated_by": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "notes": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "data_context_tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "ContextWarning": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "code",
+        "message",
+        "severity",
+        "tags"
+      ],
+      "properties": {
+        "code": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        },
+        "severity": {
+          "type": "string"
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

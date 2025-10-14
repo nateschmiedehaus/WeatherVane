@@ -14,6 +14,17 @@ Analysis of proposed MCP and WeatherVane improvements for roadmap inclusion.
 
 ---
 
+## Domain Separation
+
+| Domain        | Epics                                                                                   | Focus                                                                                         |
+|---------------|-----------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------|
+| **Product**   | E1, E2, E3, E4, E5, E7, E11                                                             | Weather ingestion, allocator & UX, ad automation, resource-aware UX, overall product polish. |
+| **MCP Platform** | E6, E8, E9, E10                                                                       | MCP upgrade governance, guardrails, optimisation, cost telemetry, and orchestration safety.  |
+
+Always bundle MCP-platform epics (notably E6 + E10) together when planning, and stage PHASE‑5 work as PHASE‑5A (post-upgrade) vs PHASE‑5B (post-ads automation) so product delivery can continue in parallel.
+
+---
+
 ## ✅ Already Complete (3 items)
 
 ### #1: Wire Claude MCP transport ✅
@@ -37,24 +48,10 @@ Analysis of proposed MCP and WeatherVane improvements for roadmap inclusion.
 
 Must complete before WeatherVane v1 launch. High impact, moderate effort.
 
-### #2: Register real JSON Schemas [CRITICAL]
-**Effort:** 4 hours
-**Impact:** HIGH - MCP compliance, client compatibility
-**Why now:** Current `.shape` approach breaks with MCP client validation
-**Implementation:**
-```typescript
-// Replace in utils/schema.ts
-import { zodToJsonSchema } from 'zod-to-json-schema';
-
-export function toJsonSchema<T extends ZodRawShape>(
-  schema: ZodObject<T>,
-  name: string
-): JsonSchema {
-  return zodToJsonSchema(schema, name);
-}
-```
-**Files:** `utils/schema.ts`, all MCP entry points
-**Recommendation:** ⭐ **ADD TO ROADMAP** - Block MCP v1 release
+### #2: Register real JSON Schemas **(CANCELLED)**
+**Status:** ❌ Cancelled 2025-10-11  
+**Reason:** MCP SDK expects Zod raw shapes. Converting to JSON Schema broke tool registration and the TypeScript build.  
+**Guardrail:** `utils/schema.ts` must continue returning `schema.shape`; see docs/AUTOPILOT_FIXES.md.
 
 ---
 
@@ -141,21 +138,44 @@ Ship after v1 launch. High ROI, moderate-to-high effort.
 **Implementation:**
 ```typescript
 // utils/prompt_headers.ts
-export function standardPromptHeader(ctx: ExecutionContext): string {
-  return `# WeatherVane Orchestrator v${SERVER_VERSION}
-Project: ${ctx.projectName}
-Timestamp: ${ctx.timestamp}
-Correlation: ${ctx.correlationId}
+export function standardPromptHeader(ctx: PromptHeaderContext): string {
+  const headerLines = [
+    `# ${SERVER_NAME} v${SERVER_VERSION}`,
+    `Project: ${normalise(ctx.projectName)}`,
+    `Phase: ${normalise(ctx.projectPhase)}`,
+    `Environment: ${normalise(ctx.environment)}`,
+    `Prompt Mode: ${ctx.promptMode === 'verbose' ? 'verbose' : 'compact'}`,
+    `Agent Lane: ${canonicalAgentLabel(ctx.agentType)} • ${normalise(ctx.agentRole)}`,
+    `Intent: ${INTENT_LABELS[ctx.intent]}`,
+  ];
 
-## System Rules
-- Output format: UNIFIED_DIFF or JSON
-- File paths must be absolute
-- Tests required for code changes
-...
-`;
+  const guardrails = [
+    '- Follow instruction priority: system > developer > user > docs.',
+    '- Use MCP tools only; avoid unmanaged shell sessions.',
+    '- Keep changes scoped and deterministic; match existing conventions.',
+    '- Add or update tests when behaviour changes; document rationale when needed.',
+    '- Never store secrets or credentials in the repository.',
+  ];
+
+  const delivery = [
+    '- Prefer project tooling (e.g. make lint, make test) to verify changes.',
+    '- Maintain ASCII output and unified diffs for code edits.',
+    '- Keep prompts cache-friendly: avoid timestamps, randomness, or volatile data in headers.',
+    '- Final reply must satisfy the codex_output_schema JSON contract.',
+  ];
+
+  return [
+    headerLines.join('\\n'),
+    '',
+    '## System Guardrails',
+    guardrails.join('\\n'),
+    '',
+    '## Delivery Expectations',
+    delivery.join('\\n'),
+  ].join('\\n');
 }
 ```
-**Recommendation:** 🎯 **ADD TO PHASE-5** - Cost optimization
+**Recommendation:** 🎯 **DEFER TO PHASE-6** – Phase-5 optimization is parked; move on to WeatherVane product epics and revisit once we operate on usage-based billing.
 
 ---
 
@@ -299,56 +319,73 @@ Defer until post-v1. Lower priority or product-specific.
 
 ## Recommended Roadmap Additions
 
-### Add to state/roadmap.yaml:
+### Update state/roadmap.yaml:
+
+1. Mark **PHASE-4-POLISH** as `done` (all guardrail hardening work shipped on 2025-10-12).
+2. Treat **E6 – MCP Blue/Green Governance** and **E10 – MCP Blue/Green Upgrade** as a single upgrade programme: plan them together, share the same kickoff/retro, and execute back-to-back so flag controls, rollback monitors, and observability land in one window. Update task briefs to reference the joint schedule and avoid double booking.
+3. Split **PHASE-5-OPTIMIZATION** deliverables into two clear buckets:
+   - **PHASE-5A (post-upgrade)** – caching, batch queue, strict output validation, idempotency keys, and telemetry spans that can ship immediately after the E6/E10 bundle closes.
+   - **PHASE-5B (post-ads automation)** – sandbox pooling and advanced FTS5 search which depend on ad execution & workload telemetry; mark them as blocked by both the upgrade bundle and the ad automation epic (E5).
+   Reflect these groupings in roadmap task notes so autopilot can prioritise PHASE-5A items first once the upgrade bundle is green.
+4. Record the new cost optimization epic under a future phase (see recommendation above).
 
 ```yaml
 PHASE-4-POLISH:
   title: "MCP Production Hardening"
-  status: pending
-  blocked_by:
-    - PHASE-3-BATCH
+  status: done
   tasks:
     - id: MCP-4.1
-      title: "Register real JSON Schemas for all MCP tools"
-      type: task
-      status: pending
-      estimated_complexity: 4
-      exit_criteria:
-        - "Replace .shape with zodToJsonSchema()"
-        - "All tools use proper JSON Schema"
-        - "critic:build passes"
-        - "MCP clients can validate inputs"
-
+      ...
+      status: done
     - id: MCP-4.2
-      title: "Implement command allow-list in guardrails"
-      type: task
-      status: pending
-      estimated_complexity: 6
-      exit_criteria:
-        - "ALLOWED_COMMANDS constant defined"
-        - "isCommandAllowed() checks before execution"
-        - "Deny-list kept as secondary defense"
-        - "critic:tests passes"
-
+      ...
+      status: done
     - id: MCP-4.3
-      title: "Thread correlation IDs through all state transitions"
-      type: task
-      status: pending
-      estimated_complexity: 3
-      exit_criteria:
-        - "correlationId in all tool handlers"
-        - "Events include correlation_id"
-        - "Traceable end-to-end flow"
-
+      ...
+      status: done
     - id: MCP-4.4
-      title: "Implement compact evidence-pack prompt mode"
-      type: task
+      ...
+      status: done
+    - id: MCP-4.5
+      ...
+      status: done
+
+PHASE-5-OPTIMIZATION:
+  title: "Performance & Observability Enhancements"
+  status: blocked
+  blocked_by:
+    - E10
+  tasks:
+    - id: MCP-5.1
+      title: "Stable prompt headers with provider caching"
       status: pending
-      estimated_complexity: 8
-      exit_criteria:
-        - "formatForPrompt(ctx, 'compact') returns JSON"
-        - "Token reduction: 50-70% vs verbose"
-        - "Switch all callers to compact mode"
+    - id: MCP-5.2
+      title: "Batch queue for non-urgent prompts"
+      status: pending
+    - id: MCP-5.3
+      title: "Strict output DSL validation (diff/JSON)"
+      status: pending
+    - id: MCP-5.4
+      title: "Idempotency keys for mutating tools"
+      status: pending
+    - id: MCP-5.5
+      title: "OpenTelemetry spans for all operations"
+      status: pending
+    - id: MCP-5.6
+      title: "Sandbox pooling (bwrap/Docker)"
+      status: pending
+    - id: MCP-5.7
+      title: "SQLite FTS5 index for code search"
+      status: pending
+
+PHASE-6-COST:
+  title: "Usage-Based Optimisations"
+  status: draft
+  tasks:
+    - id: MCP-6.1
+      title: "Cost telemetry & budget guardrails"
+      status: planned
+```
         - "critic:manager_self_check passes"
 
     - id: MCP-4.5

@@ -9,4 +9,4 @@ cwd = "/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane"
 
 [mcp_servers.weathervane]
 command = "node"
-args = ["/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/tools/wvo_mcp/dist/index.js", "--workspace", "/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane"]
+args = ["tools/wvo_mcp/dist/index.js", "--workspace", "/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane"]

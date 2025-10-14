@@ -1,7 +1,10 @@
 import asyncio
+import os
 from datetime import datetime
 
 import pytest
+
+os.environ.setdefault("WEATHERVANE_DISABLE_MODELING", "1")
 
 pytest.importorskip("prefect", reason="integration test requires Prefect stub")
 

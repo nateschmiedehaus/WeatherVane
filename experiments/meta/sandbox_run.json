@@ -1,0 +1,125 @@
+{
+  "account_id": "act_TEST_SANDBOX",
+  "credential_source": "vault",
+  "dry_run": true,
+  "generated_at": "2025-10-13T20:02:24Z",
+  "operation_count": 5,
+  "operations": [
+    {
+      "method": "POST",
+      "path": "/act_TEST_SANDBOX/campaigns",
+      "payload": {
+        "daily_budget": 7500,
+        "name": "Weather Surge Awareness",
+        "objective": "SALES",
+        "special_ad_categories": [
+          "NONE"
+        ],
+        "status": "PAUSED"
+      },
+      "response": {
+        "id": "cmp_1"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/act_TEST_SANDBOX/adsets",
+      "payload": {
+        "billing_event": "IMPRESSIONS",
+        "campaign_id": "cmp_1",
+        "daily_budget": 5000,
+        "name": "Heatwave shoppers",
+        "optimization_goal": "LINK_CLICKS",
+        "status": "PAUSED",
+        "targeting": {
+          "flexible_spec": [
+            {
+              "behaviors": [
+                {
+                  "id": "6002714895372",
+                  "name": "Frequent Shoppers"
+                }
+              ]
+            }
+          ],
+          "geo_locations": {
+            "countries": [
+              "US"
+            ]
+          }
+        }
+      },
+      "response": {
+        "id": "adset_2"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/act_TEST_SANDBOX/adcreatives",
+      "payload": {
+        "name": "Weather-protected carousel",
+        "object_story_spec": {
+          "link_data": {
+            "call_to_action": {
+              "type": "SHOP_NOW"
+            },
+            "link": "https://example.com/weather-ready",
+            "message": "Stay ahead of the forecast with guaranteed two-day delivery."
+          },
+          "page_id": "1234567890"
+        }
+      },
+      "response": {
+        "id": "creative_3"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/act_TEST_SANDBOX/ads",
+      "payload": {
+        "adset_id": "adset_2",
+        "creative": {
+          "creative_id": "creative_3"
+        },
+        "name": "Weather guardrail launch",
+        "status": "PAUSED"
+      },
+      "response": {
+        "id": "ad_4"
+      }
+    },
+    {
+      "method": "GET",
+      "params": {
+        "fields": "id,name,status,objective"
+      },
+      "path": "/cmp_1",
+      "response": {
+        "id": "cmp_1",
+        "name": "Dry Run Campaigns",
+        "resource": "campaigns",
+        "status": "PAUSED"
+      }
+    }
+  ],
+  "responses": {
+    "ad": {
+      "id": "ad_4"
+    },
+    "adset": {
+      "id": "adset_2"
+    },
+    "campaign": {
+      "id": "cmp_1"
+    },
+    "campaign_fetch": {
+      "id": "cmp_1",
+      "name": "Dry Run Campaigns",
+      "resource": "campaigns",
+      "status": "PAUSED"
+    },
+    "creative": {
+      "id": "creative_3"
+    }
+  }
+}

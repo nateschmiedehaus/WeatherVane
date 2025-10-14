@@ -71,8 +71,8 @@ export default function StoriesPage() {
       <div className={styles.root}>
         <section className={styles.header}>
           <div>
-            <h2>Weekly weather stories</h2>
-            <p>
+            <h2 className="ds-title">Weekly weather stories</h2>
+            <p className="ds-body">
               Forecast-driven insights for the team. Each story blends anomalies, promo context, and
               incremental impact so you can ship a memo in minutes.
             </p>
@@ -80,30 +80,30 @@ export default function StoriesPage() {
           <aside className={styles.meta}>
             <dl>
               <div>
-                <dt>Generated</dt>
-                <dd>{generatedAt}</dd>
+                <dt className="ds-caption">Generated</dt>
+                <dd className="ds-body-strong">{generatedAt}</dd>
               </div>
               <div>
-                <dt>Horizon</dt>
-                <dd>{HORIZON_DAYS} days</dd>
+                <dt className="ds-caption">Horizon</dt>
+                <dd className="ds-body-strong">{HORIZON_DAYS} days</dd>
               </div>
               <div>
-                <dt>Total stories</dt>
-                <dd>{stories.length}</dd>
+                <dt className="ds-caption">Total stories</dt>
+                <dd className="ds-body-strong">{stories.length}</dd>
               </div>
             </dl>
           </aside>
         </section>
 
         {loading && (
-          <p className={styles.status} role="status" aria-live="polite">
+          <p className={`${styles.status} ds-body`} role="status" aria-live="polite">
             Loading stories…
           </p>
         )}
         {error && (
           <div className={styles.error} role="alert">
-            <p>{error}</p>
-            <button type="button" onClick={handleRetry} className={styles.retryButton}>
+            <p className="ds-body">{error}</p>
+            <button type="button" onClick={handleRetry} className={`${styles.retryButton} ds-body-strong`}>
               Retry loading stories
             </button>
           </div>
@@ -128,20 +128,20 @@ export default function StoriesPage() {
                     {story.icon ?? "🌤"}
                   </span>
                   <div>
-                    <h3>{story.title}</h3>
-                    <p className={styles.metaLine}>
+                    <h3 className="ds-title">{story.title}</h3>
+                    <p className={`${styles.metaLine} ds-caption`}>
                       {story.channel} · {story.confidence} · {formatDate(story.plan_date)}
                     </p>
                   </div>
                 </header>
-                <p className={styles.summary}>{story.summary}</p>
-                <footer>{story.detail}</footer>
+                <p className={`${styles.summary} ds-body`}>{story.summary}</p>
+                <footer className="ds-body">{story.detail}</footer>
               </article>
             ))}
             {!stories.length && (
               <article className={styles.placeholder}>
-                <h3>No stories yet</h3>
-                <p>
+                <h3 className="ds-title">No stories yet</h3>
+                <p className="ds-body">
                   Run the pipeline to generate weather-driven narratives. Stories will highlight the
                   highest-confidence opportunities across your catalog.
                 </p>

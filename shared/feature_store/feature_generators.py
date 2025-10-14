@@ -1,10 +1,10 @@
 """Feature engineering utilities for WeatherVane feature store."""
 from __future__ import annotations
 
+import random
 from dataclasses import dataclass, field
 from typing import Iterable, List, Sequence
 
-import numpy as np
 import polars as pl
 
 NUMERIC_DTYPES = {
@@ -87,10 +87,9 @@ class LagRollingFeatureGenerator:
             )
 
         order_cols = [col for col in self.group_cols if col in working.columns]
-        seed_rank = np.random.default_rng(self.seed).random(working.height)
-        working = working.with_columns(
-            pl.Series("__wvo_seed_rank", seed_rank.tolist())
-        )
+        rng = random.Random(self.seed)
+        seed_rank = [rng.random() for _ in range(working.height)]
+        working = working.with_columns(pl.Series("__wvo_seed_rank", seed_rank))
         order_cols.extend(["__wvo_date", "__wvo_seed_rank", "__wvo_row_nr"])
         working = working.sort(order_cols)
 
