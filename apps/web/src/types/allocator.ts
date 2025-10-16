@@ -10,6 +10,52 @@ export interface ShadowEpisode {
   safety_override: boolean;
 }
 
+export interface ShadowValidationCheck {
+  name: string;
+  status: boolean;
+  value: number;
+  threshold: number;
+  observed_baseline_runs?: number;
+  required_baseline_runs?: number;
+}
+
+export interface ShadowValidationSummary {
+  episodes: number;
+  safety_override_rate: number;
+  disabled_variants: string[];
+}
+
+export interface ShadowValidationStressEpisode {
+  index: number;
+  variant: string;
+  guardrail_violated: boolean;
+  disabled_after_episode: boolean;
+}
+
+export interface ShadowValidationStressConfig {
+  episodes: number;
+  epsilon: number;
+  seed: number;
+  max_guardrail_breaches: number;
+}
+
+export interface ShadowValidationStressTest {
+  config: ShadowValidationStressConfig;
+  guardrail_violations: number;
+  guardrail_breach_counts: Record<string, number>;
+  selection_counts: Record<string, number>;
+  disabled_variants: string[];
+  episodes: ShadowValidationStressEpisode[];
+  assertions: Record<string, boolean>;
+}
+
+export interface ShadowValidation {
+  checks: ShadowValidationCheck[];
+  summary: ShadowValidationSummary;
+  notes: string[];
+  stress_test: ShadowValidationStressTest;
+}
+
 export interface ShadowRunReport {
   generated_at: string;
   average_reward: number;
@@ -22,6 +68,7 @@ export interface ShadowRunReport {
   diagnostics: Record<string, number>;
   config: Record<string, unknown>;
   scenario: Record<string, unknown>;
+  validation: ShadowValidation;
 }
 
 export interface SaturationMarket {

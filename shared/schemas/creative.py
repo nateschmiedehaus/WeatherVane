@@ -19,6 +19,10 @@ class CreativeSummary(BaseModel):
     watchlist_creatives: int
     average_roas: float
     median_roas: float
+    active_spend_share: float
+    watchlist_spend_share: float
+    blocked_spend_share: float
+    guardrail_counts: dict[str, int] = Field(default_factory=dict)
 
 
 class CreativeHighlight(BaseModel):

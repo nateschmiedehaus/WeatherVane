@@ -282,6 +282,14 @@ export class OperationsManager extends EventEmitter implements ExecutionObserver
     this.costBudgets = this.loadBudgetThresholds(workspaceRoot);
     this.telemetryExporter = new TelemetryExporter(workspaceRoot, 'operations.jsonl');
     this.executionTelemetryExporter = new TelemetryExporter(workspaceRoot, 'executions.jsonl');
+
+    // Archive telemetry on startup for fresh session metrics (unless explicitly disabled)
+    const cleanTelemetry = process.env.WVO_CLEAN_TELEMETRY !== '0';
+    if (cleanTelemetry) {
+      void this.telemetryExporter.archiveAndReset();
+      void this.executionTelemetryExporter.archiveAndReset();
+    }
+
     this.qualityMonitor.on('quality:evaluated', this.boundListeners.qualityEvaluated);
     this.scheduler.on('queue:updated', this.boundListeners.queueUpdated);
     this.stateMachine.on('task:transition', this.boundListeners.taskTransition);
@@ -921,6 +929,7 @@ export class OperationsManager extends EventEmitter implements ExecutionObserver
         averagePromptTokens: snapshot.tokenMetrics.averagePromptTokens,
         targetPromptBudget: snapshot.tokenMetrics.targetPromptBudget,
       });
+      this.emit('maintenance:token_pressure', { snapshot });
     }
   }
 

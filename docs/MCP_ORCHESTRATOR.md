@@ -335,78 +335,30 @@ Short answer: **Yes**—the MCP can upgrade itself during a live run, only enabl
 
 ### 11.2 Live Feature Flags (`T6.4.1`)
 
-Replace environment toggles with a `settings` table in `state/state.db`, seeded with defaults and a global kill switch.
+Environment toggles now live in the `settings` table inside `state/orchestrator.db`. The orchestrator state machine creates the table and seeds defaults (including the `DISABLE_NEW` kill switch) on boot:
 
 ```sql
 CREATE TABLE IF NOT EXISTS settings (
   key TEXT PRIMARY KEY,
   val TEXT NOT NULL,
-  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  updated_at INTEGER NOT NULL DEFAULT (CAST(strftime('%s','now') AS INTEGER) * 1000),
+  metadata JSON
 );
 
-INSERT OR IGNORE INTO settings(key,val) VALUES
- ('PROMPT_MODE','verbose'),
- ('SANDBOX_MODE','none'),
- ('OTEL_ENABLED','0'),
- ('SCHEDULER_MODE','legacy'),
- ('SELECTIVE_TESTS','0'),
- ('DANGER_GATES','0'),
- ('UI_ENABLED','0'),
- ('MO_ENGINE','0'),
- ('DISABLE_NEW','0');
+CREATE INDEX IF NOT EXISTS idx_settings_updated_at ON settings(updated_at);
 ```
 
-Runtime loader (polling every 500 ms) keeps a hot cache and honours the `DISABLE_NEW` kill switch.
+Default values mirror `DEFAULT_LIVE_FLAGS` in `tools/wvo_mcp/src/state/live_flags.ts`. The runtime wires a hot-reloading `LiveFlags` poller (500 ms interval) that reads the snapshot from SQLite and collapses to legacy defaults whenever `DISABLE_NEW=1`, ensuring the kill switch takes effect immediately.
 
-```ts
-import Database from "better-sqlite3";
-type Flags = {
-  PROMPT_MODE: "verbose"|"compact";
-  SANDBOX_MODE: "none"|"pool";
-  OTEL_ENABLED: "0"|"1";
-  SCHEDULER_MODE: "legacy"|"wsjf";
-  SELECTIVE_TESTS: "0"|"1";
-  DANGER_GATES: "0"|"1";
-  UI_ENABLED: "0"|"1";
-  MO_ENGINE: "0"|"1";
-  DISABLE_NEW: "0"|"1";
-};
-const DEFAULTS: Flags = {
-  PROMPT_MODE: "verbose", SANDBOX_MODE: "none", OTEL_ENABLED: "0",
-  SCHEDULER_MODE: "legacy", SELECTIVE_TESTS: "0", DANGER_GATES: "0",
-  UI_ENABLED: "0", MO_ENGINE: "0", DISABLE_NEW: "0"
-};
+A lightweight CLI wraps the store for operators:
 
-export class LiveFlags {
-  private cache: Flags = { ...DEFAULTS };
-  private db: Database.Database;
-  private getStmt: Database.Statement;
-
-  constructor(dbPath = "state/state.db") {
-    this.db = new (Database as any)(dbPath);
-    this.getStmt = this.db.prepare("SELECT key,val FROM settings");
-    this.refresh();
-    setInterval(()=>this.refresh(), 500);
-  }
-
-  refresh() {
-    try {
-      const rows = this.getStmt.all();
-      const f: any = { ...DEFAULTS };
-      for (const r of rows) f[r.key] = r.val;
-      if (f.DISABLE_NEW === "1") {
-        this.cache = { ...DEFAULTS, DISABLE_NEW: "1" };
-      } else {
-        this.cache = f;
-      }
-    } catch {}
-  }
-  get(): Flags { return this.cache; }
-}
-export const liveFlags = new LiveFlags();
+```bash
+ts-node tools/wvo_mcp/scripts/live_flags.ts list
+ts-node tools/wvo_mcp/scripts/live_flags.ts set PROMPT_MODE verbose
+ts-node tools/wvo_mcp/scripts/live_flags.ts kill-switch on
 ```
 
-All callers read `liveFlags.get()` so they pick up flips during the run.
+Internally the `LiveFlags` instance is created by `OrchestratorRuntime` and injected into every subsystem (coordinator, context assembler, operations manager, quality monitor, etc.), so flag flips propagate without restarts.
 
 ### 11.3 Blue/Green Worker Manager (`T6.4.2`)
 
@@ -557,7 +509,7 @@ Any error leaves the original worker active and surfaces a structured failure.
 | OpenTelemetry spans | Front-end + worker | Enable in canary, confirm exports, flip `OTEL_ENABLED='1'` |
 | Minimal UI | Separate process | Can start/stop independently; flag can log readiness |
 
-> **Implementation status:** Compact evidence-pack prompts now ship by default. Set `WVO_PROMPT_MODE=verbose` to restore the legacy markdown payload during debugging or staged rollbacks.
+> **Implementation status:** Compact evidence-pack prompts now ship by default. Use `ts-node tools/wvo_mcp/scripts/live_flags.ts set PROMPT_MODE verbose` to restore the legacy markdown payload during debugging or staged rollbacks.
 
 ### 11.7 Safe Write-Protection for Canary (`T6.4.3`)
 

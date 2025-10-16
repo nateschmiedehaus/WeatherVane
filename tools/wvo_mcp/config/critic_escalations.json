@@ -2,16 +2,253 @@
   "design_system": {
     "reviewer": "Director Dana",
     "note": "Escalated to Director Dana for design-system review. Awaiting manual sign-off before rerunning the critic.",
-    "next": "Coordinate with Director Dana to complete the design-system review and capture the required evidence."
+    "next": "Coordinate with Director Dana to complete the design-system review and capture the required evidence.",
+    "delegates": [
+      {
+        "agent": "Director Dana",
+        "scope": "global",
+        "createTask": true,
+        "callAgents": ["Autopilot"],
+        "taskTitle": "[Design System] Director review required",
+        "taskDescription": "Design system critic flagged issues that require Director Dana's approval and guidance.\nConfirm scope, provide design guidance, and document the outcome."
+      },
+      {
+        "agent": "Autopilot",
+        "scope": "global",
+        "createTask": true,
+        "callAgents": ["architecture", "design_system"],
+        "taskTitle": "[Autopilot] Coordinate design-system remediation",
+        "taskDescription": "Partner with Director Dana to implement follow-up work, ensure documentation is captured, and unblock downstream roadmap tasks."
+      }
+    ]
   },
   "data_quality": {
     "reviewer": "Data Steward",
     "note": "Awaiting Data Steward review for data quality findings. Provide fixes or sign-off before retrying the critic.",
-    "next": "Partner with the Data Steward to resolve outstanding data quality issues, then rerun the critic."
+    "next": "Partner with the Data Steward to resolve outstanding data quality issues, then rerun the critic.",
+    "delegates": [
+      {
+        "agent": "Autopilot",
+        "scope": "systemic",
+        "createTask": true,
+        "callAgents": ["data_steward", "qa"],
+        "taskTitle": "[Autopilot] Triage data quality failures",
+        "taskDescription": "Coordinate an engineering response, capture root cause, and ensure remediation tasks are opened for the affected domains."
+      },
+      {
+        "agent": "Data Steward",
+        "scope": "global",
+        "createTask": true,
+        "taskTitle": "[Data Steward] Review data-quality critic output",
+        "taskDescription": "Audit the critic report, provide sign-off or additional guidance, and document expectations for the engineering follow-up."
+      }
+    ]
   },
   "org_pm": {
     "reviewer": "Director Dana",
     "note": "Escalated to Director Dana for product/PM review. Capture stakeholder sign-off before resuming automation.",
-    "next": "Work with Director Dana to close out the product/PM review, then resume automated execution."
+    "next": "Work with Director Dana to close out the product/PM review, then resume automated execution.",
+    "delegates": [
+      {
+        "agent": "Director Dana",
+        "scope": "global",
+        "createTask": true,
+        "callAgents": ["Autopilot"],
+        "taskTitle": "[Product Review] Director Dana sign-off",
+        "taskDescription": "Review the org/PM critic findings, align on product scope, and record the sign-off outcome."
+      },
+      {
+        "agent": "Autopilot",
+        "scope": "global",
+        "createTask": true,
+        "callAgents": ["product", "architecture"],
+        "taskTitle": "[Autopilot] Coordinate product/PM remediation",
+        "taskDescription": "Translate Director Dana's guidance into actionable roadmap updates and ensure execution teams are aligned."
+      }
+    ]
+  },
+  "experience_flow": {
+    "reviewer": "Director Dana",
+    "note": "Experience flow critic failed to confirm an end-to-end journey and demo choreography that matches the flagship standard.",
+    "next": "Co-develop the updated journey narrative, demo script, and walkthrough assets with Director Dana before rerunning.",
+    "delegates": [
+      {
+        "agent": "Director Dana",
+        "scope": "global",
+        "createTask": true,
+        "callAgents": ["Autopilot"],
+        "taskTitle": "[Experience Flow] Director narrative alignment",
+        "taskDescription": "Review the failing critic output, capture the revised end-to-end journey, and define the live demo checkpoints."
+      },
+      {
+        "agent": "Autopilot",
+        "scope": "global",
+        "createTask": true,
+        "callAgents": ["design_guild", "product"],
+        "taskTitle": "[Autopilot] Repair experience flow assets",
+        "taskDescription": "Update the journey blueprint, demo script, and run Critic evidence to satisfy the flagship standard."
+      }
+    ]
+  },
+  "weather_aesthetic": {
+    "reviewer": "Director Dana",
+    "note": "Weather aesthetic critic detected gaps in palette, motion, or inspiration coverage for weather states.",
+    "next": "Partner with Director Dana to refresh weather themes, references, and motion guidelines before retrying.",
+    "delegates": [
+      {
+        "agent": "Director Dana",
+        "scope": "creative",
+        "createTask": true,
+        "callAgents": ["Autopilot"],
+        "taskTitle": "[Weather Aesthetic] Creative sign-off",
+        "taskDescription": "Curate refreshed weather palettes, transitions, and inspiration assets that match the flagship benchmark."
+      },
+      {
+        "agent": "Autopilot",
+        "scope": "creative",
+        "createTask": true,
+        "callAgents": ["design_guild"],
+        "taskTitle": "[Autopilot] Rebuild weather aesthetic evidence",
+        "taskDescription": "Capture updated screenshots, JSON theme specs, and analysis so the critic can pass cleanly."
+      }
+    ]
+  },
+  "motion_design": {
+    "reviewer": "Director Dana",
+    "note": "Motion design critic could not find comprehensive motion specs or prototypes for key interactions.",
+    "next": "Compose refreshed motion blueprints and prototypes, then rerun the critic once Director Dana approves.",
+    "delegates": [
+      {
+        "agent": "Director Dana",
+        "scope": "creative",
+        "createTask": true,
+        "callAgents": ["Autopilot"],
+        "taskTitle": "[Motion] Director review of motion language",
+        "taskDescription": "Clarify the motion vocabulary, target easing curves, and performance thresholds."
+      },
+      {
+        "agent": "Autopilot",
+        "scope": "creative",
+        "createTask": true,
+        "callAgents": ["motion_team", "design_guild"],
+        "taskTitle": "[Autopilot] Rebuild motion specs & prototypes",
+        "taskDescription": "Update motion docs, link prototypes, and record performance evidence for the critic."
+      }
+    ]
+  },
+  "responsive_surface": {
+    "reviewer": "Director Dana",
+    "note": "Responsive surface critic flagged missing layouts or testing coverage across breakpoints.",
+    "next": "Deliver updated responsive layouts and testing evidence, then rerun with Director Dana aware of changes.",
+    "delegates": [
+      {
+        "agent": "Director Dana",
+        "scope": "product",
+        "createTask": true,
+        "callAgents": ["Autopilot"],
+        "taskTitle": "[Responsive] Director coverage alignment",
+        "taskDescription": "Confirm the target device matrix, gestures, and responsive polish expected."
+      },
+      {
+        "agent": "Autopilot",
+        "scope": "product",
+        "createTask": true,
+        "callAgents": ["design_guild", "qa"],
+        "taskTitle": "[Autopilot] Repair responsive deliverables",
+        "taskDescription": "Produce refreshed layout specs and testing reports that satisfy the critic."
+      }
+    ]
+  },
+  "inspiration_coverage": {
+    "reviewer": "Director Dana",
+    "note": "Inspiration coverage critic determined the curated references or synthesis are insufficient.",
+    "next": "Gather richer references and analysis, documenting how they influence the current workstream.",
+    "delegates": [
+      {
+        "agent": "Director Dana",
+        "scope": "creative",
+        "createTask": true,
+        "callAgents": ["Autopilot"],
+        "taskTitle": "[Inspiration] Director curation review",
+        "taskDescription": "Review the inspiration gap, recommend sources, and capture the creative direction."
+      },
+      {
+        "agent": "Autopilot",
+        "scope": "creative",
+        "createTask": true,
+        "callAgents": ["design_guild"],
+        "taskTitle": "[Autopilot] Capture inspiration coverage",
+        "taskDescription": "Fetch award-grade references, summarise insights, and regenerate the inspiration analysis artifact."
+      }
+    ]
+  },
+  "stakeholder_narrative": {
+    "reviewer": "Director Dana",
+    "note": "Stakeholder narrative critic found missing executive storytelling or persona coverage.",
+    "next": "Partner with Director Dana to rebuild the narrative decks, persona matrix, and value proof points.",
+    "delegates": [
+      {
+        "agent": "Director Dana",
+        "scope": "leadership",
+        "createTask": true,
+        "callAgents": ["Autopilot"],
+        "taskTitle": "[Narrative] Director storytelling pass",
+        "taskDescription": "Craft the flagship narrative for CMOs, marketers, and analysts based on the critic findings."
+      },
+      {
+        "agent": "Autopilot",
+        "scope": "leadership",
+        "createTask": true,
+        "callAgents": ["product", "communications"],
+        "taskTitle": "[Autopilot] Rebuild stakeholder narrative",
+        "taskDescription": "Update persona matrix, narrative docs, and supporting artifacts until the critic clears."
+      }
+    ]
+  },
+  "demo_conversion": {
+    "reviewer": "Director Dana",
+    "note": "Demo conversion critic saw gaps in demo choreography, performance, or conversion instrumentation.",
+    "next": "Rehearse and tune the WeatherVane flagship demo with Director Dana before the next critic run.",
+    "delegates": [
+      {
+        "agent": "Director Dana",
+        "scope": "growth",
+        "createTask": true,
+        "callAgents": ["Autopilot"],
+        "taskTitle": "[Demo] Director conversion tuning",
+        "taskDescription": "Evaluate the demo plan, instrumentation, and pitch flow; define the bar for relaunch."
+      },
+      {
+        "agent": "Autopilot",
+        "scope": "growth",
+        "createTask": true,
+        "callAgents": ["growth_team", "design_guild"],
+        "taskTitle": "[Autopilot] Polish and instrument demo",
+        "taskDescription": "Update demo assets, metrics, and performance reports to satisfy the critic expectations."
+      }
+    ]
+  },
+  "integration_completeness": {
+    "reviewer": "Director Dana",
+    "note": "Integration completeness critic could not verify the integration matrix or resiliency evidence.",
+    "next": "Audit all integrations (weather, marketing, analytics, payments) with Director Dana and engineering stakeholders.",
+    "delegates": [
+      {
+        "agent": "Director Dana",
+        "scope": "platform",
+        "createTask": true,
+        "callAgents": ["Autopilot"],
+        "taskTitle": "[Integration] Director platform review",
+        "taskDescription": "Review integration coverage, monitoring, and escalation paths across the platform."
+      },
+      {
+        "agent": "Autopilot",
+        "scope": "platform",
+        "createTask": true,
+        "callAgents": ["platform", "qa"],
+        "taskTitle": "[Autopilot] Close integration gaps",
+        "taskDescription": "Update the integration matrix, test reports, and resilience notes required by the critic."
+      }
+    ]
   }
 }

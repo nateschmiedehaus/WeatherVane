@@ -11,6 +11,27 @@ export function RLShadowPanel({ report }: Props) {
   const recentEpisodes = report.episodes.slice(-5);
   const baselineFraction = report.diagnostics["baseline_fraction"] ?? 0;
   const safetyOverrideRate = report.diagnostics["safety_override_rate"] ?? 0;
+  const validation = report.validation;
+  const validationChecks = validation.checks ?? [];
+  const validationNotes = validation.notes ?? [];
+  const validationSummary = validation.summary;
+  const stressTest = validation.stress_test;
+  const stressEpisodes = stressTest.episodes.slice(0, 5);
+  const stressAssertions = stressTest.assertions ?? {};
+
+  const formatShare = (value: number | undefined): string => {
+    if (value === undefined || Number.isNaN(value)) return "—";
+    if (Math.abs(value) <= 1) {
+      return `${(value * 100).toFixed(1)}%`;
+    }
+    return value.toFixed(2);
+  };
+
+  const normaliseLabel = (label: string): string =>
+    label
+      .split("_")
+      .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+      .join(" ");
 
   return (
     <section className={styles.contextSection} aria-label="Reinforcement learning shadow mode">
@@ -44,6 +65,115 @@ export function RLShadowPanel({ report }: Props) {
             <dd className="ds-body-strong">{(safetyOverrideRate * 100).toFixed(1)}%</dd>
           </div>
         </dl>
+        {validationSummary && (
+          <dl className={styles.validationSummary}>
+            <div>
+              <dt className="ds-caption">Episodes simulated</dt>
+              <dd className="ds-body-strong">{validationSummary.episodes}</dd>
+            </div>
+            <div>
+              <dt className="ds-caption">Shadow override rate</dt>
+              <dd className="ds-body-strong">{formatShare(validationSummary.safety_override_rate)}</dd>
+            </div>
+            <div>
+              <dt className="ds-caption">Variants disabled</dt>
+              <dd className="ds-body-strong">
+                {validationSummary.disabled_variants.length
+                  ? validationSummary.disabled_variants.join(", ")
+                  : "None"}
+              </dd>
+            </div>
+          </dl>
+        )}
+      </div>
+
+      <div className={styles.validationGrid}>
+        <div className={styles.validationCard} aria-label="Safety validation checks">
+          <h4 className="ds-title">Validation checks</h4>
+          <ul className={styles.validationList}>
+            {validationChecks.map((check) => (
+              <li key={check.name} className={styles.validationItem}>
+                <div>
+                  <span className="ds-body-strong">{normaliseLabel(check.name)}</span>
+                  <span className={styles.validationMetric}>
+                    Value {formatShare(check.value)} · Threshold {formatShare(check.threshold)}
+                    {typeof check.required_baseline_runs === "number" && typeof check.observed_baseline_runs === "number" ? (
+                      <> · Runs {check.observed_baseline_runs}/{check.required_baseline_runs}</>
+                    ) : null}
+                  </span>
+                </div>
+                <span
+                  className={`${styles.validationBadge} ${
+                    check.status ? styles.validationPass : styles.validationFail
+                  }`}
+                >
+                  {check.status ? "Pass" : "Fail"}
+                </span>
+              </li>
+            ))}
+          </ul>
+          {validationNotes.length > 0 && (
+            <ul className={styles.validationNotes}>
+              {validationNotes.map((note) => (
+                <li key={note} className="ds-body">
+                  {note}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
+        <div className={styles.validationCard} aria-label="Guardrail stress test">
+          <h4 className="ds-title">Guardrail stress test</h4>
+          <p className="ds-body">
+            Forced sequence injects a synthetic breach to ensure automatic disablement and logging paths remain healthy.
+          </p>
+          <dl className={styles.validationSummary}>
+            <div>
+              <dt className="ds-caption">Breaches recorded</dt>
+              <dd className="ds-body-strong">{stressTest.guardrail_violations}</dd>
+            </div>
+            <div>
+              <dt className="ds-caption">Disabled variants</dt>
+              <dd className="ds-body-strong">
+                {stressTest.disabled_variants.length ? stressTest.disabled_variants.join(", ") : "None"}
+              </dd>
+            </div>
+            <div>
+              <dt className="ds-caption">Assertions</dt>
+              <dd className="ds-body-strong">
+                {Object.entries(stressAssertions)
+                  .map(([key, value]) => `${normaliseLabel(key)}: ${value ? "True" : "False"}`)
+                  .join(" · ")}
+              </dd>
+            </div>
+          </dl>
+
+          {stressEpisodes.length > 0 && (
+            <div className={styles.tableWrap}>
+              <table>
+                <thead>
+                  <tr>
+                    <th scope="col">Episode</th>
+                    <th scope="col">Variant</th>
+                    <th scope="col">Guardrail</th>
+                    <th scope="col">Disabled</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {stressEpisodes.map((episode) => (
+                    <tr key={episode.index}>
+                      <td>{episode.index}</td>
+                      <td>{episode.variant}</td>
+                      <td>{episode.guardrail_violated ? "⚠ Breach" : "—"}</td>
+                      <td>{episode.disabled_after_episode ? "Yes" : "No"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
       </div>
 
       <div className={styles.tableWrap}>

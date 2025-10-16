@@ -1,4 +1,6 @@
+import { z } from "zod";
 import type { PlanNextInput, PlanTaskSummary, RoadmapDocument } from "../utils/types.js";
+import { planNextInputSchema } from "../utils/schemas.js";
 
 import { flattenTasks } from "./roadmap_parser.js";
 
@@ -7,7 +9,8 @@ export class PlannerEngine {
   constructor(private readonly roadmap: RoadmapDocument) {}
 
   next(input: PlanNextInput): PlanTaskSummary[] {
-    const { limit = 5, filters } = input;
+    const parsedInput = planNextInputSchema.parse(input);
+    const { limit = 5, filters } = parsedInput;
     let tasks = flattenTasks(this.roadmap);
 
     if (filters?.status?.length) {

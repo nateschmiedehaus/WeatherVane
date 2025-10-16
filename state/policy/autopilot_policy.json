@@ -1,0 +1,26 @@
+{
+  "domains": {
+    "product": {
+      "q_value": 0.04999999999999999,
+      "count": 1,
+      "bias": 0.004999999999999999,
+      "last_reward": 0.19999999999999996
+    },
+    "mcp": {
+      "q_value": 0.0,
+      "count": 0,
+      "bias": 0.0,
+      "last_reward": 0.0
+    }
+  },
+  "epsilon": 0.23891790625,
+  "epsilon_min": 0.05,
+  "epsilon_decay": 0.985,
+  "learning_rate": 0.25,
+  "discount": 0.8,
+  "task_adjustments": {
+    "t3.3.2": 0.125,
+    "t3.3.3": -0.125
+  },
+  "last_decision": {}
+}

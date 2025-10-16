@@ -15,7 +15,9 @@ import { execa } from 'execa';
 import type { Task } from './state_machine.js';
 import type { AssembledContext } from './context_assembler.js';
 import type { ReasoningLevel } from './model_selector.js';
-import { logInfo, logWarning } from '../telemetry/logger.js';
+import { logInfo, logWarning, logError } from '../telemetry/logger.js';
+import { SubscriptionLimitTracker } from '../limits/subscription_tracker.js';
+import { UsageEstimator } from '../limits/usage_estimator.js';
 import {
   detectOutputFormat,
   OutputValidationError,
@@ -256,6 +258,8 @@ export class AgentPool extends EventEmitter {
   private coordinatorType: AgentType = 'claude_code';
   private readonly coordinatorCandidates: string[] = [];
   private outputValidationCanaryWarningLogged = false;
+  private readonly limitTracker: SubscriptionLimitTracker;
+  private readonly usageEstimator: UsageEstimator;
 
   private readonly capabilities: Record<AgentType, AgentCapabilities> = {
     claude_code: {
@@ -291,12 +295,56 @@ export class AgentPool extends EventEmitter {
     private codexWorkers: number = 3  // Default: 3 Codex workers
   ) {
     super();
+    this.limitTracker = new SubscriptionLimitTracker(workspaceRoot);
+    this.usageEstimator = new UsageEstimator(this.limitTracker);
     this.initializeAgents();
+    void this.initializeLimitTracking();
   }
 
   // ==========================================================================
   // Initialization
   // ==========================================================================
+
+  /**
+   * Initialize limit tracking for providers
+   */
+  private async initializeLimitTracking(): Promise<void> {
+    try {
+      await this.limitTracker.initialize();
+
+      // Register providers based on environment configuration
+      // Users can configure their subscription tiers via env vars
+      const claudeTier = (process.env.CLAUDE_SUBSCRIPTION_TIER ?? 'pro') as 'free' | 'pro' | 'team';
+      const codexTier = (process.env.CODEX_SUBSCRIPTION_TIER ?? 'pro') as 'free' | 'pro' | 'team';
+
+      this.limitTracker.registerProvider('claude', 'default', claudeTier);
+      this.limitTracker.registerProvider('codex', 'default', codexTier);
+
+      // Listen to limit warnings
+      this.limitTracker.on('limit:alert', (data) => {
+        logWarning('Provider approaching usage limit', data);
+      });
+
+      this.limitTracker.on('limit:warning', (data) => {
+        logWarning('Provider at 95% of usage limit', data);
+        this.emit('provider:limit_warning', data);
+      });
+
+      this.limitTracker.on('limit:critical', (data) => {
+        logError('Provider at critical usage level', data);
+        this.emit('provider:limit_critical', data);
+      });
+
+      logInfo('Subscription limit tracking initialized', {
+        claudeTier,
+        codexTier,
+      });
+    } catch (error) {
+      logWarning('Failed to initialize limit tracking', {
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
 
   private initializeAgents(): void {
     // Initialize Claude Code coordinator
@@ -432,11 +480,81 @@ export class AgentPool extends EventEmitter {
     modelHint?: { codexModel?: string; codexReasoning?: ReasoningLevel; codexPreset?: string },
     options: AssignmentOptions = {}
   ): Promise<Agent> {
-    // 1. Determine optimal agent type
+    // 1. Check quota pressure and adjust recommendations
+    const taskEstimate = this.usageEstimator.estimateTask(
+      task.description || task.title,
+      (context.filesToRead?.length ?? 0) * 500 // rough estimate: 500 tokens per file
+    );
+
+    const availableProviders = [
+      { provider: 'claude' as const, account: 'default' },
+      { provider: 'codex' as const, account: 'default' },
+    ];
+
+    const recommendation = this.usageEstimator.recommendProvider(
+      taskEstimate,
+      availableProviders
+    );
+
+    // 2. Determine optimal agent type, considering quota
     const avoidTypes = new Set(options.avoidAgentTypes ?? []);
-    const recommendedType =
+    let recommendedType =
       options.forceAgentType ?? options.preferAgentType ?? this.recommendAgentType(task, context);
 
+    // Override recommendation if quota is critical
+    if (recommendation.quota_pressure === 'critical' || recommendation.quota_pressure === 'high') {
+      const preferredProvider = recommendation.preferred_provider;
+      const preferredType: AgentType = preferredProvider === 'claude' ? 'claude_code' : 'codex';
+
+      if (!avoidTypes.has(preferredType)) {
+        logInfo('Overriding agent selection due to quota pressure', {
+          originalType: recommendedType,
+          newType: preferredType,
+          pressure: recommendation.quota_pressure,
+          reasoning: recommendation.reasoning,
+        });
+        recommendedType = preferredType;
+      }
+    }
+
+    // 3. Check if recommended provider can handle the request
+    const providerName = recommendedType === 'claude_code' ? 'claude' : 'codex';
+    const canHandle = this.limitTracker.canMakeRequest(
+      providerName,
+      'default',
+      taskEstimate.estimated_tokens
+    );
+
+    if (!canHandle) {
+      logWarning('Recommended provider cannot handle request due to limits', {
+        provider: providerName,
+        taskId: task.id,
+        estimatedTokens: taskEstimate.estimated_tokens,
+      });
+
+      // Try fallback
+      const fallbackType: AgentType = recommendedType === 'claude_code' ? 'codex' : 'claude_code';
+      const fallbackProvider = fallbackType === 'claude_code' ? 'claude' : 'codex';
+
+      if (!avoidTypes.has(fallbackType) && this.limitTracker.canMakeRequest(
+        fallbackProvider,
+        'default',
+        taskEstimate.estimated_tokens
+      )) {
+        recommendedType = fallbackType;
+        logInfo('Switched to fallback provider', {
+          fallback: fallbackProvider,
+          taskId: task.id,
+        });
+      } else {
+        logWarning('No providers available due to quota limits', {
+          taskId: task.id,
+          estimatedTokens: taskEstimate.estimated_tokens,
+        });
+      }
+    }
+
+    // 4. Find available agent
     const searchOrder: AgentType[] = [];
     if (!avoidTypes.has(recommendedType)) {
       searchOrder.push(recommendedType);
@@ -612,7 +730,11 @@ export class AgentPool extends EventEmitter {
     taskId: string,
     success: boolean,
     durationSeconds: number,
-    metadata?: { failureType?: ExecutionFailureType; retryAfterSeconds?: number }
+    metadata?: {
+      failureType?: ExecutionFailureType;
+      retryAfterSeconds?: number;
+      tokenUsage?: { promptTokens: number; completionTokens: number; totalTokens: number };
+    }
   ): void {
     const assignment = this.assignments.get(taskId);
     if (!assignment) {
@@ -622,6 +744,17 @@ export class AgentPool extends EventEmitter {
     const agent = this.agents.get(assignment.agentId);
     if (!agent) {
       throw new Error(`Agent ${assignment.agentId} not found`);
+    }
+
+    // Record usage in limit tracker
+    if (metadata?.tokenUsage && success) {
+      const providerName = agent.type === 'claude_code' ? 'claude' : 'codex';
+      this.limitTracker.recordUsage(
+        providerName,
+        'default',
+        1, // requests
+        metadata.tokenUsage.totalTokens
+      );
     }
 
     // Update agent stats
@@ -753,6 +886,34 @@ export class AgentPool extends EventEmitter {
 
   hasAvailableAgent(type: AgentType): boolean {
     return this.getAvailableAgents().some(agent => agent.type === type);
+  }
+
+  /**
+   * Get usage estimator for quota checks
+   */
+  getUsageEstimator(): UsageEstimator {
+    return this.usageEstimator;
+  }
+
+  /**
+   * Get subscription limit tracker
+   */
+  getLimitTracker(): SubscriptionLimitTracker {
+    return this.limitTracker;
+  }
+
+  /**
+   * Get current quota status
+   */
+  getQuotaStatus() {
+    return this.usageEstimator.getPressureReport();
+  }
+
+  /**
+   * Stop the agent pool and cleanup
+   */
+  async stop(): Promise<void> {
+    await this.limitTracker.stop();
   }
 
   // ==========================================================================

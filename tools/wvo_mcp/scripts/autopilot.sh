@@ -6,10 +6,15 @@ LOG_FILE="${LOG_FILE:-/tmp/wvo_autopilot.log}"
 STATE_FILE="${STATE_FILE:-/tmp/wvo_autopilot_last.json}"
 MAX_RETRY=${MAX_RETRY:-20}
 SLEEP_SECONDS=${SLEEP_SECONDS:-120}
-STOP_ON_BLOCKER=${STOP_ON_BLOCKER:-0}
+STOP_ON_BLOCKER=${STOP_ON_BLOCKER:-1}
+WVO_AUTOPILOT_STREAM=${WVO_AUTOPILOT_STREAM:-0}
 MCP_ENTRY="${WVO_AUTOPILOT_ENTRY:-$ROOT/tools/wvo_mcp/dist/index.js}"
 CLI_PROFILE="${CODEX_PROFILE_NAME:-weathervane_orchestrator}"
-WVO_CAPABILITY="${WVO_CAPABILITY:-medium}"
+if [ "${WVO_DRY_RUN:-0}" = "1" ] && [ -z "${WVO_CAPABILITY+x}" ]; then
+  WVO_CAPABILITY="medium"
+fi
+WVO_CAPABILITY="${WVO_CAPABILITY:-high}"
+WVO_AUTOPILOT_ASSUME_NO_PROMPT=${WVO_AUTOPILOT_ASSUME_NO_PROMPT:-1}
 AUTOPILOT_MODEL="${CODEX_AUTOPILOT_MODEL:-gpt-5-codex}"
 AUTOPILOT_REASONING="${CODEX_AUTOPILOT_REASONING:-auto}"
 BASE_INSTRUCTIONS="${BASE_INSTRUCTIONS:-$ROOT/docs/wvo_prompt.md}"
@@ -18,6 +23,17 @@ USAGE_LIMIT_BACKOFF=${USAGE_LIMIT_BACKOFF:-120}
 TASK_MEMO_DIR="$ROOT/state/task_memos"
 ESCALATION_CONFIG="$ROOT/tools/wvo_mcp/config/critic_escalations.json"
 ESCALATION_LOG="$ROOT/state/escalations.log"
+POLICY_STATE_DIR="$ROOT/state/policy"
+POLICY_STATE_FILE="$POLICY_STATE_DIR/autopilot_policy.json"
+POLICY_HISTORY_FILE="$ROOT/state/analytics/autopilot_policy_history.jsonl"
+POLICY_CONTROLLER_SCRIPT="$ROOT/tools/wvo_mcp/scripts/autopilot_policy.py"
+POLICY_PROVIDER_USED="codex"
+POLICY_MODEL_USED="$AUTOPILOT_MODEL"
+POLICY_FALLBACK_USED=0
+POLICY_ATTEMPTS=0
+POLICY_LAST_DURATION=0
+POLICY_LAST_STATUS="unknown"
+POLICY_LAST_COMPLETED_AT=""
 export USAGE_LIMIT_BACKOFF
 
 # Optionally restart MCP before doing anything else unless skipped explicitly.
@@ -51,7 +67,18 @@ CURRENT_CODEX_LABEL=""
 LAST_FAILURE_REASON=""
 LAST_FAILURE_DETAILS=""
 CLAUDE_ACCOUNTS_AVAILABLE=0
-WVO_ENABLE_WEB_INSPIRATION=${WVO_ENABLE_WEB_INSPIRATION:-0}
+if [ -z "${WVO_ENABLE_WEB_INSPIRATION+x}" ]; then
+  if [ -n "${WVO_CLI_STUB_EXEC_JSON:-}" ]; then
+    # Stubbed execution in tests; skip heavy Playwright bootstrap.
+    WVO_ENABLE_WEB_INSPIRATION=0
+  elif [ "${WVO_CAPABILITY:-medium}" = "high" ]; then
+    WVO_ENABLE_WEB_INSPIRATION=1
+  else
+    WVO_ENABLE_WEB_INSPIRATION=0
+  fi
+else
+  WVO_ENABLE_WEB_INSPIRATION=${WVO_ENABLE_WEB_INSPIRATION}
+fi
 export WVO_ENABLE_WEB_INSPIRATION
 
 write_offline_summary() {
@@ -266,7 +293,9 @@ ensure_web_inspiration_ready() {
 
   if command -v npx >/dev/null 2>&1; then
     if ! npx --yes --prefix "$ROOT/tools/wvo_mcp" playwright install chromium --with-deps >/dev/null 2>&1; then
-      log "  ⚠️ Playwright browser install failed. Run 'npx --yes --prefix tools/wvo_mcp playwright install chromium --with-deps'."
+      log "  ⚠️ Playwright browser install failed. Web inspiration disabled for this run."
+      WVO_ENABLE_WEB_INSPIRATION=0
+      export WVO_ENABLE_WEB_INSPIRATION
     else
       log "  ✅ Playwright Chromium runtime ready."
     fi
@@ -393,6 +422,59 @@ log_codex_identity() {
   log "  🔐 Codex CLI does not see an active login for $display"
 }
 
+codex_login_command() {
+  local account_home="$1"
+  local quoted_home
+  quoted_home=$(printf '%q' "$account_home")
+  printf 'CODEX_HOME=%s codex login' "$quoted_home"
+}
+
+claude_account_display() {
+  local account_id="$1"
+  local account_label="${2:-}"
+  local account_email="${3:-}"
+  if [ -n "$account_label" ] && [ -n "$account_email" ]; then
+    printf '%s (%s)' "$account_label" "$account_email"
+  elif [ -n "$account_label" ]; then
+    printf '%s' "$account_label"
+  elif [ -n "$account_email" ]; then
+    printf '%s (%s)' "$account_id" "$account_email"
+  else
+    printf '%s' "$account_id"
+  fi
+}
+
+format_claude_login_command() {
+  local bin="$1"
+  local env_json="${2:-null}"
+  python - <<'PY' "$bin" "$env_json"
+import json
+import shlex
+import sys
+
+bin = sys.argv[1]
+raw = sys.argv[2]
+
+env = {}
+try:
+    env = json.loads(raw)
+    if env is None:
+        env = {}
+except Exception:
+    env = {}
+
+parts = []
+if isinstance(env, dict) and env:
+    parts.append("env")
+    for key, value in env.items():
+        if value is None:
+            continue
+        parts.append(f"{key}={value}")
+parts.extend([bin, "login"])
+print(" ".join(shlex.quote(part) for part in parts))
+PY
+}
+
 codex_tokens_present() {
   local auth_file="$CODEX_HOME/auth.json"
   if [ ! -f "$auth_file" ]; then
@@ -510,13 +592,169 @@ WVO_DEFAULT_PROVIDER="${WVO_DEFAULT_PROVIDER:-codex}"
 export WVO_DEFAULT_PROVIDER
 export WVO_ALLOW_PROTECTED_WRITES="${WVO_ALLOW_PROTECTED_WRITES:-1}"
 
-if ! command -v codex >/dev/null 2>&1; then
-  echo "Codex CLI not found in PATH. Install Codex CLI before running autopilot." >&2
-  exit 1
+STREAM_TO_STDOUT=${WVO_AUTOPILOT_STREAM:-0}
+if [ "${WVO_AUTOPILOT_QUIET:-0}" = "1" ]; then
+  STREAM_TO_STDOUT=0
+elif [ "$STREAM_TO_STDOUT" -ne 1 ] && [ "${WVO_AUTOPILOT_STREAM_LOG:-0}" = "1" ]; then
+  STREAM_TO_STDOUT=1
+fi
+if [ "$STREAM_TO_STDOUT" -eq 0 ]; then
+  WVO_AUTOPILOT_STREAM=0
 fi
 
+append_log_line() {
+  printf '%s\n' "$1" >>"$LOG_FILE"
+}
+
+console_emit() {
+  append_log_line "$1"
+  if [ "$STREAM_TO_STDOUT" -eq 1 ]; then
+    printf '%s\n' "$1" >&2
+  fi
+}
+
+console_blank() {
+  append_log_line ""
+  if [ "$STREAM_TO_STDOUT" -eq 1 ]; then
+    printf '\n' >&2
+  fi
+}
+
 timestamp(){ date -u +"%Y-%m-%dT%H:%M:%SZ"; }
-log(){ printf '%s %s\n' "$(timestamp)" "$*" | tee -a "$LOG_FILE"; }
+log(){ console_emit "$(timestamp) $*"; }
+
+truncate_text() {
+  local text="${1:-}"
+  local max="${2:-60}"
+  local length=${#text}
+  if [ "$length" -le "$max" ]; then
+    printf '%s' "$text"
+    return
+  fi
+  local keep=$(( max - 3 ))
+  if [ "$keep" -le 0 ]; then
+    printf '...'
+    return
+  fi
+  printf '%s…' "${text:0:keep}"
+}
+
+progress_bar() {
+  local current=${1:-0}
+  local total=${2:-100}
+  local width=${3:-20}
+  if [ "$total" -le 0 ]; then
+    total=1
+  fi
+  if [ "$current" -lt 0 ]; then
+    current=0
+  elif [ "$current" -gt "$total" ]; then
+    current=$total
+  fi
+  local percent=$(( current * 100 / total ))
+  local filled=$(( percent * width / 100 ))
+  local empty=$(( width - filled ))
+  local bar_filled=""
+  local bar_empty=""
+  if [ "$filled" -gt 0 ]; then
+    bar_filled="$(printf '%*s' "$filled" '' | tr ' ' '█')"
+  fi
+  if [ "$empty" -gt 0 ]; then
+    bar_empty="$(printf '%*s' "$empty" '' | tr ' ' '░')"
+  fi
+  printf '[%s%s] %3d%%' "$bar_filled" "$bar_empty" "$percent"
+}
+
+announce_phase() {
+  local title="${1:-Stage}"
+  local subtitle="${2:-}"
+  local icon="${4:-⚙️}"
+  if [ -n "$subtitle" ]; then
+    log "${icon} ${title} :: ${subtitle}"
+  else
+    log "${icon} ${title}"
+  fi
+}
+
+ALLOW_OFFLINE_FALLBACK="${WVO_AUTOPILOT_ALLOW_OFFLINE_FALLBACK:-1}"
+abort_autopilot_offline() {
+  local reason="${1:-offline}"
+  local details="${2:-}"
+  log "Autopilot fallback activated (${reason}); writing offline summary."
+  if [ -n "$details" ]; then
+    log "  Details: $details"
+  fi
+  write_offline_summary "$reason" "$details"
+  if [ "$ALLOW_OFFLINE_FALLBACK" = "1" ]; then
+    exit 0
+  fi
+  log "Offline fallback disabled; exiting with failure."
+  exit 1
+}
+
+render_banner() {
+  local capability_raw="${WVO_CAPABILITY:-${CODEX_PROFILE:-medium}}"
+  local capability_upper
+  capability_upper="$(printf '%s' "$capability_raw" | tr '[:lower:]' '[:upper:]')"
+  log "Autopilot console initialised (capability=${capability_upper})"
+  log "Workspace: $ROOT"
+  log "Log file : $LOG_FILE"
+}
+
+record_blocker() {
+  local reason="${1:-unknown}"
+  local details="${2:-}"
+  local memo_path="$ROOT/state/task_memos/autopilot_blockers.json"
+  python - <<'PY' "$memo_path" "$reason" "$details"
+import json
+import os
+import sys
+from datetime import datetime, timezone
+
+path = os.path.abspath(sys.argv[1])
+reason = sys.argv[2]
+details = sys.argv[3]
+
+entry = {
+    "timestamp": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+    "reason": reason,
+    "details": details[:2000],
+}
+
+os.makedirs(os.path.dirname(path), exist_ok=True)
+
+records = []
+if os.path.exists(path):
+    try:
+        with open(path, "r", encoding="utf-8") as fh:
+            records = json.load(fh) or []
+    except Exception:
+        records = []
+
+if not isinstance(records, list):
+    records = []
+
+records.append(entry)
+
+with open(path, "w", encoding="utf-8") as fh:
+    json.dump(records[-200:], fh, indent=2)
+PY
+}
+
+render_banner
+capability_state="$(printf '%s' "${WVO_CAPABILITY:-${CODEX_PROFILE:-medium}}" | tr '[:upper:]' '[:lower:]')"
+case "$capability_state" in
+  high) capability_meter="$(progress_bar 5 5)" ;;
+  medium) capability_meter="$(progress_bar 3 5)" ;;
+  low) capability_meter="$(progress_bar 1 5)" ;;
+  *) capability_meter="$(progress_bar 0 5)" ;;
+esac
+announce_phase "Capability Profile" "CODEX_PROFILE=${CODEX_PROFILE:-unset}; WVO_CAPABILITY=${WVO_CAPABILITY:-unset}" "$capability_meter" ">>"
+
+if ! command -v codex >/dev/null 2>&1; then
+  echo "Codex CLI not found in PATH. Install Codex CLI before running autopilot." >&2
+  abort_autopilot_offline "codex-cli-missing" "Codex CLI not found in PATH."
+fi
 
 create_accounts_template() {
   cat <<'YAML' > "$ACCOUNTS_CONFIG"
@@ -601,19 +839,19 @@ ensure_codex_auth() {
     if [ -n "$expected_email" ] && [ -n "$AUTH_STATUS_EMAIL" ] && [ "$AUTH_STATUS_EMAIL" != "$expected_email" ]; then
       log "Codex $display authenticated as $AUTH_STATUS_EMAIL but expected $expected_email."
       log "Run 'CODEX_HOME=$CODEX_HOME codex logout' and login with the correct account."
-      exit 1
+      abort_autopilot_offline "codex-auth-mismatch" "Authenticated as $AUTH_STATUS_EMAIL but expected $expected_email for $display."
     fi
     log_codex_identity "$account_id" "$expected_email" "$account_label"
     return 0
   fi
   log "Codex $display (CODEX_HOME=$CODEX_HOME) not authenticated."
   log "Codex $display not authenticated. Launching codex login..."
-  CODEX_HOME="$CODEX_HOME" codex login || { log "Codex login failed; aborting autopilot."; exit 1; }
+  CODEX_HOME="$CODEX_HOME" codex login || { log "Codex login failed; aborting autopilot."; abort_autopilot_offline "codex-login-failed" "Codex login failed for $display."; }
   if fetch_auth_status codex && [ "$(provider_authenticated codex)" = "true" ]; then
     if [ -n "$expected_email" ] && [ -n "$AUTH_STATUS_EMAIL" ] && [ "$AUTH_STATUS_EMAIL" != "$expected_email" ]; then
       log "Logged in as $AUTH_STATUS_EMAIL but expected $expected_email for $display."
       log "Run 'CODEX_HOME=$CODEX_HOME codex logout' and retry with the correct account."
-      exit 1
+      abort_autopilot_offline "codex-auth-mismatch" "Logged in as $AUTH_STATUS_EMAIL but expected $expected_email for $display."
     fi
     log_codex_identity "$account_id" "$expected_email" "$account_label"
     log "Codex $display authenticated."
@@ -626,7 +864,7 @@ ensure_codex_auth() {
     if [ -n "$expected_email" ] && [ -n "$token_identity" ] && [ "$token_identity" != "$expected_email" ]; then
       log "Tokens belong to $token_identity but expected $expected_email for $display."
       log "Run 'CODEX_HOME=$CODEX_HOME codex logout' and login with the correct account."
-      exit 1
+      abort_autopilot_offline "codex-token-mismatch" "Codex tokens for $display mapped to $token_identity but expected $expected_email."
     fi
     log "Codex tokens detected for $display; continuing despite CLI status output."
     if [ -n "$token_identity" ]; then
@@ -638,7 +876,7 @@ ensure_codex_auth() {
   fi
 
   log "Codex authentication still missing after login. Aborting."
-  exit 1
+  abort_autopilot_offline "codex-auth-missing" "Codex authentication not established after login attempt."
 }
 
 ensure_claude_auth() {
@@ -783,6 +1021,11 @@ verify_codex_accounts() {
     return
   fi
 
+  if [ -z "${accounts_json//[[:space:]]/}" ]; then
+    log "Skipping Codex account verification (no codex accounts configured)."
+    return
+  fi
+
   local skip_check
   skip_check=$(should_skip_auth_check codex "$accounts_json")
   if [ "$skip_check" = "skip" ]; then
@@ -790,14 +1033,18 @@ verify_codex_accounts() {
     return
   fi
 
-  printf '%s' "$accounts_json" | python - <<'PY' 2>/dev/null | \
-  while IFS=$'\t' read -r acc_id acc_home acc_profile acc_email acc_label; do
+  local parsed_accounts
+  parsed_accounts=$(python - "$accounts_json" <<'PY'
 import json, sys
-for acc in json.load(sys.stdin):
+payload = json.loads(sys.argv[1])
+for acc in payload:
     email = acc.get("email") or ""
     label = acc.get("label") or ""
     print(f"{acc.get('id', '')}\t{acc.get('home', '')}\t{acc.get('profile', '')}\t{email}\t{label}")
 PY
+) || return
+
+  while IFS=$'\t' read -r acc_id acc_home acc_profile acc_email acc_label; do
     if [ -z "$acc_id" ]; then
       continue
     fi
@@ -832,7 +1079,7 @@ PY
     CLI_PROFILE="$previous_profile"
     CURRENT_CODEX_EXPECTED_EMAIL="$previous_expected"
     CURRENT_CODEX_LABEL="$previous_label"
-  done
+  done <<<"$parsed_accounts"
   update_auth_cache_record codex "$accounts_json"
 }
 verify_claude_accounts() {
@@ -843,6 +1090,11 @@ verify_claude_accounts() {
   local accounts_json
   if ! accounts_json=$(python "$ACCOUNT_MANAGER" list claude 2>/dev/null); then
     log "Skipping Claude account verification (unable to enumerate accounts)."
+    return
+  fi
+
+  if [ -z "${accounts_json//[[:space:]]/}" ]; then
+    log "Skipping Claude account verification (no claude accounts configured)."
     return
   fi
 
@@ -1813,10 +2065,13 @@ check_all_accounts_auth() {
 
   local -a needs_auth=()
   local -a codex_accounts=()
+  local -a codex_summary=()
   local -a claude_accounts=()
+  local -a claude_summary=()
+  local -a claude_needs_auth=()
   CLAUDE_ACCOUNTS_AVAILABLE=0
+  local claude_ready_count=0
 
-  # Get all codex accounts from config
   if [ "$ACCOUNT_MANAGER_ENABLED" -eq 1 ]; then
     local codex_json
     if codex_json=$(python "$ACCOUNT_MANAGER" list codex 2>/dev/null); then
@@ -1873,24 +2128,16 @@ PY
       done < <(python - <<'PY' "$claude_json"
 import json, sys
 for account in json.loads(sys.argv[1]):
-    print(f"{account['id']}|{account.get('bin', 'claude')}|{json.dumps(account.get('env'))}")
+    print(f"{account.get('id')}|{account.get('bin', 'claude')}|{json.dumps(account.get('env'))}|{account.get('label', '')}|{account.get('email', '')}")
 PY
 )
     else
       claude_accounts=()
     fi
   else
-    # Single account mode
     codex_accounts=("legacy|$DEFAULT_CODEX_HOME||")
   fi
 
-  if [ ${#claude_accounts[@]} -gt 0 ]; then
-    CLAUDE_ACCOUNTS_AVAILABLE=1
-  else
-    CLAUDE_ACCOUNTS_AVAILABLE=0
-  fi
-
-  # Check each codex account
   if [ ${#codex_accounts[@]} -gt 0 ]; then
     for account_info in "${codex_accounts[@]}"; do
       IFS='|' read -r account_id account_home account_email account_label <<< "$account_info"
@@ -1919,10 +2166,9 @@ PY
 
       if [ "$status_ok" -eq 1 ]; then
         if [ -n "$AUTH_STATUS_EMAIL" ]; then
-          log "✅ Codex $display authenticated as $AUTH_STATUS_EMAIL"
+          codex_summary+=("✅ $display — authenticated as $AUTH_STATUS_EMAIL")
         else
-          log "✅ Codex $display is authenticated"
-          log_codex_identity "$account_id" "$account_email" "$account_label"
+          codex_summary+=("✅ $display — authenticated")
         fi
         continue
       fi
@@ -1931,150 +2177,237 @@ PY
         if [ -n "$account_email" ] && [ -n "$token_identity" ] && [ "$token_identity" != "$account_email" ]; then
           log "⚠️ Codex $display tokens belong to $token_identity but expected $account_email"
           needs_auth+=("codex:$account_id:$account_home:$account_email:$account_label")
+          codex_summary+=("❌ $display — tokens for $token_identity (expected $account_email). $(codex_login_command "$account_home")")
           continue
         fi
         if [ -n "$token_identity" ]; then
-          log "✅ Codex $display authenticated via stored tokens (identity: $token_identity)"
+          codex_summary+=("✅ $display — authenticated via stored tokens (identity: $token_identity)")
         else
-          log "⚠️ Codex $display has tokens but identity is unknown; treating as authenticated"
+          codex_summary+=("⚠️ $display — tokens present but identity unknown; consider refreshing tokens ($(codex_login_command "$account_home"))")
         fi
         continue
       fi
 
-      log "❌ Codex $display needs authentication"
+      codex_summary+=("❌ $display — login required ($(codex_login_command "$account_home"))")
       needs_auth+=("codex:$account_id:$account_home:$account_email:$account_label")
     done
+  else
+    codex_summary+=("ℹ️ No Codex accounts configured; default CODEX_HOME=$DEFAULT_CODEX_HOME will be used.")
   fi
 
-  # Check claude accounts
   if [ ${#claude_accounts[@]} -gt 0 ]; then
     for account_info in "${claude_accounts[@]}"; do
-      IFS='|' read -r account_id account_bin account_env_json <<< "$account_info"
-      if command -v "$account_bin" >/dev/null 2>&1; then
-        log "✅ Claude account '$account_id' CLI is available"
-      else
-        log "⚠️  Claude account '$account_id' CLI not found ($account_bin)"
+      IFS='|' read -r account_id account_bin account_env_json account_label account_email <<< "$account_info"
+      local display
+      display=$(claude_account_display "$account_id" "$account_label" "$account_email")
+
+      if ! command -v "$account_bin" >/dev/null 2>&1; then
+        claude_summary+=("⚠️ $display — CLI '$account_bin' not found; install the Claude CLI or update PATH.")
+        claude_needs_auth+=("$display|Install the Claude CLI and run $(format_claude_login_command "$account_bin" "$account_env_json")")
+        continue
       fi
+
+      local -a env_pairs=()
+      if [ -n "$account_env_json" ] && [ "$account_env_json" != "null" ]; then
+        while IFS= read -r env_line; do
+          [ -n "$env_line" ] && env_pairs+=("$env_line")
+        done < <(python - <<'PY' "$account_env_json"
+import json, sys
+env = json.loads(sys.argv[1])
+for key, value in env.items():
+    if value is None:
+        continue
+    print(f"{key}={value}")
+PY
+)
+      fi
+
+      local whoami_output
+      local status
+      if [ ${#env_pairs[@]} -gt 0 ]; then
+        whoami_output=$(env "${env_pairs[@]}" "$account_bin" whoami 2>&1)
+        status=$?
+      else
+        whoami_output=$("$account_bin" whoami 2>&1)
+        status=$?
+      fi
+
+      if [ $status -eq 0 ] && ! printf '%s\n' "$whoami_output" | grep -qi 'invalid api key'; then
+        local trimmed
+        trimmed=$(printf '%s' "$whoami_output" | head -n1 | tr -d '\r')
+        claude_summary+=("✅ $display — authenticated${trimmed:+ ($trimmed)}")
+        claude_ready_count=$((claude_ready_count + 1))
+        continue
+      fi
+
+      local login_cmd
+      login_cmd=$(format_claude_login_command "$account_bin" "$account_env_json")
+      claude_summary+=("❌ $display — login required")
+      claude_needs_auth+=("$display|$login_cmd")
+    done
+  else
+    claude_summary+=("ℹ️ No Claude accounts configured; Claude fallback disabled.")
+  fi
+
+  if [ $claude_ready_count -gt 0 ]; then
+    CLAUDE_ACCOUNTS_AVAILABLE=1
+  else
+    CLAUDE_ACCOUNTS_AVAILABLE=0
+  fi
+
+  log "Codex accounts:"
+  if [ ${#codex_summary[@]} -eq 0 ]; then
+    log "  • (none)"
+  else
+    for entry in "${codex_summary[@]}"; do
+      log "  • $entry"
     done
   fi
 
-  # Prompt for login if needed
-  if [ ${#needs_auth[@]} -gt 0 ]; then
-    echo ""
-    echo "=========================================="
-    echo "Authentication Required"
-    echo "=========================================="
-    echo ""
-    echo "The following accounts need authentication:"
-    for auth_item in "${needs_auth[@]}"; do
-      IFS=':' read -r provider account_id account_path account_email account_label <<< "$auth_item"
-      if [ "$provider" = "codex" ]; then
-        local display
-        display=$(codex_account_display "$account_id" "$account_email" "$account_label")
-        echo "  - Codex: $display"
-      else
-        echo "  - $provider: $account_id"
-      fi
+  log "Claude accounts:"
+  if [ ${#claude_summary[@]} -eq 0 ]; then
+    log "  • (none)"
+  else
+    for entry in "${claude_summary[@]}"; do
+      log "  • $entry"
     done
-    echo ""
-    echo "Options:"
-    echo "  1. Login now (will prompt for each account)"
-    echo "  2. Skip and continue with authenticated accounts only"
-    echo "  3. Exit and login manually later"
-    echo ""
-    read -p "Choose [1/2/3]: " choice
+  fi
 
-    case "$choice" in
-      1)
-        log "Logging in to accounts..."
-        for auth_item in "${needs_auth[@]}"; do
-          IFS=':' read -r provider account_id account_path account_email account_label <<< "$auth_item"
+  if [ ${#claude_needs_auth[@]} -gt 0 ]; then
+    if [ $claude_ready_count -eq 0 ]; then
+      log "⚠️ Claude fallback is disabled until at least one Claude account is authenticated."
+    fi
+    log "   To authenticate Claude accounts:"
+    for item in "${claude_needs_auth[@]}"; do
+      IFS='|' read -r display login_cmd <<< "$item"
+      log "    - $display: $login_cmd"
+    done
+  fi
 
-          if [ "$provider" = "codex" ]; then
-            echo ""
-            local previous_home="$CODEX_HOME"
-            local display
-            display=$(codex_account_display "$account_id" "$account_email" "$account_label")
-            echo "Logging in to Codex: $display"
-            echo "CODEX_HOME will be set to: $account_path"
-            if [ -n "$account_email" ]; then
-              echo "Expected email: $account_email"
-            fi
-            echo ""
+  if [ ${#needs_auth[@]} -gt 0 ]; then
+    if [ "${WVO_AUTOPILOT_ASSUME_NO_PROMPT:-0}" = "1" ] || [ ! -t 0 ]; then
+      log "⚠️ Codex authentication required but running non-interactively; skipping login prompts."
+      log "   To authenticate manually:"
+      for auth_item in "${needs_auth[@]}"; do
+        IFS=':' read -r provider account_id account_path account_email account_label <<< "$auth_item"
+        if [ "$provider" = "codex" ]; then
+          local display
+          display=$(codex_account_display "$account_id" "$account_email" "$account_label")
+          log "    - $display: $(codex_login_command "$account_path")"
+        fi
+      done
+      log "   Autopilot will continue with the currently authenticated Codex accounts."
+    else
+      log "Interactive authentication prompt triggered."
+      printf '\n==========================================\n'
+      printf 'Authentication Required\n'
+      printf '==========================================\n\n'
+      printf 'The following accounts need authentication:\n'
+      for auth_item in "${needs_auth[@]}"; do
+        IFS=':' read -r provider account_id account_path account_email account_label <<< "$auth_item"
+        if [ "$provider" = "codex" ]; then
+          local display
+          display=$(codex_account_display "$account_id" "$account_email" "$account_label")
+          printf '  - Codex: %s\n' "$display"
+        else
+          printf '  - %s: %s\n' "$provider" "$account_id"
+        fi
+      done
+      printf '\nOptions:\n'
+      printf '  1. Login now (will prompt for each account)\n'
+      printf '  2. Skip and continue with authenticated accounts only\n'
+      printf '  3. Exit and login manually later\n\n'
+      read -p "Choose [1/2/3]: " choice
 
-            CODEX_HOME="$account_path" codex login
+      case "$choice" in
+        1)
+          log "Logging in to accounts..."
+          for auth_item in "${needs_auth[@]}"; do
+            IFS=':' read -r provider account_id account_path account_email account_label <<< "$auth_item"
 
-            if [ $? -eq 0 ]; then
-              CODEX_HOME="$account_path"
-              export CODEX_HOME
-              if fetch_auth_status codex && [ "$(provider_authenticated codex)" = "true" ]; then
-                if [ -n "$account_email" ] && [ -n "$AUTH_STATUS_EMAIL" ] && [ "$AUTH_STATUS_EMAIL" != "$account_email" ]; then
-                  log "❌ Logged in as $AUTH_STATUS_EMAIL but expected $account_email for $(codex_account_display "$account_id" "$account_email" "$account_label"). Run 'CODEX_HOME=$account_path codex logout' and retry with the correct account."
+            if [ "$provider" = "codex" ]; then
+              local previous_home="$CODEX_HOME"
+              local display
+              display=$(codex_account_display "$account_id" "$account_email" "$account_label")
+              printf '\nLogging in to Codex: %s\n' "$display"
+              printf 'CODEX_HOME will be set to: %s\n' "$account_path"
+              if [ -n "$account_email" ]; then
+                printf 'Expected email: %s\n' "$account_email"
+              fi
+
+              CODEX_HOME="$account_path" codex login
+
+              if [ $? -eq 0 ]; then
+                CODEX_HOME="$account_path"
+                export CODEX_HOME
+                if fetch_auth_status codex && [ "$(provider_authenticated codex)" = "true" ]; then
+                  if [ -n "$account_email" ] && [ -n "$AUTH_STATUS_EMAIL" ] && [ "$AUTH_STATUS_EMAIL" != "$account_email" ]; then
+                    log "❌ Logged in as $AUTH_STATUS_EMAIL but expected $account_email for $(codex_account_display "$account_id" "$account_email" "$account_label"). Run '$(codex_login_command "$account_path")' again with the correct account."
+                    CODEX_HOME="$previous_home"
+                    export CODEX_HOME
+                    abort_autopilot_offline "codex-auth-mismatch" "Interactive login authenticated as ${AUTH_STATUS_EMAIL:-unknown} but expected ${account_email:-unknown} for $display."
+                  fi
+                  log "✅ Successfully logged in to Codex $(codex_account_display "$account_id" "$account_email" "$account_label") as ${AUTH_STATUS_EMAIL:-unknown}"
+                elif codex_tokens_present; then
+                  local token_identity
+                  token_identity=$(codex_identity_from_tokens)
+                  if [ -n "$account_email" ] && [ -n "$token_identity" ] && [ "$token_identity" != "$account_email" ]; then
+                    log "❌ Tokens belong to $token_identity but expected $account_email for $(codex_account_display "$account_id" "$account_email" "$account_label"). Run '$(codex_login_command "$account_path")' and login with the correct account."
+                    CODEX_HOME="$previous_home"
+                    export CODEX_HOME
+                    abort_autopilot_offline "codex-token-mismatch" "Interactive token check mapped to ${token_identity:-unknown} but expected ${account_email:-unknown} for $display."
+                  fi
+                  log "✅ Tokens detected for $(codex_account_display "$account_id" "$account_email" "$account_label")${token_identity:+ (email: $token_identity)}"
+                else
+                  log "❌ Codex login completed but authentication still missing for $(codex_account_display "$account_id" "$account_email" "$account_label")."
                   CODEX_HOME="$previous_home"
                   export CODEX_HOME
-                  exit 1
+                  abort_autopilot_offline "codex-auth-missing" "Interactive login completed without establishing authentication for $display."
                 fi
-                log "✅ Successfully logged in to Codex $(codex_account_display "$account_id" "$account_email" "$account_label") as ${AUTH_STATUS_EMAIL:-unknown}"
-              elif codex_tokens_present; then
-                local token_identity
-                token_identity=$(codex_identity_from_tokens)
-                if [ -n "$account_email" ] && [ -n "$token_identity" ] && [ "$token_identity" != "$account_email" ]; then
-                  log "❌ Tokens belong to $token_identity but expected $account_email for $(codex_account_display "$account_id" "$account_email" "$account_label"). Run 'CODEX_HOME=$account_path codex logout' and login with the correct account."
-                  CODEX_HOME="$previous_home"
-                  export CODEX_HOME
-                  exit 1
-                fi
-                log "✅ Tokens detected for $(codex_account_display "$account_id" "$account_email" "$account_label")${token_identity:+ (email: $token_identity)}"
               else
-                log "❌ Codex login completed but authentication still missing for $(codex_account_display "$account_id" "$account_email" "$account_label")."
-                CODEX_HOME="$previous_home"
-                export CODEX_HOME
-                exit 1
-              fi
-              CODEX_HOME="$previous_home"
-              export CODEX_HOME
-            else
-              log "❌ Failed to login to Codex account '$account_id'"
-              echo ""
-              read -p "Continue anyway? [y/n]: " continue_choice
-              if [ "$continue_choice" != "y" ]; then
-                CODEX_HOME="$previous_home"
-                export CODEX_HOME
-                exit 1
+                log "❌ Failed to login to Codex account '$account_id'"
+                read -p "Continue anyway? [y/n]: " continue_choice
+                if [ "$continue_choice" != "y" ]; then
+                  CODEX_HOME="$previous_home"
+                  export CODEX_HOME
+                  abort_autopilot_offline "codex-login-failed" "Interactive login failed for Codex account '$account_id'."
+                fi
               fi
               CODEX_HOME="$previous_home"
               export CODEX_HOME
             fi
-          fi
-        done
-            log "Authentication complete. Continuing with autopilot..."
-        ;;
-      2)
-        log "Skipping authentication. Continuing with available accounts only."
+          done
+          log "Authentication complete. Continuing with autopilot..."
+          ;;
+        2)
+          log "Skipping authentication. Continuing with available accounts only."
         ;;
       3)
         log "Exiting. Please authenticate manually and rerun autopilot."
-        echo ""
-        echo "To authenticate manually:"
+        printf '\nTo authenticate manually:\n'
         for auth_item in "${needs_auth[@]}"; do
           IFS=':' read -r provider account_id account_path account_email account_label <<< "$auth_item"
           if [ "$provider" = "codex" ]; then
-            echo "  # $(codex_account_display "$account_id" "$account_email" "$account_label")"
-            echo "  CODEX_HOME=$account_path codex login"
+            printf '  # %s\n' "$(codex_account_display "$account_id" "$account_email" "$account_label")"
+            printf '    %s\n' "$(codex_login_command "$account_path")"
           fi
         done
-        echo ""
+        printf '\n'
         exit 0
         ;;
       *)
         log "Invalid choice. Continuing with available accounts only."
         ;;
-    esac
+      esac
+    fi
   else
     log "✅ All configured accounts are authenticated"
   fi
 
-  echo ""
+  printf '\n' >>"$LOG_FILE"
+  if [ "$STREAM_TO_STDOUT" -eq 1 ]; then
+    printf '\n' >&2
+  fi
 }
 
 ensure_at_least_one_provider() {
@@ -2086,12 +2419,15 @@ ensure_at_least_one_provider() {
   if [ "$ACCOUNT_MANAGER_ENABLED" -eq 1 ]; then
     local codex_json
     if codex_json=$(python "$ACCOUNT_MANAGER" list codex 2>/dev/null); then
-      local codex_tmp codex_out codex_err
-      codex_tmp=$(mktemp)
-      codex_out=$(mktemp)
-      codex_err=$(mktemp)
-      printf '%s\n' "$codex_json" >"$codex_tmp"
-      if python - <<'PY' "$codex_tmp" >"$codex_out" 2>"$codex_err"; then
+      if [ -z "${codex_json//[[:space:]]/}" ]; then
+        :
+      else
+        local codex_tmp codex_out codex_err
+        codex_tmp=$(mktemp)
+        codex_out=$(mktemp)
+        codex_err=$(mktemp)
+        printf '%s\n' "$codex_json" >"$codex_tmp"
+        if python - <<'PY' "$codex_tmp" >"$codex_out" 2>"$codex_err"; then
 import json
 import sys
 from pathlib import Path
@@ -2140,6 +2476,7 @@ PY
         fi
       fi
       rm -f "$codex_tmp" "$codex_out" "$codex_err"
+      fi
     fi
   else
     # Legacy mode - check default CODEX_HOME
@@ -2152,36 +2489,41 @@ PY
   if [ "$ENABLE_CLAUDE_EVAL" -eq 1 ]; then
     local claude_json
     if claude_json=$(python "$ACCOUNT_MANAGER" list claude 2>/dev/null); then
-      while IFS=$'\t' read -r acc_id acc_bin claude_config_dir; do
-        [ -z "$acc_id" ] && continue
-        local bin_cmd="${acc_bin:-claude}"
-        if command -v "$bin_cmd" >/dev/null 2>&1; then
-          local config="${claude_config_dir:-$ROOT/.accounts/claude/$acc_id}"
-          if CLAUDE_CONFIG_DIR="$config" "$bin_cmd" whoami >/dev/null 2>&1; then
-            has_claude=1
-            break
-          fi
-        fi
-      done < <(echo "$claude_json" | python - <<'PY'
+      if [ -z "${claude_json//[[:space:]]/}" ]; then
+        :
+      else
+        local parsed_claude
+        parsed_claude=$(python - "$claude_json" <<'PY'
 import json, sys
-for acc in json.load(sys.stdin):
+payload = json.loads(sys.argv[1])
+for acc in payload:
     env = acc.get('env') or {}
     print(f"{acc.get('id', '')}\t{acc.get('bin', 'claude')}\t{env.get('CLAUDE_CONFIG_DIR', '')}")
 PY
-)
+) || parsed_claude=""
+
+        while IFS=$'\t' read -r acc_id acc_bin claude_config_dir; do
+          [ -z "$acc_id" ] && continue
+          local bin_cmd="${acc_bin:-claude}"
+          if command -v "$bin_cmd" >/dev/null 2>&1; then
+            local config="${claude_config_dir:-$ROOT/.accounts/claude/$acc_id}"
+            if CLAUDE_CONFIG_DIR="$config" "$bin_cmd" whoami >/dev/null 2>&1; then
+              has_claude=1
+              break
+            fi
+          fi
+        done <<<"$parsed_claude"
+      fi
     fi
   fi
 
   # Exit if no providers are available
   if [ $has_codex -eq 0 ] && [ $has_claude -eq 0 ]; then
-    echo ""
-    echo "❌ No authenticated providers available!"
-    echo ""
-    echo "Autopilot requires at least one authenticated provider to run:"
-    echo "  - Codex (OpenAI): Run 'CODEX_HOME=<path> codex login'"
-    echo "  - Claude Code: Run 'CLAUDE_CONFIG_DIR=<path> claude login'"
-    echo ""
-    echo "Configured accounts:"
+    log "❌ No authenticated providers available."
+    log "   Autopilot needs at least one provider:"
+    log "     • Codex (OpenAI): CODEX_HOME=<path> codex login"
+    log "     • Claude Code: CLAUDE_CONFIG_DIR=<path> claude login"
+    log "   Configured accounts:"
     if [ "$ACCOUNT_MANAGER_ENABLED" -eq 1 ]; then
       if codex_json=$(python "$ACCOUNT_MANAGER" list codex 2>/dev/null); then
         local codex_tmp codex_err
@@ -2216,7 +2558,7 @@ PY
         then
           if [ -s "$codex_err" ]; then
             while IFS= read -r err_line; do
-              [ -n "$err_line" ] && echo "$err_line"
+              [ -n "$err_line" ] && log "$err_line"
             done <"$codex_err"
           fi
         fi
@@ -2256,18 +2598,18 @@ PY
         then
           if [ -s "$claude_err" ]; then
             while IFS= read -r err_line; do
-              [ -n "$err_line" ] && echo "$err_line"
+              [ -n "$err_line" ] && log "$err_line"
             done <"$claude_err"
           fi
         fi
         rm -f "$claude_tmp" "$claude_err"
       fi
     else
-      echo "  - Codex (legacy): CODEX_HOME=$CODEX_HOME"
+      log "  - Codex (legacy): CODEX_HOME=$CODEX_HOME"
     fi
-    echo ""
-    echo "Please authenticate at least one provider and rerun autopilot."
-    exit 1
+    log "👉 Authenticate one of the providers above and rerun 'make mcp-autopilot'."
+    console_blank
+    abort_autopilot_offline "no-provider-authenticated" "No authenticated Codex or Claude accounts detected."
   fi
 
   # Log which providers are available
@@ -2296,7 +2638,7 @@ ensure_network_reachable() {
     if ! curl --silent --head --max-time 5 "$endpoint" >/dev/null 2>&1; then
       log "❌ Unable to reach $endpoint. Autopilot requires outbound network access."
       log "   Launch the autopilot from your macOS Terminal (not the sandboxed CLI) so Codex/Claude can reach their APIs."
-      exit 1
+      abort_autopilot_offline "network-unreachable" "Unable to reach $endpoint during preflight."
     fi
   done
   log "✅ Network connectivity check passed."
@@ -2309,7 +2651,9 @@ summarize_web_inspiration_cache() {
     return
   fi
 
-  python - <<'PY' "$ROOT/state/web_inspiration"
+  local cache_report=""
+  if ! cache_report=$(
+    python - "$ROOT/state/web_inspiration" <<'PY'
 import json, os, sys, time
 from pathlib import Path
 
@@ -2352,6 +2696,12 @@ else:
         f"~{total_size // 1024} KB total, latest capture {latest_str}Z"
     )
 PY
+  ); then
+    cache_report=""
+  fi
+  if [ -n "$cache_report" ]; then
+    log "$cache_report"
+  fi
 }
 
 summarize_web_inspiration_cache
@@ -2363,7 +2713,9 @@ if [ "${WVO_AUTOPILOT_OFFLINE:-0}" = "1" ]; then
 fi
 
 if [ "${WVO_AUTOPILOT_SMOKE:-0}" != "1" ]; then
-  if ! DNS_CHECK=$(verify_codex_dns 2>&1); then
+  if [ "${WVO_AUTOPILOT_SKIP_DNS_CHECK:-0}" = "1" ]; then
+    log "Skipping DNS preflight (WVO_AUTOPILOT_SKIP_DNS_CHECK=1)."
+  elif ! DNS_CHECK=$(verify_codex_dns 2>&1); then
     LAST_FAILURE_REASON="dns_lookup_failed"
     LAST_FAILURE_DETAILS="$DNS_CHECK"
     log "❌ Unable to resolve Codex service hosts (chatgpt.com/api.openai.com)."
@@ -2410,6 +2762,8 @@ TELEMETRY_DIR="$ROOT/state/telemetry"
 USAGE_LOG="$TELEMETRY_DIR/usage.jsonl"
 mkdir -p "$TELEMETRY_DIR"
 
+RECOVERY_ATTEMPTED=0
+
 append_usage_telemetry() {
   local status="$1"
   local attempt="$2"
@@ -2432,9 +2786,253 @@ record = {
     "profile": sys.argv[8],
     "capability": sys.argv[9],
 }
+
 with log_path.open("a", encoding="utf-8") as handle:
     handle.write(json.dumps(record) + "\n")
 PY
+}
+
+attempt_recovery() {
+  if [ "$RECOVERY_ATTEMPTED" -eq 1 ]; then
+    return 1
+  fi
+  RECOVERY_ATTEMPTED=1
+  announce_phase "Recovery" "Attempting to restart MCP worker processes" "" "!!"
+  log "Initiating MCP restart sequence."
+  if [ -x "$ROOT/scripts/restart_mcp.sh" ]; then
+    if ! "$ROOT/scripts/restart_mcp.sh" >>"$LOG_FILE" 2>&1; then
+      log "MCP restart script reported a non-zero status; continuing with manual kill fallback."
+    else
+      log "MCP restart script completed successfully."
+    fi
+  fi
+  pkill -f "tools/wvo_mcp/dist/index" >/dev/null 2>&1 || true
+  sleep 5
+  log "Recovery attempt complete; retrying autopilot cycle."
+  return 0
+}
+
+BALANCE_FILE="$ROOT/state/autopilot_balance.json"
+
+balance_read_message() {
+  python - <<'PY' "$BALANCE_FILE"
+import json
+import pathlib
+import sys
+
+path = pathlib.Path(sys.argv[1])
+if not path.exists():
+    print("")
+    raise SystemExit
+try:
+    stats = json.loads(path.read_text())
+except Exception:
+    print("")
+    raise SystemExit
+message = stats.get("message", "")
+print(message)
+PY
+}
+
+balance_needs_escalation() {
+  python - <<'PY' "$BALANCE_FILE"
+import json
+import pathlib
+import sys
+
+path = pathlib.Path(sys.argv[1])
+if not path.exists():
+    print("0")
+    raise SystemExit
+try:
+    stats = json.loads(path.read_text())
+except Exception:
+    print("0")
+    raise SystemExit
+needs = bool(stats.get("needs_escalation"))
+print("1" if needs else "0")
+PY
+}
+
+update_balance_from_summary() {
+  python - "$BALANCE_FILE" <<'PY'
+import json
+import sys
+import pathlib
+from datetime import datetime, timezone
+
+path = pathlib.Path(sys.argv[1])
+summary_text = sys.stdin.read().strip()
+if not summary_text:
+    sys.exit(0)
+try:
+    summary = json.loads(summary_text)
+except json.JSONDecodeError:
+    summary = {}
+
+def normalise_list(value):
+    if isinstance(value, list):
+        return [item for item in value if isinstance(item, str)]
+    return []
+
+completed = normalise_list(summary.get("completed_tasks"))
+blockers = normalise_list(summary.get("blockers"))
+
+product_markers = [
+    "t1.", "t2.", "t3.", "t4.", "t5.", "t7.", "t8.", "t9.", "t10.", "t11.",
+    "epic 1", "epic 2", "epic 3", "epic 4", "epic 5", "epic 7", "epic 11",
+    "weather", "allocator", "creative", "plan", "ads", "forecast", "rl", "shadow",
+]
+mcp_markers = [
+    "t6.", "phase 6", "m6.", "mcp", "zero-downtime", "upgrade", "autopilot", "dry_run",
+]
+
+def classify(entries):
+    counts = {"product": 0, "mcp": 0}
+    for entry in entries:
+        lower = entry.lower()
+        if any(marker in lower for marker in mcp_markers):
+            counts["mcp"] += 1
+        elif any(marker in lower for marker in product_markers):
+            counts["product"] += 1
+    return counts
+
+completed_counts = classify(completed)
+blocker_counts = classify(blockers)
+
+stats = {}
+if path.exists():
+    try:
+        stats = json.loads(path.read_text())
+    except Exception:
+        stats = {}
+if not isinstance(stats, dict):
+    stats = {}
+
+stats.setdefault("product_completed_total", 0)
+stats.setdefault("mcp_completed_total", 0)
+stats.setdefault("product_blockers_total", 0)
+stats.setdefault("mcp_blockers_total", 0)
+stats.setdefault("product_blockers_streak", 0)
+history = stats.get("recent_domains", [])
+if not isinstance(history, list):
+    history = []
+
+stats["product_completed_total"] += completed_counts["product"]
+stats["mcp_completed_total"] += completed_counts["mcp"]
+stats["product_blockers_total"] += blocker_counts["product"]
+stats["mcp_blockers_total"] += blocker_counts["mcp"]
+
+if blocker_counts["product"] > 0:
+    stats["product_blockers_streak"] = stats.get("product_blockers_streak", 0) + 1
+else:
+    stats["product_blockers_streak"] = 0
+
+if completed_counts["product"] > 0:
+    history.append("product")
+elif completed_counts["mcp"] > 0:
+    history.append("mcp")
+elif blocker_counts["product"] > 0:
+    history.append("blocked_product")
+elif blocker_counts["mcp"] > 0:
+    history.append("blocked_mcp")
+else:
+    history.append("none")
+
+history = history[-12:]
+stats["recent_domains"] = history
+
+recent_product = sum(1 for item in history if item == "product")
+recent_mcp = sum(1 for item in history if item == "mcp")
+streak = stats.get("product_blockers_streak", 0)
+
+needs_escalation = streak >= 2 or recent_mcp >= recent_product + 2
+stats["needs_escalation"] = needs_escalation
+
+message = (
+    f"Recent domain mix (last {len(history)} runs): product {recent_product}, MCP {recent_mcp}. "
+    f"Product blocker streak: {streak}."
+)
+if needs_escalation:
+    message += " ACTION: unblock product work or escalate to Dana before taking more MCP tasks."
+stats["message"] = message
+stats["last_updated"] = datetime.now(timezone.utc).isoformat(timespec="seconds")
+
+with path.open("w", encoding="utf-8") as handle:
+  json.dump(stats, handle, indent=2)
+PY
+}
+
+enrich_summary_with_meta() {
+  local provider="$POLICY_PROVIDER_USED"
+  local model="$POLICY_MODEL_USED"
+  local fallback="$POLICY_FALLBACK_USED"
+  local attempts="$POLICY_ATTEMPTS"
+  local duration="$POLICY_LAST_DURATION"
+  local status="$POLICY_LAST_STATUS"
+  local completed_at="$POLICY_LAST_COMPLETED_AT"
+  python - "$provider" "$model" "$fallback" "$attempts" "$duration" "$status" "$completed_at" <<'PY'
+import json
+import sys
+
+provider, model, fallback, attempts, duration, status, completed_at = sys.argv[1:8]
+
+try:
+    payload = json.loads(sys.stdin.read())
+except json.JSONDecodeError:
+    payload = {
+        "completed_tasks": [],
+        "in_progress": [],
+        "blockers": [],
+        "next_focus": [],
+        "notes": "",
+    }
+
+meta = payload.get("meta") or {}
+
+def _coerce_int(value, default):
+    try:
+        return int(float(value))
+    except (TypeError, ValueError):
+        return default
+
+meta.update(
+    {
+        "provider": provider or "unknown",
+        "model": model or "unknown",
+        "fallback_used": str(fallback or "0") == "1",
+        "attempt": _coerce_int(attempts, 0),
+        "duration_seconds": max(0, _coerce_int(duration, 0)),
+        "status": status or "unknown",
+        "completed_at": completed_at,
+    }
+)
+
+payload["meta"] = meta
+print(json.dumps(payload))
+PY
+}
+
+update_policy_controller() {
+  local summary_json="${1:-}"
+  if [ ! -f "$POLICY_CONTROLLER_SCRIPT" ]; then
+    return
+  fi
+  if [ -z "${POLICY_DECISION_FILE:-}" ] || [ ! -f "$POLICY_DECISION_FILE" ]; then
+    return
+  fi
+  if [ -z "${summary_json//[[:space:]]/}" ]; then
+    return
+  fi
+  local enriched
+  enriched="$(printf '%s' "$summary_json" | enrich_summary_with_meta)"
+  python "$POLICY_CONTROLLER_SCRIPT" \
+    update \
+    --state "$POLICY_STATE_FILE" \
+    --history "$POLICY_HISTORY_FILE" \
+    --roadmap "$ROOT/state/roadmap.yaml" \
+    --decision-file "$POLICY_DECISION_FILE" \
+    <<<"$enriched" >>"$LOG_FILE" 2>&1 || true
 }
 
 NODE_RESOLVE_PATH="$ROOT/tools/wvo_mcp/node_modules"
@@ -2445,7 +3043,8 @@ fi
 
 SCHEMA_FILE="$(mktemp)"
 PROMPT_FILE="$(mktemp)"
-trap 'rm -f "$SCHEMA_FILE" "$PROMPT_FILE"' EXIT
+POLICY_DECISION_FILE=""
+trap 'rm -f "$SCHEMA_FILE" "$PROMPT_FILE" "$POLICY_DECISION_FILE"' EXIT
 
 cat <<'SCHEMA' > "$SCHEMA_FILE"
 {
@@ -2602,6 +3201,70 @@ PY
     TASK_MEMO_SNIPPET="- No active task memos recorded yet."
   fi
 
+  BALANCE_MESSAGE="$(balance_read_message)"
+
+  if [ -f "$POLICY_CONTROLLER_SCRIPT" ]; then
+    mkdir -p "$POLICY_STATE_DIR" "$(dirname "$POLICY_HISTORY_FILE")"
+    POLICY_DECISION_FILE="$(mktemp)"
+    POLICY_DECISION_JSON="$(
+      python "$POLICY_CONTROLLER_SCRIPT" \
+        decide \
+        --state "$POLICY_STATE_FILE" \
+        --history "$POLICY_HISTORY_FILE" \
+        --roadmap "$ROOT/state/roadmap.yaml" \
+        --balance "$BALANCE_FILE" 2>/dev/null || true
+    )"
+    if [ -n "${POLICY_DECISION_JSON//[[:space:]]/}" ]; then
+      printf '%s\n' "$POLICY_DECISION_JSON" >"$POLICY_DECISION_FILE"
+      POLICY_DIRECTIVE="$(
+        python - <<'PY' "$POLICY_DECISION_JSON"
+import json
+import sys
+try:
+    data = json.loads(sys.argv[1])
+except Exception:
+    data = {}
+directive = data.get("prompt_directive") or ""
+if not directive.strip():
+    directive = "Policy controller returned no directive; default to product execution then MCP recovery as needed."
+print(directive)
+PY
+      )"
+      POLICY_DOMAIN="$(
+        python - <<'PY' "$POLICY_DECISION_JSON"
+import json
+import sys
+try:
+    data = json.loads(sys.argv[1])
+except Exception:
+    data = {}
+print(data.get("domain", "unknown"))
+PY
+      )"
+      POLICY_ACTION="$(
+        python - <<'PY' "$POLICY_DECISION_JSON"
+import json
+import sys
+try:
+    data = json.loads(sys.argv[1])
+except Exception:
+    data = {}
+print(data.get("action", "execute_tasks"))
+PY
+      )"
+      log "Policy controller decision: domain=${POLICY_DOMAIN:-unknown}, action=${POLICY_ACTION:-unknown}"
+    else
+      POLICY_DIRECTIVE="Policy controller unavailable; fall back to product-first execution and MCP recovery."
+      printf '{}' >"$POLICY_DECISION_FILE"
+      log "Policy controller unavailable; using legacy heuristic directive."
+    fi
+  else
+    POLICY_DIRECTIVE="Policy controller unavailable; fall back to product-first execution and MCP recovery."
+    POLICY_DECISION_JSON=""
+    POLICY_DECISION_FILE=""
+    log "Policy controller unavailable; using legacy heuristic directive."
+  fi
+
   {
     cat <<'HEADER'
 Operate under the Autopilot Captain persona—Atlas—and escalate to Director Dana when needed. Your goal is to drive the roadmap to completion with world-class engineering, data/ML, product, and design rigor.
@@ -2609,39 +3272,25 @@ Operate under the Autopilot Captain persona—Atlas—and escalate to Director D
 HEADER
     printf 'Current surprise QA ledger:\n%s\n\n' "$AUTOPILOT_STATE_SNIPPET"
     printf 'Task memo cache (recent updates first):\n%s\n\n' "$TASK_MEMO_SNIPPET"
+    if [ -n "$BALANCE_MESSAGE" ]; then
+      echo "Domain balance signal:"
+      printf '%s\n' "$BALANCE_MESSAGE" | sed 's/^/  - /'
+      echo ""
+    fi
     if [ -s "$CLAUDE_EVAL_FILE" ]; then
       echo "Most recent Claude evaluation:"
       sed 's/^/  /' "$CLAUDE_EVAL_FILE"
       echo ""
     fi
+    echo "Policy directive (autonomous RL controller):"
+    printf '%s\n\n' "$POLICY_DIRECTIVE" | sed 's/^/  - /'
     cat <<'BODY'
 Loop:
-- Respect roadmap domains: default to WeatherVane product work (domain=`product`, e.g. E1/E4/E5/E7/E11). Only pick MCP platform items (domain=`mcp`, e.g. E6/E8/E9/E10) when product tasks are blocked or explicitly requested. Bundle E6+E10 as one upgrade programme; run PHASE‑5A immediately after, and leave PHASE‑5B items blocked behind E5.
-0. Skim cached task memos in state/task_memos to resume active work before loading large contexts; refresh them if reality diverges.
-1. Call `plan_next` with `filters: { domain: 'product' }` and `minimal=true`. Only if that queue is empty should you issue a second `plan_next` for `domain: 'mcp'`. Re-run this selection every cycle regardless of which task you just finished.
-2. Call `autopilot_status` to refresh the audit ledger.
-3. Run `critics_run` with `network_navigator` at session start. If it fails, restart MCP with 
-   `make mcp-autopilot danger=1` so both Codex and Claude have full network access.
-4. Run `critics_run` with `product_completeness` weekly (or when roadmap changes) to ensure UX milestones are in flight.
-5. Run `critics_run` with `integration_fury` after major merges or before releases to exercise the full stack.
-6. The `design_system` critic is currently offline (capability skipped). Leave T3.3.x/T3.4.x blocked until a designer reviews them; do **not** loop on “Director Dana” escalations.
-7. When any other critic fails or flags work, create/adjust roadmap tasks immediately—critics own the standard and can overrule earlier plans.
-8. If any task memo is marked `escalate` (stalled for multiple loops), hand it off to a human reviewer with higher autonomy before taking further automated action.
-9. For each chosen task:
-   a. Audit docs/code/tests to understand requirements.
-   b. Implement via fs_read/fs_write/cmd_run (code + tests + docs + design). Keep slices verifiable.
-   c. Run `critics_run` with quiet=true and relevant critics (build, tests, manager_self_check, data_quality, org_pm, exec_review, health_check, human_sync; add allocator/causal/forecast when applicable). Check state/critics timestamps to skip suites covering unchanged artifacts (same git_sha); rerun after commits or meaningful edits.
-   d. Fix issues. If blocked (missing critic/test capacity, sandbox limits, outstanding approvals), log the blocker, mark the task blocked with `plan_update`, and move on—do **not** manufacture substitute deliverables or sign-off docs to bypass exit criteria.
-   e. Record decisions/risks via `context_write` (keep state/context.md ≤1000 words).
-   f. Snapshot via `context_snapshot`.
-   g. Update roadmap with `plan_update` only after exit criteria satisfied.
-   h. After each loop, sanity-check the product roadmap: make sure M3.3/M3.4 tasks exist and are on deck. Escalate if the roadmap lacks full product experience work.
-   i. Review the roadmap (state/roadmap.yaml) weekly: confirm domain balance, that product experience work (M3.3/M3.4) remains on deck, and that blocked critics are tracked. Escalate if gaps persist.
-   j. For work >5min, use `heavy_queue_enqueue` (include cmd/context), monitor via `heavy_queue_list`, update with `heavy_queue_update`.
-10. At least once per day (or after major roadmap edits), run `critics_run` with `roadmap_completeness` to ensure future enhancement notes have matching tasks.
-11. Ship real work over repeated self-review; if nothing changed, move forward vs re-running same suites.
-12. Every ~100 tasks, audit a completed roadmap item for gaps/regressions. Call `autopilot_record_audit` (task_id/focus/notes); if issues emerge, open fix tasks before resuming new work. Spread audits across epics/milestones; skip if already inspected this session.
-13. Repeat until no progress possible without human intervention.
+- Execute the directive above before considering any alternative work. Use `plan_next` with the specified domain; if the directive requests recovery, run the named `critics_run` suites and unblock dependencies automatically.
+- When tasks remain blocked after recovery attempts, call the necessary MCP tools (plan_next, critics_run, plan_update) autonomously until the blocker is removed or a structural failure is confirmed.
+- Capture evidence for every action: fs_read/fs_write/cmd_run for implementation, tests for verification, docs for narrative. Keep `state/context.md` updated via `context_write` (≤1000 words) and record snapshots with `context_snapshot`.
+- Escalate programmatically: log blockers via `context_write`, persist them with `plan_update`, and if the loop cannot make progress after self-healing, stop gracefully so Director Dana can ingest the summary.
+- Coordinate supporting automation: runner restarts, heavy queue usage, and telemetry exports should be issued without prompting. Prefer `heavy_queue_enqueue` for long jobs and close them via `heavy_queue_update`.
 Maintain production readiness, enforce ML/causal rigor, polish UX, and communicate like a Staff+/startup leader.
 Return JSON summarizing completed tasks, tasks still in progress, blockers, next focus items, and overall notes.
 BODY
@@ -2655,6 +3304,10 @@ BODY
     attempt_number=$((attempt + 1))
     attempt_start_iso="$(timestamp)"
   attempt_start_epoch=$(date -u +%s)
+  POLICY_ATTEMPTS=$attempt_number
+  POLICY_LAST_STATUS="in_progress"
+  POLICY_LAST_DURATION=0
+  POLICY_LAST_COMPLETED_AT=""
   LAST_FAILURE_REASON=""
   LAST_FAILURE_DETAILS=""
   now_epoch=$(date -u +%s)
@@ -2687,31 +3340,71 @@ BODY
       CODEX_RETRY_AT=0
     fi
   fi
+  attempt_meter="$(progress_bar "$attempt_number" "$MAX_RETRY")"
+  announce_phase "Autopilot Attempt ${attempt_number}" "Launching orchestration cycle" "$attempt_meter" ">>"
   log "Starting WeatherVane autopilot run (attempt ${attempt_number})..."
 
-  if [ "$USE_CLAUDE_FALLBACK" -eq 1 ]; then
+    if [ "$USE_CLAUDE_FALLBACK" -eq 1 ]; then
+      POLICY_PROVIDER_USED="claude"
+      POLICY_MODEL_USED="${CLAUDE_AUTOPILOT_MODEL:-claude-code}"
+      POLICY_FALLBACK_USED=1
       set +e
-      run_with_claude_code "$PROMPT_CONTENT" "$RUN_LOG"
-      status=$?
+      if [ "$WVO_AUTOPILOT_STREAM" = "1" ]; then
+        run_with_claude_code "$PROMPT_CONTENT" "$RUN_LOG" | tee -a "$LOG_FILE" >&2
+        status=${PIPESTATUS[0]}
+      else
+        run_with_claude_code "$PROMPT_CONTENT" "$RUN_LOG"
+        status=$?
+        cat "$RUN_LOG" >> "$LOG_FILE"
+      fi
       set -e
-      cat "$RUN_LOG" >> "$LOG_FILE"
     else
+      POLICY_PROVIDER_USED="codex"
+      POLICY_MODEL_USED="$AUTOPILOT_MODEL"
+      POLICY_FALLBACK_USED=0
       set +e
-      codex exec \
-        --profile "$CLI_PROFILE" \
-        --model "$AUTOPILOT_MODEL" \
-        --dangerously-bypass-approvals-and-sandbox \
-        --output-schema "$SCHEMA_FILE" \
-        "$PROMPT_CONTENT" >"$RUN_LOG" 2>&1
-      status=$?
+      if [ "$WVO_AUTOPILOT_STREAM" = "1" ]; then
+        codex exec \
+          --profile "$CLI_PROFILE" \
+          --model "$AUTOPILOT_MODEL" \
+          --dangerously-bypass-approvals-and-sandbox \
+          --output-schema "$SCHEMA_FILE" \
+          "$PROMPT_CONTENT" 2>&1 | tee "$RUN_LOG" | tee -a "$LOG_FILE" >&2
+        status=${PIPESTATUS[0]}
+      else
+        codex exec \
+          --profile "$CLI_PROFILE" \
+          --model "$AUTOPILOT_MODEL" \
+          --dangerously-bypass-approvals-and-sandbox \
+          --output-schema "$SCHEMA_FILE" \
+          "$PROMPT_CONTENT" >"$RUN_LOG" 2>&1
+        status=$?
+        cat "$RUN_LOG" >> "$LOG_FILE"
+      fi
       set -e
-      cat "$RUN_LOG" >> "$LOG_FILE"
+    fi
+
+    if [ "$status" -ge 130 ] && [ "$status" -le 143 ]; then
+      attempt_end_iso="$(timestamp)"
+      attempt_end_epoch=$(date -u +%s)
+      duration=$((attempt_end_epoch - attempt_start_epoch))
+      POLICY_LAST_STATUS="interrupted"
+      POLICY_LAST_COMPLETED_AT="$attempt_end_iso"
+      POLICY_LAST_DURATION=$duration
+      append_usage_telemetry "interrupted" "$attempt_number" "$attempt_start_iso" "$attempt_end_iso" "$duration"
+      announce_phase "Autopilot Interrupted" "Operator requested stop (signal ${status}). Exiting without retry." "" "!!"
+      log "Autopilot interrupted by operator (exit status $status)."
+      rm -f "$RUN_LOG"
+      exit 0
     fi
 
     if grep -qi 'usage limit' "$RUN_LOG"; then
       attempt_end_iso="$(timestamp)"
       attempt_end_epoch=$(date -u +%s)
       duration=$((attempt_end_epoch - attempt_start_epoch))
+      POLICY_LAST_STATUS="usage_limit"
+      POLICY_LAST_COMPLETED_AT="$attempt_end_iso"
+      POLICY_LAST_DURATION=$duration
       append_usage_telemetry "usage_limit" "$attempt_number" "$attempt_start_iso" "$attempt_end_iso" "$duration"
 
       if [ "$USE_CLAUDE_FALLBACK" -eq 1 ]; then
@@ -2768,6 +3461,9 @@ BODY
       attempt_end_iso="$(timestamp)"
       attempt_end_epoch=$(date -u +%s)
       duration=$((attempt_end_epoch - attempt_start_epoch))
+      POLICY_LAST_STATUS="error"
+      POLICY_LAST_COMPLETED_AT="$attempt_end_iso"
+      POLICY_LAST_DURATION=$duration
       append_usage_telemetry "error" "$attempt_number" "$attempt_start_iso" "$attempt_end_iso" "$duration"
 
       if grep -qiE 'error sending request|resolve host|name or service not known|getaddrinfo|temporary failure in name resolution|lookup .* timed out|ENOTFOUND|ECONNRESET|ECONNREFUSED|connection refused|connect ECONN' "$RUN_LOG"; then
@@ -2809,66 +3505,191 @@ BODY
       attempt_end_iso="$(timestamp)"
       attempt_end_epoch=$(date -u +%s)
       duration=$((attempt_end_epoch - attempt_start_epoch))
+      POLICY_LAST_STATUS="retry"
+      POLICY_LAST_COMPLETED_AT="$attempt_end_iso"
+      POLICY_LAST_DURATION=$duration
       append_usage_telemetry "retry" "$attempt_number" "$attempt_start_iso" "$attempt_end_iso" "$duration"
       attempt=$((attempt + 1))
       rm -f "$RUN_LOG"
       if [ "$attempt" -ge "$MAX_RETRY" ]; then
         log "Reached maximum retry count ($MAX_RETRY). Autopilot exiting."
-        exit 1
+        abort_autopilot_offline "max-retries" "Autopilot exceeded MAX_RETRY ($MAX_RETRY) while handling context limit errors."
       fi
       log "Context limit detected. Restarting in 5 seconds..."
       sleep 5
       continue
     fi
 
+    if grep -qi 'worker active call timed out' "$RUN_LOG"; then
+      attempt_end_iso="$(timestamp)"
+      attempt_end_epoch=$(date -u +%s)
+      duration=$((attempt_end_epoch - attempt_start_epoch))
+      POLICY_LAST_STATUS="command_timeout"
+      POLICY_LAST_COMPLETED_AT="$attempt_end_iso"
+      POLICY_LAST_DURATION=$duration
+      append_usage_telemetry "command_timeout" "$attempt_number" "$attempt_start_iso" "$attempt_end_iso" "$duration"
+      LAST_FAILURE_REASON="command_timeout"
+      LAST_FAILURE_DETAILS="$(tail -n 20 "$RUN_LOG")"
+      announce_phase "Command Timeout" "MCP worker timed out after 30s; capturing fallback summary." "" "!!"
+      if attempt_recovery; then
+        rm -f "$RUN_LOG"
+        continue
+      fi
+      record_blocker "command_timeout" "$LAST_FAILURE_DETAILS"
+      fallback_summary=$(python - <<'PY' "$RUN_LOG" "$STATE_FILE"
+import json
+import sys
+from pathlib import Path
+
+log_path = Path(sys.argv[1])
+out_path = Path(sys.argv[2])
+notes = log_path.read_text(encoding="utf-8").splitlines()[-20:]
+notes_text = "\n".join(notes)
+summary = {
+    "completed_tasks": [],
+    "in_progress": [],
+    "blockers": ["Autopilot aborted: MCP worker timed out after 30s during investigation."],
+    "next_focus": [
+        "Repeat the investigation with scoped commands (limit searches to target directories) to avoid worker timeouts."
+    ],
+    "notes": notes_text[:2000],
+}
+out_path.write_text(json.dumps(summary, indent=2), encoding="utf-8")
+print(json.dumps(summary))
+PY
+) || fallback_summary='{"completed_tasks":[],"in_progress":[],"blockers":["Autopilot aborted: MCP worker timed out."],"next_focus":["Scope shell commands and retry."],"notes":""}'
+      printf '%s\n' "$fallback_summary"
+      printf '%s\n' "$fallback_summary" | update_balance_from_summary
+      update_policy_controller "$fallback_summary"
+      BALANCE_MESSAGE_AFTER="$(balance_read_message)"
+      if [ "$(balance_needs_escalation)" = "1" ]; then
+        announce_phase "Domain Imbalance" "$BALANCE_MESSAGE_AFTER" "" "!!"
+        record_blocker "domain_imbalance" "$BALANCE_MESSAGE_AFTER"
+        log "Domain imbalance detected after command timeout; exiting for manual intervention."
+        rm -f "$RUN_LOG"
+        break
+      fi
+      log "Fallback summary saved to $STATE_FILE due to worker command timeout."
+      rm -f "$RUN_LOG"
+      break
+    fi
+
     SUMMARY_JSON=$(python - <<'PY' "$RUN_LOG" "$STATE_FILE"
 import json, sys, pathlib
+
 log_path = pathlib.Path(sys.argv[1])
 out_path = pathlib.Path(sys.argv[2])
+text = log_path.read_text(encoding="utf-8")
+start = None
+depth = 0
 summary = None
-for line in log_path.read_text(encoding="utf-8").splitlines():
-    line = line.strip()
-    if not line:
-        continue
-    if line.startswith("{") and line.endswith("}"):
-        try:
-            summary = json.loads(line)
-            break
-        except json.JSONDecodeError:
-            continue
+
+for idx, ch in enumerate(text):
+    if ch == '{':
+        if depth == 0:
+            start = idx
+        depth += 1
+    elif ch == '}':
+        if depth:
+            depth -= 1
+            if depth == 0 and start is not None:
+                snippet = text[start: idx + 1]
+                if '"completed_tasks"' not in snippet:
+                    continue
+                try:
+                    candidate = json.loads(snippet)
+                except json.JSONDecodeError:
+                    continue
+                summary = candidate
+                break
+
 if summary is None:
     raise SystemExit("No JSON summary found in autopilot output.")
+
 out_path.write_text(json.dumps(summary, indent=2), encoding="utf-8")
 print(json.dumps(summary))
 PY
 ) || {
+      LAST_FAILURE_REASON="invalid_summary"
+      LAST_FAILURE_DETAILS="$(tail -n 20 "$RUN_LOG")"
+      announce_phase "Invalid Summary" "Codex output missing structured JSON; capturing fallback summary." "" "!!"
+      if attempt_recovery; then
+        rm -f "$RUN_LOG"
+        continue
+      fi
+      record_blocker "invalid_summary" "$LAST_FAILURE_DETAILS"
+      fallback_summary=$(python - <<'PY' "$RUN_LOG" "$STATE_FILE"
+import json
+import sys
+from pathlib import Path
+
+log_path = Path(sys.argv[1])
+out_path = Path(sys.argv[2])
+notes = log_path.read_text(encoding="utf-8").splitlines()[-20:]
+notes_text = "\n".join(notes)
+summary = {
+    "completed_tasks": [],
+    "in_progress": [],
+    "blockers": ["Autopilot run aborted: Codex did not emit a summary (invalid_summary)."],
+    "next_focus": [
+        "Inspect /tmp/wvo_autopilot.log for the failing command and rerun once addressed."
+    ],
+    "notes": notes_text[:2000],
+}
+out_path.write_text(json.dumps(summary, indent=2), encoding="utf-8")
+print(json.dumps(summary))
+PY
+) || fallback_summary='{"completed_tasks":[],"in_progress":[],"blockers":["Autopilot run aborted: invalid summary."],"next_focus":["Retry after inspecting logs."],"notes":""}'
+      printf '%s\n' "$fallback_summary"
+      printf '%s\n' "$fallback_summary" | update_balance_from_summary
       attempt_end_iso="$(timestamp)"
       attempt_end_epoch=$(date -u +%s)
       duration=$((attempt_end_epoch - attempt_start_epoch))
-      append_usage_telemetry "invalid_summary" "$attempt_number" "$attempt_start_iso" "$attempt_end_iso" "$duration"
-      LAST_FAILURE_REASON="invalid_summary"
-      LAST_FAILURE_DETAILS="$(tail -n 20 "$RUN_LOG")"
-      log "Autopilot run completed without a valid JSON summary. Retrying in 30 seconds..."
-      rm -f "$RUN_LOG"
-      attempt=$((attempt + 1))
-      if [ "$attempt" -ge "$MAX_RETRY" ]; then
-        log "Reached maximum retry count ($MAX_RETRY). Autopilot aborting (invalid summary)."
-        if [ -n "$LAST_FAILURE_DETAILS" ]; then
-          printf '%s\n' "$LAST_FAILURE_DETAILS" | sed 's/^/   /'
-        fi
-        exit 1
+      POLICY_LAST_STATUS="invalid_summary"
+      POLICY_LAST_COMPLETED_AT="$attempt_end_iso"
+      POLICY_LAST_DURATION=$duration
+      update_policy_controller "$fallback_summary"
+      BALANCE_MESSAGE_AFTER="$(balance_read_message)"
+      if [ "$(balance_needs_escalation)" = "1" ]; then
+        announce_phase "Domain Imbalance" "$BALANCE_MESSAGE_AFTER" "" "!!"
+        record_blocker "domain_imbalance" "$BALANCE_MESSAGE_AFTER"
+        log "Domain imbalance detected after invalid summary; exiting for manual intervention."
+        rm -f "$RUN_LOG"
+        break
       fi
-      sleep 30
-      continue
+      log "Fallback summary saved to $STATE_FILE due to invalid summary."
+      append_usage_telemetry "fallback_summary" "$attempt_number" "$attempt_start_iso" "$attempt_end_iso" "$duration"
+      rm -f "$RUN_LOG"
+      break
     }
     printf '%s\n' "$SUMMARY_JSON"
+    printf '%s\n' "$SUMMARY_JSON" | update_balance_from_summary
+    BALANCE_MESSAGE_AFTER="$(balance_read_message)"
+    if [ "$(balance_needs_escalation)" = "1" ]; then
+      announce_phase "Domain Imbalance" "$BALANCE_MESSAGE_AFTER" "" "!!"
+      record_blocker "domain_imbalance" "$BALANCE_MESSAGE_AFTER"
+      write_offline_summary "domain-imbalance" "$BALANCE_MESSAGE_AFTER"
+      log "Domain imbalance detected after summary; exiting for manual intervention."
+      rm -f "$RUN_LOG"
+      break
+    fi
     update_task_memos_from_summary "$SUMMARY_JSON" || true
-    rm -f "$RUN_LOG"
-    log "Summary saved to $STATE_FILE"
     attempt_end_iso="$(timestamp)"
     attempt_end_epoch=$(date -u +%s)
     duration=$((attempt_end_epoch - attempt_start_epoch))
+    POLICY_LAST_STATUS="success"
+    POLICY_LAST_COMPLETED_AT="$attempt_end_iso"
+    POLICY_LAST_DURATION=$duration
+    update_policy_controller "$SUMMARY_JSON"
+    rm -f "$RUN_LOG"
+    success_meter="$(progress_bar "$attempt_number" "$MAX_RETRY")"
+    announce_phase "Attempt ${attempt_number} Complete" "Summary saved to $STATE_FILE" "$success_meter" "OK"
+    log "Summary saved to $STATE_FILE"
     append_usage_telemetry "success" "$attempt_number" "$attempt_start_iso" "$attempt_end_iso" "$duration"
+    if [ "${WVO_AUTOPILOT_ONCE:-0}" = "1" ] || [ -n "${WVO_CLI_STUB_EXEC_JSON:-}" ]; then
+      log "Single-run mode enabled; exiting after first successful cycle."
+      exit 0
+    fi
     break
   done
 

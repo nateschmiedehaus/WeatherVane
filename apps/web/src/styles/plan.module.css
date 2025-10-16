@@ -807,6 +807,101 @@
   gap: 1.4rem;
 }
 
+.contextSection {
+  display: grid;
+  gap: 1.2rem;
+  padding: 1.35rem 1.5rem;
+  border-radius: 1.2rem;
+  border: 1px solid var(--plan-context-border);
+  background: var(--plan-context-bg) border-box;
+  box-shadow: var(--plan-context-shadow);
+}
+
+@media (min-width: 960px) {
+  .contextSection {
+    padding: 1.6rem 1.9rem;
+  }
+}
+
+.summaryCard {
+  display: grid;
+  gap: 1rem;
+  padding: 1.2rem 1.35rem;
+  border-radius: 1.1rem;
+  border: 1px solid var(--plan-panel-border);
+  background: var(--plan-panel-bg) border-box;
+  box-shadow: var(--plan-panel-shadow);
+}
+
+.guardrailSummary {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.guardrailSummaryItem {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.guardrailBar {
+  position: relative;
+  height: 0.5rem;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.25);
+  overflow: hidden;
+}
+
+.guardrailBarFill {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  transition: width 160ms ease;
+  background: linear-gradient(135deg, rgba(56, 189, 248, 0.65), rgba(6, 182, 212, 0.9));
+}
+
+.guardrailBarFill[data-tone="caution"] {
+  background: linear-gradient(135deg, rgba(250, 204, 21, 0.65), rgba(217, 119, 6, 0.9));
+}
+
+.guardrailBarFill[data-tone="critical"] {
+  background: linear-gradient(135deg, rgba(248, 113, 113, 0.7), rgba(185, 28, 28, 0.9));
+}
+
+.guardrailBreakdown {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.guardrailBreakdownList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.guardrailBreakdownItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+
+.guardrailBreakdownLabel {
+  font-size: 0.85rem;
+  color: var(--color-text-secondary);
+}
+
+.guardrailBreakdownCount {
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.guardrailBreakdownEmpty {
+  margin: 0;
+  color: var(--color-text-tertiary);
+}
+
 @media (min-width: 1100px) {
   .contextLayout {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -868,6 +963,96 @@
   font-size: 1rem;
   font-weight: 600;
   color: var(--color-text-primary);
+}
+
+.validationGrid {
+  display: grid;
+  gap: 1.2rem;
+}
+
+@media (min-width: 960px) {
+  .validationGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.validationCard {
+  display: grid;
+  gap: 0.9rem;
+  padding: 1.1rem 1.35rem;
+  border-radius: 1rem;
+  border: 1px solid var(--plan-context-border);
+  background: var(--plan-context-bg) border-box;
+  box-shadow: var(--plan-context-shadow);
+}
+
+.validationList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.validationItem {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.6rem;
+}
+
+.validationMetric {
+  display: block;
+  font-size: 0.85rem;
+  color: var(--color-text-tertiary);
+  margin-top: 0.35rem;
+}
+
+.validationBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.2rem 0.65rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  border: 1px solid transparent;
+  text-transform: uppercase;
+}
+
+.validationPass {
+  background: var(--badge-success-bg, #14532d);
+  color: var(--badge-success-text, #bbf7d0);
+  border-color: rgba(74, 222, 128, 0.6);
+}
+
+.validationFail {
+  background: var(--status-critical-bg, #7f1d1d);
+  color: var(--status-critical-text, #fee2e2);
+  border-color: rgba(248, 113, 113, 0.6);
+}
+
+.validationNotes {
+  margin: 0.6rem 0 0;
+  padding-left: 1.2rem;
+  color: var(--color-text-secondary);
+  display: grid;
+  gap: 0.4rem;
+  font-size: 0.9rem;
+}
+
+.validationSummary {
+  margin: 0;
+  display: grid;
+  gap: 0.8rem;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+}
+
+.validationSummary div {
+  display: grid;
+  gap: 0.25rem;
 }
 
 .tableSection {

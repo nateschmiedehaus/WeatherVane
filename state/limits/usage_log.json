@@ -1,0 +1,63 @@
+{
+  "providers": {
+    "claude:default": {
+      "provider": "claude",
+      "account": "default",
+      "tier": "pro",
+      "limits": {
+        "hourly_requests": 500,
+        "daily_requests": 5000,
+        "hourly_tokens": 500000,
+        "daily_tokens": 5000000
+      },
+      "usage": {
+        "current_hour": {
+          "requests": 0,
+          "tokens": 0,
+          "reset_at": "2025-10-16T19:00:00.000Z"
+        },
+        "current_day": {
+          "requests": 0,
+          "tokens": 0,
+          "reset_at": "2025-10-17T05:00:00.000Z"
+        }
+      },
+      "warnings": {
+        "approaching_hourly_limit": false,
+        "approaching_daily_limit": false,
+        "percentage_used": 0
+      },
+      "last_updated": "2025-10-16T18:45:13.338Z"
+    },
+    "codex:default": {
+      "provider": "codex",
+      "account": "default",
+      "tier": "pro",
+      "limits": {
+        "hourly_requests": 500,
+        "daily_requests": 5000,
+        "hourly_tokens": 500000,
+        "daily_tokens": 5000000
+      },
+      "usage": {
+        "current_hour": {
+          "requests": 0,
+          "tokens": 0,
+          "reset_at": "2025-10-16T19:00:00.000Z"
+        },
+        "current_day": {
+          "requests": 0,
+          "tokens": 0,
+          "reset_at": "2025-10-17T05:00:00.000Z"
+        }
+      },
+      "warnings": {
+        "approaching_hourly_limit": false,
+        "approaching_daily_limit": false,
+        "percentage_used": 0
+      },
+      "last_updated": "2025-10-16T18:45:13.338Z"
+    }
+  },
+  "last_saved": "2025-10-16T19:14:43.408Z"
+}

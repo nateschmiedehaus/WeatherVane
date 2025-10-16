@@ -1,10 +1,9 @@
 /**
  * Screenshot Utility - Capture web pages for design review
  */
-
 import { promises as fs } from "node:fs";
 import path from "node:path";
-import puppeteer, { type Browser, type Page } from "puppeteer";
+import { browserManager, type Page } from "./browser.js"; // Using the new shared browser manager
 import { logError, logInfo } from "../telemetry/logger.js";
 
 export interface ScreenshotOptions {
@@ -26,33 +25,17 @@ export interface ScreenshotResult {
 }
 
 export class ScreenshotCapture {
-  private browser: Browser | null = null;
-
-  async initialize(): Promise<void> {
-    if (this.browser) return;
-
-    try {
-      this.browser = await puppeteer.launch({
-        headless: true,
-        args: ["--no-sandbox", "--disable-setuid-sandbox"],
-      });
-      logInfo("Screenshot browser initialized");
-    } catch (error) {
-      logError("Failed to initialize screenshot browser", {
-        error: error instanceof Error ? error.message : String(error),
-      });
-      throw error;
-    }
-  }
-
+  // The browser instance is now managed by the singleton browserManager
+  
   async capture(options: ScreenshotOptions): Promise<ScreenshotResult> {
+    let page: Page | undefined;
     try {
-      await this.initialize();
-      if (!this.browser) {
-        throw new Error("Browser not initialized");
+      const browser = await browserManager.getBrowser();
+      if (!browser) {
+        throw new Error("Browser could not be initialized. Playwright might not be installed.");
       }
 
-      const page: Page = await this.browser.newPage();
+      page = await browser.newPage();
 
       // Set viewport
       if (options.viewport) {
@@ -63,7 +46,7 @@ export class ScreenshotCapture {
 
       // Navigate to URL
       logInfo(`Navigating to ${options.url}`);
-      await page.goto(options.url, { waitUntil: "networkidle2", timeout: 30000 });
+      await page.goto(options.url, { waitUntil: "networkidle", timeout: 30000 });
 
       // Wait for specific selector if provided
       if (options.waitForSelector) {
@@ -84,21 +67,19 @@ export class ScreenshotCapture {
       let screenshotPath: string;
       if (options.outputPath) {
         screenshotPath = options.outputPath;
-        await page.screenshot({ ...screenshotOptions, path: screenshotPath as `${string}.png` });
+        await page.screenshot({ ...screenshotOptions, path: screenshotPath });
       } else {
         // Generate temporary path
         const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
-        const filename = `screenshot_${timestamp}.png` as `${string}.png`;
+        const filename = `screenshot_${timestamp}.png`;
         screenshotPath = path.join(process.cwd(), "tmp", "screenshots", filename);
         await fs.mkdir(path.dirname(screenshotPath), { recursive: true });
-        await page.screenshot({ ...screenshotOptions, path: screenshotPath as `${string}.png` });
+        await page.screenshot({ ...screenshotOptions, path: screenshotPath });
       }
 
       // Get base64 encoding for immediate use
       const buffer = await fs.readFile(screenshotPath);
       const base64 = buffer.toString("base64");
-
-      await page.close();
 
       logInfo(`Screenshot captured: ${screenshotPath}`);
 
@@ -118,6 +99,10 @@ export class ScreenshotCapture {
         success: false,
         error: error instanceof Error ? error.message : String(error),
       };
+    } finally {
+        if (page) {
+            await page.close().catch(() => {});
+        }
     }
   }
 
@@ -145,11 +130,6 @@ export class ScreenshotCapture {
     return results;
   }
 
-  async close(): Promise<void> {
-    if (this.browser) {
-      await this.browser.close();
-      this.browser = null;
-      logInfo("Screenshot browser closed");
-    }
-  }
+  // The close method is no longer needed here, as the browserManager handles it globally.
+  // A global shutdown hook should call browserManager.closeBrowser()
 }

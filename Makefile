@@ -2,7 +2,7 @@
 
 CODEX_HOME ?= $(shell pwd)/.codex
 CODEX_ORCHESTRATOR_PROFILE ?= weathervane_orchestrator
-WVO_CAPABILITY ?= medium
+WVO_CAPABILITY ?= high
 CODEX_AUTOPILOT_MODEL ?= gpt-5-codex
 CODEX_AUTOPILOT_REASONING ?= auto
 BASE_INSTRUCTIONS ?= $(shell pwd)/docs/wvo_prompt.md
@@ -78,6 +78,7 @@ clean-metrics:
 
 mcp-build:
 	npm install --prefix tools/wvo_mcp
+	node tools/wvo_mcp/scripts/ensure-sqlite-build.mjs
 	npm run build --prefix tools/wvo_mcp
 
 mcp-register: mcp-build
@@ -88,7 +89,7 @@ mcp-run:
 	CODEX_HOME=$(CODEX_HOME) node $(WVO_MCP_ENTRY) --workspace $(shell pwd)
 
 mcp-auto: mcp-build mcp-register
-	CODEX_HOME=$(CODEX_HOME) $(CONFIGURE_CODEX_PROFILE) $(CODEX_HOME)/config.toml $(CODEX_ORCHESTRATOR_PROFILE) $(shell pwd) $(BASE_INSTRUCTIONS) --model $(CODEX_AUTOPILOT_MODEL) --sandbox danger-full-access --approval never --reasoning $(CODEX_AUTOPILOT_REASONING)
+	CODEX_HOME=$(CODEX_HOME) $(CONFIGURE_CODEX_PROFILE) $(CODEX_HOME)/config.toml $(CODEX_ORCHESTRATOR_PROFILE) $(shell pwd) $(BASE_INSTRUCTIONS) --model $(CODEX_AUTOPILOT_MODEL) --sandbox danger-full-access --ask-for-approval never --reasoning $(CODEX_AUTOPILOT_REASONING)
 	CODEX_HOME=$(CODEX_HOME) CODEX_PROFILE=$(WVO_CAPABILITY) WVO_DEFAULT_PROVIDER=codex codex session --profile $(CODEX_ORCHESTRATOR_PROFILE)
 .PHONY: mcp-autopilot
 mcp-autopilot: mcp-register

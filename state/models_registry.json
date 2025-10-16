@@ -1,0 +1,100 @@
+{
+  "last_updated": "2025-10-16T17:36:12.393Z",
+  "ttl_hours": 24,
+  "providers": {
+    "claude": {
+      "access_method": "subscription",
+      "models": [
+        {
+          "id": "claude-opus-4",
+          "name": "Claude Opus 4",
+          "context_window": 200000,
+          "max_output": 16384,
+          "cost_per_mtok": {
+            "input": 15,
+            "output": 75
+          },
+          "capabilities": [
+            "coding",
+            "reasoning",
+            "multimodal"
+          ],
+          "available": true,
+          "subscription_tier": "pro"
+        },
+        {
+          "id": "claude-sonnet-4.5",
+          "name": "Claude Sonnet 4.5",
+          "context_window": 200000,
+          "max_output": 16384,
+          "cost_per_mtok": {
+            "input": 3,
+            "output": 15
+          },
+          "capabilities": [
+            "coding",
+            "reasoning",
+            "multimodal"
+          ],
+          "available": true,
+          "subscription_tier": "pro"
+        },
+        {
+          "id": "claude-sonnet-4",
+          "name": "Claude Sonnet 4",
+          "context_window": 200000,
+          "max_output": 8192,
+          "cost_per_mtok": {
+            "input": 3,
+            "output": 15
+          },
+          "capabilities": [
+            "coding",
+            "reasoning",
+            "multimodal"
+          ],
+          "available": true,
+          "subscription_tier": "free"
+        }
+      ],
+      "last_checked": "2025-10-16T17:36:12.393Z"
+    },
+    "codex": {
+      "access_method": "subscription",
+      "models": [
+        {
+          "id": "gpt-5-codex",
+          "name": "GPT-5 Codex",
+          "reasoning_levels": [
+            "minimal",
+            "low",
+            "medium",
+            "high"
+          ],
+          "cost_per_mtok": {
+            "input": 12,
+            "output": 24
+          },
+          "available": true,
+          "context_window": 128000
+        },
+        {
+          "id": "gpt-5",
+          "name": "GPT-5",
+          "reasoning_levels": [
+            "minimal",
+            "low",
+            "medium",
+            "high"
+          ],
+          "cost_per_mtok": {
+            "input": 12,
+            "output": 30
+          },
+          "available": true,
+          "context_window": 128000
+        }
+      ]
+    }
+  }
+}

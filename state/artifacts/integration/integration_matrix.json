@@ -1,0 +1,33 @@
+{
+  "weather": {
+    "providers": ["Open-Meteo", "NOAA experimental"],
+    "status": "live",
+    "webhooks": ["alerts/weather", "radar/ingest"],
+    "failover": "Cached hourly forecasts with anomaly detection"
+  },
+  "marketing": {
+    "providers": ["Meta Ads", "Google Ads"],
+    "status": "live",
+    "webhooks": ["marketing/conversion", "marketing/budget"],
+    "failover": "Queue updates offline and replay once APIs recover"
+  },
+  "analytics": {
+    "providers": ["Snowflake", "Databricks"],
+    "status": "live",
+    "webhooks": ["analytics/ingest"],
+    "failover": "Stream to S3 parquet with later reconciliation"
+  },
+  "payments": {
+    "providers": ["Stripe"],
+    "status": "live",
+    "webhooks": ["payments/success", "payments/failure"],
+    "failover": "Fallback to manual invoicing with secure vault reference"
+  },
+  "monitoring": {
+    "checks": {
+      "uptime": "Pingdom + internal SLO watchers",
+      "latency": "Grafana dashboards with alert thresholds"
+    },
+    "lastAudit": "2025-10-15"
+  }
+}

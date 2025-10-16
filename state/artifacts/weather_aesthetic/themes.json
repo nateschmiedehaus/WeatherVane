@@ -1,0 +1,127 @@
+{
+  "version": "2025.10",
+  "updatedBy": "Director Dana",
+  "themes": [
+    {
+      "name": "sunny",
+      "palette": {
+        "primary": "#FFE066",
+        "secondary": "#FFB347",
+        "accent": "#209CEE",
+        "neutral": "#0F1C2C"
+      },
+      "typography": {
+        "headline": "Climatica Display",
+        "body": "Inter",
+        "numeral": "Space Grotesk"
+      },
+      "motion": {
+        "entry": {
+          "duration": 320,
+          "easing": "cubic-bezier(0.28, 0.84, 0.42, 1.0)"
+        },
+        "highlight": {
+          "duration": 220,
+          "easing": "cubic-bezier(0.12, 0.84, 0.34, 1.0)"
+        }
+      }
+    },
+    {
+      "name": "rain",
+      "palette": {
+        "primary": "#0E1E3D",
+        "secondary": "#3A6EA5",
+        "accent": "#9AD0F5",
+        "neutral": "#F4F8FB"
+      },
+      "typography": {
+        "headline": "Nimbus Serif",
+        "body": "Suisse Intl",
+        "numeral": "IBM Plex Mono"
+      },
+      "motion": {
+        "entry": {
+          "duration": 360,
+          "easing": "cubic-bezier(0.22, 1.0, 0.36, 1.0)"
+        },
+        "highlight": {
+          "duration": 260,
+          "easing": "ease-in-out"
+        }
+      }
+    },
+    {
+      "name": "snow",
+      "palette": {
+        "primary": "#EAF2FF",
+        "secondary": "#C7D6EF",
+        "accent": "#5D8BF4",
+        "neutral": "#0B1B3A"
+      },
+      "typography": {
+        "headline": "Cirrus Sans",
+        "body": "Source Sans Pro",
+        "numeral": "GT America"
+      },
+      "motion": {
+        "entry": {
+          "duration": 480,
+          "easing": "cubic-bezier(0.65, 0, 0.35, 1)"
+        },
+        "highlight": {
+          "duration": 340,
+          "easing": "cubic-bezier(0.33, 1, 0.68, 1)"
+        }
+      }
+    },
+    {
+      "name": "storm",
+      "palette": {
+        "primary": "#040814",
+        "secondary": "#2A2A72",
+        "accent": "#FF3366",
+        "neutral": "#CBE1FF"
+      },
+      "typography": {
+        "headline": "Tempest Display",
+        "body": "Neue Montreal",
+        "numeral": "Suisse Works"
+      },
+      "motion": {
+        "entry": {
+          "duration": 260,
+          "easing": "cubic-bezier(0.4, 0, 0.2, 1)"
+        },
+        "highlight": {
+          "duration": 180,
+          "easing": "cubic-bezier(0.17, 0.67, 0.47, 1.26)"
+        }
+      }
+    }
+  ],
+  "transitions": {
+    "sunny->rain": {
+      "animation": "polymorphic-gradient",
+      "galleryReference": "state/web_inspiration/atlas_sprint/sun-to-rain.png"
+    },
+    "rain->snow": {
+      "animation": "parallax-precipitation",
+      "galleryReference": "state/web_inspiration/dana_review/rain-to-snow.png"
+    },
+    "snow->storm": {
+      "animation": "aurora-flash",
+      "galleryReference": "state/web_inspiration/demo_polish/snow-to-storm.png"
+    },
+    "storm->sunny": {
+      "animation": "horizon-break",
+      "galleryReference": "state/web_inspiration/demo_polish/storm-to-sun.png"
+    }
+  },
+  "accessibility": {
+    "contrastRating": "AA+",
+    "motionPreferences": {
+      "reducedMotion": "fade and color shift only",
+      "fullExperience": "dynamic parallax with depth-based blur"
+    }
+  }
+}

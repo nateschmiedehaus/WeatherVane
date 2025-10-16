@@ -5,6 +5,14 @@ import { fileURLToPath } from 'node:url';
 import type { ExecaError } from 'execa';
 import { execa } from 'execa';
 import Database from 'better-sqlite3';
+import {
+  formatSemver,
+  parseSemver,
+  parseVersionConstraint,
+  semverSatisfies,
+  type Semver,
+  type VersionConstraint,
+} from './semver.js';
 
 const DEFAULT_DISK_THRESHOLD_MB = 500;
 const DEFAULT_NODE_MAJOR = 18;
@@ -12,6 +20,18 @@ const DEFAULT_NPM_MAJOR = 9;
 const GATE_SEQUENCE = ['build', 'unit', 'selfchecks', 'canary_ready'] as const;
 
 export type UpgradeGateName = (typeof GATE_SEQUENCE)[number];
+
+export type VersionEvidenceTool = 'node' | 'npm';
+
+export interface VersionEvidence {
+  tool: VersionEvidenceTool;
+  rawDetected?: string;
+  detected?: string;
+  constraint?: string;
+  constraintSource?: string;
+  satisfies: boolean;
+  notes?: string;
+}
 
 export interface GateLog {
   gate: UpgradeGateName;
@@ -30,6 +50,7 @@ export interface UpgradePreflightSuccess {
   ok: true;
   logs: PreflightLogEntry[];
   gates: GateLog[];
+  versions: VersionEvidence[];
 }
 
 export interface UpgradePreflightFailure {
@@ -38,6 +59,7 @@ export interface UpgradePreflightFailure {
   failedCheck: string;
   logs: PreflightLogEntry[];
   gates: GateLog[];
+  versions: VersionEvidence[];
 }
 
 export type UpgradePreflightOutcome = UpgradePreflightSuccess | UpgradePreflightFailure;
@@ -96,6 +118,11 @@ const getDefaultRootDir = () => {
   return path.resolve(current, '../../..');
 };
 
+interface VersionConstraintInfo {
+  value: string;
+  source: string;
+}
+
 const toIso = (timeProvider: () => Date) => timeProvider().toISOString();
 
 export async function runUpgradePreflight(
@@ -103,6 +130,8 @@ export async function runUpgradePreflight(
 ): Promise<UpgradePreflightOutcome> {
   const rootDir = rawOptions.rootDir ?? getDefaultRootDir();
   const stateDir = rawOptions.stateDir ?? path.join(rootDir, 'state');
+  const nodeConstraint = readNodeVersionConstraint(rootDir);
+  const npmConstraint = readEngineConstraint(rootDir, 'npm');
   const upgradeLockPath = rawOptions.upgradeLockPath ?? path.join(stateDir, 'upgrade.lock');
   const diskCheckPath = rawOptions.diskCheckPath ?? rootDir;
   const sqlitePath = rawOptions.sqlitePath ?? path.join(stateDir, 'orchestrator.db');
@@ -119,6 +148,20 @@ export async function runUpgradePreflight(
     status: 'pending',
     timestamp: toIso(timeProvider),
   }));
+  const versionEvidence = new Map<VersionEvidenceTool, VersionEvidence>();
+
+  const ensureVersionEvidence = (tool: VersionEvidenceTool): VersionEvidence => {
+    const existing = versionEvidence.get(tool);
+    if (existing) {
+      return existing;
+    }
+    const entry: VersionEvidence = {
+      tool,
+      satisfies: false,
+    };
+    versionEvidence.set(tool, entry);
+    return entry;
+  };
 
   const logSuccess = (name: string) => {
     logs.push({
@@ -146,6 +189,7 @@ export async function runUpgradePreflight(
       failedCheck: 'upgrade_lock',
       logs,
       gates,
+      versions: Array.from(versionEvidence.values()),
     };
   }
 
@@ -210,24 +254,115 @@ export async function runUpgradePreflight(
     });
 
     await runCheck('node_version', async () => {
-      const major = parseVersionMajor(nodeVersion);
-      if (Number.isNaN(major) || major < minimumNodeMajor) {
+      const parsedVersion = parseSemver(nodeVersion);
+      const evidence = ensureVersionEvidence('node');
+      evidence.rawDetected = nodeVersion;
+
+      if (!parsedVersion) {
+        evidence.satisfies = false;
+        evidence.notes = `Unable to parse Node.js version "${nodeVersion}"`;
+        throw new PreflightError(
+          'node_version',
+          'Unable to parse detected Node.js version',
+          `received ${nodeVersion}`,
+        );
+      }
+      evidence.detected = formatSemver(parsedVersion);
+      if (nodeConstraint) {
+        evidence.constraint = nodeConstraint.value;
+        evidence.constraintSource = nodeConstraint.source;
+        const constraint = parseVersionConstraint(nodeConstraint.value);
+        if (!constraint) {
+          evidence.satisfies = false;
+          throw new PreflightError(
+            'node_version',
+            `Unable to parse Node.js constraint "${nodeConstraint.value}"`,
+          );
+        }
+        const satisfies = semverSatisfies(parsedVersion, constraint);
+        evidence.satisfies = satisfies;
+        if (!satisfies) {
+          evidence.notes = `detected ${formatSemver(parsedVersion)}`;
+          throw new PreflightError(
+            'node_version',
+            `Node.js version must satisfy ${nodeConstraint.value}`,
+            `detected ${formatSemver(parsedVersion)}`,
+          );
+        }
+        return;
+      }
+
+      evidence.constraint = `>=${minimumNodeMajor}.0.0`;
+      evidence.constraintSource = 'default';
+      const satisfies = parsedVersion.major >= minimumNodeMajor;
+      evidence.satisfies = satisfies;
+      if (!satisfies) {
+        evidence.constraint = `>=${minimumNodeMajor}.0.0`;
+        evidence.constraintSource = 'default';
+        evidence.satisfies = false;
+        evidence.notes = `detected ${formatSemver(parsedVersion)}`;
         throw new PreflightError(
           'node_version',
           `Node.js ${minimumNodeMajor}+ required`,
-          `detected ${nodeVersion}`,
+          `detected ${formatSemver(parsedVersion)}`,
         );
       }
     });
 
     await runCheck('npm_version', async () => {
       const { stdout } = await commandRunner('npm', ['--version'], { cwd: rootDir });
-      const major = parseVersionMajor(stdout.trim());
-      if (Number.isNaN(major) || major < minimumNpmMajor) {
+      const trimmed = stdout.trim();
+      const parsedVersion = parseSemver(trimmed);
+      const evidence = ensureVersionEvidence('npm');
+      evidence.rawDetected = trimmed;
+
+      if (!parsedVersion) {
+        evidence.satisfies = false;
+        evidence.notes = `Unable to parse npm version "${trimmed}"`;
+        throw new PreflightError(
+          'npm_version',
+          'Unable to parse detected npm version',
+          `received ${trimmed}`,
+        );
+      }
+      evidence.detected = formatSemver(parsedVersion);
+      if (npmConstraint) {
+        evidence.constraint = npmConstraint.value;
+        evidence.constraintSource = npmConstraint.source;
+        const constraint = parseVersionConstraint(npmConstraint.value);
+        if (!constraint) {
+          evidence.satisfies = false;
+          throw new PreflightError(
+            'npm_version',
+            `Unable to parse npm constraint "${npmConstraint.value}"`,
+          );
+        }
+        const satisfies = semverSatisfies(parsedVersion, constraint);
+        evidence.satisfies = satisfies;
+        if (!satisfies) {
+          evidence.notes = `detected ${formatSemver(parsedVersion)}`;
+          throw new PreflightError(
+            'npm_version',
+            `npm version must satisfy ${npmConstraint.value}`,
+            `detected ${formatSemver(parsedVersion)}`,
+          );
+        }
+        return;
+      }
+
+      evidence.constraint = `>=${minimumNpmMajor}.0.0`;
+      evidence.constraintSource = 'default';
+      const satisfies = parsedVersion.major >= minimumNpmMajor;
+      evidence.satisfies = satisfies;
+      if (!satisfies) {
+        evidence.constraint = `>=${minimumNpmMajor}.0.0`;
+        evidence.constraintSource = 'default';
+        evidence.satisfies = false;
+        evidence.notes = `detected ${formatSemver(parsedVersion)}`;
         throw new PreflightError(
           'npm_version',
           `npm ${minimumNpmMajor}+ required`,
-          `detected ${stdout.trim()}`,
+          `detected ${formatSemver(parsedVersion)}`,
         );
       }
     });
@@ -278,6 +413,7 @@ export async function runUpgradePreflight(
       ok: true,
       logs,
       gates,
+      versions: Array.from(versionEvidence.values()),
     };
   } catch (error) {
     const failure = error as PreflightError;
@@ -287,15 +423,52 @@ export async function runUpgradePreflight(
       failedCheck: failure.check,
       logs,
       gates,
+      versions: Array.from(versionEvidence.values()),
     };
   } finally {
     removeLock();
   }
 }
 
-function parseVersionMajor(version: string): number {
-  const match = version.trim().match(/(?:(?:v|V))?(\d{1,3})/);
-  return match ? Number.parseInt(match[1] ?? '', 10) : Number.NaN;
+function readNodeVersionConstraint(rootDir: string): VersionConstraintInfo | undefined {
+  const nvmrcPath = path.join(rootDir, '.nvmrc');
+  if (fs.existsSync(nvmrcPath)) {
+    const content = fs.readFileSync(nvmrcPath, 'utf-8').trim();
+    if (content.length > 0) {
+      return {
+        value: content,
+        source: '.nvmrc',
+      };
+    }
+  }
+  return readEngineConstraint(rootDir, 'node');
+}
+
+function readEngineConstraint(rootDir: string, key: 'node' | 'npm'): VersionConstraintInfo | undefined {
+  const packageJsonCandidates = [
+    path.join(rootDir, 'package.json'),
+    path.join(rootDir, 'tools', 'wvo_mcp', 'package.json'),
+  ];
+  for (const candidate of packageJsonCandidates) {
+    if (!fs.existsSync(candidate)) {
+      continue;
+    }
+    try {
+      const raw = fs.readFileSync(candidate, 'utf-8');
+      const parsed = JSON.parse(raw) as { engines?: Record<string, unknown> };
+      const value = parsed.engines?.[key];
+      if (typeof value === 'string' && value.trim().length > 0) {
+        const relativePath = path.relative(rootDir, candidate) || path.basename(candidate);
+        return {
+          value: value.trim(),
+          source: `${relativePath} (engines.${key})`,
+        };
+      }
+    } catch {
+      // Ignore JSON parse failures; next candidate may provide the constraint.
+    }
+  }
+  return undefined;
 }
 
 function parseAvailableDiskMb(dfOutput: string): number {

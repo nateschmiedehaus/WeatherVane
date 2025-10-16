@@ -72,6 +72,10 @@ class ShopifyConnector(HTTPConnector):
         response = await self._request_with_refresh("POST", path, json=payload)
         return response.json()
 
+    async def _after_success(self, response: httpx.Response) -> None:
+        await super()._after_success(response)
+        await self._throttle_from_call_limit(response)
+
     async def close(self) -> None:
         await super().close()
 
@@ -82,6 +86,32 @@ class ShopifyConnector(HTTPConnector):
             if exc.response.status_code == 401 and await self._refresh_access_token():
                 return await super()._request(method, path, **kwargs)
             raise
+
+    async def _throttle_from_call_limit(self, response: httpx.Response) -> None:
+        header = response.headers.get("X-Shopify-Shop-Api-Call-Limit")
+        if not header:
+            return
+        try:
+            used_str, capacity_str = header.split("/", maxsplit=1)
+            used = int(used_str.strip())
+            capacity = int(capacity_str.strip())
+        except (ValueError, AttributeError):
+            return
+        if capacity <= 0:
+            return
+        rate = self.config.rate_limit_per_second or 0.0
+        if rate <= 0:
+            return
+        threshold = max(int(capacity * 0.9), capacity - 5)
+        if used < threshold:
+            return
+        deficit = used - threshold + 1
+        if deficit <= 0:
+            return
+        wait_time = deficit / rate
+        if wait_time <= 0:
+            return
+        await asyncio.sleep(min(wait_time, self.config.max_backoff))
 
     async def _refresh_access_token(self) -> bool:
         if not self._can_refresh():

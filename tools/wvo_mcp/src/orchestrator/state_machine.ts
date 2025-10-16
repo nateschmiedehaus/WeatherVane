@@ -16,6 +16,8 @@ import path from 'node:path';
 import fs from 'node:fs';
 
 import { seedLiveFlagDefaults } from '../state/live_flags.js';
+import { createDryRunError } from '../utils/dry_run.js';
+import { logWarning } from '../telemetry/logger.js';
 
 // ============================================================================
 // Types
@@ -181,16 +183,21 @@ function mergeMetadata(
 // State Machine Implementation
 // ============================================================================
 
+interface StateMachineOptions {
+  readonly?: boolean;
+}
+
 export class StateMachine extends EventEmitter {
   private db: Database.Database;
   private readonly dbPath: string;
   private readonly workspaceRoot: string;
+  private readonly readOnly: boolean;
 
   // Cache for expensive getRoadmapHealth() queries
   private cachedHealth: RoadmapHealth | null = null;
   private healthCacheValid = false;
 
-  constructor(workspaceRoot: string) {
+  constructor(workspaceRoot: string, options: StateMachineOptions = {}) {
     super();
     this.workspaceRoot = workspaceRoot;
 
@@ -200,11 +207,35 @@ export class StateMachine extends EventEmitter {
     }
 
     this.dbPath = path.join(stateDir, 'orchestrator.db');
-    this.db = new Database(this.dbPath);
-    this.db.pragma('journal_mode = WAL');  // Better concurrency
-    this.db.pragma('foreign_keys = ON');   // Enforce referential integrity
+    this.readOnly = options.readonly ?? false;
 
-    this.initializeSchema();
+    if (this.readOnly) {
+      const options = {
+        readonly: true,
+        fileMustExist: true,
+      } as Database.Options;
+      try {
+        this.db = new Database(this.dbPath, options);
+        this.db.pragma('query_only = 1');
+      } catch (error) {
+        logWarning('Falling back to in-memory orchestrator DB for dry-run worker', {
+          path: this.dbPath,
+          error: error instanceof Error ? error.message : String(error),
+        });
+        this.db = new Database(':memory:');
+        const previousReadOnly = this.readOnly;
+        this.readOnly = false;
+        this.db.pragma('query_only = 0');
+        this.initializeSchema();
+        this.db.pragma('query_only = 1');
+        this.readOnly = previousReadOnly;
+      }
+    } else {
+      this.db = new Database(this.dbPath);
+      this.db.pragma('journal_mode = WAL');  // Better concurrency
+      this.db.pragma('foreign_keys = ON');   // Enforce referential integrity
+      this.initializeSchema();
+    }
   }
 
   /**
@@ -219,6 +250,9 @@ export class StateMachine extends EventEmitter {
   // ==========================================================================
 
   private initializeSchema(): void {
+    if (this.readOnly) {
+      return;
+    }
     this.db.exec(`
       -- Task dependency graph
       CREATE TABLE IF NOT EXISTS tasks (
@@ -370,11 +404,18 @@ export class StateMachine extends EventEmitter {
     seedLiveFlagDefaults(this.db);
   }
 
+  private assertWritable(operation: string): void {
+    if (this.readOnly) {
+      throw createDryRunError(`state_machine:${operation}`);
+    }
+  }
+
   // ==========================================================================
   // Task Operations
   // ==========================================================================
 
   createTask(task: Omit<Task, 'created_at'>, correlationId?: string): Task {
+    this.assertWritable('create_task');
     const now = Date.now();
     const fullTask: Task = {
       ...task,
@@ -422,6 +463,7 @@ export class StateMachine extends EventEmitter {
     updates: { title?: string; description?: string },
     correlationId?: string
   ): Task {
+    this.assertWritable('update_task_details');
     const allowed: Array<keyof typeof updates> = ['title', 'description'];
     const setFragments: string[] = [];
     const values: any[] = [];
@@ -492,6 +534,7 @@ export class StateMachine extends EventEmitter {
   }
 
   async transition(taskId: string, newStatus: TaskStatus, metadata?: Record<string, unknown>, correlationId?: string): Promise<Task> {
+    this.assertWritable('transition');
     const task = this.getTask(taskId);
     if (!task) {
       throw new Error(`Task ${taskId} not found`);
@@ -547,6 +590,7 @@ export class StateMachine extends EventEmitter {
   }
 
   assignTask(taskId: string, agent: string, correlationId?: string): Task {
+    this.assertWritable('assign_task');
     const task = this.getTask(taskId);
     if (!task) {
       throw new Error(`Task ${taskId} not found`);
@@ -573,6 +617,7 @@ export class StateMachine extends EventEmitter {
   // ==========================================================================
 
   addDependency(taskId: string, dependsOnTaskId: string, type: 'blocks' | 'related' | 'suggested' = 'blocks'): void {
+    this.assertWritable('add_dependency');
     // Check for circular dependencies
     if (this.wouldCreateCycle(taskId, dependsOnTaskId)) {
       throw new Error(`Adding dependency would create a cycle: ${taskId} -> ${dependsOnTaskId}`);
@@ -752,6 +797,7 @@ export class StateMachine extends EventEmitter {
   // ==========================================================================
 
   logEvent(event: Omit<Event, 'id'>): void {
+    this.assertWritable('log_event');
     this.db.prepare(`
       INSERT INTO events (timestamp, event_type, task_id, agent, data, correlation_id)
       VALUES (?, ?, ?, ?, ?, ?)
@@ -805,6 +851,7 @@ export class StateMachine extends EventEmitter {
   // ==========================================================================
 
   recordQuality(metric: Omit<QualityMetric, 'id'>): void {
+    this.assertWritable('record_quality');
     this.db.prepare(`
       INSERT INTO quality_metrics (timestamp, task_id, dimension, score, details)
       VALUES (?, ?, ?, ?, ?)
@@ -870,6 +917,7 @@ export class StateMachine extends EventEmitter {
   // ==========================================================================
 
   recordCriticHistory(entry: Omit<CriticHistoryRecord, 'id'>): CriticHistoryRecord {
+    this.assertWritable('record_critic_history');
     const createdAt = entry.created_at ?? Date.now();
     const metadata = entry.metadata ? JSON.stringify(entry.metadata) : null;
     const result = this.db.prepare(
@@ -922,6 +970,7 @@ export class StateMachine extends EventEmitter {
     metadata?: Record<string, unknown>;
     stored_at?: number;
   }): ResearchCacheRecord {
+    this.assertWritable('record_research_cache');
     const storedAt = entry.stored_at ?? Date.now();
     const ttl = Math.max(1, entry.ttlMs ?? 90 * 24 * 60 * 60 * 1000);
     const expiresAt = storedAt + ttl;
@@ -986,6 +1035,7 @@ export class StateMachine extends EventEmitter {
   }
 
   pruneResearchCache(now: number = Date.now()): number {
+    this.assertWritable('prune_research_cache');
     const result = this.db.prepare(`DELETE FROM research_cache WHERE expires_at <= ?`).run(now);
     return typeof result.changes === 'number' ? result.changes : 0;
   }
@@ -1089,6 +1139,7 @@ export class StateMachine extends EventEmitter {
   // ==========================================================================
 
   createCheckpoint(checkpoint: Omit<Checkpoint, 'id' | 'timestamp'>): Checkpoint {
+    this.assertWritable('create_checkpoint');
     const now = Date.now();
     const result = this.db.prepare(`
       INSERT INTO checkpoints (timestamp, session_id, git_sha, state_snapshot, notes)
@@ -1164,6 +1215,7 @@ export class StateMachine extends EventEmitter {
   }
 
   replaceCodeIndex(entries: CodeIndexEntry[], updatedAt: number): void {
+    this.assertWritable('replace_code_index');
     const insert = this.db.prepare(
       'INSERT INTO code_fts(file_path, content, language) VALUES (?, ?, ?)'
     );

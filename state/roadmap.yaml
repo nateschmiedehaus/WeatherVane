@@ -115,41 +115,45 @@ epics:
               - doc: docs/UX_CRITIQUE.md
               - artifact: docs/product/UX_CRITIQUE.md
       - id: M3.3
-        title: Product Experience Blueprints
-        description: "Codify WeatherVane UX: personas, journeys, IA, wireframes,
-          component system."
+        title: Autonomous Orchestration Blueprints
+        description: "Codify WeatherVane’s multi-agent collaboration model: delegation
+          graph, consensus rituals, learning loops, and escalation guardrails
+          inspired by top-tier orchestration research."
         tasks:
           - id: T3.3.1
-            title: Map end-to-end WeatherVane user journeys and personas
-            status: blocked
+            title: Draft multi-agent charter & delegation mesh (AutoGen/Swarm patterns)
+            status: done
             exit_criteria:
-              - artifact: docs/product/user_journeys.md
+              - artifact: docs/orchestration/multi_agent_charter.md
+              - critic: manager_self_check
               - critic: org_pm
           - id: T3.3.2
-            title: Document site architecture, navigation, and dashboard IA
+            title: Implement hierarchical consensus & escalation engine
             status: blocked
             dependencies:
               - T3.3.1
             exit_criteria:
-              - artifact: docs/product/information_architecture.md
-              - critic: design_system
+              - critic: integration_fury
+              - critic: manager_self_check
+              - doc: docs/orchestration/consensus_engine.md
           - id: T3.3.3
-            title: Produce annotated wireframes for core pages (Plan, Dashboard,
-              Experiments, Reports)
+            title: Build closed-loop simulation harness for autonomous teams
             status: blocked
             dependencies:
               - T3.3.2
             exit_criteria:
-              - artifact: docs/product/wireframes.pdf
-              - critic: design_system
+              - artifact: experiments/orchestration/simulation_report.md
+              - critic: tests
+              - critic: health_check
           - id: T3.3.4
-            title: Define component library and motion guidelines for WeatherVane UI
+            title: Instrument dynamic staffing telemetry & learning pipeline
             status: blocked
             dependencies:
               - T3.3.3
             exit_criteria:
-              - artifact: docs/product/component_library.md
-              - critic: design_system
+              - critic: prompt_budget
+              - critic: exec_review
+              - artifact: state/analytics/orchestration_metrics.json
       - id: M3.4
         title: Experience Implementation
         description: "Build the WeatherVane product UI: core pages, dashboards,
@@ -243,7 +247,7 @@ epics:
               - tests: tests/test_marketing_mix_solver.py
           - id: T4.1.8
             title: Reinforcement-learning shadow mode (safe exploration)
-            status: blocked
+            status: in_progress
             exit_criteria:
               - critic: allocator
               - artifact: experiments/rl/shadow_mode.json
@@ -399,7 +403,7 @@ epics:
                 for 100% safe migrations"
           - id: T6.2.4
             title: API rate limiting & exponential backoff (Open-Meteo, Shopify, Ads APIs)
-            status: pending
+            status: blocked
             exit_criteria:
               - critic: allocator
               - tests: tests/test_rate_limiting.py
@@ -410,7 +414,7 @@ epics:
         tasks:
           - id: T6.3.1
             title: Performance benchmarking (MCP overhead, checkpoint size, token usage)
-            status: pending
+            status: done
             exit_criteria:
               - critic: cost_perf
               - artifact: experiments/mcp/performance_benchmarks.json
@@ -426,7 +430,7 @@ epics:
                 alerting on breaches"
           - id: T6.3.3
             title: Autopilot loop end-to-end testing (full autonomous cycle validation)
-            status: pending
+            status: done
             exit_criteria:
               - critic: manager_self_check
               - artifact: experiments/mcp/autopilot_e2e.json
@@ -452,7 +456,7 @@ epics:
               Abort
 
               on any failure and capture structured errors.
-            status: pending
+            status: in_progress
             exit_criteria:
               - state/upgrade.lock created before work and removed on exit
               - Preflight script validates git status, Node/npm versions, disk
@@ -469,7 +473,7 @@ epics:
 
               `DISABLE_NEW` global kill switch that forces legacy behaviour
               instantly.
-            status: pending
+            status: done
             exit_criteria:
               - settings table created with defaults + DISABLE_NEW
               - LiveFlags poller refreshes in-memory cache during runtime
@@ -485,7 +489,7 @@ epics:
 
               atomically switch to the validated canary without disconnecting
               clients.
-            status: pending
+            status: in_progress
             exit_criteria:
               - WorkerManager exposes startActive/startCanary/switchToCanary
               - Front-end tool handlers call workers.getActive().call(...)

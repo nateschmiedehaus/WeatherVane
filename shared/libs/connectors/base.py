@@ -59,27 +59,20 @@ class HTTPConnector(Connector):
             try:
                 response = await self._client.request(method, path, **kwargs)
                 if response.status_code == 429:
-                    retry_after = response.headers.get("Retry-After")
-                    if retry_after:
-                        try:
-                            await asyncio.sleep(min(float(retry_after), self.config.max_backoff))
-                        except ValueError:
-                            await asyncio.sleep(self._backoff_delay(attempt))
-                    else:
-                        await asyncio.sleep(self._backoff_delay(attempt))
+                    await self._handle_rate_limit_response(response, attempt)
                     continue
                 response.raise_for_status()
+                await self._after_success(response)
                 return response
             except httpx.HTTPStatusError as exc:  # pragma: no cover - network stub
-                status = exc.response.status_code
                 last_exc = exc
-                if status >= 500 or status == 429:
-                    await asyncio.sleep(self._backoff_delay(attempt))
+                if await self._handle_http_status_error(exc, attempt):
                     continue
                 raise
             except httpx.HTTPError as exc:  # pragma: no cover - network stub
                 last_exc = exc
-                await asyncio.sleep(self._backoff_delay(attempt))
+                await self._handle_network_error(exc, attempt)
+                continue
         if last_exc is not None:
             raise last_exc
         raise RuntimeError("HTTP request failed without exception")
@@ -87,3 +80,29 @@ class HTTPConnector(Connector):
     def _backoff_delay(self, attempt: int) -> float:
         delay = self.config.backoff_factor * (2 ** attempt)
         return min(delay, self.config.max_backoff)
+
+    async def _handle_rate_limit_response(self, response: httpx.Response, attempt: int) -> None:
+        retry_after = response.headers.get("Retry-After")
+        delay = self._backoff_delay(attempt)
+        if retry_after:
+            try:
+                delay = float(retry_after)
+            except ValueError:
+                pass
+        await asyncio.sleep(min(delay, self.config.max_backoff))
+
+    async def _handle_http_status_error(self, exc: httpx.HTTPStatusError, attempt: int) -> bool:
+        status = exc.response.status_code
+        if status >= 500:
+            await asyncio.sleep(self._backoff_delay(attempt))
+            return True
+        if status == 429:
+            await self._handle_rate_limit_response(exc.response, attempt)
+            return True
+        return False
+
+    async def _handle_network_error(self, exc: httpx.HTTPError, attempt: int) -> None:
+        await asyncio.sleep(self._backoff_delay(attempt))
+
+    async def _after_success(self, response: httpx.Response) -> None:
+        return None

@@ -25,6 +25,10 @@ def test_get_shadow_mode_report(monkeypatch, tmp_path):
     payload = response.json()
     assert payload["config"]["episodes"] == 6
     assert len(payload["episodes"]) == 6
+    validation = payload["validation"]
+    assert isinstance(validation["checks"], list)
+    assert validation["summary"]["episodes"] == 6
+    assert validation["stress_test"]["guardrail_violations"] >= 0
 
 
 def test_get_saturation_report(monkeypatch, tmp_path):

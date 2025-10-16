@@ -8,6 +8,41 @@ interface Props {
 export function CreativeGuardrailPanel({ report }: Props) {
   const highlights = report.top_creatives.slice(0, 3);
   const rows = report.creatives.slice(0, 8);
+  const spendShares = [
+    {
+      key: "active",
+      label: "Active spend",
+      value: report.summary.active_spend_share,
+      tone: "active",
+    },
+    {
+      key: "watchlist",
+      label: "Watchlist spend",
+      value: report.summary.watchlist_spend_share,
+      tone: "caution",
+    },
+    {
+      key: "blocked",
+      label: "Blocked spend",
+      value: report.summary.blocked_spend_share,
+      tone: "critical",
+    },
+  ];
+  const guardrailEntries = Object.entries(report.summary.guardrail_counts ?? {})
+    .filter(([, count]) => count > 0)
+    .sort((a, b) => b[1] - a[1]);
+
+  const toPercent = (value: number): number =>
+    Number.isFinite(value) ? Math.round(value * 1000) / 10 : 0;
+  const formatGuardrailLabel = (key: string): string => {
+    const words = key.split("_").map((word) => {
+      if (word.toLowerCase() === "roas") {
+        return "ROAS";
+      }
+      return word.charAt(0).toUpperCase() + word.slice(1);
+    });
+    return words.join(" ");
+  };
 
   return (
     <section className={styles.contextSection} aria-label="Creative guardrail status">
@@ -35,6 +70,54 @@ export function CreativeGuardrailPanel({ report }: Props) {
             <dd className="ds-body-strong">{report.summary.blocked_creatives}</dd>
           </div>
         </dl>
+        <div
+          className={styles.guardrailSummary}
+          role="list"
+          aria-label="Spend distribution by guardrail status"
+        >
+          {spendShares.map((item) => {
+            const percent = Math.min(100, Math.max(0, toPercent(item.value)));
+            return (
+              <div key={item.key} className={styles.guardrailSummaryItem} role="listitem">
+                <span className="ds-caption">{item.label}</span>
+                <div
+                  className={styles.guardrailBar}
+                  role="meter"
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                  aria-valuenow={percent}
+                  aria-valuetext={`${percent.toFixed(1)}%`}
+                >
+                  <div
+                    className={styles.guardrailBarFill}
+                    data-tone={item.tone}
+                    style={{ width: `${percent}%` }}
+                  />
+                </div>
+                <span className="ds-body-strong">{percent.toFixed(1)}% of spend</span>
+              </div>
+            );
+          })}
+        </div>
+        <div className={styles.guardrailBreakdown} aria-live="polite">
+          <h4 className="ds-body-strong">Guardrail triggers</h4>
+          {guardrailEntries.length > 0 ? (
+            <ul className={styles.guardrailBreakdownList}>
+              {guardrailEntries.map(([guardrail, count]) => (
+                <li key={guardrail} className={styles.guardrailBreakdownItem}>
+                  <span className={styles.guardrailBreakdownLabel}>
+                    {formatGuardrailLabel(guardrail)}
+                  </span>
+                  <span className={styles.guardrailBreakdownCount}>{count}</span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className={`${styles.guardrailBreakdownEmpty} ds-body`}>
+              No guardrail flags detected. Creatives meet policy thresholds.
+            </p>
+          )}
+        </div>
       </div>
 
       <div className={styles.summaryCard} aria-label="Top performing creatives">

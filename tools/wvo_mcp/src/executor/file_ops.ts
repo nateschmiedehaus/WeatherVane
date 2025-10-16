@@ -1,6 +1,8 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 
+import { assertDryRunWriteAllowed } from "../utils/dry_run.js";
+
 function assertInWorkspace(workspaceRoot: string, targetPath: string): string {
   const resolved = path.resolve(workspaceRoot, targetPath);
   if (!resolved.startsWith(path.resolve(workspaceRoot))) {
@@ -59,6 +61,7 @@ export async function writeFile(
   content: string,
   options?: { allowProtected?: boolean },
 ): Promise<void> {
+  assertDryRunWriteAllowed(`fs.write(${relativePath})`);
   const resolved = assertInWorkspace(workspaceRoot, relativePath);
 
   // Check if this is a protected file

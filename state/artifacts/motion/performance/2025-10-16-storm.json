@@ -1,0 +1,7 @@
+{
+  "capture": "chrome-devtools",
+  "scenario": "storm-overlay",
+  "averageFPS": 61,
+  "droppedFrames": 2,
+  "notes": "Recorded during demo rehearsal. GPU usage peaked at 68%."
+}

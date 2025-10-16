@@ -1,0 +1,88 @@
+{
+  "revision": "2025.10.16",
+  "breakpoints": [
+    {
+      "id": "mobile",
+      "min": 0,
+      "max": 599,
+      "grid": 4,
+      "gutter": 12,
+      "notes": "Stack modules vertically, prioritize primary call to action and weather ticker."
+    },
+    {
+      "id": "tablet",
+      "min": 600,
+      "max": 1023,
+      "grid": 8,
+      "gutter": 16,
+      "notes": "Split layout with forecast carousel and narrative sidebar; gestures map to swipe transitions."
+    },
+    {
+      "id": "desktop",
+      "min": 1024,
+      "max": 1439,
+      "grid": 12,
+      "gutter": 24,
+      "notes": "Introduce multi-column plan builder with persistent weather insight rail and executive summary card."
+    },
+    {
+      "id": "large",
+      "min": 1440,
+      "max": 9999,
+      "grid": 16,
+      "gutter": 32,
+      "notes": "Enable widescreen cinematic hero, dual timeline view, and stakeholder narrative dock."
+    }
+  ],
+  "components": {
+    "hero": {
+      "mobile": {
+        "height": 420,
+        "modules": ["weatherTicker", "primaryCTA"],
+        "motion": "fade-rise"
+      },
+      "tablet": {
+        "height": 560,
+        "modules": ["weatherTicker", "executiveSummary"],
+        "motion": "parallax-pan"
+      },
+      "desktop": {
+        "height": 640,
+        "modules": ["weatherTicker", "scenarioHighlights", "conversionPrompt"],
+        "motion": "parallax-pan"
+      },
+      "large": {
+        "height": 720,
+        "modules": ["weatherTicker", "scenarioHighlights", "conversionPrompt", "stakeholderNarrative"],
+        "motion": "depth-shift"
+      }
+    },
+    "planBuilder": {
+      "mobile": {
+        "columns": 1,
+        "interactions": ["accordion", "touch gestures"],
+        "notes": "Cards stack with sticky context bar; weather insight remains visible."
+      },
+      "tablet": {
+        "columns": 2,
+        "interactions": ["drag", "touch gestures"],
+        "notes": "Two-column layout with collapsible summary drawer."
+      },
+      "desktop": {
+        "columns": 3,
+        "interactions": ["drag", "hover"],
+        "notes": "Grid supports inline analytics and micro-interactions referencing motion specs."
+      },
+      "large": {
+        "columns": 4,
+        "interactions": ["drag", "hover", "keyboard"],
+        "notes": "Adds executive storyboard track with real-time collaboration cursors."
+      }
+    }
+  },
+  "qa": {
+    "lastAudit": "2025-10-15",
+    "auditor": "Atlas",
+    "notes": "ResponsiveSurfaceCritic validated breakpoints, gestures, and fallback behaviour; references stored under state/artifacts/responsive/testing_report.md."
+  }
+}

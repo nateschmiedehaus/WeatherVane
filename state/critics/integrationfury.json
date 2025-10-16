@@ -1,0 +1,19 @@
+{
+  "critic": "integrationfury",
+  "code": 0,
+  "stdout": "[integration_fury] running lightweight checks",
+  "stderr": "{\"level\":\"info\",\"message\":\"Consensus decision captured\",\"timestamp\":\"2025-10-15T21:31:26.494Z\",\"taskId\":\"T-test\",\"decisionId\":\"CONS-T-test-b2c47a\",\"type\":\"strategic\",\"participants\":[\"atlas\",\"claude_council\"],\"rationale\":[\"status:needs_review\"]}\n{\"level\":\"info\",\"message\":\"Consensus decision captured\",\"timestamp\":\"2025-10-15T21:31:26.495Z\",\"taskId\":\"T-test\",\"decisionId\":\"CONS-T-test-ea4b5f\",\"type\":\"strategic\",\"participants\":[\"atlas\",\"claude_council\"],\"rationale\":[\"status:needs_review\"]}\n{\"level\":\"info\",\"message\":\"Consensus decision captured\",\"timestamp\":\"2025-10-15T21:31:26.495Z\",\"taskId\":\"T-test\",\"decisionId\":\"CONS-T-test-dc4fe3\",\"type\":\"strategic\",\"participants\":[\"atlas\",\"claude_council\"],\"rationale\":[\"status:needs_review\"]}",
+  "passed": true,
+  "analysis": null,
+  "git_sha": "1d17f588246645a205796374eea45bea2b585126",
+  "timestamp": "2025-10-15T21:31:26.603Z",
+  "identity": {
+    "title": "Integration Fury",
+    "mission": "Safeguard integration_fury discipline.",
+    "powers": [
+      "Reports on findings when configuration is missing."
+    ],
+    "authority": "advisory",
+    "domain": "integration_fury"
+  }
+}

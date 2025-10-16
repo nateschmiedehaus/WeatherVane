@@ -1,0 +1,21 @@
+{
+  "recorded_at": "2025-10-16T03:17:18.560Z",
+  "active": {
+    "status": "ready",
+    "pid": 2938,
+    "last_health_at": "2025-10-16T03:17:18.560Z",
+    "last_health": {
+      "ok": true,
+      "checked_at": "2025-10-16T03:17:18.560Z",
+      "notes": "Autopilot worker health synthesised"
+    }
+  },
+  "canary": null,
+  "events": [],
+  "operations_available": false,
+  "operations": {
+    "health_status": "unknown",
+    "timestamp": 1760584638560,
+    "note": "Operations snapshot unavailable; runtime not yet emitting telemetry."
+  }
+}

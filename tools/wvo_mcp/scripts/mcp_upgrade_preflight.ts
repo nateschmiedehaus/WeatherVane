@@ -6,7 +6,8 @@
  * Validates upgrade prerequisites (clean git tree, Node/npm versions,
  * disk space, sandbox tooling, and SQLite availability) while enforcing
  * the single-flight upgrade lock. Results are written to
- * experiments/mcp/upgrade/<timestamp>/preflight.json for auditability.
+ * experiments/mcp/upgrade/<timestamp>/preflight.json for auditability, and
+ * gate evidence is summarised under state/quality/upgrade_gates.json.
  */
 
 import fs from 'node:fs';
@@ -79,6 +80,35 @@ async function main() {
   fs.writeFileSync(outputPath, JSON.stringify(result, null, 2), 'utf-8');
 
   console.log(`[preflight] wrote results to ${path.relative(workspaceRoot, outputPath)}`);
+
+  if (result.versions.length > 0) {
+    for (const version of result.versions) {
+      const statusIcon = version.satisfies ? '✓' : '✗';
+      const detected = version.detected ?? version.rawDetected ?? 'unknown';
+      const constraint =
+        version.constraint !== undefined
+          ? ` (constraint ${version.constraint}${version.constraintSource ? ` via ${version.constraintSource}` : ''})`
+          : '';
+      const note = version.notes ? ` – ${version.notes}` : '';
+      console.log(`[preflight] ${statusIcon} ${version.tool} ${detected}${constraint}${note}`);
+    }
+  }
+
+  const gateEvidenceDir = path.join(stateDir, 'quality');
+  fs.mkdirSync(gateEvidenceDir, { recursive: true });
+  const gateEvidencePath = path.join(gateEvidenceDir, 'upgrade_gates.json');
+  const gateEvidence = {
+    recorded_at: new Date().toISOString(),
+    ok: result.ok,
+    failedCheck: result.ok ? undefined : result.failedCheck,
+    artifact: path.relative(workspaceRoot, outputPath),
+    gates: result.gates,
+    versions: result.versions,
+  };
+  fs.writeFileSync(gateEvidencePath, JSON.stringify(gateEvidence, null, 2), 'utf-8');
+  console.log(
+    `[preflight] gate evidence captured at ${path.relative(workspaceRoot, gateEvidencePath)}`,
+  );
 
   if (!result.ok) {
     console.error(

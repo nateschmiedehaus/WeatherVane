@@ -74,6 +74,12 @@ class MetaAdsConnector(HTTPConnector):
                 return await self._request(method, path, **kwargs)
             raise
 
+    async def _handle_http_status_error(self, exc: httpx.HTTPStatusError, attempt: int) -> bool:
+        if exc.response.status_code == 400 and self._is_rate_limit_error(exc.response):
+            await asyncio.sleep(self._backoff_delay(attempt))
+            return True
+        return await super()._handle_http_status_error(exc, attempt)
+
     async def _refresh_access_token(self) -> bool:
         if not self._can_refresh():
             return False
@@ -97,6 +103,25 @@ class MetaAdsConnector(HTTPConnector):
 
     def _can_refresh(self) -> bool:
         return bool(self.config.app_id and self.config.app_secret and self.config.access_token)
+
+    @staticmethod
+    def _is_rate_limit_error(response: httpx.Response) -> bool:
+        try:
+            payload = response.json()
+        except ValueError:
+            return False
+        error = payload.get("error")
+        if not isinstance(error, dict):
+            return False
+        code = error.get("code")
+        error_subcode = error.get("error_subcode")
+        rate_limit_codes = {4, 17, 32, 613}
+        rate_limit_subcodes = {2108006, 36005}
+        if isinstance(code, int) and code in rate_limit_codes:
+            return True
+        if isinstance(error_subcode, int) and error_subcode in rate_limit_subcodes:
+            return True
+        return False
 
     @staticmethod
     def _extract_items(payload: Mapping[str, Any]) -> list[Mapping[str, Any]]:

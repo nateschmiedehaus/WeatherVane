@@ -1,0 +1,1238 @@
+epics:
+- id: E_SIM_PRODUCT
+  title: Simulated Product Backlog
+  description: Synthetic tasks for product loop testing.
+  domain: product
+  milestones:
+  - id: M_SIM_PRODUCT
+    title: Product milestone
+    tasks:
+    - id: T1000
+      title: Product task T1000
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1001
+      title: Product task T1001
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1002
+      title: Product task T1002
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1003
+      title: Product task T1003
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1004
+      title: Product task T1004
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1005
+      title: Product task T1005
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1006
+      title: Product task T1006
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1007
+      title: Product task T1007
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1008
+      title: Product task T1008
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1009
+      title: Product task T1009
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1010
+      title: Product task T1010
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1011
+      title: Product task T1011
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1012
+      title: Product task T1012
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1013
+      title: Product task T1013
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1014
+      title: Product task T1014
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1015
+      title: Product task T1015
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1016
+      title: Product task T1016
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1017
+      title: Product task T1017
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1018
+      title: Product task T1018
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1019
+      title: Product task T1019
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1020
+      title: Product task T1020
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1021
+      title: Product task T1021
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1022
+      title: Product task T1022
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1023
+      title: Product task T1023
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1024
+      title: Product task T1024
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1025
+      title: Product task T1025
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1026
+      title: Product task T1026
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1027
+      title: Product task T1027
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1028
+      title: Product task T1028
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1029
+      title: Product task T1029
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1030
+      title: Product task T1030
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1031
+      title: Product task T1031
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1032
+      title: Product task T1032
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1033
+      title: Product task T1033
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1034
+      title: Product task T1034
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1035
+      title: Product task T1035
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1036
+      title: Product task T1036
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1037
+      title: Product task T1037
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1038
+      title: Product task T1038
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1039
+      title: Product task T1039
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1040
+      title: Product task T1040
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1041
+      title: Product task T1041
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1042
+      title: Product task T1042
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1043
+      title: Product task T1043
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1044
+      title: Product task T1044
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1045
+      title: Product task T1045
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1046
+      title: Product task T1046
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1047
+      title: Product task T1047
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1048
+      title: Product task T1048
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1049
+      title: Product task T1049
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1050
+      title: Product task T1050
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1051
+      title: Product task T1051
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1052
+      title: Product task T1052
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1053
+      title: Product task T1053
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1054
+      title: Product task T1054
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1055
+      title: Product task T1055
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1056
+      title: Product task T1056
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1057
+      title: Product task T1057
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1058
+      title: Product task T1058
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1059
+      title: Product task T1059
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1060
+      title: Product task T1060
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1061
+      title: Product task T1061
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1062
+      title: Product task T1062
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1063
+      title: Product task T1063
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1064
+      title: Product task T1064
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1065
+      title: Product task T1065
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1066
+      title: Product task T1066
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1067
+      title: Product task T1067
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1068
+      title: Product task T1068
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1069
+      title: Product task T1069
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1070
+      title: Product task T1070
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1071
+      title: Product task T1071
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1072
+      title: Product task T1072
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1073
+      title: Product task T1073
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1074
+      title: Product task T1074
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1075
+      title: Product task T1075
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1076
+      title: Product task T1076
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1077
+      title: Product task T1077
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1078
+      title: Product task T1078
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1079
+      title: Product task T1079
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1080
+      title: Product task T1080
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1081
+      title: Product task T1081
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1082
+      title: Product task T1082
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1083
+      title: Product task T1083
+      status: blocked
+      dependencies:
+      - PRODUCT_UNBLOCK
+      exit_criteria:
+      - critic:exec_review
+      owner: Sim-Autopilot
+    - id: T1084
+      title: Product task T1084
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1085
+      title: Product task T1085
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1086
+      title: Product task T1086
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1087
+      title: Product task T1087
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1088
+      title: Product task T1088
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1089
+      title: Product task T1089
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1090
+      title: Product task T1090
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1091
+      title: Product task T1091
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1092
+      title: Product task T1092
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1093
+      title: Product task T1093
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1094
+      title: Product task T1094
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1095
+      title: Product task T1095
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1096
+      title: Product task T1096
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1097
+      title: Product task T1097
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1098
+      title: Product task T1098
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1099
+      title: Product task T1099
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1100
+      title: Product task T1100
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1101
+      title: Product task T1101
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1102
+      title: Product task T1102
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1103
+      title: Product task T1103
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1104
+      title: Product task T1104
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1105
+      title: Product task T1105
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1106
+      title: Product task T1106
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1107
+      title: Product task T1107
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1108
+      title: Product task T1108
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1109
+      title: Product task T1109
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1110
+      title: Product task T1110
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1111
+      title: Product task T1111
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1112
+      title: Product task T1112
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1113
+      title: Product task T1113
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1114
+      title: Product task T1114
+      status: blocked
+      dependencies:
+      - PRODUCT_UNBLOCK
+      exit_criteria:
+      - critic:design_system
+      owner: Sim-Autopilot
+    - id: T1115
+      title: Product task T1115
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1116
+      title: Product task T1116
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1117
+      title: Product task T1117
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1118
+      title: Product task T1118
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1119
+      title: Product task T1119
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1120
+      title: Product task T1120
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1121
+      title: Product task T1121
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1122
+      title: Product task T1122
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1123
+      title: Product task T1123
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1124
+      title: Product task T1124
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1125
+      title: Product task T1125
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1126
+      title: Product task T1126
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1127
+      title: Product task T1127
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1128
+      title: Product task T1128
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1129
+      title: Product task T1129
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1130
+      title: Product task T1130
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1131
+      title: Product task T1131
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1132
+      title: Product task T1132
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1133
+      title: Product task T1133
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1134
+      title: Product task T1134
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1135
+      title: Product task T1135
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1136
+      title: Product task T1136
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1137
+      title: Product task T1137
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1138
+      title: Product task T1138
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1139
+      title: Product task T1139
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1140
+      title: Product task T1140
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1141
+      title: Product task T1141
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1142
+      title: Product task T1142
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1143
+      title: Product task T1143
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1144
+      title: Product task T1144
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1145
+      title: Product task T1145
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1146
+      title: Product task T1146
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1147
+      title: Product task T1147
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1148
+      title: Product task T1148
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1149
+      title: Product task T1149
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1150
+      title: Product task T1150
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1151
+      title: Product task T1151
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1152
+      title: Product task T1152
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1153
+      title: Product task T1153
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1154
+      title: Product task T1154
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1155
+      title: Product task T1155
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1156
+      title: Product task T1156
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1157
+      title: Product task T1157
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1158
+      title: Product task T1158
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1159
+      title: Product task T1159
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1160
+      title: Product task T1160
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1161
+      title: Product task T1161
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1162
+      title: Product task T1162
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1163
+      title: Product task T1163
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1164
+      title: Product task T1164
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1165
+      title: Product task T1165
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1166
+      title: Product task T1166
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1167
+      title: Product task T1167
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1168
+      title: Product task T1168
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1169
+      title: Product task T1169
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1170
+      title: Product task T1170
+      status: pending
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1171
+      title: Product task T1171
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1172
+      title: Product task T1172
+      status: blocked
+      dependencies:
+      - PRODUCT_UNBLOCK
+      exit_criteria:
+      - critic:design_system
+      owner: Sim-Autopilot
+    - id: T1173
+      title: Product task T1173
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1174
+      title: Product task T1174
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1175
+      title: Product task T1175
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1176
+      title: Product task T1176
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1177
+      title: Product task T1177
+      status: pending
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T1178
+      title: Product task T1178
+      status: pending
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+- id: E_SIM_MCP
+  title: Simulated Mcp Backlog
+  description: Synthetic tasks for mcp loop testing.
+  domain: mcp
+  milestones:
+  - id: M_SIM_MCP
+    title: Mcp milestone
+    tasks:
+    - id: T6000
+      title: Mcp task T6000
+      status: blocked
+      dependencies:
+      - MCP_UNBLOCK
+      exit_criteria:
+      - critic:tests
+      owner: Sim-Autopilot
+    - id: T6001
+      title: Mcp task T6001
+      status: blocked
+      dependencies:
+      - MCP_UNBLOCK
+      exit_criteria:
+      - critic:allocator
+      owner: Sim-Autopilot
+    - id: T6002
+      title: Mcp task T6002
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T6003
+      title: Mcp task T6003
+      status: in_progress
+      dependencies: []
+      exit_criteria:
+      - critic:manager_self_check
+      owner: Sim-Autopilot
+    - id: T6004
+      title: Mcp task T6004
+      status: blocked
+      dependencies:
+      - MCP_UNBLOCK
+      exit_criteria:
+      - critic:tests
+      owner: Sim-Autopilot
+    - id: T6005
+      title: Mcp task T6005
+      status: blocked
+      dependencies:
+      - MCP_UNBLOCK
+      exit_criteria:
+      - critic:health_check
+      owner: Sim-Autopilot
+    - id: T6006
+      title: Mcp task T6006
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T6007
+      title: Mcp task T6007
+      status: in_progress
+      dependencies: []
+      exit_criteria:
+      - critic:health_check
+      owner: Sim-Autopilot
+    - id: T6008
+      title: Mcp task T6008
+      status: in_progress
+      dependencies: []
+      exit_criteria:
+      - critic:manager_self_check
+      owner: Sim-Autopilot
+    - id: T6009
+      title: Mcp task T6009
+      status: in_progress
+      dependencies: []
+      exit_criteria:
+      - critic:allocator
+      owner: Sim-Autopilot
+    - id: T6010
+      title: Mcp task T6010
+      status: pending
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T6011
+      title: Mcp task T6011
+      status: blocked
+      dependencies:
+      - MCP_UNBLOCK
+      exit_criteria:
+      - critic:tests
+      owner: Sim-Autopilot
+    - id: T6012
+      title: Mcp task T6012
+      status: done
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T6013
+      title: Mcp task T6013
+      status: blocked
+      dependencies:
+      - MCP_UNBLOCK
+      exit_criteria:
+      - critic:health_check
+      owner: Sim-Autopilot
+    - id: T6014
+      title: Mcp task T6014
+      status: pending
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T6015
+      title: Mcp task T6015
+      status: blocked
+      dependencies:
+      - MCP_UNBLOCK
+      exit_criteria:
+      - critic:tests
+      owner: Sim-Autopilot
+    - id: T6016
+      title: Mcp task T6016
+      status: pending
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T6017
+      title: Mcp task T6017
+      status: pending
+      dependencies: []
+      exit_criteria: []
+      owner: Sim-Autopilot
+    - id: T6018
+      title: Mcp task T6018
+      status: in_progress
+      dependencies: []
+      exit_criteria:
+      - critic:manager_self_check
+      owner: Sim-Autopilot
+    - id: T6019
+      title: Mcp task T6019
+      status: blocked
+      dependencies:
+      - MCP_UNBLOCK
+      exit_criteria:
+      - critic:health_check
+      owner: Sim-Autopilot

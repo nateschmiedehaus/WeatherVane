@@ -1,0 +1,152 @@
+{
+  "checkpoint_state": {
+    "checkpoint_json_bytes": 169,
+    "latest_checkpoint_timestamp": "2025-10-15T22:28:59.822Z",
+    "orchestrator_db_bytes": 126976
+  },
+  "execution_metrics": {
+    "agent_breakdown": {
+      "claude_code": {
+        "avg_duration_seconds": 5.0,
+        "avg_total_tokens": 10.0,
+        "max_duration_seconds": 5.0,
+        "max_total_tokens": 10,
+        "runs": 57,
+        "success_rate": 1.0
+      },
+      "codex": {
+        "avg_duration_seconds": 11.0,
+        "avg_total_tokens": 17.5,
+        "max_duration_seconds": 12.0,
+        "max_total_tokens": 20,
+        "runs": 116,
+        "success_rate": 1.0
+      }
+    },
+    "avg_completion_tokens": 5.676,
+    "avg_duration_seconds": 9.023,
+    "avg_prompt_tokens": 9.353,
+    "avg_total_tokens": 15.029,
+    "max_duration_seconds": 12.0,
+    "max_total_tokens": 20,
+    "p95_duration_seconds": 12.0,
+    "success_rate": 1.0,
+    "total_runs": 173
+  },
+  "generated_at": "2025-10-15T22:35:43.213142+00:00",
+  "queue_metrics": {
+    "avg_queue_length": 0.0,
+    "heavy_concurrency_limit": 1,
+    "max_active_heavy": 0,
+    "max_blocked_tasks": 0,
+    "max_queue_length": 0,
+    "max_queued_heavy": 0,
+    "modes_observed": {
+      "balance": 60,
+      "stabilize": 56
+    },
+    "snapshots": 116
+  },
+  "resource_limits": {
+    "estimated_max_observed_rss_mb": 0.0,
+    "estimated_rss_per_worker_mb": 2048.0,
+    "heavy_concurrency_limit": 1,
+    "heavy_concurrency_within_limit": true,
+    "max_observed_active_heavy": 0,
+    "max_observed_duration_seconds": 12.0,
+    "recommended_concurrency": 8.0,
+    "rss_budget_mb": 16384.0,
+    "rss_within_budget": true,
+    "timeout_budget_seconds": 30.0,
+    "timeouts_within_budget": true
+  },
+  "sources": {
+    "executions_jsonl": "tools/wvo_mcp/state/telemetry/executions.jsonl",
+    "failover_summary": "experiments/mcp/failover_test.json",
+    "operations_jsonl": "tools/wvo_mcp/state/telemetry/operations.jsonl"
+  },
+  "token_usage": {
+    "per_agent": {
+      "claude_code": {
+        "completion_tokens": 228,
+        "prompt_tokens": 342,
+        "token_cost_usd": 0.0,
+        "total_tokens": 570
+      },
+      "codex": {
+        "completion_tokens": 754,
+        "prompt_tokens": 1276,
+        "token_cost_usd": 52.2,
+        "total_tokens": 2030
+      }
+    },
+    "total_completion_tokens": 982,
+    "total_prompt_tokens": 1618,
+    "total_token_cost_usd": 52.2,
+    "total_tokens": 2600
+  },
+  "worker_swap": {
+    "generated_at": "2025-10-12T21:34:48.705Z",
+    "scenario": "provider_failover_simulation",
+    "steps": [
+      {
+        "coordinator": {
+          "available": true,
+          "type": "claude_code"
+        },
+        "killSwitchEngaged": false,
+        "step": "initial_state",
+        "timestamp": "2025-10-12T21:34:48.703Z"
+      },
+      {
+        "coordinator": {
+          "available": true,
+          "type": "codex"
+        },
+        "failoverLatencyMs": 0,
+        "killSwitchEngaged": false,
+        "recoveryAction": {
+          "action": "reassign",
+          "delaySeconds": 5,
+          "newAgentType": "codex",
+          "reasoning": "Rate limit on claude_code, switching to codex"
+        },
+        "step": "post_failover",
+        "timestamp": "2025-10-12T21:34:48.704Z"
+      },
+      {
+        "additionalLatencyMs": 0,
+        "coordinator": {
+          "available": false,
+          "type": "codex"
+        },
+        "incidentsRecorded": 1,
+        "killSwitchEngaged": true,
+        "recoveryAction": {
+          "action": "retry",
+          "delaySeconds": 8,
+          "reasoning": "All agents busy, waiting 8s for cooldown"
+        },
+        "step": "kill_switch_engaged",
+        "timestamp": "2025-10-12T21:34:48.705Z"
+      },
+      {
+        "coordinator": {
+          "available": true,
+          "type": "claude_code"
+        },
+        "incidentCount": 2,
+        "killSwitchEngaged": false,
+        "step": "post_rollback",
+        "timestamp": "2025-10-12T21:34:48.705Z"
+      }
+    ],
+    "summary": {
+      "failoverLatencyMs": 0,
+      "failoverPromotedCodex": true,
+      "killSwitchEngagedDuringIncident": true,
+      "rollbackIncidentCount": 2,
+      "rollbackRestoredClaude": true
+    }
+  }
+}

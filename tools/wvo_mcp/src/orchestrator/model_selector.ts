@@ -1,5 +1,6 @@
 import type { Task } from './state_machine.js';
 import type { AssembledContext } from './context_assembler.js';
+import type { ModelManager } from '../models/model_manager.js';
 
 export type ReasoningLevel = 'minimal' | 'low' | 'medium' | 'high';
 
@@ -98,7 +99,8 @@ interface SelectionPlan {
 export function selectCodexModel(
   task: Task,
   context: AssembledContext,
-  operational?: CodexOperationalSnapshot
+  operational?: CodexOperationalSnapshot,
+  modelManager?: ModelManager
 ): ModelSelection {
   const complexity = task.estimated_complexity ?? 5;
   const hasCodeContext = Boolean(context.filesToRead && context.filesToRead.length > 0);
@@ -115,7 +117,7 @@ export function selectCodexModel(
       fallback: 'gpt-5-medium',
       rationale: 'Documentation-focused task',
       critical: complexity >= 7,
-    }, operational);
+    }, operational, modelManager);
   }
 
   if (needsReview || strategicTask) {
@@ -124,7 +126,7 @@ export function selectCodexModel(
       fallback: 'gpt-5-codex-medium',
       rationale: needsReview ? 'Reviewing changes with deep reasoning' : 'Strategic architecture task',
       critical: true,
-    }, operational);
+    }, operational, modelManager);
   }
 
   if (complexity >= 7 || context.relevantConstraints.length > 3) {
@@ -133,7 +135,7 @@ export function selectCodexModel(
       fallback: 'gpt-5-codex-medium',
       rationale: 'High complexity implementation',
       critical: true,
-    }, operational);
+    }, operational, modelManager);
   }
 
   if (followUp || complexity <= 3) {
@@ -142,7 +144,7 @@ export function selectCodexModel(
       fallback: 'gpt-5-codex-medium',
       rationale: 'Low complexity fix or follow-up',
       critical: false,
-    }, operational);
+    }, operational, modelManager);
   }
 
   return adjustForOperations({
@@ -150,10 +152,14 @@ export function selectCodexModel(
     fallback: 'gpt-5-codex-low',
     rationale: 'Default balanced coding workload',
     critical: false,
-  }, operational);
+  }, operational, modelManager);
 }
 
-function adjustForOperations(plan: SelectionPlan, operational?: CodexOperationalSnapshot): ModelSelection {
+function adjustForOperations(
+  plan: SelectionPlan,
+  operational?: CodexOperationalSnapshot,
+  modelManager?: ModelManager
+): ModelSelection {
   const notes: string[] = [];
   let presetId = plan.preset;
 
@@ -214,18 +220,33 @@ function adjustForOperations(plan: SelectionPlan, operational?: CodexOperational
     }
   }
 
-  return buildSelection(presetId, plan.rationale, notes);
+  return buildSelection(presetId, plan.rationale, notes, modelManager);
 }
 
-function buildSelection(presetId: string, rationale: string, notes: string[] = []): ModelSelection {
+function buildSelection(
+  presetId: string,
+  rationale: string,
+  notes: string[] = [],
+  modelManager?: ModelManager
+): ModelSelection {
   const preset = CODEX_PRESETS[presetId] ?? CODEX_PRESETS['gpt-5-codex-medium'];
   const rationaleText = notes.length ? `${rationale}; ${notes.join('; ')}` : rationale;
+
+  // Update cost from model registry if available
+  let costInfo = '';
+  if (modelManager) {
+    const cost = modelManager.getModelCost('codex', preset.modelSlug);
+    if (cost) {
+      costInfo = ` (cost: $${cost.input}/$${cost.output}/Mtok)`;
+    }
+  }
+
   return {
     presetId: preset.id,
     modelSlug: preset.modelSlug,
     reasoning: preset.reasoning,
     profile: preset.profile,
-    rationale: rationaleText,
+    rationale: rationaleText + costInfo,
     description: preset.description,
   };
 }

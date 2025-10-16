@@ -221,14 +221,44 @@ def generate_response_report(
 
     scored = score_creatives(frame, policy)
     policy = policy or BrandSafetyPolicy()
+    status_rollup = (
+        scored.group_by("status")
+        .agg(
+            pl.len().alias("count"),
+            pl.col("spend_share").sum().alias("spend_share"),
+        )
+        .to_dicts()
+    )
+    status_lookup = {row["status"]: row for row in status_rollup}
     summary = {
         "creative_count": int(scored.height),
-        "active_creatives": int((scored.get_column("status") == "active").sum()),
-        "blocked_creatives": int((scored.get_column("status") == "blocked").sum()),
-        "watchlist_creatives": int((scored.get_column("status") == "watchlist").sum()),
+        "active_creatives": int(status_lookup.get("active", {}).get("count", 0)),
+        "blocked_creatives": int(status_lookup.get("blocked", {}).get("count", 0)),
+        "watchlist_creatives": int(status_lookup.get("watchlist", {}).get("count", 0)),
         "average_roas": float(scored.get_column("roas_adjusted").mean() or 0.0),
         "median_roas": float(scored.get_column("roas_adjusted").median() or 0.0),
+        "active_spend_share": float(
+            status_lookup.get("active", {}).get("spend_share", 0.0)
+        ),
+        "watchlist_spend_share": float(
+            status_lookup.get("watchlist", {}).get("spend_share", 0.0)
+        ),
+        "blocked_spend_share": float(
+            status_lookup.get("blocked", {}).get("spend_share", 0.0)
+        ),
+        "guardrail_counts": {},
     }
+
+    guardrail_counts = (
+        scored.filter(pl.col("guardrail").is_not_null())
+        .group_by("guardrail")
+        .agg(pl.len().alias("count"))
+        .to_dicts()
+    )
+    if guardrail_counts:
+        summary["guardrail_counts"] = {
+            row["guardrail"]: int(row["count"]) for row in guardrail_counts
+        }
 
     top_creatives = _round_columns(
         scored.head(5).select(

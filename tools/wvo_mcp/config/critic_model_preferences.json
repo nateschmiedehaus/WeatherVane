@@ -1,0 +1,164 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "description": "Model preferences for critics based on their domain expertise",
+  "preferences": {
+    "allocator": {
+      "preferred_provider": "codex",
+      "preferred_model": "gpt-5-codex",
+      "reasoning_level": "high",
+      "rationale": "Budget allocation requires deep numerical reasoning and optimization",
+      "fallback_provider": "claude",
+      "fallback_model": "claude-opus-4"
+    },
+    "tests": {
+      "preferred_provider": "codex",
+      "preferred_model": "gpt-5-codex",
+      "reasoning_level": "medium",
+      "rationale": "Test generation benefits from code understanding and systematic coverage",
+      "fallback_provider": "claude",
+      "fallback_model": "claude-sonnet-4.5"
+    },
+    "build": {
+      "preferred_provider": "codex",
+      "preferred_model": "gpt-5",
+      "reasoning_level": "low",
+      "rationale": "Build verification is straightforward, doesn't need maximum reasoning",
+      "fallback_provider": "claude",
+      "fallback_model": "claude-sonnet-4"
+    },
+    "security": {
+      "preferred_provider": "claude",
+      "preferred_model": "claude-opus-4",
+      "rationale": "Security analysis requires careful reasoning and threat modeling",
+      "fallback_provider": "codex",
+      "fallback_model": "gpt-5-codex"
+    },
+    "design_system": {
+      "preferred_provider": "claude",
+      "preferred_model": "claude-opus-4",
+      "rationale": "UX/design requires visual understanding and human-centric reasoning",
+      "fallback_provider": "claude",
+      "fallback_model": "claude-sonnet-4.5"
+    },
+    "org_pm": {
+      "preferred_provider": "claude",
+      "preferred_model": "claude-opus-4",
+      "rationale": "Strategic product management needs deep contextual understanding",
+      "fallback_provider": "claude",
+      "fallback_model": "claude-sonnet-4.5"
+    },
+    "data_quality": {
+      "preferred_provider": "codex",
+      "preferred_model": "gpt-5-codex",
+      "reasoning_level": "high",
+      "rationale": "Data quality checks require statistical reasoning and numerical analysis",
+      "fallback_provider": "claude",
+      "fallback_model": "claude-opus-4"
+    },
+    "forecast_stitch": {
+      "preferred_provider": "codex",
+      "preferred_model": "gpt-5-codex",
+      "reasoning_level": "high",
+      "rationale": "Forecast stitching involves complex temporal reasoning and numerical optimization",
+      "fallback_provider": "claude",
+      "fallback_model": "claude-opus-4"
+    },
+    "causal": {
+      "preferred_provider": "claude",
+      "preferred_model": "claude-opus-4",
+      "rationale": "Causal inference requires deep reasoning about counterfactuals and mechanisms",
+      "fallback_provider": "codex",
+      "fallback_model": "gpt-5-codex"
+    },
+    "cost_perf": {
+      "preferred_provider": "codex",
+      "preferred_model": "gpt-5-codex",
+      "reasoning_level": "medium",
+      "rationale": "Cost/performance analysis benefits from numerical optimization",
+      "fallback_provider": "claude",
+      "fallback_model": "claude-sonnet-4.5"
+    },
+    "typecheck": {
+      "preferred_provider": "codex",
+      "preferred_model": "gpt-5",
+      "reasoning_level": "low",
+      "rationale": "Type checking is mechanical and doesn't need high reasoning",
+      "fallback_provider": "claude",
+      "fallback_model": "claude-sonnet-4"
+    },
+    "integration_completeness": {
+      "preferred_provider": "claude",
+      "preferred_model": "claude-sonnet-4.5",
+      "rationale": "Integration verification requires understanding of system architecture",
+      "fallback_provider": "codex",
+      "fallback_model": "gpt-5-codex"
+    },
+    "experience_flow": {
+      "preferred_provider": "claude",
+      "preferred_model": "claude-opus-4",
+      "rationale": "User experience flow analysis requires empathy and human-centric thinking",
+      "fallback_provider": "claude",
+      "fallback_model": "claude-sonnet-4.5"
+    },
+    "motion_design": {
+      "preferred_provider": "claude",
+      "preferred_model": "claude-opus-4",
+      "rationale": "Motion design critique requires visual and aesthetic reasoning",
+      "fallback_provider": "claude",
+      "fallback_model": "claude-sonnet-4.5"
+    },
+    "responsive_surface": {
+      "preferred_provider": "claude",
+      "preferred_model": "claude-sonnet-4.5",
+      "rationale": "Responsive design verification benefits from visual understanding",
+      "fallback_provider": "codex",
+      "fallback_model": "gpt-5"
+    },
+    "weather_aesthetic": {
+      "preferred_provider": "claude",
+      "preferred_model": "claude-opus-4",
+      "rationale": "Weather-themed aesthetics require creative and visual reasoning",
+      "fallback_provider": "claude",
+      "fallback_model": "claude-sonnet-4.5"
+    },
+    "stakeholder_narrative": {
+      "preferred_provider": "claude",
+      "preferred_model": "claude-opus-4",
+      "rationale": "Executive narratives require strategic communication and storytelling",
+      "fallback_provider": "claude",
+      "fallback_model": "claude-sonnet-4.5"
+    },
+    "demo_conversion": {
+      "preferred_provider": "claude",
+      "preferred_model": "claude-sonnet-4.5",
+      "rationale": "Demo effectiveness requires understanding user psychology and conversion",
+      "fallback_provider": "claude",
+      "fallback_model": "claude-opus-4"
+    },
+    "inspiration_coverage": {
+      "preferred_provider": "claude",
+      "preferred_model": "claude-sonnet-4.5",
+      "rationale": "Design inspiration analysis benefits from creative and aesthetic understanding",
+      "fallback_provider": "claude",
+      "fallback_model": "claude-opus-4"
+    }
+  },
+  "default": {
+    "preferred_provider": "codex",
+    "preferred_model": "gpt-5-codex",
+    "reasoning_level": "medium",
+    "rationale": "Default to Codex for general-purpose code analysis",
+    "fallback_provider": "claude",
+    "fallback_model": "claude-sonnet-4.5"
+  },
+  "selection_strategy": {
+    "description": "How to select models when preferences are specified",
+    "rules": [
+      "1. Check if preferred_model is available in ModelRegistry",
+      "2. If not available, check fallback_model",
+      "3. If neither available, use default for provider type",
+      "4. Consider quota pressure from UsageEstimator",
+      "5. If quota critical, may override preference for available provider"
+    ]
+  }
+}
