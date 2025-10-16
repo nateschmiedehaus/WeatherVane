@@ -3,7 +3,17 @@
   "code": 0,
   "stdout": "skipped due to capability profile",
   "stderr": "",
-  "passed": true,
-  "git_sha": "31548e1c9ba25b8b0f94df5d6f596ec1be26414a",
-  "timestamp": "2025-10-13T19:24:58.017Z"
+  "passed": false,
+  "analysis": null,
+  "git_sha": "1d17f588246645a205796374eea45bea2b585126",
+  "timestamp": "2025-10-16T13:31:52.258Z",
+  "identity": {
+    "title": "Exec Review",
+    "mission": "Safeguard exec_review discipline.",
+    "powers": [
+      "Reports on findings when configuration is missing."
+    ],
+    "authority": "advisory",
+    "domain": "exec_review"
+  }
 }

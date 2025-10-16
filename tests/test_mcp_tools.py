@@ -26,6 +26,7 @@ CODEX_TOOLS = frozenset(
         "critics_run",
         "autopilot_record_audit",
         "autopilot_status",
+        "worker_health",
         "heavy_queue_enqueue",
         "heavy_queue_update",
         "heavy_queue_list",
@@ -155,6 +156,10 @@ class MCPTestClient:
         payload = _extract_json_payload(content[0]["text"])
         return payload
 
+    def call_tool(self, name: str, arguments: Optional[dict] = None) -> dict:
+        params = {"name": name, "arguments": arguments or {}}
+        return self._request("tools/call", params)
+
     def _request(self, method: str, params: Optional[dict]) -> dict:
         request_id = self._next_id
         self._next_id += 1
@@ -253,3 +258,22 @@ def test_mcp_tool_inventory_and_dry_run_parity(entry_path: str, expected_tools: 
         assert dry_payload["count"] == len(live_tasks)
 
     assert dry_payload.get("tasks") == live_tasks, "plan_next results differ under dry-run"
+
+
+@pytest.mark.parametrize(
+    "entry_path",
+    [
+        "tools/wvo_mcp/dist/index.js",
+        "tools/wvo_mcp/dist/index-claude.js",
+    ],
+)
+def test_dry_run_blocks_mutating_tools(entry_path: str) -> None:
+    with MCPTestClient(entry_path, {"WVO_DRY_RUN": "1"}) as client:
+        result = client.call_tool(
+            "context_write",
+            {"section": "dry-run-check", "content": "mutations should fail", "append": False},
+        )
+    if "isError" in result:
+        assert result["isError"] is True
+    texts = [chunk.get("text", "") for chunk in result.get("content", []) if isinstance(chunk, dict)]
+    assert any("Dry-run mode forbids" in text for text in texts)

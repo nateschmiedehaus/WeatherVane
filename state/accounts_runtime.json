@@ -1,23 +1,19 @@
 {
   "codex": {
     "codex_personal": {
-      "last_selected": "2025-10-13T23:10:07.826075+00:00",
       "last_cooldown_reason": "usage_limit",
-      "last_purpose": "product",
-      "cooldown_until": "2025-10-15T14:50:59.448179+00:00"
+      "last_selected": "2025-10-16T15:11:25.864532+00:00"
     },
     "codex_client": {
-      "last_selected": "2025-10-11T23:58:17.601267+00:00",
-      "last_cooldown_reason": "usage_limit",
-      "cooldown_until": "2025-10-17T00:53:19.133732+00:00"
+      "last_selected": "2025-10-16T01:12:51.859405+00:00",
+      "cooldown_until": "2025-10-17T00:52:55.317598+00:00",
+      "last_cooldown_reason": "usage_limit"
     }
   },
   "claude": {
     "claude_primary": {
-      "last_selected": "2025-10-14T00:39:41.528109+00:00",
-      "last_purpose": "execution",
-      "last_cooldown_reason": "usage_limit",
-      "cooldown_until": "2025-10-14T01:39:43.679845+00:00"
+      "last_selected": "2025-10-16T15:11:26.890361+00:00",
+      "last_purpose": "evaluation"
     }
   }
 }

@@ -18,6 +18,52 @@ class ShadowEpisode(BaseModel):
     safety_override: bool
 
 
+class ShadowValidationCheck(BaseModel):
+    name: str
+    status: bool
+    value: float
+    threshold: float
+    observed_baseline_runs: int | None = None
+    required_baseline_runs: int | None = None
+
+
+class ShadowValidationSummary(BaseModel):
+    episodes: int
+    safety_override_rate: float
+    disabled_variants: list[str]
+
+
+class ShadowValidationStressEpisode(BaseModel):
+    index: int
+    variant: str
+    guardrail_violated: bool
+    disabled_after_episode: bool
+
+
+class ShadowValidationStressConfig(BaseModel):
+    episodes: int
+    epsilon: float
+    seed: int
+    max_guardrail_breaches: int
+
+
+class ShadowValidationStressTest(BaseModel):
+    config: ShadowValidationStressConfig
+    guardrail_violations: int
+    guardrail_breach_counts: Dict[str, int]
+    selection_counts: Dict[str, int]
+    disabled_variants: list[str]
+    episodes: list[ShadowValidationStressEpisode]
+    assertions: Dict[str, bool]
+
+
+class ShadowValidation(BaseModel):
+    checks: list[ShadowValidationCheck]
+    summary: ShadowValidationSummary
+    notes: list[str]
+    stress_test: ShadowValidationStressTest
+
+
 class ShadowRunReport(BaseModel):
     generated_at: datetime = Field(default_factory=datetime.utcnow)
     average_reward: float
@@ -30,6 +76,7 @@ class ShadowRunReport(BaseModel):
     diagnostics: Dict[str, float]
     config: Dict[str, object]
     scenario: Dict[str, object]
+    validation: ShadowValidation
 
 
 class SaturationMarket(BaseModel):
@@ -73,4 +120,10 @@ __all__ = [
     "SaturationSummary",
     "ShadowEpisode",
     "ShadowRunReport",
+    "ShadowValidation",
+    "ShadowValidationCheck",
+    "ShadowValidationStressConfig",
+    "ShadowValidationStressEpisode",
+    "ShadowValidationStressTest",
+    "ShadowValidationSummary",
 ]

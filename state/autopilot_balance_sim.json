@@ -1,0 +1,24 @@
+{
+  "product_completed_total": 173,
+  "mcp_completed_total": 3,
+  "product_blockers_total": 22,
+  "mcp_blockers_total": 0,
+  "product_blockers_streak": 1,
+  "recent_domains": [
+    "product",
+    "product",
+    "product",
+    "product",
+    "product",
+    "product",
+    "none",
+    "product",
+    "product",
+    "product",
+    "product",
+    "product"
+  ],
+  "needs_escalation": false,
+  "message": "Sim balance \u2014 recent=['product', 'product', 'product', 'product', 'product', 'product', 'none', 'product', 'product', 'product', 'product', 'product'], product_blockers_streak=1",
+  "last_updated": "2025-10-16T17:20:29Z"
+}

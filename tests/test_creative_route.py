@@ -27,6 +27,10 @@ def test_get_creative_response_returns_payload(monkeypatch, tmp_path):
                     "watchlist_creatives": 1,
                     "average_roas": 2.4,
                     "median_roas": 2.25,
+                    "active_spend_share": 0.6,
+                    "watchlist_spend_share": 0.4,
+                    "blocked_spend_share": 0.0,
+                    "guardrail_counts": {"brand_safety_watch": 1},
                 },
                 "top_creatives": [
                     {
@@ -97,3 +101,6 @@ def test_get_creative_response_returns_payload(monkeypatch, tmp_path):
     assert payload["policy"]["roas_floor"] == 1.2
     assert len(payload["creatives"]) == 2
     assert payload["top_creatives"][0]["creative_id"] == "cr_001"
+    assert payload["summary"]["active_spend_share"] == 0.6
+    assert payload["summary"]["watchlist_spend_share"] == 0.4
+    assert payload["summary"]["guardrail_counts"]["brand_safety_watch"] == 1

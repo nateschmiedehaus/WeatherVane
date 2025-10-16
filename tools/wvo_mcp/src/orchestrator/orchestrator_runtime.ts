@@ -13,8 +13,12 @@ import { logInfo, logWarning, logError } from '../telemetry/logger.js';
 import { AuthChecker } from '../utils/auth_checker.js';
 import { CodeSearchIndex } from '../utils/code_search.js';
 import { deriveResourceLimits, loadActiveDeviceProfile } from '../utils/device_profile.js';
+import { isDryRunEnabled } from '../utils/dry_run.js';
 import { ResearchManager } from '../intelligence/research_manager.js';
 import { ResearchOrchestrator } from './research_orchestrator.js';
+import { TokenEfficiencyManager } from './token_efficiency_manager.js';
+import { ModelManager } from '../models/model_manager.js';
+import { CriticModelSelector } from '../utils/critic_model_selector.js';
 
 export interface OrchestratorRuntimeOptions {
   codexWorkers?: number;
@@ -40,6 +44,9 @@ export class OrchestratorRuntime {
   private readonly liveFlags: LiveFlags;
   private readonly researchManager: ResearchManager | undefined;
   private readonly researchOrchestrator: ResearchOrchestrator | undefined;
+  private readonly tokenEfficiencyManager?: TokenEfficiencyManager;
+  private readonly modelManager: ModelManager;
+  private readonly criticModelSelector: CriticModelSelector;
   private started = false;
 
   constructor(
@@ -51,8 +58,10 @@ export class OrchestratorRuntime {
     const codexWorkers = options.codexWorkers ?? resourcePlan.codexWorkers;
     const heavyTaskLimit = options.heavyTaskLimit ?? resourcePlan.heavyTaskConcurrency;
 
-    this.stateMachine = new StateMachine(workspaceRoot);
+    const dryRun = isDryRunEnabled();
+    this.stateMachine = new StateMachine(workspaceRoot, { readonly: dryRun });
     this.liveFlags = new LiveFlags({ workspaceRoot });
+    this.modelManager = new ModelManager(workspaceRoot);
     const researchFlagEnabled = this.liveFlags.getValue('RESEARCH_LAYER') === '1';
     this.researchManager = researchFlagEnabled
       ? new ResearchManager({ stateMachine: this.stateMachine })
@@ -82,6 +91,11 @@ export class OrchestratorRuntime {
       this.researchOrchestrator = undefined;
     }
     this.agentPool = new AgentPool(workspaceRoot, codexWorkers);
+    this.criticModelSelector = new CriticModelSelector(
+      workspaceRoot,
+      this.modelManager,
+      this.agentPool.getUsageEstimator()
+    );
     this.codeSearchIndex = new CodeSearchIndex(this.stateMachine, workspaceRoot);
     this.contextAssembler = new ContextAssembler(this.stateMachine, workspaceRoot, {
       codeSearch: this.codeSearchIndex,
@@ -102,6 +116,12 @@ export class OrchestratorRuntime {
         liveFlags: this.liveFlags,
       }
     );
+    if (!dryRun) {
+      this.tokenEfficiencyManager = new TokenEfficiencyManager(
+        workspaceRoot,
+        this.operationsManager,
+      );
+    }
     this.resilienceManager = new ResilienceManager(
       this.stateMachine,
       this.agentPool
@@ -153,7 +173,8 @@ export class OrchestratorRuntime {
       this.operationsManager,
       this.operationsManager,
       this.resilienceManager,
-      this.selfImprovementManager
+      this.selfImprovementManager,
+      this.modelManager
     );
 
     logInfo('Adaptive resource scheduling initialised', {
@@ -165,10 +186,12 @@ export class OrchestratorRuntime {
     });
   }
 
-  start(): void {
+  async start(): Promise<void> {
     if (this.started) return;
     this.started = true;
     void this.performAuthCheck();
+    await this.modelManager.initialize();
+    await this.criticModelSelector.load();
     this.coordinator.start();
     logInfo('Orchestrator runtime started');
   }
@@ -178,6 +201,8 @@ export class OrchestratorRuntime {
     this.started = false;
     this.coordinator.stop();
     this.operationsManager.stop();
+    this.tokenEfficiencyManager?.dispose();
+    this.modelManager.stop();
     this.scheduler.destroy();
     this.researchOrchestrator?.dispose();
     this.agentPool.removeAllListeners();
@@ -229,6 +254,14 @@ export class OrchestratorRuntime {
 
   getImprovementStatus() {
     return this.selfImprovementManager.getStatus();
+  }
+
+  getModelManager(): ModelManager {
+    return this.modelManager;
+  }
+
+  getCriticModelSelector(): CriticModelSelector {
+    return this.criticModelSelector;
   }
 
   private parseResearchSensitivity(raw: string): number {

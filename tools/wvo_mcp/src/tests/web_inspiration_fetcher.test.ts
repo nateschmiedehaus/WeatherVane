@@ -23,7 +23,7 @@ describe("InspirationFetcher", () => {
       // Environment already has Playwright + Chromium installed; ensure metadata looks sane.
       expect(result.screenshotPath).toBeDefined();
     } else {
-      expect(result.error).toMatch(/Playwright not installed|Failed to launch Playwright chromium browser|Timeout/);
+      expect(result.error).toMatch(/Playwright not installed|Failed to launch Playwright chromium browser|Timeout|Browser could not be initialized/);
     }
   }, 15000);
 });

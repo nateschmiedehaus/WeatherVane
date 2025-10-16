@@ -6,6 +6,11 @@ import YAML from "yaml";
 
 const HOURS_12_MS = 12 * 60 * 60 * 1000;
 const ALERT_FRESH_WINDOW_MS = 24 * 60 * 60 * 1000;
+const GATE_SEQUENCE = ["build", "unit", "selfchecks", "canary_ready"];
+const GATE_EVIDENCE_MAX_AGE_MS = 24 * 60 * 60 * 1000;
+const WORKER_SNAPSHOT_MAX_AGE_MS = 10 * 60 * 1000;
+const ACTIVE_HEALTH_MAX_AGE_MS = 5 * 60 * 1000;
+const WORKER_EXIT_WINDOW_MS = 10 * 60 * 1000;
 
 async function readContext(workspaceRoot) {
   const contextPath = path.join(workspaceRoot, "state", "context.md");
@@ -94,6 +99,35 @@ async function readRollbackSimulation(workspaceRoot) {
   }
 }
 
+async function readWorkerManagerSnapshot(workspaceRoot) {
+  const snapshotPath = path.join(
+    workspaceRoot,
+    "state",
+    "analytics",
+    "worker_manager.json",
+  );
+
+  let raw;
+  try {
+    raw = await fs.readFile(snapshotPath, "utf8");
+  } catch (error) {
+    if (error && typeof error === "object" && error.code === "ENOENT") {
+      throw new Error(
+        "Worker manager snapshot missing (state/analytics/worker_manager.json). Run worker_health before attempting canary promotion.",
+      );
+    }
+    throw new Error(
+      `Unable to read worker manager snapshot: ${error instanceof Error ? error.message : String(error)}`,
+    );
+  }
+
+  try {
+    return JSON.parse(raw);
+  } catch (error) {
+    throw new Error("Worker manager snapshot malformed JSON; rerun worker_health to refresh telemetry.");
+  }
+}
+
 function findLatestCriticalAlert(alerts) {
   return alerts.find((alert) =>
     alert && typeof alert === "object" && alert.severity === "critical",
@@ -118,6 +152,217 @@ function parseTimestamp(text) {
     return Number.NaN;
   }
   return Date.parse(text);
+}
+
+function extractActive(snapshot) {
+  if (!snapshot || typeof snapshot !== "object") {
+    return null;
+  }
+  const candidate = snapshot.active ?? snapshot.active_worker ?? null;
+  if (!candidate || typeof candidate !== "object") {
+    return null;
+  }
+  return candidate;
+}
+
+function ensureWorkerSnapshotFresh(snapshot) {
+  if (!snapshot || typeof snapshot !== "object") {
+    throw new Error("Worker manager snapshot missing payload.");
+  }
+
+  const recordedAt = parseTimestamp(snapshot.recorded_at ?? snapshot.recordedAt);
+  if (Number.isNaN(recordedAt)) {
+    throw new Error("Worker manager snapshot missing recorded_at timestamp.");
+  }
+  if (recordedAt + WORKER_SNAPSHOT_MAX_AGE_MS < Date.now()) {
+    const iso = snapshot.recorded_at ?? snapshot.recordedAt;
+    throw new Error(
+      `Worker manager snapshot stale (recorded_at=${iso}); rerun worker_health before promotion.`,
+    );
+  }
+
+  const active = extractActive(snapshot);
+  if (!active) {
+    throw new Error("Worker manager snapshot missing active worker details.");
+  }
+
+  const status = typeof active.status === "string" ? active.status : "unknown";
+  if (status !== "ready") {
+    throw new Error(`Active worker not ready (status=${status}). Investigate worker_manager telemetry.`);
+  }
+
+  const health = active.last_health ?? active.lastHealth ?? null;
+  if (!health || typeof health !== "object" || health.ok !== true) {
+    throw new Error("Active worker health signal missing or failing; run worker_health and inspect logs.");
+  }
+
+  const lastHealthAt = parseTimestamp(active.last_health_at ?? active.lastHealthAt);
+  if (Number.isNaN(lastHealthAt)) {
+    throw new Error("Active worker health timestamp missing; rerun worker_health.");
+  }
+  if (lastHealthAt + ACTIVE_HEALTH_MAX_AGE_MS < Date.now()) {
+    throw new Error(
+      `Active worker health signal stale (last_health_at=${active.last_health_at ?? active.lastHealthAt}); rerun worker_health before promotion.`,
+    );
+  }
+
+  const events = Array.isArray(snapshot.events) ? snapshot.events : [];
+  const recentExit = events.find((event) => {
+    if (!event || typeof event !== "object") {
+      return false;
+    }
+    if (event.type !== "exit" && event.type !== "error") {
+      return false;
+    }
+    const ts = parseTimestamp(event.timestamp);
+    return Number.isFinite(ts) && ts + WORKER_EXIT_WINDOW_MS >= Date.now();
+  });
+
+  if (recentExit) {
+    throw new Error(
+      "Recent worker exit/error detected in worker_manager telemetry; stabilise the worker before proceeding with canary promotion.",
+    );
+  }
+}
+
+async function ensureUpgradeGateEvidence(workspaceRoot) {
+  const evidencePath = path.join(workspaceRoot, "state", "quality", "upgrade_gates.json");
+
+  let raw;
+  try {
+    raw = await fs.readFile(evidencePath, "utf8");
+  } catch (error) {
+    if (error && error.code === "ENOENT") {
+      throw new Error(
+        "Upgrade gate evidence missing (state/quality/upgrade_gates.json). Run the MCP upgrade preflight before canary promotion.",
+      );
+    }
+    throw new Error(
+      `Unable to read upgrade gate evidence: ${error instanceof Error ? error.message : String(error)}`,
+    );
+  }
+
+  let parsed;
+  try {
+    parsed = JSON.parse(raw);
+  } catch (error) {
+    throw new Error(
+      "Upgrade gate evidence malformed JSON; rerun tools/wvo_mcp/scripts/mcp_upgrade_preflight.ts.",
+    );
+  }
+
+  if (!parsed || typeof parsed !== "object") {
+    throw new Error(
+      "Upgrade gate evidence missing expected payload; rerun tools/wvo_mcp/scripts/mcp_upgrade_preflight.ts.",
+    );
+  }
+
+  const recordedAt = parseTimestamp(parsed.recorded_at ?? parsed.recordedAt);
+  if (Number.isNaN(recordedAt)) {
+    throw new Error(
+      "Upgrade gate evidence missing recorded_at timestamp; rerun tools/wvo_mcp/scripts/mcp_upgrade_preflight.ts.",
+    );
+  }
+  if (recordedAt + GATE_EVIDENCE_MAX_AGE_MS < Date.now()) {
+    const timestampText = parsed.recorded_at ?? parsed.recordedAt;
+    throw new Error(
+      `Upgrade gate evidence stale (recorded_at=${timestampText}); rerun preflight before canary promotion.`,
+    );
+  }
+
+  if (parsed.ok !== true) {
+    const failureDetail =
+      typeof parsed.failedCheck === "string" && parsed.failedCheck.length > 0
+        ? ` (failedCheck=${parsed.failedCheck})`
+        : "";
+    throw new Error(
+      `Upgrade preflight guardrail failing${failureDetail}; resolve issues and rerun preflight before promotion.`,
+    );
+  }
+
+  if (!Array.isArray(parsed.gates) || parsed.gates.length === 0) {
+    throw new Error(
+      "Upgrade gate evidence missing gate sequence; rerun tools/wvo_mcp/scripts/mcp_upgrade_preflight.ts.",
+    );
+  }
+
+  const gateIndex = new Map();
+  parsed.gates.forEach((gate, index) => {
+    if (gate && typeof gate === "object" && typeof gate.gate === "string") {
+      gateIndex.set(gate.gate, { ...gate, index });
+    }
+  });
+
+  let lastIndex = -1;
+  for (const gateName of GATE_SEQUENCE) {
+    const entry = gateIndex.get(gateName);
+    if (!entry) {
+      throw new Error(
+        `Upgrade gate evidence missing "${gateName}" gate; rerun tools/wvo_mcp/scripts/mcp_upgrade_preflight.ts.`,
+      );
+    }
+    if (Number.isNaN(parseTimestamp(entry.timestamp))) {
+      throw new Error(
+        `Upgrade gate "${gateName}" missing timestamp; rerun tools/wvo_mcp/scripts/mcp_upgrade_preflight.ts.`,
+      );
+    }
+    if (!["pending", "passed", "failed"].includes(entry.status)) {
+      throw new Error(
+        `Upgrade gate "${gateName}" has invalid status "${entry.status}".`,
+      );
+    }
+    if (entry.status === "failed") {
+      throw new Error(`Upgrade gate "${gateName}" recorded failure; abort promotion.`);
+    }
+    if (entry.index <= lastIndex) {
+      throw new Error(
+        "Upgrade gate evidence out of sequence; rerun tools/wvo_mcp/scripts/mcp_upgrade_preflight.ts.",
+      );
+    }
+    lastIndex = entry.index;
+  }
+
+  if (!Array.isArray(parsed.versions)) {
+    throw new Error(
+      "Upgrade gate evidence missing version checks; rerun tools/wvo_mcp/scripts/mcp_upgrade_preflight.ts.",
+    );
+  }
+
+  const versionIndex = new Map();
+  for (const version of parsed.versions) {
+    if (version && typeof version === "object" && typeof version.tool === "string") {
+      versionIndex.set(version.tool, version);
+    }
+  }
+
+  for (const tool of ["node", "npm"]) {
+    const info = versionIndex.get(tool);
+    if (!info) {
+      throw new Error(
+        `Upgrade gate evidence missing ${tool} version evidence; rerun preflight.`,
+      );
+    }
+    if (!info.satisfies) {
+      const constraint =
+        typeof info.constraint === "string" && info.constraint.length > 0
+          ? ` (constraint ${info.constraint})`
+          : "";
+      throw new Error(
+        `${tool} version fails upgrade guardrail${constraint}; align tooling before promotion.`,
+      );
+    }
+  }
+
+  if (typeof parsed.artifact === "string" && parsed.artifact.trim().length > 0) {
+    const artifactPath = path.join(workspaceRoot, parsed.artifact);
+    try {
+      await fs.access(artifactPath);
+    } catch {
+      throw new Error(
+        `Upgrade gate artifact missing at ${parsed.artifact}; rerun tools/wvo_mcp/scripts/mcp_upgrade_preflight.ts.`,
+      );
+    }
+  }
 }
 
 function ensureRollbackPromotionGate(alert, simulation) {
@@ -192,16 +437,19 @@ async function main() {
   const workspaceRoot = path.resolve(process.argv[2] ?? path.join(process.cwd(), "..", ".."));
 
   try {
-    const [{ content, stats }, { parsed }, alerts, simulation] = await Promise.all([
+    const [{ content, stats }, { parsed }, alerts, simulation, workerSnapshot] = await Promise.all([
       readContext(workspaceRoot),
       readRoadmap(workspaceRoot),
       readAlerts(workspaceRoot),
       readRollbackSimulation(workspaceRoot),
+      readWorkerManagerSnapshot(workspaceRoot),
     ]);
 
     ensureRecentContext(stats);
     ensureNextActions(content);
     ensureActiveTasks(parsed);
+    await ensureUpgradeGateEvidence(workspaceRoot);
+    ensureWorkerSnapshotFresh(workerSnapshot);
     const criticalAlert = findLatestCriticalAlert(alerts);
     ensureRollbackPromotionGate(criticalAlert, simulation);
 

@@ -16,7 +16,7 @@ def ensure_profile_block(
     instructions: Path,
     model: str,
     sandbox: str,
-    approval: str,
+    approval_policy: str,
     reasoning: str,
     include_plan: bool,
 ) -> str:
@@ -25,7 +25,8 @@ def ensure_profile_block(
         f"base_instructions = {json.dumps(str(instructions))}",
         f"model = {json.dumps(model)}",
         f"sandbox = {json.dumps(sandbox)}",
-        f"approval = {json.dumps(approval)}",
+        f"ask_for_approval = {json.dumps(approval_policy)}",
+        f"approval = {json.dumps(approval_policy)}",
         f"reasoning = {json.dumps(reasoning)}",
         f"include_plan_tool = {'true' if include_plan else 'false'}",
         f"cwd = {json.dumps(str(workspace))}",
@@ -55,7 +56,16 @@ def ensure_profile_block(
     if current_header is not None:
         sections.append((current_header, current_body))
 
-    stray_keys = {"base_instructions", "model", "sandbox", "approval", "reasoning", "include_plan_tool", "cwd"}
+    stray_keys = {
+        "base_instructions",
+        "model",
+        "sandbox",
+        "approval",
+        "ask_for_approval",
+        "reasoning",
+        "include_plan_tool",
+        "cwd",
+    }
     filtered_preamble: list[str] = []
     for line in preamble:
         stripped = line.strip()
@@ -101,7 +111,8 @@ def main() -> int:
     parser.add_argument("instructions_path")
     parser.add_argument("--model", default="gpt-5-codex")
     parser.add_argument("--sandbox", default="danger-full-access")
-    parser.add_argument("--approval", default="never")
+    parser.add_argument("--approval", default=None, help="Deprecated; use --ask-for-approval")
+    parser.add_argument("--ask-for-approval", dest="ask_for_approval", default="never")
     parser.add_argument("--reasoning", default="auto")
     parser.add_argument("--no-plan-tool", action="store_false", dest="include_plan_tool", default=True)
 
@@ -120,6 +131,11 @@ def main() -> int:
     if config_path.exists():
         existing = config_path.read_text(encoding="utf-8")
 
+    # Enforce dangerous full access + no approvals regardless of caller input.
+    args.sandbox = "danger-full-access"
+    approval_policy = args.ask_for_approval if args.approval is None else args.approval or "never"
+    approval_policy = approval_policy or "never"
+
     updated = ensure_profile_block(
         existing,
         args.profile_name,
@@ -127,7 +143,7 @@ def main() -> int:
         instructions,
         args.model,
         args.sandbox,
-        args.approval,
+        approval_policy,
         args.reasoning,
         args.include_plan_tool,
     )

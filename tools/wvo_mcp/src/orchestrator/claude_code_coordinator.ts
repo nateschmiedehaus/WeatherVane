@@ -32,6 +32,8 @@ import type { PromptIntent } from '../utils/prompt_headers.js';
 import { ResilienceManager } from './resilience_manager.js';
 import { resolveOutputValidationSettings } from '../utils/output_validator.js';
 import type { LiveFlagsReader } from './live_flags.js';
+import { ConsensusEngine, ConsensusTelemetryRecorder } from './consensus/index.js';
+import type { ModelManager } from '../models/model_manager.js';
 
 const TOKEN_ESTIMATE_CHAR_RATIO = 4;
 const MAX_PROMPT_TOKENS = 600;
@@ -58,11 +60,23 @@ function estimateModelCost(
   agentType: Agent['type'],
   modelSlug: string | undefined,
   promptTokens: number,
-  completionTokens: number
+  completionTokens: number,
+  modelManager?: ModelManager
 ): number | undefined {
   if (COST_TRACKING_DISABLED) {
     return undefined;
   }
+
+  // Try to get cost from model registry first
+  if (modelManager && modelSlug) {
+    const registryCost = modelManager.getModelCost(agentType === 'codex' ? 'codex' : 'claude', modelSlug);
+    if (registryCost) {
+      const cost = ((promptTokens * registryCost.input) + (completionTokens * registryCost.output)) / 1000;
+      return Number.isFinite(cost) ? Math.round(cost * 1000) / 1000 : undefined;
+    }
+  }
+
+  // Fall back to hardcoded table
   const pricingKey = agentType === 'codex' ? modelSlug ?? 'gpt-5-codex' : 'claude_code';
   if (!pricingKey) return undefined;
 
@@ -156,6 +170,8 @@ export class ClaudeCodeCoordinator extends EventEmitter {
   private readonly resilienceManager: ResilienceManager;
   private readonly criticEnforcer: CriticEnforcer;
   private readonly selfImprovementManager?: SelfImprovementManager;
+  private readonly consensusEngine?: ConsensusEngine;
+  private readonly modelManager?: ModelManager;
 
   // Store bound listeners for proper cleanup
   private readonly boundListeners = {
@@ -176,12 +192,24 @@ export class ClaudeCodeCoordinator extends EventEmitter {
     private readonly operationsManager?: OperationsManager,
     private readonly observer?: ExecutionObserver,
     resilienceManager?: ResilienceManager,
-    selfImprovementManager?: SelfImprovementManager
+    selfImprovementManager?: SelfImprovementManager,
+    modelManager?: ModelManager
   ) {
     super();
     this.criticEnforcer = new CriticEnforcer(workspaceRoot, { stateMachine });
     this.resilienceManager = resilienceManager ?? new ResilienceManager(this.stateMachine, this.agentPool);
     this.selfImprovementManager = selfImprovementManager;
+    this.modelManager = modelManager;
+
+    const consensusEnabled = process.env.WVO_CONSENSUS_ENABLED === '1';
+    if (consensusEnabled) {
+      const telemetry = new ConsensusTelemetryRecorder(workspaceRoot);
+      this.consensusEngine = new ConsensusEngine({
+        stateMachine,
+        enabled: true,
+        telemetryRecorder: telemetry,
+      });
+    }
 
     this.stateMachine.on('task:created', this.boundListeners.taskCreated);
     this.stateMachine.on('task:transition', this.boundListeners.taskTransition);
@@ -278,6 +306,13 @@ export class ClaudeCodeCoordinator extends EventEmitter {
         await this.webInspirationManager.ensureInspiration(task);
       }
 
+      if (this.consensusEngine?.shouldEnsureDecision(task, initialContext)) {
+        const consensusCorrelation = this.createExecutionCorrelation(task.id);
+        await this.consensusEngine.ensureDecision(task, initialContext, {
+          correlationId: this.stageCorrelation(consensusCorrelation, 'consensus'),
+        });
+      }
+
       const codexOperational: CodexOperationalSnapshot | undefined = operationalSnapshot
         ? {
             mode: operationalSnapshot.mode,
@@ -288,7 +323,7 @@ export class ClaudeCodeCoordinator extends EventEmitter {
           }
         : undefined;
 
-      const codexModelHint = selectCodexModel(task, initialContext, codexOperational);
+      const codexModelHint = selectCodexModel(task, initialContext, codexOperational, this.modelManager);
       const assignmentOptions = this.computeAssignmentOptions(task, operationalSnapshot, codexModelHint);
       if (assignmentOptions) {
         logInfo('Applying provider override', {
@@ -597,7 +632,7 @@ export class ClaudeCodeCoordinator extends EventEmitter {
     const tokenCostUSD = COST_TRACKING_DISABLED
       ? undefined
       : result.costUSD ??
-        estimateModelCost(agent.type, modelSlug, promptTokens, completionTokens);
+        estimateModelCost(agent.type, modelSlug, promptTokens, completionTokens, this.modelManager);
 
     const coordinatorStatus =
       this.operationsManager?.getCoordinatorStatus() ?? {

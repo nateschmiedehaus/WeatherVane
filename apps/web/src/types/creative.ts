@@ -12,6 +12,10 @@ export interface CreativeSummary {
   watchlist_creatives: number;
   average_roas: number;
   median_roas: number;
+  active_spend_share: number;
+  watchlist_spend_share: number;
+  blocked_spend_share: number;
+  guardrail_counts: Record<string, number>;
 }
 
 export interface CreativeHighlight {
@@ -53,4 +57,3 @@ export interface CreativeResponseReport {
   top_creatives: CreativeHighlight[];
   creatives: CreativeRow[];
 }
-

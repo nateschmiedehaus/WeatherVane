@@ -274,6 +274,8 @@ def test_shadow_mode_disables_variant_after_guardrail(monkeypatch: pytest.Monkey
         for idx, episode in enumerate(result.episodes)
         if idx != 1
     )
+    payload = result.to_dict()
+    assert payload["q_values"]["risk_off"] is None
 
 
 def test_shadow_mode_enforces_minimum_baseline_fraction(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -334,3 +336,31 @@ def test_shadow_mode_throttles_variant_share(monkeypatch: pytest.MonkeyPatch) ->
 
     assert result.selection_counts[target_variant] <= math.floor(config.max_variant_fraction * config.episodes)
     assert result.diagnostics["max_variant_fraction"] <= config.max_variant_fraction + 1e-9
+
+
+def test_shadow_mode_throttles_when_variant_cap_rounds_to_zero(monkeypatch: pytest.MonkeyPatch) -> None:
+    scenario = _build_scenario()
+
+    def choose_variant(**kwargs):
+        for variant in kwargs["variants"]:
+            if variant.name != "baseline":
+                return variant
+        return kwargs["variants"][0]
+
+    monkeypatch.setattr(rl_shadow, "_select_variant", choose_variant)
+
+    config = ShadowPolicyConfig(
+        episodes=5,
+        epsilon=0.0,
+        reward_noise=0.0,
+        seed=11,
+        min_baseline_fraction=0.0,
+        max_variant_fraction=0.1,
+    )
+
+    result = run_shadow_mode(scenario, config)
+
+    assert result.selection_counts["baseline"] == config.episodes
+    assert all(count == 0 for name, count in result.selection_counts.items() if name != "baseline")
+    assert result.diagnostics["max_variant_fraction"] == 0.0
+    assert result.diagnostics["safety_override_rate"] > 0.0

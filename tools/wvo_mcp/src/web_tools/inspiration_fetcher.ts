@@ -27,49 +27,70 @@ export interface WebInspirationResult {
   error?: string;
 }
 
-type PlaywrightBrowser = {
-  newPage: (options?: Record<string, unknown>) => Promise<{
-    goto: (url: string, options?: Record<string, unknown>) => Promise<void>;
-    content: () => Promise<string>;
-    screenshot: (options: Record<string, unknown>) => Promise<void>;
-    close: () => Promise<void>;
-    context: () => { tracing?: { start: () => Promise<void>; stop: () => Promise<void> } };
-    _delegate?: Record<string, unknown>; // placeholder to avoid lint warnings
-  }>;
-  close: () => Promise<void>;
-};
+import { browserManager, type Page } from '../utils/browser.js';
 
-type PlaywrightModule = {
-  chromium: {
-    launch: (options?: Record<string, unknown>) => Promise<PlaywrightBrowser>;
-  };
-};
-
-const DEFAULT_ALLOWED_DOMAINS = [
+const DEFAULT_INSPIRATION_DOMAINS = [
+  'www.awwwards.com',
   'awwwards.com',
   'dribbble.com',
+  'www.dribbble.com',
   'behance.net',
-  'cssnectar.com',
-  'siteinspire.com'
+  'www.behance.net'
 ];
 
 const MAX_HTML_SIZE_BYTES = 500 * 1024; // 500 KB
 
 export class InspirationFetcher {
-  private playwrightModulePromise?: Promise<PlaywrightModule | null>;
-  private browserPromise?: Promise<PlaywrightBrowser | null>;
   private readonly baseDir: string;
-  private readonly allowedDomains: string[];
+  private allowedDomains: string[] = [];
+  private initializationPromise: Promise<void> | null = null;
 
   constructor(private readonly workspaceRoot: string) {
     this.baseDir = path.join(this.workspaceRoot, 'state', 'web_inspiration');
-    const envDomains = process.env.WVO_WEB_INSPIRATION_DOMAINS;
-    this.allowedDomains = envDomains
-      ? envDomains.split(',').map((d) => d.trim()).filter(Boolean)
-      : DEFAULT_ALLOWED_DOMAINS;
+    this.initializationPromise = this.initialize();
   }
 
+  private async initialize(): Promise<void> {
+    const envDomains = process.env.WVO_WEB_INSPIRATION_DOMAINS;
+    if (envDomains) {
+      this.allowedDomains = envDomains.split(',').map((d) => d.trim()).filter(Boolean);
+      return;
+    }
+
+    try {
+      const configPath = path.join(this.workspaceRoot, 'config', 'inspiration_sites.json');
+      const rawConfig = await fs.readFile(configPath, 'utf-8');
+      const domains = JSON.parse(rawConfig);
+      if (Array.isArray(domains) && domains.every(d => typeof d === 'string')) {
+        this.allowedDomains = domains;
+        if (this.allowedDomains.length === 0) {
+          this.allowedDomains = [...DEFAULT_INSPIRATION_DOMAINS];
+        }
+        return;
+      }
+    } catch {
+      // Ignore error and use curated defaults if config is missing or invalid
+      this.allowedDomains = [...DEFAULT_INSPIRATION_DOMAINS];
+      return;
+    }
+
+    this.allowedDomains = [...DEFAULT_INSPIRATION_DOMAINS];
+  }
+
+  public addInspirationSource(url: string): void {
+    try {
+      const hostname = new URL(url).hostname;
+      if (!this.allowedDomains.includes(hostname)) {
+        this.allowedDomains.push(hostname);
+      }
+    } catch {
+      // Ignore invalid URLs
+    }
+  }
   async capture(input: WebInspirationInput): Promise<WebInspirationResult> {
+    if (this.initializationPromise) {
+      await this.initializationPromise;
+    }
     const { url } = input;
     if (!this.isAllowedDomain(url)) {
       return {
@@ -111,36 +132,23 @@ export class InspirationFetcher {
       };
     }
 
-    const playwright = await this.getPlaywright();
-    if (!playwright) {
-      return {
-        success: false,
-        metadata: {
-          url,
-          timestamp: Date.now()
-        },
-        error:
-          'Playwright not installed. Run `npm install --prefix tools/wvo_mcp playwright` and `npx --yes playwright install chromium --with-deps`.'
-      };
-    }
-
-    const browser = await this.getBrowser(playwright);
+    const browser = await browserManager.getBrowser();
     if (!browser) {
-      return {
-        success: false,
-        metadata: {
-          url,
-          timestamp: Date.now()
-        },
-        error: 'Failed to launch Playwright chromium browser.'
-      };
+        return {
+            success: false,
+            metadata: {
+                url,
+                timestamp: Date.now()
+            },
+            error: 'Browser could not be initialized. Playwright might not be installed.'
+        };
     }
 
     const screenshotPath = path.join(recordDir, 'screenshot.png');
     const htmlPath = path.join(recordDir, 'snapshot.html');
     const started = Date.now();
 
-    let page: Awaited<ReturnType<PlaywrightBrowser['newPage']>> | undefined;
+    let page: Page | undefined;
 
     try {
       const viewport = input.viewport ?? { width: 1920, height: 1080 };
@@ -216,13 +224,8 @@ export class InspirationFetcher {
   }
 
   async dispose(): Promise<void> {
-    if (this.browserPromise) {
-      const browser = await this.browserPromise.catch(() => null);
-      if (browser) {
-        await browser.close().catch(() => {});
-      }
-      this.browserPromise = undefined;
-    }
+    // The shared browser manager can be closed via a global shutdown hook if needed
+    await browserManager.closeBrowser();
   }
 
   private async getTargetDirectory(taskId?: string): Promise<string> {
@@ -283,30 +286,6 @@ export class InspirationFetcher {
     } catch {
       return false;
     }
-  }
-
-  private async getPlaywright(): Promise<PlaywrightModule | null> {
-    if (!this.playwrightModulePromise) {
-      this.playwrightModulePromise = import('playwright').catch(() => null);
-    }
-    return this.playwrightModulePromise;
-  }
-
-  private async getBrowser(module: PlaywrightModule): Promise<PlaywrightBrowser | null> {
-    if (!this.browserPromise) {
-      this.browserPromise = module.chromium
-        .launch({
-          headless: true,
-          args: [
-            '--disable-dev-shm-usage',
-            '--no-sandbox',
-            '--disable-gpu',
-            '--disable-setuid-sandbox'
-          ]
-        })
-        .catch(() => null);
-    }
-    return this.browserPromise;
   }
 
   private stripTracking(html: string): string {

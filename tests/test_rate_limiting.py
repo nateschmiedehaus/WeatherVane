@@ -1,14 +1,23 @@
 from __future__ import annotations
 
-import asyncio
 import httpx
 import pytest
 
 from shared.libs.connectors.base import HTTPConnector
-from shared.libs.connectors.config import ConnectorConfig
+from shared.libs.connectors.config import (
+    ConnectorConfig,
+    MetaAdsConfig,
+    ShopifyConfig,
+    WeatherConfig,
+)
 from shared.libs.connectors.rate_limit import AsyncRateLimiter
+from shared.libs.connectors.meta import MetaAdsConnector
+from shared.libs.connectors.shopify import ShopifyConnector
+from shared.libs.connectors.weather import WeatherConnector
 import shared.libs.connectors.base as base_module
 import shared.libs.connectors.rate_limit as rate_limit_module
+import shared.libs.connectors.meta as meta_module
+import shared.libs.connectors.shopify as shopify_module
 
 
 class _SleepRecorder:
@@ -35,8 +44,12 @@ class _StubClient:
         return None
 
 
-def _build_response(status_code: int, *, headers: dict[str, str] | None = None) -> httpx.Response:
+def _build_response(
+    status_code: int, *, headers: dict[str, str] | None = None, json_body: object | None = None
+) -> httpx.Response:
     request = httpx.Request("GET", "https://example.com/resource")
+    if json_body is not None:
+        return httpx.Response(status_code, headers=headers or {}, json=json_body, request=request)
     return httpx.Response(status_code, headers=headers or {}, request=request)
 
 
@@ -110,5 +123,98 @@ async def test_http_connector_exponential_backoff_when_retry_after_missing(
     assert len(sleep_recorder.durations) == 2
     assert sleep_recorder.durations[0] == pytest.approx(0.1)
     assert sleep_recorder.durations[1] == pytest.approx(0.2)
+
+    await connector.close()
+
+
+@pytest.mark.asyncio
+async def test_shopify_connector_throttles_when_call_limit_header_high(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    config = ShopifyConfig(shop_domain="example.myshopify.com", access_token="token")
+    connector = ShopifyConnector(config)
+    connector._client = _StubClient(
+        [
+            _build_response(
+                200,
+                headers={"X-Shopify-Shop-Api-Call-Limit": "39/40"},
+                json_body={"orders": []},
+            ),
+        ]
+    )
+
+    sleep_recorder = _SleepRecorder()
+    monkeypatch.setattr(rate_limit_module.asyncio, "sleep", sleep_recorder)
+    monkeypatch.setattr(base_module.asyncio, "sleep", sleep_recorder)
+    monkeypatch.setattr(shopify_module.asyncio, "sleep", sleep_recorder)
+
+    response = await connector._request_with_refresh("GET", "/admin/api/2024-04/orders.json")
+    assert response.status_code == 200
+    assert sleep_recorder.durations, "expected throttling pause to be recorded"
+    assert sleep_recorder.durations[-1] == pytest.approx(2.0)
+
+    await connector.close()
+
+
+@pytest.mark.asyncio
+async def test_meta_connector_retries_on_rate_limit_error(monkeypatch: pytest.MonkeyPatch) -> None:
+    config = MetaAdsConfig(access_token="token", app_id="app", app_secret="secret")
+    connector = MetaAdsConnector(config)
+    connector._client = _StubClient(
+        [
+            _build_response(
+                400,
+                json_body={"error": {"code": 4, "message": "Call limit reached"}},
+            ),
+            _build_response(200, json_body={"data": []}),
+        ]
+    )
+
+    sleep_recorder = _SleepRecorder()
+    monkeypatch.setattr(rate_limit_module.asyncio, "sleep", sleep_recorder)
+    monkeypatch.setattr(base_module.asyncio, "sleep", sleep_recorder)
+    monkeypatch.setattr(meta_module.asyncio, "sleep", sleep_recorder)
+
+    result = await connector.fetch("/act_123/insights")
+    assert result["data"] == []
+    assert sleep_recorder.durations, "expected retry backoff to record a pause"
+    assert sleep_recorder.durations[0] == pytest.approx(connector.config.backoff_factor)
+
+    await connector.close()
+
+
+@pytest.mark.asyncio
+async def test_weather_connector_rate_limiter_waits_when_exhausted(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    config = WeatherConfig(rate_limit_per_second=2.0, rate_limit_capacity=1.0)
+    connector = WeatherConnector(config)
+    connector._client = _StubClient(
+        [
+            _build_response(200, json_body={"temperature": 20}),
+            _build_response(200, json_body={"temperature": 21}),
+        ]
+    )
+
+    sleep_recorder = _SleepRecorder()
+    current_time = 0.0
+
+    async def fake_sleep(duration: float) -> None:
+        nonlocal current_time
+        current_time += duration
+        sleep_recorder.durations.append(duration)
+
+    def fake_monotonic() -> float:
+        return current_time
+
+    monkeypatch.setattr(rate_limit_module.asyncio, "sleep", fake_sleep)
+    monkeypatch.setattr(rate_limit_module.time, "monotonic", fake_monotonic)
+    monkeypatch.setattr(base_module.asyncio, "sleep", fake_sleep)
+
+    await connector.fetch_forecast(10.0, 20.0)
+    await connector.fetch_forecast(10.0, 20.0)
+
+    assert sleep_recorder.durations, "rate limiter should enforce a wait"
+    assert sleep_recorder.durations[-1] == pytest.approx(0.5)
 
     await connector.close()

@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 
 import polars as pl
+import pytest
 
 from apps.model.creative_response import (
     BrandSafetyPolicy,
@@ -79,6 +80,23 @@ def test_generate_response_report_persists_json(tmp_path) -> None:
     assert payload["summary"]["creative_count"] == len(payload["creatives"])
     assert len(payload["creatives"]) == len(report["creatives"])
     assert payload["policy"]["roas_floor"] == policy.roas_floor
+    assert "active_spend_share" in payload["summary"]
+    assert "watchlist_spend_share" in payload["summary"]
+    assert "blocked_spend_share" in payload["summary"]
+    assert pytest.approx(
+        payload["summary"]["active_spend_share"]
+        + payload["summary"]["watchlist_spend_share"]
+        + payload["summary"]["blocked_spend_share"],
+        rel=1e-6,
+    ) == 1.0
+    guardrail_counts = payload["summary"].get("guardrail_counts", {})
+    assert isinstance(guardrail_counts, dict)
+    assert set(guardrail_counts) <= {
+        "brand_safety_block",
+        "brand_safety_watch",
+        "low_roas",
+        "limited_sample",
+    }
 
     roas_values = [row["roas_adjusted"] for row in payload["creatives"]]
     assert payload["top_creatives"][0]["roas_adjusted"] == max(roas_values)

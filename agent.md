@@ -1,5 +1,12 @@
 # WeatherVane — Agent Handbook
 
+## Rapid Orientation (read this first)
+- **Start every loop** by calling the MCP tools `plan_next` (use `minimal=true`) and `autopilot_status`. The status response now includes consensus staffing insights and token health (fed by `state/analytics/orchestration_metrics.json`). If either tool fails, pause and run `./tools/wvo_mcp/scripts/restart_mcp.sh`.
+- **Respect the consensus engine.** When critical or failed-quorum decisions appear, the autopilot will open follow-up tasks assigned to Atlas or Director Dana. Use them to progress escalations instead of bypassing review.
+- **Keep the test critic honest.** Run `bash tools/wvo_mcp/scripts/run_integrity_tests.sh` (the TestsCritic command) to execute backend pytest, web checks, and MCP vitest in one batch. Tag failures with the batch step when reporting.
+- **Mind the token budget.** Context is trimmed automatically by `TokenEfficiencyManager` when it grows past ~1000 words; it writes backups under `state/backups/context/`. Keep `state/context.md` concise to avoid churn.
+- **Log decisions as you go.** Update `state/context.md` and run `state_save` before breaks so the autopilot and Atlas receive current briefings.
+
 ## 0. Mission and Constraints
 - **Mission:** Implement WeatherVane, a multi-tenant, weather-intelligent ads allocator that recommends or pushes platform-safe budgets by product category × geo × channel.
 - **Guardrails:**
@@ -7,6 +14,7 @@
   - Respect ad-platform learning phases; enforce ramp limits, change windows, and guardrails.
   - Automation is opt-in: Manual, Assist (approval), or Autopilot modes must be supported at every step.
   - UX copy must stay truthful—no guarantees of performance.
+  - Consensus escalations and token-efficiency edits must be treated as production operations—never disable these safety nets without explicit approval.
 - **Non-goals (v1):** Generating creative assets, modifying tracking pixels, building custom attribution beyond available platform/shop data.
 
 ## 1. System Overview
@@ -37,6 +45,13 @@ storage/
 - **Push Service:** Budget writes with dry-run diffs, approval workflow, rollback, audit logging.
 - **UI/API:** Plan, Stories, Catalog & Tags, Automations, Experiments, Diagnostics.
 - **Observability:** Metrics, tracing, rate-limit dashboards, data-quality checks.
+
+### Autopilot & MCP Workflow
+- **Tools to hit every loop:** `plan_next`, `autopilot_status`, `state_metrics`, `critics_run`.
+- **Consensus pipeline:** Critical or failed-quorum decisions in `state/analytics/orchestration_metrics.json` will auto-create follow-up tasks. Use Atlas/Dana routing to close them and keep autopilot unblocked.
+- **Telemetry inputs:** `autopilot_status` combines audit cadence, staffing recommendation, and consensus trend; reference it before rebalancing agents or editing guardrails.
+- **Token efficiency:** `TokenEfficiencyManager` trims `state/context.md` when token pressure is critical and archives backups in `state/backups/context/`. Review those backups before restoring context detail.
+- **Testing contract:** Always use `bash tools/wvo_mcp/scripts/run_integrity_tests.sh` instead of ad-hoc `make test` so the batch critic reflects the real CI workflow.
 
 ## 2. Runtime Stack
 - **Backend:** Python 3.11+, FastAPI, Polars, DuckDB, LightGBM, statsmodels/pyGAM, cvxpy, ONNX Runtime.

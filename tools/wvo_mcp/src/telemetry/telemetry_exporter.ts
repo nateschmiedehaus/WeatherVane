@@ -62,6 +62,46 @@ export class TelemetryExporter {
     void this.flush(); // Final flush
   }
 
+  /**
+   * Archive existing telemetry file and start fresh.
+   * This ensures metrics are accurate for the current session.
+   */
+  async archiveAndReset(): Promise<void> {
+    try {
+      await this.ensureDirectory();
+
+      // Check if telemetry file exists
+      try {
+        await fs.access(this.targetPath);
+      } catch {
+        // File doesn't exist, nothing to archive
+        return;
+      }
+
+      // Create archives directory
+      const archivesDir = path.join(path.dirname(this.targetPath), "archives");
+      await fs.mkdir(archivesDir, { recursive: true });
+
+      // Generate archive filename with timestamp
+      const timestamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
+      const filename = path.basename(this.targetPath, ".jsonl");
+      const archivePath = path.join(archivesDir, `${filename}_${timestamp}.jsonl`);
+
+      // Move current file to archive
+      await fs.rename(this.targetPath, archivePath);
+
+      logWarning("Archived telemetry for fresh session", {
+        archive: archivePath,
+        target: this.targetPath,
+      });
+    } catch (error) {
+      logWarning("Failed to archive telemetry", {
+        path: this.targetPath,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
+
   private async ensureDirectory(): Promise<void> {
     if (this.directoryEnsured) return;
     const dir = path.dirname(this.targetPath);

@@ -91,10 +91,17 @@ class ShadowRunResult:
     diagnostics: Dict[str, float]
 
     def to_dict(self) -> Dict[str, object]:
+        def _serialise_number(value: object) -> object:
+            if isinstance(value, float) and not math.isfinite(value):
+                return None
+            return value
+
         return {
             "average_reward": self.average_reward,
             "guardrail_violations": self.guardrail_violations,
-            "q_values": dict(self.q_values),
+            "q_values": {
+                name: _serialise_number(value) for name, value in self.q_values.items()
+            },
             "selection_counts": dict(self.selection_counts),
             "episodes": [
                 {
@@ -248,7 +255,7 @@ def _enforce_safety_bounds(
 
     cap = math.floor(config.max_variant_fraction * total)
     if cap <= 0:
-        return requested, False
+        return baseline, True
 
     if selection_counts[requested.name] >= cap:
         return baseline, True

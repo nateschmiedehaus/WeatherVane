@@ -198,8 +198,6 @@ export class ScreenshotManager {
   ): Promise<boolean> {
     for (let attempt = 1; attempt <= this.maxRetries; attempt++) {
       try {
-        await this.capture.initialize();
-
         const result = await this.capture.capture({
           url,
           outputPath,
@@ -397,7 +395,7 @@ export class ScreenshotManager {
    * Close browser and cleanup
    */
   async close(): Promise<void> {
-    await this.capture.close();
+    // The shared browser instance is closed by a global shutdown hook, not here.
 
     if (this.devServerProcess) {
       try {

@@ -1,0 +1,50 @@
+{
+  "generated_at": "2025-10-15T22:46:34Z",
+  "task_id": "T6.3.3",
+  "scenario": {
+    "provider": "codex_stub",
+    "capability_profile": "medium",
+    "mode": "single_loop_blocker_stop",
+    "inputs": {
+      "summary_fixture": "Atlas: autopilot e2e harness",
+      "stop_on_blocker": true,
+      "skip_dns_check": true,
+      "skip_network_check": true
+    }
+  },
+  "loop_summary": {
+    "completed_tasks": [
+      "Atlas: autopilot e2e harness"
+    ],
+    "in_progress": [
+      "T6.3.3 \u2013 Autopilot loop end-to-end validation"
+    ],
+    "blockers": [
+      "Awaiting manager_self_check critic evidence"
+    ],
+    "next_focus": [
+      "Run manager_self_check critic against autopilot assets"
+    ],
+    "notes": "Stubbed Codex run captured a single-loop autopilot cycle."
+  },
+  "telemetry": {
+    "usage_log": "experiments/mcp/.tmp/autopilot_e2e_20251015T224603Z/state/telemetry/usage.jsonl",
+    "attempts": 1,
+    "duration_seconds": 1,
+    "status": "success"
+  },
+  "memos": {
+    "in_progress": "experiments/mcp/.tmp/autopilot_e2e_20251015T224603Z/state/task_memos/T6.3.3.json",
+    "next_focus": "experiments/mcp/.tmp/autopilot_e2e_20251015T224603Z/state/task_memos/label-run-manager-self-check-critic-against-autopilot-.json"
+  },
+  "artifacts": {
+    "workspace": "experiments/mcp/.tmp/autopilot_e2e_20251015T224603Z",
+    "log": "experiments/mcp/.tmp/autopilot_e2e_20251015T224603Z/autopilot.log",
+    "state": "experiments/mcp/.tmp/autopilot_e2e_20251015T224603Z/state/autopilot_summary.json"
+  },
+  "guardrail_validation": {
+    "automatic_promotion": "Autopilot prompt executed via codex stub and persisted summary to the state file.",
+    "automatic_rollback": "STOP_ON_BLOCKER halted the loop immediately after recording blockers, exercising rollback stop behavior."
+  },
+  "notes": "Single-loop autopilot execution under stubbed Codex validated state persistence, memo updates, and usage telemetry without requiring outbound network access."
+}

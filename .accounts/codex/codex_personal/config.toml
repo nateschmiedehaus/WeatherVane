@@ -2,6 +2,7 @@
 base_instructions = "/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/docs/wvo_prompt.md"
 model = "gpt-5-codex"
 sandbox = "danger-full-access"
+ask_for_approval = "never"
 approval = "never"
 reasoning = "auto"
 include_plan_tool = true

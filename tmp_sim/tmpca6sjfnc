@@ -1,0 +1,205 @@
+{
+  "domain": "mcp",
+  "action": "recover_critics",
+  "exploration": true,
+  "scores": {
+    "product": {
+      "score": 29.564763223021984,
+      "q_value": 10.09525556146799,
+      "bias": 2.8815416666666662,
+      "pressure": 2.7776867657272475,
+      "progress": 0.6931471805599453,
+      "balance_term": 0.35,
+      "adjustment": 14.5,
+      "remaining": 6,
+      "blocked": 3,
+      "in_progress": 1
+    },
+    "mcp": {
+      "score": 6.360788652677672,
+      "q_value": 3.1639401041666666,
+      "bias": 0.337125,
+      "pressure": 3.732495446894725,
+      "progress": 1.3862943611198906,
+      "balance_term": -0.25,
+      "adjustment": 1.25,
+      "remaining": 12,
+      "blocked": 6,
+      "in_progress": 3
+    }
+  },
+  "reason": "Exploration step (epsilon-greedy) to keep policy adaptable.",
+  "critics": [
+    "health_check",
+    "allocator",
+    "manager_self_check"
+  ],
+  "top_tasks": [
+    {
+      "id": "T6000",
+      "title": "Mcp task T6000",
+      "status": "blocked",
+      "dependencies": [
+        "MCP_UNBLOCK"
+      ],
+      "critics": [
+        "health_check"
+      ],
+      "group": "mcp_core",
+      "critic_groups": [
+        "quality"
+      ]
+    },
+    {
+      "id": "T6002",
+      "title": "Mcp task T6002",
+      "status": "blocked",
+      "dependencies": [
+        "MCP_UNBLOCK"
+      ],
+      "critics": [
+        "allocator"
+      ],
+      "group": "mcp_core",
+      "critic_groups": [
+        "allocator"
+      ]
+    },
+    {
+      "id": "T6005",
+      "title": "Mcp task T6005",
+      "status": "blocked",
+      "dependencies": [
+        "MCP_UNBLOCK"
+      ],
+      "critics": [
+        "manager_self_check"
+      ],
+      "group": "mcp_core",
+      "critic_groups": [
+        "quality"
+      ]
+    },
+    {
+      "id": "T6014",
+      "title": "Mcp task T6014",
+      "status": "blocked",
+      "dependencies": [
+        "MCP_UNBLOCK"
+      ],
+      "critics": [
+        "manager_self_check"
+      ],
+      "group": "mcp_core",
+      "critic_groups": [
+        "quality"
+      ]
+    },
+    {
+      "id": "T6015",
+      "title": "Mcp task T6015",
+      "status": "blocked",
+      "dependencies": [
+        "MCP_UNBLOCK"
+      ],
+      "critics": [
+        "allocator"
+      ],
+      "group": "mcp_core",
+      "critic_groups": [
+        "allocator"
+      ]
+    },
+    {
+      "id": "T6016",
+      "title": "Mcp task T6016",
+      "status": "blocked",
+      "dependencies": [
+        "MCP_UNBLOCK"
+      ],
+      "critics": [
+        "tests"
+      ],
+      "group": "mcp_core",
+      "critic_groups": [
+        "quality"
+      ]
+    },
+    {
+      "id": "T6001",
+      "title": "Mcp task T6001",
+      "status": "in_progress",
+      "dependencies": [],
+      "critics": [
+        "manager_self_check"
+      ],
+      "group": "mcp_core",
+      "critic_groups": [
+        "quality"
+      ]
+    },
+    {
+      "id": "T6006",
+      "title": "Mcp task T6006",
+      "status": "in_progress",
+      "dependencies": [],
+      "critics": [
+        "health_check"
+      ],
+      "group": "mcp_core",
+      "critic_groups": [
+        "quality"
+      ]
+    }
+  ],
+  "domain_snapshot": {
+    "remaining": 12,
+    "blocked": 6,
+    "in_progress": 3,
+    "needs_review": 0,
+    "critics": {
+      "health_check": {
+        "blocked": 1,
+        "total": 2
+      },
+      "manager_self_check": {
+        "blocked": 2,
+        "total": 4
+      },
+      "allocator": {
+        "blocked": 2,
+        "total": 2
+      },
+      "tests": {
+        "blocked": 1,
+        "total": 1
+      }
+    },
+    "critic_groups": {
+      "quality": {
+        "blocked": 4,
+        "total": 7
+      },
+      "allocator": {
+        "blocked": 2,
+        "total": 2
+      },
+      "general": {
+        "blocked": 0,
+        "total": 3
+      }
+    },
+    "task_groups": {
+      "mcp_core": {
+        "blocked": 6,
+        "remaining": 12,
+        "total": 12
+      }
+    },
+    "dependency_edges": 6,
+    "total": 20,
+    "recent_completion": 0.0
+  },
+  "prompt_directive": "Policy target: focus on the MCP domain this cycle.\nPrimary action: recover_critics.\nRun or repair critics before coding: allocator, health_check, manager_self_check.\nTop priorities: T6000 (blocked) \u2013 Mcp task T6000; T6002 (blocked) \u2013 Mcp task T6002; T6005 (blocked) \u2013 Mcp task T6005; T6014 (blocked) \u2013 Mcp task T6014.\nReasoning: Exploration step (epsilon-greedy) to keep policy adaptable.",
+  "timestamp": 1760633067.856247
+}

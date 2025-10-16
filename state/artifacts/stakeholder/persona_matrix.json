@@ -1,0 +1,30 @@
+{
+  "updated": "2025-10-16T04:12:00Z",
+  "personas": [
+    {
+      "id": "cmo",
+      "label": "CMO Visionary",
+      "goals": ["Elevate brand during extreme weather", "Prove marketing return on investment"],
+      "needs": ["Executive summary dashboards", "Narrative-ready talking points"],
+      "favoriteArtifacts": ["state/artifacts/stakeholder/narrative.md", "state/artifacts/demo/demo_plan.md"]
+    },
+    {
+      "id": "marketing-ops",
+      "label": "Marketing Operations Lead",
+      "goals": ["Keep campaigns stable across channels", "Align automation with weather signal"],
+      "needs": ["Integration completeness matrix", "Responsive surface testing reports"],
+      "favoriteArtifacts": ["state/artifacts/integration/integration_matrix.json", "state/artifacts/responsive/testing_report.md"]
+    },
+    {
+      "id": "analyst",
+      "label": "Revenue Analyst",
+      "goals": ["Quantify lift from weather automations", "Identify next best experiment"],
+      "needs": ["Experiment notebooks", "Motion performance captures"],
+      "favoriteArtifacts": ["state/artifacts/motion/motion_specs.md", "state/artifacts/demo/performance_report.md"]
+    }
+  ],
+  "enablement": {
+    "officeHours": "Tuesdays 18:00Z",
+    "narrativeOwner": "Director Dana"
+  }
+}

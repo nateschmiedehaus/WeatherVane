@@ -14,6 +14,10 @@ export function resolveWorkspaceRoot(): string {
 }
 
 export function getCodexProfile(): CodexProfile {
+  const capability = process.env.WVO_CAPABILITY?.toLowerCase();
+  if (capability === "low" || capability === "medium" || capability === "high") {
+    return capability;
+  }
   const raw = process.env.CODEX_PROFILE?.toLowerCase();
   if (raw === "low" || raw === "medium" || raw === "high") {
     return raw;

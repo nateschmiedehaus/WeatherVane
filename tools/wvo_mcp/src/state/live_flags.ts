@@ -1,6 +1,9 @@
+import fs from 'node:fs';
 import path from 'node:path';
 
 import DatabaseConstructor from 'better-sqlite3';
+
+import { createDryRunError, isDryRunEnabled } from '../utils/dry_run.js';
 
 export const LIVE_FLAG_KEYS = [
   'PROMPT_MODE',
@@ -104,18 +107,64 @@ export function seedLiveFlagDefaults(
   }
 }
 
+interface SettingsStoreOptions {
+  workspaceRoot: string;
+  sqlitePath?: string;
+  readOnly?: boolean;
+}
+
 export class SettingsStore {
+  private readonly readOnly: boolean;
+  private readonly disabled: boolean;
+  private readonly sqlitePath: string;
+
   private readonly db: ReturnType<typeof DatabaseConstructor>;
 
-  constructor(options: { workspaceRoot: string; sqlitePath?: string }) {
-    const sqlitePath =
+  constructor(options: SettingsStoreOptions) {
+    this.sqlitePath =
       options.sqlitePath ?? path.join(options.workspaceRoot, 'state', 'orchestrator.db');
-    this.db = new DatabaseConstructor(sqlitePath);
-    this.db.pragma('journal_mode = WAL');
-    this.db.pragma('foreign_keys = ON');
+    this.readOnly = options.readOnly ?? isDryRunEnabled();
+
+    const sqliteDir = path.dirname(this.sqlitePath);
+    fs.mkdirSync(sqliteDir, { recursive: true });
+
+    const sqliteExists = fs.existsSync(this.sqlitePath);
+    let disabled = false;
+
+    if (this.readOnly) {
+      if (!sqliteExists) {
+        this.db = new DatabaseConstructor(':memory:');
+        this.db.pragma('query_only = 1');
+        disabled = true;
+      } else {
+        try {
+          const uri = `file:${this.sqlitePath}?mode=ro`;
+          this.db = new DatabaseConstructor(uri, {
+            uri: true,
+            readonly: true,
+            fileMustExist: true,
+          } as Parameters<typeof DatabaseConstructor>[1] & { uri: boolean });
+          this.db.pragma('query_only = 1');
+        } catch {
+          this.db = new DatabaseConstructor(':memory:');
+          this.db.pragma('query_only = 1');
+          disabled = true;
+        }
+      }
+    } else {
+      this.db = new DatabaseConstructor(this.sqlitePath);
+      this.db.pragma('journal_mode = WAL');
+      this.db.pragma('foreign_keys = ON');
+    }
+
+    this.disabled = disabled;
   }
 
   upsert(key: LiveFlagKey, rawValue: unknown): LiveFlagSnapshot {
+    if (this.readOnly || this.disabled) {
+      throw createDryRunError('settings.upsert');
+    }
+
     const value = normalizeLiveFlagValue(key, rawValue);
     const timestamp = Date.now();
     this.db
@@ -131,6 +180,10 @@ export class SettingsStore {
   }
 
   read(): LiveFlagSnapshot {
+    if (this.disabled) {
+      return { ...DEFAULT_LIVE_FLAGS };
+    }
+
     const snapshot: LiveFlagSnapshot = { ...DEFAULT_LIVE_FLAGS };
     const rows = this.db
       .prepare(`SELECT key, val FROM settings`)

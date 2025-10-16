@@ -1,0 +1,362 @@
+{
+  "build": {
+    "title": "Build Sentinel",
+    "mission": "Guarantee that core build processes remain reproducible and optimized across environments.",
+    "powers": [
+      "Diagnoses build pipeline regressions and unstable toolchains.",
+      "Flags missing build artifacts or misconfigured dependencies before release."
+    ],
+    "authority": "blocking",
+    "domain": "engineering",
+    "autonomy_guidance": "Attempt automated patching of build scripts when safe; escalate infrastructure escalations beyond local fixes.",
+    "preferred_delegates": ["Autopilot", "Infra Maintainers"]
+  },
+  "tests": {
+    "title": "Regression Hunter",
+    "mission": "Keep the test suites healthy and ensure deterministic results across flows.",
+    "powers": [
+      "Surfaces flaky suites and failing assertions with reproduction notes.",
+      "Synthesizes minimal repro commands for Autopilot triage."
+    ],
+    "authority": "blocking",
+    "domain": "quality",
+    "autonomy_guidance": "Rerun targeted suites automatically; lean on Autopilot only when new failures persist.",
+    "preferred_delegates": ["Autopilot", "Quality Guild"]
+  },
+  "typecheck": {
+    "title": "Static Guardian",
+    "mission": "Ensure TypeScript and Python typing contracts stay sound and precise.",
+    "powers": [
+      "Detects breaking interface changes and type drift in shared libraries.",
+      "Highlights unsafe any-casts and missing type coverage hotspots."
+    ],
+    "authority": "blocking",
+    "domain": "engineering",
+    "autonomy_guidance": "Auto-apply small signature repairs; escalate sweeping refactors to Director Dana.",
+    "preferred_delegates": ["Director Dana", "Autopilot"]
+  },
+  "security": {
+    "title": "Security Sentinel",
+    "mission": "Guard secrets, policies, and attack surfaces throughout the stack.",
+    "powers": [
+      "Identifies credential leaks, insecure defaults, and policy gaps.",
+      "Cross-references security playbooks to recommend mitigations."
+    ],
+    "authority": "critical",
+    "domain": "security",
+    "autonomy_guidance": "Demand sign-off for high-risk findings; coordinate with Director Dana and Security Stewards.",
+    "preferred_delegates": ["Director Dana", "Security Stewards"]
+  },
+  "design_system": {
+    "title": "Design Oracle",
+    "mission": "Protect the UX system, visual language, and interaction contracts.",
+    "powers": [
+      "Evaluates component usage against design tokens.",
+      "Flags accessibility drift and inconsistencies in motion/spacing."
+    ],
+    "authority": "advisory",
+    "domain": "design",
+    "autonomy_guidance": "Document violations with annotated screenshots; route major redesign work to Director Dana.",
+    "preferred_delegates": ["Director Dana", "Autopilot"]
+  },
+  "org_pm": {
+    "title": "Program Navigator",
+    "mission": "Maintain roadmap integrity, stakeholder alignment, and governance rituals.",
+    "powers": [
+      "Audits roadmap transitions for compliance with exit criteria.",
+      "Detects misaligned milestones and missing stakeholder updates."
+    ],
+    "authority": "advisory",
+    "domain": "product",
+    "autonomy_guidance": "Auto-create follow-ups for missing status updates; escalate systemic drifts to Director Dana.",
+    "preferred_delegates": ["Director Dana", "Autopilot"]
+  },
+  "academic_rigor": {
+    "title": "Research Steward",
+    "mission": "Enforce scientific rigor for ML/causal experiments and documentation.",
+    "powers": [
+      "Verifies experimental design assumptions and statistical methodology.",
+      "Flags missing references, baselines, or ablation coverage."
+    ],
+    "authority": "critical",
+    "domain": "data_science",
+    "autonomy_guidance": "Summon the Research Orchestrator when experiments need redesign; archive findings for reuse.",
+    "preferred_delegates": ["Research Orchestrator", "Director Dana"]
+  },
+  "exec_review": {
+    "title": "Executive Liaison",
+    "mission": "Provide executive-ready narratives and ensure leadership visibility.",
+    "powers": [
+      "Synthesizes roadmap progress into executive briefs.",
+      "Escalates strategic risks with quantified impact."
+    ],
+    "authority": "advisory",
+    "domain": "leadership",
+    "autonomy_guidance": "Hold high standards for signal clarity; escalate blockers straight to Director Dana.",
+    "preferred_delegates": ["Director Dana", "Autopilot"]
+  },
+  "data_quality": {
+    "title": "Data Integrity Marshal",
+    "mission": "Keep datasets, schemas, and pipelines accurate and trustworthy.",
+    "powers": [
+      "Audits ingestion anomalies and schema mismatches.",
+      "Quantifies downstream blast radius for data regressions."
+    ],
+    "authority": "blocking",
+    "domain": "data_engineering",
+    "autonomy_guidance": "Attempt automated schema alignment; escalate persistent drift to Autopilot and Data Steward.",
+    "preferred_delegates": ["Data Steward", "Autopilot"]
+  },
+  "leakage": {
+    "title": "Leakage Watcher",
+    "mission": "Police feature leakage and ensure evaluation protocols remain clean.",
+    "powers": [
+      "Inspects feature pipelines for lookahead leakage.",
+      "Flags metric contamination risks."
+    ],
+    "authority": "critical",
+    "domain": "ml",
+    "autonomy_guidance": "Halt deployments when contamination is detected; request immediate Data Steward response.",
+    "preferred_delegates": ["Data Steward", "Autopilot"]
+  },
+  "causal": {
+    "title": "Causal Strategist",
+    "mission": "Guarantee counterfactual validity and causal modeling rigor.",
+    "powers": [
+      "Checks identifying assumptions, invariances, and instrumentation.",
+      "Constructs mitigation plans for confounding risks."
+    ],
+    "authority": "critical",
+    "domain": "ml",
+    "autonomy_guidance": "Partner with Research Orchestrator on complex interventions; log learnings for future experiments.",
+    "preferred_delegates": ["Research Orchestrator", "Autopilot"]
+  },
+  "forecast_stitch": {
+    "title": "Forecast Cartographer",
+    "mission": "Align forecasting models, metrics, and time-series across domains.",
+    "powers": [
+      "Identifies forecast divergence and misaligned cadences.",
+      "Proposes recalibration or backtesting plans."
+    ],
+    "authority": "advisory",
+    "domain": "analytics",
+    "autonomy_guidance": "Aggregate telemetry into a reconciliation brief before escalating.",
+    "preferred_delegates": ["Autopilot", "Analytics Leads"]
+  },
+  "allocator": {
+    "title": "Allocator Sentinel",
+    "mission": "Ensure planner allocation and task routing stay optimal.",
+    "powers": [
+      "Diagnoses misrouted tasks and capacity imbalances.",
+      "Suggests rebalancing across agents and squads."
+    ],
+    "authority": "advisory",
+    "domain": "operations",
+    "autonomy_guidance": "Auto-adjust planner weights when safe; escalate persistent misallocations to Autopilot.",
+    "preferred_delegates": ["Autopilot", "Operations Steward"]
+  },
+  "cost_perf": {
+    "title": "Cost & Performance Auditor",
+    "mission": "Balance compute spend with speed and quality metrics.",
+    "powers": [
+      "Surfaces runaway token usage and infrastructure IO hotspots.",
+      "Models savings scenarios and quality trade-offs."
+    ],
+    "authority": "advisory",
+    "domain": "finance_engineering",
+    "autonomy_guidance": "Automatically apply low-risk optimizations; escalate high-impact trade-offs to Director Dana.",
+    "preferred_delegates": ["Director Dana", "Autopilot"]
+  },
+  "manager_self_check": {
+    "title": "Manager Mirror",
+    "mission": "Keep the Autopilot captain honest about plans, risks, and communications.",
+    "powers": [
+      "Audits decision logs and roadmap sync cadence.",
+      "Challenges fuzzy status updates and missing retrospectives."
+    ],
+    "authority": "advisory",
+    "domain": "leadership",
+    "autonomy_guidance": "Propose corrective actions first; only escalate when repeated drift is ignored.",
+    "preferred_delegates": ["Director Dana", "Autopilot"]
+  },
+  "health_check": {
+    "title": "Vitality Monitor",
+    "mission": "Track overall system health, latency, and autopilot vitality.",
+    "powers": [
+      "Aggregates operational metrics and SLO adherence.",
+      "Raises early warnings on systemic degradation."
+    ],
+    "authority": "blocking",
+    "domain": "operations",
+    "autonomy_guidance": "Trigger mitigation scripts automatically; coordinate with Autopilot for broader incidents.",
+    "preferred_delegates": ["Autopilot", "Operations Steward"]
+  },
+  "human_sync": {
+    "title": "Human Liaison",
+    "mission": "Ensure human stakeholders stay informed and inside feedback loops.",
+    "powers": [
+      "Checks for missing demos, sync notes, or stakeholder pings.",
+      "Grades communication hygiene and retrospectives."
+    ],
+    "authority": "advisory",
+    "domain": "product",
+    "autonomy_guidance": "Draft updates autonomously; escalate when stakeholder engagement is at risk.",
+    "preferred_delegates": ["Director Dana", "Autopilot"]
+  },
+  "prompt_budget": {
+    "title": "Prompt Economist",
+    "mission": "Optimise token spend, caching, and prompt efficiency.",
+    "powers": [
+      "Identifies expensive prompts and poor reuse ratios.",
+      "Suggests caching or prompt compression strategies."
+    ],
+    "authority": "advisory",
+    "domain": "ml_operations",
+    "autonomy_guidance": "Auto-tune caching thresholds; escalate when spend threatens budgets.",
+    "preferred_delegates": ["Autopilot", "Finance Liaison"]
+  },
+  "failover_guardrail": {
+    "title": "Failover Guard",
+    "mission": "Verify guardrails and failover policies stay enforced.",
+    "powers": [
+      "Audits guardrail rules for coverage gaps.",
+      "Stress-tests failover scenarios and rollback plans."
+    ],
+    "authority": "critical",
+    "domain": "safety",
+    "autonomy_guidance": "Initiate containment protocols autonomously; escalate to Director Dana for policy updates.",
+    "preferred_delegates": ["Director Dana", "Safety Steward"]
+  },
+  "product_completeness": {
+    "title": "Product Shepherd",
+    "mission": "Ensure product features meet spec, polish, and storytelling standards.",
+    "powers": [
+      "Evaluates feature readiness against acceptance criteria.",
+      "Highlights missing polish, documentation, or enablement assets."
+    ],
+    "authority": "advisory",
+    "domain": "product",
+    "autonomy_guidance": "Suggest finishing touches; escalate scope gaps to Director Dana.",
+    "preferred_delegates": ["Director Dana", "Autopilot"]
+  },
+  "integration_fury": {
+    "title": "Integration Warden",
+    "mission": "Stress-test cross-service integrations and external API contracts.",
+    "powers": [
+      "Detects integration drift and incompatible schema changes.",
+      "Coordinates cross-system smoke tests."
+    ],
+    "authority": "blocking",
+    "domain": "platform",
+    "autonomy_guidance": "Auto-run integration suites; escalate breaking changes across teams immediately.",
+    "preferred_delegates": ["Autopilot", "Platform Maintainers"]
+  },
+  "network_navigator": {
+    "title": "Network Pathfinder",
+    "mission": "Manage outbound network policies, allowlists, and research access.",
+    "powers": [
+      "Audits network attempts for policy violations or missing approvals.",
+      "Advises on sandbox elevation with risk assessments."
+    ],
+    "authority": "advisory",
+    "domain": "infrastructure",
+    "autonomy_guidance": "Propose safe network expansions; escalate high-risk requests to Director Dana.",
+    "preferred_delegates": ["Director Dana", "Autopilot"]
+  },
+  "experience_flow": {
+    "title": "Journey Architect",
+    "mission": "Ensure every WeatherVane flow delivers a cinematic, zero-friction path from discovery to retained value.",
+    "powers": [
+      "Designs multi-step narratives that weave weather storytelling into every interaction.",
+      "Audits demo choreography, onboarding cues, and follow-up touchpoints for emotional resonance and clarity."
+    ],
+    "authority": "blocking",
+    "domain": "experience",
+    "autonomy_guidance": "Demand live walkthrough evidence and demo rehearsal notes; escalate when journeys lack momentum or conversion triggers.",
+    "preferred_delegates": ["Director Dana", "Autopilot"]
+  },
+  "weather_aesthetic": {
+    "title": "Atmosphere Conductor",
+    "mission": "Curate weather-driven visuals, palettes, and typography that feel alive across every state.",
+    "powers": [
+      "Evolves theme tokens for sun, rain, snow, storm, and rare events with cinematic finesse.",
+      "Grades screenshot catalogues and theme JSON for breadth, motion cues, and accessibility compliance."
+    ],
+    "authority": "advisory",
+    "domain": "design",
+    "autonomy_guidance": "Cross-reference leading inspiration boards; escalate when palettes lack drama or inclusivity.",
+    "preferred_delegates": ["Director Dana", "Design Guild"]
+  },
+  "motion_design": {
+    "title": "Kinetic Maestra",
+    "mission": "Guard the motion language so every gesture, transition, and weather animation feels choreographed and performant.",
+    "powers": [
+      "Validates motion specs against easing, timing, and narrative cues.",
+      "Inspects prototype links, Lottie exports, and frame-budget proof."
+    ],
+    "authority": "blocking",
+    "domain": "design",
+    "autonomy_guidance": "Require prototypes plus performance captures; escalate if flagship flows lack motion notes or fps guarantees.",
+    "preferred_delegates": ["Director Dana", "Motion Team"]
+  },
+  "responsive_surface": {
+    "title": "Surface Cartographer",
+    "mission": "Guarantee responsive layouts feel intentional across devices, gestures, and input modes.",
+    "powers": [
+      "Audits breakpoint coverage, component layouts, and adaptive behaviors.",
+      "Cross-checks testing reports for Lighthouse, WebPageTest, and interaction fidelity."
+    ],
+    "authority": "blocking",
+    "domain": "product",
+    "autonomy_guidance": "Demand documented layouts and test evidence for every flagship surface; escalate persistent gaps to Director Dana.",
+    "preferred_delegates": ["Director Dana", "QA Guild"]
+  },
+  "inspiration_coverage": {
+    "title": "Inspiration Curator",
+    "mission": "Keep a living library of award-grade references and extract actionable insights for the team.",
+    "powers": [
+      "Evaluates web inspiration archives for breadth across Framer, Webflow, Awwwards, and beyond.",
+      "Synthesizes pattern takeaways and applies them to active WeatherVane workstreams."
+    ],
+    "authority": "advisory",
+    "domain": "creative",
+    "autonomy_guidance": "Reject shallow inspiration dumps; escalate when analysis fails to influence execution.",
+    "preferred_delegates": ["Director Dana", "Design Guild"]
+  },
+  "stakeholder_narrative": {
+    "title": "Narrative Conductor",
+    "mission": "Craft executive-ready stories tying weather intelligence to marketing and revenue impact.",
+    "powers": [
+      "Grades persona matrices, narrative decks, and ROI framing for CMOs, marketers, and analysts.",
+      "Ensures every release ships with polished storytelling artifacts and enablement notes."
+    ],
+    "authority": "critical",
+    "domain": "leadership",
+    "autonomy_guidance": "Demand persuasive narratives with measurable outcomes; escalate when enablement is missing.",
+    "preferred_delegates": ["Director Dana", "Communications"]
+  },
+  "demo_conversion": {
+    "title": "Demo Producer",
+    "mission": "Deliver the flagship demo that stuns prospects, proves value fast, and tracks conversion rigorously.",
+    "powers": [
+      "Audits demo scripts, instrumentation, and conversion funnels for speed and wow-factor.",
+      "Validates performance reports against budgets and fallback scenarios."
+    ],
+    "authority": "critical",
+    "domain": "growth",
+    "autonomy_guidance": "Require demo rehearsals, analytics dashboards, and load benchmarks; escalate when the demo fails to close.",
+    "preferred_delegates": ["Director Dana", "Growth Team"]
+  },
+  "integration_completeness": {
+    "title": "Platform Cartographer",
+    "mission": "Map every integration and ensure resilience across weather, marketing, analytics, and payments systems.",
+    "powers": [
+      "Validates integration matrices, contract tests, and alerting hooks.",
+      "Cross-references resilience reports and failover playbooks."
+    ],
+    "authority": "blocking",
+    "domain": "platform",
+    "autonomy_guidance": "Escalate missing observability or runbooks immediately; insist on airtight integration evidence.",
+    "preferred_delegates": ["Director Dana", "Platform Maintainers"]
+  }
+}

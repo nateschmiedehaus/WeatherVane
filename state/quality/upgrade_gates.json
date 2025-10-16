@@ -1,0 +1,29 @@
+{
+  "recorded_at": "2025-10-16T03:07:39.828Z",
+  "ok": false,
+  "failedCheck": "git_clean",
+  "artifact": "experiments/mcp/upgrade/2025-10-16T03-07-39-828Z/preflight.json",
+  "gates": [
+    {
+      "gate": "build",
+      "status": "pending",
+      "timestamp": "2025-10-16T03:07:39.828Z"
+    },
+    {
+      "gate": "unit",
+      "status": "pending",
+      "timestamp": "2025-10-16T03:07:39.828Z"
+    },
+    {
+      "gate": "selfchecks",
+      "status": "pending",
+      "timestamp": "2025-10-16T03:07:39.828Z"
+    },
+    {
+      "gate": "canary_ready",
+      "status": "pending",
+      "timestamp": "2025-10-16T03:07:39.828Z"
+    }
+  ],
+  "versions": []
+}

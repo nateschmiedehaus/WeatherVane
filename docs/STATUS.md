@@ -11,7 +11,7 @@ _Generated: 2025-10-12T04:53:53.681Z (profile: medium)_
 - AgentPool parses provider CLI footers to capture real token counts and emits promotion/demotion events; operations snapshots include coordinator type, availability, reason, and token pressure.
 - Execution summaries in `state/telemetry/executions.jsonl` persist coordinator fields plus critic outcomes so we can audit failovers retrospectively.
 - Guardrails enforce a curated allow-list for shell execution (with `which`/`nl` exceptions). `runCommand` invokes guardrails before spawning, locking the behaviour via Vitest.
-- Compact evidence packs default to JSON mode; set `WVO_PROMPT_MODE=verbose` to recover the legacy markdown format when debugging.
+- Compact evidence packs default to JSON mode; use `ts-node tools/wvo_mcp/scripts/live_flags.ts set PROMPT_MODE verbose` to recover the legacy markdown format when debugging.
 - Guardrail critic `failover_guardrail` runs `scripts/check_failover_guardrail.mjs` to enforce Codex share ≤50 %, sustained failover <15 min, Claude downtime <10 min, and telemetry freshness ≤5 min.
 
 ## Risks
@@ -29,7 +29,7 @@ _Generated: 2025-10-12T04:53:53.681Z (profile: medium)_
 ## Task Notes
 - **T8.2.2 – Coordinator failover**: Orchestrator status, operations snapshots, and execution telemetry all emit `coordinator.type|available|reason`. Guardrail script enforces the SLO and is wired into the critic registry (`failover_guardrail`). Docs updated in `docs/OBSERVABILITY.md` with quick checks and rollback guidance. Critics (`tests`, `manager_self_check`) pass.
 - **T8.1.2 – Guardrail allow-list**: `ensureAllowedCommand` protects `runCommand`, Vitest `command_allowlist` suite covers the behaviour, and critic `tests` runs remain green.
-- **T8.2.1 – Compact evidence pack**: `composePrompt` defaults to JSON payloads; `WVO_PROMPT_MODE=verbose` restores the old prompt. Vitest `context_assembler_prompt` suite passes alongside build + manager critics.
+- **T8.2.1 – Compact evidence pack**: `composePrompt` defaults to JSON payloads; flip the live flag (`ts-node tools/wvo_mcp/scripts/live_flags.ts set PROMPT_MODE verbose`) to restore the old prompt. Vitest `context_assembler_prompt` suite passes alongside build + manager critics.
 - **T4.1.5 – Non-linear allocator**: Trust-constr + differential-evolution solvers enforce ROAS floors and spend caps. `pytest tests/test_allocator.py` and `critic:allocator` stay green (skipped under medium profile but reported).
 - **T4.1.6 – Intraday allocator**: Hourly ROI curves under `apps/allocator/hf_response.py` with canonical run saved to `experiments/allocator/hf_response.json`. Tests `tests/test_allocator_hf_response.py` pass; allocator critic skip acknowledged.
 

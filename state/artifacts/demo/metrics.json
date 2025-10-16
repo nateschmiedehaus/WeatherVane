@@ -1,0 +1,25 @@
+{
+  "conversionRate": {
+    "target": 0.42,
+    "current": 0.37,
+    "notes": "Based on last four live demos with cold-start audiences."
+  },
+  "timeToValue": {
+    "targetMinutes": 5,
+    "currentMinutes": 4.2,
+    "measurement": "Stopwatch captured from integration handshake to first automation launched."
+  },
+  "signupFunnel": {
+    "steps": [
+      "Demo CTA click",
+      "Account creation",
+      "Payment confirmation",
+      "Launch automation"
+    ],
+    "instrumentation": "Tracked via Segment + internal analytics with fallback CSV export."
+  },
+  "weatherHook": {
+    "headline": "Weather-driven insight triggers urgency within 45 seconds",
+    "proof": "Screen recording with live radar overlay and CTA heatmap."
+  }
+}

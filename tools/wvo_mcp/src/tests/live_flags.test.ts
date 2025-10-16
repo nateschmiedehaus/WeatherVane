@@ -5,7 +5,7 @@ import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { LiveFlags } from '../orchestrator/live_flags.js';
-import { SettingsStore } from '../state/live_flags.js';
+import { SettingsStore, DEFAULT_LIVE_FLAGS } from '../state/live_flags.js';
 import { StateMachine } from '../orchestrator/state_machine.js';
 
 async function waitFor(
@@ -76,6 +76,24 @@ describe('LiveFlags', () => {
     } finally {
       liveFlags.dispose();
       settings.close();
+    }
+  });
+
+  it('blocks live flag mutations when dry-run is enabled', () => {
+    const original = process.env.WVO_DRY_RUN;
+    process.env.WVO_DRY_RUN = '1';
+    const settings = new SettingsStore({ workspaceRoot });
+    try {
+      expect(() => settings.upsert('PROMPT_MODE', 'verbose')).toThrowError(/Dry-run mode forbids/);
+      const snapshot = settings.read();
+      expect(snapshot.PROMPT_MODE).toBe(DEFAULT_LIVE_FLAGS.PROMPT_MODE);
+    } finally {
+      settings.close();
+      if (typeof original === 'undefined') {
+        delete process.env.WVO_DRY_RUN;
+      } else {
+        process.env.WVO_DRY_RUN = original;
+      }
     }
   });
 });

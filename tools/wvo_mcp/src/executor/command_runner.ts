@@ -15,7 +15,6 @@ export async function runCommand(
     cwd: options.cwd,
     env: options.env,
     timeout: options.timeoutMs,
-    reject: false,
     stdout: "pipe",
     stderr: "pipe",
   });

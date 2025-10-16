@@ -277,7 +277,7 @@
       "status": "blocked"
     }
   ],
-  "generated_at": "2025-10-12T20:36:40.708598",
+  "generated_at": "2025-10-16T02:46:35.832803",
   "policy": {
     "block_threshold": 0.3,
     "min_impressions": 250,
@@ -286,11 +286,19 @@
   },
   "summary": {
     "active_creatives": 7,
+    "active_spend_share": 0.5363907515000762,
     "average_roas": 1.9831139619557245,
     "blocked_creatives": 2,
+    "blocked_spend_share": 0.09336426985563732,
     "creative_count": 12,
+    "guardrail_counts": {
+      "brand_safety_block": 2,
+      "brand_safety_watch": 2,
+      "low_roas": 1
+    },
     "median_roas": 2.278718243028968,
-    "watchlist_creatives": 3
+    "watchlist_creatives": 3,
+    "watchlist_spend_share": 0.3702449786442864
   },
   "top_creatives": [
     {
