@@ -372,14 +372,12 @@ export class WorkerManager extends EventEmitter {
     }
     const { entryPath, execArgv } = resolveWorkerEntry();
     const { entryPath: overrideEntryPath, env: providedEnv, label, ...restOptions } = options;
-    const resolvedDryRun =
-      providedEnv?.WVO_DRY_RUN ?? process.env.WVO_DRY_RUN ?? '0';
     const worker = new ManagedWorker('active', overrideEntryPath ?? entryPath, execArgv, {
       ...restOptions,
       role: 'active',
       label: label ?? 'active',
       env: {
-        WVO_DRY_RUN: resolvedDryRun,
+        WVO_DRY_RUN: providedEnv?.WVO_DRY_RUN ?? '0',
         ...providedEnv,
       },
     });
@@ -396,14 +394,12 @@ export class WorkerManager extends EventEmitter {
     }
     const { entryPath, execArgv } = resolveWorkerEntry();
     const { entryPath: overrideEntryPath, env: providedEnv, label, ...restOptions } = options;
-    const resolvedDryRun =
-      providedEnv?.WVO_DRY_RUN ?? process.env.WVO_DRY_RUN ?? '1';
     const worker = new ManagedWorker('canary', overrideEntryPath ?? entryPath, execArgv, {
       ...restOptions,
       role: 'canary',
       label: label ?? 'canary',
       env: {
-        WVO_DRY_RUN: resolvedDryRun,
+        WVO_DRY_RUN: providedEnv?.WVO_DRY_RUN ?? '1',
         ...providedEnv,
       },
     });

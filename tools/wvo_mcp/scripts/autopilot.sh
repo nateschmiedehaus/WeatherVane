@@ -34,6 +34,10 @@ POLICY_ATTEMPTS=0
 POLICY_LAST_DURATION=0
 POLICY_LAST_STATUS="unknown"
 POLICY_LAST_COMPLETED_AT=""
+AUTOPILOT_GIT_SYNC=${WVO_AUTOPILOT_GIT_SYNC:-1}
+AUTOPILOT_GIT_REMOTE=${WVO_AUTOPILOT_GIT_REMOTE:-origin}
+AUTOPILOT_GIT_BRANCH=${WVO_AUTOPILOT_GIT_BRANCH:-main}
+AUTOPILOT_GIT_SKIP_PATTERN=${WVO_AUTOPILOT_GIT_SKIP_PATTERN:-.clean_worktree}
 export USAGE_LIMIT_BACKOFF
 
 # Optionally restart MCP before doing anything else unless skipped explicitly.
@@ -80,6 +84,145 @@ else
   WVO_ENABLE_WEB_INSPIRATION=${WVO_ENABLE_WEB_INSPIRATION}
 fi
 export WVO_ENABLE_WEB_INSPIRATION
+
+# ════════════════════════════════════════════════════════════════════════════════
+# TIMEOUT INFRASTRUCTURE
+# ════════════════════════════════════════════════════════════════════════════════
+# Provides robust timeout wrapper that works on macOS without GNU timeout.
+# Handles signal propagation, process cleanup, and graceful degradation.
+# ════════════════════════════════════════════════════════════════════════════════
+
+# Global process tracking for cleanup
+declare -a WVO_TIMEOUT_PIDS=()
+
+# Cleanup handler - kills all tracked child processes
+cleanup_timeout_processes() {
+  local exit_code=$?
+  if [ ${#WVO_TIMEOUT_PIDS[@]} -gt 0 ]; then
+    for pid in "${WVO_TIMEOUT_PIDS[@]}"; do
+      if kill -0 "$pid" 2>/dev/null; then
+        kill -TERM "$pid" 2>/dev/null || true
+        sleep 0.5
+        kill -9 "$pid" 2>/dev/null || true
+      fi
+    done
+    WVO_TIMEOUT_PIDS=()
+  fi
+  return $exit_code
+}
+
+# Register cleanup trap
+trap cleanup_timeout_processes EXIT INT TERM
+
+# run_with_timeout: Execute command with timeout
+# Args: timeout_seconds command [args...]
+# Returns: 124 if timeout, command exit code otherwise
+run_with_timeout() {
+  local timeout_seconds="$1"
+  shift
+  local cmd=("$@")
+
+  # Run command in background
+  "${cmd[@]}" &
+  local cmd_pid=$!
+  WVO_TIMEOUT_PIDS+=("$cmd_pid")
+
+  # Start timeout monitor in background
+  (
+    sleep "$timeout_seconds"
+    if kill -0 "$cmd_pid" 2>/dev/null; then
+      kill -TERM "$cmd_pid" 2>/dev/null || true
+      sleep 1
+      kill -9 "$cmd_pid" 2>/dev/null || true
+    fi
+  ) &
+  local monitor_pid=$!
+
+  # Wait for command to complete
+  local exit_code=0
+  if wait "$cmd_pid" 2>/dev/null; then
+    exit_code=$?
+  else
+    exit_code=$?
+  fi
+
+  # Kill monitor if still running
+  kill -9 "$monitor_pid" 2>/dev/null || true
+  wait "$monitor_pid" 2>/dev/null || true
+
+  # Remove from tracked PIDs
+  WVO_TIMEOUT_PIDS=("${WVO_TIMEOUT_PIDS[@]/$cmd_pid}")
+
+  # Check if process was killed (timeout occurred)
+  if ! kill -0 "$cmd_pid" 2>/dev/null && [ $exit_code -ne 0 ]; then
+    # Process no longer exists and exited with error - likely timeout
+    if [ $exit_code -gt 128 ]; then
+      return 124  # GNU timeout convention for timeout
+    fi
+  fi
+
+  return $exit_code
+}
+
+# run_with_timeout_capture: Execute command with timeout and capture output
+# Args: timeout_seconds command [args...]
+# Returns: 124 if timeout, command exit code otherwise
+# Stdout: command output
+run_with_timeout_capture() {
+  local timeout_seconds="$1"
+  shift
+  local cmd=("$@")
+  local tmp_output
+  tmp_output=$(mktemp)
+
+  # Run command with output capture
+  ( "${cmd[@]}" > "$tmp_output" 2>&1 ) &
+  local cmd_pid=$!
+  WVO_TIMEOUT_PIDS+=("$cmd_pid")
+
+  # Start timeout monitor
+  (
+    sleep "$timeout_seconds"
+    if kill -0 "$cmd_pid" 2>/dev/null; then
+      kill -TERM "$cmd_pid" 2>/dev/null || true
+      sleep 1
+      kill -9 "$cmd_pid" 2>/dev/null || true
+    fi
+  ) &
+  local monitor_pid=$!
+
+  # Wait for command
+  local exit_code=0
+  if wait "$cmd_pid" 2>/dev/null; then
+    exit_code=$?
+  else
+    exit_code=$?
+  fi
+
+  # Kill monitor
+  kill -9 "$monitor_pid" 2>/dev/null || true
+  wait "$monitor_pid" 2>/dev/null || true
+
+  # Remove from tracked PIDs
+  WVO_TIMEOUT_PIDS=("${WVO_TIMEOUT_PIDS[@]/$cmd_pid}")
+
+  # Output results
+  if [ -f "$tmp_output" ]; then
+    cat "$tmp_output"
+    rm -f "$tmp_output"
+  fi
+
+  # Check for timeout
+  if ! kill -0 "$cmd_pid" 2>/dev/null && [ $exit_code -gt 128 ]; then
+    return 124
+  fi
+
+  return $exit_code
+}
+
+# ════════════════════════════════════════════════════════════════════════════════
+# END TIMEOUT INFRASTRUCTURE
+# ════════════════════════════════════════════════════════════════════════════════
 
 write_offline_summary() {
   local reason="${1:-offline}"
@@ -313,9 +456,10 @@ fetch_auth_status() {
     if [ -n "$token_identity" ]; then
       AUTH_STATUS_EMAIL="$token_identity"
     fi
-    AUTH_STATUS_RAW=$(CODEX_HOME="$CODEX_HOME" codex login status 2>&1 || true)
+    # Use timeout for codex commands (10s)
+    AUTH_STATUS_RAW=$(run_with_timeout_capture 10 bash -c "CODEX_HOME='$CODEX_HOME' codex login status 2>&1" || true)
     if printf '%s\n' "$AUTH_STATUS_RAW" | grep -Eqi 'unknown command|unexpected argument|unrecognized option'; then
-      AUTH_STATUS_RAW=$(run_with_ptty env CODEX_HOME="$CODEX_HOME" codex status 2>&1 || true)
+      AUTH_STATUS_RAW=$(run_with_timeout_capture 10 bash -c "run_with_ptty env CODEX_HOME='$CODEX_HOME' codex status 2>&1" || true)
     fi
     if [ -z "$AUTH_STATUS_RAW" ] && codex_tokens_present; then
       AUTH_STATUS_RAW="Codex tokens detected"
@@ -325,7 +469,12 @@ fetch_auth_status() {
     if [ -z "${CLAUDE_BIN_CMD-}" ]; then
       return 1
     fi
-    CLAUDE_STATUS_RAW=$(env CLAUDE_CONFIG_DIR="${CLAUDE_CONFIG_DIR-}" "$CLAUDE_BIN_CMD" status 2>&1 || true)
+    # Use timeout for claude commands (10s) - prevents hanging on unauthenticated accounts
+    CLAUDE_STATUS_RAW=$(run_with_timeout_capture 10 bash -c "env CLAUDE_CONFIG_DIR='${CLAUDE_CONFIG_DIR-}' '$CLAUDE_BIN_CMD' status 2>&1" || echo "timeout")
+    if [ "$CLAUDE_STATUS_RAW" = "timeout" ]; then
+      CLAUDE_STATUS_RAW=""
+      return 1
+    fi
     [ -n "$CLAUDE_STATUS_RAW" ]
   else
     return 1
@@ -592,10 +741,17 @@ WVO_DEFAULT_PROVIDER="${WVO_DEFAULT_PROVIDER:-codex}"
 export WVO_DEFAULT_PROVIDER
 export WVO_ALLOW_PROTECTED_WRITES="${WVO_ALLOW_PROTECTED_WRITES:-1}"
 
-STREAM_TO_STDOUT=${WVO_AUTOPILOT_STREAM:-0}
+STREAM_TO_STDOUT="${WVO_AUTOPILOT_STREAM:-}"
+if [ -z "$STREAM_TO_STDOUT" ]; then
+  if [ -t 1 ] && [ "${WVO_AUTOPILOT_QUIET:-0}" != "1" ]; then
+    STREAM_TO_STDOUT=1
+  else
+    STREAM_TO_STDOUT=0
+  fi
+fi
 if [ "${WVO_AUTOPILOT_QUIET:-0}" = "1" ]; then
   STREAM_TO_STDOUT=0
-elif [ "$STREAM_TO_STDOUT" -ne 1 ] && [ "${WVO_AUTOPILOT_STREAM_LOG:-0}" = "1" ]; then
+elif [ "${STREAM_TO_STDOUT:-0}" != "1" ] && [ "${WVO_AUTOPILOT_STREAM_LOG:-0}" = "1" ]; then
   STREAM_TO_STDOUT=1
 fi
 if [ "$STREAM_TO_STDOUT" -eq 0 ]; then
@@ -609,19 +765,37 @@ append_log_line() {
 console_emit() {
   append_log_line "$1"
   if [ "$STREAM_TO_STDOUT" -eq 1 ]; then
-    printf '%s\n' "$1" >&2
+    printf '%s\n' "$1"
   fi
 }
 
 console_blank() {
   append_log_line ""
   if [ "$STREAM_TO_STDOUT" -eq 1 ]; then
-    printf '\n' >&2
+    printf '\n'
   fi
 }
 
 timestamp(){ date -u +"%Y-%m-%dT%H:%M:%SZ"; }
 log(){ console_emit "$(timestamp) $*"; }
+
+log_timeout() {
+  local cmd_desc="$1"
+  local timeout_sec="$2"
+  log "⏱️  TIMEOUT: $cmd_desc exceeded ${timeout_sec}s limit and was terminated"
+  printf '%s\n' "$(timestamp) TIMEOUT: $cmd_desc (${timeout_sec}s)" >> "$ROOT/state/timeout_events.log"
+}
+
+log_health_check() {
+  local check_name="$1"
+  local status="$2"
+  local details="${3:-}"
+  if [ "$status" = "ok" ]; then
+    log "✅ Health check: $check_name - OK${details:+ ($details)}"
+  else
+    log "❌ Health check: $check_name - FAILED${details:+ ($details)}"
+  fi
+}
 
 truncate_text() {
   local text="${1:-}"
@@ -668,7 +842,22 @@ progress_bar() {
 announce_phase() {
   local title="${1:-Stage}"
   local subtitle="${2:-}"
+  local gauge="${3:-}"
   local icon="${4:-⚙️}"
+  local edge_top="╔═══════════════════════════════════════════════════════════════════════════════╗"
+  local edge_bot="╚═══════════════════════════════════════════════════════════════════════════════╝"
+
+  console_blank
+  console_emit "$edge_top"
+  console_emit "$(printf '║ %s %-67s║' "$icon" "$(truncate_text "$title" 67)")"
+  if [ -n "$subtitle" ]; then
+    console_emit "$(printf '║   %-68s║' "$(truncate_text "$subtitle" 68)")"
+  fi
+  if [ -n "$gauge" ]; then
+    console_emit "$(printf '║   %-68s║' "$(truncate_text "$gauge" 68)")"
+  fi
+  console_emit "$edge_bot"
+
   if [ -n "$subtitle" ]; then
     log "${icon} ${title} :: ${subtitle}"
   else
@@ -696,6 +885,38 @@ render_banner() {
   local capability_raw="${WVO_CAPABILITY:-${CODEX_PROFILE:-medium}}"
   local capability_upper
   capability_upper="$(printf '%s' "$capability_raw" | tr '[:lower:]' '[:upper:]')"
+
+  local capability_value
+  case "${capability_upper}" in
+    HIGH) capability_value=5 ;;
+    MEDIUM) capability_value=3 ;;
+    LOW) capability_value=1 ;;
+    *) capability_value=0 ;;
+  esac
+  local gauge
+  gauge="$(progress_bar "$capability_value" 5 15)"
+  local workspace_display
+  workspace_display="$(truncate_text "$ROOT" 56)"
+  local log_display
+  log_display="$(truncate_text "$LOG_FILE" 56)"
+  local now_display
+  now_display="$(timestamp)"
+  local edge_top="╔═══════════════════════════════════════════════════════════════════════════════╗"
+  local edge_mid="╠═══════════════════════════════════════════════════════════════════════════════╣"
+  local edge_bot="╚═══════════════════════════════════════════════════════════════════════════════╝"
+
+  console_blank
+  console_emit "$edge_top"
+  console_emit "║ 🌪  WEATHER VANE AUTOPILOT CONSOLE                                           ║"
+  console_emit "$edge_mid"
+  console_emit "$(printf '║ Capability : %-16s %-33s║' "$capability_upper" "$gauge")"
+  console_emit "$(printf '║ Workspace  : %-56s║' "$workspace_display")"
+  console_emit "$(printf '║ Log File   : %-56s║' "$log_display")"
+  console_emit "$(printf '║ UTC Start  : %-56s║' "$now_display")"
+  console_emit "$edge_mid"
+  console_emit "║ Forecast   : Jetstream engaged. Critics expect world-class polish.           ║"
+  console_emit "$edge_bot"
+
   log "Autopilot console initialised (capability=${capability_upper})"
   log "Workspace: $ROOT"
   log "Log file : $LOG_FILE"
@@ -2195,7 +2416,11 @@ PY
     codex_summary+=("ℹ️ No Codex accounts configured; default CODEX_HOME=$DEFAULT_CODEX_HOME will be used.")
   fi
 
-  if [ ${#claude_accounts[@]} -gt 0 ]; then
+  if [ "$ENABLE_CLAUDE_EVAL" -ne 1 ]; then
+    claude_summary+=("ℹ️ Claude fallback disabled (ENABLE_CLAUDE_EVAL=0).")
+    claude_needs_auth=()
+    claude_ready_count=0
+  elif [ ${#claude_accounts[@]} -gt 0 ]; then
     for account_info in "${claude_accounts[@]}"; do
       IFS='|' read -r account_id account_bin account_env_json account_label account_email <<< "$account_info"
       local display
@@ -2224,12 +2449,26 @@ PY
 
       local whoami_output
       local status
+      # Use timeout (10s) to prevent hanging on unauthenticated Claude accounts
       if [ ${#env_pairs[@]} -gt 0 ]; then
-        whoami_output=$(env "${env_pairs[@]}" "$account_bin" whoami 2>&1)
+        set +e
+        whoami_output=$(run_with_timeout_capture 10 env "${env_pairs[@]}" "$account_bin" whoami 2>&1)
         status=$?
+        set -e
       else
-        whoami_output=$("$account_bin" whoami 2>&1)
+        set +e
+        whoami_output=$(run_with_timeout_capture 10 "$account_bin" whoami 2>&1)
         status=$?
+        set -e
+      fi
+
+      # Handle timeout (exit code 124)
+      if [ $status -eq 124 ]; then
+        local login_cmd
+        login_cmd=$(format_claude_login_command "$account_bin" "$account_env_json")
+        claude_summary+=("❌ $display — authentication check timed out (likely not logged in)")
+        claude_needs_auth+=("$display|$login_cmd")
+        continue
       fi
 
       if [ $status -eq 0 ] && ! printf '%s\n' "$whoami_output" | grep -qi 'invalid api key'; then
@@ -2633,27 +2872,27 @@ ensure_network_reachable() {
     "https://api.openai.com"
     "https://chatgpt.com"
   )
-  local endpoint
+  local endpoint=""
   for endpoint in "${endpoints[@]}"; do
     if ! curl --silent --head --max-time 5 "$endpoint" >/dev/null 2>&1; then
       log "❌ Unable to reach $endpoint. Autopilot requires outbound network access."
       log "   Launch the autopilot from your macOS Terminal (not the sandboxed CLI) so Codex/Claude can reach their APIs."
-      abort_autopilot_offline "network-unreachable" "Unable to reach $endpoint during preflight."
+      LAST_FAILURE_REASON="network_unreachable"
+      LAST_FAILURE_DETAILS="Unable to reach $endpoint during preflight."
+      abort_autopilot_offline "network-unreachable" "$LAST_FAILURE_DETAILS"
     fi
   done
   log "✅ Network connectivity check passed."
 }
 
 ensure_accounts_config
-ensure_web_inspiration_ready
 summarize_web_inspiration_cache() {
   if [ "$WVO_ENABLE_WEB_INSPIRATION" != "1" ]; then
     return
   fi
 
-  local cache_report=""
-  if ! cache_report=$(
-    python - "$ROOT/state/web_inspiration" <<'PY'
+  local cache_report
+  cache_report="$(python - "$ROOT/state/web_inspiration" <<'PY'
 import json, os, sys, time
 from pathlib import Path
 
@@ -2696,15 +2935,11 @@ else:
         f"~{total_size // 1024} KB total, latest capture {latest_str}Z"
     )
 PY
-  ); then
-    cache_report=""
-  fi
+)" || cache_report=""
   if [ -n "$cache_report" ]; then
     log "$cache_report"
   fi
 }
-
-summarize_web_inspiration_cache
 
 if [ "${WVO_AUTOPILOT_OFFLINE:-0}" = "1" ]; then
   log "WVO_AUTOPILOT_OFFLINE=1 detected; skipping Codex autopilot run."
@@ -2715,18 +2950,23 @@ fi
 if [ "${WVO_AUTOPILOT_SMOKE:-0}" != "1" ]; then
   if [ "${WVO_AUTOPILOT_SKIP_DNS_CHECK:-0}" = "1" ]; then
     log "Skipping DNS preflight (WVO_AUTOPILOT_SKIP_DNS_CHECK=1)."
-  elif ! DNS_CHECK=$(verify_codex_dns 2>&1); then
-    LAST_FAILURE_REASON="dns_lookup_failed"
-    LAST_FAILURE_DETAILS="$DNS_CHECK"
-    log "❌ Unable to resolve Codex service hosts (chatgpt.com/api.openai.com)."
-    printf '%s\n' "$DNS_CHECK" | sed 's/^/   /'
-    log "   Check local DNS/network configuration or set WVO_AUTOPILOT_OFFLINE=1 to skip Codex."
-    log_dns_diagnostics
-    write_offline_summary "dns-lookup-failed" "$DNS_CHECK"
-    exit 0
+  else
+    if ! DNS_CHECK=$(verify_codex_dns 2>&1); then
+      LAST_FAILURE_REASON="dns_lookup_failed"
+      LAST_FAILURE_DETAILS="$DNS_CHECK"
+      log "❌ Unable to resolve Codex service hosts (chatgpt.com/api.openai.com)."
+      printf '%s\n' "$DNS_CHECK" | sed 's/^/   /'
+      log "   Check local DNS/network configuration or set WVO_AUTOPILOT_OFFLINE=1 to skip Codex."
+      log_dns_diagnostics
+      write_offline_summary "dns-lookup-failed" "$DNS_CHECK"
+      exit 0
+    fi
   fi
   ensure_network_reachable
 fi
+
+ensure_web_inspiration_ready
+summarize_web_inspiration_cache
 
 if [ "${WVO_AUTOPILOT_SMOKE:-0}" = "1" ]; then
   log "Running autopilot smoke check..."
@@ -2790,6 +3030,114 @@ record = {
 with log_path.open("a", encoding="utf-8") as handle:
     handle.write(json.dumps(record) + "\n")
 PY
+}
+
+autopilot_git_sync() {
+  local summary_json="${1:-}"
+
+  if [ "$AUTOPILOT_GIT_SYNC" != "1" ]; then
+    return
+  fi
+
+  if ! command -v git >/dev/null 2>&1; then
+    log "Auto-sync: git CLI not available; skipping push."
+    return
+  fi
+
+  local status
+  if ! status=$(cd "$ROOT" && git status --porcelain); then
+    log "Auto-sync: git status failed; skipping push."
+    return
+  fi
+
+  if [ -z "$status" ]; then
+    log "Auto-sync: workspace clean; nothing to push."
+    return
+  fi
+
+  if [ -n "$AUTOPILOT_GIT_SKIP_PATTERN" ]; then
+    if printf '%s\n' "$status" | grep -qF "$AUTOPILOT_GIT_SKIP_PATTERN"; then
+      log "Auto-sync: skip pattern '$AUTOPILOT_GIT_SKIP_PATTERN' detected; skipping automated sync."
+      return
+    fi
+  fi
+
+  local commit_message
+  commit_message=$(SUMMARY_PAYLOAD="$summary_json" python - <<'PY'
+import json
+import os
+from datetime import datetime, timezone
+
+payload = os.environ.get("SUMMARY_PAYLOAD", "")
+now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+default = f"autopilot: sync {now}"
+
+if not payload:
+    print(default)
+    raise SystemExit(0)
+
+try:
+    data = json.loads(payload)
+except Exception:
+    print(default)
+    raise SystemExit(0)
+
+completed = data.get("completed_tasks") or []
+in_progress = data.get("in_progress") or []
+notes = data.get("notes")
+
+snippet = ""
+if isinstance(notes, str):
+    snippet = notes.strip().splitlines()[0][:60]
+
+parts = []
+if completed:
+    parts.append(f"C{len(completed)}")
+if in_progress:
+    parts.append(f"I{len(in_progress)}")
+
+summary = ", ".join(parts) if parts else "sync"
+if snippet:
+    summary = f"{summary} – {snippet}"
+
+print(f"autopilot: {summary} {now}".strip())
+PY
+) || commit_message="autopilot: sync $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+
+  if [ -z "$commit_message" ]; then
+    commit_message="autopilot: sync $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+  fi
+
+  set +e
+  (cd "$ROOT" && git add -A)
+  local add_status=$?
+  if [ $add_status -ne 0 ]; then
+    set -e
+    log "Auto-sync: git add failed (exit $add_status); skipping push."
+    return
+  fi
+
+  (cd "$ROOT" && git commit -m "$commit_message")
+  local commit_status=$?
+  if [ $commit_status -ne 0 ]; then
+    set -e
+    if [ $commit_status -eq 1 ]; then
+      log "Auto-sync: nothing to commit after staging."
+    else
+      log "Auto-sync: git commit failed (exit $commit_status)."
+    fi
+    return
+  fi
+
+  log "Auto-sync: pushing to ${AUTOPILOT_GIT_REMOTE}/${AUTOPILOT_GIT_BRANCH} with message: $commit_message"
+  (cd "$ROOT" && git push "$AUTOPILOT_GIT_REMOTE" "$AUTOPILOT_GIT_BRANCH")
+  local push_status=$?
+  set -e
+  if [ $push_status -ne 0 ]; then
+    log "Auto-sync: git push failed (exit $push_status)."
+  else
+    log "Auto-sync: push complete."
+  fi
 }
 
 attempt_recovery() {
@@ -3157,6 +3505,8 @@ for path in memo_dir.glob("*.json"):
     try:
         data = json.loads(path.read_text(encoding="utf-8"))
     except Exception:
+        continue
+    if not isinstance(data, dict):
         continue
     statuses = data.get("statuses") or []
     if not statuses:
@@ -3531,7 +3881,9 @@ BODY
       LAST_FAILURE_REASON="command_timeout"
       LAST_FAILURE_DETAILS="$(tail -n 20 "$RUN_LOG")"
       announce_phase "Command Timeout" "MCP worker timed out after 30s; capturing fallback summary." "" "!!"
-      if attempt_recovery; then
+      if [ "${WVO_AUTOPILOT_ONCE:-0}" = "1" ]; then
+        log "Single-run mode detected; skipping MCP recovery after command timeout."
+      elif attempt_recovery; then
         rm -f "$RUN_LOG"
         continue
       fi
@@ -3570,11 +3922,17 @@ PY
         break
       fi
       log "Fallback summary saved to $STATE_FILE due to worker command timeout."
+      autopilot_git_sync "$fallback_summary"
       rm -f "$RUN_LOG"
+      if [ "${WVO_AUTOPILOT_ONCE:-0}" = "1" ]; then
+        log "Single-run mode captured fallback summary; exiting."
+        exit 0
+      fi
       break
     fi
 
-    SUMMARY_JSON=$(python - <<'PY' "$RUN_LOG" "$STATE_FILE"
+    set +e
+    SUMMARY_RAW=$(python - <<'PY' "$RUN_LOG" "$STATE_FILE"
 import json, sys, pathlib
 
 log_path = pathlib.Path(sys.argv[1])
@@ -3609,35 +3967,41 @@ if summary is None:
 out_path.write_text(json.dumps(summary, indent=2), encoding="utf-8")
 print(json.dumps(summary))
 PY
-) || {
+)
+parse_status=$?
+set -e
+INVALID_SUMMARY_HANDLED=0
+if [ $parse_status -ne 0 ]; then
       LAST_FAILURE_REASON="invalid_summary"
       LAST_FAILURE_DETAILS="$(tail -n 20 "$RUN_LOG")"
       announce_phase "Invalid Summary" "Codex output missing structured JSON; capturing fallback summary." "" "!!"
-      if attempt_recovery; then
+      if [ "${WVO_AUTOPILOT_ONCE:-0}" = "1" ]; then
+        log "Single-run mode detected; skipping MCP recovery after invalid summary."
+      elif attempt_recovery; then
         rm -f "$RUN_LOG"
         continue
       fi
       record_blocker "invalid_summary" "$LAST_FAILURE_DETAILS"
       fallback_summary=$(python - <<'PY' "$RUN_LOG" "$STATE_FILE"
-import json
-import sys
-from pathlib import Path
+  import json
+  import sys
+  from pathlib import Path
 
-log_path = Path(sys.argv[1])
+  log_path = Path(sys.argv[1])
 out_path = Path(sys.argv[2])
 notes = log_path.read_text(encoding="utf-8").splitlines()[-20:]
 notes_text = "\n".join(notes)
-summary = {
-    "completed_tasks": [],
-    "in_progress": [],
-    "blockers": ["Autopilot run aborted: Codex did not emit a summary (invalid_summary)."],
-    "next_focus": [
+  summary = {
+      "completed_tasks": [],
+      "in_progress": [],
+      "blockers": ["Autopilot run aborted: Codex did not emit a summary (invalid_summary)."],
+      "next_focus": [
         "Inspect /tmp/wvo_autopilot.log for the failing command and rerun once addressed."
     ],
     "notes": notes_text[:2000],
-}
-out_path.write_text(json.dumps(summary, indent=2), encoding="utf-8")
-print(json.dumps(summary))
+  }
+  out_path.write_text(json.dumps(summary, indent=2), encoding="utf-8")
+  print(json.dumps(summary))
 PY
 ) || fallback_summary='{"completed_tasks":[],"in_progress":[],"blockers":["Autopilot run aborted: invalid summary."],"next_focus":["Retry after inspecting logs."],"notes":""}'
       printf '%s\n' "$fallback_summary"
@@ -3658,10 +4022,19 @@ PY
         break
       fi
       log "Fallback summary saved to $STATE_FILE due to invalid summary."
+      autopilot_git_sync "$fallback_summary"
       append_usage_telemetry "fallback_summary" "$attempt_number" "$attempt_start_iso" "$attempt_end_iso" "$duration"
       rm -f "$RUN_LOG"
+      INVALID_SUMMARY_HANDLED=1
+      if [ "${WVO_AUTOPILOT_ONCE:-0}" = "1" ]; then
+        log "Single-run mode captured fallback summary; exiting."
+        exit 0
+      fi
+fi
+    if [ "${INVALID_SUMMARY_HANDLED:-0}" -eq 1 ]; then
       break
-    }
+    fi
+    SUMMARY_JSON="$SUMMARY_RAW"
     printf '%s\n' "$SUMMARY_JSON"
     printf '%s\n' "$SUMMARY_JSON" | update_balance_from_summary
     BALANCE_MESSAGE_AFTER="$(balance_read_message)"
@@ -3685,6 +4058,7 @@ PY
     success_meter="$(progress_bar "$attempt_number" "$MAX_RETRY")"
     announce_phase "Attempt ${attempt_number} Complete" "Summary saved to $STATE_FILE" "$success_meter" "OK"
     log "Summary saved to $STATE_FILE"
+    autopilot_git_sync "$SUMMARY_JSON"
     append_usage_telemetry "success" "$attempt_number" "$attempt_start_iso" "$attempt_end_iso" "$duration"
     if [ "${WVO_AUTOPILOT_ONCE:-0}" = "1" ] || [ -n "${WVO_CLI_STUB_EXEC_JSON:-}" ]; then
       log "Single-run mode enabled; exiting after first successful cycle."

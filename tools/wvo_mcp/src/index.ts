@@ -208,7 +208,11 @@ async function main() {
   });
 
   try {
-    await workerManager.startActive();
+    await workerManager.startActive(
+      process.env.WVO_DRY_RUN !== undefined
+        ? { env: { WVO_DRY_RUN: process.env.WVO_DRY_RUN } }
+        : {},
+    );
 
     const server = new McpServer(
       {

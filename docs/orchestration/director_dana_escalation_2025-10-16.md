@@ -14,6 +14,7 @@
 ## Latest Update (2025-10-16)
 - Autopilot harness now emits a warning whenever MCP is not high-capability and exits gracefully on manual interrupts; no change to critic availability yet.
 - Atlas cannot progress product slices until the critics above run; MCP enablement work continues while we await a decision.
+- 20:02 UTC: `critics_run` for `design_system`, `exec_review`, `integration_fury`, `manager_self_check`, and `prompt_budget` fails with “Worker active disposed” even after reinitializing the MCP CLI; capability uplift still required to execute the suites.
 
 ## Requested Actions
 1. Flip MCP capability to high (`WVO_CAPABILITY=high` or equivalent infrastructure uplift) so `design_system`, `exec_review`, and `allocator` can execute.

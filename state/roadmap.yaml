@@ -247,7 +247,7 @@ epics:
               - tests: tests/test_marketing_mix_solver.py
           - id: T4.1.8
             title: Reinforcement-learning shadow mode (safe exploration)
-            status: in_progress
+            status: blocked
             exit_criteria:
               - critic: allocator
               - artifact: experiments/rl/shadow_mode.json

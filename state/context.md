@@ -11,11 +11,9 @@
 - Maintain failover telemetry, command allow-list, compact prompts, and coordinator visibility as the baseline safety rails.
 
 ### WeatherVane Product (domain: product)
-- Allocator/ads automation now unblocked; keep design_system/allocator critics in the default suite to protect regression risk.
-- Wire the Meta marketing client into automation flows and hold M3.3/M3.4 deliverables until design coverage unlocks.
-- 2025-10-16: Restored design_system/allocator/exec_review critic availability in roadmap; T4.1.x/T11.2.x reopened as pending for the next product loop.
-- 2025-10-16 (Atlas): Product loop still blocked—design_system/exec_review/allocator critics remain capability-skipped; escalated to Director Dana for uplift.
-- 2025-10-16: Creative response modelling now reports spend distribution + guardrail triggers (API/schema/UI refreshed, experiments/creative/response_scores.json regenerated). design_system critic still capability-skipped, so exit evidence pending Dana’s uplift.
+- 2025-10-16: design_system/exec_review/integration_fury/manager_self_check/prompt_budget critics remain unavailable—`critics_run` returns “No active worker available” even after MCP restart; Atlas escalated to Director Dana.
+- RL shadow mode and creative response evidence refreshed earlier in the week; exit criteria still gated on critic coverage.
+- Hold T4.1.x/T11.2.x slices until critics are restored; keep task memos aligned with escalation status.
 
 ## Guardrails & System Decisions
 - MCP command execution uses allow-list + deny-list; keep pytest coverage tight when editing guardrails.
@@ -55,39 +53,9 @@ _Trimmed for token efficiency (startup); full history preserved in `state/backup
 ## Current Focus
 ### WeatherVane Product (domain: product)
 - 2025-10-16: Re-ran RL shadow mode pytest suite and refreshed `experiments/rl/shadow_mode.json`; allocator critic still capability-skipped so T4.1.8 remains blocked pending uplift.
-
 - 2025-10-16: Reran creative response Prefect flow (`PYTHONPATH=. python apps/worker/run.py demo-tenant --creative-report`) so `experiments/creative/response_scores.json` now captures spend distribution + guardrail counts. design_system critic remains capability-skipped, so T4.1.9 cannot record exit evidence until Dana restores coverage.
 - 2025-10-16: Integrity harness failed on known `tests/test_mcp_tools.py::test_mcp_tool_inventory_and_dry_run_parity` dry-run parity assertion; no regressions observed in product slice.
+
+- 2025-10-16 (evening): design_system + exec_review still capability-skipped; integration_fury worker call timing out; manager_self_check fails git_clean gate because repo carries prior state telemetry deltas; prompt_budget passes with code-search index warning. Escalation to Director Dana pending to restore critic coverage and clarify worktree hygiene expectations.
 ### WeatherVane Product (domain: product)
-- 2025-10-16 (Atlas): Unable to progress T4.1.x slices; design_system and allocator critics remain capability-skipped. Logged blocker and pivoting to MCP enablement per loop.
-
-- 2025-10-16: Design_system critic still capability-skipped (network_navigator run succeeded); Atlas to keep product slices on hold while waiting for Director Dana uplift.
-- 2025-10-16 (Atlas): Product loop remains blocked—design_system and allocator critics still capability-skipped, so no promotable T4.1.x slices this cycle; pivoting to MCP enablement per loop discipline.
-- 2025-10-16 (Atlas): Attempted to advance T4.1.9 but design_system critic remains capability-skipped; logging blocker and pivoting to MCP enablement per loop discipline.
-- 2025-10-16 (Atlas): T6.2.4 blocked; allocator critic still capability-skipped, so API rate limiting slice cannot record exit evidence until Director Dana restores coverage.
-- 2025-10-16: Attempted to start T4.1.10 but allocator/design_system critics remain capability-skipped; re-escalating to Dana and pivoting to MCP unblockers per loop discipline.
-- 2025-10-16: Ran upgrade_preflight + manager_self_check vitest suites and refreshed integrity harness; preflight guardrail aborted on git_clean as expected (dirty worktree from legacy diffs), leaving state/quality/upgrade_gates.json updated for Manager self-check evidence.
-
-- 2025-10-16: Added `tools/wvo_mcp/scripts/live_flags.ts` CLI to seed/manage runtime flags via SQLite and refreshed docs/status references away from legacy env toggles.
-### WeatherVane Product (domain: product)
-- 2025-10-16 (Atlas, current cycle): Product queue remains blocked—design_system and allocator critics still capability-skipped. Logging blocker and pivoting to MCP enablement via plan_next(mcp).
-
-### MCP Platform (domain: mcp)
-- 2025-10-16 (Atlas): Front-end now proxies all tools through WorkerManager; worker_health surfaces live snapshots. T6.4.2 ready for critic evidence once design_system returns.
-### WeatherVane Product (domain: product)
-- 2025-10-16 (Atlas): design_system/allocator critics still capability-skipped; logged blocker and pivoting to MCP enablement per loop discipline.
-
-### MCP Platform (domain: mcp)
-- 2025-10-16 (Atlas): Advancing T6.4.3 to harden worker dry-run safeguards so canary workers block mutations until Dana restores high-capability critics.
-
-## Plans
-_Trimmed for token efficiency (startup); full history preserved in `state/backups/context/context-2025-10-16T15-24-16-709Z.md`._
-
-## dry-run-check
-mutations should fail
-
-## dry-run-check
-mutations should fail
-
-## dry-run-check
-mutations should fail
+- 2025-10-16 (later): `critics_run` for design_system/exec_review/integration_fury/manager_self_check/prompt_budget twice returned worker timeouts; Atlas logged persistent critic outage and prepared escalation package for Director Dana pending instruction.

@@ -1,4 +1,4 @@
 {
-  "timestamp": "2025-10-16T13:17:16.750Z",
-  "notes": "Starting T6.4.3 (worker dry-run safeguards) after logging product critic blocker."
+  "timestamp": "2025-10-16T20:15:34.272Z",
+  "notes": "Attempted critics recovery; worker timeouts persisted, documented in context."
 }
