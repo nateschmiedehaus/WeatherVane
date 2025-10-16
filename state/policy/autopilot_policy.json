@@ -1,10 +1,10 @@
 {
   "domains": {
     "product": {
-      "q_value": 0.04999999999999999,
-      "count": 1,
-      "bias": 0.004999999999999999,
-      "last_reward": 0.19999999999999996
+      "q_value": -0.06553020833333334,
+      "count": 4,
+      "bias": -0.006208333333333335,
+      "last_reward": -0.12666666666666665
     },
     "mcp": {
       "q_value": 0.0,
@@ -13,7 +13,7 @@
       "last_reward": 0.0
     }
   },
-  "epsilon": 0.23891790625,
+  "epsilon": 0.21820569600485865,
   "epsilon_min": 0.05,
   "epsilon_decay": 0.985,
   "learning_rate": 0.25,
@@ -22,5 +22,260 @@
     "t3.3.2": 0.125,
     "t3.3.3": -0.125
   },
-  "last_decision": {}
+  "last_decision": {
+    "domain": "mcp",
+    "action": "execute_tasks",
+    "exploration": true,
+    "scores": {
+      "product": {
+        "score": 4.457236115675453,
+        "q_value": -0.06553020833333334,
+        "bias": -0.006208333333333335,
+        "pressure": 5.1502013197891205,
+        "progress": 0.0,
+        "balance_term": 0.0,
+        "adjustment": 0.0,
+        "remaining": 24,
+        "blocked": 24,
+        "in_progress": 0
+      },
+      "mcp": {
+        "score": 2.644415377950555,
+        "q_value": 0.0,
+        "bias": 0.0,
+        "pressure": 4.377283329350418,
+        "progress": 1.3862943611198906,
+        "balance_term": -0.0,
+        "adjustment": 0.0,
+        "remaining": 19,
+        "blocked": 9,
+        "in_progress": 3
+      }
+    },
+    "decision_snapshot": {
+      "domain": "mcp",
+      "action": "execute_tasks",
+      "exploration": true,
+      "scores": {
+        "product": {
+          "score": 4.457236115675453,
+          "q_value": -0.06553020833333334,
+          "bias": -0.006208333333333335,
+          "pressure": 5.1502013197891205,
+          "progress": 0.0,
+          "balance_term": 0.0,
+          "adjustment": 0.0,
+          "remaining": 24,
+          "blocked": 24,
+          "in_progress": 0
+        },
+        "mcp": {
+          "score": 2.644415377950555,
+          "q_value": 0.0,
+          "bias": 0.0,
+          "pressure": 4.377283329350418,
+          "progress": 1.3862943611198906,
+          "balance_term": -0.0,
+          "adjustment": 0.0,
+          "remaining": 19,
+          "blocked": 9,
+          "in_progress": 3
+        }
+      },
+      "reason": "Exploration step (epsilon-greedy) to keep policy adaptable.",
+      "critics": [
+        "security",
+        "allocator",
+        "tests passes",
+        "manager_self_check passes"
+      ],
+      "top_tasks": [
+        {
+          "id": "T6.2.1",
+          "title": "Credentials security audit (auth.json, API keys, token rotation)",
+          "status": "blocked",
+          "dependencies": [],
+          "critics": [
+            "security"
+          ],
+          "group": "mcp_core",
+          "critic_groups": [
+            "security"
+          ]
+        },
+        {
+          "id": "T6.2.4",
+          "title": "API rate limiting & exponential backoff (Open-Meteo, Shopify, Ads APIs)",
+          "status": "blocked",
+          "dependencies": [],
+          "critics": [
+            "allocator"
+          ],
+          "group": "mcp_core",
+          "critic_groups": [
+            "allocator"
+          ]
+        },
+        {
+          "id": "T9.1.2",
+          "title": "Batch queue for non-urgent prompts (SAFE: new queueing system)",
+          "status": "blocked",
+          "dependencies": [],
+          "critics": [
+            "tests passes",
+            "manager_self_check passes"
+          ],
+          "group": "mcp_core",
+          "critic_groups": [
+            "quality",
+            "quality"
+          ]
+        },
+        {
+          "id": "T9.2.1",
+          "title": "Strict output DSL validation (SAFE: validation layer only)",
+          "status": "blocked",
+          "dependencies": [],
+          "critics": [
+            "tests passes"
+          ],
+          "group": "mcp_core",
+          "critic_groups": [
+            "quality"
+          ]
+        },
+        {
+          "id": "T9.2.2",
+          "title": "Idempotency keys for mutating tools (SAFE: caching layer)",
+          "status": "blocked",
+          "dependencies": [],
+          "critics": [
+            "tests passes"
+          ],
+          "group": "mcp_core",
+          "critic_groups": [
+            "quality"
+          ]
+        },
+        {
+          "id": "T9.3.1",
+          "title": "OpenTelemetry spans for all operations (SAFE: tracing wrapper)",
+          "status": "blocked",
+          "dependencies": [],
+          "critics": [
+            "manager_self_check passes"
+          ],
+          "group": "mcp_core",
+          "critic_groups": [
+            "quality"
+          ]
+        },
+        {
+          "id": "T9.3.2",
+          "title": "Sandbox pooling for test execution (SAFE: new executor)",
+          "status": "blocked",
+          "dependencies": [
+            "E5"
+          ],
+          "critics": [
+            "tests passes"
+          ],
+          "group": "mcp_core",
+          "critic_groups": [
+            "quality"
+          ]
+        },
+        {
+          "id": "T9.4.1",
+          "title": "SQLite FTS5 index for code search (SAFE: new index)",
+          "status": "blocked",
+          "dependencies": [
+            "E5",
+            "Guardrail: FTS initialization validated in staged worktree before live migration"
+          ],
+          "critics": [
+            "tests passes"
+          ],
+          "group": "mcp_core",
+          "critic_groups": [
+            "quality"
+          ]
+        }
+      ],
+      "domain_snapshot": {
+        "remaining": 19,
+        "blocked": 9,
+        "in_progress": 3,
+        "needs_review": 0,
+        "critics": {
+          "security": {
+            "blocked": 1,
+            "total": 1
+          },
+          "data_quality": {
+            "blocked": 0,
+            "total": 1
+          },
+          "allocator": {
+            "blocked": 1,
+            "total": 1
+          },
+          "tests passes": {
+            "blocked": 6,
+            "total": 6
+          },
+          "manager_self_check passes": {
+            "blocked": 2,
+            "total": 2
+          }
+        },
+        "critic_groups": {
+          "security": {
+            "blocked": 1,
+            "total": 1
+          },
+          "quality": {
+            "blocked": 8,
+            "total": 9
+          },
+          "allocator": {
+            "blocked": 1,
+            "total": 1
+          },
+          "general": {
+            "blocked": 0,
+            "total": 9
+          }
+        },
+        "task_groups": {
+          "mcp_core": {
+            "blocked": 9,
+            "remaining": 10,
+            "total": 10
+          },
+          "mcp_upgrade_lane": {
+            "blocked": 0,
+            "remaining": 9,
+            "total": 9
+          }
+        },
+        "dependency_edges": 3,
+        "total": 35,
+        "recent_completion": 0.0
+      },
+      "prompt_directive": "Policy target: focus on the MCP domain this cycle.\nPrimary action: execute_tasks.\nRun or repair critics before coding: allocator, manager_self_check passes, security, tests passes.\nTop priorities: T6.2.1 (blocked) \u2013 Credentials security audit (auth.json, API keys, token rotation); T6.2.4 (blocked) \u2013 API rate limiting & exponential backoff (Open-Meteo, Shopify, Ads APIs); T9.1.2 (blocked) \u2013 Batch queue for non-urgent prompts (SAFE: new queueing system); T9.2.1 (blocked) \u2013 Strict output DSL validation (SAFE: validation layer only).\nReasoning: Exploration step (epsilon-greedy) to keep policy adaptable.",
+      "timestamp": 1760645921.2350311
+    },
+    "prompt_directive": "Policy target: focus on the MCP domain this cycle.\nPrimary action: execute_tasks.\nRun or repair critics before coding: allocator, manager_self_check passes, security, tests passes.\nTop priorities: T6.2.1 (blocked) \u2013 Credentials security audit (auth.json, API keys, token rotation); T6.2.4 (blocked) \u2013 API rate limiting & exponential backoff (Open-Meteo, Shopify, Ads APIs); T9.1.2 (blocked) \u2013 Batch queue for non-urgent prompts (SAFE: new queueing system); T9.2.1 (blocked) \u2013 Strict output DSL validation (SAFE: validation layer only).\nReasoning: Exploration step (epsilon-greedy) to keep policy adaptable.",
+    "taken_at": 1760645921.2350311
+  },
+  "providers": {
+    "codex": {
+      "count": 3,
+      "total_reward": -0.44833333333333336,
+      "fallbacks": 0,
+      "avg_reward": -0.14944444444444446,
+      "last_duration": 106.0
+    }
+  }
 }

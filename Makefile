@@ -83,7 +83,11 @@ mcp-build:
 
 mcp-register: mcp-build
 	mkdir -p $(CODEX_HOME)
-	CODEX_HOME=$(CODEX_HOME) codex mcp add weathervane -- node $(WVO_MCP_ENTRY) --workspace $(shell pwd)
+	if command -v codex >/dev/null 2>&1; then \
+		CODEX_HOME=$(CODEX_HOME) codex mcp add weathervane -- node $(WVO_MCP_ENTRY) --workspace $(shell pwd); \
+	else \
+		echo "codex CLI not found; skipping MCP registration (offline fallback)."; \
+	fi
 
 mcp-run:
 	CODEX_HOME=$(CODEX_HOME) node $(WVO_MCP_ENTRY) --workspace $(shell pwd)
@@ -91,6 +95,30 @@ mcp-run:
 mcp-auto: mcp-build mcp-register
 	CODEX_HOME=$(CODEX_HOME) $(CONFIGURE_CODEX_PROFILE) $(CODEX_HOME)/config.toml $(CODEX_ORCHESTRATOR_PROFILE) $(shell pwd) $(BASE_INSTRUCTIONS) --model $(CODEX_AUTOPILOT_MODEL) --sandbox danger-full-access --ask-for-approval never --reasoning $(CODEX_AUTOPILOT_REASONING)
 	CODEX_HOME=$(CODEX_HOME) CODEX_PROFILE=$(WVO_CAPABILITY) WVO_DEFAULT_PROVIDER=codex codex session --profile $(CODEX_ORCHESTRATOR_PROFILE)
+.PHONY: mcp-autopilot-cleanup
+mcp-autopilot-cleanup:
+	@echo "🧹 Cleaning up stale autopilot processes..."
+	@pkill -9 -f "claude.*whoami" 2>/dev/null || true
+	@pkill -9 -f "codex exec.*weathervane_orchestrator" 2>/dev/null || true
+	@pkill -9 -f "tools/wvo_mcp/dist/worker/worker_entry.js" 2>/dev/null || true
+	@pkill -9 -f "dist/index-claude.js.*weathervane" 2>/dev/null || true
+	@pkill -9 -f "tools/wvo_mcp/scripts/autopilot.sh" 2>/dev/null || true
+	@sleep 1
+	@echo "✅ Cleanup complete"
+
 .PHONY: mcp-autopilot
-mcp-autopilot: mcp-register
-	CODEX_HOME=$(CODEX_HOME) CODEX_PROFILE_NAME=$(CODEX_ORCHESTRATOR_PROFILE) WVO_CAPABILITY=$(WVO_CAPABILITY) CODEX_AUTOPILOT_MODEL=$(CODEX_AUTOPILOT_MODEL) CODEX_AUTOPILOT_REASONING=$(CODEX_AUTOPILOT_REASONING) BASE_INSTRUCTIONS=$(BASE_INSTRUCTIONS) WVO_DEFAULT_PROVIDER=codex WVO_AUTOPILOT_ENTRY=$(shell pwd)/$(WVO_MCP_ENTRY) LOG_FILE=/tmp/wvo_autopilot.log tools/wvo_mcp/scripts/autopilot.sh
+mcp-autopilot: mcp-autopilot-cleanup mcp-register
+	CODEX_HOME=$(CODEX_HOME) \
+	CODEX_PROFILE_NAME=$(CODEX_ORCHESTRATOR_PROFILE) \
+	WVO_CAPABILITY=$(WVO_CAPABILITY) \
+	CODEX_AUTOPILOT_MODEL=$(CODEX_AUTOPILOT_MODEL) \
+	CODEX_AUTOPILOT_REASONING=$(CODEX_AUTOPILOT_REASONING) \
+	BASE_INSTRUCTIONS=$(BASE_INSTRUCTIONS) \
+	WVO_DEFAULT_PROVIDER=codex \
+	WVO_AUTOPILOT_ENTRY=$(shell pwd)/$(WVO_MCP_ENTRY) \
+	LOG_FILE=/tmp/wvo_autopilot.log \
+	WVO_AUTOPILOT_ONCE=1 \
+	WVO_AUTOPILOT_SKIP_NETWORK_CHECK=1 \
+	WVO_AUTOPILOT_SKIP_DNS_CHECK=1 \
+	WVO_AUTOPILOT_ALLOW_OFFLINE_FALLBACK=1 \
+	tools/wvo_mcp/scripts/autopilot.sh

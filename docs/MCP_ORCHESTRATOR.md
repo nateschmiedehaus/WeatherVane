@@ -213,6 +213,7 @@ Checkpoints are written on context overflow, before long-running commands, and p
 - **Data Artifacts**: Store intermediate outputs under `storage/`, `experiments/`, `tmp/` while respecting retention policies.
 - **CI/Infra**: Integrate with `infra/k8s`, `infra/terraform` for deployment automation.
 - **Observability**: Write pipeline metrics to `storage/metadata/` and `observability/` directories per existing conventions.
+- **Git Sync**: When the autopilot completes a cycle it now stages tracked changes, commits with a summary-derived message, and pushes to `${WVO_AUTOPILOT_GIT_REMOTE:-origin}/${WVO_AUTOPILOT_GIT_BRANCH:-main}`. Set `WVO_AUTOPILOT_GIT_SYNC=0` to disable, or `WVO_AUTOPILOT_GIT_SKIP_PATTERN` (defaults to `.clean_worktree`) to block pushes when nested worktrees are present.
 
 Path routing rules help the MCP server choose critics:
 - `apps/api`, `shared/`: trigger build/tests/typecheck/security critics.
