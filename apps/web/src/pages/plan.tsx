@@ -658,6 +658,20 @@ export default function PlanPage() {
                   <dd>{generatedAt}</dd>
                 </div>
               </dl>
+              {hasPlanContent && (
+                <div className={styles.heroActions}>
+                  <Link
+                    href="/reports?source=plan"
+                    className={styles.heroShareCta}
+                    data-analytics-id="plan.banner.share"
+                  >
+                    Open executive report →
+                  </Link>
+                  <p className={styles.heroActionsHint}>
+                    Share this week’s ROI storyline with Sarah ahead of the exec review.
+                  </p>
+                </div>
+              )}
             </div>
           </div>
 

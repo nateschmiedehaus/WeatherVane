@@ -23,8 +23,10 @@ export interface RoadmapTask {
     | { doc: string }
     | { artifact: string }
     | { note: string }
+    | string
   >;
   cluster?: TaskClusterSpec | string;
+  notes?: string;
 }
 
 export interface RoadmapMilestone {

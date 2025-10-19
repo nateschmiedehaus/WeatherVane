@@ -1,8 +1,11 @@
 import type { Task } from './state_machine.js';
 import type { AssembledContext } from './context_assembler.js';
 import type { ModelManager } from '../models/model_manager.js';
-
-export type ReasoningLevel = 'minimal' | 'low' | 'medium' | 'high';
+import {
+  inferReasoningRequirement,
+  type ReasoningDecision,
+  type ReasoningLevel,
+} from './reasoning_classifier.js';
 
 export interface CodexPresetPerformance {
   sampleSize: number;
@@ -111,48 +114,147 @@ export function selectCodexModel(
   const needsReview = task.status === 'needs_review';
   const followUp = task.status === 'needs_improvement';
 
+  const reasoningDecision = inferReasoningRequirement(task, context);
+  let desiredLevel: ReasoningLevel = reasoningDecision.level;
+  const adjustments: string[] = [];
+
+  if (complexity >= 7) {
+    const upgraded = ensureMinimumLevel(desiredLevel, 'medium');
+    if (upgraded !== desiredLevel) {
+      adjustments.push('complexity floor enforced');
+      desiredLevel = upgraded;
+    }
+  }
+
+  if (!documentationTask && complexity >= 8 && desiredLevel !== 'high') {
+    desiredLevel = 'high';
+    adjustments.push('complexity >= 8 escalation');
+  }
+
+  if (needsReview && desiredLevel !== 'high') {
+    desiredLevel = 'high';
+    adjustments.push('review workflow escalation');
+  }
+
+  if (strategicTask && desiredLevel !== 'high') {
+    desiredLevel = 'high';
+    adjustments.push('strategic/architecture emphasis');
+  }
+
+  if (!documentationTask && (context.relevantConstraints?.length ?? 0) > 3 && desiredLevel === 'low') {
+    desiredLevel = 'medium';
+    adjustments.push('constraint density requires additional reasoning');
+  }
+
   if (documentationTask) {
-    return adjustForOperations({
-      preset: complexity >= 7 ? 'gpt-5-high' : 'gpt-5-medium',
-      fallback: 'gpt-5-medium',
-      rationale: 'Documentation-focused task',
-      critical: complexity >= 7,
-    }, operational, modelManager);
+    adjustments.push('documentation focus (prefers gpt-5 family)');
   }
 
-  if (needsReview || strategicTask) {
-    return adjustForOperations({
-      preset: 'gpt-5-codex-high',
-      fallback: 'gpt-5-codex-medium',
-      rationale: needsReview ? 'Reviewing changes with deep reasoning' : 'Strategic architecture task',
-      critical: true,
-    }, operational, modelManager);
+  if (followUp && desiredLevel === 'medium' && complexity <= 4) {
+    desiredLevel = 'low';
+    adjustments.push('follow-up fix prefers lean reasoning');
   }
 
-  if (complexity >= 7 || context.relevantConstraints.length > 3) {
-    return adjustForOperations({
-      preset: 'gpt-5-codex-high',
-      fallback: 'gpt-5-codex-medium',
-      rationale: 'High complexity implementation',
-      critical: true,
-    }, operational, modelManager);
-  }
+  const rationaleSummary = formatReasoningSummary(reasoningDecision, desiredLevel);
+  const rationaleParts = [rationaleSummary, ...adjustments];
 
-  if (followUp || complexity <= 3) {
-    return adjustForOperations({
-      preset: 'gpt-5-codex-low',
-      fallback: 'gpt-5-codex-medium',
-      rationale: 'Low complexity fix or follow-up',
-      critical: false,
-    }, operational, modelManager);
-  }
+  const plan = documentationTask
+    ? buildDocumentationPlan(desiredLevel, rationaleParts.join('; '), complexity)
+    : buildCodingPlan(desiredLevel, rationaleParts.join('; '), {
+        followUp,
+        highComplexity: complexity >= 7,
+      });
 
-  return adjustForOperations({
-    preset: 'gpt-5-codex-medium',
-    fallback: 'gpt-5-codex-low',
-    rationale: 'Default balanced coding workload',
-    critical: false,
-  }, operational, modelManager);
+  return adjustForOperations(plan, operational, modelManager);
+}
+
+const LEVEL_ORDER: ReasoningLevel[] = ['minimal', 'low', 'medium', 'high'];
+
+function ensureMinimumLevel(current: ReasoningLevel, minimum: ReasoningLevel): ReasoningLevel {
+  if (LEVEL_ORDER.indexOf(current) >= LEVEL_ORDER.indexOf(minimum)) {
+    return current;
+  }
+  return minimum;
+}
+
+function formatReasoningSummary(decision: ReasoningDecision, finalLevel: ReasoningLevel): string {
+  const baseLevel =
+    decision.level === finalLevel ? finalLevel : `${decision.level} -> ${finalLevel}`;
+  const topSignals = decision.signals.slice(0, 3).map((signal) => signal.reason);
+  const signalsText = topSignals.length > 0 ? topSignals.join(', ') : 'no dominant signals';
+  const overrideText = decision.override ? `, override=${decision.override}` : '';
+
+  return `dynamic reasoning score ${formatNumber(decision.score)} -> ${baseLevel} (confidence ${formatNumber(decision.confidence)}${overrideText}); signals: ${signalsText}`;
+}
+
+function buildCodingPlan(
+  level: ReasoningLevel,
+  rationale: string,
+  options: { followUp: boolean; highComplexity: boolean }
+): SelectionPlan {
+  switch (level) {
+    case 'high':
+      return {
+        preset: 'gpt-5-codex-high',
+        fallback: 'gpt-5-codex-medium',
+        rationale,
+        critical: true,
+      };
+    case 'medium':
+      return {
+        preset: 'gpt-5-codex-medium',
+        fallback: 'gpt-5-codex-low',
+        rationale,
+        critical: options.highComplexity,
+      };
+    case 'low':
+    case 'minimal':
+    default:
+      return {
+        preset: 'gpt-5-codex-low',
+        fallback: 'gpt-5-codex-medium',
+        rationale,
+        critical: false,
+      };
+  }
+}
+
+function buildDocumentationPlan(
+  level: ReasoningLevel,
+  rationale: string,
+  complexity: number
+): SelectionPlan {
+  switch (level) {
+    case 'high':
+      return {
+        preset: 'gpt-5-high',
+        fallback: 'gpt-5-medium',
+        rationale,
+        critical: true,
+      };
+    case 'medium':
+      return {
+        preset: 'gpt-5-medium',
+        fallback: complexity >= 7 ? 'gpt-5-high' : 'gpt-5-minimal',
+        rationale,
+        critical: complexity >= 7,
+      };
+    case 'low':
+      return {
+        preset: 'gpt-5-medium',
+        fallback: 'gpt-5-minimal',
+        rationale,
+        critical: false,
+      };
+    case 'minimal':
+    default:
+      return {
+        preset: 'gpt-5-minimal',
+        fallback: 'gpt-5-medium',
+        rationale,
+        critical: false,
+      };
+  }
 }
 
 function adjustForOperations(
@@ -266,4 +368,8 @@ function formatPercent(value: number): string {
     return 'n/a';
   }
   return `${Math.round(value * 100)}%`;
+}
+
+function formatNumber(value: number): string {
+  return Number.isFinite(value) ? value.toFixed(2).replace(/\.?0+$/, '') : 'n/a';
 }

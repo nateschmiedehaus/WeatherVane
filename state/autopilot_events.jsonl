@@ -1,0 +1,4 @@
+{"type":"task_transition","timestamp":1760829371290,"taskId":"T3.4.2","data":{"from":"done","to":"done"}}
+{"type":"task_transition","timestamp":1760883776764,"taskId":"T3.4.2","data":{"from":"done","to":"in_progress"}}
+{"type":"task_transition","timestamp":1760895983329,"taskId":"T3.4.2","data":{"from":"in_progress","to":"done"}}
+{"type":"task_transition","timestamp":1760896648229,"taskId":"T11.2.2","data":{"from":"blocked","to":"in_progress"}}

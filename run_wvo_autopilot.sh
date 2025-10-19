@@ -31,7 +31,7 @@ Loop:
   2. For each chosen task:
      a. Audit docs/code/tests/design to understand requirements.
      b. Implement the work via fs_read, fs_write, and cmd_run (code + tests + docs + design polish). Keep slices small enough to verify quickly.
-     c. Run critics_run with ["build","tests","manager_self_check","data_quality","design_system","org_pm","exec_review"] and add allocator/causal/forecast critics when relevant.
+    c. Run critics_run with ["build","tests","data_quality","design_system","org_pm","exec_review"] and add allocator/causal/forecast critics when relevant.
      d. Fix issues. If blocked, log the blocker clearly and mark the task blocked with plan_update.
      e. Record decisions, risks, and next actions via context_write (keep state/context.md ≤ 1000 words).
      f. Snapshot via context_snapshot.

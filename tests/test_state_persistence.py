@@ -26,10 +26,12 @@ def _run_state_persistence_script(workspace_root: Path) -> dict:
         const path = await import('node:path');
         const fs = await import('node:fs/promises');
         const {{ SafetyStateStore }} = await import(new URL('./tools/wvo_mcp/src/state/safety_state.ts', import.meta.url));
+        const {{ resolveStateRoot }} = await import(new URL('./tools/wvo_mcp/src/utils/config.ts', import.meta.url));
 
         const first = new StateMachine(workspaceRoot);
-        const safetyStore = new SafetyStateStore(workspaceRoot);
-        const upgradeLockPath = path.join(workspaceRoot, 'state', 'upgrade.lock');
+        const stateRoot = resolveStateRoot(workspaceRoot);
+        const safetyStore = new SafetyStateStore(stateRoot);
+        const upgradeLockPath = path.join(stateRoot, 'upgrade.lock');
 
         await fs.mkdir(path.dirname(upgradeLockPath), {{ recursive: true }});
         await fs.writeFile(upgradeLockPath, new Date().toISOString(), 'utf8');

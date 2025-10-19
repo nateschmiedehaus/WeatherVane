@@ -122,3 +122,60 @@ def test_allocator_enforces_roas_floor_with_roi_curve():
     assert "meta" in roas_caps
     assert roas_caps["meta"] <= guardrails.max_spend + 1e-3
     assert abs(sum(result.spends.values()) - result.diagnostics.get("projection_target", total_budget)) < 1e-3
+
+
+def test_allocator_projected_gradient_candidate_respects_constraints():
+    cells = ["meta", "google", "display"]
+    total_budget = 240.0
+    current_spend = {"meta": 80.0, "google": 80.0, "display": 55.0}
+    expected_roas = {"meta": 2.2, "google": 1.9, "display": 1.8}
+    roi_curves = {
+        "meta": [
+            {"spend": 35.0, "revenue": 77.0},
+            {"spend": 80.0, "revenue": 152.0},
+            {"spend": 120.0, "revenue": 204.0},
+        ],
+        "google": [
+            {"spend": 30.0, "revenue": 60.0},
+            {"spend": 70.0, "revenue": 126.0},
+            {"spend": 110.0, "revenue": 187.0},
+        ],
+        "display": [
+            {"spend": 25.0, "revenue": 48.0},
+            {"spend": 60.0, "revenue": 108.0},
+            {"spend": 100.0, "revenue": 168.0},
+        ],
+    }
+
+    guardrails = Guardrails(
+        min_spend=30.0,
+        max_spend=150.0,
+        roas_floor=1.6,
+        learning_cap=0.25,
+        min_spend_by_cell={"display": 40.0},
+        max_spend_by_cell={"meta": 120.0, "google": 110.0, "display": 110.0},
+    )
+
+    result = allocate(
+        AllocationInput(
+            cells=cells,
+            total_budget=total_budget,
+            current_spend=current_spend,
+            expected_roas=expected_roas,
+            roi_curves=roi_curves,
+            guardrails=guardrails,
+            quantile_factors={"p10": 0.85, "p50": 1.0, "p90": 1.1},
+        ),
+        seed=19,
+    )
+
+    assert abs(sum(result.spends.values()) - total_budget) < 1e-3
+
+    for cell, spend in result.spends.items():
+        if spend <= 1e-6:
+            continue
+        assert _roas_from_curve(roi_curves[cell], spend) >= guardrails.roas_floor - 1e-3
+
+    candidate_summaries = result.diagnostics.get("optimizer_candidates", [])
+    assert any(summary.get("optimizer") == "projected_gradient" for summary in candidate_summaries)
+    assert result.diagnostics.get("optimizer_winner") in {"projected_gradient", "trust_constr", "coordinate_ascent"}

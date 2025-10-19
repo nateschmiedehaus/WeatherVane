@@ -2,7 +2,7 @@
 Last updated: 2025-10-16  
 Authors: WeatherVane product · design · engineering
 
-> This library defines the component system that backs the WeatherVane product experience. It translates the Falcon design tokens and calm/aero themes into implementation-ready guidance for T3.3.4 and downstream M3.4 builds. Each component family documents structure, states, motion, and instrumentation expectations so API, worker, and web slices ship with consistent interaction contracts.
+> This library defines the component system that backs the WeatherVane product experience. It translates the Falcon design tokens and calm/aero themes into implementation-ready guidance for T3.3.4 and downstream M3.4 builds. Each component family documents structure, states, motion, and instrumentation expectations so API, worker, and web slices ship with consistent interaction contracts. T3.3.x remains MCP-owned; this doc clarifies how its deliverables flow into product implementations.
 
 ---
 

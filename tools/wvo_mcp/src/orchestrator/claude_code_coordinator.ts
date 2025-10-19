@@ -21,7 +21,8 @@ import type {
 } from './task_scheduler.js';
 import type { StateMachine, Task } from './state_machine.js';
 import { selectCodexModel } from './model_selector.js';
-import type { CodexOperationalSnapshot, ReasoningLevel } from './model_selector.js';
+import type { CodexOperationalSnapshot } from './model_selector.js';
+import type { ReasoningLevel } from './reasoning_classifier.js';
 import type { OperationsManager, OperationsSnapshot } from './operations_manager.js';
 import { logError, logInfo, logWarning } from '../telemetry/logger.js';
 import { CriticEnforcer } from './critic_enforcer.js';
@@ -129,6 +130,14 @@ export interface ExecutionSummary {
   promptCacheStore?: boolean;
   promptCacheEligible?: boolean;
   promptCacheRaw?: string;
+}
+
+export interface ExecutionLifecycleEvent {
+  task: Task;
+  agent: Agent;
+  context: AssembledContext;
+  correlationId: string;
+  startedAt: number;
 }
 
 export interface ExecutionObserver {
@@ -386,12 +395,20 @@ export class ClaudeCodeCoordinator extends EventEmitter {
         });
       }
 
+      const startedAt = Date.now();
       this.activeExecutions.set(task.id, {
         task,
         agent,
         context,
-        startedAt: Date.now(),
+        startedAt,
         correlationId: executionCorrelation,
+      });
+      this.emit('execution:started', {
+        task,
+        agent,
+        context,
+        correlationId: executionCorrelation,
+        startedAt,
       });
 
       const result = await executionPromise;

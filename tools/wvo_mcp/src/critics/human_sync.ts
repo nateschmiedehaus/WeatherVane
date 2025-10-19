@@ -7,8 +7,8 @@ import { Critic, CriticResult } from "./base.js";
 export class HumanSyncCritic extends Critic {
   async run(profile: string): Promise<CriticResult> {
     const statusPath = path.join(this.workspaceRoot, "docs", "STATUS.md");
-    const contextPath = path.join(this.workspaceRoot, "state", "context.md");
-    const roadmapPath = path.join(this.workspaceRoot, "state", "roadmap.yaml");
+    const contextPath = path.join(this.stateRoot, "context.md");
+    const roadmapPath = path.join(this.stateRoot, "roadmap.yaml");
     const lines: string[] = [];
 
     lines.push(`# WeatherVane Status Digest`);

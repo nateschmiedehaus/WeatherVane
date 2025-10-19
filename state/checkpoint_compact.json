@@ -1,0 +1,38 @@
+{
+  "version": "1.0",
+  "timestamp": "2025-10-17T16:40:16.587Z",
+  "session_id": "session_1760719216587_9mbgahe29",
+  "roadmap_summary": {
+    "total_tasks": 107,
+    "completed_tasks": 42,
+    "in_progress_tasks": 3,
+    "pending_tasks": 23,
+    "completion_percentage": 39.25233644859813,
+    "current_phase": "development",
+    "next_tasks": [
+      "E2",
+      "E3",
+      "E4"
+    ]
+  },
+  "recent_activity": {
+    "last_completed_task": null,
+    "last_updated": "2025-10-17T16:40:16.587Z",
+    "tasks_completed_this_session": 0,
+    "deployments_this_session": 0
+  },
+  "provider_state": {
+    "current_provider": "claude_code",
+    "token_usage_summary": {
+      "codex_percent_used": 0,
+      "claude_code_percent_used": 0.9
+    }
+  },
+  "context_summary": {
+    "word_count": 0,
+    "sections": [],
+    "key_decisions": [],
+    "blockers": []
+  },
+  "continuation_hint": "Resume work: 23 pending tasks in development phase"
+}

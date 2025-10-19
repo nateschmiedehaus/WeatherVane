@@ -4,6 +4,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any, Callable, Dict, List, Sequence
 
+import math
 import os
 import random
 
@@ -430,6 +431,125 @@ def allocate(input_data: AllocationInput, seed: int = 42) -> AllocationResult:
             roas_caps=roas_caps,
         )
 
+    def _solve_with_projected_gradient() -> AllocationResult | None:
+        if not cells:
+            return AllocationResult(
+                spends={}, profit=0.0, diagnostics={"success": 1.0, "optimizer": "projected_gradient"}
+            )
+
+        lower_bounds = [float(min_bounds[cell]) for cell in cells]
+        upper_bounds = [float(max_bounds[cell]) for cell in cells]
+
+        seed_vector: List[float] = []
+        for idx, cell in enumerate(cells):
+            lower = lower_bounds[idx]
+            upper = upper_bounds[idx]
+            base = input_data.current_spend.get(cell, lower)
+            seed_vector.append(max(lower, min(upper, base)))
+
+        best_vector, projection_info = _project_to_feasible(
+            seed_vector, lower_bounds, upper_bounds, input_data.total_budget
+        )
+        target_sum = float(projection_info["target_sum"])
+        if target_sum <= 1e-9:
+            return None
+
+        best_profit, _, _ = evaluate(tuple(best_vector))
+        evaluations = 1
+
+        max_span = max((ub - lb) for lb, ub in zip(lower_bounds, upper_bounds)) if cells else 0.0
+        step_scale = max(target_sum, max_span * max(len(cells), 1), 1.0)
+        epsilons = [
+            max(1e-3, 0.05 * max(upper_bounds[idx] - lower_bounds[idx], target_sum / max(len(cells), 1)))
+            for idx in range(len(cells))
+        ]
+
+        improvements = 0
+        iteration = 0
+
+        while iteration < 200 and step_scale > 1e-4:
+            iteration += 1
+            gradient = [0.0 for _ in cells]
+            grad_norm_sq = 0.0
+
+            for idx in range(len(cells)):
+                epsilon = epsilons[idx]
+                forward = list(best_vector)
+                forward[idx] = min(upper_bounds[idx], best_vector[idx] + epsilon)
+                forward, _ = _project_to_feasible(forward, lower_bounds, upper_bounds, target_sum)
+                forward_profit, _, _ = evaluate(tuple(forward))
+                evaluations += 1
+
+                backward = list(best_vector)
+                backward[idx] = max(lower_bounds[idx], best_vector[idx] - epsilon)
+                backward, _ = _project_to_feasible(backward, lower_bounds, upper_bounds, target_sum)
+                backward_profit, _, _ = evaluate(tuple(backward))
+                evaluations += 1
+
+                denom = max(forward[idx] - backward[idx], 1e-3)
+                slope = (forward_profit - backward_profit) / denom
+                gradient[idx] = slope
+                grad_norm_sq += slope * slope
+
+            grad_norm = math.sqrt(grad_norm_sq)
+            if grad_norm <= 1e-6:
+                break
+
+            direction = [value / grad_norm for value in gradient]
+            improved = False
+
+            for scale in (1.0, 0.5, 0.25, 0.1, 0.05):
+                candidate = [
+                    best_vector[idx] + scale * step_scale * direction[idx] for idx in range(len(cells))
+                ]
+                candidate, _ = _project_to_feasible(candidate, lower_bounds, upper_bounds, target_sum)
+                for idx, cell in enumerate(cells):
+                    cap = roas_caps.get(cell)
+                    if cap is not None:
+                        candidate[idx] = min(candidate[idx], cap)
+                candidate, _ = _project_to_feasible(candidate, lower_bounds, upper_bounds, target_sum)
+                candidate_profit, _, _ = evaluate(tuple(candidate))
+                evaluations += 1
+
+                if candidate_profit > best_profit + 1e-5:
+                    best_vector = candidate
+                    best_profit = candidate_profit
+                    improvements += 1
+                    improved = True
+                    break
+
+            if not improved:
+                step_scale *= 0.6
+            else:
+                step_scale *= 0.95
+
+        final_vector, final_projection = _project_to_feasible(best_vector, lower_bounds, upper_bounds, target_sum)
+
+        base_diag = {
+            "success": 1.0 if improvements > 0 else 0.5,
+            "nfev": float(evaluations),
+            "optimizer": "projected_gradient",
+            "iterations": float(iteration),
+            "improvements": float(improvements),
+            "projection_target": float(final_projection["target_sum"]),
+            "projection_residual_lower": float(final_projection["residual_lower"]),
+            "projection_residual_upper": float(final_projection["residual_upper"]),
+            "min_softened": 1.0 if min_softened else 0.0,
+        }
+
+        return _build_allocation_result(
+            cells=cells,
+            spends={cell: float(final_vector[idx]) for idx, cell in enumerate(cells)},
+            guardrails=guardrails,
+            evaluate_fn=evaluate,
+            roas_for=roas_for,
+            input_data=input_data,
+            base_diagnostics=base_diag,
+            min_bounds=min_bounds,
+            max_bounds=max_bounds,
+            roas_caps=roas_caps,
+        )
+
     def _solve_with_differential() -> AllocationResult | None:
         if (
             differential_evolution is None
@@ -511,6 +631,10 @@ def allocate(input_data: AllocationInput, seed: int = 42) -> AllocationResult:
         nonlinear_allocation = _solve_with_trust_constr()
         if nonlinear_allocation is not None:
             candidates.append(nonlinear_allocation)
+
+    projected_gradient_allocation = _solve_with_projected_gradient()
+    if projected_gradient_allocation is not None:
+        candidates.append(projected_gradient_allocation)
 
     coordinate_allocation = _solve_with_coordinate()
     candidates.append(coordinate_allocation)

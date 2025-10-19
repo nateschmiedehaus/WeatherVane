@@ -8,6 +8,7 @@ import { ResilienceManager } from '../orchestrator/resilience_manager.js';
 import { StateMachine } from '../orchestrator/state_machine.js';
 import type { SafetyState } from '../state/safety_state.js';
 import { SafetyStateStore } from '../state/safety_state.js';
+import { resolveStateRoot } from '../utils/config.js';
 
 export interface ErrorRecoverySample {
   step: 'task_created' | 'generic_failure' | 'context_limit_recovery' | 'second_context_limit';
@@ -106,7 +107,7 @@ export async function runErrorRecoverySimulation(
     stateMachine = new StateMachine(workspaceRoot);
     agentPool = new AgentPool(workspaceRoot, 2);
     resilienceManager = new ResilienceManager(stateMachine, agentPool);
-    safetyStore = new SafetyStateStore(workspaceRoot);
+    safetyStore = new SafetyStateStore(resolveStateRoot(workspaceRoot));
 
     const samples: ErrorRecoverySample[] = [];
 

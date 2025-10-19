@@ -210,25 +210,24 @@ export class StateMachine extends EventEmitter {
     this.readOnly = options.readonly ?? false;
 
     if (this.readOnly) {
-      const options = {
-        readonly: true,
-        fileMustExist: true,
-      } as Database.Options;
       try {
-        this.db = new Database(this.dbPath, options);
+        const uri = `file:${this.dbPath}?mode=ro&cache=shared`;
+        this.db = new Database(uri, {
+          uri: true,
+          readonly: true,
+          fileMustExist: true,
+        } as Database.Options & { uri: boolean });
         this.db.pragma('query_only = 1');
       } catch (error) {
         logWarning('Falling back to in-memory orchestrator DB for dry-run worker', {
           path: this.dbPath,
           error: error instanceof Error ? error.message : String(error),
         });
-        this.db = new Database(':memory:');
-        const previousReadOnly = this.readOnly;
-        this.readOnly = false;
-        this.db.pragma('query_only = 0');
-        this.initializeSchema();
-        this.db.pragma('query_only = 1');
-        this.readOnly = previousReadOnly;
+        const memoryDb = new Database(':memory:');
+        memoryDb.pragma('query_only = 0');
+        this.initializeSchemaInternal(memoryDb);
+        memoryDb.pragma('query_only = 1');
+        this.db = memoryDb;
       }
     } else {
       this.db = new Database(this.dbPath);
@@ -253,7 +252,11 @@ export class StateMachine extends EventEmitter {
     if (this.readOnly) {
       return;
     }
-    this.db.exec(`
+    this.initializeSchemaInternal(this.db);
+  }
+
+  private initializeSchemaInternal(target: Database.Database): void {
+    target.exec(`
       -- Task dependency graph
       CREATE TABLE IF NOT EXISTS tasks (
         id TEXT PRIMARY KEY,
@@ -401,7 +404,7 @@ export class StateMachine extends EventEmitter {
       CREATE INDEX IF NOT EXISTS idx_settings_updated_at ON settings(updated_at);
     `);
 
-    seedLiveFlagDefaults(this.db);
+    seedLiveFlagDefaults(target);
   }
 
   private assertWritable(operation: string): void {

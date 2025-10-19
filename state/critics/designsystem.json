@@ -1,12 +1,12 @@
 {
   "critic": "designsystem",
   "code": 0,
-  "stdout": "skipped due to capability profile",
+  "stdout": "\n> weathervane-web@0.1.0 lint\n> next lint\n\n✔ No ESLint warnings or errors",
   "stderr": "",
-  "passed": false,
+  "passed": true,
   "analysis": null,
-  "git_sha": "3557d4a4726f42b06a979192fe1c60f5ed74f341",
-  "timestamp": "2025-10-16T20:14:36.959Z",
+  "git_sha": "a9b2c543d3f630fb4a1c37dbcf74548b8853b762",
+  "timestamp": "2025-10-18T16:26:38.586Z",
   "identity": {
     "title": "Design System",
     "mission": "Safeguard design_system discipline.",

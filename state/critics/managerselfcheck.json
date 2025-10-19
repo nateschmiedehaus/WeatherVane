@@ -1,50 +1,12 @@
 {
   "critic": "managerselfcheck",
-  "code": 1,
-  "stdout": "",
-  "stderr": "Upgrade preflight guardrail failing (failedCheck=git_clean); resolve issues and rerun preflight before promotion.",
-  "passed": false,
-  "analysis": {
-    "category": "test_failure",
-    "confidence": 0.8,
-    "rootCauses": [
-      "Test suite reported failing assertions"
-    ],
-    "recommendations": [
-      "Inspect failing test output and reproduce locally.",
-      "Confirm fixtures and data generators are stable.",
-      "Review alternative implementation options supplied by the research layer."
-    ],
-    "history": {
-      "totalObservations": 20,
-      "similarFailures": 10
-    },
-    "researchFindings": [
-      {
-        "id": "stub-academic-1760644738877",
-        "title": "Research stub for managerselfcheck critic test_failure failure",
-        "summary": "Academic research integration is not yet implemented. Enable the research_layer flag once ready.",
-        "source": "placeholder",
-        "confidence": 0.1
-      }
-    ],
-    "alternativeOptions": [
-      {
-        "id": "stub-alternative-1760644738878",
-        "title": "Alternative placeholder for managerselfcheck critic remediation",
-        "summary": "Alternative generation is not yet implemented. This entry is returned to keep the pipeline stable.",
-        "pros": [
-          "Placeholder recommendation"
-        ],
-        "cons": [
-          "No real evaluation available"
-        ],
-        "confidence": 0.1
-      }
-    ]
-  },
-  "git_sha": "3557d4a4726f42b06a979192fe1c60f5ed74f341",
-  "timestamp": "2025-10-16T20:15:12.963Z",
+  "code": 0,
+  "stdout": "manager_self_check critic retired from active exit criteria on 2025-10-17; no action required.",
+  "stderr": "",
+  "passed": true,
+  "analysis": null,
+  "git_sha": "a9b2c543d3f630fb4a1c37dbcf74548b8853b762",
+  "timestamp": "2025-10-17T17:16:12.380Z",
   "identity": {
     "title": "Manager Self Check",
     "mission": "Safeguard manager_self_check discipline.",

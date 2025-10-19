@@ -6,6 +6,7 @@ from fastapi import APIRouter, FastAPI
 from . import (
     ad_push,
     allocator,
+    analytics,
     audit,
     catalog,
     dashboard,
@@ -27,6 +28,7 @@ def register_routes(app: FastAPI) -> None:
     router.include_router(health.router, tags=["health"])
     router.include_router(plans.router, prefix="/plans", tags=["plans"])
     router.include_router(dashboard.router, prefix="/dashboard", tags=["dashboard"])
+    router.include_router(analytics.router)
     router.include_router(settings.router, tags=["settings"])
     router.include_router(privacy.router, prefix="/privacy", tags=["privacy"])
     router.include_router(stories.router, tags=["stories"])

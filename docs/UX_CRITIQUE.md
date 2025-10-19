@@ -1,6 +1,6 @@
 # WeatherVane UX/UI Critique: Product Design Assessment
 
-**Last updated:** 2025-10-13  
+**Last updated:** 2025-10-19  
 **Perspective:** World-class product design (Jobs, Ive, Norman, Zhuo, Rams principles)  
 **Scope:** Landing, Plan, Stories, Catalog, Automations surfaces (`apps/web/src/pages/*`)  
 **Method:** Code and UX artifact review within sandbox (no live data; relying on stateful mocks and component analysis)
@@ -13,6 +13,7 @@
 - `Plan`, `Stories`, `Catalog`, and `Automations` still ship cohesive calm/aero theming with resilient loading, error, and empty states; the experience reads premium when data exists (`apps/web/src/pages/plan.tsx`, `apps/web/src/pages/stories.tsx`, `apps/web/src/pages/catalog.tsx`, `apps/web/src/pages/automations.tsx`).
 - Landing `See a sample plan` CTA now launches the guided tour and offers a direct `Start live setup` path so execs can transition from narrative to action (`apps/web/src/pages/index.tsx`, `apps/web/src/components/DemoTourDrawer.tsx`).
 - Credential capture and inline automation proofs remain manual, so teams still rely on out-of-band invites and screenshots before the exec_review critic can sign off (`apps/web/src/pages/setup.tsx`, `apps/web/src/pages/automations.tsx`).
+- Stories cards now highlight the briefing hierarchy (bullets + structured chips), add a one-click copy briefing CTA, and route into Plan with context so comms teams capture the narrative in seconds (`apps/web/src/pages/stories.tsx`, `apps/web/src/lib/stories-insights.ts`, `apps/web/src/styles/stories.module.css`).
 
 ## Signals of Progress
 
@@ -21,13 +22,14 @@
 - Stories and Catalog surfaces mirror the context panel and metadata atoms, keeping copy and structure aligned (`apps/web/src/pages/stories.tsx`, `apps/web/src/pages/catalog.tsx`).
 - Automations exposes a mature guardrail form with data-theme support and optimistic status messaging (`apps/web/src/pages/automations.tsx`, `apps/web/src/styles/automations.module.css`).
 - Guided demo tour replaces the inert landing CTA, collects channel + automation intent, and routes into seeded plan data for exec storytelling (`apps/web/src/components/DemoTourDrawer.tsx`, `apps/web/src/demo/plan.ts`, `apps/web/src/pages/index.tsx`).
+- Stories share actions deliver clipboard-ready briefings with weather highlights so Marketing Ops can drop updates into Slack without reformatting (`apps/web/src/pages/stories.tsx`, `apps/web/src/lib/stories-insights.ts`).
 
 ## Critical Gaps Blocking Award-Level Polish
 
 - Setup bridge still depends on out-of-band OAuth invites and scripts; we need inline credential capture, pipeline triggers, and status webhooks to keep teams inside the product (`apps/web/src/pages/setup.tsx`, `shared/services/onboarding/progress.py`).
 - Plan empty state still points to manual pipeline runs; the experience should embed a one-click launch or live progress widget instead of external instructions (`apps/web/src/pages/plan.tsx`, `apps/web/src/components/OnboardingConnectorList.tsx`).
 - Automations lacks proof of safety—no inline history, cannot visualize guardrail breaches, and form inputs accept invalid sequences without inline validation (`apps/web/src/pages/automations.tsx`).
-- Stories/Catalog lack storytelling polish: cards are static text blocks with no motion, bookmarking, or action affordances beyond placeholder copy (`apps/web/src/pages/stories.tsx`, `apps/web/src/pages/catalog.tsx`).
+- Stories now carry share actions and highlight bullets, but Catalog still lacks motion/interaction parity; both surfaces need saved views + multi-channel export hooks (`apps/web/src/pages/stories.tsx`, `apps/web/src/pages/catalog.tsx`).
 
 ## Remediation Playbook (prioritized)
 
@@ -46,7 +48,7 @@
 ### Stories
 
 - Strengths: cohesive metadata block, context panel reuse, and consistent theming.
-- Gaps: cards are monolithic paragraphs; add hierarchy (lead sentence vs proof points), CTA to push to Slack/email, and grouping by confidence.
+- Gaps: need richer filtering, bookmarking, and scheduling controls; extend share CTA into Slack/Email integrations and add motion to highlight newly escalated narratives.
 
 ### Catalog
 

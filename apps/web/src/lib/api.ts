@@ -13,6 +13,8 @@ import type {
   OnboardingMode,
   OnboardingProgressResponse,
 } from "../types/onboarding";
+import type { AlertAcknowledgeResponse, AlertEscalateResponse } from "../types/dashboard";
+import type { WeatherFocusSuggestionAnalyticsPayload } from "./dashboard-analytics";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000/v1";
 
@@ -82,8 +84,77 @@ export function fetchCreativeResponse(tenantId: string): Promise<CreativeRespons
   return request<CreativeResponseReport>(`/creative/${tenantId}`);
 }
 
-export function fetchDashboard(tenantId: string): Promise<DashboardResponse> {
-  return request<DashboardResponse>(`/dashboard/${tenantId}`);
+export interface FetchDashboardOptions {
+  since?: Date | string;
+}
+
+function normaliseSinceParam(value: Date | string | undefined): string | null {
+  if (!value) {
+    return null;
+  }
+  if (value instanceof Date) {
+    return Number.isNaN(value.getTime()) ? null : value.toISOString();
+  }
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    if (!trimmed) {
+      return null;
+    }
+    const parsed = new Date(trimmed);
+    return Number.isNaN(parsed.getTime()) ? null : parsed.toISOString();
+  }
+  return null;
+}
+
+export function fetchDashboard(
+  tenantId: string,
+  options?: FetchDashboardOptions,
+): Promise<DashboardResponse> {
+  const params = new URLSearchParams();
+  const since = normaliseSinceParam(options?.since);
+  if (since) {
+    params.set("since", since);
+  }
+  const query = params.toString();
+  const path = query ? `/dashboard/${tenantId}?${query}` : `/dashboard/${tenantId}`;
+  return request<DashboardResponse>(path);
+}
+
+export interface AlertAcknowledgePayload {
+  acknowledgedBy?: string;
+  note?: string;
+}
+
+export function acknowledgeDashboardAlert(
+  tenantId: string,
+  alertId: string,
+  payload?: AlertAcknowledgePayload,
+): Promise<AlertAcknowledgeResponse> {
+  return request<AlertAcknowledgeResponse>(`/dashboard/${tenantId}/alerts/${alertId}/ack`, {
+    method: "POST",
+    body: JSON.stringify(payload ?? {}),
+  });
+}
+
+export interface AlertEscalatePayload {
+  channel?: string;
+  target: string;
+  note?: string;
+}
+
+export function escalateDashboardAlert(
+  tenantId: string,
+  alertId: string,
+  payload: AlertEscalatePayload,
+): Promise<AlertEscalateResponse> {
+  return request<AlertEscalateResponse>(`/dashboard/${tenantId}/alerts/${alertId}/escalate`, {
+    method: "POST",
+    body: JSON.stringify({
+      channel: payload.channel ?? "slack",
+      target: payload.target,
+      note: payload.note ?? undefined,
+    }),
+  });
 }
 
 export function fetchShadowReport(tenantId: string): Promise<ShadowRunReport> {
@@ -127,6 +198,34 @@ export async function recordOnboardingEvent(
     if (process.env.NODE_ENV !== "production") {
       // eslint-disable-next-line no-console -- surfaced only during local development
       console.warn("Failed to record onboarding event", error);
+    }
+  }
+}
+
+export interface DashboardSuggestionEventDispatch {
+  tenantId: string;
+  event: string;
+  payload: WeatherFocusSuggestionAnalyticsPayload;
+  occurredAt?: string;
+}
+
+export async function recordDashboardSuggestionEvent(
+  dispatch: DashboardSuggestionEventDispatch,
+): Promise<void> {
+  try {
+    await request<unknown>("/analytics/dashboard/suggestion-events", {
+      method: "POST",
+      body: JSON.stringify({
+        tenantId: dispatch.tenantId,
+        event: dispatch.event,
+        payload: dispatch.payload,
+        occurredAt: dispatch.occurredAt ?? undefined,
+      }),
+    });
+  } catch (error) {
+    if (process.env.NODE_ENV !== "production") {
+      // eslint-disable-next-line no-console -- surfaced only during local development
+      console.warn("Failed to record dashboard suggestion analytics event", error);
     }
   }
 }

@@ -32,6 +32,7 @@ CODEX_TOOLS = frozenset(
         "heavy_queue_list",
         "artifact_record",
         "codex_commands",
+        "tool_manifest",
     ]
 )
 

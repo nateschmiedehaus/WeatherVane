@@ -8,6 +8,7 @@ import { QualityFramework } from "./quality/quality_framework.js";
 import { SessionContext } from "./session.js";
 import { ContextManager } from "./state/context_manager.js";
 import { logError, logInfo, logWarning } from "./telemetry/logger.js";
+import { initTracing } from "./telemetry/tracing.js";
 import { AuthChecker } from "./utils/auth_checker.js";
 import { ProviderManager, type Provider } from "./utils/provider_manager.js";
 import { formatData, formatError, formatList, formatSuccess } from "./utils/response_formatter.js";
@@ -18,11 +19,28 @@ import { resolveWorkspaceRoot } from "./utils/config.js";
 import { SERVER_NAME, SERVER_VERSION } from "./utils/version.js";
 import { toJsonSchema } from "./utils/schema.js";
 import { buildClusterSummaries } from "./utils/cluster.js";
+import { LiveFlags } from "./orchestrator/live_flags.js";
 
 let activeRuntime: OrchestratorRuntime | null = null;
 
 async function main() {
   const workspaceRoot = resolveWorkspaceRoot();
+  const liveFlags = new LiveFlags({ workspaceRoot });
+  const otelFlag = liveFlags.getValue("OTEL_ENABLED");
+  const explicitOtel = process.env.WVO_OTEL_ENABLED === "1";
+  const tracingEnabled =
+    explicitOtel || (otelFlag === "1" && process.env.WVO_DRY_RUN !== "1");
+  const sampleRatioEnv = process.env.WVO_OTEL_SAMPLE_RATIO;
+  const sampleRatio =
+    sampleRatioEnv && Number.isFinite(Number.parseFloat(sampleRatioEnv))
+      ? Number.parseFloat(sampleRatioEnv)
+      : undefined;
+  initTracing({
+    workspaceRoot,
+    enabled: tracingEnabled,
+    sampleRatio,
+  });
+
   const runtime = new OrchestratorRuntime(workspaceRoot, {
     codexWorkers: 3,
     targetCodexRatio: 5,
@@ -43,12 +61,26 @@ async function main() {
   const emptyObjectSchema = toJsonSchema(z.object({}), "EmptyObject");
 
   const shutdown = () => {
+    logInfo("Shutting down MCP server gracefully");
     runtime.stop();
     activeRuntime = null;
+    process.exit(0);
   };
 
+  // Enhanced signal handling with cleanup
   process.once("SIGINT", shutdown);
   process.once("SIGTERM", shutdown);
+
+  // Handle uncaught exceptions to prevent crashes
+  process.on("uncaughtException", (err) => {
+    logError("Uncaught exception in MCP server", { error: String(err), stack: err.stack });
+    // Don't exit on uncaught exception - log and continue
+  });
+
+  process.on("unhandledRejection", (reason, promise) => {
+    logError("Unhandled promise rejection in MCP server", { reason: String(reason) });
+    // Don't exit on unhandled rejection - log and continue
+  });
 
   logInfo("WVO MCP server (Claude Code) booting", {
     workspace: session.workspaceRoot,
@@ -562,18 +594,17 @@ Model: Uses intelligent routing based on complexity and provider capacity`,
           : 500 + (tasks.length * 100);
         providerManager.trackUsage(recommendation.provider, estimatedTokens);
 
-        if (tasks.length === 0) {
-          return formatSuccess("No tasks found matching your criteria", {
-            hint: "Try adjusting your filters or check the roadmap in state/roadmap.yaml"
-          });
-        }
-
-        return formatData({
+        const payload = {
           count: tasks.length,
           tasks: minimalTasks,
           profile: session.profile,
           clusters,
-        }, `📋 Next ${tasks.length} Task(s)`);
+          ...(tasks.length === 0
+            ? { hint: "Try adjusting your filters or check the roadmap in state/roadmap.yaml" }
+            : {}),
+        };
+
+        return formatData(payload, `📋 Next ${tasks.length} Task(s)`);
       } catch (error) {
         return formatError("Failed to get next tasks", error instanceof Error ? error.message : String(error));
       }

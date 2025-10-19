@@ -134,6 +134,8 @@ Use this to monitor autonomous operation.`,
         const codexCosts = costsSnapshot.providers.codex;
         const claudeCosts = costsSnapshot.providers.claude_code;
 
+        const shadowDiffSummary = snapshot.queue.shadow_diffs ?? null;
+
         return formatData({
           coordinator: {
             type: coordinatorType,
@@ -153,7 +155,16 @@ Use this to monitor autonomous operation.`,
             pending: snapshot.queue.pending_count,
             review: snapshot.queue.review_count,
             improvement: snapshot.queue.improvement_count,
-            batches: snapshot.queue.batches
+            batches: snapshot.queue.batches,
+            shadow_diffs: shadowDiffSummary
+              ? {
+                  count: shadowDiffSummary.count,
+                  path: shadowDiffSummary.path,
+                  recorded_at: shadowDiffSummary.recorded_at
+                    ? new Date(shadowDiffSummary.recorded_at).toISOString()
+                    : null,
+                }
+              : null
           },
           roadmap: {
             total_tasks: health.totalTasks,

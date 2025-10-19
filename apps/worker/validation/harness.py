@@ -4,14 +4,16 @@ from __future__ import annotations
 
 import asyncio
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Dict, Mapping, Optional
 
 from apps.worker.flows.poc_pipeline import orchestrate_poc_flow, DEFAULT_LOOKBACK_DAYS
 from apps.worker.maintenance.retention import run_retention_sweep
+from apps.worker.reporting.dashboard import load_suggestion_telemetry_with_summary
 from shared.observability import metrics
+from shared.schemas.dashboard import DashboardSuggestionTelemetry, DashboardSuggestionTelemetrySummary
 
 
 @dataclass
@@ -40,6 +42,8 @@ class HarnessArtifacts:
     raw: Dict[str, Any]
     run_directory: Path
     retention_summary: Dict[str, Any] | None = None
+    suggestion_telemetry: list[DashboardSuggestionTelemetry] = field(default_factory=list)
+    suggestion_telemetry_summary: DashboardSuggestionTelemetrySummary | None = None
 
 
 async def run_smoke_test(
@@ -78,6 +82,19 @@ async def run_ingest_to_plan_harness(
         end_date=end_date,
     )
 
+    suggestion_telemetry, computed_summary = load_suggestion_telemetry_with_summary(
+        tenant_id=tenant_id,
+    )
+    suggestion_telemetry_summary: DashboardSuggestionTelemetrySummary | None = None
+    if suggestion_telemetry:
+        suggestion_telemetry_summary = computed_summary
+        serialized_entries = [
+            entry.model_dump(mode="json") for entry in suggestion_telemetry
+        ]
+        raw = dict(raw)
+        raw["suggestion_telemetry"] = serialized_entries
+        raw["suggestion_telemetry_summary"] = suggestion_telemetry_summary.model_dump(mode="json")
+
     summary = _build_summary(raw)
     tags = _derive_tags(summary.sources)
     if metrics_tags:
@@ -96,6 +113,13 @@ async def run_ingest_to_plan_harness(
     }
 
     metrics.emit("harness.summary", payload, tags=tags)
+
+    if suggestion_telemetry_summary:
+        metrics.emit(
+            "harness.suggestion_telemetry",
+            suggestion_telemetry_summary.model_dump(mode="json"),
+            tags=tags,
+        )
 
     guardrails = raw.get("plan", {}).get("guardrails", {})
     if guardrails:
@@ -145,6 +169,8 @@ async def run_ingest_to_plan_harness(
         raw=raw,
         run_directory=metrics.get_run_directory(),
         retention_summary=retention_summary,
+        suggestion_telemetry=suggestion_telemetry,
+        suggestion_telemetry_summary=suggestion_telemetry_summary,
     )
 
 

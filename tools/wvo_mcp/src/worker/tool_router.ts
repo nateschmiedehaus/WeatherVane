@@ -1,4 +1,6 @@
 import { randomUUID } from "node:crypto";
+import fs from "node:fs/promises";
+import path from "node:path";
 
 import { describeCodexCommands } from "../executor/codex_commands.js";
 import { SessionContext } from "../session.js";
@@ -30,6 +32,7 @@ import {
 import { AuthChecker } from "../utils/auth_checker.js";
 import { logWarning } from "../telemetry/logger.js";
 import type { PlanTaskSummary } from "../utils/types.js";
+import { withSpan } from "../telemetry/tracing.js";
 
 interface RunToolParams {
   name: string;
@@ -94,6 +97,12 @@ async function readConsensusSummary(session: SessionContext) {
 
 export class WorkerToolRouter {
   private readonly stateMachine?: StateMachine;
+  private toolManifestCache:
+    | {
+        mtimeMs: number;
+        payload: unknown;
+      }
+    | undefined;
 
   constructor(
     private readonly session: SessionContext,
@@ -104,155 +113,197 @@ export class WorkerToolRouter {
   }
 
   async runTool(params: RunToolParams): Promise<unknown> {
-    try {
-      switch (params.name) {
-        case "orchestrator_status":
-          return this.handleOrchestratorStatus(params.input);
-        case "auth_status":
-          return this.handleAuthStatus(params.input);
-        case "plan_next":
-          return this.handlePlanNext(params.input);
-        case "plan_update":
-          return this.handlePlanUpdate(params.input);
-        case "context_write":
-          return this.handleContextWrite(params.input);
-        case "context_snapshot":
-          return this.handleContextSnapshot(params.input);
-        case "fs_read":
-          return this.handleFsRead(params.input);
-        case "fs_write":
-          return this.handleFsWrite(params.input);
-        case "cmd_run":
-          return this.handleCmdRun(params.input);
-        case "critics_run":
-          return this.handleCriticsRun(params.input);
-        case "autopilot_record_audit":
-          return this.handleAutopilotRecordAudit(params.input);
-        case "autopilot_status":
-          return this.handleAutopilotStatus();
-        case "heavy_queue_enqueue":
-          return this.handleHeavyQueueEnqueue(params.input);
-        case "heavy_queue_update":
-          return this.handleHeavyQueueUpdate(params.input);
-        case "heavy_queue_list":
-          return this.handleHeavyQueueList();
-        case "artifact_record":
-          return this.handleArtifactRecord(params.input);
-        case "codex_commands":
-          return this.handleCodexCommands();
-        default:
-          throw new Error(`Unknown tool: ${params.name}`);
-      }
-    } catch (error) {
-      if (error instanceof Error && error.name === "DryRunViolation") {
-        return this.formatDryRunViolation(error, params.name);
-      }
-      throw error;
-    }
+    return withSpan(
+      `worker.tool.${params.name}`,
+      async (span) => {
+        try {
+          switch (params.name) {
+            case "orchestrator_status":
+              return this.handleOrchestratorStatus(params.input);
+            case "auth_status":
+              return this.handleAuthStatus(params.input);
+            case "plan_next":
+              return this.handlePlanNext(params.input);
+            case "plan_update":
+              return this.handlePlanUpdate(params.input);
+            case "context_write":
+              return this.handleContextWrite(params.input);
+            case "context_snapshot":
+              return this.handleContextSnapshot(params.input);
+            case "fs_read":
+              return this.handleFsRead(params.input);
+            case "fs_write":
+              return this.handleFsWrite(params.input);
+            case "cmd_run":
+              return this.handleCmdRun(params.input);
+            case "critics_run":
+              return this.handleCriticsRun(params.input);
+            case "autopilot_record_audit":
+              return this.handleAutopilotRecordAudit(params.input);
+            case "autopilot_status":
+              return this.handleAutopilotStatus();
+            case "heavy_queue_enqueue":
+              return this.handleHeavyQueueEnqueue(params.input);
+            case "heavy_queue_update":
+              return this.handleHeavyQueueUpdate(params.input);
+            case "heavy_queue_list":
+              return this.handleHeavyQueueList();
+            case "artifact_record":
+              return this.handleArtifactRecord(params.input);
+            case "codex_commands":
+              return this.handleCodexCommands();
+            case "tool_manifest":
+              return this.handleToolManifest();
+            default:
+              throw new Error(`Unknown tool: ${params.name}`);
+          }
+        } catch (error) {
+          if (error instanceof Error && error.name === "DryRunViolation") {
+            span?.setStatus("error", "dry_run_violation");
+            return this.formatDryRunViolation(error, params.name);
+          }
+          span?.recordException(error);
+          throw error;
+        }
+      },
+      {
+        attributes: {
+          "tool.name": params.name,
+        },
+      },
+    );
   }
 
   async plan(params: unknown): Promise<unknown> {
-    const parsed = planNextInputSchema.parse(params ?? {});
-    const normalizedInput = {
-      limit: parsed.limit ?? parsed.max_tasks,
-      filters: parsed.filters,
-    };
-    const correlationBase = `worker:plan:${randomUUID()}`;
-    const tasks = await this.session.planNext(normalizedInput, { correlationId: correlationBase });
-    const clusters = buildClusterSummaries(tasks);
-    return {
-      ok: true,
-      correlation_id: correlationBase,
-      tasks,
-      clusters,
-    };
+    return withSpan(
+      "worker.plan",
+      async (span) => {
+        const parsed = planNextInputSchema.parse(params ?? {});
+        const normalizedInput = {
+          limit: parsed.limit ?? parsed.max_tasks,
+          filters: parsed.filters,
+        };
+        const correlationBase = `worker:plan:${randomUUID()}`;
+        span?.setAttribute("correlation.id", correlationBase);
+        const tasks = await this.session.planNext(normalizedInput, { correlationId: correlationBase });
+        const clusters = buildClusterSummaries(tasks);
+        return {
+          ok: true,
+          correlation_id: correlationBase,
+          tasks,
+          clusters,
+        };
+      },
+    );
   }
 
   async dispatch(params: unknown): Promise<unknown> {
-    const parsed = dispatchInputSchema.parse(params ?? {});
-    const normalizedInput = {
-      limit: parsed.limit ?? parsed.max_tasks,
-      filters: parsed.filters,
-    };
-    const correlationBase = `worker:dispatch:${randomUUID()}`;
-    const tasks = await this.session.planNext(normalizedInput, { correlationId: correlationBase });
-    const operationsSnapshot = this.runtime.getOperationsManager().getSnapshot();
+    return withSpan(
+      "worker.dispatch",
+      async (span) => {
+        const parsed = dispatchInputSchema.parse(params ?? {});
+        const normalizedInput = {
+          limit: parsed.limit ?? parsed.max_tasks,
+          filters: parsed.filters,
+        };
+        const correlationBase = `worker:dispatch:${randomUUID()}`;
+        span?.setAttribute("correlation.id", correlationBase);
+        const tasks = await this.session.planNext(normalizedInput, { correlationId: correlationBase });
+        const operationsSnapshot = this.runtime.getOperationsManager().getSnapshot();
 
-    return {
-      ok: true,
-      correlation_id: correlationBase,
-      queue: {
-        total: tasks.length,
-        tasks,
+        return {
+          ok: true,
+          correlation_id: correlationBase,
+          queue: {
+            total: tasks.length,
+            tasks,
+          },
+          operations: operationsSnapshot ?? null,
+        };
       },
-      operations: operationsSnapshot ?? null,
-    };
+    );
   }
 
   async verify(params: unknown): Promise<unknown> {
-    const parsed = verifyInputSchema.parse(params ?? {});
-    const include = new Set(parsed.include ?? ["operations", "resilience", "self_improvement"]);
-    const payload: Record<string, unknown> = {
-      ok: true,
-      generated_at: new Date().toISOString(),
-      components: Array.from(include),
-    };
+    return withSpan(
+      "worker.verify",
+      async (span) => {
+        const parsed = verifyInputSchema.parse(params ?? {});
+        const include = new Set(parsed.include ?? ["operations", "resilience", "self_improvement"]);
+        span?.setAttribute("verify.components", Array.from(include).join(","));
 
-    if (include.has("operations")) {
-      payload.operations = this.runtime.getOperationsManager().getSnapshot() ?? null;
-    }
+        const payload: Record<string, unknown> = {
+          ok: true,
+          generated_at: new Date().toISOString(),
+          components: Array.from(include),
+        };
 
-    if (include.has("resilience")) {
-      payload.resilience = this.runtime.getResilienceManager().getMetrics();
-    }
+        if (include.has("operations")) {
+          payload.operations = this.runtime.getOperationsManager().getSnapshot() ?? null;
+        }
 
-    if (include.has("self_improvement")) {
-      payload.self_improvement = this.runtime.getSelfImprovementManager().getStatus();
-    }
+        if (include.has("resilience")) {
+          payload.resilience = this.runtime.getResilienceManager().getMetrics();
+        }
 
-    if (include.has("autopilot")) {
-      payload.autopilot = await this.session.getAutopilotState();
-    }
+        if (include.has("self_improvement")) {
+          payload.self_improvement = this.runtime.getSelfImprovementManager().getStatus();
+        }
 
-    return payload;
+        if (include.has("autopilot")) {
+          payload.autopilot = await this.session.getAutopilotState();
+        }
+
+        return payload;
+      },
+    );
   }
 
   async reportMo(params: unknown): Promise<unknown> {
-    const parsed = moReportInputSchema.parse(params ?? {});
-    const includeTasks = parsed.include_tasks !== false;
-    const includeOperations = parsed.include_operations !== false;
-    const limit = parsed.limit ?? 5;
-    const correlationBase = `worker:report.mo:${randomUUID()}`;
+    return withSpan(
+      "worker.report_mo",
+      async (span) => {
+        const parsed = moReportInputSchema.parse(params ?? {});
+        const includeTasks = parsed.include_tasks !== false;
+        const includeOperations = parsed.include_operations !== false;
+        const limit = parsed.limit ?? 5;
+        const correlationBase = `worker:report.mo:${randomUUID()}`;
+        span?.setAttribute("correlation.id", correlationBase);
+        span?.setAttribute("report.include_tasks", includeTasks);
+        span?.setAttribute("report.include_operations", includeOperations);
 
-    const tasks: PlanTaskSummary[] = includeTasks
-      ? await this.session.planNext(
-          { limit, filters: parsed.filters },
-          { correlationId: `${correlationBase}:tasks` },
-        )
-      : [];
+        const tasks: PlanTaskSummary[] = includeTasks
+          ? await this.session.planNext(
+              { limit, filters: parsed.filters },
+              { correlationId: `${correlationBase}:tasks` },
+            )
+          : [];
 
-    const operationsSnapshot = includeOperations
-      ? this.runtime.getOperationsManager().getSnapshot()
-      : undefined;
+        const operationsSnapshot = includeOperations
+          ? this.runtime.getOperationsManager().getSnapshot()
+          : undefined;
 
-    const insights = this.buildMoInsights(operationsSnapshot, tasks);
+        const insights = this.buildMoInsights(operationsSnapshot, tasks);
+        span?.setAttribute("report.task_count", tasks.length);
 
-    const response: Record<string, unknown> = {
-      ok: true,
-      correlation_id: correlationBase,
-      generated_at: new Date().toISOString(),
-      insights,
-    };
+        const response: Record<string, unknown> = {
+          ok: true,
+          correlation_id: correlationBase,
+          generated_at: new Date().toISOString(),
+          insights,
+        };
 
-    if (includeOperations) {
-      response.operations = operationsSnapshot ?? null;
-    }
+        if (includeOperations) {
+          response.operations = operationsSnapshot ?? null;
+        }
 
-    if (includeTasks) {
-      response.tasks = tasks;
-    }
+        if (includeTasks) {
+          response.tasks = tasks;
+        }
 
-    return response;
+        return response;
+      },
+    );
   }
 
   private async handleOrchestratorStatus(input: unknown) {
@@ -420,6 +471,42 @@ export class WorkerToolRouter {
       profile: this.session.profile,
       commands: describeCodexCommands(),
     });
+  }
+
+  private async handleToolManifest() {
+    const manifestPath = path.join(
+      this.session.workspaceRoot,
+      "tools",
+      "wvo_mcp",
+      "config",
+      "tool_manifest.json",
+    );
+
+    try {
+      const stats = await fs.stat(manifestPath);
+      const mtimeMs = stats.mtimeMs;
+      if (!this.toolManifestCache || this.toolManifestCache.mtimeMs !== mtimeMs) {
+        const raw = await fs.readFile(manifestPath, "utf8");
+        const parsed = JSON.parse(raw);
+        this.toolManifestCache = {
+          mtimeMs,
+          payload: parsed,
+        };
+      }
+      return jsonResponse({
+        manifest: this.toolManifestCache?.payload ?? [],
+        generated_at: new Date().toISOString(),
+      });
+    } catch (error: unknown) {
+      logWarning("Unable to load tool manifest", {
+        error: error instanceof Error ? error.message : String(error),
+      });
+      return jsonResponse({
+        manifest: [],
+        generated_at: new Date().toISOString(),
+        error: "tool_manifest file missing or invalid.",
+      });
+    }
   }
 
   private formatDryRunViolation(error: Error, toolName: string) {

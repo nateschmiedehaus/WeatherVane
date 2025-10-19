@@ -19,6 +19,8 @@ import {
   type WorkerExitMessage,
 } from './protocol.js';
 import { logError } from '../telemetry/logger.js';
+import { resolveStateRoot } from '../utils/config.js';
+import { withSpan } from '../telemetry/tracing.js';
 
 type WorkerRole = 'active' | 'canary';
 
@@ -98,7 +100,8 @@ interface PendingCall {
   startedAt: number;
 }
 
-const DEFAULT_CALL_TIMEOUT_MS = 30_000;
+// Increased from 30s to 5min to handle long-running operations like critics_run with multiple critics
+const DEFAULT_CALL_TIMEOUT_MS = 300_000;  // 5 minutes
 const DEFAULT_START_TIMEOUT_MS = 20_000;
 
 class ManagedWorker extends EventEmitter {
@@ -185,44 +188,66 @@ class ManagedWorker extends EventEmitter {
   }
 
   async call<R = unknown>(method: string, params?: unknown, options?: WorkerCallOptions): Promise<R> {
-    if (this.disposed) {
-      throw new Error(`Worker ${this.label} is already disposed`);
-    }
-
-    await this.ready();
-
-    const timeoutMs = options?.timeoutMs ?? DEFAULT_CALL_TIMEOUT_MS;
-    const id = randomUUID();
-
-    const payload: WorkerOutgoingMessage = {
-      id,
-      method,
-      params,
-    };
-
-    const resultPromise = new Promise<R>((resolve, reject) => {
-      const timeout = setTimeout(() => {
-        if (this.pending.has(id)) {
-          this.pending.delete(id);
-          reject(new Error(`Worker ${this.label} call timed out after ${timeoutMs}ms (${method})`));
+    return withSpan<R>(
+      "worker.rpc",
+      async (span) => {
+        if (this.disposed) {
+          throw new Error(`Worker ${this.label} is already disposed`);
         }
-      }, timeoutMs);
-      this.pending.set(id, {
-        resolve: (value) => {
-          clearTimeout(timeout);
-          resolve(value as R);
-        },
-        reject: (error) => {
-          clearTimeout(timeout);
-          reject(error);
-        },
-        timeout,
-        startedAt: Date.now(),
-      });
-    });
 
-    this.child.send(payload);
-    return resultPromise;
+        span?.setAttribute("worker.label", this.label);
+        span?.setAttribute("worker.role", this.role);
+        span?.setAttribute("worker.method", method);
+        if (typeof this.child.pid === "number") {
+          span?.setAttribute("worker.pid", this.child.pid);
+        }
+
+        await this.ready();
+
+        const timeoutMs = options?.timeoutMs ?? DEFAULT_CALL_TIMEOUT_MS;
+        span?.setAttribute("worker.timeout_ms", timeoutMs);
+
+        const id = randomUUID();
+
+        const payload: WorkerOutgoingMessage = {
+          id,
+          method,
+          params,
+        };
+
+        const resultPromise = new Promise<R>((resolve, reject) => {
+          const timeout = setTimeout(() => {
+            if (this.pending.has(id)) {
+              this.pending.delete(id);
+              reject(new Error(`Worker ${this.label} call timed out after ${timeoutMs}ms (${method})`));
+            }
+          }, timeoutMs);
+          this.pending.set(id, {
+            resolve: (value) => {
+              clearTimeout(timeout);
+              resolve(value as R);
+            },
+            reject: (error) => {
+              clearTimeout(timeout);
+              reject(error);
+            },
+            timeout,
+            startedAt: Date.now(),
+          });
+        });
+
+        this.child.send(payload);
+        const result = await resultPromise;
+        return result;
+      },
+      {
+        attributes: {
+          "worker.label": this.label,
+          "worker.role": this.role,
+          "worker.method": method,
+        },
+      },
+    );
   }
 
   dispose(): void {
@@ -353,6 +378,7 @@ export class WorkerManager extends EventEmitter {
   private readonly events: WorkerEventSnapshot[] = [];
   private readonly eventLimit: number;
   private readonly telemetryPath: string | null;
+  private snapshotTimer: NodeJS.Timeout | null = null;
 
   constructor(options: WorkerManagerOptions = {}) {
     super();
@@ -360,9 +386,21 @@ export class WorkerManager extends EventEmitter {
     if (options.snapshotPath) {
       this.telemetryPath = options.snapshotPath;
     } else if (options.workspaceRoot) {
-      this.telemetryPath = path.join(options.workspaceRoot, 'state', 'analytics', 'worker_manager.json');
+      const stateRoot = resolveStateRoot(options.workspaceRoot);
+      this.telemetryPath = path.join(stateRoot, 'analytics', 'worker_manager.json');
     } else {
       this.telemetryPath = null;
+    }
+
+    // Periodically persist snapshot every 30 seconds
+    if (this.telemetryPath) {
+      this.snapshotTimer = setInterval(async () => {
+        try {
+          await this.getSnapshot();
+        } catch (error) {
+          // Ignore errors in background snapshot
+        }
+      }, 30000);
     }
   }
 
@@ -371,14 +409,29 @@ export class WorkerManager extends EventEmitter {
       throw new Error('Active worker already running');
     }
     const { entryPath, execArgv } = resolveWorkerEntry();
-    const { entryPath: overrideEntryPath, env: providedEnv, label, ...restOptions } = options;
+    const {
+      entryPath: overrideEntryPath,
+      env: providedEnv,
+      label,
+      allowDryRunActive,
+      ...restOptions
+    } = options;
+
+    // CRITICAL: Active worker must NEVER be in dry-run mode
+    // Dry-run mode causes fake/offline behavior which is prohibited
+    if (providedEnv?.WVO_DRY_RUN === '1' && !allowDryRunActive) {
+      throw new Error('Active worker cannot be started in WVO_DRY_RUN mode - this would cause fake/offline execution');
+    }
+
+    const dryRunAllowed = allowDryRunActive === true;
+
     const worker = new ManagedWorker('active', overrideEntryPath ?? entryPath, execArgv, {
       ...restOptions,
       role: 'active',
       label: label ?? 'active',
       env: {
-        WVO_DRY_RUN: providedEnv?.WVO_DRY_RUN ?? '0',
         ...providedEnv,
+        WVO_DRY_RUN: dryRunAllowed ? '1' : '0', // Only permit dry-run when explicitly allowed
       },
     });
 
@@ -394,13 +447,17 @@ export class WorkerManager extends EventEmitter {
     }
     const { entryPath, execArgv } = resolveWorkerEntry();
     const { entryPath: overrideEntryPath, env: providedEnv, label, ...restOptions } = options;
+
+    // Canary can use dry-run for testing, but should be explicitly set
+    // Default to dry-run ONLY if not explicitly provided
     const worker = new ManagedWorker('canary', overrideEntryPath ?? entryPath, execArgv, {
       ...restOptions,
       role: 'canary',
       label: label ?? 'canary',
       env: {
-        WVO_DRY_RUN: providedEnv?.WVO_DRY_RUN ?? '1',
         ...providedEnv,
+        // Only default to dry-run if not explicitly set
+        WVO_DRY_RUN: providedEnv?.WVO_DRY_RUN ?? '1',
       },
     });
     this.attachWorker(worker, 'canary');
@@ -465,6 +522,19 @@ export class WorkerManager extends EventEmitter {
   }
 
   async stopAll(): Promise<void> {
+    // Stop periodic snapshot timer
+    if (this.snapshotTimer) {
+      clearInterval(this.snapshotTimer);
+      this.snapshotTimer = null;
+    }
+
+    // Take final snapshot before shutdown
+    try {
+      await this.getSnapshot();
+    } catch (error) {
+      // Ignore errors during shutdown
+    }
+
     if (this.activeWorker) {
       const worker = this.activeWorker;
       this.activeWorker = null;

@@ -9,6 +9,7 @@ import { logInfo, logWarning } from "../telemetry/logger.js";
 import { getCurrentGitSha } from "../utils/git.js";
 import type { CommandResult } from "../utils/types.js";
 import type { StateMachine, Task, TaskStatus } from "../orchestrator/state_machine.js";
+import { resolveStateRoot } from "../utils/config.js";
 import { CriticIntelligenceEngine, type CriticAnalysis } from "./intelligence_engine.js";
 
 export interface CriticIdentityProfile {
@@ -55,11 +56,13 @@ export abstract class Critic {
   private readonly escalationConfig: Record<string, CriticEscalationConfig>;
   private readonly escalationLogPath?: string;
   private readonly identityProfile?: CriticIdentityProfile;
+  protected readonly stateRoot: string;
 
   constructor(
     protected readonly workspaceRoot: string,
     protected readonly options: CriticOptions = {},
   ) {
+    this.stateRoot = resolveStateRoot(workspaceRoot);
     if (options.intelligenceEnabled) {
       this.intelligence = new CriticIntelligenceEngine({
         workspaceRoot,
@@ -135,13 +138,13 @@ export abstract class Critic {
 
   protected async persistResult(result: CriticResult): Promise<void> {
     const target = path.join(
-      this.workspaceRoot,
-      "state",
+      this.stateRoot,
       "critics",
       `${result.critic}.json`,
     );
     const payload = JSON.stringify(result, null, 2);
-    await writeFile(this.workspaceRoot, path.relative(this.workspaceRoot, target), payload);
+    await fs.promises.mkdir(path.dirname(target), { recursive: true });
+    await fs.promises.writeFile(target, payload, "utf8");
   }
 
   protected async finalizeResult(result: CriticResult): Promise<CriticResult> {

@@ -185,6 +185,50 @@
   color: var(--color-text-primary);
 }
 
+.heroActions {
+  margin-top: 1.2rem;
+  display: grid;
+  gap: 0.45rem;
+  align-content: start;
+}
+
+.heroShareCta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  padding: 0.65rem 1.1rem;
+  border-radius: var(--radius-pill);
+  border: 1px solid rgba(96, 165, 250, 0.35);
+  background: var(--interactive-gradient);
+  color: var(--color-text-primary);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  font-size: 0.82rem;
+  box-shadow: var(--interactive-focus-shadow);
+  transition:
+    transform var(--motion-duration-short) var(--motion-easing-standard),
+    box-shadow var(--motion-duration-short) var(--motion-easing-standard),
+    opacity var(--motion-duration-short) var(--motion-easing-standard);
+}
+
+.heroShareCta:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-elevated);
+}
+
+.heroShareCta:focus-visible {
+  outline: none;
+  box-shadow: var(--shadow-focus-ring);
+}
+
+.heroActionsHint {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--color-text-tertiary);
+}
+
 .metricValue {
   font-size: 1.25rem;
   font-weight: 600;

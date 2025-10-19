@@ -9,10 +9,12 @@ import {
   type WorkerErrorPayload,
 } from "./worker/worker_client.js";
 import { logError, logInfo, logWarning } from "./telemetry/logger.js";
+import { initTracing } from "./telemetry/tracing.js";
 import { resolveWorkspaceRoot } from "./utils/config.js";
 import { SERVER_NAME, SERVER_VERSION } from "./utils/version.js";
 import { toJsonSchema } from "./utils/schema.js";
 import { planNextInputSchema } from "./utils/schemas.js";
+import { LiveFlags } from "./orchestrator/live_flags.js";
 import {
   orchestratorStatusInput,
   authStatusInput,
@@ -66,6 +68,23 @@ function unwrapWorkerResult(tool: string, result: unknown): McpToolResponse {
 
 async function main() {
   const workspaceRoot = resolveWorkspaceRoot();
+
+  const liveFlags = new LiveFlags({ workspaceRoot });
+  const otelFlag = liveFlags.getValue("OTEL_ENABLED");
+
+  const explicitOtel = process.env.WVO_OTEL_ENABLED === "1";
+  const tracingEnabled = explicitOtel || (otelFlag === "1" && process.env.WVO_DRY_RUN !== "1");
+  const sampleRatioEnv = process.env.WVO_OTEL_SAMPLE_RATIO;
+  const sampleRatio = sampleRatioEnv && Number.isFinite(Number.parseFloat(sampleRatioEnv))
+    ? Number.parseFloat(sampleRatioEnv)
+    : undefined;
+
+  initTracing({
+    workspaceRoot,
+    enabled: tracingEnabled,
+    sampleRatio,
+  });
+
   const workerManager = new WorkerManager({ workspaceRoot });
   const workerClient = new WorkerClient(workerManager);
 
@@ -168,6 +187,10 @@ async function main() {
       name: "codex_commands",
       description: "List known Codex CLI commands and recommended usage.",
     },
+    {
+      name: "tool_manifest",
+      description: "Describe available MCP tools with schemas, costs, and prerequisites.",
+    },
   ];
 
   const shutdown = () => {
@@ -208,11 +231,15 @@ async function main() {
   });
 
   try {
-    await workerManager.startActive(
-      process.env.WVO_DRY_RUN !== undefined
-        ? { env: { WVO_DRY_RUN: process.env.WVO_DRY_RUN } }
-        : {},
-    );
+    const dryRunEnv = process.env.WVO_DRY_RUN;
+    const activeOptions =
+      dryRunEnv !== undefined
+        ? {
+            env: { WVO_DRY_RUN: dryRunEnv },
+            allowDryRunActive: dryRunEnv === "1",
+          }
+        : {};
+    await workerManager.startActive(activeOptions);
 
     const server = new McpServer(
       {

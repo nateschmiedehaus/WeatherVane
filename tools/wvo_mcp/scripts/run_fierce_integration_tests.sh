@@ -17,5 +17,9 @@ PYTHONPATH=.deps:. pytest apps tests -m "not slow" --maxfail=1
 npm --prefix tools/wvo_mcp run test --  --runInBand
 # Include Playwright if available
 if command -v npx >/dev/null && npx --yes playwright --version >/dev/null 2>&1; then
-  npx playwright test --config=apps/web/playwright.config.ts
+  if npm --prefix apps/web ls @playwright/test >/dev/null 2>&1; then
+    npx playwright test --config=apps/web/playwright.config.ts
+  else
+    echo "[integration_fury] skipping Playwright smoke tests (missing @playwright/test dependency)"
+  fi
 fi

@@ -1,21 +1,61 @@
 {
-  "recorded_at": "2025-10-16T03:17:18.560Z",
+  "recorded_at": "2025-10-19T18:15:32.067Z",
+  "recorded_at_ms": 1760897732067,
+  "status": "healthy",
+  "notes": [],
   "active": {
+    "role": "active",
+    "label": "active",
     "status": "ready",
-    "pid": 2938,
-    "last_health_at": "2025-10-16T03:17:18.560Z",
+    "pid": 43360,
+    "spawned_at": "2025-10-19T18:14:02.064Z",
+    "ready_at": "2025-10-19T18:14:02.186Z",
+    "started_at": "2025-10-19T18:14:02.176Z",
+    "uptime_ms": 90003,
+    "uptime_seconds": 90.003,
+    "version": "0.2.0",
+    "flags": {
+      "dryRun": false
+    },
     "last_health": {
       "ok": true,
-      "checked_at": "2025-10-16T03:17:18.560Z",
-      "notes": "Autopilot worker health synthesised"
-    }
+      "role": "active",
+      "pid": 43360,
+      "startedAt": "2025-10-19T18:14:02.176Z",
+      "version": "0.2.0",
+      "dryRun": false,
+      "workspaceRoot": "/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane",
+      "uptimeMs": 89891,
+      "uptimeSeconds": 89.891,
+      "flags": {
+        "dryRun": false
+      }
+    },
+    "last_health_at": "2025-10-19T18:15:32.067Z",
+    "last_exit": null
   },
   "canary": null,
-  "events": [],
-  "operations_available": false,
-  "operations": {
-    "health_status": "unknown",
-    "timestamp": 1760584638560,
-    "note": "Operations snapshot unavailable; runtime not yet emitting telemetry."
-  }
+  "events": [
+    {
+      "timestamp": "2025-10-19T18:14:02.066Z",
+      "type": "spawn",
+      "worker": "active",
+      "message": "Started active worker",
+      "details": {
+        "label": "active",
+        "pid": 43360
+      }
+    },
+    {
+      "timestamp": "2025-10-19T18:14:02.187Z",
+      "type": "ready",
+      "worker": "active",
+      "message": "active worker signalled ready",
+      "details": {
+        "version": "0.2.0"
+      }
+    }
+  ],
+  "event_limit": 50,
+  "persisted_path": "/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/state/analytics/worker_manager.json"
 }

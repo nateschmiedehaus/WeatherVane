@@ -37,6 +37,7 @@ import { readFile, writeFile } from "./executor/file_ops.js";
 import { GuardrailViolation } from "./executor/guardrails.js";
 import type { CriticResult, CriticIdentityProfile } from "./critics/base.js";
 import { PlannerEngine } from "./planner/planner_engine.js";
+import { ensureNoCriticBlocking } from "./orchestrator/critic_availability_guardian.js";
 import { AutopilotStore } from "./state/autopilot_store.js";
 import { CheckpointStore } from "./state/checkpoint_store.js";
 import { ContextStore } from "./state/context_store.js";
@@ -44,7 +45,7 @@ import { HeavyTaskQueueStore } from "./state/heavy_queue_store.js";
 import { RoadmapStore } from "./state/roadmap_store.js";
 import { ArtifactRegistry } from "./telemetry/artifact_registry.js";
 import { logError, logInfo, logWarning } from "./telemetry/logger.js";
-import { CodexProfile, getCodexProfile, resolveWorkspaceRoot } from "./utils/config.js";
+import { CodexProfile, getCodexProfile, resolveStateRoot, resolveWorkspaceRoot } from "./utils/config.js";
 import { createDryRunError, isDryRunEnabled } from "./utils/dry_run.js";
 import type {
   AutopilotAuditEntry,
@@ -122,6 +123,7 @@ interface CriticUnderperformanceReport {
 
 export class SessionContext {
   readonly workspaceRoot: string;
+  readonly stateRoot: string;
   readonly profile: CodexProfile;
 
   private readonly roadmapStore: RoadmapStore;
@@ -148,6 +150,7 @@ export class SessionContext {
   constructor(runtime?: OrchestratorRuntime) {
     this.orchestratorRuntime = runtime;
     this.workspaceRoot = resolveWorkspaceRoot();
+    this.stateRoot = resolveStateRoot(this.workspaceRoot);
     this.profile = getCodexProfile();
     if (process.env.WVO_CAPABILITY?.toLowerCase() !== "high") {
       logWarning("MCP capability not set to high; extended critics may be limited.", {
@@ -156,12 +159,12 @@ export class SessionContext {
       });
     }
     this.dryRun = isDryRunEnabled();
-    this.roadmapStore = new RoadmapStore(this.workspaceRoot);
-    this.contextStore = new ContextStore(this.workspaceRoot);
-    this.checkpointStore = new CheckpointStore(this.workspaceRoot);
-    this.artifactRegistry = new ArtifactRegistry(this.workspaceRoot);
-    this.autopilotStore = new AutopilotStore(this.workspaceRoot);
-    this.heavyTaskQueue = new HeavyTaskQueueStore(this.workspaceRoot);
+    this.roadmapStore = new RoadmapStore(this.stateRoot);
+    this.contextStore = new ContextStore(this.stateRoot);
+    this.checkpointStore = new CheckpointStore(this.stateRoot);
+    this.artifactRegistry = new ArtifactRegistry(this.stateRoot);
+    this.autopilotStore = new AutopilotStore(this.stateRoot);
+    this.heavyTaskQueue = new HeavyTaskQueueStore(this.stateRoot);
     this.stateMachine = runtime?.getStateMachine();
   }
 
@@ -204,9 +207,30 @@ export class SessionContext {
     return `${prefix}:${randomUUID()}`;
   }
 
+  private normalizeRelativePath(relativePath: string): string {
+    return path.posix.normalize(relativePath.replace(/\\/g, "/"));
+  }
+
+  private isStateRelativePath(relativePath: string): boolean {
+    const normalized = this.normalizeRelativePath(relativePath);
+    return normalized === "state" || normalized.startsWith("state/");
+  }
+
+  private resolveStateRelativePath(relativePath: string): string {
+    const normalized = this.normalizeRelativePath(relativePath);
+    const remainder = normalized === "state" ? "" : normalized.slice("state/".length);
+    const absolute = path.resolve(this.stateRoot, remainder);
+    if (!absolute.startsWith(this.stateRoot)) {
+      throw new Error(`Path ${relativePath} escapes state root`);
+    }
+    return absolute;
+  }
+
   async planNext(input: PlanNextInput, options?: { correlationId?: string }) {
     const correlationBase = options?.correlationId;
-    if (this.stateMachine) {
+    const stateMachine = this.stateMachine;
+    const runtimeStarted = this.orchestratorRuntime?.isStarted() ?? false;
+    if (stateMachine && !this.dryRun && runtimeStarted) {
       if (this.syncYamlEnabled) {
         await this.ensureStateMachineSynced(correlationBase);
       }
@@ -222,7 +246,7 @@ export class SessionContext {
       }
 
       // Rebuild and cache
-      const summaries = buildPlanSummaries(this.stateMachine, input.filters);
+      const summaries = buildPlanSummaries(stateMachine, input.filters);
       this.planNextCache.set(cacheKey, {
         timestamp: Date.now(),
         result: summaries
@@ -231,6 +255,15 @@ export class SessionContext {
     }
 
     const roadmap = await this.roadmapStore.read();
+
+    // Guard against critic blocking loops before planning
+    ensureNoCriticBlocking(roadmap, (msg) => {
+      console.log(msg);
+    });
+
+    // Save roadmap if any tasks were unblocked
+    await this.roadmapStore.write(roadmap);
+
     const planner = new PlannerEngine(roadmap);
     return planner.next(input);
   }
@@ -325,11 +358,21 @@ export class SessionContext {
   }
 
   async readFile(relativePath: string) {
+    if (this.isStateRelativePath(relativePath)) {
+      const absolute = this.resolveStateRelativePath(relativePath);
+      return fs.readFile(absolute, "utf8");
+    }
     return readFile(this.workspaceRoot, relativePath);
   }
 
   async writeFile(relativePath: string, content: string) {
     this.ensureWritable(`fs_write:${relativePath}`);
+    if (this.isStateRelativePath(relativePath)) {
+      const absolute = this.resolveStateRelativePath(relativePath);
+      await fs.mkdir(path.dirname(absolute), { recursive: true });
+      await fs.writeFile(absolute, content, "utf8");
+      return;
+    }
     await writeFile(this.workspaceRoot, relativePath, content);
   }
 
@@ -918,7 +961,7 @@ export class SessionContext {
         return;
       }
 
-      const roadmapPath = path.join(this.workspaceRoot, "state", "roadmap.yaml");
+      const roadmapPath = path.join(this.stateRoot, "roadmap.yaml");
       let mtimeMs = 0;
       try {
         const stats = await fs.stat(roadmapPath);

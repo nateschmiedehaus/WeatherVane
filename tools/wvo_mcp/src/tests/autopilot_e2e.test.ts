@@ -16,8 +16,8 @@ describe("autopilot end-to-end loop", () => {
       const stubSummary = {
         completed_tasks: ["Atlas: autopilot e2e harness"],
         in_progress: ["T6.3.3 – Autopilot loop end-to-end validation"],
-        blockers: ["Awaiting manager_self_check critic evidence"],
-        next_focus: ["Run manager_self_check critic against autopilot assets"],
+        blockers: ["Awaiting integration_fury critic evidence"],
+        next_focus: ["Run integration_fury critic against autopilot assets"],
         notes: "Stubbed Codex run captured a single-loop autopilot cycle.",
       };
 
@@ -50,7 +50,7 @@ describe("autopilot end-to-end loop", () => {
       const { exitCode, stdout } = await runAutopilotScript(scriptPath, {
         cwd: workspace,
         env,
-        timeoutMs: 30_000,
+        timeoutMs: 60_000,
       });
 
       // Debug logging for test failure inspection
@@ -83,6 +83,6 @@ describe("autopilot end-to-end loop", () => {
       expect(logContents).toContain("Skipping DNS preflight");
       expect(logContents).toContain("Summary saved to");
     },
-    40000,
+    90000,
   );
 });

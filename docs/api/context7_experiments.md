@@ -1,0 +1,21 @@
+# Context7 Experimentation API
+
+- **Base URL:** `https://context7.com/api/v1`
+- **Endpoint:** `/experiments`
+- **Method:** `GET`
+- **Authentication:** `CONTEXT7_API_KEY` header
+- **Query Parameters:**
+  - `tenant_id` (string) – WeatherVane tenant identifier.
+  - `status` (string, optional) – filter by experiment status (`draft`, `running`, `completed`).
+  - `namespace` (string, optional) – logical namespace (e.g., `marketing`, `product`).
+- **Response Fields:**
+  - `experiment_id` (string)
+  - `name` (string)
+  - `namespace` (string)
+  - `status` (string)
+  - `start_date` (ISO date)
+  - `end_date` (ISO date, optional)
+  - `population` (object) – includes `metric`, `unit`, `size`.
+  - `assignments` (array[object]) – each with `geo`, `audience`, `treatment`, `allocation`.
+  - `kpis` (array[object]) – target metrics with lift expectations.
+- **Use Cases:** supply experiment assignments for causal modelling guardrails.

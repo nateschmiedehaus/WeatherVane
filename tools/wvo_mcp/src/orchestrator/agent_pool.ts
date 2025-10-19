@@ -14,7 +14,7 @@ import { EventEmitter } from 'node:events';
 import { execa } from 'execa';
 import type { Task } from './state_machine.js';
 import type { AssembledContext } from './context_assembler.js';
-import type { ReasoningLevel } from './model_selector.js';
+import type { ReasoningLevel } from './reasoning_classifier.js';
 import { logInfo, logWarning, logError } from '../telemetry/logger.js';
 import { SubscriptionLimitTracker } from '../limits/subscription_tracker.js';
 import { UsageEstimator } from '../limits/usage_estimator.js';
@@ -63,6 +63,19 @@ export interface TaskAssignment {
   codexModel?: string;
   codexReasoning?: string;
   codexPreset?: string;
+}
+
+export interface TaskAssignmentEventPayload {
+  task: Task;
+  agent: Agent;
+  estimatedDuration: number;
+  reasoning: string;
+  contextSummary: {
+    filesToRead?: string[];
+    relatedTasks?: string[];
+    qualitySignals?: Array<{ dimension: string; score: number }>;
+    researchHighlights?: string[];
+  };
 }
 
 export interface AssignmentOptions {
@@ -260,6 +273,7 @@ export class AgentPool extends EventEmitter {
   private outputValidationCanaryWarningLogged = false;
   private readonly limitTracker: SubscriptionLimitTracker;
   private readonly usageEstimator: UsageEstimator;
+  private readonly claudeEnabled: boolean;
 
   private readonly capabilities: Record<AgentType, AgentCapabilities> = {
     claude_code: {
@@ -292,9 +306,11 @@ export class AgentPool extends EventEmitter {
 
   constructor(
     private workspaceRoot: string,
-    private codexWorkers: number = 3  // Default: 3 Codex workers
+    private codexWorkers: number = 3,  // Default: 3 Codex workers
+    options: { enableClaude?: boolean } = {}
   ) {
     super();
+    this.claudeEnabled = options.enableClaude ?? true;
     this.limitTracker = new SubscriptionLimitTracker(workspaceRoot);
     this.usageEstimator = new UsageEstimator(this.limitTracker);
     this.initializeAgents();
@@ -317,7 +333,9 @@ export class AgentPool extends EventEmitter {
       const claudeTier = (process.env.CLAUDE_SUBSCRIPTION_TIER ?? 'pro') as 'free' | 'pro' | 'team';
       const codexTier = (process.env.CODEX_SUBSCRIPTION_TIER ?? 'pro') as 'free' | 'pro' | 'team';
 
-      this.limitTracker.registerProvider('claude', 'default', claudeTier);
+      if (this.claudeEnabled) {
+        this.limitTracker.registerProvider('claude', 'default', claudeTier);
+      }
       this.limitTracker.registerProvider('codex', 'default', codexTier);
 
       // Listen to limit warnings
@@ -336,7 +354,7 @@ export class AgentPool extends EventEmitter {
       });
 
       logInfo('Subscription limit tracking initialized', {
-        claudeTier,
+        claudeTier: this.claudeEnabled ? claudeTier : 'disabled',
         codexTier,
       });
     } catch (error) {
@@ -347,17 +365,21 @@ export class AgentPool extends EventEmitter {
   }
 
   private initializeAgents(): void {
-    // Initialize Claude Code coordinator
-    this.agents.set('claude_code', {
-      id: 'claude_code',
-      type: 'claude_code',
-      role: 'architect',
-      baseRole: 'architect',
-      status: 'idle',
-      completedTasks: 0,
-      failedTasks: 0,
-      avgDurationSeconds: 0
-    });
+    // Initialize Claude Code coordinator if enabled
+    if (this.claudeEnabled) {
+      this.agents.set('claude_code', {
+        id: 'claude_code',
+        type: 'claude_code',
+        role: 'architect',
+        baseRole: 'architect',
+        status: 'idle',
+        completedTasks: 0,
+        failedTasks: 0,
+        avgDurationSeconds: 0
+      });
+    } else {
+      this.coordinatorType = 'codex';
+    }
 
     // Initialize Codex workers
     for (let i = 1; i <= this.codexWorkers; i++) {
@@ -377,6 +399,10 @@ export class AgentPool extends EventEmitter {
         this.coordinatorCandidates.push(agent.id);
       }
     }
+
+    if (!this.claudeEnabled && this.coordinatorCandidates.length === 0) {
+      logWarning('No Codex coordinator candidates available; consider increasing codexWorkers');
+    }
   }
 
   private getCoordinatorCandidate(): Agent | undefined {
@@ -385,6 +411,9 @@ export class AgentPool extends EventEmitter {
   }
 
   promoteCoordinatorRole(reason: string): void {
+    if (!this.claudeEnabled) {
+      return;
+    }
     const claudeAgent = this.agents.get('claude_code');
     if (!claudeAgent) return;
 
@@ -422,6 +451,9 @@ export class AgentPool extends EventEmitter {
   }
 
   demoteCoordinatorRole(): void {
+    if (!this.claudeEnabled) {
+      return;
+    }
     if (this.coordinatorType !== 'codex') {
       return;
     }
@@ -457,6 +489,9 @@ export class AgentPool extends EventEmitter {
 
   isCoordinatorAvailable(): boolean {
     if (this.coordinatorType === 'claude_code') {
+      if (!this.claudeEnabled) {
+        return false;
+      }
       const claudeAgent = this.agents.get('claude_code');
       if (!claudeAgent) return false;
       return claudeAgent.status === 'idle' && !this.isOnCooldown(claudeAgent);
@@ -486,10 +521,11 @@ export class AgentPool extends EventEmitter {
       (context.filesToRead?.length ?? 0) * 500 // rough estimate: 500 tokens per file
     );
 
-    const availableProviders = [
-      { provider: 'claude' as const, account: 'default' },
-      { provider: 'codex' as const, account: 'default' },
-    ];
+    const availableProviders: Array<{ provider: 'claude' | 'codex'; account: string }> = [];
+    if (this.claudeEnabled) {
+      availableProviders.push({ provider: 'claude', account: 'default' });
+    }
+    availableProviders.push({ provider: 'codex', account: 'default' });
 
     const recommendation = this.usageEstimator.recommendProvider(
       taskEstimate,
@@ -518,6 +554,10 @@ export class AgentPool extends EventEmitter {
     }
 
     // 3. Check if recommended provider can handle the request
+    if (!this.claudeEnabled && recommendedType === 'claude_code') {
+      recommendedType = 'codex';
+    }
+
     const providerName = recommendedType === 'claude_code' ? 'claude' : 'codex';
     const canHandle = this.limitTracker.canMakeRequest(
       providerName,
@@ -536,7 +576,10 @@ export class AgentPool extends EventEmitter {
       const fallbackType: AgentType = recommendedType === 'claude_code' ? 'codex' : 'claude_code';
       const fallbackProvider = fallbackType === 'claude_code' ? 'claude' : 'codex';
 
-      if (!avoidTypes.has(fallbackType) && this.limitTracker.canMakeRequest(
+      if (
+        this.claudeEnabled &&
+        !avoidTypes.has(fallbackType) &&
+        this.limitTracker.canMakeRequest(
         fallbackProvider,
         'default',
         taskEstimate.estimated_tokens
@@ -560,8 +603,10 @@ export class AgentPool extends EventEmitter {
       searchOrder.push(recommendedType);
     }
     const alternateType: AgentType = recommendedType === 'claude_code' ? 'codex' : 'claude_code';
-    if (!avoidTypes.has(alternateType)) {
-      searchOrder.push(alternateType);
+    if (this.claudeEnabled || alternateType === 'codex') {
+      if (!avoidTypes.has(alternateType)) {
+        searchOrder.push(alternateType);
+      }
     }
 
     for (const candidateType of searchOrder) {
@@ -586,6 +631,9 @@ export class AgentPool extends EventEmitter {
    * Recommend agent type based on task characteristics
    */
   private recommendAgentType(task: Task, context: AssembledContext): AgentType {
+    if (!this.claudeEnabled) {
+      return 'codex';
+    }
     if (this.coordinatorType === 'codex') {
       if (task.status === 'needs_review') {
         return 'codex';
@@ -683,11 +731,22 @@ export class AgentPool extends EventEmitter {
       codexPreset: modelInfo?.codexPreset,
     });
 
+    const contextSummary: TaskAssignmentEventPayload['contextSummary'] = {
+      filesToRead: context.filesToRead?.slice(0, 10),
+      relatedTasks: context.relatedTasks?.slice(0, 8).map((related) => related.id),
+      qualitySignals: context.qualityIssuesInArea?.slice(0, 5).map((issue) => ({
+        dimension: issue.dimension,
+        score: issue.score,
+      })),
+      researchHighlights: context.researchHighlights?.slice(0, 5),
+    };
+
     this.emit('task:assigned', {
       task,
       agent,
       estimatedDuration,
-      reasoning: this.getAssignmentReasoning(task, agent, context)
+      reasoning: this.getAssignmentReasoning(task, agent, context),
+      contextSummary,
     });
 
     return agent;

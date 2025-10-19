@@ -67,8 +67,100 @@ export interface DashboardAlert {
   severity: AlertSeverity;
   occurred_at: string;
   acknowledged: boolean;
+  acknowledged_at?: string | null;
   escalated_to?: string | null;
+  escalated_at?: string | null;
+  escalation_channel?: string | null;
   related_objects: string[];
+}
+
+export type AllocatorMode = "autopilot" | "assist" | "demo" | "fallback";
+
+export type RecommendationSeverity = "critical" | "warning" | "info";
+
+export interface AllocatorRecommendation {
+  platform: string;
+  spend_delta: number;
+  spend_delta_pct: number;
+  spend_after: number;
+  severity: RecommendationSeverity;
+  guardrail_count: number;
+  top_guardrail?: string | null;
+  notes?: string | null;
+}
+
+export interface AllocatorSummary {
+  run_id?: string | null;
+  generated_at?: string | null;
+  mode: AllocatorMode;
+  total_spend: number;
+  total_spend_delta: number;
+  total_spend_delta_pct: number;
+  guardrail_breaches: number;
+  notes: string[];
+  recommendations: AllocatorRecommendation[];
+}
+
+export type WeatherKpiUnit = "usd" | "pct" | "count" | "index" | "hours";
+
+export interface WeatherKpi {
+  id: string;
+  label: string;
+  value: number;
+  unit: WeatherKpiUnit;
+  delta_pct?: number | null;
+  sparkline: number[];
+  description: string;
+}
+
+export interface SuggestionTelemetry {
+  signature: string;
+  region: string;
+  reason: string;
+  view_count: number;
+  focus_count: number;
+  dismiss_count: number;
+  high_risk_count: number;
+  event_count: number;
+  focus_rate: number;
+  dismiss_rate: number;
+  engagement_rate: number;
+  has_scheduled_start: boolean;
+  next_event_starts_at?: string | null;
+  first_occurred_at?: string | null;
+  last_occurred_at?: string | null;
+  tenants: string[];
+  severities: string[];
+  viewport_breakpoints: string[];
+  metadata: Record<string, unknown>;
+}
+
+export interface SuggestionTelemetrySummary {
+  total_suggestions: number;
+  total_view_count: number;
+  total_focus_count: number;
+  total_dismiss_count: number;
+  average_focus_rate: number;
+  average_dismiss_rate: number;
+  average_engagement_rate: number;
+  top_signature?: string | null;
+  top_region?: string | null;
+  top_region_summary?: string | null;
+  top_reason?: string | null;
+  top_focus_rate?: number | null;
+  top_dismiss_rate?: number | null;
+  top_engagement_rate?: number | null;
+  top_focus_count?: number | null;
+  top_dismiss_count?: number | null;
+  top_view_count?: number | null;
+  top_event_count?: number | null;
+  top_high_risk_count?: number | null;
+  top_has_scheduled_start?: boolean | null;
+  top_guardrail_status?: string | null;
+  top_layout_variant?: string | null;
+  top_last_occurred_at?: string | null;
+  top_engagement_confidence_level?: "low" | "medium" | "high" | null;
+  top_engagement_confidence_label?: string | null;
 }
 
 export interface DashboardResponse {
@@ -80,7 +172,27 @@ export interface DashboardResponse {
   automation: AutomationLane[];
   ingestion: IngestionConnector[];
   alerts: DashboardAlert[];
+  allocator?: AllocatorSummary | null;
+  weather_kpis: WeatherKpi[];
+  suggestion_telemetry: SuggestionTelemetry[];
+  suggestion_telemetry_summary?: SuggestionTelemetrySummary | null;
   context_tags: string[];
   context_warnings: { code: string; message: string; severity: string }[];
 }
 
+export interface AlertAcknowledgeResponse {
+  tenant_id: string;
+  alert_id: string;
+  acknowledged_at: string;
+  acknowledged_by?: string | null;
+  note?: string | null;
+}
+
+export interface AlertEscalateResponse {
+  tenant_id: string;
+  alert_id: string;
+  escalated_at: string;
+  channel: string;
+  target: string;
+  note?: string | null;
+}

@@ -14,19 +14,35 @@ from shared.data_context.service import ContextService, default_context_service
 from shared.data_context.warnings import ContextWarningEngine, default_warning_engine
 from shared.schemas.base import ContextWarning
 from shared.schemas.dashboard import (
+    AlertAcknowledgeResponse,
+    AlertEscalateResponse,
     AlertSeverity,
+    AllocatorMode,
+    AllocatorRecommendation,
+    AllocatorSummary,
     AutomationLane,
     AutomationLaneStatus,
     ConnectorStatus,
     DashboardAlert,
     DashboardResponse,
+    DashboardSuggestionTelemetry,
+    DashboardSuggestionTelemetrySummary,
+    RecommendationSeverity,
     GuardrailSegment,
     GuardrailStatus,
     IngestionConnector,
     SpendTracker,
+    WeatherKpi,
+    WeatherKpiUnit,
     WeatherRiskEvent,
     WeatherRiskSeverity,
 )
+from shared.services.dashboard_analytics_ingestion import (
+    DashboardSuggestionAggregate,
+    aggregate_dashboard_suggestion_metrics,
+    load_dashboard_suggestion_metrics,
+)
+from shared.services.dashboard_analytics_summary import summarize_dashboard_suggestion_telemetry
 
 DEFAULT_WEATHER_GEOHASH_OVERRIDES = {
     "demo-tenant": "9q8yy",
@@ -48,7 +64,10 @@ class DashboardService:
         ingestion_state_root: Path | str | None = None,
         ad_push_diff_path: Path | str | None = None,
         ad_push_alerts_path: Path | str | None = None,
+        alert_ack_path: Path | str | None = None,
         weather_root: Path | str | None = None,
+        suggestion_metrics_path: Path | str | None = None,
+        suggestion_metrics_root: Path | str | None = None,
         fallback_tenant_id: str | None = "tenant-safety",
         context_service: ContextService | None = None,
         warning_engine: ContextWarningEngine | None = None,
@@ -66,7 +85,16 @@ class DashboardService:
         self.ad_push_alerts_path = Path(
             ad_push_alerts_path or os.getenv("AD_PUSH_ALERTS_PATH", "state/ad_push_alerts.json")
         ).expanduser()
+        self.alert_ack_path = Path(
+            alert_ack_path or os.getenv("AD_PUSH_ALERT_ACK_PATH", "state/dashboard_alert_ack.json")
+        ).expanduser()
         self.weather_root = Path(weather_root or os.getenv("WEATHER_LAKE_ROOT", "storage/lake/weather")).expanduser()
+        self.suggestion_metrics_path = (
+            Path(suggestion_metrics_path).expanduser() if suggestion_metrics_path else None
+        )
+        self.suggestion_metrics_root = Path(
+            suggestion_metrics_root or os.getenv("METRICS_OUTPUT_DIR", "tmp/metrics")
+        ).expanduser()
         self.fallback_tenant_id = fallback_tenant_id
         self.context_service = context_service or default_context_service
         self.warning_engine = warning_engine or default_warning_engine
@@ -76,9 +104,9 @@ class DashboardService:
         self.now_factory = now_factory
         self.random = random.Random()
 
-    async def get_dashboard(self, tenant_id: str) -> DashboardResponse:
+    async def get_dashboard(self, tenant_id: str, since: datetime | None = None) -> DashboardResponse:
         try:
-            return self._build_dashboard(tenant_id)
+            return self._build_dashboard(tenant_id, since=since)
         except Exception:
             self.logger.exception("Failed to assemble WeatherOps dashboard for tenant %s", tenant_id)
             return self._fallback_dashboard(tenant_id)
@@ -87,7 +115,7 @@ class DashboardService:
     # Live telemetry assembly
     # --------------------------------------------------------------------- #
 
-    def _build_dashboard(self, tenant_id: str) -> DashboardResponse:
+    def _build_dashboard(self, tenant_id: str, *, since: datetime | None = None) -> DashboardResponse:
         now = self.now_factory()
         guardrails, spend_trackers, automation, alerts, guardrail_ts = self._load_guardrail_payload(tenant_id, now)
         ingestion, ingestion_ts = self._load_ingestion_connectors(tenant_id, now)
@@ -102,6 +130,16 @@ class DashboardService:
         if not automation:
             automation = self._default_automation_lanes(generated_at)
 
+        allocator_summary = self._build_allocator_summary_snapshot(tenant_id, guardrails, now)
+        if allocator_summary is None:
+            allocator_summary = self._default_allocator_summary(generated_at)
+
+        weather_kpis = self._build_weather_kpis_snapshot(weather_events, generated_at)
+        suggestion_telemetry = self._load_suggestion_telemetry(tenant_id, since=since)
+        suggestion_telemetry_summary: DashboardSuggestionTelemetrySummary | None = None
+        if suggestion_telemetry:
+            suggestion_telemetry_summary = summarize_dashboard_suggestion_telemetry(suggestion_telemetry)
+
         return DashboardResponse(
             tenant_id=tenant_id,
             generated_at=generated_at,
@@ -111,6 +149,10 @@ class DashboardService:
             automation=automation,
             ingestion=ingestion,
             alerts=alerts,
+            allocator=allocator_summary,
+            weather_kpis=weather_kpis,
+            suggestion_telemetry=suggestion_telemetry,
+            suggestion_telemetry_summary=suggestion_telemetry_summary,
             context_tags=context_tags,
             context_warnings=context_warnings,
         )
@@ -149,7 +191,7 @@ class DashboardService:
         guardrails = self._build_guardrail_segments(diffs)
         spend_trackers = self._build_spend_trackers(diffs)
         alerts_raw = self._load_alert_entries(tenant_id)
-        alerts = self._build_alerts(alerts_raw)
+        alerts = self._build_alerts(alerts_raw, tenant_id)
         automation = self._build_automation_lanes(alerts_raw, guardrails, now)
 
         timestamps: list[datetime] = []
@@ -361,7 +403,423 @@ class DashboardService:
             return "Automation paused until guardrails recover."
         return "Guardrails holding steady; Assist ready for approvals."
 
-    def _build_alerts(self, alerts_raw: Sequence[dict[str, Any]]) -> list[DashboardAlert]:
+    def _build_allocator_summary_snapshot(
+        self,
+        tenant_id: str,
+        guardrails: Sequence[GuardrailSegment],
+        now: datetime,
+    ) -> AllocatorSummary | None:
+        diffs = self._load_diff_entries(tenant_id)
+        if not diffs:
+            return None
+
+        latest = diffs[-1]
+        report = latest.get("spend_guardrail_report") or {}
+        totals = report.get("totals") or {}
+        overall_breaches = report.get("guardrails") or []
+
+        generated_at = self._parse_datetime(latest.get("generated_at"))
+        mode_raw = str(latest.get("generation_mode") or "assist")
+        mode = self._allocator_mode_from_string(mode_raw)
+
+        notes_value = latest.get("notes")
+        if isinstance(notes_value, list):
+            notes = [str(note) for note in notes_value if isinstance(note, str)]
+        elif isinstance(notes_value, str):
+            notes = [notes_value]
+        else:
+            notes = []
+
+        guardrail_breaches = sum(
+            1
+            for breach in overall_breaches
+            if str(breach.get("severity") or "").lower() == "critical"
+        )
+        if guardrail_breaches == 0:
+            guardrail_breaches = sum(
+                1 for segment in guardrails if segment.status == GuardrailStatus.breach
+            )
+
+        recommendations: list[AllocatorRecommendation] = []
+        for platform in report.get("platforms") or []:
+            platform_name = str(platform.get("platform") or "platform").title()
+            spend_delta = self._safe_float(platform.get("spend_delta"))
+            recommendation = AllocatorRecommendation(
+                platform=platform_name,
+                spend_after=self._safe_float(platform.get("proposed_spend")),
+                spend_delta=spend_delta,
+                spend_delta_pct=self._safe_float(platform.get("percent_delta")),
+                severity=self._recommendation_severity(platform.get("guardrails") or []),
+                guardrail_count=len(platform.get("guardrails") or []),
+                top_guardrail=self._primary_guardrail(platform.get("guardrails") or []),
+                notes=self._summarise_guardrail_notes(platform.get("guardrails") or []),
+            )
+            recommendations.append(recommendation)
+
+        recommendations.sort(key=self._recommendation_sort_key)
+
+        total_spend = self._safe_float(totals.get("proposed_spend"))
+        total_delta = self._safe_float(totals.get("spend_delta"))
+        total_delta_pct = self._safe_float(totals.get("percent_delta"))
+
+        run_id = latest.get("run_id") or latest.get("id")
+        if not run_id:
+            run_id = f"allocator-run-{len(diffs)}"
+
+        return AllocatorSummary(
+            run_id=str(run_id),
+            generated_at=generated_at,
+            mode=mode,
+            total_spend=total_spend,
+            total_spend_delta=total_delta,
+            total_spend_delta_pct=total_delta_pct,
+            guardrail_breaches=max(0, guardrail_breaches),
+            notes=notes,
+            recommendations=recommendations,
+        )
+
+    @staticmethod
+    def _allocator_mode_from_string(raw: str) -> AllocatorMode:
+        normalised = raw.strip().lower()
+        if normalised == "autopilot":
+            return AllocatorMode.autopilot
+        if normalised == "assist":
+            return AllocatorMode.assist
+        if normalised == "demo":
+            return AllocatorMode.demo
+        return AllocatorMode.fallback
+
+    @staticmethod
+    def _recommendation_sort_key(recommendation: AllocatorRecommendation) -> tuple[int, float]:
+        severity_order = {
+            RecommendationSeverity.critical: 0,
+            RecommendationSeverity.warning: 1,
+            RecommendationSeverity.info: 2,
+        }
+        order = severity_order.get(recommendation.severity, 3)
+        magnitude = -abs(recommendation.spend_delta)
+        return order, magnitude
+
+    @staticmethod
+    def _recommendation_severity(
+        guardrails: Sequence[Mapping[str, Any]],
+    ) -> RecommendationSeverity:
+        severities = [str(item.get("severity") or "").lower() for item in guardrails]
+        if any(severity == "critical" for severity in severities):
+            return RecommendationSeverity.critical
+        if any(severity == "warning" for severity in severities):
+            return RecommendationSeverity.warning
+        return RecommendationSeverity.info
+
+    @staticmethod
+    def _primary_guardrail(guardrails: Sequence[Mapping[str, Any]]) -> str | None:
+        for entry in guardrails:
+            message = entry.get("message")
+            if isinstance(message, str) and message.strip():
+                return message.strip()
+        return None
+
+    def _build_weather_kpis_snapshot(
+        self,
+        weather_events: Sequence[WeatherRiskEvent],
+        now: datetime,
+    ) -> list[WeatherKpi]:
+        events = list(weather_events)
+        if not events:
+            return [
+                WeatherKpi(
+                    id="high_risk_alerts",
+                    label="High-risk alerts",
+                    value=0.0,
+                    unit=WeatherKpiUnit.count,
+                    delta_pct=None,
+                    sparkline=[0.0],
+                    description="No weather alerts are impacting guardrails right now.",
+                ),
+                WeatherKpi(
+                    id="regions_impacted",
+                    label="Regions impacted",
+                    value=0.0,
+                    unit=WeatherKpiUnit.count,
+                    delta_pct=None,
+                    sparkline=[0.0],
+                    description="No regions reporting weather-driven risk windows.",
+                ),
+                WeatherKpi(
+                    id="next_event_lead_time",
+                    label="Lead time to next event",
+                    value=0.0,
+                    unit=WeatherKpiUnit.hours,
+                    delta_pct=None,
+                    sparkline=[0.0],
+                    description="Upcoming weather events are not yet scheduled.",
+                ),
+            ]
+
+        total_events = len(events)
+        high_risk_count = sum(1 for event in events if event.severity == WeatherRiskSeverity.high)
+        medium_risk_count = sum(1 for event in events if event.severity == WeatherRiskSeverity.medium)
+
+        sorted_events = sorted(events, key=lambda event: event.starts_at)
+        severity_trend = [
+            float(self._weather_severity_weight(event.severity))
+            for event in sorted_events
+        ]
+
+        unique_regions = {
+            self._normalize_region_label(event.geo_region)
+            for event in events
+        }
+
+        upcoming_events = [
+            event for event in events if event.starts_at >= now
+        ]
+        next_event = min(upcoming_events, key=lambda event: event.starts_at) if upcoming_events else None
+        hours_to_next = (
+            max(0.0, (next_event.starts_at - now).total_seconds() / 3600.0)
+            if next_event
+            else 0.0
+        )
+
+        events_within_day = [
+            event
+            for event in events
+            if 0.0 <= (event.starts_at - now).total_seconds() <= 86400.0
+        ]
+
+        impacted_sparkline = [
+            float(self._weather_severity_weight(event.severity))
+            for event in events_within_day
+        ] or [0.0]
+
+        high_risk_description = (
+            f"{high_risk_count} of {total_events} weather windows carry high risk."
+            if total_events
+            else "No weather telemetry available."
+        )
+        region_description = (
+            f"{len(unique_regions)} regions reporting weather signals in the next 24 hours."
+        )
+        lead_time_description = (
+            f"Next weather event begins in approximately {hours_to_next:.1f} hours."
+            if next_event
+            else "No upcoming weather events on the calendar."
+        )
+
+        return [
+            WeatherKpi(
+                id="high_risk_alerts",
+                label="High-risk alerts",
+                value=float(high_risk_count),
+                unit=WeatherKpiUnit.count,
+                delta_pct=(
+                    ((high_risk_count - medium_risk_count) / max(1, total_events)) * 100.0
+                    if total_events
+                    else None
+                ),
+                sparkline=severity_trend or [0.0],
+                description=high_risk_description,
+            ),
+            WeatherKpi(
+                id="regions_impacted",
+                label="Regions impacted",
+                value=float(len(unique_regions)),
+                unit=WeatherKpiUnit.count,
+                delta_pct=None,
+                sparkline=impacted_sparkline,
+                description=region_description,
+            ),
+            WeatherKpi(
+                id="next_event_lead_time",
+                label="Lead time to next event",
+                value=round(hours_to_next, 1),
+                unit=WeatherKpiUnit.hours,
+                delta_pct=None,
+                sparkline=[round(hours_to_next, 1)],
+                description=lead_time_description,
+            ),
+        ]
+
+    @staticmethod
+    def _weather_severity_weight(severity: WeatherRiskSeverity) -> int:
+        if severity == WeatherRiskSeverity.high:
+            return 3
+        if severity == WeatherRiskSeverity.medium:
+            return 2
+        return 1
+
+    @staticmethod
+    def _normalize_region_label(region: str | None) -> str:
+        if not region:
+            return "Unspecified region"
+        normalized = " ".join(str(region).split()).strip()
+        return normalized if normalized else "Unspecified region"
+
+    def _resolve_suggestion_metrics_file(self) -> Path | None:
+        if self.suggestion_metrics_path:
+            candidate = self.suggestion_metrics_path
+            if candidate.is_dir():
+                metrics_file = candidate / "metrics.jsonl"
+                return metrics_file if metrics_file.exists() else None
+            return candidate if candidate.exists() else None
+
+        root = self.suggestion_metrics_root
+        if not root.exists():
+            return None
+
+        if root.is_file():
+            return root
+
+        candidates: list[Path] = []
+        direct = root / "metrics.jsonl"
+        if direct.exists():
+            candidates.append(direct)
+
+        try:
+            for child in root.iterdir():
+                if child.is_dir():
+                    metrics_file = child / "metrics.jsonl"
+                    if metrics_file.exists():
+                        candidates.append(metrics_file)
+                elif child.is_file() and child.name == "metrics.jsonl":
+                    candidates.append(child)
+        except OSError:
+            return None
+
+        latest: Path | None = None
+        latest_mtime = float("-inf")
+        for candidate in candidates:
+            try:
+                mtime = candidate.stat().st_mtime
+            except OSError:
+                continue
+            if mtime > latest_mtime:
+                latest = candidate
+                latest_mtime = mtime
+        return latest
+
+    def _load_suggestion_telemetry(
+        self,
+        tenant_id: str,
+        *,
+        since: datetime | None = None,
+    ) -> list[DashboardSuggestionTelemetry]:
+        metrics_file = self._resolve_suggestion_metrics_file()
+        if not metrics_file:
+            return []
+
+        try:
+            records = load_dashboard_suggestion_metrics(metrics_file)
+        except Exception:
+            self.logger.exception(
+                "Failed to load dashboard suggestion analytics from metrics file: %s",
+                metrics_file,
+            )
+            return []
+
+        if not records:
+            return []
+
+        since_utc: datetime | None = None
+        if since is not None:
+            if since.tzinfo is None:
+                since = since.replace(tzinfo=timezone.utc)
+            since_utc = since.astimezone(timezone.utc)
+
+        def _aggregated_for(target: str) -> list[DashboardSuggestionAggregate]:
+            scoped_records = [
+                record
+                for record in records
+                if record.tenant_id == target and (since_utc is None or record.occurred_at >= since_utc)
+            ]
+            if not scoped_records:
+                return []
+            aggregates = aggregate_dashboard_suggestion_metrics(scoped_records)
+            return aggregates[:6]
+
+        aggregates = _aggregated_for(tenant_id)
+        if not aggregates and self.fallback_tenant_id and tenant_id != self.fallback_tenant_id:
+            aggregates = _aggregated_for(self.fallback_tenant_id)
+        if not aggregates:
+            return []
+
+        return [self._map_suggestion_aggregate(aggregate) for aggregate in aggregates]
+
+    @staticmethod
+    def _map_suggestion_aggregate(aggregate: DashboardSuggestionAggregate) -> DashboardSuggestionTelemetry:
+        view_count = aggregate.view_count
+        focus_count = aggregate.focus_count
+        dismiss_count = aggregate.dismiss_count
+        engagement_count = focus_count + dismiss_count
+        return DashboardSuggestionTelemetry(
+            signature=aggregate.signature,
+            region=aggregate.region,
+            reason=aggregate.reason,
+            view_count=view_count,
+            focus_count=focus_count,
+            dismiss_count=dismiss_count,
+            high_risk_count=aggregate.high_risk_count,
+            event_count=aggregate.event_count,
+            focus_rate=DashboardService._calculate_rate(focus_count, view_count),
+            dismiss_rate=DashboardService._calculate_rate(dismiss_count, view_count),
+            engagement_rate=DashboardService._calculate_rate(engagement_count, view_count),
+            has_scheduled_start=aggregate.has_scheduled_start,
+            next_event_starts_at=aggregate.next_event_starts_at,
+            first_occurred_at=aggregate.first_occurred_at,
+            last_occurred_at=aggregate.last_occurred_at,
+            tenants=sorted(aggregate.tenants),
+            severities=sorted(aggregate.severities),
+            viewport_breakpoints=sorted(aggregate.viewport_breakpoints),
+            metadata=dict(aggregate.metadata),
+        )
+
+    def _default_allocator_summary(self, generated_at: datetime) -> AllocatorSummary:
+        return AllocatorSummary(
+            run_id="allocator-demo",
+            generated_at=generated_at,
+            mode=AllocatorMode.assist,
+            total_spend=250000.0,
+            total_spend_delta=-33000.0,
+            total_spend_delta_pct=-11.6,
+            guardrail_breaches=1,
+            notes=[
+                "Demo allocator recommendations seeded from fallback telemetry.",
+            ],
+            recommendations=[
+                AllocatorRecommendation(
+                    platform="Meta",
+                    spend_after=110000.0,
+                    spend_delta=-15000.0,
+                    spend_delta_pct=-12.0,
+                    severity=RecommendationSeverity.critical,
+                    guardrail_count=1,
+                    top_guardrail="CPA ceiling at risk; keep Apparel South throttled.",
+                    notes="Storm risk and CPA breach require throttling high-cost ad sets.",
+                ),
+                AllocatorRecommendation(
+                    platform="Google",
+                    spend_after=140000.0,
+                    spend_delta=-18000.0,
+                    spend_delta_pct=-11.4,
+                    severity=RecommendationSeverity.warning,
+                    guardrail_count=1,
+                    top_guardrail="Budget delta exceeds governance limit.",
+                    notes="Shifted budget away from storm-impacted search clusters.",
+                ),
+                AllocatorRecommendation(
+                    platform="Email",
+                    spend_after=30000.0,
+                    spend_delta=3000.0,
+                    spend_delta_pct=11.1,
+                    severity=RecommendationSeverity.info,
+                    guardrail_count=0,
+                    top_guardrail=None,
+                    notes="Lifecycle nurture spend increased to offset paid throttles.",
+                ),
+            ],
+        )
+
+    def _build_alerts(self, alerts_raw: Sequence[dict[str, Any]], tenant_id: str) -> list[DashboardAlert]:
         alerts: list[DashboardAlert] = []
         for entry in alerts_raw:
             timestamp = self._parse_datetime(entry.get("generated_at")) or self.now_factory()
@@ -381,11 +839,15 @@ class DashboardService:
                     severity=severity,
                     occurred_at=timestamp,
                     acknowledged=severity != AlertSeverity.critical,
+                    acknowledged_at=None,
                     escalated_to=None,
+                    escalated_at=None,
+                    escalation_channel=None,
                     related_objects=codes,
                 )
             )
         alerts.sort(key=lambda alert: alert.occurred_at, reverse=True)
+        self._apply_alert_acknowledgements(tenant_id, alerts)
         return alerts
 
     def _derive_alert_title(self, entry: Mapping[str, Any], codes: Sequence[str]) -> str:
@@ -398,6 +860,131 @@ class DashboardService:
         if isinstance(message, str) and ":" in message:
             return message.split(":", 1)[0].strip()
         return "Guardrail alert"
+
+    def _apply_alert_acknowledgements(
+        self,
+        tenant_id: str,
+        alerts: Sequence[DashboardAlert],
+    ) -> None:
+        if not alerts:
+            return
+        ack_map = self._read_alert_ack_map()
+        if not ack_map:
+            return
+        for alert in alerts:
+            key = self._alert_ack_key(tenant_id, alert.id)
+            record = ack_map.get(key)
+            if not record:
+                continue
+            acknowledged_at = self._parse_datetime(record.get("acknowledged_at"))
+            if acknowledged_at:
+                alert.acknowledged = True
+                alert.acknowledged_at = acknowledged_at
+            escalated_to = record.get("escalated_to")
+            if escalated_to:
+                alert.escalated_to = str(escalated_to)
+                alert.escalated_at = self._parse_datetime(record.get("escalated_at"))
+                channel = record.get("escalated_channel")
+                if isinstance(channel, str) and channel:
+                    alert.escalation_channel = channel
+
+    def _alert_ack_key(self, tenant_id: str, alert_id: str) -> str:
+        return f"{tenant_id}:{alert_id}"
+
+    def _read_alert_ack_map(self) -> dict[str, dict[str, Any]]:
+        payload = self._read_json_object(self.alert_ack_path)
+        if not isinstance(payload, dict):
+            return {}
+        return {
+            str(key): value
+            for key, value in payload.items()
+            if isinstance(key, str) and isinstance(value, dict)
+        }
+
+    def _write_alert_ack_map(self, ack_map: Mapping[str, Mapping[str, Any]]) -> None:
+        serialisable = {key: dict(value) for key, value in ack_map.items()}
+        self.alert_ack_path.parent.mkdir(parents=True, exist_ok=True)
+        self.alert_ack_path.write_text(json.dumps(serialisable, indent=2, sort_keys=True))
+
+    def acknowledge_alert(
+        self,
+        tenant_id: str,
+        alert_id: str,
+        *,
+        acknowledged_by: str | None = None,
+        note: str | None = None,
+    ) -> AlertAcknowledgeResponse:
+        alerts_raw = self._load_alert_entries(tenant_id)
+        alerts = self._build_alerts(alerts_raw, tenant_id)
+        if not any(alert.id == alert_id for alert in alerts):
+            raise ValueError(f"Alert {alert_id} not found for tenant {tenant_id}")
+
+        acknowledged_at = self.now_factory()
+        key = self._alert_ack_key(tenant_id, alert_id)
+        ack_map = self._read_alert_ack_map()
+        record: dict[str, Any] = dict(ack_map.get(key, {}))
+        record.update(
+            {
+                "tenant_id": tenant_id,
+                "alert_id": alert_id,
+                "acknowledged_at": acknowledged_at.isoformat(),
+            }
+        )
+        if acknowledged_by:
+            record["acknowledged_by"] = acknowledged_by
+        if note:
+            record["note"] = note
+        ack_map[key] = record
+        self._write_alert_ack_map(ack_map)
+
+        return AlertAcknowledgeResponse(
+            tenant_id=tenant_id,
+            alert_id=alert_id,
+            acknowledged_at=acknowledged_at,
+            acknowledged_by=acknowledged_by,
+            note=note,
+        )
+
+    def escalate_alert(
+        self,
+        tenant_id: str,
+        alert_id: str,
+        *,
+        channel: str,
+        target: str,
+        note: str | None = None,
+    ) -> AlertEscalateResponse:
+        alerts_raw = self._load_alert_entries(tenant_id)
+        alerts = self._build_alerts(alerts_raw, tenant_id)
+        if not any(alert.id == alert_id for alert in alerts):
+            raise ValueError(f"Alert {alert_id} not found for tenant {tenant_id}")
+
+        escalated_at = self.now_factory()
+        key = self._alert_ack_key(tenant_id, alert_id)
+        ack_map = self._read_alert_ack_map()
+        record: dict[str, Any] = dict(ack_map.get(key, {}))
+        record.update(
+            {
+                "tenant_id": tenant_id,
+                "alert_id": alert_id,
+                "escalated_at": escalated_at.isoformat(),
+                "escalated_channel": channel,
+                "escalated_to": target,
+            }
+        )
+        if note:
+            record["escalation_note"] = note
+        ack_map[key] = record
+        self._write_alert_ack_map(ack_map)
+
+        return AlertEscalateResponse(
+            tenant_id=tenant_id,
+            alert_id=alert_id,
+            escalated_at=escalated_at,
+            channel=channel,
+            target=target,
+            note=note,
+        )
 
     def _load_ingestion_connectors(
         self,
@@ -748,6 +1335,18 @@ class DashboardService:
             return 0.0
 
     @staticmethod
+    def _calculate_rate(numerator: int, denominator: int) -> float:
+        if denominator <= 0 or numerator <= 0:
+            return 0.0
+        try:
+            ratio = numerator / denominator
+        except ZeroDivisionError:
+            return 0.0
+        if not (ratio > 0):
+            return 0.0
+        return min(1.0, float(ratio))
+
+    @staticmethod
     def _safe_int(value: Any) -> int | None:
         if value is None:
             return None
@@ -915,6 +1514,83 @@ class DashboardService:
             ),
         ]
 
+        gulf_signature = "Gulf Coast|High-risk weather events incoming.|2025-10-14T16:00:00+00:00|2|3"
+        pacific_signature = "Pacific Northwest|Monitoring heavy rain bands.|2025-10-15T08:00:00+00:00|1|1"
+        gulf_view_count = 54
+        gulf_focus_count = 19
+        gulf_dismiss_count = 6
+        pacific_view_count = 31
+        pacific_focus_count = 11
+        pacific_dismiss_count = 4
+        suggestion_telemetry = [
+            DashboardSuggestionTelemetry(
+                signature=gulf_signature,
+                region="Gulf Coast",
+                reason="High-risk conditions detected. Next event in 2 hours. 2 high-risk alerts in queue.",
+                view_count=gulf_view_count,
+                focus_count=gulf_focus_count,
+                dismiss_count=gulf_dismiss_count,
+                high_risk_count=2,
+                event_count=3,
+                focus_rate=self._calculate_rate(gulf_focus_count, gulf_view_count),
+                dismiss_rate=self._calculate_rate(gulf_dismiss_count, gulf_view_count),
+                engagement_rate=self._calculate_rate(
+                    gulf_focus_count + gulf_dismiss_count, gulf_view_count
+                ),
+                has_scheduled_start=True,
+                next_event_starts_at=(midnight + timedelta(hours=16)).isoformat(),
+                first_occurred_at=generated_at - timedelta(days=1, hours=2),
+                last_occurred_at=generated_at - timedelta(hours=1),
+                tenants=[tenant_id],
+                severities=["high"],
+                viewport_breakpoints=["desktop", "tablet"],
+                metadata={
+                    "layoutVariant": "dense",
+                    "ctaShown": True,
+                    "regionSlug": "gulf-coast",
+                    "suggestionSummary": "3 events · 2 high-risk alerts · Next starts in 2 hours",
+                    "regionSummary": "3 events · 2 high-risk alerts · Next starts in 2 hours",
+                    "tenantMode": "demo",
+                    "guardrailStatus": "watch",
+                    "criticalAlertCount": 3,
+                    "signature": gulf_signature,
+                },
+            ),
+            DashboardSuggestionTelemetry(
+                signature=pacific_signature,
+                region="Pacific Northwest",
+                reason="Monitoring heavy rain bands; shift spend to insulated regions.",
+                view_count=pacific_view_count,
+                focus_count=pacific_focus_count,
+                dismiss_count=pacific_dismiss_count,
+                high_risk_count=1,
+                event_count=1,
+                focus_rate=self._calculate_rate(pacific_focus_count, pacific_view_count),
+                dismiss_rate=self._calculate_rate(pacific_dismiss_count, pacific_view_count),
+                engagement_rate=self._calculate_rate(
+                    pacific_focus_count + pacific_dismiss_count, pacific_view_count
+                ),
+                has_scheduled_start=True,
+                next_event_starts_at=(midnight + timedelta(hours=32)).isoformat(),
+                first_occurred_at=generated_at - timedelta(days=2, hours=5),
+                last_occurred_at=generated_at - timedelta(hours=5),
+                tenants=[tenant_id],
+                severities=["medium"],
+                viewport_breakpoints=["desktop"],
+                metadata={
+                    "layoutVariant": "dense",
+                    "ctaShown": True,
+                    "regionSlug": "pacific-northwest",
+                    "suggestionSummary": "Rain bands approaching; prep reallocation.",
+                    "regionSummary": "Rain bands approaching; prep reallocation.",
+                    "tenantMode": "demo",
+                    "guardrailStatus": "healthy",
+                    "criticalAlertCount": 1,
+                    "signature": pacific_signature,
+                },
+            ),
+        ]
+
         automation = [
             AutomationLane(
                 name="Assist Guardrails",
@@ -972,7 +1648,10 @@ class DashboardService:
                 severity=AlertSeverity.critical,
                 occurred_at=generated_at - timedelta(minutes=35),
                 acknowledged=False,
+                acknowledged_at=None,
                 escalated_to="On-call Operator",
+                escalated_at=generated_at - timedelta(minutes=32),
+                escalation_channel="slack",
                 related_objects=["campaign:apparel-south", "guardrail:cpa"],
             ),
             DashboardAlert(
@@ -982,7 +1661,10 @@ class DashboardService:
                 severity=AlertSeverity.warning,
                 occurred_at=generated_at - timedelta(hours=1, minutes=10),
                 acknowledged=True,
+                acknowledged_at=generated_at - timedelta(hours=1),
                 escalated_to=None,
+                escalated_at=None,
+                escalation_channel=None,
                 related_objects=["connector:meta"],
             ),
             DashboardAlert(
@@ -992,9 +1674,19 @@ class DashboardService:
                 severity=AlertSeverity.info,
                 occurred_at=generated_at - timedelta(hours=2),
                 acknowledged=False,
+                acknowledged_at=None,
                 related_objects=["scenario:midwest-hail"],
+                escalated_to=None,
+                escalated_at=None,
+                escalation_channel=None,
             ),
         ]
+
+        self._apply_alert_acknowledgements(tenant_id, alerts)
+
+        allocator_summary = self._default_allocator_summary(generated_at)
+        weather_kpis = self._build_weather_kpis_snapshot(weather_events, generated_at)
+        suggestion_summary = summarize_dashboard_suggestion_telemetry(suggestion_telemetry)
 
         return DashboardResponse(
             tenant_id=tenant_id,
@@ -1005,5 +1697,9 @@ class DashboardService:
             automation=automation,
             ingestion=ingestion,
             alerts=alerts,
+            allocator=allocator_summary,
+            weather_kpis=weather_kpis,
+            suggestion_telemetry=suggestion_telemetry,
+            suggestion_telemetry_summary=suggestion_summary,
             context_tags=["fallback", "demo"],
         )

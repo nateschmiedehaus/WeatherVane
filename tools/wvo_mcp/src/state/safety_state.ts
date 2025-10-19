@@ -120,8 +120,8 @@ function normalizeState(input: unknown): SafetyState {
 export class SafetyStateStore {
   private readonly filePath: string;
 
-  constructor(private readonly workspaceRoot: string) {
-    this.filePath = path.join(this.workspaceRoot, "state", "safety_state.json");
+  constructor(private readonly stateRoot: string) {
+    this.filePath = path.join(this.stateRoot, "safety_state.json");
   }
 
   private async ensureDirectory(): Promise<void> {

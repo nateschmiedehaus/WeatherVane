@@ -6,6 +6,7 @@
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from "fs";
 import { join } from "path";
 import { logInfo, logWarning } from "../telemetry/logger.js";
+import { resolveStateRoot } from "../utils/config.js";
 
 export interface CompactCheckpoint {
   version: string;
@@ -67,7 +68,7 @@ export class ContextManager {
 
   constructor(workspaceRoot: string) {
     this.workspaceRoot = workspaceRoot;
-    this.stateDir = join(workspaceRoot, "state");
+    this.stateDir = resolveStateRoot(workspaceRoot);
     this.checkpointPath = join(this.stateDir, "checkpoint_compact.json");
 
     // Ensure state directory exists

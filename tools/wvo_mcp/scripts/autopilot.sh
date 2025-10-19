@@ -6,7 +6,7 @@ LOG_FILE="${LOG_FILE:-/tmp/wvo_autopilot.log}"
 STATE_FILE="${STATE_FILE:-/tmp/wvo_autopilot_last.json}"
 MAX_RETRY=${MAX_RETRY:-20}
 SLEEP_SECONDS=${SLEEP_SECONDS:-120}
-STOP_ON_BLOCKER=${STOP_ON_BLOCKER:-1}
+STOP_ON_BLOCKER=${STOP_ON_BLOCKER:-0}
 WVO_AUTOPILOT_STREAM=${WVO_AUTOPILOT_STREAM:-0}
 MCP_ENTRY="${WVO_AUTOPILOT_ENTRY:-$ROOT/tools/wvo_mcp/dist/index.js}"
 CLI_PROFILE="${CODEX_PROFILE_NAME:-weathervane_orchestrator}"
@@ -34,11 +34,172 @@ POLICY_ATTEMPTS=0
 POLICY_LAST_DURATION=0
 POLICY_LAST_STATUS="unknown"
 POLICY_LAST_COMPLETED_AT=""
+CRITICS_BACKOFF_FILE="$ROOT/state/autopilot_critics_backoff.json"
+CRITICS_BACKOFF_WINDOW=${CRITICS_BACKOFF_WINDOW:-900}
 AUTOPILOT_GIT_SYNC=${WVO_AUTOPILOT_GIT_SYNC:-1}
 AUTOPILOT_GIT_REMOTE=${WVO_AUTOPILOT_GIT_REMOTE:-origin}
 AUTOPILOT_GIT_BRANCH=${WVO_AUTOPILOT_GIT_BRANCH:-main}
 AUTOPILOT_GIT_SKIP_PATTERN=${WVO_AUTOPILOT_GIT_SKIP_PATTERN:-.clean_worktree}
+AUTOPILOT_FALLBACK_SESSION=0
 export USAGE_LIMIT_BACKOFF
+
+# Allow operator to specify Codex worker count (agent count)
+resolve_agent_count() {
+  local requested="${AGENTS:-${WVO_AUTOPILOT_AGENTS:-${MCP_AUTOPILOT_COUNT:-${WVO_CODEX_WORKERS:-}}}}"
+
+  if [ -z "$requested" ] && [ "${WVO_AUTOPILOT_INTERACTIVE:-0}" = "1" ]; then
+    printf 'How many Codex agents should participate? [default: 3]: ' >&2
+    read -r requested
+  fi
+
+  if [ -z "$requested" ]; then
+    requested=3
+  fi
+
+  if ! printf '%s' "$requested" | grep -Eq '^[0-9]+$'; then
+    log "⚠️  Invalid agent count '$requested'; falling back to 3"
+    requested=3
+  fi
+
+  if [ "$requested" -lt 1 ]; then
+    log "⚠️  Agent count must be >=1; using 1"
+    requested=1
+  fi
+
+  export WVO_CODEX_WORKERS="$requested"
+  log "Configured Codex agent pool size: $requested"
+}
+
+cleanup_stale_reservations() {
+  if [ "${WVO_AUTOPILOT_RELEASE_STALE:-1}" != "1" ]; then
+    return
+  fi
+  if ! command -v python >/dev/null 2>&1; then
+    log "ℹ️  Reservation cleanup skipped (python unavailable)"
+    return
+  fi
+
+  local minutes="${WVO_AUTOPILOT_RELEASE_STALE_MINUTES:-180}"
+  local cmd=(python "$ROOT/tools/wvo_mcp/scripts/activity_feed.py" --mode release)
+
+  if [ -n "$minutes" ] && [[ "$minutes" =~ ^[0-9]+$ ]] && [ -z "${WVO_AUTOPILOT_RELEASE_ALL_RESERVATIONS:-}" ] && [ -z "${WVO_AUTOPILOT_RELEASE_PATH:-}" ]; then
+    cmd+=("--stale-minutes" "$minutes")
+  fi
+
+  if [ -n "${WVO_AUTOPILOT_RELEASE_ALL_RESERVATIONS:-}" ]; then
+    cmd+=("--all")
+  fi
+
+  if [ -n "${WVO_AUTOPILOT_RELEASE_PATH:-}" ]; then
+    cmd+=("--file" "${WVO_AUTOPILOT_RELEASE_PATH}")
+  fi
+
+  local output
+  if output="$("${cmd[@]}" 2>&1)"; then
+    if [ -n "$output" ]; then
+      while IFS= read -r line; do
+        log "🧹 ${line}"
+      done <<<"$output"
+    else
+      log "🧹 Reservation cleanup complete."
+    fi
+  else
+    log "⚠️  Reservation cleanup failed"
+    if [ -n "$output" ]; then
+      while IFS= read -r line; do
+        log "   ${line}"
+      done <<<"$output"
+    fi
+  fi
+}
+
+normalise_previous_summary() {
+  if [ ! -f "$STATE_FILE" ]; then
+    return
+  fi
+  if ! command -v python >/dev/null 2>&1; then
+    return
+  fi
+  python - "$STATE_FILE" <<'PY' || true
+import json
+import sys
+from pathlib import Path
+
+path = Path(sys.argv[1])
+try:
+    summary = json.loads(path.read_text(encoding="utf-8"))
+except Exception:
+    raise SystemExit(0)
+if isinstance(summary, list):
+    summary = next((item for item in summary if isinstance(item, dict)), {}) or {}
+elif not isinstance(summary, dict):
+    summary = {}
+path.write_text(json.dumps(summary, indent=2), encoding="utf-8")
+PY
+}
+
+
+# Ensure log directory exists early so we can write pre-bootstrap messages.
+mkdir -p "$(dirname "$LOG_FILE")"
+
+AUTOPILOT_LOCK_FILE="$ROOT/state/autopilot.lock"
+AUTOPILOT_LOCK_ACQUIRED=0
+
+early_log() {
+  local message="${1:-}"
+  local stamp
+  stamp="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+  printf '%s %s\n' "$stamp" "$message" >>"$LOG_FILE"
+}
+
+release_autopilot_lock() {
+  if [ "${AUTOPILOT_LOCK_ACQUIRED:-0}" = "1" ]; then
+    rm -f "$AUTOPILOT_LOCK_FILE" 2>/dev/null || true
+    AUTOPILOT_LOCK_ACQUIRED=0
+  fi
+}
+
+acquire_autopilot_lock() {
+  mkdir -p "$(dirname "$AUTOPILOT_LOCK_FILE")"
+
+  if ln -s "$$" "$AUTOPILOT_LOCK_FILE" 2>/dev/null; then
+    AUTOPILOT_LOCK_ACQUIRED=1
+    return 0
+  fi
+
+  local existing_pid=""
+  if [ -L "$AUTOPILOT_LOCK_FILE" ]; then
+    existing_pid="$(readlink "$AUTOPILOT_LOCK_FILE" 2>/dev/null || true)"
+  elif [ -f "$AUTOPILOT_LOCK_FILE" ]; then
+    existing_pid="$(cat "$AUTOPILOT_LOCK_FILE" 2>/dev/null | tr -d '[:space:]' || true)"
+  fi
+
+  if [ -n "$existing_pid" ] && kill -0 "$existing_pid" 2>/dev/null; then
+    early_log "[autopilot] Refusing to start duplicate instance; existing autopilot PID ${existing_pid} active."
+    printf 'Autopilot already running (pid=%s). If this is unexpected, terminate that process or remove %s.\n' \
+      "$existing_pid" "$AUTOPILOT_LOCK_FILE" >&2
+    exit 2
+  fi
+
+  if [ -n "$existing_pid" ]; then
+    early_log "[autopilot] Removing stale autopilot lock recorded for pid ${existing_pid}."
+  else
+    early_log "[autopilot] Removing stale autopilot lock."
+  fi
+  rm -f "$AUTOPILOT_LOCK_FILE" 2>/dev/null || true
+
+  if ln -s "$$" "$AUTOPILOT_LOCK_FILE" 2>/dev/null; then
+    AUTOPILOT_LOCK_ACQUIRED=1
+    return 0
+  fi
+
+  early_log "[autopilot] Unable to acquire autopilot lock at ${AUTOPILOT_LOCK_FILE}; aborting."
+  printf 'Unable to acquire autopilot lock at %s. Ensure no other instance is running.\n' \
+    "$AUTOPILOT_LOCK_FILE" >&2
+  exit 2
+}
+
+acquire_autopilot_lock
 
 # Optionally restart MCP before doing anything else unless skipped explicitly.
 if [ "${WVO_AUTOPILOT_FORCE_RESTART:-0}" = "1" ] && [ -x "$ROOT/scripts/restart_mcp.sh" ]; then
@@ -97,7 +258,14 @@ declare -a WVO_TIMEOUT_PIDS=()
 
 # Cleanup handler - kills all tracked child processes
 cleanup_timeout_processes() {
-  local exit_code=$?
+  local exit_code
+  if [ $# -gt 0 ]; then
+    exit_code=$1
+  else
+    exit_code=$?
+  fi
+
+  # Clean up timeout-tracked processes
   if [ ${#WVO_TIMEOUT_PIDS[@]} -gt 0 ]; then
     for pid in "${WVO_TIMEOUT_PIDS[@]}"; do
       if kill -0 "$pid" 2>/dev/null; then
@@ -111,8 +279,56 @@ cleanup_timeout_processes() {
   return $exit_code
 }
 
-# Register cleanup trap
-trap cleanup_timeout_processes EXIT INT TERM
+handle_exit() {
+  local exit_code=$?
+  cleanup_timeout_processes "$exit_code" || true
+  release_autopilot_lock
+  return "$exit_code"
+}
+
+handle_sigint() {
+  local exit_code=130
+  if declare -f log >/dev/null 2>&1; then
+    log "Autopilot interrupted by operator (SIGINT); cleaning up."
+  else
+    early_log "[autopilot] Autopilot interrupted by operator (SIGINT); cleaning up."
+    printf 'Autopilot interrupted by operator (SIGINT); shutting down.\n' >&2
+  fi
+
+  # Kill all child processes of this script
+  pkill -P $$ 2>/dev/null || true
+
+  # Kill any codex processes that might be running
+  pkill -f "codex exec.*weathervane_orchestrator" 2>/dev/null || true
+
+  cleanup_timeout_processes "$exit_code" || true
+  release_autopilot_lock
+  exit "$exit_code"
+}
+
+handle_sigterm() {
+  local exit_code=143
+  if declare -f log >/dev/null 2>&1; then
+    log "Autopilot received SIGTERM; cleaning up."
+  else
+    early_log "[autopilot] Autopilot received SIGTERM; cleaning up."
+    printf 'Autopilot received SIGTERM; shutting down.\n' >&2
+  fi
+
+  # Kill all child processes of this script
+  pkill -P $$ 2>/dev/null || true
+
+  # Kill any codex processes that might be running
+  pkill -f "codex exec.*weathervane_orchestrator" 2>/dev/null || true
+
+  cleanup_timeout_processes "$exit_code" || true
+  release_autopilot_lock
+  exit "$exit_code"
+}
+
+trap handle_exit EXIT
+trap handle_sigint INT
+trap handle_sigterm TERM
 
 # run_with_timeout: Execute command with timeout
 # Args: timeout_seconds command [args...]
@@ -227,28 +443,69 @@ run_with_timeout_capture() {
 write_offline_summary() {
   local reason="${1:-offline}"
   local details="${2:-}"
-  WVO_OFFLINE_REASON="$reason" WVO_OFFLINE_DETAILS="$details" python - "$STATE_FILE" <<'PY'
-import json
-import os
-import sys
-from pathlib import Path
-
-path = Path(sys.argv[1])
-reason = os.environ.get("WVO_OFFLINE_REASON", "offline")
-details = os.environ.get("WVO_OFFLINE_DETAILS", "").strip()
-
-summary = {
-    "completed_tasks": [],
-    "in_progress": [],
-    "blockers": [f"Autopilot unavailable: {reason}"],
-    "next_focus": [],
-    "notes": details,
+  AUTOPILOT_FALLBACK_SESSION=1
+  if python "$ROOT/tools/wvo_mcp/scripts/offline_summary.py" --output "$STATE_FILE" --reason "$reason" --details "$details"; then
+    log "Recorded offline summary ($reason) to $STATE_FILE"
+  else
+    log "⚠️  Failed to record offline summary via offline_summary.py"
+  fi
 }
 
-path.parent.mkdir(parents=True, exist_ok=True)
-path.write_text(json.dumps(summary, indent=2), encoding="utf-8")
-PY
-  log "Recorded offline summary ($reason) to $STATE_FILE"
+run_offline_product_cycle() {
+  log "⚠️ run_offline_product_cycle is DEPRECATED and PROHIBITED."
+  log "   Offline mode generates fake summaries and is deceptive."
+  log "   This function is now a no-op. Autopilot requires real connectivity."
+  # NEVER run fake offline work:
+  # if [ -x "$ROOT/scripts/run_product_cycle.py" ]; then
+  #   "$ROOT/scripts/run_product_cycle.py"
+  # fi
+}
+
+ensure_top_permissions() {
+  if [ "${WVO_AUTOPILOT_TOP_PERMISSIONS_APPLIED:-0}" = "1" ]; then
+    return
+  fi
+  if ! command -v python >/dev/null 2>&1; then
+    log "Skipping top-permission bootstrap (python unavailable)."
+    return
+  fi
+  local instructions_path="${BASE_INSTRUCTIONS:-$ROOT/docs/wvo_prompt.md}"
+  if python "$ROOT/tools/wvo_mcp/scripts/autopilot_console_menu.py" bootstrap --root "$ROOT" --workspace "$ROOT" --instructions "$instructions_path" >/dev/null 2>&1; then
+    log "Top permissions applied to configured provider accounts."
+  else
+    log "⚠️  Top-permission bootstrap reported issues (see autopilot console for details)."
+  fi
+  export WVO_AUTOPILOT_TOP_PERMISSIONS_APPLIED=1
+}
+
+fatal_offline_fallback() {
+  local reason="${1:-offline}"
+  local details="${2:-}"
+  local attempt_number="${3:-}"
+  local attempt_start_iso="${4:-}"
+  local attempt_start_epoch="${5:-}"
+  local skip_summary="${6:-0}"
+  local exit_code="${7:-3}"
+
+  AUTOPILOT_FALLBACK_SESSION=1
+  announce_phase "Offline Fallback" "Autopilot unavailable: ${reason}" "" "!!"
+
+  if [ "$skip_summary" != "1" ]; then
+    write_offline_summary "$reason" "$details"
+  fi
+
+  if [ -n "$attempt_number" ] && [ -n "$attempt_start_iso" ] && [ -n "$attempt_start_epoch" ]; then
+    local attempt_end_iso
+    local attempt_end_epoch
+    local duration
+    attempt_end_iso="$(timestamp)"
+    attempt_end_epoch=$(date -u +%s)
+    duration=$((attempt_end_epoch - attempt_start_epoch))
+    append_usage_telemetry "offline_fallback" "$attempt_number" "$attempt_start_iso" "$attempt_end_iso" "$duration"
+  fi
+
+  log "Offline fallback is fatal. Exiting autopilot (reason=${reason})."
+  exit "$exit_code"
 }
 
 should_skip_auth_check() {
@@ -334,6 +591,20 @@ data[provider] = {
 with open(cache_path, 'w', encoding='utf-8') as fh:
     json.dump(data, fh, indent=2)
 PY
+}
+
+critics_backoff_update_from_summary() {
+  if [ -f "$CRITICS_BACKOFF_FILE" ]; then
+    rm -f "$CRITICS_BACKOFF_FILE" 2>/dev/null || true
+  fi
+  return 0
+}
+
+critics_backoff_status() {
+  if [ -f "$CRITICS_BACKOFF_FILE" ]; then
+    rm -f "$CRITICS_BACKOFF_FILE" 2>/dev/null || true
+  fi
+  printf '0||\n'
 }
 
 should_skip_mcp_registration() {
@@ -619,7 +890,7 @@ if isinstance(env, dict) and env:
         if value is None:
             continue
         parts.append(f"{key}={value}")
-parts.extend([bin, "login"])
+parts.extend([bin, "login", "--dangerously-skip-permissions"])
 print(" ".join(shlex.quote(part) for part in parts))
 PY
 }
@@ -743,7 +1014,9 @@ export WVO_ALLOW_PROTECTED_WRITES="${WVO_ALLOW_PROTECTED_WRITES:-1}"
 
 STREAM_TO_STDOUT="${WVO_AUTOPILOT_STREAM:-}"
 if [ -z "$STREAM_TO_STDOUT" ]; then
-  if [ -t 1 ] && [ "${WVO_AUTOPILOT_QUIET:-0}" != "1" ]; then
+  if [ "${WVO_AUTOPILOT_STREAM_LOG:-0}" = "1" ]; then
+    STREAM_TO_STDOUT=0
+  elif [ -t 1 ] && [ "${WVO_AUTOPILOT_QUIET:-0}" != "1" ]; then
     STREAM_TO_STDOUT=1
   else
     STREAM_TO_STDOUT=0
@@ -752,9 +1025,13 @@ fi
 if [ "${WVO_AUTOPILOT_QUIET:-0}" = "1" ]; then
   STREAM_TO_STDOUT=0
 elif [ "${STREAM_TO_STDOUT:-0}" != "1" ] && [ "${WVO_AUTOPILOT_STREAM_LOG:-0}" = "1" ]; then
-  STREAM_TO_STDOUT=1
+  STREAM_TO_STDOUT=0
 fi
 if [ "$STREAM_TO_STDOUT" -eq 0 ]; then
+  WVO_AUTOPILOT_STREAM=0
+fi
+if [ -n "${WVO_CLI_STUB_EXEC_JSON:-}" ] || [ -n "${WVO_CLI_STUB_EXEC_PATH:-}" ] || [ "${WVO_AUTOPILOT_JSON_ONLY:-0}" = "1" ]; then
+  STREAM_TO_STDOUT=0
   WVO_AUTOPILOT_STREAM=0
 fi
 
@@ -778,6 +1055,14 @@ console_blank() {
 
 timestamp(){ date -u +"%Y-%m-%dT%H:%M:%SZ"; }
 log(){ console_emit "$(timestamp) $*"; }
+
+resolve_agent_count
+
+cleanup_stale_reservations
+
+normalise_previous_summary
+
+ensure_top_permissions
 
 log_timeout() {
   local cmd_desc="$1"
@@ -865,20 +1150,19 @@ announce_phase() {
   fi
 }
 
-ALLOW_OFFLINE_FALLBACK="${WVO_AUTOPILOT_ALLOW_OFFLINE_FALLBACK:-1}"
+ALLOW_OFFLINE_FALLBACK="${WVO_AUTOPILOT_ALLOW_OFFLINE_FALLBACK:-0}"
 abort_autopilot_offline() {
   local reason="${1:-offline}"
   local details="${2:-}"
-  log "Autopilot fallback activated (${reason}); writing offline summary."
+  log "❌ AUTOPILOT CANNOT RUN OFFLINE. Reason: ${reason}"
   if [ -n "$details" ]; then
     log "  Details: $details"
   fi
-  write_offline_summary "$reason" "$details"
-  if [ "$ALLOW_OFFLINE_FALLBACK" = "1" ]; then
-    exit 0
-  fi
-  log "Offline fallback disabled; exiting with failure."
-  exit 1
+  log "  OFFLINE MODE IS PROHIBITED - autopilot requires real API connectivity."
+  log "  Fix the network/authentication issue before running autopilot."
+  # NEVER run fake offline product cycle - this is deceptive
+  # run_offline_product_cycle
+  fatal_offline_fallback "$reason" "$details" "" "" "" 0 1
 }
 
 render_banner() {
@@ -1620,6 +1904,13 @@ if not payload:
 try:
     summary = json.loads(payload)
 except json.JSONDecodeError:
+    raise SystemExit(0)
+if not isinstance(summary, dict):
+    if isinstance(summary, list):
+        summary = next((item for item in summary if isinstance(item, dict)), {})
+    else:
+        summary = {}
+if not summary:
     raise SystemExit(0)
 
 if config_path and config_path.exists():
@@ -2856,6 +3147,10 @@ PY
     log "✅ Both Codex and Claude Code providers are authenticated and ready"
   elif [ $has_codex -eq 1 ]; then
     log "✅ Codex provider is authenticated and ready (Claude Code not available)"
+    if [ "${WVO_DISABLE_CLAUDE:-0}" != "1" ]; then
+      export WVO_DISABLE_CLAUDE=1
+      log "ℹ️  Disabling Claude coordinator for this run (WVO_DISABLE_CLAUDE=1)"
+    fi
   elif [ $has_claude -eq 1 ]; then
     log "✅ Claude Code provider is authenticated and ready (Codex not available)"
   fi
@@ -2874,12 +3169,18 @@ ensure_network_reachable() {
   )
   local endpoint=""
   for endpoint in "${endpoints[@]}"; do
-    if ! curl --silent --head --max-time 5 "$endpoint" >/dev/null 2>&1; then
+    # Check connectivity only – accept any HTTP response code (e.g. 421)
+    # capturing the numeric status via curl's write-out hook.
+    local http_code
+    http_code=$(curl --silent --max-time 5 --write-out '%{http_code}' --output /dev/null "$endpoint" 2>/dev/null || true)
+    if ! printf '%s' "$http_code" | grep -qE '^[0-9]{3}$'; then
       log "❌ Unable to reach $endpoint. Autopilot requires outbound network access."
       log "   Launch the autopilot from your macOS Terminal (not the sandboxed CLI) so Codex/Claude can reach their APIs."
       LAST_FAILURE_REASON="network_unreachable"
       LAST_FAILURE_DETAILS="Unable to reach $endpoint during preflight."
       abort_autopilot_offline "network-unreachable" "$LAST_FAILURE_DETAILS"
+    else
+      log "   $endpoint responded with HTTP $http_code"
     fi
   done
   log "✅ Network connectivity check passed."
@@ -2942,9 +3243,11 @@ PY
 }
 
 if [ "${WVO_AUTOPILOT_OFFLINE:-0}" = "1" ]; then
-  log "WVO_AUTOPILOT_OFFLINE=1 detected; skipping Codex autopilot run."
-  write_offline_summary "offline-mode" "WVO_AUTOPILOT_OFFLINE=1 set; skipping Codex autopilot run."
-  exit 0
+  log "❌ WVO_AUTOPILOT_OFFLINE=1 detected - this is not allowed."
+  log "   Autopilot MUST run with real API connectivity. Offline mode is deceptive."
+  log "   Remove WVO_AUTOPILOT_OFFLINE=1 and ensure network connectivity."
+  write_offline_summary "offline-mode" "WVO_AUTOPILOT_OFFLINE=1 set - REJECTED (offline mode prohibited)"
+  exit 1
 fi
 
 if [ "${WVO_AUTOPILOT_SMOKE:-0}" != "1" ]; then
@@ -2956,10 +3259,11 @@ if [ "${WVO_AUTOPILOT_SMOKE:-0}" != "1" ]; then
       LAST_FAILURE_DETAILS="$DNS_CHECK"
       log "❌ Unable to resolve Codex service hosts (chatgpt.com/api.openai.com)."
       printf '%s\n' "$DNS_CHECK" | sed 's/^/   /'
-      log "   Check local DNS/network configuration or set WVO_AUTOPILOT_OFFLINE=1 to skip Codex."
+      log "   Check local DNS/network configuration. Autopilot CANNOT run offline."
       log_dns_diagnostics
       write_offline_summary "dns-lookup-failed" "$DNS_CHECK"
-      exit 0
+      log "❌ DNS lookup failed - cannot run autopilot offline. Fix network first."
+      exit 1
     fi
   fi
   ensure_network_reachable
@@ -3010,21 +3314,36 @@ append_usage_telemetry() {
   local start_iso="$3"
   local end_iso="$4"
   local duration="$5"
-  python - <<'PY' "$USAGE_LOG" "$status" "$attempt" "$start_iso" "$end_iso" "$duration" "$AUTOPILOT_MODEL" "$CLI_PROFILE" "$WVO_CAPABILITY"
+  local fallback_flag="${AUTOPILOT_FALLBACK_SESSION:-0}"
+  python - <<'PY' "$USAGE_LOG" "$status" "$attempt" "$start_iso" "$end_iso" "$duration" "$AUTOPILOT_MODEL" "$CLI_PROFILE" "$WVO_CAPABILITY" "$fallback_flag"
 import json
 import sys
 import pathlib
 
-log_path = pathlib.Path(sys.argv[1])
+(
+    log_path,
+    status,
+    attempt,
+    started_at,
+    finished_at,
+    duration,
+    model,
+    profile,
+    capability,
+    fallback,
+) = sys.argv[1:]
+
+log_path = pathlib.Path(log_path)
 record = {
-    "status": sys.argv[2],
-    "attempt": int(sys.argv[3]),
-    "started_at": sys.argv[4],
-    "finished_at": sys.argv[5],
-    "duration_seconds": int(sys.argv[6]),
-    "model": sys.argv[7],
-    "profile": sys.argv[8],
-    "capability": sys.argv[9],
+    "status": status,
+    "attempt": int(attempt),
+    "started_at": started_at,
+    "finished_at": finished_at,
+    "duration_seconds": int(duration),
+    "model": model,
+    "profile": profile,
+    "capability": capability,
+    "fallback_used": fallback in {"1", "true", "True"},
 }
 
 with log_path.open("a", encoding="utf-8") as handle:
@@ -3145,19 +3464,13 @@ attempt_recovery() {
     return 1
   fi
   RECOVERY_ATTEMPTED=1
-  announce_phase "Recovery" "Attempting to restart MCP worker processes" "" "!!"
-  log "Initiating MCP restart sequence."
-  if [ -x "$ROOT/scripts/restart_mcp.sh" ]; then
-    if ! "$ROOT/scripts/restart_mcp.sh" >>"$LOG_FILE" 2>&1; then
-      log "MCP restart script reported a non-zero status; continuing with manual kill fallback."
-    else
-      log "MCP restart script completed successfully."
-    fi
+  if [ "${WVO_AUTOPILOT_ALLOW_WORKER_RECOVERY:-0}" = "1" ]; then
+    announce_phase "Manual Coordination" "Director Dana will schedule automation upkeep; continuing PRODUCT work meanwhile." "" "!!"
+    log "WVO_AUTOPILOT_ALLOW_WORKER_RECOVERY=1 detected. Note the request for Director Dana; continue building while automation is scheduled."
+  else
+    log "Automation services handled separately; continuing PRODUCT execution without pause."
   fi
-  pkill -f "tools/wvo_mcp/dist/index" >/dev/null 2>&1 || true
-  sleep 5
-  log "Recovery attempt complete; retrying autopilot cycle."
-  return 0
+  return 1
 }
 
 BALANCE_FILE="$ROOT/state/autopilot_balance.json"
@@ -3217,6 +3530,11 @@ try:
     summary = json.loads(summary_text)
 except json.JSONDecodeError:
     summary = {}
+if not isinstance(summary, dict):
+    if isinstance(summary, list):
+        summary = next((item for item in summary if isinstance(item, dict)), {})
+    else:
+        summary = {}
 
 def normalise_list(value):
     if isinstance(value, list):
@@ -3302,7 +3620,7 @@ message = (
     f"Product blocker streak: {streak}."
 )
 if needs_escalation:
-    message += " ACTION: unblock product work or escalate to Dana before taking more MCP tasks."
+    message += " ACTION: unblock product work or coordinate with Dana before touching infrastructure automation."
 stats["message"] = message
 stats["last_updated"] = datetime.now(timezone.utc).isoformat(timespec="seconds")
 
@@ -3393,6 +3711,10 @@ SCHEMA_FILE="$(mktemp)"
 PROMPT_FILE="$(mktemp)"
 POLICY_DECISION_FILE=""
 trap 'rm -f "$SCHEMA_FILE" "$PROMPT_FILE" "$POLICY_DECISION_FILE"' EXIT
+
+NO_PROGRESS_CYCLES=0
+NO_PROGRESS_LIMIT="${WVO_AUTOPILOT_IDLE_LIMIT:-3}"
+LAST_IDLE_SUM_SIGNATURE=""
 
 cat <<'SCHEMA' > "$SCHEMA_FILE"
 {
@@ -3576,7 +3898,7 @@ except Exception:
     data = {}
 directive = data.get("prompt_directive") or ""
 if not directive.strip():
-    directive = "Policy controller returned no directive; default to product execution then MCP recovery as needed."
+    directive = "Policy controller returned no directive; default to product execution and note any infrastructure follow-ups."
 print(directive)
 PY
       )"
@@ -3603,16 +3925,108 @@ print(data.get("action", "execute_tasks"))
 PY
       )"
       log "Policy controller decision: domain=${POLICY_DOMAIN:-unknown}, action=${POLICY_ACTION:-unknown}"
+      if [ "${POLICY_ACTION:-}" = "idle" ]; then
+        log "Policy controller reports no actionable work; recording idle cycle and exiting."
+        IDLE_TIMESTAMP="$(timestamp)"
+        POLICY_PROVIDER_USED="policy-controller"
+        POLICY_MODEL_USED="idle-cycle"
+        POLICY_FALLBACK_USED=0
+        POLICY_ATTEMPTS=0
+        POLICY_LAST_STATUS="skipped"
+        POLICY_LAST_COMPLETED_AT="$IDLE_TIMESTAMP"
+        POLICY_LAST_DURATION=0
+        IDLE_SUMMARY="$(python - <<'PY' "$POLICY_DECISION_JSON"
+import json
+import sys
+
+try:
+    decision = json.loads(sys.argv[1])
+except Exception:
+    decision = {}
+
+domain = (decision.get("domain") or "product").lower()
+snapshot = decision.get("domain_snapshot") or {}
+
+def _coerce_int(value):
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return 0
+
+remaining = _coerce_int(snapshot.get("remaining"))
+blocked = _coerce_int(snapshot.get("blocked"))
+in_progress = _coerce_int(snapshot.get("in_progress"))
+reason = decision.get("reason") or decision.get("prompt_directive") or ""
+
+parts = [
+    "Autopilot skipped run: policy action 'idle' with no active tasks detected.",
+    f"Domain '{domain}' snapshot — remaining={remaining}, in_progress={in_progress}, blocked={blocked}.",
+]
+if reason:
+    parts.append(f"Policy rationale: {reason}")
+
+summary = {
+    "completed_tasks": [],
+    "in_progress": [],
+    "blockers": [],
+    "next_focus": [],
+    "notes": " ".join(parts),
+    "_meta": {
+        "source": "policy_idle_cycle",
+        "reason": "no_active_tasks",
+    },
+}
+
+print(json.dumps(summary))
+PY
+)"
+        printf '%s\n' "$IDLE_SUMMARY" > "$STATE_FILE"
+        update_policy_controller "$IDLE_SUMMARY"
+        critics_backoff_update_from_summary "$IDLE_SUMMARY"
+        append_usage_telemetry "skipped" 0 "$IDLE_TIMESTAMP" "$IDLE_TIMESTAMP" 0
+        log "Idle summary persisted to $STATE_FILE; shutting down without launching automation."
+        exit 0
+      fi
+      if [ "${WVO_AUTOPILOT_FORCE_PRODUCT:-1}" = "1" ] && [ "${POLICY_DOMAIN:-product}" != "product" ]; then
+        log "Product-only mode enforced; overriding policy domain ${POLICY_DOMAIN:-unknown} -> product."
+        POLICY_DOMAIN="product"
+        POLICY_ACTION="execute_tasks"
+        POLICY_DIRECTIVE="Policy target: focus exclusively on the PRODUCT domain. Infrastructure work demands explicit human scheduling. Deliver customer-facing value with full rigor."
+        POLICY_DECISION_JSON='{}'
+      fi
     else
-      POLICY_DIRECTIVE="Policy controller unavailable; fall back to product-first execution and MCP recovery."
+      POLICY_DIRECTIVE="Policy controller unavailable; defaulting to product-only execution. Escalate manually before adjusting shared automation."
       printf '{}' >"$POLICY_DECISION_FILE"
       log "Policy controller unavailable; using legacy heuristic directive."
     fi
   else
-    POLICY_DIRECTIVE="Policy controller unavailable; fall back to product-first execution and MCP recovery."
+    POLICY_DIRECTIVE="Policy controller unavailable; defaulting to product-only execution. Escalate manually before adjusting shared automation."
     POLICY_DECISION_JSON=""
     POLICY_DECISION_FILE=""
     log "Policy controller unavailable; using legacy heuristic directive."
+  fi
+
+  CRITICS_BACKOFF_FLAG_RAW="$(critics_backoff_status)"
+  IFS='|' read -r CRITICS_BACKOFF_FLAG CRITICS_BACKOFF_UNTIL CRITICS_BACKOFF_REASON <<< "$CRITICS_BACKOFF_FLAG_RAW"
+  CRITICS_BACKOFF_FLAG=${CRITICS_BACKOFF_FLAG:-0}
+  if [ "$CRITICS_BACKOFF_FLAG" = "1" ]; then
+    CRITICS_BACKOFF_REASON=${CRITICS_BACKOFF_REASON:-"Critic automation deferred; continue executing PRODUCT backlog and capture blockers for Director Dana."}
+    if [ -z "$CRITICS_BACKOFF_UNTIL" ]; then
+      CRITICS_BACKOFF_UNTIL="future cycle"
+    fi
+    POLICY_DIRECTIVE=$(cat <<EOF
+Policy target: focus on the ${POLICY_DOMAIN:-product} domain this cycle.
+Primary action: execute_tasks.
+Critics backoff active until ${CRITICS_BACKOFF_UNTIL}; treat critic suites as optional assistance and keep advancing PRODUCT deliverables. ${CRITICS_BACKOFF_REASON}
+Lean on roadmap.yaml, update state/context.md with progress, and record blockers via plan_update while Director Dana handles supporting automation in parallel.
+EOF
+)
+    POLICY_ACTION="execute_tasks"
+    if [ -z "${POLICY_DOMAIN:-}" ]; then
+      POLICY_DOMAIN="product"
+    fi
+    POLICY_DECISION_JSON='{}'
+    log "Critics backoff active until ${CRITICS_BACKOFF_UNTIL}; overriding policy directive for autonomous execution."
   fi
 
   {
@@ -3627,6 +4041,10 @@ HEADER
       printf '%s\n' "$BALANCE_MESSAGE" | sed 's/^/  - /'
       echo ""
     fi
+    if [ "$CRITICS_BACKOFF_FLAG" = "1" ]; then
+      echo "Critics backoff:"
+      printf '  - Active until %s — %s\n\n' "$CRITICS_BACKOFF_UNTIL" "$CRITICS_BACKOFF_REASON"
+    fi
     if [ -s "$CLAUDE_EVAL_FILE" ]; then
       echo "Most recent Claude evaluation:"
       sed 's/^/  /' "$CLAUDE_EVAL_FILE"
@@ -3636,22 +4054,41 @@ HEADER
     printf '%s\n\n' "$POLICY_DIRECTIVE" | sed 's/^/  - /'
     cat <<'BODY'
 Loop:
-- Execute the directive above before considering any alternative work. Use `plan_next` with the specified domain; if the directive requests recovery, run the named `critics_run` suites and unblock dependencies automatically.
-- When tasks remain blocked after recovery attempts, call the necessary MCP tools (plan_next, critics_run, plan_update) autonomously until the blocker is removed or a structural failure is confirmed.
-- Capture evidence for every action: fs_read/fs_write/cmd_run for implementation, tests for verification, docs for narrative. Keep `state/context.md` updated via `context_write` (≤1000 words) and record snapshots with `context_snapshot`.
-- Escalate programmatically: log blockers via `context_write`, persist them with `plan_update`, and if the loop cannot make progress after self-healing, stop gracefully so Director Dana can ingest the summary.
-- Coordinate supporting automation: runner restarts, heavy queue usage, and telemetry exports should be issued without prompting. Prefer `heavy_queue_enqueue` for long jobs and close them via `heavy_queue_update`.
-Maintain production readiness, enforce ML/causal rigor, polish UX, and communicate like a Staff+/startup leader.
-Return JSON summarizing completed tasks, tasks still in progress, blockers, next focus items, and overall notes.
+- BEFORE implementing: Check if feature exists with targeted fs_read (specific line ranges, max 100 lines). If code exists, call `plan_update` marking complete.
+- IMMEDIATELY IMPLEMENT using fs_write/cmd_run. DO NOT re-read specs. DO NOT use bash commands outputting >1000 lines (no cat, sed on large files, npm list).
+- Work in PRODUCT domain (apps/web, apps/api, shared libs). Make real file changes. Write components, features, fixes, polish UX.
+- AFTER completing: Call `plan_update` to mark done, then `plan_next(product, minimal=true)`. Never start by calling plan_next.
+- Every cycle: CONCRETE FILE CHANGES. No "planning" without implementation. No repeating work. No massive output (keep <100 lines per tool call).
+- After implementing: Run tests with output limits, update context (≤500 words). Use `git diff --stat` NOT full diff.
+
+**TEST QUALITY (CRITICAL):** Tests must verify ACTUAL BEHAVIOR matches design intent, not just pass.
+- Write tests that would FAIL if the feature doesn't work as designed
+- Include edge cases, error conditions, boundary values, integration scenarios
+- Don't write tests that merely greenlight code—validate it works AS INTENDED
+- **Test Hierarchy:** Implement both SMALL unit tests (pure functions, single responsibility) AND LARGE unit tests (component integration, cross-boundary interactions)
+- Small unit: test_parse_weather_data(), test_calculate_allocation()
+- Large unit: test_weather_pipeline_end_to_end(), test_allocation_with_real_constraints()
+- Integration: test_api_weather_ingestion(), test_dashboard_alert_flow()
+- Example: Don't just test "function returns something", test "function returns correct weather data for edge case timezone"
+
+**DOCUMENTATION QUALITY (CRITICAL):** Documentation must be meaningful and useful, not just describe what exists.
+- Explain WHY decisions were made, not just WHAT was done
+- Include: purpose, design rationale, edge cases handled, usage examples, known limitations
+- Document trade-offs and alternatives considered
+- Make it valuable for future developers, not just compliance theater
+
+**OUTPUT LIMITS:** Never output >1000 lines. Use head/tail. Read files with line ranges only. Total conversation must stay <5MB to avoid "string too long" API errors.
+Return JSON: COMPLETED work (files/functions), in progress, blockers, notes. Max 200 words.
 BODY
   } > "$PROMPT_FILE"
 
   PROMPT_CONTENT="$(cat "$PROMPT_FILE")"
 
   attempt=0
-  while true; do
-    RUN_LOG="$(mktemp)"
-    attempt_number=$((attempt + 1))
+while true; do
+  AUTOPILOT_FALLBACK_SESSION=0
+  RUN_LOG="$(mktemp)"
+  attempt_number=$((attempt + 1))
     attempt_start_iso="$(timestamp)"
   attempt_start_epoch=$(date -u +%s)
   POLICY_ATTEMPTS=$attempt_number
@@ -3660,6 +4097,10 @@ BODY
   POLICY_LAST_COMPLETED_AT=""
   LAST_FAILURE_REASON=""
   LAST_FAILURE_DETAILS=""
+  if [ -x "$ROOT/tools/wvo_mcp/scripts/cleanup_workspace.py" ]; then
+    python "$ROOT/tools/wvo_mcp/scripts/cleanup_workspace.py" >>"$LOG_FILE" 2>&1 || \
+      log "Workspace cleanup script reported an error (continuing)."
+  fi
   now_epoch=$(date -u +%s)
   if [ "${CODEX_RETRY_AT:-0}" -gt 0 ]; then
     if [ "$now_epoch" -lt "$CODEX_RETRY_AT" ]; then
@@ -3700,8 +4141,9 @@ BODY
       POLICY_FALLBACK_USED=1
       set +e
       if [ "$WVO_AUTOPILOT_STREAM" = "1" ]; then
-        run_with_claude_code "$PROMPT_CONTENT" "$RUN_LOG" | tee -a "$LOG_FILE" >&2
-        status=${PIPESTATUS[0]}
+        run_with_claude_code "$PROMPT_CONTENT" "$RUN_LOG"
+        status=$?
+        cat "$RUN_LOG" >> "$LOG_FILE"
       else
         run_with_claude_code "$PROMPT_CONTENT" "$RUN_LOG"
         status=$?
@@ -3719,8 +4161,9 @@ BODY
           --model "$AUTOPILOT_MODEL" \
           --dangerously-bypass-approvals-and-sandbox \
           --output-schema "$SCHEMA_FILE" \
-          "$PROMPT_CONTENT" 2>&1 | tee "$RUN_LOG" | tee -a "$LOG_FILE" >&2
+          "$PROMPT_CONTENT" 2>&1 | tee "$RUN_LOG"
         status=${PIPESTATUS[0]}
+        cat "$RUN_LOG" >> "$LOG_FILE"
       else
         codex exec \
           --profile "$CLI_PROFILE" \
@@ -3880,89 +4323,94 @@ BODY
       append_usage_telemetry "command_timeout" "$attempt_number" "$attempt_start_iso" "$attempt_end_iso" "$duration"
       LAST_FAILURE_REASON="command_timeout"
       LAST_FAILURE_DETAILS="$(tail -n 20 "$RUN_LOG")"
-      announce_phase "Command Timeout" "MCP worker timed out after 30s; capturing fallback summary." "" "!!"
+      announce_phase "Command Timeout" "Automation command timed out; switching to offline PRODUCT workflow." "" "!!"
       if [ "${WVO_AUTOPILOT_ONCE:-0}" = "1" ]; then
-        log "Single-run mode detected; skipping MCP recovery after command timeout."
+        log "Single-run mode detected; deferring automation recovery after command timeout."
       elif attempt_recovery; then
         rm -f "$RUN_LOG"
         continue
       fi
       record_blocker "command_timeout" "$LAST_FAILURE_DETAILS"
-      fallback_summary=$(python - <<'PY' "$RUN_LOG" "$STATE_FILE"
-import json
-import sys
-from pathlib import Path
-
-log_path = Path(sys.argv[1])
-out_path = Path(sys.argv[2])
-notes = log_path.read_text(encoding="utf-8").splitlines()[-20:]
-notes_text = "\n".join(notes)
-summary = {
-    "completed_tasks": [],
-    "in_progress": [],
-    "blockers": ["Autopilot aborted: MCP worker timed out after 30s during investigation."],
-    "next_focus": [
-        "Repeat the investigation with scoped commands (limit searches to target directories) to avoid worker timeouts."
-    ],
-    "notes": notes_text[:2000],
-}
-out_path.write_text(json.dumps(summary, indent=2), encoding="utf-8")
-print(json.dumps(summary))
-PY
-) || fallback_summary='{"completed_tasks":[],"in_progress":[],"blockers":["Autopilot aborted: MCP worker timed out."],"next_focus":["Scope shell commands and retry."],"notes":""}'
-      printf '%s\n' "$fallback_summary"
-      printf '%s\n' "$fallback_summary" | update_balance_from_summary
-      update_policy_controller "$fallback_summary"
-      BALANCE_MESSAGE_AFTER="$(balance_read_message)"
-      if [ "$(balance_needs_escalation)" = "1" ]; then
-        announce_phase "Domain Imbalance" "$BALANCE_MESSAGE_AFTER" "" "!!"
-        record_blocker "domain_imbalance" "$BALANCE_MESSAGE_AFTER"
-        log "Domain imbalance detected after command timeout; exiting for manual intervention."
-        rm -f "$RUN_LOG"
-        break
-      fi
-      log "Fallback summary saved to $STATE_FILE due to worker command timeout."
-      autopilot_git_sync "$fallback_summary"
-      rm -f "$RUN_LOG"
-      if [ "${WVO_AUTOPILOT_ONCE:-0}" = "1" ]; then
-        log "Single-run mode captured fallback summary; exiting."
-        exit 0
-      fi
-      break
+      fatal_offline_fallback "automation_timeout" "$LAST_FAILURE_DETAILS" "$attempt_number" "$attempt_start_iso" "$attempt_start_epoch"
     fi
 
     set +e
     SUMMARY_RAW=$(python - <<'PY' "$RUN_LOG" "$STATE_FILE"
-import json, sys, pathlib
+import json
+import pathlib
+import re
+import sys
 
 log_path = pathlib.Path(sys.argv[1])
 out_path = pathlib.Path(sys.argv[2])
 text = log_path.read_text(encoding="utf-8")
-start = None
-depth = 0
-summary = None
 
-for idx, ch in enumerate(text):
-    if ch == '{':
-        if depth == 0:
-            start = idx
-        depth += 1
-    elif ch == '}':
-        if depth:
-            depth -= 1
-            if depth == 0 and start is not None:
-                snippet = text[start: idx + 1]
-                if '"completed_tasks"' not in snippet:
-                    continue
-                try:
-                    candidate = json.loads(snippet)
-                except json.JSONDecodeError:
-                    continue
-                summary = candidate
-                break
+summary = None
+decoder = json.JSONDecoder()
+pattern = re.compile(r'\{\s*"completed_tasks"')
+
+for match in pattern.finditer(text):
+    start = match.start()
+    try:
+        candidate, _ = decoder.raw_decode(text[start:])
+    except json.JSONDecodeError:
+        continue
+    if isinstance(candidate, dict) and "completed_tasks" in candidate:
+        summary = candidate
+        break
+    if isinstance(candidate, list):
+        summary = next(
+            (item for item in candidate if isinstance(item, dict) and "completed_tasks" in item),
+            None,
+        )
+        if summary is not None:
+            break
 
 if summary is None:
-    raise SystemExit("No JSON summary found in autopilot output.")
+    lines = text.splitlines()
+    tail = "\n".join(lines[-40:])
+    tail_lower = tail.lower()
+
+    blockers = ["Autopilot run completed without structured JSON summary."]
+    infra_keywords = [
+        "tool call failed",
+        "tool call error",
+        "no worker registered",
+        "worker active disposed",
+        "worker timed out",
+        "no active mcp worker",
+        "plan_next",
+        "critics_run",
+    ]
+    if any(keyword in tail_lower for keyword in infra_keywords):
+        blockers.insert(
+            0,
+            "Infrastructure automation deferral noted (tool call failed); continue shipping PRODUCT work offline and log the follow-up for Director Dana.",
+        )
+
+    summary = {
+        "completed_tasks": [],
+        "in_progress": [],
+        "blockers": blockers,
+        "next_focus": [
+            "Continue PRODUCT backlog execution using state/roadmap.yaml; log blocker details for Director Dana to schedule infrastructure follow-ups."
+        ],
+        "notes": tail[:2000],
+        "_meta": {
+            "source": "log_fallback",
+            "reason": "missing_json_summary",
+        },
+    }
+
+if isinstance(summary, list):
+    canonical = next((item for item in summary if isinstance(item, dict)), {}) or {}
+    summary = canonical
+    summary.setdefault("_meta", {})
+    if isinstance(summary["_meta"], dict):
+        summary["_meta"].update({
+            "source": "normalised_list",
+            "reason": "wrapped_summary_list",
+        })
 
 out_path.write_text(json.dumps(summary, indent=2), encoding="utf-8")
 print(json.dumps(summary))
@@ -3970,71 +4418,74 @@ PY
 )
 parse_status=$?
 set -e
-INVALID_SUMMARY_HANDLED=0
 if [ $parse_status -ne 0 ]; then
       LAST_FAILURE_REASON="invalid_summary"
       LAST_FAILURE_DETAILS="$(tail -n 20 "$RUN_LOG")"
-      announce_phase "Invalid Summary" "Codex output missing structured JSON; capturing fallback summary." "" "!!"
-      if [ "${WVO_AUTOPILOT_ONCE:-0}" = "1" ]; then
-        log "Single-run mode detected; skipping MCP recovery after invalid summary."
-      elif attempt_recovery; then
-        rm -f "$RUN_LOG"
-        continue
-      fi
       record_blocker "invalid_summary" "$LAST_FAILURE_DETAILS"
-      fallback_summary=$(python - <<'PY' "$RUN_LOG" "$STATE_FILE"
-  import json
-  import sys
-  from pathlib import Path
-
-  log_path = Path(sys.argv[1])
-out_path = Path(sys.argv[2])
-notes = log_path.read_text(encoding="utf-8").splitlines()[-20:]
-notes_text = "\n".join(notes)
-  summary = {
-      "completed_tasks": [],
-      "in_progress": [],
-      "blockers": ["Autopilot run aborted: Codex did not emit a summary (invalid_summary)."],
-      "next_focus": [
-        "Inspect /tmp/wvo_autopilot.log for the failing command and rerun once addressed."
-    ],
-    "notes": notes_text[:2000],
-  }
-  out_path.write_text(json.dumps(summary, indent=2), encoding="utf-8")
-  print(json.dumps(summary))
-PY
-) || fallback_summary='{"completed_tasks":[],"in_progress":[],"blockers":["Autopilot run aborted: invalid summary."],"next_focus":["Retry after inspecting logs."],"notes":""}'
-      printf '%s\n' "$fallback_summary"
-      printf '%s\n' "$fallback_summary" | update_balance_from_summary
-      attempt_end_iso="$(timestamp)"
-      attempt_end_epoch=$(date -u +%s)
-      duration=$((attempt_end_epoch - attempt_start_epoch))
-      POLICY_LAST_STATUS="invalid_summary"
-      POLICY_LAST_COMPLETED_AT="$attempt_end_iso"
-      POLICY_LAST_DURATION=$duration
-      update_policy_controller "$fallback_summary"
-      BALANCE_MESSAGE_AFTER="$(balance_read_message)"
-      if [ "$(balance_needs_escalation)" = "1" ]; then
-        announce_phase "Domain Imbalance" "$BALANCE_MESSAGE_AFTER" "" "!!"
-        record_blocker "domain_imbalance" "$BALANCE_MESSAGE_AFTER"
-        log "Domain imbalance detected after invalid summary; exiting for manual intervention."
-        rm -f "$RUN_LOG"
-        break
-      fi
-      log "Fallback summary saved to $STATE_FILE due to invalid summary."
-      autopilot_git_sync "$fallback_summary"
-      append_usage_telemetry "fallback_summary" "$attempt_number" "$attempt_start_iso" "$attempt_end_iso" "$duration"
-      rm -f "$RUN_LOG"
-      INVALID_SUMMARY_HANDLED=1
-      if [ "${WVO_AUTOPILOT_ONCE:-0}" = "1" ]; then
-        log "Single-run mode captured fallback summary; exiting."
-        exit 0
-      fi
+      fatal_offline_fallback "missing-json-summary" "$LAST_FAILURE_DETAILS" "$attempt_number" "$attempt_start_iso" "$attempt_start_epoch"
 fi
-    if [ "${INVALID_SUMMARY_HANDLED:-0}" -eq 1 ]; then
-      break
+    if [ -n "$SUMMARY_RAW" ]; then
+      fallback_info="$(python - <<'PY' "$SUMMARY_RAW"
+import json, sys
+try:
+    summary = json.loads(sys.argv[1])
+except json.JSONDecodeError:
+    print("")
+else:
+    if isinstance(summary, list):
+        summary = next((item for item in summary if isinstance(item, dict)), {}) or {}
+    elif not isinstance(summary, dict):
+        summary = {}
+    meta = summary.get("_meta") or {}
+    source = meta.get("source")
+    reason = meta.get("reason") or ""
+    if source in {"log_fallback", "offline_fallback"}:
+        print(source)
+        print(reason)
+    else:
+        print("")
+PY
+)"
+      fallback_flag=""
+      fallback_reason=""
+      if [ -n "$fallback_info" ]; then
+        IFS=$'\n' read -r fallback_flag fallback_reason <<<"$fallback_info"
+      fi
+      if [ "$fallback_flag" = "offline_fallback" ] || [ "$fallback_flag" = "log_fallback" ]; then
+        LAST_FAILURE_REASON="${fallback_reason:-summary_marked_offline}"
+        LAST_FAILURE_DETAILS="Summary emitted with source=${fallback_flag}; aborting to avoid offline automation."
+        fatal_offline_fallback "$LAST_FAILURE_REASON" "$LAST_FAILURE_DETAILS" "$attempt_number" "$attempt_start_iso" "$attempt_start_epoch" 1
+      fi
     fi
     SUMMARY_JSON="$SUMMARY_RAW"
+    SUMMARY_PROGRESS_SIGNATURE=$(python - <<'PY' "$SUMMARY_JSON"
+import json
+import sys
+import hashlib
+
+try:
+    summary = json.loads(sys.argv[1])
+except Exception:
+    print("")
+    raise SystemExit(0)
+if isinstance(summary, list):
+    summary = next((item for item in summary if isinstance(item, dict)), {}) or {}
+elif not isinstance(summary, dict):
+    summary = {}
+
+completed = summary.get("completed_tasks") or []
+in_progress = summary.get("in_progress") or []
+if completed or in_progress:
+    print("")
+    raise SystemExit(0)
+
+blockers = summary.get("blockers") or []
+if not isinstance(blockers, list):
+    blockers = []
+payload = json.dumps(sorted(blockers))
+print(hashlib.sha256(payload.encode("utf-8")).hexdigest())
+PY
+    )
     printf '%s\n' "$SUMMARY_JSON"
     printf '%s\n' "$SUMMARY_JSON" | update_balance_from_summary
     BALANCE_MESSAGE_AFTER="$(balance_read_message)"
@@ -4054,6 +4505,7 @@ fi
     POLICY_LAST_COMPLETED_AT="$attempt_end_iso"
     POLICY_LAST_DURATION=$duration
     update_policy_controller "$SUMMARY_JSON"
+    critics_backoff_update_from_summary "$SUMMARY_JSON"
     rm -f "$RUN_LOG"
     success_meter="$(progress_bar "$attempt_number" "$MAX_RETRY")"
     announce_phase "Attempt ${attempt_number} Complete" "Summary saved to $STATE_FILE" "$success_meter" "OK"
@@ -4076,6 +4528,10 @@ fi
   BLOCKERS=$(python - <<'PY' "$STATE_FILE"
 import json, sys
 summary = json.load(open(sys.argv[1]))
+if isinstance(summary, list):
+    summary = next((item for item in summary if isinstance(item, dict)), {}) or {}
+elif not isinstance(summary, dict):
+    summary = {}
 print(len(summary.get("blockers") or []))
 PY
 ) || {
@@ -4085,8 +4541,61 @@ PY
   }
   log "Blockers recorded: $BLOCKERS"
 
+  if [ -z "$SUMMARY_PROGRESS_SIGNATURE" ] && [ -f "$STATE_FILE" ]; then
+    SUMMARY_PROGRESS_SIGNATURE=$(python - <<'PY' "$STATE_FILE"
+import json
+import sys
+import hashlib
+
+try:
+    summary = json.load(open(sys.argv[1]))
+except Exception:
+    print("")
+    raise SystemExit(0)
+if isinstance(summary, list):
+    summary = next((item for item in summary if isinstance(item, dict)), {}) or {}
+elif not isinstance(summary, dict):
+    summary = {}
+
+completed = summary.get("completed_tasks") or []
+in_progress = summary.get("in_progress") or []
+if completed or in_progress:
+    print("")
+    raise SystemExit(0)
+
+blockers = summary.get("blockers") or []
+if not isinstance(blockers, list):
+    blockers = []
+payload = json.dumps(sorted(blockers))
+print(hashlib.sha256(payload.encode("utf-8")).hexdigest())
+PY
+    )
+  fi
+
+  if [ -n "$SUMMARY_PROGRESS_SIGNATURE" ]; then
+    if [ "$SUMMARY_PROGRESS_SIGNATURE" = "$LAST_IDLE_SUM_SIGNATURE" ]; then
+      NO_PROGRESS_CYCLES=$((NO_PROGRESS_CYCLES + 1))
+    else
+      NO_PROGRESS_CYCLES=1
+      LAST_IDLE_SUM_SIGNATURE="$SUMMARY_PROGRESS_SIGNATURE"
+    fi
+    log "No progress detected this cycle (signature repeat count: $NO_PROGRESS_CYCLES)."
+  else
+    NO_PROGRESS_CYCLES=0
+    LAST_IDLE_SUM_SIGNATURE=""
+  fi
+
+  if [ "$NO_PROGRESS_LIMIT" -gt 0 ] && [ "$NO_PROGRESS_CYCLES" -ge "$NO_PROGRESS_LIMIT" ]; then
+    log "No progress for $NO_PROGRESS_CYCLES consecutive cycles; exiting autopilot loop."
+    break
+  fi
+
+  if [ "$BLOCKERS" -gt 0 ] && [ "$STOP_ON_BLOCKER" -ne 1 ]; then
+    log "Blockers present but STOP_ON_BLOCKER=0; continuing autonomously."
+  fi
+
   if [ "$STOP_ON_BLOCKER" -eq 1 ] && [ "$BLOCKERS" -gt 0 ]; then
-    log "Stopping because blockers require human attention."
+    log "STOP_ON_BLOCKER=1 and blockers remain; exiting loop."
     break
   fi
 

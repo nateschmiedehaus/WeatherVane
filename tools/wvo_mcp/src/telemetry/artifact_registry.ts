@@ -9,10 +9,10 @@ interface ArtifactRecord {
 }
 
 export class ArtifactRegistry {
-  constructor(private readonly workspaceRoot: string) {}
+  constructor(private readonly stateRoot: string) {}
 
   private get filePath(): string {
-    return path.join(this.workspaceRoot, "state", "artifacts.log.jsonl");
+    return path.join(this.stateRoot, "artifacts.log.jsonl");
   }
 
   async record(entry: ArtifactRecord): Promise<void> {

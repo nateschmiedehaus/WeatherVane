@@ -4,7 +4,7 @@ Authors: WeatherVane product, design, engineering, and data leads
 
 ## Purpose
 - Codify who WeatherVane serves, what problems they bring to the product, and how the product delivers value end to end.
-- Align roadmap, UX, and GTM workstreams around a shared narrative before producing information architecture and wireframes (T3.3.2–T3.3.4).
+- Align roadmap, UX, and GTM workstreams around a shared narrative before producing information architecture and wireframes (T3.3.2–T3.3.4 live in the MCP orchestration stream; this brief captures product implications).
 - Provide instrumentation hooks so we can prove each journey delivers value inside 30 minutes (demo) and 7 days (live data).
 
 ---
@@ -88,7 +88,7 @@ Authors: WeatherVane product, design, engineering, and data leads
 ---
 
 ## Cross-Team Dependencies & Next Actions
-- **Design:** Translate journey touchpoints into IA (T3.3.2) and hi-fi wireframes; ensure calm/aero tokens support persona-specific themes (exec vs operator views).
+- **Design:** Translate journey touchpoints into IA (T3.3.2, MCP-owned) and hi-fi wireframes; ensure calm/aero tokens support persona-specific themes (exec vs operator views).
 - **Engineering:**  
   - Implement demo state provider + seeded datasets (per `docs/ONBOARDING_DEMO_WIREFRAMES.md`).  
   - Add instrumentation events listed above to analytics SDK.  

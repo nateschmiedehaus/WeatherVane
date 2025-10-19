@@ -112,7 +112,7 @@ Persist decisions in `context_entries` (entry_type = `decision`, topic = `Consen
 
 - **Unit** – Mock state machine + agent pool to verify quorum paths, escalation triggers, and context entries.
 - **Integration** – Run `npx vitest run src/tests/consensus_engine.test.ts` (to be created) verifying decisions recorded and escalations created.
-- **Critics** – `critic integration_fury` to ensure cross-service dependencies remain stable; `critic manager_self_check` to validate governance expectations.
+- **Critics** – `critic integration_fury` to ensure cross-service dependencies remain stable; keep context freshness via regular roadmap grooming instead of the retired `manager_self_check` critic.
 
 ## Immediate Actions
 

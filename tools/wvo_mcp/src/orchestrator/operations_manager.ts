@@ -26,6 +26,12 @@ interface OperationsManagerOptions {
   liveFlags?: LiveFlagsReader;
 }
 
+interface ShadowDiffSummary {
+  count: number;
+  path: string | null;
+  recordedAt: number | null;
+}
+
 export interface OperationsSnapshot {
   avgQuality: number;
   failureRate: number;
@@ -67,6 +73,11 @@ export interface OperationsSnapshot {
       active_heavy: number;
       queued_heavy: number;
     };
+    shadow_diffs: {
+      count: number;
+      path: string | null;
+      recorded_at: number | null;
+    } | null;
   };
   quality: {
     total_executions: number;
@@ -113,6 +124,19 @@ export interface OperationsSnapshot {
     };
   };
   costs: CostSnapshot;
+  velocity?: {
+    completedLast24h: number;
+    tasksPerHour: number;
+    averageCompletionTimeMs: number;
+    inProgressCount: number;
+    stalledCount: number;
+    stalledTasks: Array<{
+      id: string;
+      title: string;
+      stalledForMs: number;
+      recommendation: string;
+    }>;
+  };
 }
 
 interface ProviderBudgetThreshold {
@@ -618,6 +642,7 @@ export class OperationsManager extends EventEmitter implements ExecutionObserver
     const busyAgents = usage.codex + usage.claude;
     const idleAgents = this.agentPool.getAvailableAgents().length;
     const coordinatorStatus = this.getCoordinatorStatus();
+    const shadowSummary = this.readShadowDiffSummary();
 
     return {
       avgQuality,
@@ -654,6 +679,13 @@ export class OperationsManager extends EventEmitter implements ExecutionObserver
           active_heavy: queueMetrics.resource.activeHeavyTasks,
           queued_heavy: queueMetrics.resource.queuedHeavyTasks,
         },
+        shadow_diffs: shadowSummary
+          ? {
+              count: shadowSummary.count,
+              path: shadowSummary.path,
+              recorded_at: shadowSummary.recordedAt,
+            }
+          : null,
       },
       quality: {
         total_executions: recent.length,
@@ -698,6 +730,29 @@ export class OperationsManager extends EventEmitter implements ExecutionObserver
         },
       },
       costs: costMetrics,
+      // NEW: Opt-in velocity metrics (backward compatible - optional field)
+      velocity: this.liveFlags?.getValue('VELOCITY_TRACKING') === '1'
+        ? this.computeVelocityMetrics()
+        : undefined,
+    };
+  }
+
+  private computeVelocityMetrics() {
+    const velocityData = this.scheduler.getVelocityMetrics(86400000); // 24 hour window
+    const stuckTasks = this.scheduler.detectStuckTasks(3600000); // 1 hour threshold
+
+    return {
+      completedLast24h: velocityData.completedTasks,
+      tasksPerHour: velocityData.tasksPerHour,
+      averageCompletionTimeMs: velocityData.averageCompletionTime,
+      inProgressCount: velocityData.inProgressCount,
+      stalledCount: velocityData.stalledCount,
+      stalledTasks: stuckTasks.slice(0, 5).map(s => ({
+        id: s.task.id,
+        title: s.task.title,
+        stalledForMs: s.timeSinceLastEvent,
+        recommendation: s.recommendation,
+      })),
     };
   }
 
@@ -1002,6 +1057,43 @@ export class OperationsManager extends EventEmitter implements ExecutionObserver
       cacheStoreExecutions: sum.cacheStore,
       cacheHitRate,
     };
+  }
+
+  private readShadowDiffSummary(): ShadowDiffSummary | null {
+    const summaryPath = path.join(this.workspaceRoot, 'state', 'analytics', 'upgrade_shadow.json');
+    if (!fs.existsSync(summaryPath)) {
+      return null;
+    }
+
+    try {
+      const raw = fs.readFileSync(summaryPath, 'utf8');
+      const parsed = JSON.parse(raw) as {
+        diff_count?: unknown;
+        diff_path?: unknown;
+        recorded_at?: unknown;
+      };
+
+      const count = typeof parsed.diff_count === 'number' && parsed.diff_count >= 0 ? parsed.diff_count : 0;
+      const diffPath = typeof parsed.diff_path === 'string' && parsed.diff_path.length > 0 ? parsed.diff_path : null;
+      let recordedAtMs: number | null = null;
+      if (typeof parsed.recorded_at === 'string' && parsed.recorded_at.length > 0) {
+        recordedAtMs = Number(new Date(parsed.recorded_at).getTime());
+      } else if (typeof parsed.recorded_at === 'number' && Number.isFinite(parsed.recorded_at)) {
+        recordedAtMs = parsed.recorded_at;
+      }
+
+      return {
+        count,
+        path: diffPath,
+        recordedAt: Number.isFinite(recordedAtMs) ? recordedAtMs : null,
+      };
+    } catch (error) {
+      logWarning('Failed to read upgrade shadow summary', {
+        error: error instanceof Error ? error.message : String(error),
+        path: summaryPath,
+      });
+      return null;
+    }
   }
 
   private loadBudgetThresholds(workspaceRoot: string): Record<AgentType, ProviderBudgetThreshold> {

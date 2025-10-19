@@ -13,7 +13,7 @@ export class CostPerfCritic extends Critic {
     // Call base for profile (unused) to keep parity; avoid eslint unused var
     void profile;
 
-    const telemetryPath = path.join(this.workspaceRoot, "state", "telemetry", "executions.jsonl");
+    const telemetryPath = path.join(this.stateRoot, "telemetry", "executions.jsonl");
 
     let stdoutLines: string[] = [];
     let stderrMessage = "";

@@ -1,6 +1,7 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
 
+import { resolveStateRoot } from "../utils/config.js";
 import { logWarning } from "./logger.js";
 
 export class TelemetryExporter {
@@ -12,7 +13,8 @@ export class TelemetryExporter {
   private readonly FLUSH_INTERVAL_MS = 5000; // 5 seconds
 
   constructor(workspaceRoot: string, filename = "operations.jsonl") {
-    this.targetPath = path.join(workspaceRoot, "state", "telemetry", filename);
+    const stateRoot = resolveStateRoot(workspaceRoot);
+    this.targetPath = path.join(stateRoot, "telemetry", filename);
     this.scheduleFlush();
   }
 

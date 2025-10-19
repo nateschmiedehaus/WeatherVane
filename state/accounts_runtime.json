@@ -2,17 +2,16 @@
   "codex": {
     "codex_personal": {
       "last_cooldown_reason": "usage_limit",
-      "last_selected": "2025-10-16T20:18:27.969782+00:00"
+      "last_selected": "2025-10-19T17:43:42.218470+00:00"
     },
     "codex_client": {
-      "last_selected": "2025-10-16T01:12:51.859405+00:00",
-      "cooldown_until": "2025-10-17T00:52:55.317598+00:00",
+      "last_selected": "2025-10-19T18:14:52.965208+00:00",
       "last_cooldown_reason": "usage_limit"
     }
   },
   "claude": {
     "claude_primary": {
-      "last_selected": "2025-10-16T20:18:39.092653+00:00",
+      "last_selected": "2025-10-19T18:15:04.050578+00:00",
       "last_purpose": "evaluation"
     }
   }

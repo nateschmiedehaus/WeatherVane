@@ -4,7 +4,7 @@ Authors: WeatherVane product, design, and engineering leads
 
 ## Purpose & Scope
 - Translate persona journeys in `docs/product/user_journeys.md` into a navigable product architecture.
-- Define the global navigation model, page hierarchy, and connective workflow patterns required for T3.3.3–T3.3.4.
+- Define the global navigation model, page hierarchy, and connective workflow patterns required for T3.3.3–T3.3.4 (note: T3.3.x is MCP-owned orchestration work; this IA briefs product consumers of those outputs).
 - Provide engineering-ready guidance for routing, state management, and instrumentation so demo and live tenants stay in sync.
 
 ---
@@ -48,6 +48,11 @@ Authors: WeatherVane product, design, and engineering leads
 - **7-day outlook:** Time-series + weather overlays; integrates scenario builder toggles.
 - **Connector progress tracker:** Inline onboarding steps with status badges for Shopify, Meta, Google; hides once live.
 - **Persona callouts:** Exec summary tile for Sarah; “Ready to push?” prompts for Leo.
+
+### WeatherOps Dashboard
+- **Suggestion banner instrumentation:** `dashboard.weather_focus.suggestion.view`, `.focus`, and `.dismiss` analytics events normalise timestamps before emission. View emission is deduplicated with a deterministic signature so impressions aren’t double-counted, and the dismiss event fires when operators clear or switch away from the suggestion to illuminate drop-off moments. We only flag `hasScheduledStart=true` when the banner carries a parseable ISO string so adoption reporting is not polluted by malformed data.
+- **Suggestion telemetry ingestion:** `/v1/analytics/dashboard/suggestion-events` persists banner analytics to the metrics sink with action metadata for downstream enrichment jobs.
+- **Region filters:** Analytics payloads include severity and high-risk counts for the active region, mirroring the banner summary so decision science can correlate filter usage with mitigation outcomes.
 
 ### Automations
 - **Assist tab:** Pending recommendations, impact diff, inline guardrail reasons; Slack notification settings.
@@ -95,7 +100,7 @@ Authors: WeatherVane product, design, and engineering leads
 ---
 
 ## Dependencies & Next Actions
-- **Design (T3.3.3):** Translate modules above into annotated wireframes; include calm/aero motion language for state transitions.
+- **Design (T3.3.3 · MCP):** Translate modules above into annotated wireframes; include calm/aero motion language for state transitions.
 - **Engineering:** Align routing (`apps/web/src/pages/*.tsx`) with navigation model; implement shared layout primitives for shell/banners.
 - **Data/ML:** Vet experiment + coverage metrics used in Plan, Reports, Experiments to ensure consistency with `docs/EXPERIMENTS.md`.
 - **Product Ops/GTM:** Prepare collateral (security one-pager, ROI calculator) linked from help menu and onboarding banners.
@@ -107,4 +112,3 @@ Authors: WeatherVane product, design, and engineering leads
 - Do we surface Assist approvals inside notifications center or keep them scoped to Automations?
 - Should Stories and Reports merge into a single “Narratives” surface for execs, or remain distinct for analytics depth?
 - What is the responsive breakpoint behaviour for the left rail navigation on tablets/mobile during demos?
-

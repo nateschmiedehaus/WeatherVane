@@ -65,6 +65,7 @@ export interface WorkerStartOptions {
   idleTimeoutMs?: number;
   label?: string;
   env?: Record<string, string | undefined>;
+  allowDryRunActive?: boolean;
 }
 
 export interface WorkerSwitchSummary {
@@ -72,4 +73,3 @@ export interface WorkerSwitchSummary {
   promotedWorkerPid: number;
   switchedAt: string;
 }
-

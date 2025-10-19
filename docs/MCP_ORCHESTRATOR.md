@@ -136,7 +136,7 @@ These expectations are codified via critic modules so that deviations trigger au
 | `org_pm` | Any roadmap/task updates | Validate roadmap linkage, dependency health, risk register updates, cycle metrics | All tasks trace to roadmap; blockers captured; next actions recorded | `state/critics/org_pm.json`, burn-down chart |
 | `academic_rigor` | Modeling, causal, or scientific claims | Notebook reproducibility run, citation checker, statistical power & sensitivity analysis | Re-run succeeds; references documented; diagnostics within thresholds | `experiments/academic/<ts>/report.json`, citations file |
 | `exec_review` | Release candidates, major milestones | Compose CEO-level brief (strategy, KPIs, runway impact), checklist for customer commitments, GTM readiness | Executive summary approved; OKRs updated; go/no-go logged | `state/critics/exec_review.json`, summary memo |
-| `manager_self_check` | Every cadence (at least daily) | `node tools/wvo_mcp/scripts/check_manager_state.mjs <workspace>` | Context updated in ≤12h, "Next actions" present, roadmap retains actionable tasks | `state/critics/manager_self_check.json` |
+| `manager_self_check` | _Retired 2025-10-17_ | _n/a_ | Autopilot now enforces context freshness via roadmap grooming; critic left for historical telemetry only | `state/critics/manager_self_check.json` |
 
 Critics are modular classes under `tools/wvo_mcp/critics/` and may be run selectively depending on the touched paths (path-based routing).
 
@@ -214,6 +214,17 @@ Checkpoints are written on context overflow, before long-running commands, and p
 - **CI/Infra**: Integrate with `infra/k8s`, `infra/terraform` for deployment automation.
 - **Observability**: Write pipeline metrics to `storage/metadata/` and `observability/` directories per existing conventions.
 - **Git Sync**: When the autopilot completes a cycle it now stages tracked changes, commits with a summary-derived message, and pushes to `${WVO_AUTOPILOT_GIT_REMOTE:-origin}/${WVO_AUTOPILOT_GIT_BRANCH:-main}`. Set `WVO_AUTOPILOT_GIT_SYNC=0` to disable, or `WVO_AUTOPILOT_GIT_SKIP_PATTERN` (defaults to `.clean_worktree`) to block pushes when nested worktrees are present.
+- **State Ledger & Runtime Roots**:
+  - Runtime artefacts now resolve through `WVO_STATE_ROOT` (defaults to `<workspace>/state`). Set this path to relocate critic evidence, telemetry, and checkpoints outside the git tree without changing code.
+  - Workers also honour `WVO_WORKSPACE_ROOT`; point it at a staged checkout when running canary/shadow validations so SQLite paths, relative reads, and temp artifacts stay isolated from the active workspace.
+  - Each autopilot cycle records a snapshot in `state/journal/state_ledger.jsonl` capturing file hashes/byte counts. Use it for deterministic replays and audit trails.
+  - All stores/critics respect the state root. MCP writes to the ledger, telemetry, and critics directories even when the state lives on another volume.
+- **Tool Manifest**:
+  - Call `tool_manifest` via MCP to fetch metadata about each tool (schema id, estimated cost, prerequisites, postconditions). The manifest lives at `tools/wvo_mcp/config/tool_manifest.json` and is cached automatically.
+  - Planners can consume this manifest to schedule work without hardcoding capabilities.
+- **Offline Product Cycle**:
+  - When Codex/Claude are unreachable, run `scripts/run_product_cycle.py`. It calls the MCP worker directly, pulls the next product-domain tasks, and appends an offline summary to `state/context.md`.
+  - This script relies solely on the local worker entrypoint, so it works even when `WVO_AUTOPILOT_OFFLINE=1` or DNS is unavailable.
 
 Path routing rules help the MCP server choose critics:
 - `apps/api`, `shared/`: trigger build/tests/typecheck/security critics.

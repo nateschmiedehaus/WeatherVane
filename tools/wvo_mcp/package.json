@@ -14,7 +14,7 @@
     "dev:codex": "ts-node src/index.ts",
     "dev:claude": "ts-node src/index-claude.ts",
     "lint": "eslint \"src/**/*.{ts,tsx}\"",
-    "test": "vitest run",
+    "test": "node ./scripts/run_vitest.mjs",
     "pretest": "node ./scripts/ensure-sqlite-build.mjs",
     "rebuild:sqlite": "FORCE_SQLITE_REBUILD=1 node ./scripts/ensure-sqlite-build.mjs",
     "simulate:consensus": "node ./scripts/run_consensus_simulation.mjs",

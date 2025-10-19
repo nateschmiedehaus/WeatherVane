@@ -1,0 +1,22 @@
+# Context7 Macroeconomic (BLS) API
+
+- **Base URL:** `https://context7.com/api/v1`
+- **Endpoint:** `/macro/bls/timeseries/data`
+- **Method:** `POST`
+- **Authentication:** `CONTEXT7_API_KEY` header
+- **Payload:**
+  - `series_ids` (array[string]) – BLS series identifiers (e.g., `CUUR0000SA0` for CPI-U).
+  - `start_year` (integer, optional) – earliest year to return (default current year - 1).
+  - `end_year` (integer, optional) – latest year to return (default current year).
+  - `calculations` (boolean, optional) – include percentage changes if `true`.
+  - `annualaverage` (boolean, optional) – include annual averages if `true`.
+- **Response Summary:**
+  - `Results.series[]` – array of time-series objects:
+    - `seriesID` (string)
+    - `data[]` – descending list of observations, each with:
+      - `year` (string)
+      - `period` (string, e.g., `M01`)
+      - `periodName` (string, e.g., `January`)
+      - `value` (string) – raw series value
+      - `footnotes` (array) – metadata flags
+- **Use Cases:** ingest CPI, unemployment, and wage indices for macro controls in causal models.

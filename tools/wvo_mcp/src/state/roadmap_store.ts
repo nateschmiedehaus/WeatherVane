@@ -6,10 +6,10 @@ import YAML from "yaml";
 import type { RoadmapDocument, RoadmapEpic, TaskStatus } from "../utils/types.js";
 
 export class RoadmapStore {
-  constructor(private readonly workspaceRoot: string) {}
+  constructor(private readonly stateRoot: string) {}
 
   private get filePath(): string {
-    return path.join(this.workspaceRoot, "state", "roadmap.yaml");
+    return path.join(this.stateRoot, "roadmap.yaml");
   }
 
   async read(): Promise<RoadmapDocument> {

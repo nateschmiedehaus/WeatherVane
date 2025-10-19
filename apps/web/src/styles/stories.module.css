@@ -208,6 +208,7 @@
   display: grid;
   gap: 1rem;
   min-height: 220px;
+  grid-auto-rows: min-content;
 }
 
 .grid article header {
@@ -233,21 +234,155 @@
   color: var(--color-text-primary);
 }
 
-.metaLine {
-  margin: 0.35rem 0 0;
-  color: var(--stories-muted-text);
-}
-
 .summary {
   margin: 0;
   color: var(--stories-header-text);
   line-height: var(--line-height-relaxed);
 }
 
-.grid article footer {
+.chipRow {
+  margin-top: 0.6rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  background: rgba(15, 23, 42, 0.38);
+  color: rgba(226, 232, 240, 0.92);
+}
+
+.chip[data-variant="confidence"] {
+  border-color: rgba(129, 140, 248, 0.45);
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.25), rgba(99, 102, 241, 0.2));
+  color: rgba(224, 231, 255, 0.95);
+}
+
+.chip[data-variant="confidence"][data-confidence="high"] {
+  border-color: rgba(34, 197, 94, 0.55);
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.28), rgba(16, 185, 129, 0.24));
+  color: rgba(240, 253, 244, 0.98);
+}
+
+.chip[data-variant="confidence"][data-confidence="low"] {
+  border-color: rgba(248, 113, 113, 0.55);
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.32), rgba(248, 113, 113, 0.24));
+  color: rgba(255, 241, 242, 0.95);
+}
+
+.chip[data-variant="date"] {
+  border-color: rgba(148, 163, 184, 0.35);
+  background: rgba(15, 23, 42, 0.45);
+  color: rgba(226, 232, 240, 0.86);
+}
+
+.highlightList {
+  margin: 0;
+  padding-left: 1.1rem;
+  display: grid;
+  gap: 0.45rem;
+  color: var(--stories-footer-text);
+  font-size: 0.95rem;
+}
+
+.highlightList li::marker {
+  color: rgba(165, 180, 252, 0.9);
+}
+
+.detail {
   margin: 0;
   color: var(--stories-footer-text);
   font-size: 0.95rem;
+  line-height: var(--line-height-relaxed);
+}
+
+.detailDisclosure {
+  margin-top: 1.1rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid rgba(148, 163, 184, 0.3);
+}
+
+.detailDisclosure summary {
+  cursor: pointer;
+  color: var(--stories-muted-text);
+}
+
+.cardActions {
+  margin-top: auto;
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.primaryAction {
+  padding: 0.6rem 1.4rem;
+  border-radius: 999px;
+  border: 1px solid rgba(129, 140, 248, 0.45);
+  background: linear-gradient(135deg, rgba(79, 70, 229, 0.3), rgba(59, 130, 246, 0.24));
+  color: rgba(226, 232, 240, 0.98);
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  transition: transform var(--motion-duration-snappy) var(--motion-easing-standard),
+    box-shadow var(--motion-duration-snappy) var(--motion-easing-standard);
+}
+
+.primaryAction:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+.primaryAction[data-state="success"] {
+  border-color: rgba(34, 197, 94, 0.55);
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.32), rgba(16, 185, 129, 0.28));
+}
+
+.primaryAction[data-state="error"] {
+  border-color: rgba(248, 113, 113, 0.6);
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.35), rgba(248, 113, 113, 0.28));
+}
+
+.primaryAction:focus-visible {
+  outline: 2px solid var(--color-focus-outline, #93c5fd);
+  outline-offset: 3px;
+}
+
+.secondaryAction {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.55rem 1.2rem;
+  border-radius: 999px;
+  border: 1px solid rgba(148, 163, 184, 0.32);
+  color: rgba(226, 232, 240, 0.9);
+  text-decoration: none;
+  font-weight: 500;
+  transition: transform var(--motion-duration-snappy) var(--motion-easing-standard);
+  cursor: pointer;
+}
+
+.secondaryAction:hover {
+  transform: translateY(-1px);
+}
+
+.secondaryAction:focus-visible {
+  outline: 2px solid var(--color-focus-outline, #93c5fd);
+  outline-offset: 3px;
+}
+
+.cardFeedback {
+  min-height: 1.2rem;
+  margin-top: 0.35rem;
+  font-size: 0.8rem;
+  color: rgba(226, 232, 240, 0.72);
 }
 
 .placeholder {
@@ -268,6 +403,15 @@
   }
 
   .retryButton:hover {
+    transform: none;
+  }
+
+  .primaryAction {
+    transition: none;
+  }
+
+  .primaryAction:hover,
+  .secondaryAction:hover {
     transform: none;
   }
 }

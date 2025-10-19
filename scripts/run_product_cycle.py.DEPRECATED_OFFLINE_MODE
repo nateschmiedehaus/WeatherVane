@@ -1,0 +1,114 @@
+#!/usr/bin/env python3
+from __future__ import annotations
+
+import json
+import subprocess
+import sys
+from dataclasses import dataclass
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Any, Dict, List, Optional
+
+WORKSPACE_ROOT = Path(__file__).resolve().parents[1]
+MCP_TOOL = WORKSPACE_ROOT / "tools" / "wvo_mcp" / "scripts" / "mcp_tool_cli.mjs"
+
+
+@dataclass
+class PlanTask:
+    task_id: str
+    title: str
+    status: str
+    domain: Optional[str]
+    exit_criteria: List[str]
+
+
+def run_mcp_tool(name: str, payload: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    args = ["node", str(MCP_TOOL), name]
+    if payload is not None:
+        args.append(json.dumps(payload))
+
+    proc = subprocess.run(
+        args,
+        cwd=WORKSPACE_ROOT,
+        capture_output=True,
+        text=True,
+    )
+    if proc.returncode != 0:
+        raise RuntimeError(
+            f"Tool '{name}' failed (exit {proc.returncode}).\nSTDOUT:\n{proc.stdout}\nSTDERR:\n{proc.stderr}"
+        )
+
+    if not proc.stdout.strip():
+        return {}
+    return json.loads(proc.stdout)
+
+
+def fetch_product_tasks(limit: int = 10) -> List[PlanTask]:
+    payload = {
+        "limit": limit,
+        "filters": {"domain": "product"},
+    }
+    result = run_mcp_tool("plan_next", payload)
+    tasks = []
+    for item in result.get("tasks", []):
+        tasks.append(
+            PlanTask(
+                task_id=item.get("id", "unknown"),
+                title=item.get("title", "Untitled task"),
+                status=item.get("status", "pending"),
+                domain=item.get("domain"),
+                exit_criteria=item.get("exit_criteria") or [],
+            )
+        )
+    return tasks
+
+
+def build_summary(tasks: List[PlanTask]) -> str:
+    timestamp = datetime.now(timezone.utc).isoformat(timespec="seconds")
+    lines = [
+        f"{timestamp}Z – Offline product cycle summary",
+        "",
+    ]
+
+    if not tasks:
+        lines.append("• No product-domain tasks surfaced by plan_next.")
+        return "\n".join(lines).strip()
+
+    for task in tasks:
+        badge = task.status.upper()
+        lines.append(f"• [{badge}] {task.task_id} – {task.title}")
+        if task.exit_criteria:
+            lines.append("    Exit criteria:")
+            for criterion in task.exit_criteria[:3]:
+                lines.append(f"      - {criterion}")
+        lines.append("")
+
+    lines.append("Context: generated via run_product_cycle.py (offline MCP tooling).")
+    return "\n".join(lines).strip()
+
+
+def append_context(section: str, content: str) -> None:
+    payload = {"section": section, "content": content, "append": True}
+    run_mcp_tool("context_write", payload)
+
+
+def main() -> None:
+    try:
+        tasks = fetch_product_tasks()
+    except Exception as exc:
+        print(f"[run_product_cycle] Failed to enumerate product tasks: {exc}", file=sys.stderr)
+        sys.exit(1)
+
+    summary = build_summary(tasks)
+
+    try:
+        append_context("Product Autonomy (offline)", summary)
+    except Exception as exc:
+        print(f"[run_product_cycle] Failed to append context: {exc}", file=sys.stderr)
+        sys.exit(2)
+
+    print(summary)
+
+
+if __name__ == "__main__":
+    main()

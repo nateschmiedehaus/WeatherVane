@@ -9,10 +9,10 @@ interface Checkpoint {
 }
 
 export class CheckpointStore {
-  constructor(private readonly workspaceRoot: string) {}
+  constructor(private readonly stateRoot: string) {}
 
   private get filePath(): string {
-    return path.join(this.workspaceRoot, "state", "checkpoint.json");
+    return path.join(this.stateRoot, "checkpoint.json");
   }
 
   async read(): Promise<Checkpoint | null> {

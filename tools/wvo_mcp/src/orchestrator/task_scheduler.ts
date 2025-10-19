@@ -682,4 +682,112 @@ export class TaskScheduler extends EventEmitter {
       this.taskProfiles.delete(taskId);
     }
   }
+
+  // ============================================================================
+  // Progress Health & Stuck Task Detection (NEW - additive feature)
+  // ============================================================================
+
+  /**
+   * Detect tasks that appear to be stuck (in_progress but no recent activity)
+   * This is a read-only diagnostic method that doesn't modify task state.
+   *
+   * @param thresholdMs - Consider task stuck if no events for this duration
+   * @returns Array of potentially stuck tasks with diagnostic info
+   */
+  detectStuckTasks(thresholdMs: number = 3600000): Array<{
+    task: Task;
+    status: TaskStatus;
+    timeSinceLastEvent: number;
+    lastEventType?: string;
+    recommendation: 'review' | 'escalate' | 'monitor';
+  }> {
+    const now = Date.now();
+    const allTasks = this.stateMachine.getTasks();
+    const stuckTasks: Array<{
+      task: Task;
+      status: TaskStatus;
+      timeSinceLastEvent: number;
+      lastEventType?: string;
+      recommendation: 'review' | 'escalate' | 'monitor';
+    }> = [];
+
+    for (const task of allTasks) {
+      // Only check tasks that are actively in progress
+      if (task.status !== 'in_progress') {
+        continue;
+      }
+
+      // Get most recent event for this task
+      const recentEvents = this.stateMachine.getEvents({ taskId: task.id }).slice(0, 1);
+
+      if (recentEvents.length === 0 && task.started_at) {
+        // No events but task was started
+        const timeSinceStart = now - task.started_at;
+        if (timeSinceStart > thresholdMs) {
+          stuckTasks.push({
+            task,
+            status: task.status,
+            timeSinceLastEvent: timeSinceStart,
+            lastEventType: 'task_started',
+            recommendation: timeSinceStart > thresholdMs * 2 ? 'escalate' : 'review',
+          });
+        }
+      } else if (recentEvents.length > 0) {
+        const lastEvent = recentEvents[0];
+        const timeSinceLastEvent = now - lastEvent.timestamp;
+
+        if (timeSinceLastEvent > thresholdMs) {
+          stuckTasks.push({
+            task,
+            status: task.status,
+            timeSinceLastEvent,
+            lastEventType: lastEvent.event_type,
+            recommendation: timeSinceLastEvent > thresholdMs * 3 ? 'escalate' : 'review',
+          });
+        }
+      }
+    }
+
+    // Sort by time since last activity (most stale first)
+    return stuckTasks.sort((a, b) => b.timeSinceLastEvent - a.timeSinceLastEvent);
+  }
+
+  /**
+   * Get task velocity metrics over a time window
+   * Helps identify if work is actually progressing
+   */
+  getVelocityMetrics(windowMs: number = 86400000): {
+    completedTasks: number;
+    tasksPerHour: number;
+    averageCompletionTime: number;
+    inProgressCount: number;
+    stalledCount: number;
+  } {
+    const now = Date.now();
+    const windowStart = now - windowMs;
+    const allTasks = this.stateMachine.getTasks();
+
+    const completedInWindow = allTasks.filter(
+      (t: Task) => t.status === 'done' && t.completed_at && t.completed_at >= windowStart
+    );
+
+    const completionTimes = completedInWindow
+      .filter((t: Task) => t.started_at && t.completed_at)
+      .map((t: Task) => (t.completed_at! - t.started_at!));
+
+    const averageCompletionTime = completionTimes.length > 0
+      ? completionTimes.reduce((sum: number, time: number) => sum + time, 0) / completionTimes.length
+      : 0;
+
+    const inProgress = allTasks.filter((t: Task) => t.status === 'in_progress');
+    const stalled = this.detectStuckTasks(3600000); // 1 hour threshold
+
+    return {
+      completedTasks: completedInWindow.length,
+      tasksPerHour: (completedInWindow.length / (windowMs / 3600000)),
+      averageCompletionTime,
+      inProgressCount: inProgress.length,
+      stalledCount: stalled.length,
+    };
+  }
 }

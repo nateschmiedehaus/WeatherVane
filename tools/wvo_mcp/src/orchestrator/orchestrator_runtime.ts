@@ -19,6 +19,7 @@ import { ResearchOrchestrator } from './research_orchestrator.js';
 import { TokenEfficiencyManager } from './token_efficiency_manager.js';
 import { ModelManager } from '../models/model_manager.js';
 import { CriticModelSelector } from '../utils/critic_model_selector.js';
+import { ActivityFeedWriter } from './activity_feed_writer.js';
 
 export interface OrchestratorRuntimeOptions {
   codexWorkers?: number;
@@ -27,6 +28,7 @@ export interface OrchestratorRuntimeOptions {
   maxRestartsPerWindow?: number;
   restartWindowMinutes?: number;
   heavyTaskLimit?: number;
+  enableClaudeCoordinator?: boolean;
 }
 
 export class OrchestratorRuntime {
@@ -47,6 +49,13 @@ export class OrchestratorRuntime {
   private readonly tokenEfficiencyManager?: TokenEfficiencyManager;
   private readonly modelManager: ModelManager;
   private readonly criticModelSelector: CriticModelSelector;
+  private readonly activityFeed?: ActivityFeedWriter;
+  // NEW: Enhanced orchestration features (opt-in via live flags)
+  private readonly criticReputationTracker?: import('./critic_reputation_tracker.js').CriticReputationTracker;
+  private readonly decisionEvidenceLinker?: import('../telemetry/decision_evidence_linker.js').DecisionEvidenceLinker;
+  // Promise caches to prevent race conditions in lazy loading
+  private criticReputationTrackerPromise?: Promise<import('./critic_reputation_tracker.js').CriticReputationTracker | null>;
+  private decisionEvidenceLinkerPromise?: Promise<import('../telemetry/decision_evidence_linker.js').DecisionEvidenceLinker | null>;
   private started = false;
 
   constructor(
@@ -56,6 +65,7 @@ export class OrchestratorRuntime {
     const deviceProfile = loadActiveDeviceProfile(workspaceRoot);
     const resourcePlan = deriveResourceLimits(deviceProfile);
     const codexWorkers = options.codexWorkers ?? resourcePlan.codexWorkers;
+    const enableClaudeCoordinator = options.enableClaudeCoordinator ?? process.env.WVO_DISABLE_CLAUDE !== '1';
     const heavyTaskLimit = options.heavyTaskLimit ?? resourcePlan.heavyTaskConcurrency;
 
     const dryRun = isDryRunEnabled();
@@ -90,7 +100,9 @@ export class OrchestratorRuntime {
     } else {
       this.researchOrchestrator = undefined;
     }
-    this.agentPool = new AgentPool(workspaceRoot, codexWorkers);
+    this.agentPool = new AgentPool(workspaceRoot, codexWorkers, {
+      enableClaude: enableClaudeCoordinator,
+    });
     this.criticModelSelector = new CriticModelSelector(
       workspaceRoot,
       this.modelManager,
@@ -156,6 +168,9 @@ export class OrchestratorRuntime {
       logInfo('Product work tasks unblocked', data);
     });
 
+    // NEW: Initialize enhanced orchestration features (opt-in, lazy-loaded)
+    // These will be initialized on first use via getter methods
+
     // Lazy-load WebInspirationManager only when enabled for efficiency
     this.webInspirationManager = process.env.WVO_ENABLE_WEB_INSPIRATION === '1'
       ? new WebInspirationManager(workspaceRoot, this.stateMachine, this.operationsManager)
@@ -176,6 +191,15 @@ export class OrchestratorRuntime {
       this.selfImprovementManager,
       this.modelManager
     );
+
+    this.activityFeed = new ActivityFeedWriter({
+      workspaceRoot,
+      stateMachine: this.stateMachine,
+      scheduler: this.scheduler,
+      agentPool: this.agentPool,
+      operationsManager: this.operationsManager,
+      coordinator: this.coordinator,
+    });
 
     logInfo('Adaptive resource scheduling initialised', {
       codexWorkers,
@@ -203,6 +227,7 @@ export class OrchestratorRuntime {
     this.operationsManager.stop();
     this.tokenEfficiencyManager?.dispose();
     this.modelManager.stop();
+    this.activityFeed?.stop();
     this.scheduler.destroy();
     this.researchOrchestrator?.dispose();
     this.agentPool.removeAllListeners();
@@ -210,6 +235,10 @@ export class OrchestratorRuntime {
     this.liveFlags.dispose();
     this.stateMachine.close();
     logInfo('Orchestrator runtime stopped');
+  }
+
+  isStarted(): boolean {
+    return this.started;
   }
 
   getOperationsManager(): OperationsManager {
@@ -262,6 +291,51 @@ export class OrchestratorRuntime {
 
   getCriticModelSelector(): CriticModelSelector {
     return this.criticModelSelector;
+  }
+
+  // NEW: Lazy-loaded enhanced orchestration features
+  async getCriticReputationTracker() {
+    // Return cached promise to prevent race conditions
+    if (this.criticReputationTrackerPromise) {
+      return this.criticReputationTrackerPromise;
+    }
+
+    const enabled = this.liveFlags.getValue('CRITIC_REPUTATION') === '1';
+    if (!enabled) {
+      return null;
+    }
+
+    // Cache the promise immediately to prevent concurrent loads
+    this.criticReputationTrackerPromise = (async () => {
+      const { CriticReputationTracker } = await import('./critic_reputation_tracker.js');
+      const tracker = new CriticReputationTracker(this.stateMachine);
+      logInfo('Critic reputation tracking initialized');
+      return tracker;
+    })();
+
+    return this.criticReputationTrackerPromise;
+  }
+
+  async getDecisionEvidenceLinker() {
+    // Return cached promise to prevent race conditions
+    if (this.decisionEvidenceLinkerPromise) {
+      return this.decisionEvidenceLinkerPromise;
+    }
+
+    const enabled = this.liveFlags.getValue('EVIDENCE_LINKING') === '1';
+    if (!enabled) {
+      return null;
+    }
+
+    // Cache the promise immediately to prevent concurrent loads
+    this.decisionEvidenceLinkerPromise = (async () => {
+      const { DecisionEvidenceLinker } = await import('../telemetry/decision_evidence_linker.js');
+      const linker = new DecisionEvidenceLinker(this.stateMachine);
+      logInfo('Decision evidence linking initialized');
+      return linker;
+    })();
+
+    return this.decisionEvidenceLinkerPromise;
   }
 
   private parseResearchSensitivity(raw: string): number {

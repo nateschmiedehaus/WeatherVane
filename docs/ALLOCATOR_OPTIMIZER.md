@@ -9,6 +9,10 @@ highest‑profit solution while still honouring guardrails.
   `NonlinearConstraint` and keeps spends inside guardrails.
 - **Differential evolution (SciPy)** – global search pass that respects the simplex
   constraint. Runs after trust-constr when available to escape poor local optima.
+- **Projected gradient (Pure Python)** – new deterministic non-linear solver that works
+  in every environment. It approximates the gradient of the profit surface, performs
+  projected steps inside the bounded simplex, and honours ROAS floors, learning caps,
+  and inventory limits without SciPy.
 - **Coordinate ascent (Pure Python)** – deterministic fallback that projects each step
   back into the feasible region. Always executes so we have a baseline solution even
   in constrained sandboxes without SciPy.
@@ -24,6 +28,7 @@ learning caps, inventory, and risk aversion stay consistent.
   "optimizer": "coordinate_ascent",
   "optimizer_winner": "coordinate_ascent",
   "optimizer_candidates": [
+    {"optimizer": "projected_gradient", "profit": 184.7, "success": 1.0},
     {"optimizer": "trust_constr", "profit": 182.4, "success": 1.0},
     {"optimizer": "coordinate_ascent", "profit": 185.9, "success": 1.0}
   ]
@@ -35,7 +40,7 @@ short histories) and to debug SciPy failures without guessing what ran.
 
 ## Tips
 - Keep `WEATHERVANE_ENABLE_SCIPY` unset on fragile environments; the system will still
-  fall back to the coordinate solver.
+  fall back to the projected-gradient and coordinate solvers.
 - When experimenting locally, export `WEATHERVANE_ENABLE_SCIPY=1` before running
   `python -m pytest tests/test_allocator.py` to confirm SciPy paths are exercised. Use
   `PYTHONPATH=.deps:.` if SciPy lives in a per-repo directory.

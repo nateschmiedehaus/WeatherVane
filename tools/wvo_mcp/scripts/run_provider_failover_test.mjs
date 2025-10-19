@@ -17,6 +17,7 @@ import { AgentPool } from '../dist/orchestrator/agent_pool.js';
 import { ResilienceManager } from '../dist/orchestrator/resilience_manager.js';
 import { StateMachine } from '../dist/orchestrator/state_machine.js';
 import { SafetyStateStore } from '../dist/state/safety_state.js';
+import { resolveStateRoot } from '../dist/utils/config.js';
 
 async function main() {
   const scriptDir = path.dirname(fileURLToPath(import.meta.url));
@@ -29,7 +30,8 @@ async function main() {
 
   const workspaceRoot = path.join(tmpRoot, `failover_${Date.now()}_${randomUUID()}`);
   await fs.mkdir(workspaceRoot, { recursive: true });
-  await fs.mkdir(path.join(workspaceRoot, 'state'), { recursive: true });
+  const stateRoot = resolveStateRoot(workspaceRoot);
+  await fs.mkdir(stateRoot, { recursive: true });
 
   let stateMachine;
   let agentPool;
@@ -41,7 +43,7 @@ async function main() {
     stateMachine = new StateMachine(workspaceRoot);
     agentPool = new AgentPool(workspaceRoot, 2);
     resilienceManager = new ResilienceManager(stateMachine, agentPool);
-    safetyStore = new SafetyStateStore(workspaceRoot);
+    safetyStore = new SafetyStateStore(stateRoot);
 
     const initialSafety = await safetyStore.read();
     samples.push({

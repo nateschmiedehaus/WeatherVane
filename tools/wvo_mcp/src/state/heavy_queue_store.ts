@@ -13,8 +13,8 @@ const DEFAULT_QUEUE: HeavyTaskQueueItem[] = [];
 export class HeavyTaskQueueStore {
   private readonly filePath: string;
 
-  constructor(private readonly workspaceRoot: string) {
-    this.filePath = path.join(this.workspaceRoot, "state", "heavy_queue.json");
+  constructor(private readonly stateRoot: string) {
+    this.filePath = path.join(this.stateRoot, "heavy_queue.json");
   }
 
   private async ensureDirectory(): Promise<void> {

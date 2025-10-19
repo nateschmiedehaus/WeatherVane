@@ -2,7 +2,7 @@
 Last updated: 2025-10-16  
 Authors: WeatherVane product · design · engineering
 
-> These annotated wireframes convert the IA stack and persona journeys into screen-level guidance for T3.3.3. They document Plan, WeatherOps Dashboard, Experiments, and Reports so hi-fi mocks and implementation (T3.4.x) inherit a shared blueprint, instrumentation, and calm/aero motion cues.
+> These annotated wireframes convert the IA stack and persona journeys into screen-level guidance for T3.3.3. They document Plan, WeatherOps Dashboard, Experiments, and Reports so hi-fi mocks and implementation (T3.4.x) inherit a shared blueprint, instrumentation, and calm/aero motion cues. T3.3.x lives in the MCP orchestration lane; this doc captures product-facing implications while execution stays with MCP owners.
 
 ---
 

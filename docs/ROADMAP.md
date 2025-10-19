@@ -97,6 +97,16 @@ Objective: Upgrade models from placeholder heuristics to production-grade intell
    - Expand weather feature engineering (seasonality, humidity, UV, wind, pollen, lagged anomalies, event flags).
 2. 🛤️ Media Mix & Causal Inference
    - Integrate Robyn/LightweightMMM (adstock + saturation) and DoWhy/EconML pipelines; retire correlation-based elasticity placeholders.
+   - Build a unified marketing exposure warehouse (channel spend, impressions, pacing, creative/placement tags, plan-vs-actual adoption) so MMM sees the allocator as both input and output.
+   - Ingest pricing, promotion, inventory, margin, and supply-side signals; stitch product taxonomy + weather affinity metadata required for causal controls.
+   - Capture external context (forecast error, severe weather alerts, holidays, macro indices, competitor share-of-voice) and surface coverage gaps in data-quality telemetry.
+   - Track owner-level ingestion work in `docs/MODELING_SIGNAL_GAP_ACTIONS.md` to keep catalog gaps aligned with roadmap execution.
+   - Define supported modeling grains (product/category × geo) with selectors in the feature store + training jobs so demo scope matches production.
+   - Replace static weather multipliers with data-driven channel/weather interaction coefficients derived from MMM or causal experiments.
+   - Persist plan adoption vs executed spend to enable automation feedback loops and causal audits.
+   - Automatically detect promotions, coupons, discounts, and lifecycle campaigns from Shopify, ad platforms, Klaviyo, and related connectors so they become first-class causal controls.
+   - Ship causal validation playbooks (pre/post, holdouts, IVs) that make automation lift auditable for customers and internal reviewers.
+   - Automate brand demo planning (dataset sniffing → minimal scope recommendation) so Autopilot can deliver tenant-specific proofs with negligible manual setup.
    - Backtesting + odds ratios exposed in tracker UI with documented assumptions.
 3. 🛤️ Explainability Infrastructure
    - SHAP importances, counterfactual insights; surface explanations in plan UI.
@@ -125,6 +135,15 @@ Objective: Move from recommendations to end-to-end campaign execution and collab
    - Meta Marketing API + sandbox executor with credential vaulting.
    - Google Ads API integration (campaign create/update, shared budgets, spend reconciliation).
    - Dry-run diff visualizer, automated rollback, and alerting when performance regresses.
+6. 🛤️ Automation Feedback & Policy Learning
+   - Collect plan adoption telemetry (recommended vs executed spend) and surface causal audit dashboards before enabling pushes.
+   - Replace synthetic RL shocks with replay data from real tenants; calibrate policy variants against empirical guardrail breaches.
+   - Ship an automation audit log with pre/post metrics so Autopilot rollout has measurable lift evidence.
+   - Deliver Autopilot-operated demo flows (synthetic fallback + brand-connected proof) so prospects experience WeatherVane with minimal human facilitation.
+7. 🛤️ Trust & Governance Experience
+   - Productise guardrail overrides, approval flows, and rollback UX so operators can supervise Autopilot actions with confidence.
+   - Model operational constraints (inventory, fulfilment, promo conflicts) in recommendations and surface clashes proactively.
+   - Map the customer lifecycle (onboarding → pilot → production) with executive-ready status, renewal metrics, and stakeholder comms.
 
 Dependencies: Phases 2 & 4 deliver reliable metrics and model insights.
 

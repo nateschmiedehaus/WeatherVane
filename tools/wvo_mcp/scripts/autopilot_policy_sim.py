@@ -141,7 +141,7 @@ class SimulationEnvironment:
     """Very small roadmap/backlog model used to stress the policy quickly."""
 
     PRODUCT_CRITICS = ["design_system", "exec_review", "tests", "prompt_budget"]
-    MCP_CRITICS = ["tests", "manager_self_check", "health_check", "allocator"]
+    MCP_CRITICS = ["tests", "health_check", "allocator"]
 
     def __init__(self, rng: random.Random, product_tasks: int = 28, mcp_tasks: int = 20) -> None:
         self.rng = rng

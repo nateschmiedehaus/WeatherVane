@@ -2,6 +2,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 
 import type { ConsensusDecision } from "../orchestrator/consensus/consensus_engine.js";
+import { resolveStateRoot } from "../utils/config.js";
 
 export interface ConsensusMetricsSnapshot {
   updatedAt: string;
@@ -29,9 +30,9 @@ export class ConsensusTelemetryRecorder {
   private readonly metricsPath: string;
 
   constructor(private readonly workspaceRoot: string) {
+    const stateRoot = resolveStateRoot(workspaceRoot);
     this.metricsPath = path.join(
-      this.workspaceRoot,
-      "state",
+      stateRoot,
       "analytics",
       "orchestration_metrics.json",
     );

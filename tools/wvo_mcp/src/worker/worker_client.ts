@@ -1,6 +1,7 @@
 import type { WorkerManager } from "./worker_manager.js";
 import type { WorkerCallOptions } from "./protocol.js";
 import { logError } from "../telemetry/logger.js";
+import { withSpan } from "../telemetry/tracing.js";
 
 export interface WorkerErrorPayload {
   error: string;
@@ -57,12 +58,26 @@ export class WorkerClient {
     params?: unknown,
     options?: WorkerCallOptions,
   ): Promise<T | WorkerErrorPayload> {
-    try {
-      const worker = this.manager.getActive();
-      return await worker.call<T>(method, params, options);
-    } catch (error: unknown) {
-      return this.handleError(method, error);
-    }
+    return withSpan<T | WorkerErrorPayload>(
+      "worker.client.call",
+      async (span) => {
+        try {
+          const worker = this.manager.getActive();
+          span?.setAttribute("worker.method", method);
+          if (typeof worker.pid === "number") {
+            span?.setAttribute("worker.pid", worker.pid);
+          }
+          return await worker.call<T>(method, params, options);
+        } catch (error: unknown) {
+          return this.handleError(method, error);
+        }
+      },
+      {
+        attributes: {
+          "worker.client.method": method,
+        },
+      },
+    );
   }
 
   async callTool<T>(
@@ -71,12 +86,26 @@ export class WorkerClient {
     options?: WorkerCallOptions,
   ): Promise<T | WorkerErrorPayload> {
     const method = `runTool:${name}`;
-    try {
-      const worker = this.manager.getActive();
-      return await worker.call<T>("runTool", { name, input }, options);
-    } catch (error: unknown) {
-      return this.handleError(method, error);
-    }
+    return withSpan<T | WorkerErrorPayload>(
+      "worker.client.callTool",
+      async (span) => {
+        try {
+          const worker = this.manager.getActive();
+          span?.setAttribute("worker.tool", name);
+          if (typeof worker.pid === "number") {
+            span?.setAttribute("worker.pid", worker.pid);
+          }
+          return await worker.call<T>("runTool", { name, input }, options);
+        } catch (error: unknown) {
+          return this.handleError(method, error);
+        }
+      },
+      {
+        attributes: {
+          "worker.tool": name,
+        },
+      },
+    );
   }
 
   private handleError(method: string, error: unknown): WorkerErrorPayload {

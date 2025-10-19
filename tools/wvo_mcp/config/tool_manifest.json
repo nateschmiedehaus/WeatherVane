@@ -1,0 +1,127 @@
+{
+  "version": "2025-10-17",
+  "generated_by": "cleanup_workspace.py ledger integration",
+  "tools": [
+    {
+      "name": "plan_next",
+      "description": "Return highest priority roadmap tasks with optional filters.",
+      "input_schema": "PlanNextInput",
+      "rough_cost_tokens": 1200,
+      "capability": "medium",
+      "prerequisites": [
+        "state/roadmap.yaml"
+      ],
+      "postconditions": [
+        "No state mutation."
+      ]
+    },
+    {
+      "name": "plan_update",
+      "description": "Update roadmap task status and persist to state/roadmap.yaml.",
+      "input_schema": "PlanUpdateInput",
+      "rough_cost_tokens": 900,
+      "capability": "medium",
+      "prerequisites": [
+        "plan_next executed or task id known"
+      ],
+      "postconditions": [
+        "state/roadmap.yaml mutated",
+        "Triggers plan cache invalidation"
+      ]
+    },
+    {
+      "name": "critics_run",
+      "description": "Run one or more critic suites (lint/tests/UX) inside isolated sandboxes.",
+      "input_schema": "CriticsRunInput",
+      "rough_cost_tokens": 600,
+      "capability": "high",
+      "prerequisites": [
+        "Worker healthy",
+        "All critic dependencies installed"
+      ],
+      "postconditions": [
+        "state/critics/<critic>.json updated",
+        "state/context.md may be appended with summary"
+      ]
+    },
+    {
+      "name": "context_write",
+      "description": "Append or replace sections in state/context.md for decision logging.",
+      "input_schema": "ContextWriteInput",
+      "rough_cost_tokens": 150,
+      "capability": "low",
+      "prerequisites": [
+        "None"
+      ],
+      "postconditions": [
+        "state/context.md mutated with dedupe guard"
+      ]
+    },
+    {
+      "name": "cmd_run",
+      "description": "Execute shell commands within the workspace (respecting sandbox).",
+      "input_schema": "CmdRunInput",
+      "rough_cost_tokens": 400,
+      "capability": "varies",
+      "prerequisites": [
+        "Command approved for sandbox",
+        "Workspace not read-only"
+      ],
+      "postconditions": [
+        "Side-effects depend on command"
+      ]
+    },
+    {
+      "name": "fs_read",
+      "description": "Read a file relative to the workspace root.",
+      "input_schema": "FsReadInput",
+      "rough_cost_tokens": 80,
+      "capability": "low",
+      "prerequisites": [
+        "File within allowed roots"
+      ],
+      "postconditions": [
+        "None"
+      ]
+    },
+    {
+      "name": "fs_write",
+      "description": "Write a file relative to the workspace root.",
+      "input_schema": "FsWriteInput",
+      "rough_cost_tokens": 120,
+      "capability": "medium",
+      "prerequisites": [
+        "Target path writable"
+      ],
+      "postconditions": [
+        "File contents replaced"
+      ]
+    },
+    {
+      "name": "autopilot_status",
+      "description": "Return autopilot audit cadence and consensus snapshots.",
+      "input_schema": null,
+      "rough_cost_tokens": 90,
+      "capability": "low",
+      "prerequisites": [
+        "state/autopilot_status.json existing"
+      ],
+      "postconditions": [
+        "None"
+      ]
+    },
+    {
+      "name": "tool_manifest",
+      "description": "Describe available MCP tools with metadata for scheduling.",
+      "input_schema": null,
+      "rough_cost_tokens": 60,
+      "capability": "low",
+      "prerequisites": [
+        "tools/wvo_mcp/config/tool_manifest.json present"
+      ],
+      "postconditions": [
+        "None"
+      ]
+    }
+  ]
+}

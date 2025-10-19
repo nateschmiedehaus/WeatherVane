@@ -20,6 +20,9 @@ export const LIVE_FLAG_KEYS = [
   'EFFICIENT_OPERATIONS',
   'RESEARCH_TRIGGER_SENSITIVITY',
   'CRITIC_INTELLIGENCE_LEVEL',
+  'CRITIC_REPUTATION',
+  'EVIDENCE_LINKING',
+  'VELOCITY_TRACKING',
 ] as const;
 
 export type LiveFlagKey = (typeof LIVE_FLAG_KEYS)[number];
@@ -41,6 +44,9 @@ export const DEFAULT_LIVE_FLAGS: LiveFlagSnapshot = {
   EFFICIENT_OPERATIONS: '1',
   RESEARCH_TRIGGER_SENSITIVITY: '0.5',
   CRITIC_INTELLIGENCE_LEVEL: '2',
+  CRITIC_REPUTATION: '0',
+  EVIDENCE_LINKING: '0',
+  VELOCITY_TRACKING: '0',
 };
 
 export function isLiveFlagKey(value: string): value is LiveFlagKey {
@@ -69,6 +75,9 @@ export function normalizeLiveFlagValue<K extends LiveFlagKey>(
     case 'RESEARCH_LAYER':
     case 'INTELLIGENT_CRITICS':
     case 'EFFICIENT_OPERATIONS':
+    case 'CRITIC_REPUTATION':
+    case 'EVIDENCE_LINKING':
+    case 'VELOCITY_TRACKING':
       return (stringValue === '1' ? '1' : '0') as LiveFlagSnapshot[K];
     case 'RESEARCH_TRIGGER_SENSITIVITY': {
       const numeric = Number.parseFloat(stringValue);

@@ -1,0 +1,22 @@
+# Context7 Competitive Pricing API
+
+- **Base URL:** `https://context7.com/api/v1`
+- **Endpoint:** `/competitive/pricing`
+- **Method:** `GET`
+- **Authentication:** `CONTEXT7_API_KEY` header
+- **Query Parameters:**
+  - `tenant_id` (string) – WeatherVane tenant identifier.
+  - `sku` (string, optional) – SKU or product identifier to filter.
+  - `category` (string, optional) – Category slug to filter.
+  - `marketplace` (string, optional) – Marketplace identifier (e.g., `amazon`, `walmart`).
+- **Response Fields:**
+  - `timestamp` (ISO datetime)
+  - `tenant_id` (string)
+  - `sku` (string)
+  - `competitor` (string) – competitor brand or seller.
+  - `marketplace` (string)
+  - `price` (number)
+  - `available` (boolean) – inventory availability flag.
+  - `shipping_days` (integer, optional)
+  - `last_seen` (ISO datetime, optional)
+- **Use Cases:** compute competitor price gaps and assortment overlap metrics.

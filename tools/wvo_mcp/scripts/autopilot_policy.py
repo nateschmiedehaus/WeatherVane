@@ -25,13 +25,19 @@ import math
 import os
 import random
 import re
+import sqlite3
 import sys
 import time
+from collections import Counter, defaultdict
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Tuple, Set
 
 import yaml
+
+
+FORCE_PRODUCT = os.getenv("WVO_AUTOPILOT_FORCE_PRODUCT", "1") != "0"
+ALLOW_MCP = os.getenv("WVO_AUTOPILOT_ALLOW_MCP", "0") == "1"
 
 
 DEFAULT_CRITIC_GROUP = "general"
@@ -55,7 +61,6 @@ CRITIC_CLASS_MAP: Dict[str, Set[str]] = {
     "quality": {
         "tests",
         "build",
-        "manager_self_check",
         "health_check",
         "integration_fury",
         "network_navigator",
@@ -136,6 +141,15 @@ DEFAULT_STATE = Path("state/policy/autopilot_policy.json")
 DEFAULT_HISTORY = Path("state/analytics/autopilot_policy_history.jsonl")
 DEFAULT_BALANCE = Path("state/autopilot_balance.json")
 DEFAULT_ROADMAP = Path("state/roadmap.yaml")
+CRITICS_BACKOFF_PATH = Path("state/autopilot_critics_backoff.json")
+
+MCP_INFRASTRUCTURE_PHASES = [
+    "PHASE-1-HARDENING",
+    "PHASE-2-COMPACT",
+    "PHASE-3-BATCH",
+    "PHASE-4-POLISH",
+    "PHASE-5-OPTIMIZATION",
+]
 
 TASK_ID_PATTERN = re.compile(r"(T\d+(?:\.\d+)*|E\d+)")
 
@@ -161,6 +175,292 @@ def load_yaml(path: Path) -> Dict[str, Any]:
         return yaml.safe_load(path.read_text(encoding="utf-8")) or {}
     except yaml.YAMLError:
         return {}
+
+
+def parse_metadata_blob(blob: Optional[str]) -> Dict[str, Any]:
+    if not blob:
+        return {}
+    try:
+        data = json.loads(blob)
+    except json.JSONDecodeError:
+        return {}
+    if isinstance(data, dict):
+        return data
+    return {}
+
+
+def aggregate_status(statuses: Iterable[str]) -> str:
+    normalised = [normalise_status(status) for status in statuses if isinstance(status, str)]
+    if not normalised:
+        return "pending"
+    if any(status in {"blocked", "needs_improvement"} for status in normalised):
+        return "blocked"
+    if any(status in {"in_progress", "needs_review"} for status in normalised):
+        return "in_progress"
+    if any(status == "pending" for status in normalised):
+        return "pending"
+    if all(status == "done" for status in normalised):
+        return "done"
+    return normalised[0]
+
+
+def build_roadmap_from_db(db_path: Path) -> Dict[str, Any]:
+    if not db_path.exists():
+        return {"epics": []}
+
+    try:
+        connection = sqlite3.connect(str(db_path))
+        connection.row_factory = sqlite3.Row
+    except sqlite3.Error:
+        return {"epics": []}
+
+    try:
+        rows = connection.execute(
+            "SELECT id, title, status, metadata, description FROM tasks"
+        ).fetchall()
+        if not rows:
+            return {"epics": []}
+
+        def summarise_product_state(records: Iterable[sqlite3.Row]) -> Tuple[bool, List[str]]:
+            has_active = False
+            blocked_meta_ids: List[str] = []
+            for record in records:
+                metadata = parse_metadata_blob(record["metadata"])
+                domain = (metadata.get("domain") or "").strip().lower()
+                if not domain:
+                    epic_id = str(metadata.get("epic_id") or "").upper()
+                    if epic_id.startswith("E6"):
+                        domain = "mcp"
+                    elif epic_id.startswith("E"):
+                        domain = "product"
+                if domain != "product":
+                    continue
+                status = normalise_status(record["status"])
+                if status in {"pending", "in_progress", "needs_review", "needs_improvement"}:
+                    has_active = True
+                elif status == "blocked":
+                    blocking_phases = metadata.get("blocking_phases")
+                    if isinstance(blocking_phases, list):
+                        if any((str(phase) or "").upper() in MCP_INFRASTRUCTURE_PHASES for phase in blocking_phases):
+                            blocked_meta_ids.append(str(record["id"]))
+                            continue
+                    if metadata.get("blocked_by_meta_work") is True:
+                        blocked_meta_ids.append(str(record["id"]))
+            return has_active, blocked_meta_ids
+
+        has_active_product, meta_blocked_ids = summarise_product_state(rows)
+
+        if not has_active_product and meta_blocked_ids:
+            try:
+                connection.execute("BEGIN")
+                for task_id in meta_blocked_ids:
+                    connection.execute(
+                        """
+                        UPDATE tasks
+                        SET status='pending',
+                            metadata = json_remove(
+                                json_remove(
+                                    json_remove(coalesce(metadata, '{}'), '$.blocked_by_meta_work'),
+                                    '$.blocking_phases'
+                                ),
+                                '$.meta_focus_enforced_at'
+                            )
+                        WHERE id = ?
+                        """,
+                        (task_id,),
+                    )
+                connection.commit()
+                rows = connection.execute(
+                    "SELECT id, title, status, metadata, description FROM tasks"
+                ).fetchall()
+            except sqlite3.Error:
+                connection.rollback()
+
+        dependency_rows = connection.execute(
+            "SELECT task_id, depends_on_task_id FROM task_dependencies"
+        ).fetchall()
+    except sqlite3.Error:
+        return {"epics": []}
+    finally:
+        connection.close()
+
+    dependencies: Dict[str, List[str]] = defaultdict(list)
+    for record in dependency_rows:
+        task_id = record["task_id"]
+        depends_on = record["depends_on_task_id"]
+        if task_id and depends_on:
+            dependencies[str(task_id)].append(str(depends_on))
+
+    epics: Dict[str, Dict[str, Any]] = {}
+    epic_status_override: Dict[str, str] = {}
+    epic_statuses: Dict[str, List[str]] = defaultdict(list)
+    epic_domains: Dict[str, List[str]] = defaultdict(list)
+    milestone_statuses: Dict[Tuple[str, str], List[str]] = defaultdict(list)
+
+    def ensure_epic(epic_id: str, title_hint: Optional[str], domain_hint: Optional[str], description: Optional[str]) -> Dict[str, Any]:
+        identifier = epic_id or "E-GENERAL"
+        entry = epics.get(identifier)
+        if not entry:
+            entry = {
+                "id": identifier,
+                "title": title_hint or identifier,
+                "status": "pending",
+                "domain": (domain_hint or "product").lower(),
+                "milestones": {},
+            }
+            if description:
+                entry["description"] = description
+            epics[identifier] = entry
+        else:
+            if title_hint and (entry.get("title") in (identifier, "", None)):
+                entry["title"] = title_hint
+            if domain_hint:
+                preferred = domain_hint.lower()
+                current = (entry.get("domain") or "product").lower()
+                if current == "product" and preferred != "product":
+                    entry["domain"] = preferred
+            if description and not entry.get("description"):
+                entry["description"] = description
+        if domain_hint:
+            epic_domains[identifier].append(str(domain_hint).lower())
+        return entry
+
+    def ensure_milestone(epic_entry: Dict[str, Any], milestone_id: Optional[str], title_hint: Optional[str]) -> Dict[str, Any]:
+        base_id = milestone_id or f"{epic_entry['id']}-backlog"
+        base_title = title_hint or ("Backlog" if milestone_id is None else base_id)
+        milestones: Dict[str, Dict[str, Any]] = epic_entry["milestones"]
+        entry = milestones.get(base_id)
+        if not entry:
+            entry = {
+                "id": base_id,
+                "title": base_title,
+                "status": "pending",
+                "tasks": [],
+            }
+            milestones[base_id] = entry
+        else:
+            if title_hint and (entry.get("title") in (base_id, "", None, "Backlog")):
+                entry["title"] = title_hint
+        return entry
+
+    # First pass: prime epic overrides for dedicated epic rows.
+    for row in rows:
+        row_id = str(row["id"])
+        metadata = parse_metadata_blob(row["metadata"])
+        is_epic_root = metadata.get("kind") == "epic" or re.match(r"^E\d+", row_id, re.IGNORECASE)
+        if is_epic_root and not metadata.get("epic_id"):
+            status = normalise_status(row["status"])
+            epic_entry = ensure_epic(
+                row_id,
+                metadata.get("epic_title") or row["title"],
+                metadata.get("domain"),
+                metadata.get("description") or row["description"],
+            )
+            epic_status_override[row_id] = status
+            continue
+
+    # Second pass: materialise tasks into milestones.
+    for row in rows:
+        row_id = str(row["id"])
+        metadata = parse_metadata_blob(row["metadata"])
+        is_epic_root = metadata.get("kind") == "epic" or re.match(r"^E\d+", row_id, re.IGNORECASE)
+        # Skip epic nodes already handled unless explicitly attributed to another epic.
+        if is_epic_root and not metadata.get("epic_id"):
+            continue
+
+        status = normalise_status(row["status"])
+        title = (row["title"] or metadata.get("title") or row_id).strip()
+        description = (row["description"] or metadata.get("description")) or None
+        epic_id = metadata.get("epic_id")
+        milestone_id = metadata.get("milestone_id")
+        milestone_title = metadata.get("milestone_title")
+        domain_hint = metadata.get("domain") or "product"
+
+        epic_entry = ensure_epic(
+            str(epic_id or "E-GENERAL"),
+            metadata.get("epic_title"),
+            domain_hint,
+            metadata.get("epic_description"),
+        )
+        milestone_entry = ensure_milestone(epic_entry, milestone_id, milestone_title)
+
+        exit_criteria_raw = metadata.get("exit_criteria") or []
+        if isinstance(exit_criteria_raw, (list, tuple)):
+            exit_criteria = [str(item) for item in exit_criteria_raw if item]
+        else:
+            exit_criteria = []
+
+        dependency_list = sorted({str(dep) for dep in dependencies.get(row_id, [])})
+
+        task_payload: Dict[str, Any] = {
+            "id": row_id,
+            "title": title,
+            "status": status,
+            "dependencies": dependency_list,
+            "exit_criteria": exit_criteria,
+            "domain": str(domain_hint).lower(),
+        }
+        if description:
+            task_payload["description"] = description
+
+        milestone_entry["tasks"].append(task_payload)
+        epic_statuses[epic_entry["id"]].append(status)
+        milestone_statuses[(epic_entry["id"], milestone_entry["id"])].append(status)
+
+    # Finalise milestone and epic statuses plus domain normalisation.
+    document_epics: List[Dict[str, Any]] = []
+    for epic_id, epic_entry in sorted(epics.items()):
+        # Update milestone lists
+        milestone_list: List[Dict[str, Any]] = []
+        for milestone_id, milestone_entry in sorted(epic_entry["milestones"].items()):
+            statuses = milestone_statuses.get((epic_id, milestone_id), [])
+            milestone_entry["status"] = aggregate_status(statuses)
+            milestone_entry["tasks"].sort(key=lambda task: task["id"])
+            milestone_list.append(milestone_entry)
+        epic_entry["milestones"] = milestone_list
+
+        # Derive epic status
+        computed_status = aggregate_status(epic_statuses.get(epic_id, []))
+        override_status = epic_status_override.get(epic_id)
+        if override_status in {"blocked", "needs_improvement"}:
+            final_status = override_status
+        elif computed_status == "pending" and override_status and override_status != "pending":
+            final_status = override_status
+        elif computed_status and computed_status != "pending":
+            final_status = computed_status
+        else:
+            final_status = override_status or computed_status or "pending"
+        epic_entry["status"] = final_status
+
+        # Normalise domain from observed domains if available
+        observed_domains = [item for item in epic_domains.get(epic_id, []) if item]
+        if observed_domains:
+            dominant = Counter(observed_domains).most_common(1)[0][0]
+            epic_entry["domain"] = dominant
+        else:
+            epic_entry["domain"] = (epic_entry.get("domain") or "product").lower()
+
+        document_epics.append(epic_entry)
+
+    return {"epics": document_epics}
+
+
+def load_roadmap_with_db_fallback(roadmap_path: Path) -> Dict[str, Any]:
+    document = load_yaml(roadmap_path)
+    epics = document.get("epics") if isinstance(document, dict) else None
+    if epics:
+        return document
+    db_path = roadmap_path.with_name("orchestrator.db")
+    fallback = build_roadmap_from_db(db_path)
+    if fallback.get("epics"):
+        try:
+            roadmap_path.parent.mkdir(parents=True, exist_ok=True)
+            serialized = yaml.safe_dump(fallback, sort_keys=False)
+            roadmap_path.write_text(serialized, encoding="utf-8")
+        except OSError:
+            pass
+        return fallback
+    return document if isinstance(document, dict) else {"epics": []}
 
 
 def normalise_status(value: Any) -> str:
@@ -206,18 +506,19 @@ def build_task_index(roadmap: Dict[str, Any]) -> Tuple[Dict[str, TaskRecord], Di
                 task_id = str(task.get("id", "")).strip()
                 if not task_id:
                     continue
+                task_domain = str(task.get("domain", "") or domain).strip().lower() or domain
                 status = normalise_status(task.get("status"))
                 title = str(task.get("title", "") or "").strip() or task_id
                 deps = [str(dep).strip() for dep in task.get("dependencies", []) if str(dep).strip()]
                 critics = extract_critic_names(task.get("exit_criteria", []))
                 critic_groups = [critic_group(item) for item in critics] or [DEFAULT_CRITIC_GROUP]
-                task_group = classify_task_group(domain, critic_groups, task_id)
+                task_group = classify_task_group(task_domain, critic_groups, task_id)
 
                 record = TaskRecord(
                     task_id=task_id,
                     title=title,
                     status=status,
-                    domain=domain,
+                    domain=task_domain,
                     dependencies=deps,
                     critics=critics,
                     critic_groups=critic_groups,
@@ -226,7 +527,7 @@ def build_task_index(roadmap: Dict[str, Any]) -> Tuple[Dict[str, TaskRecord], Di
                 tasks[task_id.lower()] = record
 
                 features = domain_features.setdefault(
-                    domain,
+                    task_domain,
                     {
                         "remaining": 0,
                         "blocked": 0,
@@ -286,6 +587,27 @@ def load_balance_snapshot(path: Path) -> Dict[str, Any]:
     return snapshot
 
 
+def clamp_domain_biases(state: Dict[str, Any]) -> None:
+    domains = state.get("domains")
+    if not isinstance(domains, dict):
+        return
+    product = domains.setdefault("product", {})
+    product_bias = float(product.get("bias", 0.0))
+    if product_bias < 1.6:
+        product["bias"] = 1.6
+    product_q = float(product.get("q_value", 0.0))
+    if product_q < 0.0:
+        product["q_value"] = 0.0
+
+    mcp = domains.setdefault("mcp", {})
+    mcp_bias = float(mcp.get("bias", 0.0))
+    if mcp_bias > -1.2:
+        mcp["bias"] = -1.2
+    mcp_q = float(mcp.get("q_value", 0.0))
+    if mcp_q > -0.6:
+        mcp["q_value"] = -0.6
+
+
 def ensure_policy_state(raw: Any) -> Dict[str, Any]:
     if not isinstance(raw, dict):
         raw = {}
@@ -297,16 +619,22 @@ def ensure_policy_state(raw: Any) -> Dict[str, Any]:
         entry = domains.setdefault(domain, {})
         entry.setdefault("q_value", 0.0)
         entry.setdefault("count", 0)
-        entry.setdefault("bias", 0.0)
+        if domain == "product":
+            entry.setdefault("bias", 2.0)
+        elif domain == "mcp":
+            entry.setdefault("bias", -1.0)
+        else:
+            entry.setdefault("bias", 0.0)
         entry.setdefault("last_reward", 0.0)
-    raw.setdefault("epsilon", 0.25)
-    raw.setdefault("epsilon_min", 0.05)
-    raw.setdefault("epsilon_decay", 0.985)
+    raw.setdefault("epsilon", 0.12)
+    raw.setdefault("epsilon_min", 0.01)
+    raw.setdefault("epsilon_decay", 0.99)
     raw.setdefault("learning_rate", 0.25)
     raw.setdefault("discount", 0.8)
     raw.setdefault("task_adjustments", {})
     raw.setdefault("last_decision", {})
     raw.setdefault("providers", {})
+    clamp_domain_biases(raw)
     return raw
 
 
@@ -317,6 +645,8 @@ def compute_domain_scores(
     task_adjustments: Dict[str, float],
 ) -> Dict[str, Dict[str, Any]]:
     scores: Dict[str, Dict[str, Any]] = {}
+    product_backlog = domain_features.get("product", {}).get("remaining", 0)
+    product_blocked = domain_features.get("product", {}).get("blocked", 0)
     for domain, features in domain_features.items():
         if features.get("total", 0) == 0:
             continue
@@ -333,16 +663,27 @@ def compute_domain_scores(
         progress = math.log(in_progress + 1.0)
         deps = math.log(dependency_edges + 1.0) * 0.25
 
+        preference = 0.0
+        if domain == "product":
+            preference = 2.25
+        elif domain == "mcp":
+            preference = -1.25
+
         balance_term = 0.0
         if domain == "product":
             product_streak = float(balance_snapshot.get("product_blockers_streak", 0))
             recent = balance_snapshot.get("recent_domains") or []
             recent_mcp = sum(1 for item in recent if item == "mcp")
             recent_product = sum(1 for item in recent if item == "product")
-            balance_term = 0.35 * (product_streak + max(0, recent_mcp - recent_product))
+            backlog_pressure = math.log(product_backlog + 1.0) if product_backlog else 0.0
+            balance_term = 0.9 * (product_streak + max(0, recent_mcp - recent_product)) + backlog_pressure
         else:
             product_streak = float(balance_snapshot.get("product_blockers_streak", 0))
-            balance_term = -0.25 * product_streak
+            balance_term = -0.65 * product_streak
+            if product_backlog > 0:
+                balance_term -= 1.5
+            if product_blocked > 0:
+                balance_term -= 0.5
 
         adjustment_sum = 0.0
         if task_adjustments:
@@ -356,7 +697,11 @@ def compute_domain_scores(
                 if ":" not in key and key.startswith(legacy_prefix):
                     adjustment_sum += delta
 
-        score = q_value + bias + pressure - progress + balance_term + adjustment_sum - deps
+        score = q_value + bias + preference + pressure - progress + balance_term + adjustment_sum - deps
+        if domain == "mcp" and product_backlog > 0:
+            score -= 4.0
+        if domain == "mcp":
+            score = min(score, -5.0)
         scores[domain] = {
             "score": score,
             "q_value": q_value,
@@ -377,36 +722,60 @@ def select_domain(state: Dict[str, Any], scores: Dict[str, Dict[str, Any]]) -> T
         return "product", False
     epsilon = float(state.get("epsilon", 0.25))
     explore = random.random() < epsilon
+    product_stats = scores.get("product")
+    if product_stats and product_stats.get("remaining", 0) > 0:
+        if explore:
+            return "product", True
     if explore:
         choice = random.choice(list(scores.keys()))
         return choice, True
     choice = max(scores.items(), key=lambda item: item[1]["score"])[0]
+    if product_stats and product_stats.get("remaining", 0) > 0 and choice != "product":
+        choice = "product"
+    if FORCE_PRODUCT and not ALLOW_MCP:
+        if product_stats or "product" in scores:
+            return "product", False
     return choice, False
 
 
 def format_prompt_directive(domain: str, action: str, reason: str, tasks: List[TaskRecord], critics: List[str]) -> str:
     lines = [
         f"Policy target: focus on the {domain.upper()} domain this cycle.",
-        f"Primary action: {action}.",
     ]
+    if action == "idle":
+        lines.append("Primary action: idle (no remaining work detected).")
+        if reason:
+            lines.append(f"Reasoning: {reason}")
+        lines.append("Stand down automation and wait for new work before relaunching.")
+        return "\n".join(lines)
+
+    lines.append(f"Primary action: {action}.")
     if critics:
         joined = ", ".join(sorted(set(critics)))
-        lines.append(f"Run or repair critics before coding: {joined}.")
+        lines.append(f"Critics (run when available): {joined}.")
     if tasks:
         top = "; ".join(f"{task.task_id} ({task.status}) – {task.title}" for task in tasks[:4])
         lines.append(f"Top priorities: {top}.")
-    lines.append(f"Reasoning: {reason}")
+    if reason:
+        lines.append(f"Reasoning: {reason}")
     return "\n".join(lines)
 
 
-def infer_action(domain_features: Dict[str, Any]) -> str:
-    blocked = domain_features.get("blocked", 0)
-    remaining = domain_features.get("remaining", 0)
-    if blocked > 0 and blocked >= remaining * 0.5:
-        return "recover_critics"
-    if remaining == 0:
+def infer_action(domain: str, domain_features: Dict[str, Any]) -> str:
+    features: Dict[str, Any] = domain_features if isinstance(domain_features, dict) else {}
+    try:
+        remaining = int(features.get("remaining", 0) or 0)
+    except (TypeError, ValueError):
+        remaining = 0
+    if remaining <= 0:
+        return "idle"
+    if domain != "product":
         return "monitor"
     return "execute_tasks"
+
+
+def critics_backoff_active() -> bool:
+    return False
 
 
 def decision_payload(
@@ -442,7 +811,29 @@ def decision_payload(
     }
 
 
-def decision_reason(domain: str, explore: bool, score: Dict[str, Any], action: str) -> str:
+def decision_reason(
+    domain: str,
+    explore: bool,
+    score: Dict[str, Any],
+    action: str,
+    features: Optional[Dict[str, Any]],
+) -> str:
+    if action == "idle":
+        remaining = 0
+        blocked = 0
+        if isinstance(features, dict):
+            try:
+                remaining = int(features.get("remaining", 0) or 0)
+            except (TypeError, ValueError):
+                remaining = 0
+            try:
+                blocked = int(features.get("blocked", 0) or 0)
+            except (TypeError, ValueError):
+                blocked = 0
+        return (
+            f"No active tasks detected in {domain.upper()} (remaining={remaining}, blocked={blocked}). "
+            "Automation will idle until new work appears in the roadmap."
+        )
     if explore:
         return f"Exploration step (epsilon-greedy) to keep policy adaptable."
     score_val = score.get("score", 0.0)
@@ -460,13 +851,13 @@ def tasks_for_domain(domain: str, records: Dict[str, TaskRecord], adjustments: D
         task for task in records.values() if task.domain == domain and task.status != "done"
     ]
     def priority(task: TaskRecord) -> Tuple[int, float]:
-        status_rank = {"blocked": 3, "in_progress": 2, "needs_review": 1, "pending": 0, "": 0}
-        base = status_rank.get(task.status, 0)
+        status_priority = {"in_progress": 0, "pending": 1, "needs_review": 2, "blocked": 3}
+        base = status_priority.get(task.status, 4)
         domain_bonus = adjustments.get(f"domain:{task.domain}", 0.0)
         group_bonus = adjustments.get(f"group:{task.group}", 0.0)
         legacy_bonus = adjustments.get(task.task_id.lower(), 0.0) + adjustments.get(f"task:{task.task_id.lower()}", 0.0)
         adj = domain_bonus + group_bonus + legacy_bonus
-        return (-base, -adj)
+        return (base, -adj)
 
     filtered.sort(key=priority)
     return filtered
@@ -496,9 +887,11 @@ def run_decision(
     balance_snapshot: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     if roadmap_data is None:
-        roadmap = load_yaml(roadmap_path)
+        roadmap = load_roadmap_with_db_fallback(roadmap_path)
     else:
         roadmap = dict(roadmap_data)
+        if not isinstance(roadmap, dict) or not roadmap.get("epics"):
+            roadmap = load_roadmap_with_db_fallback(roadmap_path)
     tasks, domain_features = build_task_index(roadmap)
     if balance_snapshot is None:
         balance_snapshot = load_balance_snapshot(balance_path)
@@ -514,11 +907,15 @@ def run_decision(
     )
 
     domain, explore = select_domain(state, scores)
+    product_features = domain_features.get("product", {})
+    if product_features.get("remaining", 0) > 0 or product_features.get("blocked", 0) > 0:
+        domain = "product"
+        explore = False
     chosen_features = domain_features.get(domain, {})
-    action = infer_action(chosen_features)
+    action = infer_action(domain, chosen_features)
     task_records = tasks_for_domain(domain, tasks, state.get("task_adjustments", {}))
     critic_list = critics_for_tasks(task_records[:5])
-    reason = decision_reason(domain, explore, scores.get(domain, {}), action)
+    reason = decision_reason(domain, explore, scores.get(domain, {}), action, chosen_features)
     prompt_directive = format_prompt_directive(domain, action, reason, task_records, critic_list)
 
     payload = decision_payload(
@@ -627,6 +1024,18 @@ def reward_from_summary(
     cross_failures = sum(count for dom, count in blocker_counts.items() if dom != domain)
 
     reward = 2.0 * success + 0.8 * cross_success - 1.8 * failures - 0.4 * cross_failures
+    if domain == "product":
+        reward += 0.35 * success + 0.15 * cross_success
+        if success > 0:
+            reward += 0.15
+        if failures > 0:
+            reward -= 0.3
+    elif domain == "mcp":
+        reward -= 1.2
+        if success == 0:
+            reward -= 0.6
+        reward -= 0.2 * cross_failures
+        reward += 0.1 * cross_success
 
     meta = summary.get("meta") or {}
     provider = (meta.get("provider") or "").strip().lower()
@@ -682,6 +1091,8 @@ def update_task_adjustments(
             record = task_index.get(task_id)
             if not record:
                 continue
+            if record.domain == "mcp" and delta > 0:
+                continue
             domain_key = f"domain:{record.domain}"
             group_key = f"group:{record.group}"
             updated[domain_key] = updated.get(domain_key, 0.0) + delta
@@ -723,9 +1134,11 @@ def run_update(
     roadmap_data: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     if roadmap_data is None:
-        roadmap = load_yaml(roadmap_path)
+        roadmap = load_roadmap_with_db_fallback(roadmap_path)
     else:
         roadmap = dict(roadmap_data)
+        if not isinstance(roadmap, dict) or not roadmap.get("epics"):
+            roadmap = load_roadmap_with_db_fallback(roadmap_path)
     task_index, _ = build_task_index(roadmap)
 
     decision_snapshot = dict(decision_payload or {})
@@ -748,6 +1161,11 @@ def run_update(
     domain_state["last_reward"] = reward
     domain_state["count"] = int(domain_state.get("count", 0)) + 1
     domain_state["bias"] = float(domain_state.get("bias", 0.0)) + lr * 0.1 * reward
+    if domain == "mcp":
+        domain_state["q_value"] = min(domain_state["q_value"], -0.6)
+        domain_state["bias"] = min(domain_state["bias"], -1.2)
+    elif domain == "product":
+        domain_state["bias"] = max(domain_state["bias"], 1.6)
 
     completed_ids = extract_task_ids(summary_payload.get("completed_tasks", []))
     blocker_ids = extract_task_ids(summary_payload.get("blockers", []))
@@ -759,6 +1177,7 @@ def run_update(
         task_index,
     )
     update_provider_metrics(state, meta, reward)
+    clamp_domain_biases(state)
 
     state["last_decision"] = {}
     dump_json(state_path, state)

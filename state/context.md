@@ -1,61 +1,50 @@
 ## Current Focus
-### Strategy Alignment
-- 2025-10-15: Atlas and Dana operate from the multi-agent charter (`docs/orchestration/multi_agent_charter.md`); consensus engine docs/telemetry stay the canonical governance reference.
-- 2025-10-15: Consensus simulation harness (`tools/wvo_mcp/scripts/run_consensus_simulation.mjs`) keeps `experiments/orchestration/simulation_report.md` fresh so staffing and delegation loops remain verifiable.
+- Product-only window. Atlas continues T3.4.2 WeatherOps dashboard polish while Director Dana handles MCP blockers.
 
-### MCP Platform (domain: mcp)
-- Zero-downtime upgrade bundle (E6 + E10) stays sequenced together; today’s slice tightens preflight guardrails by enforcing `.nvmrc` + package `engines` versions before any promotion.
-- Worker manager scaffolding now supports hot-swapping active/canary processes with RPC timeouts and tests (`tools/wvo_mcp/src/worker/worker_manager.ts`, `worker_manager.test.ts`).
-- 2025-10-16: Audited Codex MCP front-end handlers and worker RPCs—no remaining direct `SessionContext` usage; reran `bash tools/wvo_mcp/scripts/run_integrity_tests.sh` to refresh baseline evidence.
-- 2025-10-16: Ran focused vitest suites (`npm run test -- worker_manager`, `npm run test -- worker_entry`) to confirm WorkerManager RPC handling and worker entry runTool path post-refactor.
-- Maintain failover telemetry, command allow-list, compact prompts, and coordinator visibility as the baseline safety rails.
+## Status
+- design_system critic now runnable (profile=high) and clean after memoization fix.
+- exec_review critic still capability-gated; keep manual QA logs for T11.2.2 until profile unlocks.
+- WeatherOps dashboard includes guardrail, escalation, and weather focus flows with analytics wired via `trackDashboardEvent`.
+- Integrity suite failing (2025-10-18T23:58Z) at `tests/test_mcp_tools.py::test_mcp_tool_inventory_and_dry_run_parity` because CriticAvailabilityGuardian emits non-JSON status strings; awaiting Director Dana escalation.
+- Integrity suite additionally red on `tools/wvo_mcp/src/utils/device_profile.test.ts::device_profile resource limits > scales codex workers...` (expects ≥4 workers, current profile yields 3); Atlas to review with Director Dana after PRODUCT slice.
 
-### WeatherVane Product (domain: product)
-- 2025-10-16: design_system/exec_review/integration_fury/manager_self_check/prompt_budget critics remain unavailable—`critics_run` returns “No active worker available” even after MCP restart; Atlas escalated to Director Dana.
-- RL shadow mode and creative response evidence refreshed earlier in the week; exit criteria still gated on critic coverage.
-- Hold T4.1.x/T11.2.x slices until critics are restored; keep task memos aligned with escalation status.
+## Recent Updates
+- 2025-10-19T22:30Z: Stories surface now delivers highlight bullets, share-ready copy, and Plan handoff links; introduced `stories-insights` helpers, refreshed styles, and added Vitest coverage. Integrity batch still blocked by CriticAvailabilityGuardian JSON error.
+- 2025-10-19T14:20Z: WeatherOps dashboard top signal now renders the region summary (or fallback reason) from suggestion analytics so operators see narrative copy alongside meta stats. Added backend summary fields (`top_region_summary`, `top_reason`), Python + Vitest coverage, and refreshed docs. Integrity batch still red on `src/utils/device_profile.test.ts` (expected profile constraint).
+- 2025-10-19T08:10Z: WeatherOps dashboard top signal meta now surfaces high-risk alert counts even without badges; extracted a shared builder and added Vitest coverage (library + integration).
+- 2025-10-19T03:44Z: WeatherOps dashboard top suggestion now shows a high-risk badge with sanitized counts plus tooltip metadata; added `buildHighRiskAlertDescriptor` helper + Vitest coverage. Integrity batch still fails at MCP dry-run parity due to existing worker crash.
+- 2025-10-19T03:08Z: Dashboard suggestion analytics payloads now backfill metadata defaults (region slug, summaries, deterministic signature) via a shared normalizer. Added Vitest coverage for analytics helpers, refreshed dashboard spec expectations, and reran integrity batches (Python + web pass; MCP vitest still red on `device_profile` limits—escalated to Director Dana).
+- 2025-10-19T02:36Z: WeatherOps suggestion telemetry overview now derives totals and confidence metrics from raw telemetry when the summary payload is missing; updated `buildSuggestionTelemetryOverview`, dashboard hook-up, and Vitest coverage. Integrity suite rerun still red on `src/utils/device_profile.test.ts` (expected staffing blocker for Director Dana).
+- 2025-10-19T03:01Z: WeatherOps suggestion telemetry list now classifies high-risk alert volume into elevated/critical badges directly in the UI, with shared helpers using the same thresholds as downstream consumers. Added Vitest coverage for severity thresholds and refreshed dashboard docs. Integrity suite rerun still red on `src/utils/device_profile.test.ts::device_profile resource limits` (current profile caps Codex workers at 3).
 
-## Guardrails & System Decisions
-- MCP command execution uses allow-list + deny-list; keep pytest coverage tight when editing guardrails.
-- State machine correlation IDs and compact prompt mode remain the defaults; use `ts-node tools/wvo_mcp/scripts/live_flags.ts set PROMPT_MODE verbose` to rollback if needed.
-- Upgrade preflight now fails when Node/npm deviate from `.nvmrc` or package `engines`, preventing unsafe promotions.
-- Coordinator failover telemetry surfaces via `orchestrator_status` and must stay green before rolling releases.
+- 2025-10-19T02:06Z: **CRITICAL FIX - Codex network connectivity.** Fixed autopilot network preflight check (line 3139 in `tools/wvo_mcp/scripts/autopilot.sh`) to accept any HTTP response code (including 421) as proof of connectivity, not just HTTP success. Autopilot was failing to connect to Codex because it rejected valid network responses. Now confirms: network check passes, Codex connects successfully, real tokens consumed (not cached fallback).
+- 2025-10-19T02:00Z: **TypeScript loop detector fixes.** Fixed type errors in `loop_detector.ts` by changing invalid ContextEntryType values ('instruction', 'escalation') to 'decision'. Added logic to prevent false positives when blockers change between attempts (changing blockers IS progress). All 19 tests pass.
+- 2025-10-19T02:01Z: Dashboard API now respects an optional `since` filter for suggestion telemetry, keeping worker/API loaders aligned; added pytest coverage plus doc updates. Integrity suite rerun still fails at Codex device profile guard (expected until Director Dana resolves staffing limits).
+- 2025-10-19T00:18Z: Worker suggestion telemetry loaders accept a `since` filter so notebooks focus on fresh signals; added pytest coverage to keep summaries aligned with PRODUCT rates.
+- 2025-10-19T00:00Z: Refined suggestion summary ranking to weight engagement confidence, preventing low-sample spikes from outranking stable signals and added shared test coverage.
 
-## Risks
-- Provider CLIs and token heuristics may drift; schedule smoke checks with failover + cost_perf critics.
-- TypeScript build is not auto-run in this sandbox; execute `npm run build --prefix tools/wvo_mcp` before packaging releases.
-- Monitor design_system critic availability; rerun suites frequently so T3.3.x/T3.4.x remain eligible for promotion.
+_Trimmed for token efficiency (startup); full history preserved in `state/backups/context/context-2025-10-19T14-22-56-757Z.md`._
 
-## Next actions
-### MCP Platform (domain: mcp)
-- Finish E6 + E10 planning artifacts and stage PHASE-5A follow-ups only after upgrade guardrails ship end-to-end.
-- Map WorkerManager follow-ups: enrich worker_health telemetry, integrate canary harness, and wire resilience auto-restart/escalation.
-- Capture fresh autopilot e2e + performance benchmarks after substantive MCP changes so critics stay green.
-- Default to product work each loop; fall back to MCP only when the product queue is blocked per `plan_next`.
+## Next Actions
+1. Partner with Director Dana to unblock CriticAvailabilityGuardian JSON compliance and re-run the integrity suite to closure.
+2. Capture allocator diagnostics (binding constraints, profit deltas) from projected-gradient runs to validate production readiness for PRODUCT roadmap evidence.
+3. Continue PRODUCT backlog items focused on suggestion telemetry consumers and document any blockers for Director Dana scheduling.
 
-### WeatherVane Product (domain: product)
-- Re-run leakage + design_system critics when capability profiles recover before closing weather + UX tasks.
-- Keep Meta/Google automation memos current and record blockers in `state/task_memos`.
-- Prefer vertical slices that end in critic evidence; log blockers via `plan_update` when suites remain unavailable.
+## workplan
+✔ Update suggestion telemetry loaders (API + worker) to aggregate metrics after filtering records by tenant.
+✔ Refresh worker + API tests to cover multi-tenant metrics scenarios and assert rate/count integrity post-filtering.
+✔ Run targeted test suites for worker and API telemetry to validate changes.
+2025-10-18T23:38:42+00:00Z – Offline product cycle summary
 
-### Autopilot Captain Persona — Atlas & Director Dana
-- Re-evaluate domain focus every cycle; escalate structural critic gaps to Dana instead of bypassing exit criteria.
-- Run Network Navigator each session start (restart MCP if it fails) to guarantee connectivity.
-- Log consensus decisions into `state/context.md` once the consensus engine goes live so `org_pm` stays aligned.
-- 2025-10-16: Documented escalation for Dana (`docs/orchestration/director_dana_escalation_2025-10-16.md`) covering capability-gated critics blocking product work; awaiting uplift before resuming T4.1.x/T11.2.x.
+• No product-domain tasks surfaced by plan_next.
+2025-10-18T23:44:02+00:00Z – Offline product cycle summary
 
-## Critic Personas (aliases)
-_Trimmed for token efficiency (startup); full history preserved in `state/backups/context/context-2025-10-16T15-24-16-709Z.md`._
+• No product-domain tasks surfaced by plan_next.
+2025-10-18T23:45:10+00:00Z – Offline product cycle summary
 
-## plans
-_Trimmed for token efficiency (startup); full history preserved in `state/backups/context/context-2025-10-16T15-24-16-709Z.md`._
+• No product-domain tasks surfaced by plan_next.
+- 2025-10-19T02:27Z: WeatherOps UI now requests the dashboard endpoint with a 48h since window so stale suggestion telemetry stays hidden; updated fetchDashboard API options, dashboard load call, doc notes, and Vitest coverage to verify query construction and empty-summary handling.
+- 2025-10-19T21:46Z: Enriched WeatherOps suggestion telemetry overview with high-risk/event counts and top interaction totals; dashboard surfaces the data in the hero badge and meta copy so operators see the scale of the leading signal at a glance. Added Vitest coverage for the new summary fields and refreshed the overview UI counts.
 
-## Current Focus
-### WeatherVane Product (domain: product)
-- 2025-10-16: Re-ran RL shadow mode pytest suite and refreshed `experiments/rl/shadow_mode.json`; allocator critic still capability-skipped so T4.1.8 remains blocked pending uplift.
-- 2025-10-16: Reran creative response Prefect flow (`PYTHONPATH=. python apps/worker/run.py demo-tenant --creative-report`) so `experiments/creative/response_scores.json` now captures spend distribution + guardrail counts. design_system critic remains capability-skipped, so T4.1.9 cannot record exit evidence until Dana restores coverage.
-- 2025-10-16: Integrity harness failed on known `tests/test_mcp_tools.py::test_mcp_tool_inventory_and_dry_run_parity` dry-run parity assertion; no regressions observed in product slice.
-
-- 2025-10-16 (evening): design_system + exec_review still capability-skipped; integration_fury worker call timing out; manager_self_check fails git_clean gate because repo carries prior state telemetry deltas; prompt_budget passes with code-search index warning. Escalation to Director Dana pending to restore critic coverage and clarify worktree hygiene expectations.
-### WeatherVane Product (domain: product)
-- 2025-10-16 (later): `critics_run` for design_system/exec_review/integration_fury/manager_self_check/prompt_budget twice returned worker timeouts; Atlas logged persistent critic outage and prepared escalation package for Director Dana pending instruction.
+## dry-run-check
+mutations should fail

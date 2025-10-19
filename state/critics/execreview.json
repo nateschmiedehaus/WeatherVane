@@ -5,8 +5,8 @@
   "stderr": "",
   "passed": false,
   "analysis": null,
-  "git_sha": "3557d4a4726f42b06a979192fe1c60f5ed74f341",
-  "timestamp": "2025-10-16T20:14:36.973Z",
+  "git_sha": "a9b2c543d3f630fb4a1c37dbcf74548b8853b762",
+  "timestamp": "2025-10-18T16:27:15.338Z",
   "identity": {
     "title": "Exec Review",
     "mission": "Safeguard exec_review discipline.",

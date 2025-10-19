@@ -14,12 +14,12 @@
         "current_hour": {
           "requests": 0,
           "tokens": 0,
-          "reset_at": "2025-10-16T20:00:00.000Z"
+          "reset_at": "2025-10-19T19:00:00.000Z"
         },
         "current_day": {
           "requests": 0,
           "tokens": 0,
-          "reset_at": "2025-10-17T05:00:00.000Z"
+          "reset_at": "2025-10-20T05:00:00.000Z"
         }
       },
       "warnings": {
@@ -27,7 +27,7 @@
         "approaching_daily_limit": false,
         "percentage_used": 0
       },
-      "last_updated": "2025-10-16T19:59:47.843Z"
+      "last_updated": "2025-10-19T18:14:02.187Z"
     },
     "codex:default": {
       "provider": "codex",
@@ -43,12 +43,12 @@
         "current_hour": {
           "requests": 0,
           "tokens": 0,
-          "reset_at": "2025-10-16T20:00:00.000Z"
+          "reset_at": "2025-10-19T19:00:00.000Z"
         },
         "current_day": {
           "requests": 0,
           "tokens": 0,
-          "reset_at": "2025-10-17T05:00:00.000Z"
+          "reset_at": "2025-10-20T05:00:00.000Z"
         }
       },
       "warnings": {
@@ -56,8 +56,8 @@
         "approaching_daily_limit": false,
         "percentage_used": 0
       },
-      "last_updated": "2025-10-16T19:59:47.843Z"
+      "last_updated": "2025-10-19T18:14:02.187Z"
     }
   },
-  "last_saved": "2025-10-16T20:19:17.867Z"
+  "last_saved": "2025-10-19T18:15:32.189Z"
 }

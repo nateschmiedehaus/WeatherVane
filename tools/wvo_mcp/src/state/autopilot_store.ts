@@ -14,8 +14,8 @@ const DEFAULT_STATE: AutopilotState = {
 export class AutopilotStore {
   private readonly filePath: string;
 
-  constructor(private readonly workspaceRoot: string) {
-    this.filePath = path.join(this.workspaceRoot, "state", "autopilot.yaml");
+  constructor(private readonly stateRoot: string) {
+    this.filePath = path.join(this.stateRoot, "autopilot.yaml");
   }
 
   private async ensureDirectory(): Promise<void> {

@@ -1,0 +1,392 @@
+categories:
+  - id: marketing_exposures
+    label: "Marketing Exposures & Pacing"
+    entries:
+      - id: meta_ads_daily_performance
+        signal: "Meta Ads daily performance"
+        status: "available"
+        owner: "Data Platform :: Ads Connectors"
+        description: "Spend, delivery, and conversion metrics by campaign and ad set."
+        sources:
+          - kind: "json_schema"
+            name: "meta_ads_daily"
+            path: "shared/contracts/meta_ads.schema.json"
+            fields:
+              - tenant_id
+              - date
+              - campaign_id
+              - adset_id
+              - spend
+              - impressions
+              - clicks
+              - conversions
+        apis:
+          - name: "Meta Marketing API Insights"
+            doc: "docs/api/meta_marketing.md"
+            endpoint: "/{ad_account_id}/insights"
+      - id: google_ads_daily_performance
+        signal: "Google Ads daily performance"
+        status: "available"
+        owner: "Data Platform :: Ads Connectors"
+        description: "Spend and conversion metrics by campaign pulled from the Google Ads connector."
+        sources:
+          - kind: "json_schema"
+            name: "google_ads_daily"
+            path: "shared/contracts/google_ads.schema.json"
+            fields:
+              - tenant_id
+              - date
+              - campaign_id
+              - spend
+              - impressions
+              - clicks
+              - conversions
+        apis:
+          - name: "Google Ads Reporting"
+            doc: "docs/api/google_ads.md"
+            endpoint: "/v17/customers/{customer_id}/googleAds:searchStream"
+      - id: marketing_delivery_diagnostics
+        signal: "Marketing pacing & delivery diagnostics"
+        status: "gap"
+        owner: "Data Platform :: Ads Connectors"
+        description: "Need auction competition, budget pacing, and quality ranking metrics to explain delivery constraints."
+        roadmap: "phase4.media_mix.exposure_warehouse"
+        target_apis:
+          - name: "Meta Delivery Insights"
+            doc: "docs/api/meta_marketing.md"
+            endpoint: "/{ad_account_id}/delivery_insights"
+          - name: "Google Ads Recommendations"
+            doc: "docs/api/google_ads.md"
+            endpoint: "/v17/customers/{customer_id}/recommendations"
+
+  - id: pricing_promotion
+    label: "Pricing & Promotion Signals"
+    entries:
+      - id: shopify_order_financials
+        signal: "Order financials and discounts"
+        status: "available"
+        owner: "Data Platform :: Commerce Connectors"
+        description: "Net revenue, subtotal, tax, and discount metrics per Shopify order."
+        sources:
+          - kind: "json_schema"
+            name: "shopify_orders"
+            path: "shared/contracts/shopify_orders.schema.json"
+            fields:
+              - tenant_id
+              - order_id
+              - created_at
+              - currency
+              - total_price
+              - subtotal_price
+              - total_tax
+              - total_discounts
+              - net_revenue
+        apis:
+          - name: "Shopify Admin REST Orders"
+            doc: "docs/api/shopify_admin_rest.md"
+            endpoint: "/admin/api/2024-07/orders.json"
+      - id: promo_calendar
+        signal: "Promotion calendar baselines"
+        status: "available"
+        owner: "Lifecycle Marketing"
+        description: "Campaign metadata for onsite/email promotions used to flag promo-driven demand."
+        sources:
+          - kind: "json_schema"
+            name: "promo_campaigns"
+            path: "shared/contracts/promos.schema.json"
+            fields:
+              - tenant_id
+              - campaign_id
+              - name
+              - channel
+              - scheduled_at
+              - status
+        apis:
+          - name: "Lifecycle promotion exports"
+            doc: "docs/api/shopify_admin_rest.md"
+            endpoint: "/admin/api/2024-07/marketing_events.json"
+      - id: price_rule_changes
+        signal: "Price rule & discount depth changes"
+        status: "gap"
+        owner: "Lifecycle Marketing"
+        description: "Need granular discount codes and price rule adjustments to connect promo depth with demand."
+        roadmap: "phase4.media_mix.pricing_controls"
+        target_apis:
+          - name: "Shopify Price Rules"
+            doc: "docs/api/shopify_admin_rest.md"
+            endpoint: "/admin/api/2024-07/price_rules.json"
+
+  - id: product_inventory
+    label: "Product & Inventory Context"
+    entries:
+      - id: taxonomy_classification
+        signal: "Canonical product taxonomy"
+        status: "available"
+        owner: "Data Platform :: Product Intelligence"
+        description: "Weather affinity, category hierarchy, and cross-brand keys for each canonical product."
+        sources:
+          - kind: "pydantic_model"
+            name: "ProductTaxonomyEntry"
+            path: "shared/schemas/product_taxonomy.py::ProductTaxonomyEntry"
+            fields:
+              - tenant_id
+              - canonical_product_id
+              - product_name
+              - category_l1
+              - category_l2
+              - weather_affinity
+              - seasonality
+              - cross_brand_key
+              - brand_ids
+              - product_ids
+        apis:
+          - name: "Internal taxonomy service"
+            doc: "docs/features/PRODUCT_LEVEL_FEATURES.md"
+            endpoint: "ProductFeatureBuilder.build() taxonomy input"
+      - id: shopify_product_master
+        signal: "Product catalog master data"
+        status: "available"
+        owner: "Data Platform :: Commerce Connectors"
+        description: "Baseline product metadata pulled from Shopify including title, vendor, and product type."
+        sources:
+          - kind: "json_schema"
+            name: "shopify_products"
+            path: "shared/contracts/shopify_products.schema.json"
+            fields:
+              - tenant_id
+              - product_id
+              - title
+              - product_type
+              - vendor
+              - created_at
+              - updated_at
+        apis:
+          - name: "Shopify Admin REST Products"
+            doc: "docs/api/shopify_admin_rest.md"
+            endpoint: "/admin/api/2024-07/products.json"
+      - id: inventory_levels
+        signal: "Inventory positions & sell-through"
+        status: "gap"
+        owner: "Supply Chain"
+        description: "Inventory on-hand, safety stock, and sell-through rates needed for demand shaping."
+        roadmap: "phase4.media_mix.inventory_controls"
+        target_apis:
+          - name: "Shopify Inventory Levels"
+            doc: "docs/api/shopify_admin_rest.md"
+            endpoint: "/admin/api/2024-07/inventory_levels.json"
+
+  - id: sales_outcomes
+    label: "Sales & Customer Outcomes"
+    entries:
+      - id: shopify_daily_sales
+        signal: "Daily sales outcomes"
+        status: "available"
+        owner: "Data Platform :: Commerce Connectors"
+        description: "Order-level revenue, units, and location metadata informing demand estimates."
+        sources:
+          - kind: "json_schema"
+            name: "shopify_orders"
+            path: "shared/contracts/shopify_orders.schema.json"
+            fields:
+              - tenant_id
+              - order_id
+              - created_at
+              - net_revenue
+              - shipping_postal_code
+              - shipping_country
+              - ship_geohash
+        apis:
+          - name: "Shopify Admin REST Orders"
+            doc: "docs/api/shopify_admin_rest.md"
+            endpoint: "/admin/api/2024-07/orders.json"
+      - id: customer_type_segments
+        signal: "New vs returning customer mix"
+        status: "gap"
+        owner: "Lifecycle Marketing"
+        description: "Need per-order customer type and loyalty tier to attribute demand accurately."
+        roadmap: "phase4.media_mix.customer_mix"
+        target_apis:
+          - name: "Shopify Customers"
+            doc: "docs/api/shopify_admin_rest.md"
+            endpoint: "/admin/api/2024-07/customers.json"
+
+  - id: weather_environmental
+    label: "Weather & Environmental Signals"
+    entries:
+      - id: weather_daily_full
+        signal: "Daily observed weather features"
+        status: "available"
+        owner: "Weather Intelligence"
+        description: "Observed weather measures, anomalies, and lagged metrics per geohash/day."
+        sources:
+          - kind: "json_schema"
+            name: "weather_daily"
+            path: "shared/contracts/weather_daily.schema.json"
+            fields:
+              - date
+              - geohash
+              - temp_c
+              - temp_anomaly
+              - temp_roll7
+              - precip_mm
+              - precip_anomaly
+              - precip_roll7
+              - humidity_mean
+              - windspeed_max
+              - uv_index_max
+              - snowfall_mm
+              - freeze_flag
+              - heatwave_flag
+              - uv_alert_flag
+        apis:
+          - name: "Open-Meteo Forecast"
+            doc: "docs/api/open_meteo.md"
+            endpoint: "/v1/forecast"
+      - id: air_quality_signals
+        signal: "Air quality and pollution metrics"
+        status: "gap"
+        owner: "Weather Intelligence"
+        description: "Need AQI, particulate matter, and ozone data to capture smog-driven behaviour shifts."
+        roadmap: "phase4.weather.expansion"
+        target_apis:
+          - name: "Open-Meteo Air Quality"
+            doc: "docs/api/open_meteo.md"
+            endpoint: "https://air-quality-api.open-meteo.com/v1/air-quality"
+      - id: pollen_index
+        signal: "Pollen severity index"
+        status: "gap"
+        owner: "Weather Intelligence"
+        description: "Seasonal allergy triggers required for pharma and outdoor product demand."
+        roadmap: "phase4.weather.expansion"
+        target_apis:
+          - name: "Open-Meteo Pollen"
+            doc: "docs/api/open_meteo.md"
+            endpoint: "https://pollen-api.open-meteo.com/v1/pollen"
+
+  - id: temporal_macro
+    label: "Temporal, Location, & Macro Context"
+    entries:
+      - id: weather_calendar_features
+        signal: "Calendar context from weather ingest"
+        status: "available"
+        owner: "Weather Intelligence"
+        description: "Timezone and day-of-year attributes derived during weather ingestion."
+        sources:
+          - kind: "json_schema"
+            name: "weather_daily"
+            path: "shared/contracts/weather_daily.schema.json"
+            fields:
+              - timezone
+              - day_of_year
+              - observation_type
+              - as_of_utc
+        apis:
+          - name: "Open-Meteo Forecast"
+            doc: "docs/api/open_meteo.md"
+            endpoint: "/v1/forecast"
+      - id: holiday_calendar
+        signal: "Holiday & events calendar"
+        status: "gap"
+        owner: "Strategy & Insights"
+        description: "Public holidays, school schedules, and major events required for demand uplift modelling."
+        roadmap: "phase4.external_context.calendar"
+        target_apis:
+          - name: "Nager.Date Public Holidays"
+            doc: "docs/api/context7_holidays.md"
+            endpoint: "/api/v3/publicholidays/{year}/{country}"
+      - id: macro_indicators
+        signal: "Macro-economic indicators"
+        status: "gap"
+        owner: "Strategy & Insights"
+        description: "Consumer confidence, CPI, unemployment, and gas price benchmarks for macro controls."
+        roadmap: "phase4.external_context.macro"
+        target_apis:
+          - name: "Bureau of Labor Statistics"
+            doc: "docs/api/context7_bls.md"
+            endpoint: "/timeseries/data/"
+
+  - id: competitive_market
+    label: "Competitive & Market Intelligence"
+    entries:
+      - id: competitive_pricing
+        signal: "Competitor price gaps"
+        status: "gap"
+        owner: "Strategy & Insights"
+        description: "Need marketplace scraping or price intelligence feeds to track competitor pricing."
+        roadmap: "phase4.external_context.competitive"
+        target_apis:
+          - name: "Context7 Competitive Pricing"
+            doc: "docs/api/context7_competition.md"
+            endpoint: "/v1/pricing"
+
+  - id: digital_owned
+    label: "Digital Behaviour & Owned Channels"
+    entries:
+      - id: dashboard_suggestion_telemetry
+        signal: "Dashboard suggestion interactions"
+        status: "available"
+        owner: "Product Analytics"
+        description: "View/focus/dismiss events for weather-driven suggestions in the dashboard."
+        sources:
+          - kind: "dataclass"
+            name: "DashboardSuggestionMetricRecord"
+            path: "shared/services/dashboard_analytics_ingestion.py::DashboardSuggestionMetricRecord"
+            fields:
+              - event
+              - action
+              - tenant_id
+              - region
+              - severity
+              - reason
+              - high_risk_count
+              - event_count
+              - has_scheduled_start
+              - next_event_starts_at
+              - occurred_at
+              - recorded_at
+              - viewport_breakpoint
+              - metadata
+              - signature
+              - tags
+        apis:
+          - name: "Internal metrics stream"
+            doc: "docs/DASHBOARD_ANALYTICS_METADATA.md"
+            endpoint: "dashboard.weather_focus.suggestion"
+      - id: site_traffic
+        signal: "Site & app traffic funnels"
+        status: "gap"
+        owner: "Product Analytics"
+        description: "Need sessions, bounce, and conversion funnel metrics from web/app analytics."
+        roadmap: "phase4.digital.owned_channels"
+        target_apis:
+          - name: "Google Analytics Data API"
+            doc: "docs/api/google_analytics_data.md"
+            endpoint: "/v1beta/properties/{property_id}:runReport"
+
+  - id: operational_supply
+    label: "Operational & Supply Signals"
+    entries:
+      - id: logistics_capacity
+        signal: "Logistics & fulfilment capacity"
+        status: "gap"
+        owner: "Supply Chain"
+        description: "Carrier delays, fulfilment capacity, and staffing levels required for supply-aware forecasts."
+        roadmap: "phase4.supply_signals.capacity"
+        target_apis:
+          - name: "Context7 Logistics"
+            doc: "docs/api/context7_logistics.md"
+            endpoint: "/v1/logistics/status"
+
+  - id: experimentation_governance
+    label: "Experimentation & Governance"
+    entries:
+      - id: marketing_experiments
+        signal: "Marketing experiment assignments"
+        status: "gap"
+        owner: "Growth Science"
+        description: "Need geo and audience level experiment assignments to attribute causal lift."
+        roadmap: "phase4.causal_inference.experiments"
+        target_apis:
+          - name: "Context7 Experimentation"
+            doc: "docs/api/context7_experiments.md"
+            endpoint: "/v1/experiments"

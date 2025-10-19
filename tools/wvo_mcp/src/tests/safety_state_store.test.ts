@@ -26,8 +26,9 @@ describe("SafetyStateStore persistence", () => {
 
   beforeEach(async () => {
     workspace = await fs.mkdtemp(path.join(os.tmpdir(), "safety-state-"));
-    store = new SafetyStateStore(workspace);
-    statePath = path.join(workspace, "state", "safety_state.json");
+    const stateRoot = path.join(workspace, "state");
+    store = new SafetyStateStore(stateRoot);
+    statePath = path.join(stateRoot, "safety_state.json");
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2024-01-02T03:04:05.000Z"));
   });
