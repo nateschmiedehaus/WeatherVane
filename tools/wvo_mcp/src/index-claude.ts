@@ -26,12 +26,15 @@ import {
   lspHoverInput,
   lspServerStatusInput,
   lspInitializeInput,
+  adminFlagsInput,
   type LspDefinitionInput,
   type LspReferencesInput,
   type LspHoverInput,
   type LspServerStatusInput,
   type LspInitializeInput,
+  type AdminFlagsInput,
 } from "./tools/input_schemas.js";
+import { SettingsStore } from "./state/live_flags.js";
 
 let activeRuntime: OrchestratorRuntime | null = null;
 
@@ -1587,6 +1590,132 @@ Retrieves hover information (type signature, documentation) for symbols. Enables
       } catch (error) {
         return formatError(
           "LSP hover information failed",
+          error instanceof Error ? error.message : String(error)
+        );
+      }
+    },
+  );
+
+  // Admin flags tool for runtime tool registration & control
+  const adminFlagsSchema = toJsonSchema(adminFlagsInput, "AdminFlagsInput");
+
+  server.registerTool(
+    "mcp_admin_flags",
+    {
+      description: `🔧 Manage runtime flags for tool routing, feature toggles, and behavior control.
+
+**Actions:**
+- \`get\`: Read current flag values (all or single flag)
+- \`set\`: Update one or more flags atomically without MCP restart
+- \`reset\`: Restore flag to default value
+
+**Available Flags:**
+- PROMPT_MODE: 'compact' | 'verbose' — Controls prompt optimization
+- SANDBOX_MODE: 'none' | 'pool' — Sandbox execution strategy
+- OTEL_ENABLED: '0' | '1' — OpenTelemetry tracing
+- SCHEDULER_MODE: 'legacy' | 'wsjf' — Task scheduling algorithm
+- SELECTIVE_TESTS: '0' | '1' — Run only critical tests
+- DANGER_GATES: '0' | '1' — Allow risky operations
+- UI_ENABLED: '0' | '1' — Enable UI features
+- MO_ENGINE: '0' | '1' — Multi-objective optimization engine
+- DISABLE_NEW: '0' | '1' — Disable new implementations
+- RESEARCH_LAYER: '0' | '1' — Enable research features
+- INTELLIGENT_CRITICS: '0' | '1' — Advanced critic logic
+- EFFICIENT_OPERATIONS: '0' | '1' — Optimize operations
+- CONSENSUS_ENGINE: '0' | '1' — Enable consensus engine
+- CRITIC_INTELLIGENCE_LEVEL: 1-3 — Critic reasoning depth
+- RESEARCH_TRIGGER_SENSITIVITY: 0.0-1.0 — Research activation threshold
+
+**Example:**
+\`\`\`json
+{"action": "set", "flags": {"PROMPT_MODE": "verbose", "OTEL_ENABLED": "1"}}
+\`\`\`
+
+**Atomic Updates:** All flag updates happen within a single database transaction—no partial state.
+**No Restart Required:** Changes take effect immediately via LiveFlags polling.`,
+      inputSchema: adminFlagsSchema,
+    },
+    async (input: unknown) => {
+      try {
+        const parsed = adminFlagsInput.parse(input);
+        const settingsStore = new SettingsStore({ workspaceRoot: session.workspaceRoot });
+
+        try {
+          switch (parsed.action) {
+            case "get": {
+              if (parsed.flag) {
+                // Get single flag
+                const allFlags = settingsStore.read();
+                if (!(parsed.flag in allFlags)) {
+                  return formatError("Flag not found", `Unknown flag: ${parsed.flag}`);
+                }
+                const flagRecord: Record<string, any> = {};
+                flagRecord[parsed.flag] = (allFlags as Record<string, any>)[parsed.flag];
+                return formatData(flagRecord, "Flag Value");
+              } else {
+                // Get all flags
+                const allFlags = settingsStore.read();
+                return formatData(allFlags, "Current Runtime Flags");
+              }
+            }
+
+            case "set": {
+              if (!parsed.flags || Object.keys(parsed.flags).length === 0) {
+                return formatError("Invalid input", "set action requires 'flags' object");
+              }
+
+              const updates: Record<string, any> = {};
+              for (const [key, value] of Object.entries(parsed.flags)) {
+                // Validate that each key is a valid flag
+                const stringValue = typeof value === "boolean" || typeof value === "number"
+                  ? String(value)
+                  : value as string;
+                updates[key] = stringValue;
+              }
+
+              // Apply updates atomically
+              const finalState: Record<string, any> = {};
+              for (const [key, value] of Object.entries(updates)) {
+                const result = settingsStore.upsert(key as any, value);
+                // Get the updated value from the returned snapshot
+                finalState[key] = (result as Record<string, any>)[key];
+              }
+
+              return formatSuccess("Flags updated successfully", {
+                updated_flags: finalState,
+                note: "Changes take effect immediately via LiveFlags polling",
+              });
+            }
+
+            case "reset": {
+              if (!parsed.flag) {
+                return formatError("Invalid input", "reset action requires 'flag' parameter");
+              }
+
+              // Import defaults to reset to default value
+              const { DEFAULT_LIVE_FLAGS } = await import("./state/live_flags.js");
+              if (!(parsed.flag in DEFAULT_LIVE_FLAGS)) {
+                return formatError("Flag not found", `Unknown flag: ${parsed.flag}`);
+              }
+
+              const defaultValue = (DEFAULT_LIVE_FLAGS as Record<string, any>)[parsed.flag];
+              const result = settingsStore.upsert(parsed.flag as any, defaultValue);
+
+              return formatSuccess(`Flag reset to default`, {
+                flag: parsed.flag,
+                default_value: (result as Record<string, any>)[parsed.flag],
+              });
+            }
+
+            default:
+              return formatError("Invalid action", `Unknown action: ${parsed.action}`);
+          }
+        } finally {
+          settingsStore.close();
+        }
+      } catch (error) {
+        return formatError(
+          "Admin flags operation failed",
           error instanceof Error ? error.message : String(error)
         );
       }

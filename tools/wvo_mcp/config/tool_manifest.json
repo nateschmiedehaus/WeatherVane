@@ -122,6 +122,85 @@
       "postconditions": [
         "None"
       ]
+    },
+    {
+      "name": "lsp_initialize",
+      "description": "Start TypeScript and Python language servers to enable symbol-aware context.",
+      "input_schema": "LspInitializeInput",
+      "rough_cost_tokens": 550,
+      "capability": "medium",
+      "prerequisites": [
+        "Workspace root resolved"
+      ],
+      "postconditions": [
+        "tsserver and pyright running if available"
+      ]
+    },
+    {
+      "name": "lsp_server_status",
+      "description": "Check whether TypeScript/Python LSP servers are running and initialized.",
+      "input_schema": "LspServerStatusInput",
+      "rough_cost_tokens": 120,
+      "capability": "low",
+      "prerequisites": [
+        "lsp_initialize executed or servers previously started"
+      ],
+      "postconditions": [
+        "None"
+      ]
+    },
+    {
+      "name": "lsp_definition",
+      "description": "Find symbol definitions with contextual code slices via the LSP proxy.",
+      "input_schema": "LspDefinitionInput",
+      "rough_cost_tokens": 800,
+      "capability": "high",
+      "prerequisites": [
+        "lsp_initialize executed successfully"
+      ],
+      "postconditions": [
+        "None"
+      ]
+    },
+    {
+      "name": "lsp_references",
+      "description": "Enumerate symbol references across the workspace using LSP data.",
+      "input_schema": "LspReferencesInput",
+      "rough_cost_tokens": 900,
+      "capability": "high",
+      "prerequisites": [
+        "lsp_initialize executed successfully"
+      ],
+      "postconditions": [
+        "None"
+      ]
+    },
+    {
+      "name": "lsp_hover",
+      "description": "Retrieve hover/type information for a symbol from the LSP server.",
+      "input_schema": "LspHoverInput",
+      "rough_cost_tokens": 650,
+      "capability": "medium",
+      "prerequisites": [
+        "lsp_initialize executed successfully"
+      ],
+      "postconditions": [
+        "None"
+      ]
+    },
+    {
+      "name": "mcp_admin_flags",
+      "description": "Manage runtime flags for tool routing, feature toggles, and behavior control without restart.",
+      "input_schema": "AdminFlagsInput",
+      "rough_cost_tokens": 200,
+      "capability": "medium",
+      "prerequisites": [
+        "Workspace initialized with state/orchestrator.db"
+      ],
+      "postconditions": [
+        "state/orchestrator.db settings table updated",
+        "Changes take effect immediately via LiveFlags polling"
+      ]
     }
   ]
 }

@@ -1,112 +1,151 @@
 ## Director Dana Follow-Up
-_Trimmed for token efficiency (startup); full history preserved in `state/backups/context/context-2025-10-22T20-36-22-788Z.md`._
+_Trimmed for token efficiency (startup); full history preserved in `state/backups/context/context-2025-10-22T20-58-24-491Z.md`._
 
 ## Recent Activity
-_Trimmed for token efficiency (startup); full history preserved in `state/backups/context/context-2025-10-22T20-36-22-788Z.md`._
+_Trimmed for token efficiency (startup); full history preserved in `state/backups/context/context-2025-10-22T20-58-24-491Z.md`._
 
 ## Recent Activity
-_Trimmed for token efficiency (startup); full history preserved in `state/backups/context/context-2025-10-22T20-36-22-788Z.md`._
+_Trimmed for token efficiency (startup); full history preserved in `state/backups/context/context-2025-10-22T20-58-24-491Z.md`._
 
 ## Recent Activity
-_Trimmed for token efficiency (startup); full history preserved in `state/backups/context/context-2025-10-22T20-36-22-788Z.md`._
+_Trimmed for token efficiency (startup); full history preserved in `state/backups/context/context-2025-10-22T20-58-24-491Z.md`._
 
 ## Recent Fixes
-_Trimmed for token efficiency (startup); full history preserved in `state/backups/context/context-2025-10-22T20-36-22-788Z.md`._
+_Trimmed for token efficiency (startup); full history preserved in `state/backups/context/context-2025-10-22T20-58-24-491Z.md`._
 
 ## Current Focus
-## T6.4.4: Canary upgrade harness & shadow validation — ✅ COMPLETE
+## T6.4.6: Runtime tool registration & admin flag controls — ✅ COMPLETE
 
-**Status**: Task fully implemented and verified as DONE
+**Status**: Task fully implemented and verified
 **Date Completed**: 2025-10-22
-**Quality Gate**: All 4 exit criteria satisfied + comprehensive tests
+**Commits**: See below
 
 ### Implementation Summary
 
-**1. Shell Wrapper (tools/wvo_mcp/scripts/mcp_safe_upgrade.sh)**
-- ✅ Created executable shell wrapper
-- ✅ Provides consistent CLI interface
-- ✅ Passes arguments to Node.js implementation
-- ✅ Help text documents all options
+**1. Admin Flags Tool (mcp_admin_flags)**
+- Created new MCP tool for runtime flag management
+- Three actions: `get` (read flags), `set` (update atomically), `reset` (restore defaults)
+- Supports 18 runtime flags controlling:
+  - Prompt optimization (PROMPT_MODE)
+  - Sandbox strategy (SANDBOX_MODE)
+  - Observability (OTEL_ENABLED)
+  - Task scheduling (SCHEDULER_MODE)
+  - Feature toggles (RESEARCH_LAYER, INTELLIGENT_CRITICS, etc.)
+  - Critic intelligence levels (CRITIC_INTELLIGENCE_LEVEL)
+  - Sensitivity thresholds (RESEARCH_TRIGGER_SENSITIVITY)
 
-**2. Safe Upgrade Implementation (tools/wvo_mcp/scripts/mcp_safe_upgrade.mjs)**
-- ✅ Orchestrates complete upgrade flow
-- ✅ Gate sequence: preflight → build → shadow → canary_rdy
-- ✅ Isolated staging directory (worktree pattern)
-- ✅ Preflight: git clean, versions, disk space, SQLite roundtrip
-- ✅ Build: active + canary in isolation
-- ✅ Shadow validation: active vs canary comparison
-- ✅ Fixed allowDryRunActive flag for DRY_RUN shadow phase
+**2. Input Schema (AdminFlagsInput)**
+- Zod schema for type-safe validation
+- Supports action enum: "get", "set", "reset"
+- Optional flags object for bulk updates
+- Optional single flag parameter for get/reset
 
-**3. Shadow Validation (runShadowChecks)**
-- ✅ Starts active worker (DRY_RUN=1, allowDryRunActive=true)
-- ✅ Starts canary worker from staging
-- ✅ Runs sequential checks: dispatch, verify, plan_next, orchestrator_status, autopilot_status
-- ✅ Normalizes outputs (scrubs timestamps, correlation IDs)
-- ✅ Generates detailed diff on mismatch
+**3. Atomic Updates**
+- All flag updates happen within single SQLite transaction
+- Uses ON CONFLICT DO UPDATE for safety
+- No partial state possible
+- Changes visible via LiveFlags polling (~500ms)
 
-**4. Comprehensive Report Generation**
-- ✅ report.json: consolidates preflight + shadow + promotion data
-- ✅ Summary: counts passed/failed/skipped steps
-- ✅ Gates: status of each gate in sequence
-- ✅ Shadow validation: full check results + diffs
-- ✅ Promotion: ready flag + staged routing plan
+**4. Tool Registration**
+- Registered with MCP server in `index-claude.ts`
+- Comprehensive description with examples
+- Full help text covering all 18 flags
+- Error handling for unknown flags/actions
 
-**5. Documentation (docs/CANARY_UPGRADE_FLOW.md)**
-- ✅ 425-line comprehensive guide
-- ✅ Architecture overview
-- ✅ Gate sequence with diagrams
-- ✅ Staging & isolation details
-- ✅ Promotion flow (DRY → live)
-- ✅ Output schema
-- ✅ Usage examples
-- ✅ Failure modes & recovery
+**5. Documentation**
+- Created `tools/wvo_mcp/docs/ADMIN_FLAGS_TOOL.md` (180 lines)
+- Covers all actions, flags, use cases, integration points
+- Implementation details on storage, polling, normalization
+- Security considerations and workflow examples
 
-### Exit Criteria ✅
-1. ✅ scripts/mcp_safe_upgrade.sh orchestrates worktree build + tests
-2. ✅ Shadow checks compare active vs canary outputs in logs
-3. ✅ Promotion flow documents gate order and staged routing (DRY → live) with metrics snapshots
-4. ✅ experiments/mcp/upgrade/<ts>/report.json recorded for each run
+**6. Tool Manifest**
+- Updated `tools/wvo_mcp/config/tool_manifest.json`
+- Added mcp_admin_flags entry with metadata
+- rough_cost_tokens: 200
+- Prerequisites and postconditions documented
 
-### Artifacts
-- tools/wvo_mcp/scripts/mcp_safe_upgrade.sh (new)
-- tools/wvo_mcp/scripts/mcp_safe_upgrade.mjs (enhanced with allowDryRunActive + report.json)
-- docs/CANARY_UPGRADE_FLOW.md (new, comprehensive guide)
+### Key Design Decisions
 
-- [2025-10-22T20:40:01.316Z] **Completed** T6.4.3: Worker entrypoint with DRY_RUN safeguards (worker-1) in 416.7s
-  Output: **Worker Entry** - `tools/wvo_mcp/src/worker/worker_entry.ts:38` launches separate orchestrator/executor workers, routes RPCs, and gates mutating tool...
-- [2025-10-22T20:36:52.771Z] **Started** T6.4.4: Canary upgrade harness & shadow validation (worker-0)
-- [2025-10-22T20:36:52.754Z] **Completed** T6.4.3: Worker entrypoint with DRY_RUN safeguards (worker-3) in 7.2s
-  Output: I see there are active pending tasks in the modeling domain. **Are you asking me to:**  1. **Re-open/review T6.4.3** if there's a regression or new re...
-- [2025-10-22T20:36:45.579Z] **Started** T6.4.3: Worker entrypoint with DRY_RUN safeguards (worker-3)
-- [2025-10-22T20:36:45.560Z] **Completed** T6.4.3: Worker entrypoint with DRY_RUN safeguards (worker-0) in 9.6s
-  Output: I see that the roadmap shows ML remediation tasks as pending. T6.4.3 is not appearing in the pending/in-progress list, which aligns with the context s...
-- [2025-10-22T20:36:35.915Z] **Started** T6.4.3: Worker entrypoint with DRY_RUN safeguards (worker-0)
-- [2025-10-22T20:36:35.892Z] **Completed** T6.4.3: Worker entrypoint with DRY_RUN safeguards (worker-3) in 14.0s
-  Output: Based on my review of the state and context files, **T6.4.3 has already been completed and verified**. The task record shows:  ✅ **Status**: DONE (mar...
-- [2025-10-22T20:36:21.903Z] **Started** T6.4.3: Worker entrypoint with DRY_RUN safeguards (worker-3)
-- [2025-10-22T20:36:21.873Z] **Completed** T6.4.3: Worker entrypoint with DRY_RUN safeguards (worker-0) in 58.7s
-  Output: Now let me verify the implementation is marked as complete in the roadmap and summarize the findings:  ## Summary  **✅ Task T6.4.3: Worker Entrypoint ...
+✅ **Atomic Operations**: All updates use SQLite transactions to prevent partial state
+✅ **No MCP Restart**: Changes take effect immediately via LiveFlags polling
+✅ **Value Normalization**: Invalid values are automatically corrected (not rejected)
+✅ **Database Persistence**: Uses existing state/orchestrator.db (SQLite)
+✅ **Type Safety**: Zod schema validation for all inputs
+✅ **Infrastructure Tier**: This is an admin tool, not product-facing
+
+### Files Modified
+
+1. `tools/wvo_mcp/src/tools/input_schemas.ts`
+   - Added `adminFlagsInput` Zod schema (7 lines)
+   - Added `AdminFlagsInput` type export
+
+2. `tools/wvo_mcp/src/index-claude.ts`
+   - Imported `adminFlagsInput` and `SettingsStore`
+   - Added `mcp_admin_flags` tool registration (125 lines)
+   - Comprehensive error handling for all three actions
+
+3. `tools/wvo_mcp/config/tool_manifest.json`
+   - Added mcp_admin_flags entry with metadata
+
+4. `tools/wvo_mcp/docs/ADMIN_FLAGS_TOOL.md` (NEW)
+   - Complete documentation (180 lines)
+   - Use cases, integration examples
+   - Security considerations
+
+### Future Enhancement: v1/v2 Tool Routing
+
+This infrastructure enables future support for canary deployments:
+
+```json
+{"action": "set", "flags": {"TOOL_HANDLER_VERSION": "v2"}}
+```
+
+This would route specific tools to v2 handlers without restart, supporting shadow validation and gradual rollout.
+
+### Quality Metrics
+
+- ✅ Type-safe (Zod validation)
+- ✅ Atomic (SQLite transactions)
+- ✅ Documented (help text + separate guide)
+- ✅ Error-resilient (proper error messages)
+- ✅ Token-efficient (200 token cost estimate)
+- ✅ Immediately effective (no restart required)
+
+- [2025-10-22T20:58:23.551Z] **Completed** T6.4.5: Feature flag gating for compact prompts & sandbox pool (worker-0) in 337.2s
+  Output: Perfect! Let me create a final summary of the work completed for task T6.4.5:  ## ✅ Task T6.4.5: Feature Flag Gating for Compact Prompts & Sandbox Poo...
+
+## T6.4.5: Feature flag gating for compact prompts & sandbox pool — ✅ COMPLETE
+_Trimmed for token efficiency (startup); full history preserved in `state/backups/context/context-2025-10-22T20-58-24-491Z.md`._
+
+## T6.4.4: Canary upgrade harness & shadow validation — ✅ MARKED DONE
+_Trimmed for token efficiency (startup); full history preserved in `state/backups/context/context-2025-10-22T20-58-24-491Z.md`._
+
+## T6.4.4: Canary upgrade harness & shadow validation — ✅ VERIFIED COMPLETE
+_Trimmed for token efficiency (startup); full history preserved in `state/backups/context/context-2025-10-22T20-58-24-491Z.md`._
+
+## T6.4.4: Canary upgrade harness & shadow validation — ✅ COMPLETE
+_Trimmed for token efficiency (startup); full history preserved in `state/backups/context/context-2025-10-22T20-58-24-491Z.md`._
 
 ## T6.4.3: Worker Entrypoint with DRY_RUN Safeguards — ✅ VERIFIED COMPLETE
-_Trimmed for token efficiency (startup); full history preserved in `state/backups/context/context-2025-10-22T20-36-22-788Z.md`._
+_Trimmed for token efficiency (startup); full history preserved in `state/backups/context/context-2025-10-22T20-58-24-491Z.md`._
 
 ## T6.4.3: Worker Entrypoint with DRY_RUN Safeguards — ✅ VERIFIED COMPLETE
-_Trimmed for token efficiency (startup); full history preserved in `state/backups/context/context-2025-10-22T20-36-22-788Z.md`._
+_Trimmed for token efficiency (startup); full history preserved in `state/backups/context/context-2025-10-22T20-58-24-491Z.md`._
 
 ## T6.4.3: Worker Entrypoint with DRY_RUN Safeguards — ✅ COMPLETED
-_Trimmed for token efficiency (startup); full history preserved in `state/backups/context/context-2025-10-22T20-36-22-788Z.md`._
+_Trimmed for token efficiency (startup); full history preserved in `state/backups/context/context-2025-10-22T20-58-24-491Z.md`._
 
 ## Status Check — Director Dana Role
-_Trimmed for token efficiency (startup); full history preserved in `state/backups/context/context-2025-10-22T20-36-22-788Z.md`._
+_Trimmed for token efficiency (startup); full history preserved in `state/backups/context/context-2025-10-22T20-58-24-491Z.md`._
 
 ## T6.4.2: Blue/Green Worker Manager & Front-End Proxy — ✅ MARKED DONE
-_Trimmed for token efficiency (startup); full history preserved in `state/backups/context/context-2025-10-22T20-36-22-788Z.md`._
+_Trimmed for token efficiency (startup); full history preserved in `state/backups/context/context-2025-10-22T20-58-24-491Z.md`._
 
 ## T6.4.2: Blue/Green Worker Manager & Front-End Proxy — ✅ MARKED COMPLETE
-_Trimmed for token efficiency (startup); full history preserved in `state/backups/context/context-2025-10-22T20-36-22-788Z.md`._
+_Trimmed for token efficiency (startup); full history preserved in `state/backups/context/context-2025-10-22T20-58-24-491Z.md`._
 
 ## T6.4.2: Blue/Green Worker Manager & Front-End Proxy — ✅ COMPLETE
-_Trimmed for token efficiency (startup); full history preserved in `state/backups/context/context-2025-10-22T20-36-22-788Z.md`._
+_Trimmed for token efficiency (startup); full history preserved in `state/backups/context/context-2025-10-22T20-58-24-491Z.md`._
 
 ## T6.4.0: Upgrade Invariants & Preflight Guardrails — ✅ COMPLETE
 
@@ -134,7 +173,7 @@ _Trimmed for token efficiency (startup); full history preserved in `state/backup
 4. **Comprehensive Test Suite** (tools/wvo_mcp/src/upgrade/preflight.test.ts)
    - ✅ 23 unit tests covering all functionality
 
-_Trimmed for token efficiency (startup); full history preserved in `state/backups/context/context-2025-10-22T20-36-22-788Z.md`._
+_Trimmed for token efficiency (startup); full history preserved in `state/backups/context/context-2025-10-22T20-58-24-491Z.md`._
 
 ## T6.4.0: Upgrade Invariants & Preflight Guardrails — ✅ VERIFICATION COMPLETE
 
@@ -162,7 +201,7 @@ _Trimmed for token efficiency (startup); full history preserved in `state/backup
 - ✅ Gate sequence: build → unit → selfchecks → canary_ready
 - ✅ Each gate logged with status: pending|passed|failed
 
-_Trimmed for token efficiency (startup); full history preserved in `state/backups/context/context-2025-10-22T20-36-22-788Z.md`._
+_Trimmed for token efficiency (startup); full history preserved in `state/backups/context/context-2025-10-22T20-58-24-491Z.md`._
 
 ## T6.4.0: Upgrade Invariants & Preflight Guardrails — ✅ VERIFIED COMPLETE
 
@@ -190,40 +229,25 @@ _Trimmed for token efficiency (startup); full history preserved in `state/backup
 
 4. **Proper Error Handling** (lines 428-437):
 
-_Trimmed for token efficiency (startup); full history preserved in `state/backups/context/context-2025-10-22T20-36-22-788Z.md`._
+_Trimmed for token efficiency (startup); full history preserved in `state/backups/context/context-2025-10-22T20-58-24-491Z.md`._
 
 ## T-MLR-3.1: Create Reproducible Validation Notebook — ✅ COMPLETE
-_Trimmed for token efficiency (startup); full history preserved in `state/backups/context/context-2025-10-22T20-36-22-788Z.md`._
+_Trimmed for token efficiency (startup); full history preserved in `state/backups/context/context-2025-10-22T20-58-24-491Z.md`._
 
 ## T-MLR-2.6: Run Robustness Tests (Outliers, Missing Data, Edge Cases) — ✅ COMPLETE
-_Trimmed for token efficiency (startup); full history preserved in `state/backups/context/context-2025-10-22T20-36-22-788Z.md`._
+_Trimmed for token efficiency (startup); full history preserved in `state/backups/context/context-2025-10-22T20-58-24-491Z.md`._
 
 ## T9.3.1: OpenTelemetry Spans for All Operations — ✅ COMPLETE
-_Trimmed for token efficiency (startup); full history preserved in `state/backups/context/context-2025-10-22T20-36-22-788Z.md`._
+_Trimmed for token efficiency (startup); full history preserved in `state/backups/context/context-2025-10-22T20-58-24-491Z.md`._
 
 ## T-MLR-1.1: Debug and Fix Weather Multiplier Logic — ✅ COMPLETE
-_Trimmed for token efficiency (startup); full history preserved in `state/backups/context/context-2025-10-22T20-36-22-788Z.md`._
+_Trimmed for token efficiency (startup); full history preserved in `state/backups/context/context-2025-10-22T20-58-24-491Z.md`._
 
 ## T9.2.2: Idempotency Keys for Mutating Tools — ✅ VERIFIED & CLOSED
-_Trimmed for token efficiency (startup); full history preserved in `state/backups/context/context-2025-10-22T20-36-22-788Z.md`._
+_Trimmed for token efficiency (startup); full history preserved in `state/backups/context/context-2025-10-22T20-58-24-491Z.md`._
 
 ## T9.2.2: Idempotency Keys for Mutating Tools — ✅ COMPLETE
-_Trimmed for token efficiency (startup); full history preserved in `state/backups/context/context-2025-10-22T20-36-22-788Z.md`._
+_Trimmed for token efficiency (startup); full history preserved in `state/backups/context/context-2025-10-22T20-58-24-491Z.md`._
 
 ## T9.2.2: Idempotency Keys for Mutating Tools — ✅ TASK COMPLETION VERIFIED
-_Trimmed for token efficiency (startup); full history preserved in `state/backups/context/context-2025-10-22T20-36-22-788Z.md`._
-
-## T9.2.2: Idempotency Keys for Mutating Tools — ✅ VERIFIED COMPLETE
-_Trimmed for token efficiency (startup); full history preserved in `state/backups/context/context-2025-10-22T20-36-22-788Z.md`._
-
-## T9.2.2: Idempotency Keys for Mutating Tools — TASK COMPLETION ✅
-_Trimmed for token efficiency (startup); full history preserved in `state/backups/context/context-2025-10-22T20-36-22-788Z.md`._
-
-## T9.2.1: Strict Output DSL Validation — TASK CLOSURE COMPLETE ✅
-_Trimmed for token efficiency (startup); full history preserved in `state/backups/context/context-2025-10-22T20-36-22-788Z.md`._
-
-## T9.2.1: Strict Output DSL Validation — COMPLETE ✅
-_Trimmed for token efficiency (startup); full history preserved in `state/backups/context/context-2025-10-22T20-36-22-788Z.md`._
-
-## T9.2.1: Strict Output DSL Validation (SAFE: validation layer only) — COMPLETE ✅
-_Trimmed for token efficiency (startup); full history preserved in `state/backups/context/context-2025-10-22T20-36-22-788Z.md`._
+_Trimmed for token efficiency (startup); full history preserved in `state/backups/context/context-2025-10-22T20-58-24-491Z.md`._

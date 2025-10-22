@@ -46,6 +46,10 @@ export const heavyQueueEnqueueInput = z.object({
   command: z.string().optional(),
   notes: z.string().optional(),
   id: z.string().optional(),
+  priority: z.enum(["urgent", "normal", "background"]).optional(),
+  is_interactive: z.boolean().optional(),
+  is_critical: z.boolean().optional(),
+  estimated_duration_ms: z.number().nonnegative().optional(),
 });
 
 export const heavyQueueUpdateInput = z.object({
@@ -53,12 +57,53 @@ export const heavyQueueUpdateInput = z.object({
   status: z.enum(["queued", "running", "completed", "cancelled"]).optional(),
   notes: z.string().optional(),
   command: z.string().optional(),
+  execution_start_time: z.string().optional(),
+  execution_duration_ms: z.number().optional(),
 });
 
 export const artifactRecordInput = z.object({
   type: z.string(),
   path: z.string(),
   metadata: z.record(z.any()).optional(),
+});
+
+// LSP Tool Schemas
+export const lspDefinitionInput = z.object({
+  language: z.enum(["typescript", "python"]),
+  filePath: z.string().min(1),
+  line: z.number().int().nonnegative(),
+  character: z.number().int().nonnegative(),
+  contextLines: z.number().int().nonnegative().optional(),
+});
+
+export const lspReferencesInput = z.object({
+  language: z.enum(["typescript", "python"]),
+  filePath: z.string().min(1),
+  line: z.number().int().nonnegative(),
+  character: z.number().int().nonnegative(),
+  contextLines: z.number().int().nonnegative().optional(),
+});
+
+export const lspHoverInput = z.object({
+  language: z.enum(["typescript", "python"]),
+  filePath: z.string().min(1),
+  line: z.number().int().nonnegative(),
+  character: z.number().int().nonnegative(),
+});
+
+export const lspServerStatusInput = z.object({
+  language: z.enum(["typescript", "python"]).optional(),
+});
+
+export const lspInitializeInput = z.object({
+  workspaceRoot: z.string().min(1),
+});
+
+// Admin tool schemas
+export const adminFlagsInput = z.object({
+  action: z.enum(["get", "set", "reset"]).describe("get: read current flags, set: update one or more flags, reset: restore defaults"),
+  flags: z.record(z.string(), z.union([z.string(), z.number(), z.boolean()])).optional().describe("Flags to update (only for 'set' action)"),
+  flag: z.string().optional().describe("Single flag to get or reset"),
 });
 
 export type PlanUpdateInput = z.infer<typeof planUpdateInput>;
@@ -72,3 +117,9 @@ export type AutopilotAuditInput = z.infer<typeof autopilotAuditInput>;
 export type HeavyQueueEnqueueInput = z.infer<typeof heavyQueueEnqueueInput>;
 export type HeavyQueueUpdateInput = z.infer<typeof heavyQueueUpdateInput>;
 export type ArtifactRecordInput = z.infer<typeof artifactRecordInput>;
+export type LspDefinitionInput = z.infer<typeof lspDefinitionInput>;
+export type LspReferencesInput = z.infer<typeof lspReferencesInput>;
+export type LspHoverInput = z.infer<typeof lspHoverInput>;
+export type LspServerStatusInput = z.infer<typeof lspServerStatusInput>;
+export type LspInitializeInput = z.infer<typeof lspInitializeInput>;
+export type AdminFlagsInput = z.infer<typeof adminFlagsInput>;
