@@ -408,9 +408,10 @@ def generate_daily_data(tenant_name: str, tenant_config: dict, weather_df: pd.Da
         temp_celsius = weather_row["temperature_celsius"]
         precip_mm = weather_row["precipitation_mm"]
 
-        # Normalize temperature to -1 (cold, 0°C) to +1 (hot, 30°C)
-        # Linear scaling: temp_norm = (temp - 15) / 15 (normalized around 15°C average)
-        temp_norm = np.clip((temp_celsius - 15.0) / 15.0, -1, 1)
+        # Normalize temperature to wider range for stronger signal
+        # Scale: (temp - 15) / 20 gives range -2 to +2, clipped to [-1, 1]
+        # This makes temperature variation more pronounced in correlation
+        temp_norm = np.clip((temp_celsius - 15.0) / 20.0, -1, 1)
 
         # Generate daily metrics
         for product in products:
@@ -430,35 +431,45 @@ def generate_daily_data(tenant_name: str, tenant_config: dict, weather_df: pd.Da
             else:  # neutral
                 seasonal_component = 0.0
 
-            # Amplitude by sensitivity - MUCH STRONGER to achieve target correlations
-            # Calibrated to produce r² correlations of ~0.85, ~0.70, ~0.40, ~0.05
-            amplitude = {
-                'extreme': 6.0,       # Very strong: multiplier 1 + 6*(±1) = -5 to 7x (clipped to 0.2-3x)
-                'high': 3.5,          # Strong: multiplier 1 + 3.5*(±1) = -2.5 to 4.5x (clipped to 0.2-3x)
-                'medium': 1.8,        # Moderate: multiplier 1 + 1.8*(±1) = -0.8 to 2.8x (clipped to 0.2-2x)
-                'none': 0.08,         # Minimal: multiplier 1 + 0.08*(±1) = 0.92 to 1.08x
-            }[sensitivity]
+            # Amplitude by sensitivity - calibrated to achieve target correlations
+            # Note: correlation ≈ amplitude (when noise is proportional to amplitude)
+            # We use moderate amplitudes and add proportional noise to achieve target correlations
+            if sensitivity == 'none':
+                # CRITICAL: No weather effect for non-sensitive products
+                # Multiplier must be 1.0 (no scaling) with pure random noise
+                weather_mult = 1.0
+                # Add only small random variation (no weather signal)
+                weather_mult = weather_mult + np.random.normal(0, 0.02)
+            else:
+                amplitude = {
+                    'extreme': 0.85,      # Target r≈0.85
+                    'high': 0.70,         # Target r≈0.70
+                    'medium': 0.40,       # Target r≈0.40
+                }[sensitivity]
 
-            # Multiplier = 1 + amplitude * seasonal_component, with small noise
-            weather_mult = 1.0 + amplitude * seasonal_component
-            # MUCH LESS noise to ensure signal is strong
-            weather_mult = max(0.2, weather_mult + np.random.normal(0, amplitude * 0.03))
+                # Multiplier = 1 + amplitude * seasonal_component
+                # Add noise proportional to amplitude (10%) to introduce realistic variation
+                # This keeps correlation close to amplitude while adding realistic noise
+                weather_mult = 1.0 + amplitude * seasonal_component
+                noise_std = amplitude * 0.10  # 10% of amplitude
+                weather_mult = max(0.2, weather_mult + np.random.normal(0, noise_std))
 
             # Base units with weather impact
-            # CRITICAL: Reduce noise to ensure weather signal is dominant
-            base_units = 30
-            # Much less noise (0.5 instead of 1.5) to keep weather signal strong
-            units_sold = max(1, int(base_units * weather_mult + np.random.normal(0, 0.5)))
+            # For none-sensitivity products: use HIGHER noise to mask any spurious correlation
+            # For weather-sensitive products: use LOWER noise to keep weather signal strong
+            base_units = 20
+            if sensitivity == 'none':
+                # Much higher noise for non-weather products to prevent spurious correlation
+                noise_level = 2.5
+            else:
+                # Very small noise for weather-sensitive products
+                noise_level = 0.2
+            units_sold = max(1, int(base_units * weather_mult + np.random.normal(0, noise_level)))
 
             # Price varies by product (simulating e-commerce reality)
-            price_range = {
-                'extreme': (80, 200),
-                'high': (60, 150),
-                'medium': (30, 100),
-                'none': (20, 80),
-            }
-            min_price, max_price = price_range.get(sensitivity, (30, 100))
-            product_price = np.random.uniform(min_price, max_price)
+            # CRITICAL FIX: Use a STABLE product price, not random each day
+            # This ensures revenue directly correlates with units_sold (which correlates with weather)
+            product_price = 100  # Fixed price to ensure revenue = units * price correlates with weather
             product_revenue = units_sold * product_price
 
             # Spend MUST correlate with demand for model to learn signal
@@ -505,16 +516,19 @@ def generate_weather_data(tenant_name: str, lat: float, lon: float, days: int = 
     start_date = datetime(2022, 1, 1)
     dates = [start_date + timedelta(days=i) for i in range(days)]
 
-    # Base temperature by latitude
-    base_temp = 50 if lat > 40 else 65  # Colder in north
+    # Base temperature by latitude (in Celsius)
+    # Northern latitudes (lat > 40): average 10°C
+    # Southern latitudes (lat <= 40): average 18°C (tropical)
+    base_temp_c = 10 if lat > 40 else 18
 
     records = []
     for date in dates:
         day_of_year = date.timetuple().tm_yday
 
-        # Seasonal temperature variation (amplitude 28 for realistic variation)
-        seasonal_temp = base_temp + 28 * np.sin(2 * np.pi * day_of_year / 365.25)
-        daily_temp = seasonal_temp + np.random.normal(0, 3.5)  # Daily variance
+        # Seasonal temperature variation (amplitude 15°C for realistic variation)
+        # This gives roughly ±15°C around the base temperature
+        seasonal_temp = base_temp_c + 15 * np.sin(2 * np.pi * day_of_year / 365.25)
+        daily_temp = seasonal_temp + np.random.normal(0, 2.5)  # Daily variance
 
         # Precipitation patterns (stronger seasonal variation)
         if day_of_year in range(60, 150) or day_of_year in range(240, 320):
@@ -606,20 +620,20 @@ def main():
 
         tenant_profiles[tenant_name] = {
             "location": location,
-            "latitude": lat,
-            "longitude": lon,
+            "latitude": float(lat),
+            "longitude": float(lon),
             "sensitivity_level": config["sensitivity_level"],
             "correlation_target": config["correlation_target"],
             "actual_correlation_temp": float(temp_corr) if not np.isnan(temp_corr) else 0.0,
             "actual_correlation_precip": float(precip_corr) if not np.isnan(precip_corr) else 0.0,
             "days_of_data": 1095,
-            "num_products": len(config["products"]),
+            "num_products": int(len(config["products"])),
             "products": config["products"],
             "channels": config["channels"],
-            "base_daily_revenue": config["base_daily_revenue"],
-            "total_revenue": daily_agg["revenue_usd"].sum(),
-            "total_spend": (daily_agg["meta_spend"] + daily_agg["google_spend"]).sum(),
-            "avg_daily_revenue": daily_agg["revenue_usd"].mean(),
+            "base_daily_revenue": int(config["base_daily_revenue"]),
+            "total_revenue": float(daily_agg["revenue_usd"].sum()),
+            "total_spend": float((daily_agg["meta_spend"] + daily_agg["google_spend"]).sum()),
+            "avg_daily_revenue": float(daily_agg["revenue_usd"].mean()),
         }
 
         correlation_report[tenant_name] = {

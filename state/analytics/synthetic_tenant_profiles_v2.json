@@ -1,0 +1,1042 @@
+{
+  "extreme_ski_gear": {
+    "location": "Denver",
+    "latitude": 39.7392,
+    "longitude": -104.9903,
+    "sensitivity_level": "extreme",
+    "correlation_target": 0.85,
+    "actual_correlation_temp": -0.9990797182095775,
+    "actual_correlation_precip": 0.05620953307152467,
+    "days_of_data": 1095,
+    "num_products": 5,
+    "products": [
+      {
+        "id": "P001",
+        "name": "Ski Boots",
+        "category": "Winter Gear",
+        "weather_affinity": "extreme_winter"
+      },
+      {
+        "id": "P002",
+        "name": "Thermal Underwear",
+        "category": "Winter Gear",
+        "weather_affinity": "extreme_winter"
+      },
+      {
+        "id": "P003",
+        "name": "Hand Warmers",
+        "category": "Winter Gear",
+        "weather_affinity": "extreme_winter"
+      },
+      {
+        "id": "P004",
+        "name": "Snow Shovel",
+        "category": "Tools",
+        "weather_affinity": "extreme_winter"
+      },
+      {
+        "id": "P005",
+        "name": "Avalanche Beacon",
+        "category": "Safety",
+        "weather_affinity": "extreme_winter"
+      }
+    ],
+    "channels": [
+      "Meta",
+      "Google",
+      "Email"
+    ],
+    "base_daily_revenue": 2000,
+    "total_revenue": 9389500.0,
+    "total_spend": 517474.2372057269,
+    "avg_daily_revenue": 8574.885844748858
+  },
+  "extreme_sunscreen": {
+    "location": "Phoenix",
+    "latitude": 33.4484,
+    "longitude": -112.0742,
+    "sensitivity_level": "extreme",
+    "correlation_target": 0.85,
+    "actual_correlation_temp": 0.9993673233823454,
+    "actual_correlation_precip": 0.03914923128636591,
+    "days_of_data": 1095,
+    "num_products": 5,
+    "products": [
+      {
+        "id": "P101",
+        "name": "SPF 50 Sunscreen",
+        "category": "Beauty",
+        "weather_affinity": "extreme_summer"
+      },
+      {
+        "id": "P102",
+        "name": "Sunscreen Stick",
+        "category": "Beauty",
+        "weather_affinity": "extreme_summer"
+      },
+      {
+        "id": "P103",
+        "name": "UV Protective Clothing",
+        "category": "Clothing",
+        "weather_affinity": "extreme_summer"
+      },
+      {
+        "id": "P104",
+        "name": "After-Sun Lotion",
+        "category": "Beauty",
+        "weather_affinity": "extreme_summer"
+      },
+      {
+        "id": "P105",
+        "name": "Sun Hat",
+        "category": "Accessories",
+        "weather_affinity": "extreme_summer"
+      }
+    ],
+    "channels": [
+      "Meta",
+      "Google",
+      "Email"
+    ],
+    "base_daily_revenue": 1800,
+    "total_revenue": 12019600.0,
+    "total_spend": 663995.9403722296,
+    "avg_daily_revenue": 10976.803652968036
+  },
+  "extreme_rain_gear": {
+    "location": "Seattle",
+    "latitude": 47.6062,
+    "longitude": -122.3321,
+    "sensitivity_level": "extreme",
+    "correlation_target": 0.85,
+    "actual_correlation_temp": 0.11332521478836108,
+    "actual_correlation_precip": 0.9584219203514152,
+    "days_of_data": 1095,
+    "num_products": 5,
+    "products": [
+      {
+        "id": "P201",
+        "name": "Premium Umbrella",
+        "category": "Accessories",
+        "weather_affinity": "extreme_rain"
+      },
+      {
+        "id": "P202",
+        "name": "Raincoat",
+        "category": "Clothing",
+        "weather_affinity": "extreme_rain"
+      },
+      {
+        "id": "P203",
+        "name": "Rain Boots",
+        "category": "Shoes",
+        "weather_affinity": "extreme_rain"
+      },
+      {
+        "id": "P204",
+        "name": "Waterproof Bag",
+        "category": "Accessories",
+        "weather_affinity": "extreme_rain"
+      },
+      {
+        "id": "P205",
+        "name": "Gutter Guard",
+        "category": "Home",
+        "weather_affinity": "extreme_rain"
+      }
+    ],
+    "channels": [
+      "Meta",
+      "Google",
+      "Email"
+    ],
+    "base_daily_revenue": 1600,
+    "total_revenue": 13529000.0,
+    "total_spend": 741979.3297596199,
+    "avg_daily_revenue": 12355.251141552511
+  },
+  "extreme_heating": {
+    "location": "Minneapolis",
+    "latitude": 44.9778,
+    "longitude": -93.265,
+    "sensitivity_level": "extreme",
+    "correlation_target": 0.85,
+    "actual_correlation_temp": -0.9991665480737507,
+    "actual_correlation_precip": -0.0570659278230767,
+    "days_of_data": 1095,
+    "num_products": 5,
+    "products": [
+      {
+        "id": "P301",
+        "name": "Space Heater",
+        "category": "Home",
+        "weather_affinity": "extreme_winter"
+      },
+      {
+        "id": "P302",
+        "name": "Heating Pad",
+        "category": "Health",
+        "weather_affinity": "extreme_winter"
+      },
+      {
+        "id": "P303",
+        "name": "Furnace Filter",
+        "category": "Home",
+        "weather_affinity": "extreme_winter"
+      },
+      {
+        "id": "P304",
+        "name": "Insulation Kit",
+        "category": "Home",
+        "weather_affinity": "extreme_winter"
+      },
+      {
+        "id": "P305",
+        "name": "Hot Water Tank",
+        "category": "Home",
+        "weather_affinity": "extreme_winter"
+      }
+    ],
+    "channels": [
+      "Meta",
+      "Google",
+      "Email"
+    ],
+    "base_daily_revenue": 3000,
+    "total_revenue": 12981300.0,
+    "total_spend": 712994.906078352,
+    "avg_daily_revenue": 11855.068493150686
+  },
+  "extreme_cooling": {
+    "location": "Houston",
+    "latitude": 29.7604,
+    "longitude": -95.3698,
+    "sensitivity_level": "extreme",
+    "correlation_target": 0.85,
+    "actual_correlation_temp": 0.999335749443987,
+    "actual_correlation_precip": 0.041507299948069905,
+    "days_of_data": 1095,
+    "num_products": 5,
+    "products": [
+      {
+        "id": "P401",
+        "name": "Air Conditioner Unit",
+        "category": "Home",
+        "weather_affinity": "extreme_summer"
+      },
+      {
+        "id": "P402",
+        "name": "AC Filter",
+        "category": "Home",
+        "weather_affinity": "extreme_summer"
+      },
+      {
+        "id": "P403",
+        "name": "Cooling Fan",
+        "category": "Home",
+        "weather_affinity": "extreme_summer"
+      },
+      {
+        "id": "P404",
+        "name": "Thermostat",
+        "category": "Home",
+        "weather_affinity": "extreme_summer"
+      },
+      {
+        "id": "P405",
+        "name": "Window AC Unit",
+        "category": "Home",
+        "weather_affinity": "extreme_summer"
+      }
+    ],
+    "channels": [
+      "Meta",
+      "Google",
+      "Email"
+    ],
+    "base_daily_revenue": 4000,
+    "total_revenue": 12130700.0,
+    "total_spend": 667993.7921306611,
+    "avg_daily_revenue": 11078.264840182648
+  },
+  "high_winter_clothing": {
+    "location": "New York",
+    "latitude": 40.7128,
+    "longitude": -74.006,
+    "sensitivity_level": "high",
+    "correlation_target": 0.7,
+    "actual_correlation_temp": -0.9991689331192216,
+    "actual_correlation_precip": -0.067737253554372,
+    "days_of_data": 1095,
+    "num_products": 5,
+    "products": [
+      {
+        "id": "P501",
+        "name": "Winter Coat",
+        "category": "Clothing",
+        "weather_affinity": "winter"
+      },
+      {
+        "id": "P502",
+        "name": "Wool Scarf",
+        "category": "Accessories",
+        "weather_affinity": "winter"
+      },
+      {
+        "id": "P503",
+        "name": "Gloves",
+        "category": "Accessories",
+        "weather_affinity": "winter"
+      },
+      {
+        "id": "P504",
+        "name": "Winter Boots",
+        "category": "Shoes",
+        "weather_affinity": "winter"
+      },
+      {
+        "id": "P505",
+        "name": "Knit Hat",
+        "category": "Accessories",
+        "weather_affinity": "winter"
+      }
+    ],
+    "channels": [
+      "Meta",
+      "Google",
+      "Email"
+    ],
+    "base_daily_revenue": 3500,
+    "total_revenue": 12562200.0,
+    "total_spend": 688841.534179938,
+    "avg_daily_revenue": 11472.328767123288
+  },
+  "high_summer_clothing": {
+    "location": "Miami",
+    "latitude": 25.7617,
+    "longitude": -80.1918,
+    "sensitivity_level": "high",
+    "correlation_target": 0.7,
+    "actual_correlation_temp": 0.999476249322251,
+    "actual_correlation_precip": 0.045771102293847024,
+    "days_of_data": 1095,
+    "num_products": 5,
+    "products": [
+      {
+        "id": "P601",
+        "name": "Shorts",
+        "category": "Clothing",
+        "weather_affinity": "summer"
+      },
+      {
+        "id": "P602",
+        "name": "Sunglasses",
+        "category": "Accessories",
+        "weather_affinity": "summer"
+      },
+      {
+        "id": "P603",
+        "name": "Flip Flops",
+        "category": "Shoes",
+        "weather_affinity": "summer"
+      },
+      {
+        "id": "P604",
+        "name": "Summer Dress",
+        "category": "Clothing",
+        "weather_affinity": "summer"
+      },
+      {
+        "id": "P605",
+        "name": "Beach Bag",
+        "category": "Accessories",
+        "weather_affinity": "summer"
+      }
+    ],
+    "channels": [
+      "Meta",
+      "Google",
+      "Email"
+    ],
+    "base_daily_revenue": 2800,
+    "total_revenue": 11836400.0,
+    "total_spend": 652989.1627436178,
+    "avg_daily_revenue": 10809.497716894977
+  },
+  "high_umbrella_rain": {
+    "location": "Portland",
+    "latitude": 45.5152,
+    "longitude": -122.6784,
+    "sensitivity_level": "high",
+    "correlation_target": 0.7,
+    "actual_correlation_temp": -0.054762211750396105,
+    "actual_correlation_precip": 0.9520439034816133,
+    "days_of_data": 1095,
+    "num_products": 5,
+    "products": [
+      {
+        "id": "P701",
+        "name": "Umbrella",
+        "category": "Accessories",
+        "weather_affinity": "rain"
+      },
+      {
+        "id": "P702",
+        "name": "Rain Hat",
+        "category": "Accessories",
+        "weather_affinity": "rain"
+      },
+      {
+        "id": "P703",
+        "name": "Windbreaker",
+        "category": "Clothing",
+        "weather_affinity": "rain"
+      },
+      {
+        "id": "P704",
+        "name": "Waterproof Jacket",
+        "category": "Clothing",
+        "weather_affinity": "rain"
+      },
+      {
+        "id": "P705",
+        "name": "Rain Gloves",
+        "category": "Accessories",
+        "weather_affinity": "rain"
+      }
+    ],
+    "channels": [
+      "Meta",
+      "Google",
+      "Email"
+    ],
+    "base_daily_revenue": 2200,
+    "total_revenue": 13023000.0,
+    "total_spend": 716875.8993194007,
+    "avg_daily_revenue": 11893.150684931506
+  },
+  "high_gym_activity": {
+    "location": "Los Angeles",
+    "latitude": 34.0522,
+    "longitude": -118.2437,
+    "sensitivity_level": "high",
+    "correlation_target": 0.7,
+    "actual_correlation_temp": 0.9993649718677747,
+    "actual_correlation_precip": -0.1258556796675072,
+    "days_of_data": 1095,
+    "num_products": 5,
+    "products": [
+      {
+        "id": "P801",
+        "name": "Running Shoes",
+        "category": "Shoes",
+        "weather_affinity": "summer"
+      },
+      {
+        "id": "P802",
+        "name": "Athletic Shirt",
+        "category": "Clothing",
+        "weather_affinity": "summer"
+      },
+      {
+        "id": "P803",
+        "name": "Sports Water Bottle",
+        "category": "Accessories",
+        "weather_affinity": "summer"
+      },
+      {
+        "id": "P804",
+        "name": "Running Shorts",
+        "category": "Clothing",
+        "weather_affinity": "summer"
+      },
+      {
+        "id": "P805",
+        "name": "Fitness Tracker",
+        "category": "Tech",
+        "weather_affinity": "summer"
+      }
+    ],
+    "channels": [
+      "Meta",
+      "Google",
+      "Email"
+    ],
+    "base_daily_revenue": 2500,
+    "total_revenue": 11799400.0,
+    "total_spend": 650856.6848992144,
+    "avg_daily_revenue": 10775.707762557078
+  },
+  "high_outdoor_gear": {
+    "location": "Boulder",
+    "latitude": 40.015,
+    "longitude": -105.2705,
+    "sensitivity_level": "high",
+    "correlation_target": 0.7,
+    "actual_correlation_temp": 0.997601741244506,
+    "actual_correlation_precip": 0.09943825759673405,
+    "days_of_data": 1095,
+    "num_products": 5,
+    "products": [
+      {
+        "id": "P901",
+        "name": "Hiking Boots",
+        "category": "Shoes",
+        "weather_affinity": "summer"
+      },
+      {
+        "id": "P902",
+        "name": "Backpack",
+        "category": "Accessories",
+        "weather_affinity": "summer"
+      },
+      {
+        "id": "P903",
+        "name": "Tent",
+        "category": "Outdoor",
+        "weather_affinity": "summer"
+      },
+      {
+        "id": "P904",
+        "name": "Sleeping Bag",
+        "category": "Outdoor",
+        "weather_affinity": "winter"
+      },
+      {
+        "id": "P905",
+        "name": "Flashlight",
+        "category": "Outdoor",
+        "weather_affinity": "summer"
+      }
+    ],
+    "channels": [
+      "Meta",
+      "Google",
+      "Email"
+    ],
+    "base_daily_revenue": 3200,
+    "total_revenue": 9546400.0,
+    "total_spend": 525267.6018456602,
+    "avg_daily_revenue": 8718.173515981734
+  },
+  "medium_clothing": {
+    "location": "Chicago",
+    "latitude": 41.8781,
+    "longitude": -87.6298,
+    "sensitivity_level": "medium",
+    "correlation_target": 0.4,
+    "actual_correlation_temp": 0.08786465596379206,
+    "actual_correlation_precip": -0.13924555400839247,
+    "days_of_data": 1095,
+    "num_products": 5,
+    "products": [
+      {
+        "id": "P1001",
+        "name": "Jeans",
+        "category": "Clothing",
+        "weather_affinity": "neutral"
+      },
+      {
+        "id": "P1002",
+        "name": "Sweater",
+        "category": "Clothing",
+        "weather_affinity": "neutral"
+      },
+      {
+        "id": "P1003",
+        "name": "T-Shirt",
+        "category": "Clothing",
+        "weather_affinity": "neutral"
+      },
+      {
+        "id": "P1004",
+        "name": "Socks",
+        "category": "Accessories",
+        "weather_affinity": "neutral"
+      },
+      {
+        "id": "P1005",
+        "name": "Underwear",
+        "category": "Clothing",
+        "weather_affinity": "neutral"
+      }
+    ],
+    "channels": [
+      "Meta",
+      "Google",
+      "Email"
+    ],
+    "base_daily_revenue": 4500,
+    "total_revenue": 10674400.0,
+    "total_spend": 588229.6837141381,
+    "avg_daily_revenue": 9748.310502283104
+  },
+  "medium_footwear": {
+    "location": "Boston",
+    "latitude": 42.3601,
+    "longitude": -71.0589,
+    "sensitivity_level": "medium",
+    "correlation_target": 0.4,
+    "actual_correlation_temp": 0.028651859703287916,
+    "actual_correlation_precip": -0.11779430006309251,
+    "days_of_data": 1095,
+    "num_products": 5,
+    "products": [
+      {
+        "id": "P1101",
+        "name": "Casual Sneakers",
+        "category": "Shoes",
+        "weather_affinity": "neutral"
+      },
+      {
+        "id": "P1102",
+        "name": "Loafers",
+        "category": "Shoes",
+        "weather_affinity": "neutral"
+      },
+      {
+        "id": "P1103",
+        "name": "Dress Shoes",
+        "category": "Shoes",
+        "weather_affinity": "neutral"
+      },
+      {
+        "id": "P1104",
+        "name": "Shoe Insert",
+        "category": "Accessories",
+        "weather_affinity": "neutral"
+      },
+      {
+        "id": "P1105",
+        "name": "Shoe Cleaner",
+        "category": "Accessories",
+        "weather_affinity": "neutral"
+      }
+    ],
+    "channels": [
+      "Meta",
+      "Google",
+      "Email"
+    ],
+    "base_daily_revenue": 3800,
+    "total_revenue": 10676600.0,
+    "total_spend": 585854.1782357075,
+    "avg_daily_revenue": 9750.319634703197
+  },
+  "medium_accessories": {
+    "location": "San Francisco",
+    "latitude": 37.7749,
+    "longitude": -122.4194,
+    "sensitivity_level": "medium",
+    "correlation_target": 0.4,
+    "actual_correlation_temp": -0.0006576677756033909,
+    "actual_correlation_precip": -0.14545419787006447,
+    "days_of_data": 1095,
+    "num_products": 5,
+    "products": [
+      {
+        "id": "P1201",
+        "name": "Baseball Cap",
+        "category": "Accessories",
+        "weather_affinity": "neutral"
+      },
+      {
+        "id": "P1202",
+        "name": "Backpack",
+        "category": "Accessories",
+        "weather_affinity": "neutral"
+      },
+      {
+        "id": "P1203",
+        "name": "Watch",
+        "category": "Accessories",
+        "weather_affinity": "neutral"
+      },
+      {
+        "id": "P1204",
+        "name": "Belt",
+        "category": "Accessories",
+        "weather_affinity": "neutral"
+      },
+      {
+        "id": "P1205",
+        "name": "Scarf",
+        "category": "Accessories",
+        "weather_affinity": "neutral"
+      }
+    ],
+    "channels": [
+      "Meta",
+      "Google",
+      "Email"
+    ],
+    "base_daily_revenue": 3200,
+    "total_revenue": 10669300.0,
+    "total_spend": 585486.5460680046,
+    "avg_daily_revenue": 9743.65296803653
+  },
+  "medium_beauty": {
+    "location": "Las Vegas",
+    "latitude": 36.1699,
+    "longitude": -115.1398,
+    "sensitivity_level": "medium",
+    "correlation_target": 0.4,
+    "actual_correlation_temp": 0.0170690880661402,
+    "actual_correlation_precip": -0.0694888228212138,
+    "days_of_data": 1095,
+    "num_products": 5,
+    "products": [
+      {
+        "id": "P1301",
+        "name": "Face Cream",
+        "category": "Beauty",
+        "weather_affinity": "neutral"
+      },
+      {
+        "id": "P1302",
+        "name": "Shampoo",
+        "category": "Beauty",
+        "weather_affinity": "neutral"
+      },
+      {
+        "id": "P1303",
+        "name": "Deodorant",
+        "category": "Beauty",
+        "weather_affinity": "neutral"
+      },
+      {
+        "id": "P1304",
+        "name": "Makeup",
+        "category": "Beauty",
+        "weather_affinity": "neutral"
+      },
+      {
+        "id": "P1305",
+        "name": "Toothpaste",
+        "category": "Beauty",
+        "weather_affinity": "neutral"
+      }
+    ],
+    "channels": [
+      "Meta",
+      "Google",
+      "Email"
+    ],
+    "base_daily_revenue": 2700,
+    "total_revenue": 10671900.0,
+    "total_spend": 587958.8840179434,
+    "avg_daily_revenue": 9746.027397260274
+  },
+  "medium_sports": {
+    "location": "Philadelphia",
+    "latitude": 39.9526,
+    "longitude": -75.1652,
+    "sensitivity_level": "medium",
+    "correlation_target": 0.4,
+    "actual_correlation_temp": -0.05374200488876397,
+    "actual_correlation_precip": 0.06027991127655279,
+    "days_of_data": 1095,
+    "num_products": 5,
+    "products": [
+      {
+        "id": "P1401",
+        "name": "Basketball",
+        "category": "Sports",
+        "weather_affinity": "neutral"
+      },
+      {
+        "id": "P1402",
+        "name": "Tennis Racket",
+        "category": "Sports",
+        "weather_affinity": "neutral"
+      },
+      {
+        "id": "P1403",
+        "name": "Soccer Ball",
+        "category": "Sports",
+        "weather_affinity": "neutral"
+      },
+      {
+        "id": "P1404",
+        "name": "Baseball Glove",
+        "category": "Sports",
+        "weather_affinity": "neutral"
+      },
+      {
+        "id": "P1405",
+        "name": "Sports Socks",
+        "category": "Accessories",
+        "weather_affinity": "neutral"
+      }
+    ],
+    "channels": [
+      "Meta",
+      "Google",
+      "Email"
+    ],
+    "base_daily_revenue": 3000,
+    "total_revenue": 10672600.0,
+    "total_spend": 585611.6465288354,
+    "avg_daily_revenue": 9746.666666666666
+  },
+  "none_office_supplies": {
+    "location": "Dallas",
+    "latitude": 32.7767,
+    "longitude": -96.797,
+    "sensitivity_level": "none",
+    "correlation_target": 0.05,
+    "actual_correlation_temp": 0.04140983512167996,
+    "actual_correlation_precip": -0.07535663407188464,
+    "days_of_data": 1095,
+    "num_products": 5,
+    "products": [
+      {
+        "id": "P1501",
+        "name": "Desk Lamp",
+        "category": "Office",
+        "weather_affinity": "neutral"
+      },
+      {
+        "id": "P1502",
+        "name": "Keyboard",
+        "category": "Office",
+        "weather_affinity": "neutral"
+      },
+      {
+        "id": "P1503",
+        "name": "Monitor Stand",
+        "category": "Office",
+        "weather_affinity": "neutral"
+      },
+      {
+        "id": "P1504",
+        "name": "Desk Chair",
+        "category": "Office",
+        "weather_affinity": "neutral"
+      },
+      {
+        "id": "P1505",
+        "name": "Stapler",
+        "category": "Office",
+        "weather_affinity": "neutral"
+      }
+    ],
+    "channels": [
+      "Meta",
+      "Google",
+      "Email"
+    ],
+    "base_daily_revenue": 4200,
+    "total_revenue": 10666000.0,
+    "total_spend": 586175.2227549318,
+    "avg_daily_revenue": 9740.639269406392
+  },
+  "none_electronics": {
+    "location": "Austin",
+    "latitude": 30.2672,
+    "longitude": -97.7431,
+    "sensitivity_level": "none",
+    "correlation_target": 0.05,
+    "actual_correlation_temp": 0.05170206757758813,
+    "actual_correlation_precip": 0.10102845221756811,
+    "days_of_data": 1095,
+    "num_products": 5,
+    "products": [
+      {
+        "id": "P1601",
+        "name": "USB Hub",
+        "category": "Tech",
+        "weather_affinity": "neutral"
+      },
+      {
+        "id": "P1602",
+        "name": "Headphones",
+        "category": "Tech",
+        "weather_affinity": "neutral"
+      },
+      {
+        "id": "P1603",
+        "name": "Mouse Pad",
+        "category": "Office",
+        "weather_affinity": "neutral"
+      },
+      {
+        "id": "P1604",
+        "name": "Phone Case",
+        "category": "Tech",
+        "weather_affinity": "neutral"
+      },
+      {
+        "id": "P1605",
+        "name": "USB Cable",
+        "category": "Tech",
+        "weather_affinity": "neutral"
+      }
+    ],
+    "channels": [
+      "Meta",
+      "Google",
+      "Email"
+    ],
+    "base_daily_revenue": 3600,
+    "total_revenue": 10690600.0,
+    "total_spend": 587583.9057416504,
+    "avg_daily_revenue": 9763.10502283105
+  },
+  "none_home_decor": {
+    "location": "San Diego",
+    "latitude": 32.7157,
+    "longitude": -117.1611,
+    "sensitivity_level": "none",
+    "correlation_target": 0.05,
+    "actual_correlation_temp": -0.06194742496156192,
+    "actual_correlation_precip": -0.09099970506498452,
+    "days_of_data": 1095,
+    "num_products": 5,
+    "products": [
+      {
+        "id": "P1701",
+        "name": "Picture Frame",
+        "category": "Home",
+        "weather_affinity": "neutral"
+      },
+      {
+        "id": "P1702",
+        "name": "Throw Pillow",
+        "category": "Home",
+        "weather_affinity": "neutral"
+      },
+      {
+        "id": "P1703",
+        "name": "Area Rug",
+        "category": "Home",
+        "weather_affinity": "neutral"
+      },
+      {
+        "id": "P1704",
+        "name": "Wall Clock",
+        "category": "Home",
+        "weather_affinity": "neutral"
+      },
+      {
+        "id": "P1705",
+        "name": "Vase",
+        "category": "Home",
+        "weather_affinity": "neutral"
+      }
+    ],
+    "channels": [
+      "Meta",
+      "Google",
+      "Email"
+    ],
+    "base_daily_revenue": 3100,
+    "total_revenue": 10653100.0,
+    "total_spend": 586705.7664501689,
+    "avg_daily_revenue": 9728.858447488585
+  },
+  "none_kitchen": {
+    "location": "Phoenix",
+    "latitude": 33.4484,
+    "longitude": -112.0742,
+    "sensitivity_level": "none",
+    "correlation_target": 0.05,
+    "actual_correlation_temp": 0.12497245392086577,
+    "actual_correlation_precip": 0.007180638249145869,
+    "days_of_data": 1095,
+    "num_products": 5,
+    "products": [
+      {
+        "id": "P1801",
+        "name": "Coffee Maker",
+        "category": "Kitchen",
+        "weather_affinity": "neutral"
+      },
+      {
+        "id": "P1802",
+        "name": "Cutting Board",
+        "category": "Kitchen",
+        "weather_affinity": "neutral"
+      },
+      {
+        "id": "P1803",
+        "name": "Utensil Set",
+        "category": "Kitchen",
+        "weather_affinity": "neutral"
+      },
+      {
+        "id": "P1804",
+        "name": "Mixing Bowl",
+        "category": "Kitchen",
+        "weather_affinity": "neutral"
+      },
+      {
+        "id": "P1805",
+        "name": "Dish Towel",
+        "category": "Kitchen",
+        "weather_affinity": "neutral"
+      }
+    ],
+    "channels": [
+      "Meta",
+      "Google",
+      "Email"
+    ],
+    "base_daily_revenue": 2900,
+    "total_revenue": 10651400.0,
+    "total_spend": 584695.3446281245,
+    "avg_daily_revenue": 9727.305936073059
+  },
+  "none_books": {
+    "location": "San Jose",
+    "latitude": 37.3382,
+    "longitude": -121.8863,
+    "sensitivity_level": "none",
+    "correlation_target": 0.05,
+    "actual_correlation_temp": 0.06924405273901786,
+    "actual_correlation_precip": -0.07235699488157882,
+    "days_of_data": 1095,
+    "num_products": 5,
+    "products": [
+      {
+        "id": "P1901",
+        "name": "Novel",
+        "category": "Books",
+        "weather_affinity": "neutral"
+      },
+      {
+        "id": "P1902",
+        "name": "Textbook",
+        "category": "Books",
+        "weather_affinity": "neutral"
+      },
+      {
+        "id": "P1903",
+        "name": "Magazine",
+        "category": "Books",
+        "weather_affinity": "neutral"
+      },
+      {
+        "id": "P1904",
+        "name": "E-Book",
+        "category": "Books",
+        "weather_affinity": "neutral"
+      },
+      {
+        "id": "P1905",
+        "name": "Notebook",
+        "category": "Books",
+        "weather_affinity": "neutral"
+      }
+    ],
+    "channels": [
+      "Meta",
+      "Google",
+      "Email"
+    ],
+    "base_daily_revenue": 2400,
+    "total_revenue": 10694700.0,
+    "total_spend": 587670.2103303275,
+    "avg_daily_revenue": 9766.849315068494
+  }
+}

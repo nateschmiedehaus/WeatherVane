@@ -1,0 +1,142 @@
+{
+  "extreme_ski_gear": {
+    "sensitivity": "extreme",
+    "target": 0.85,
+    "actual_temp_corr": -0.9990797182095775,
+    "actual_precip_corr": 0.05620953307152467,
+    "matches_target": false
+  },
+  "extreme_sunscreen": {
+    "sensitivity": "extreme",
+    "target": 0.85,
+    "actual_temp_corr": 0.9993673233823454,
+    "actual_precip_corr": 0.03914923128636591,
+    "matches_target": false
+  },
+  "extreme_rain_gear": {
+    "sensitivity": "extreme",
+    "target": 0.85,
+    "actual_temp_corr": 0.11332521478836108,
+    "actual_precip_corr": 0.9584219203514152,
+    "matches_target": false
+  },
+  "extreme_heating": {
+    "sensitivity": "extreme",
+    "target": 0.85,
+    "actual_temp_corr": -0.9991665480737507,
+    "actual_precip_corr": -0.0570659278230767,
+    "matches_target": false
+  },
+  "extreme_cooling": {
+    "sensitivity": "extreme",
+    "target": 0.85,
+    "actual_temp_corr": 0.999335749443987,
+    "actual_precip_corr": 0.041507299948069905,
+    "matches_target": false
+  },
+  "high_winter_clothing": {
+    "sensitivity": "high",
+    "target": 0.7,
+    "actual_temp_corr": -0.9991689331192216,
+    "actual_precip_corr": -0.067737253554372,
+    "matches_target": false
+  },
+  "high_summer_clothing": {
+    "sensitivity": "high",
+    "target": 0.7,
+    "actual_temp_corr": 0.999476249322251,
+    "actual_precip_corr": 0.045771102293847024,
+    "matches_target": false
+  },
+  "high_umbrella_rain": {
+    "sensitivity": "high",
+    "target": 0.7,
+    "actual_temp_corr": -0.054762211750396105,
+    "actual_precip_corr": 0.9520439034816133,
+    "matches_target": false
+  },
+  "high_gym_activity": {
+    "sensitivity": "high",
+    "target": 0.7,
+    "actual_temp_corr": 0.9993649718677747,
+    "actual_precip_corr": -0.1258556796675072,
+    "matches_target": false
+  },
+  "high_outdoor_gear": {
+    "sensitivity": "high",
+    "target": 0.7,
+    "actual_temp_corr": 0.997601741244506,
+    "actual_precip_corr": 0.09943825759673405,
+    "matches_target": false
+  },
+  "medium_clothing": {
+    "sensitivity": "medium",
+    "target": 0.4,
+    "actual_temp_corr": 0.08786465596379206,
+    "actual_precip_corr": -0.13924555400839247,
+    "matches_target": false
+  },
+  "medium_footwear": {
+    "sensitivity": "medium",
+    "target": 0.4,
+    "actual_temp_corr": 0.028651859703287916,
+    "actual_precip_corr": -0.11779430006309251,
+    "matches_target": false
+  },
+  "medium_accessories": {
+    "sensitivity": "medium",
+    "target": 0.4,
+    "actual_temp_corr": -0.0006576677756033909,
+    "actual_precip_corr": -0.14545419787006447,
+    "matches_target": false
+  },
+  "medium_beauty": {
+    "sensitivity": "medium",
+    "target": 0.4,
+    "actual_temp_corr": 0.0170690880661402,
+    "actual_precip_corr": -0.0694888228212138,
+    "matches_target": false
+  },
+  "medium_sports": {
+    "sensitivity": "medium",
+    "target": 0.4,
+    "actual_temp_corr": -0.05374200488876397,
+    "actual_precip_corr": 0.06027991127655279,
+    "matches_target": false
+  },
+  "none_office_supplies": {
+    "sensitivity": "none",
+    "target": 0.05,
+    "actual_temp_corr": 0.04140983512167996,
+    "actual_precip_corr": -0.07535663407188464,
+    "matches_target": true
+  },
+  "none_electronics": {
+    "sensitivity": "none",
+    "target": 0.05,
+    "actual_temp_corr": 0.05170206757758813,
+    "actual_precip_corr": 0.10102845221756811,
+    "matches_target": true
+  },
+  "none_home_decor": {
+    "sensitivity": "none",
+    "target": 0.05,
+    "actual_temp_corr": -0.06194742496156192,
+    "actual_precip_corr": -0.09099970506498452,
+    "matches_target": false
+  },
+  "none_kitchen": {
+    "sensitivity": "none",
+    "target": 0.05,
+    "actual_temp_corr": 0.12497245392086577,
+    "actual_precip_corr": 0.007180638249145869,
+    "matches_target": true
+  },
+  "none_books": {
+    "sensitivity": "none",
+    "target": 0.05,
+    "actual_temp_corr": 0.06924405273901786,
+    "actual_precip_corr": -0.07235699488157882,
+    "matches_target": true
+  }
+}
