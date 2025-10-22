@@ -20,6 +20,18 @@ import { SERVER_NAME, SERVER_VERSION } from "./utils/version.js";
 import { toJsonSchema } from "./utils/schema.js";
 import { buildClusterSummaries } from "./utils/cluster.js";
 import { LiveFlags } from "./orchestrator/live_flags.js";
+import {
+  lspDefinitionInput,
+  lspReferencesInput,
+  lspHoverInput,
+  lspServerStatusInput,
+  lspInitializeInput,
+  type LspDefinitionInput,
+  type LspReferencesInput,
+  type LspHoverInput,
+  type LspServerStatusInput,
+  type LspInitializeInput,
+} from "./tools/input_schemas.js";
 
 let activeRuntime: OrchestratorRuntime | null = null;
 
@@ -188,6 +200,11 @@ Use this tool first to understand what's available and get oriented.`,
         "🔍 critics_run - Run quality checks",
         "🤖 autopilot tools - Automated QA",
         "⏳ heavy_queue tools - Background tasks",
+        "🧠 lsp_initialize - Boot TypeScript/Python language servers",
+        "📡 lsp_server_status - Inspect LSP server health",
+        "🔎 lsp_definition - Jump to symbol definitions",
+        "📚 lsp_references - List usages across the codebase",
+        "📝 lsp_hover - Show symbol types and docs",
         "🔄 provider_status - Check provider capacity",
       ];
 
@@ -243,11 +260,27 @@ Note: Automatically called after significant operations`,
         };
 
         const providerStatus = providerManager.getStatus();
+        const getPercentUsed = (providerKey: Provider): number => {
+          const providerInfo = providerStatus.providers.find((entry) => entry.provider === providerKey);
+          if (!providerInfo) {
+            return 0;
+          }
+          const rawValue = providerInfo.percentUsed;
+          if (typeof rawValue === "number") {
+            return Number.isFinite(rawValue) ? rawValue : 0;
+          }
+          if (typeof rawValue === "string") {
+            const parsed = parseFloat(rawValue);
+            return Number.isFinite(parsed) ? parsed : 0;
+          }
+          return 0;
+        };
+
         const providerState = {
           current_provider: providerStatus.currentProvider,
           token_usage_summary: {
-            codex_percent_used: parseFloat(providerStatus.usage.find((u: any) => u.provider === "codex")?.percentUsed || "0"),
-            claude_code_percent_used: parseFloat(providerStatus.usage.find((u: any) => u.provider === "claude_code")?.percentUsed || "0"),
+            codex_percent_used: getPercentUsed("codex"),
+            claude_code_percent_used: getPercentUsed("claude_code"),
           },
         };
 
@@ -1249,6 +1282,313 @@ Perfect for: Quality gates, pre-commit checks, comprehensive validation`,
         }
       } catch (error) {
         return formatError(`Screenshot session failed: ${error instanceof Error ? error.message : String(error)}`);
+      }
+    },
+  );
+
+  // LSP Tools for symbol-aware code context
+  server.registerTool(
+    "lsp_initialize",
+    {
+      description: `Initialize and start Language Server Protocol (LSP) servers.
+
+Starts both TypeScript and Python language servers for symbol-aware code context. This enables:
+- Jump-to-definition lookups
+- Symbol reference finding
+- Type hover information
+- Multi-language support
+
+**When to use:**
+- When starting a new context session
+- After major workspace changes
+- Before using other LSP tools
+
+**Returns:** Server status for both TypeScript and Python servers.`,
+      inputSchema: toJsonSchema(lspInitializeInput, "LspInitializeInput"),
+    },
+    async (input: unknown) => {
+      try {
+        const parsed = lspInitializeInput.parse(input);
+        const { getLSPManager } = await import("./lsp/lsp_manager.js");
+        const lspManager = getLSPManager(parsed.workspaceRoot);
+
+        // Start both servers
+        await Promise.all([
+          lspManager.startTypeScriptServer().catch((e) => {
+            logWarning("Failed to start TypeScript server", {
+              error: e instanceof Error ? e.message : String(e),
+            });
+          }),
+          lspManager.startPythonServer().catch((e) => {
+            logWarning("Failed to start Python server", {
+              error: e instanceof Error ? e.message : String(e),
+            });
+          }),
+        ]);
+
+        const tsStatus = lspManager.getServerStatus("typescript");
+        const pyStatus = lspManager.getServerStatus("python");
+
+        return formatSuccess("LSP servers initialized", {
+          servers: {
+            typescript: tsStatus,
+            python: pyStatus,
+          },
+        });
+      } catch (error) {
+        return formatError(
+          "LSP initialization failed",
+          error instanceof Error ? error.message : String(error)
+        );
+      }
+    },
+  );
+
+  server.registerTool(
+    "lsp_server_status",
+    {
+      description: `Check the status of LSP servers (TypeScript and/or Python).
+
+Returns connection status, version info, and capabilities for active language servers. Useful for:
+- Verifying server health
+- Checking which servers are ready
+- Debugging connection issues
+
+**Parameters:**
+- language (optional): 'typescript' | 'python' (omit to check both)
+
+**Returns:** Server status including running state, version, and capabilities.`,
+      inputSchema: toJsonSchema(lspServerStatusInput, "LspServerStatusInput"),
+    },
+    async (input: unknown) => {
+      try {
+        const parsed = lspServerStatusInput.parse(input ?? {});
+        const { getLSPManager } = await import("./lsp/lsp_manager.js");
+        const lspManager = getLSPManager(session.workspaceRoot);
+
+        if (parsed.language) {
+          const status = lspManager.getServerStatus(parsed.language);
+          return formatData({ server: status }, `LSP Server Status: ${parsed.language}`);
+        } else {
+          // Return status for both servers
+          const tsStatus = lspManager.getServerStatus("typescript");
+          const pyStatus = lspManager.getServerStatus("python");
+          return formatData(
+            {
+              servers: {
+                typescript: tsStatus,
+                python: pyStatus,
+              },
+            },
+            "LSP Servers Status"
+          );
+        }
+      } catch (error) {
+        return formatError(
+          "LSP status check failed",
+          error instanceof Error ? error.message : String(error)
+        );
+      }
+    },
+  );
+
+  server.registerTool(
+    "lsp_definition",
+    {
+      description: `Find where a symbol is defined in your codebase.
+
+Uses TypeScript/Python language servers to locate symbol definitions with surrounding context. Enables:
+- Jump to symbol definition
+- Tracing imports and references
+- Understanding code structure
+- Symbol-aware context extraction
+
+**Parameters:**
+- language: 'typescript' | 'python'
+- filePath: Path to source file
+- line: Line number (0-indexed)
+- character: Character position (0-indexed)
+- contextLines: Lines of context around definition (default: 5)
+
+**Returns:** Definition location with file, line, character, and surrounding source code.`,
+      inputSchema: toJsonSchema(lspDefinitionInput, "LspDefinitionInput"),
+    },
+    async (input: unknown) => {
+      try {
+        const parsed = lspDefinitionInput.parse(input);
+        const { getLSPManager } = await import("./lsp/lsp_manager.js");
+        const lspManager = getLSPManager(session.workspaceRoot);
+
+        // Ensure language server is running
+        const status = lspManager.getServerStatus(parsed.language);
+        if (!status.running) {
+          if (parsed.language === "typescript") {
+            await lspManager.startTypeScriptServer();
+          } else {
+            await lspManager.startPythonServer();
+          }
+        }
+
+        // Get definitions based on language
+        if (parsed.language === "typescript") {
+          const { TypeScriptLSPProxy } = await import("./lsp/tsserver_proxy.js");
+          const proxy = new TypeScriptLSPProxy(lspManager, session.workspaceRoot);
+          const result = await proxy.getDefinitionWithContext(
+            parsed.filePath,
+            parsed.line,
+            parsed.character,
+            parsed.contextLines ?? 5
+          );
+          return formatData({ definitions: result }, "Symbol Definitions");
+        } else {
+          const { PythonLSPProxy } = await import("./lsp/pyright_proxy.js");
+          const proxy = new PythonLSPProxy(lspManager, session.workspaceRoot);
+          const result = await proxy.getDefinitionWithContext(
+            parsed.filePath,
+            parsed.line,
+            parsed.character,
+            parsed.contextLines ?? 5
+          );
+          return formatData({ definitions: result }, "Symbol Definitions");
+        }
+      } catch (error) {
+        return formatError(
+          "LSP definition lookup failed",
+          error instanceof Error ? error.message : String(error)
+        );
+      }
+    },
+  );
+
+  server.registerTool(
+    "lsp_references",
+    {
+      description: `Find all references to a symbol in your codebase.
+
+Locates every use of a symbol with surrounding context. Enables:
+- Finding all usages of a function/variable
+- Impact analysis
+- Refactoring support
+- Symbol dependency mapping
+
+**Parameters:**
+- language: 'typescript' | 'python'
+- filePath: Path to source file
+- line: Line number (0-indexed)
+- character: Character position (0-indexed)
+- contextLines: Lines of context around each reference (default: 3)
+
+**Returns:** Array of reference locations with file, line, character, and surrounding source code.`,
+      inputSchema: toJsonSchema(lspReferencesInput, "LspReferencesInput"),
+    },
+    async (input: unknown) => {
+      try {
+        const parsed = lspReferencesInput.parse(input);
+        const { getLSPManager } = await import("./lsp/lsp_manager.js");
+        const lspManager = getLSPManager(session.workspaceRoot);
+
+        // Ensure language server is running
+        const status = lspManager.getServerStatus(parsed.language);
+        if (!status.running) {
+          if (parsed.language === "typescript") {
+            await lspManager.startTypeScriptServer();
+          } else {
+            await lspManager.startPythonServer();
+          }
+        }
+
+        // Get references based on language
+        if (parsed.language === "typescript") {
+          const { TypeScriptLSPProxy } = await import("./lsp/tsserver_proxy.js");
+          const proxy = new TypeScriptLSPProxy(lspManager, session.workspaceRoot);
+          const result = await proxy.getReferencesWithContext(
+            parsed.filePath,
+            parsed.line,
+            parsed.character,
+            parsed.contextLines ?? 3
+          );
+          return formatData({ references: result }, "Symbol References");
+        } else {
+          const { PythonLSPProxy } = await import("./lsp/pyright_proxy.js");
+          const proxy = new PythonLSPProxy(lspManager, session.workspaceRoot);
+          const result = await proxy.getReferencesWithContext(
+            parsed.filePath,
+            parsed.line,
+            parsed.character,
+            parsed.contextLines ?? 3
+          );
+          return formatData({ references: result }, "Symbol References");
+        }
+      } catch (error) {
+        return formatError(
+          "LSP references lookup failed",
+          error instanceof Error ? error.message : String(error)
+        );
+      }
+    },
+  );
+
+  server.registerTool(
+    "lsp_hover",
+    {
+      description: `Get type information and documentation for a symbol.
+
+Retrieves hover information (type signature, documentation) for symbols. Enables:
+- Type information display
+- Documentation preview
+- Type checking without compilation
+- Symbol context understanding
+
+**Parameters:**
+- language: 'typescript' | 'python'
+- filePath: Path to source file
+- line: Line number (0-indexed)
+- character: Character position (0-indexed)
+
+**Returns:** Hover information including type, documentation, and semantic details.`,
+      inputSchema: toJsonSchema(lspHoverInput, "LspHoverInput"),
+    },
+    async (input: unknown) => {
+      try {
+        const parsed = lspHoverInput.parse(input);
+        const { getLSPManager } = await import("./lsp/lsp_manager.js");
+        const lspManager = getLSPManager(session.workspaceRoot);
+
+        // Ensure language server is running
+        const status = lspManager.getServerStatus(parsed.language);
+        if (!status.running) {
+          if (parsed.language === "typescript") {
+            await lspManager.startTypeScriptServer();
+          } else {
+            await lspManager.startPythonServer();
+          }
+        }
+
+        // Get hover info based on language
+        if (parsed.language === "typescript") {
+          const { TypeScriptLSPProxy } = await import("./lsp/tsserver_proxy.js");
+          const proxy = new TypeScriptLSPProxy(lspManager, session.workspaceRoot);
+          const result = await proxy.getHover(
+            parsed.filePath,
+            parsed.line,
+            parsed.character
+          );
+          return formatData(result, "Hover Information");
+        } else {
+          const { PythonLSPProxy } = await import("./lsp/pyright_proxy.js");
+          const proxy = new PythonLSPProxy(lspManager, session.workspaceRoot);
+          const result = await proxy.getHover(
+            parsed.filePath,
+            parsed.line,
+            parsed.character
+          );
+          return formatData(result, "Hover Information");
+        }
+      } catch (error) {
+        return formatError(
+          "LSP hover information failed",
+          error instanceof Error ? error.message : String(error)
+        );
       }
     },
   );
