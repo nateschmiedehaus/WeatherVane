@@ -192,6 +192,7 @@ async function runShadowChecks(
         WVO_DRY_RUN: "1",
         WVO_WORKSPACE_ROOT: workspaceRoot,
       },
+      allowDryRunActive: true,
     });
     active = manager.getActive();
     await manager.startCanary({
@@ -534,6 +535,45 @@ async function main() {
 
     await writeJson(path.join(artifactDir, "promotion_plan.json"), promotionPlan);
     await writeJson(path.join(artifactDir, "steps.json"), steps);
+
+    // Generate consolidated report.json
+    const report = {
+      upgrade_id: upgradeId,
+      generated_at: new Date().toISOString(),
+      status: shadowFailures.length > 0 ? "warning" : "passed",
+      summary: {
+        total_steps: steps.length,
+        passed_steps: steps.filter((s) => s.status === "ok").length,
+        failed_steps: steps.filter((s) => s.status === "failed").length,
+        skipped_steps: steps.filter((s) => s.status === "skipped").length,
+        warning_steps: steps.filter((s) => s.status === "warning").length,
+      },
+      shadow_validation: {
+        total_checks: shadowResults.length,
+        passed_checks: shadowResults.filter((c) => c.ok).length,
+        failed_checks: shadowFailures.length,
+        details: shadowResults,
+      },
+      gates: {
+        preflight: steps.find((s) => s.name === "preflight")?.status ?? "pending",
+        build_current: steps.find((s) => s.name === "build-current")?.status ?? "pending",
+        build_canary: steps.find((s) => s.name === "build-canary")?.status ?? "pending",
+        test_canary: steps.find((s) => s.name === "test-canary")?.status ?? "pending",
+        shadow_validation: shadowFailures.length > 0 ? "warning" : "passed",
+      },
+      promotion: {
+        ready: shadowFailures.length === 0,
+        plan: promotionPlan,
+      },
+      artifacts: {
+        preflight_path: "preflight.json",
+        shadow_path: "shadow.json",
+        promotion_plan_path: "promotion_plan.json",
+        steps_path: "steps.json",
+      },
+    };
+
+    await writeJson(path.join(artifactDir, "report.json"), report);
 
     const hasWarnings = steps.some((step) => step.status === "warning");
 
