@@ -12,9 +12,7 @@ import sys
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Mapping, Optional
-
-import numpy as np
+from typing import Any, Mapping
 
 
 @dataclass(frozen=True)
