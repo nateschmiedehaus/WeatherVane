@@ -14,7 +14,8 @@ import { resolveWorkspaceRoot } from "./utils/config.js";
 import { SERVER_NAME, SERVER_VERSION } from "./utils/version.js";
 import { toJsonSchema } from "./utils/schema.js";
 import { planNextInputSchema } from "./utils/schemas.js";
-import { LiveFlags } from "./orchestrator/live_flags.js";
+import { LiveFlags } from "./state/live_flags.js";
+import { FeatureGates } from "./orchestrator/feature_gates.js";
 import {
   orchestratorStatusInput,
   authStatusInput,
@@ -29,6 +30,11 @@ import {
   heavyQueueEnqueueInput,
   heavyQueueUpdateInput,
   artifactRecordInput,
+  lspDefinitionInput,
+  lspReferencesInput,
+  lspHoverInput,
+  lspServerStatusInput,
+  lspInitializeInput,
 } from "./tools/input_schemas.js";
 
 type JsonSchema = ReturnType<typeof toJsonSchema>;
@@ -102,6 +108,11 @@ async function main() {
   const heavyQueueEnqueueSchema = toJsonSchema(heavyQueueEnqueueInput, "HeavyQueueEnqueueInput");
   const heavyQueueUpdateSchema = toJsonSchema(heavyQueueUpdateInput, "HeavyQueueUpdateInput");
   const artifactRecordSchema = toJsonSchema(artifactRecordInput, "ArtifactRecordInput");
+  const lspDefinitionSchema = toJsonSchema(lspDefinitionInput, "LspDefinitionInput");
+  const lspReferencesSchema = toJsonSchema(lspReferencesInput, "LspReferencesInput");
+  const lspHoverSchema = toJsonSchema(lspHoverInput, "LspHoverInput");
+  const lspServerStatusSchema = toJsonSchema(lspServerStatusInput, "LspServerStatusInput");
+  const lspInitializeSchema = toJsonSchema(lspInitializeInput, "LspInitializeInput");
 
   const proxyTools: ProxyToolDefinition[] = [
     {
@@ -182,6 +193,31 @@ async function main() {
       name: "artifact_record",
       description: "Register an artifact path for later reference.",
       schema: artifactRecordSchema,
+    },
+    {
+      name: "lsp_initialize",
+      description: "Start TypeScript and Python LSP servers for symbol-aware code navigation.",
+      schema: lspInitializeSchema,
+    },
+    {
+      name: "lsp_server_status",
+      description: "Report the running state and initialization status of LSP servers.",
+      schema: lspServerStatusSchema,
+    },
+    {
+      name: "lsp_definition",
+      description: "Locate symbol definitions with contextual code slices via LSP.",
+      schema: lspDefinitionSchema,
+    },
+    {
+      name: "lsp_references",
+      description: "Find symbol references across the workspace using LSP.",
+      schema: lspReferencesSchema,
+    },
+    {
+      name: "lsp_hover",
+      description: "Retrieve hover details (types, docs) for a symbol from the LSP server.",
+      schema: lspHoverSchema,
     },
     {
       name: "codex_commands",

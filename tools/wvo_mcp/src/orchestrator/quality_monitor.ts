@@ -5,7 +5,8 @@ import { EventEmitter } from 'node:events';
 
 import type { AgentType } from './agent_pool.js';
 import type { QualityMetric, StateMachine, Task } from './state_machine.js';
-import type { LiveFlagsReader } from './live_flags.js';
+import type { LiveFlagsReader } from '../state/live_flags.js';
+import { FeatureGates } from './feature_gates.js';
 import {
   QualityFramework,
   type ComprehensiveQualityReport,
@@ -80,6 +81,7 @@ export class QualityMonitor extends EventEmitter {
   private readonly assessmentLogPath: string;
   private readonly maxAssessmentEntries: number;
   private readonly liveFlags?: LiveFlagsReader;
+  private readonly featureGates?: FeatureGates;
 
   constructor(
     private readonly stateMachine: StateMachine,
@@ -97,6 +99,7 @@ export class QualityMonitor extends EventEmitter {
     const requestedLimit = options.maxAssessmentEntries ?? 120;
     this.maxAssessmentEntries = Math.max(10, Math.min(requestedLimit, 500));
     this.liveFlags = options.liveFlags;
+    this.featureGates = options.liveFlags ? new FeatureGates(options.liveFlags) : undefined;
   }
 
   async evaluate(input: QualityCheckInput): Promise<QualityCheckResult> {
@@ -628,7 +631,7 @@ export class QualityMonitor extends EventEmitter {
   }
 
   private lazyDimensionsEnabled(): boolean {
-    return this.liveFlags?.getValue('EFFICIENT_OPERATIONS') === '1';
+    return this.featureGates?.isEfficientOperationsEnabled() ?? false;
   }
 
   private selectRelevantDimensions(task: Task): QualityDimension[] {

@@ -1,5 +1,5 @@
 import { AgentPool } from './agent_pool.js';
-import { ClaudeCodeCoordinator } from './claude_code_coordinator.js';
+import { AgentCoordinator } from './agent_coordinator.js';
 import { ContextAssembler } from './context_assembler.js';
 import { OperationsManager } from './operations_manager.js';
 import { ResilienceManager } from './resilience_manager.js';
@@ -8,7 +8,8 @@ import { QualityMonitor } from './quality_monitor.js';
 import { TaskScheduler } from './task_scheduler.js';
 import { StateMachine } from './state_machine.js';
 import { SelfImprovementManager } from './self_improvement_manager.js';
-import { LiveFlags } from './live_flags.js';
+import { LiveFlags } from '../state/live_flags.js';
+import { FeatureGates } from './feature_gates.js';
 import { logInfo, logWarning, logError } from '../telemetry/logger.js';
 import { AuthChecker } from '../utils/auth_checker.js';
 import { CodeSearchIndex } from '../utils/code_search.js';
@@ -41,9 +42,10 @@ export class OrchestratorRuntime {
   private readonly resilienceManager: ResilienceManager;
   private readonly webInspirationManager: WebInspirationManager | undefined;
   private readonly selfImprovementManager: SelfImprovementManager;
-  private readonly coordinator: ClaudeCodeCoordinator;
+  private readonly coordinator: AgentCoordinator;
   private readonly codeSearchIndex: CodeSearchIndex;
   private readonly liveFlags: LiveFlags;
+  private readonly featureGates: FeatureGates;
   private readonly researchManager: ResearchManager | undefined;
   private readonly researchOrchestrator: ResearchOrchestrator | undefined;
   private readonly tokenEfficiencyManager?: TokenEfficiencyManager;
@@ -71,17 +73,16 @@ export class OrchestratorRuntime {
     const dryRun = isDryRunEnabled();
     this.stateMachine = new StateMachine(workspaceRoot, { readonly: dryRun });
     this.liveFlags = new LiveFlags({ workspaceRoot });
+    this.featureGates = new FeatureGates(this.liveFlags);
     this.modelManager = new ModelManager(workspaceRoot);
-    const researchFlagEnabled = this.liveFlags.getValue('RESEARCH_LAYER') === '1';
+    const researchFlagEnabled = this.featureGates.isResearchLayerEnabled();
     this.researchManager = researchFlagEnabled
       ? new ResearchManager({ stateMachine: this.stateMachine })
       : undefined;
     if (researchFlagEnabled) {
       logInfo('Strategic research layer enabled');
     }
-    const researchSensitivity = this.parseResearchSensitivity(
-      this.liveFlags.getValue('RESEARCH_TRIGGER_SENSITIVITY'),
-    );
+    const researchSensitivity = this.featureGates.getResearchTriggerSensitivity();
     this.scheduler = new TaskScheduler(this.stateMachine, {
       heavyTaskLimit,
       researchSignalsEnabled: researchFlagEnabled,
@@ -100,9 +101,7 @@ export class OrchestratorRuntime {
     } else {
       this.researchOrchestrator = undefined;
     }
-    this.agentPool = new AgentPool(workspaceRoot, codexWorkers, {
-      enableClaude: enableClaudeCoordinator,
-    });
+    this.agentPool = new AgentPool();
     this.criticModelSelector = new CriticModelSelector(
       workspaceRoot,
       this.modelManager,
@@ -176,7 +175,7 @@ export class OrchestratorRuntime {
       ? new WebInspirationManager(workspaceRoot, this.stateMachine, this.operationsManager)
       : undefined;
 
-    this.coordinator = new ClaudeCodeCoordinator(
+    this.coordinator = new AgentCoordinator(
       workspaceRoot,
       this.stateMachine,
       this.scheduler,

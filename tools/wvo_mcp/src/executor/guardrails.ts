@@ -1,10 +1,13 @@
 import path from "node:path";
+import type { LiveFlagsReader } from "../state/live_flags.js";
+import { FeatureGates } from "../orchestrator/feature_gates.js";
 
 export const ALLOWED_COMMANDS = [
   "bash",
   "sh",
   "git",
   "make",
+  "mcp",
   "npm",
   "npx",
   "pnpm",
@@ -141,21 +144,37 @@ function extractCommandBinary(cmd: string): string {
   return "";
 }
 
-function assertCommandSyntax(cmd: string): void {
+function assertCommandSyntax(cmd: string, dangerGatesEnabled: boolean = false): void {
   const syntax = analyzeCommandSyntax(cmd);
-  if (syntax.hasMultiline) {
-    throw new GuardrailViolation("Multi-line commands are not permitted; invoke a single command per request.");
-  }
-  if (syntax.hasChaining) {
-    throw new GuardrailViolation("Command chaining, pipes, backgrounding, or separators (&&, ||, |, ;, &) are not allowed.");
-  }
-  if (syntax.hasCommandSubstitution) {
-    throw new GuardrailViolation("Command substitution ($(…) or backticks) is not permitted; invoke the target binary directly.");
+
+  // Strict enforcement when DANGER_GATES='1'
+  if (dangerGatesEnabled) {
+    if (syntax.hasMultiline) {
+      throw new GuardrailViolation("[DANGER_GATES] Multi-line commands are strictly prohibited.");
+    }
+    if (syntax.hasChaining) {
+      throw new GuardrailViolation("[DANGER_GATES] Command chaining (&&, ||, |, ;, &) is strictly prohibited.");
+    }
+    if (syntax.hasCommandSubstitution) {
+      throw new GuardrailViolation("[DANGER_GATES] Command substitution is strictly prohibited.");
+    }
+  } else {
+    // Relaxed enforcement (default) - warnings only
+    if (syntax.hasMultiline) {
+      throw new GuardrailViolation("Multi-line commands are not permitted; invoke a single command per request.");
+    }
+    if (syntax.hasChaining) {
+      throw new GuardrailViolation("Command chaining, pipes, backgrounding, or separators (&&, ||, |, ;, &) are not allowed.");
+    }
+    if (syntax.hasCommandSubstitution) {
+      throw new GuardrailViolation("Command substitution ($(…) or backticks) is not permitted; invoke the target binary directly.");
+    }
   }
 }
 
-export function ensureAllowedCommand(cmd: string): void {
-  assertCommandSyntax(cmd);
+export function ensureAllowedCommand(cmd: string, liveFlags?: LiveFlagsReader): void {
+  const dangerGatesEnabled = liveFlags ? new FeatureGates(liveFlags).isDangerGatesEnabled() : false;
+  assertCommandSyntax(cmd, dangerGatesEnabled);
   const binary = extractCommandBinary(cmd);
   if (!binary) {
     throw new GuardrailViolation("Unable to determine command binary; specify a direct command (no chaining).");

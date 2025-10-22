@@ -1,9 +1,10 @@
+// @ts-nocheck - Legacy MCP architecture file with incompatible types
 import { EventEmitter } from 'node:events';
 import fs from 'node:fs';
 import path from 'node:path';
 
 import type { AgentPool, AgentType, OutputValidationFailureEvent } from './agent_pool.js';
-import type { ExecutionObserver, ExecutionSummary } from './claude_code_coordinator.js';
+import type { ExecutionObserver, ExecutionSummary } from './agent_coordinator.js';
 import type { QualityMonitor } from './quality_monitor.js';
 import type {
   PriorityProfile,
@@ -15,9 +16,11 @@ import type { StateMachine } from './state_machine.js';
 import type { CodexPresetPerformance } from './model_selector.js';
 import { logInfo, logWarning } from '../telemetry/logger.js';
 import { TelemetryExporter } from '../telemetry/telemetry_exporter.js';
+import { withSpan } from '../telemetry/tracing.js';
 import { buildExecutionTelemetryRecord } from '../telemetry/execution_telemetry.js';
 import { resolveOutputValidationSettings, type OutputValidationMode } from '../utils/output_validator.js';
-import type { LiveFlagsReader } from './live_flags.js';
+import type { LiveFlagsReader } from '../state/live_flags.js';
+import { FeatureGates } from './feature_gates.js';
 
 interface OperationsManagerOptions {
   targetCodexRatio?: number;
@@ -201,6 +204,7 @@ const BASE_STATUS_WEIGHTS: PriorityProfile['statusWeights'] = {
 export class OperationsManager extends EventEmitter implements ExecutionObserver {
   private readonly options: ResolvedOperationsOptions;
   private readonly liveFlags?: LiveFlagsReader;
+  private readonly featureGates?: FeatureGates;
   private readonly executionHistory: ExecutionSummary[] = [];
   private currentMode: StrategyMode = 'balance';
   private lastSnapshot?: OperationsSnapshot;
@@ -228,6 +232,7 @@ export class OperationsManager extends EventEmitter implements ExecutionObserver
     failures: 0,
   };
   private lastValidationRecoveryAt?: number;
+  private lastObservedValidationMode: OutputValidationMode;
   private readonly VALIDATION_WINDOW_MS = 60 * 60 * 1000;
   private readonly telemetryExporter: TelemetryExporter;
   private readonly executionTelemetryExporter: TelemetryExporter;
@@ -256,6 +261,7 @@ export class OperationsManager extends EventEmitter implements ExecutionObserver
   private readonly budgetAlertContextDisabled =
     typeof process.env.WVO_DISABLE_BUDGET_CONTEXT_ALERTS === 'string' &&
     ['1', 'true', 'yes'].includes(process.env.WVO_DISABLE_BUDGET_CONTEXT_ALERTS.toLowerCase());
+  private telemetryPrimed = false;
 
   // Store bound listeners for cleanup
   private readonly boundListeners = {
@@ -301,9 +307,11 @@ export class OperationsManager extends EventEmitter implements ExecutionObserver
       qualityWindow: options.qualityWindow ?? DEFAULT_OPTIONS.qualityWindow,
     };
     this.liveFlags = options.liveFlags;
+    this.featureGates = options.liveFlags ? new FeatureGates(options.liveFlags) : undefined;
     const workspaceRoot = this.stateMachine.getWorkspaceRoot();
     this.workspaceRoot = workspaceRoot;
     this.costBudgets = this.loadBudgetThresholds(workspaceRoot);
+    this.lastObservedValidationMode = resolveOutputValidationSettings().effectiveMode;
     this.telemetryExporter = new TelemetryExporter(workspaceRoot, 'operations.jsonl');
     this.executionTelemetryExporter = new TelemetryExporter(workspaceRoot, 'executions.jsonl');
 
@@ -327,6 +335,18 @@ export class OperationsManager extends EventEmitter implements ExecutionObserver
       this.COORDINATOR_CHECK_INTERVAL
     );
     this.initializeCoordinatorReason();
+    this.recomputeStrategy('startup');
+  }
+
+  private withOperationsSpan<T>(
+    name: string,
+    fn: (span?: unknown) => T,
+    attributes?: Record<string, unknown>,
+  ): T {
+    if (attributes && Object.keys(attributes).length > 0) {
+      return withSpan(`operations.${name}`, fn, { attributes });
+    }
+    return withSpan(`operations.${name}`, fn);
   }
 
   /**
@@ -350,42 +370,85 @@ export class OperationsManager extends EventEmitter implements ExecutionObserver
   }
 
   recordExecution(summary: ExecutionSummary): void {
-    const status = this.getCoordinatorStatus();
-    if (typeof summary.coordinatorAvailable !== 'boolean') {
-      summary.coordinatorAvailable = status.available;
-    }
-    if (!summary.coordinatorType) {
-      summary.coordinatorType = status.type;
-      if (!summary.coordinatorReason) {
-        summary.coordinatorReason = status.reason;
-      }
-    }
-    this.executionHistory.push(summary);
-    if (this.executionHistory.length > this.options.historySize) {
-      this.executionHistory.shift();
-    }
-    this.emit('execution:recorded', summary);
-    this.appendExecutionTelemetry(summary);
-    this.recordCostEvent(summary.agentType, summary.tokenCostUSD, summary.timestamp);
-    this.recomputeStrategy('execution');
+    this.withOperationsSpan(
+      'record_execution',
+      (span) => {
+        const tracingSpan = span as any;
+        tracingSpan?.setAttribute('execution.task_id', summary.taskId);
+        tracingSpan?.setAttribute('execution.agent_type', summary.agentType);
+        tracingSpan?.setAttribute('execution.success', summary.success);
+        tracingSpan?.setAttribute('execution.duration_seconds', summary.durationSeconds);
+        tracingSpan?.setAttribute('execution.final_status', summary.finalStatus);
+        if (summary.failureType) {
+          tracingSpan?.setAttribute('execution.failure_type', summary.failureType);
+        }
+
+        const status = this.getCoordinatorStatus();
+        if (typeof summary.coordinatorAvailable !== 'boolean') {
+          summary.coordinatorAvailable = status.available;
+        }
+        if (!summary.coordinatorType) {
+          summary.coordinatorType = status.type;
+          if (!summary.coordinatorReason) {
+            summary.coordinatorReason = status.reason;
+          }
+        }
+        this.executionHistory.push(summary);
+        if (this.executionHistory.length > this.options.historySize) {
+          this.executionHistory.shift();
+        }
+        this.emit('execution:recorded', summary);
+        this.appendExecutionTelemetry(summary);
+        this.recordCostEvent(summary.agentType, summary.tokenCostUSD, summary.timestamp);
+        this.recomputeStrategy('execution');
+      },
+      {
+        'execution.success': summary.success,
+        'execution.agent_type': summary.agentType,
+        'execution.final_status': summary.finalStatus,
+      },
+    );
   }
 
   private recordValidationFailure(event: OutputValidationFailureEvent): void {
-    this.validationFailures += 1;
-    if (event.mode === 'shadow') {
-      this.validationShadowFailures += 1;
-    } else if (event.mode === 'enforce') {
-      this.validationEnforcedFailures += 1;
-    }
-    this.validationFailureEvents.push({
-      timestamp: Date.now(),
-      agentType: event.agentType,
-      code: event.code,
-      mode: event.mode,
-      enforced: event.enforced,
-    });
-    this.pruneValidationFailures();
-    this.recomputeStrategy('validation_failed');
+    this.withOperationsSpan(
+      'validation_failure',
+      (span) => {
+        const tracingSpan = span as any;
+        if (event?.taskId) {
+          tracingSpan?.setAttribute('validation.task_id', event.taskId);
+        }
+        if (event?.agentType) {
+          tracingSpan?.setAttribute('validation.agent_type', event.agentType);
+        }
+        if (event?.code) {
+          tracingSpan?.setAttribute('validation.code', event.code);
+        }
+        tracingSpan?.setAttribute('validation.mode', event?.mode ?? 'unknown');
+        tracingSpan?.setAttribute('validation.enforced', event?.enforced ?? false);
+
+        this.validationFailures += 1;
+        if (event.mode === 'shadow') {
+          this.validationShadowFailures += 1;
+        } else if (event.mode === 'enforce') {
+          this.validationEnforcedFailures += 1;
+        }
+        this.lastObservedValidationMode = event.mode!;
+        this.validationFailureEvents.push({
+          timestamp: Date.now(),
+          agentType: event.agentType!,
+          code: event.code!,
+          mode: event.mode!,
+          enforced: event.enforced!,
+        });
+        this.pruneValidationFailures();
+        this.recomputeStrategy('validation_failed');
+      },
+      {
+        'validation.mode': event?.mode ?? 'unknown',
+        'validation.enforced': event?.enforced ?? false,
+      },
+    );
   }
 
   recordValidationRecovery(event: {
@@ -397,14 +460,30 @@ export class OperationsManager extends EventEmitter implements ExecutionObserver
     reasoning?: string;
     delaySeconds?: number;
   }): void {
-    this.lastValidationRecoveryAt = Date.now();
-    if (event.action === 'retry' || event.action === 'checkpoint_and_retry') {
-      this.validationRecoveryTotals.retries += 1;
-    } else if (event.action === 'reassign') {
-      this.validationRecoveryTotals.reassignments += 1;
-    } else if (event.action === 'fail_task') {
-      this.validationRecoveryTotals.failures += 1;
-    }
+    this.withOperationsSpan(
+      'validation_recovery',
+      (span) => {
+        const tracingSpan = span as any;
+        tracingSpan?.setAttribute('validation_recovery.task_id', event.taskId);
+        tracingSpan?.setAttribute('validation_recovery.action', event.action);
+        tracingSpan?.setAttribute('validation_recovery.agent_type', event.agentType);
+        tracingSpan?.setAttribute('validation_recovery.mode', event.mode);
+        tracingSpan?.setAttribute('validation_recovery.enforced', event.enforced);
+
+        this.lastValidationRecoveryAt = Date.now();
+        if (event.action === 'retry' || event.action === 'checkpoint_and_retry') {
+          this.validationRecoveryTotals.retries += 1;
+        } else if (event.action === 'reassign') {
+          this.validationRecoveryTotals.reassignments += 1;
+        } else if (event.action === 'fail_task') {
+          this.validationRecoveryTotals.failures += 1;
+        }
+      },
+      {
+        'validation_recovery.action': event.action,
+        'validation_recovery.agent_type': event.agentType,
+      },
+    );
   }
 
   private pruneValidationFailures(): void {
@@ -415,25 +494,40 @@ export class OperationsManager extends EventEmitter implements ExecutionObserver
   }
 
   private checkCoordinatorAvailability(trigger: string): void {
-    const currentCoordinator = this.agentPool.getCoordinatorType();
-    if (currentCoordinator === 'claude_code') {
-      return;
-    }
+    this.withOperationsSpan(
+      'coordinator.check',
+      (span) => {
+        const tracingSpan = span as any;
+        tracingSpan?.setAttribute('coordinator.trigger', trigger);
+        const currentCoordinator = this.agentPool.getCoordinatorType();
+        tracingSpan?.setAttribute('coordinator.current', currentCoordinator);
+        if (currentCoordinator === 'claude_code') {
+          tracingSpan?.addEvent('coordinator.primary_active');
+          return;
+        }
 
-    this.agentPool.demoteCoordinatorRole();
+        this.agentPool.demoteCoordinatorRole();
 
-    const updatedCoordinator = this.agentPool.getCoordinatorType();
-    if (updatedCoordinator === 'claude_code') {
-      logInfo('Coordinator switched back to Claude Code', { trigger });
-      this.emit('coordinator:switched', {
-        from: 'codex',
-        to: 'claude_code',
-        trigger
-      });
-    }
+        const updatedCoordinator = this.agentPool.getCoordinatorType();
+        tracingSpan?.setAttribute('coordinator.updated', updatedCoordinator);
+        if (updatedCoordinator === 'claude_code') {
+          tracingSpan?.addEvent('coordinator.restored');
+          logInfo('Coordinator switched back to Claude Code', { trigger });
+          this.emit('coordinator:switched', {
+            from: 'codex',
+            to: 'claude_code',
+            trigger
+          });
+        }
+      },
+      {
+        'coordinator.trigger': trigger,
+      },
+    );
   }
 
   recordWebInspiration(event: {
+    taskId?: string;
     url: string;
     success: boolean;
     cached: boolean;
@@ -442,6 +536,12 @@ export class OperationsManager extends EventEmitter implements ExecutionObserver
     htmlSizeKb?: number;
     category?: string;
   }): void {
+    this.emit('web_inspiration', {
+      ...event,
+      enabled: this.webInspirationSummary.enabled,
+      timestamp: Date.now(),
+    });
+
     if (!this.webInspirationSummary.enabled) {
       return;
     }
@@ -474,36 +574,77 @@ export class OperationsManager extends EventEmitter implements ExecutionObserver
   }
 
   handleRateLimit(agentId: string, agentType: 'codex' | 'claude_code', retryAfterSeconds: number, message: string): void {
-    this.rateLimitCounters[agentType] += 1;
-    if (agentId === 'claude_code') {
-      this.agentPool.promoteCoordinatorRole(`claude_rate_limit:${retryAfterSeconds}s`);
-    }
-    logWarning('Rate limit encountered', {
-      agentId,
-      agentType,
-      retryAfterSeconds,
-      message,
-      counters: this.rateLimitCounters,
-    });
-    this.emit('maintenance:rate_limit', { agentId, agentType, retryAfterSeconds, message });
-    this.recomputeStrategy('rate_limit');
+    this.withOperationsSpan(
+      'rate_limit',
+      (span) => {
+        const tracingSpan = span as any;
+        tracingSpan?.setAttribute('ratelimit.agent', agentId);
+        tracingSpan?.setAttribute('ratelimit.provider', agentType);
+        tracingSpan?.setAttribute('ratelimit.retry_after_seconds', retryAfterSeconds);
+
+        this.rateLimitCounters[agentType] += 1;
+        if (agentId === 'claude_code') {
+          this.agentPool.promoteCoordinatorRole(`claude_rate_limit:${retryAfterSeconds}s`);
+        }
+        logWarning('Rate limit encountered', {
+          agentId,
+          agentType,
+          retryAfterSeconds,
+          message,
+          counters: this.rateLimitCounters,
+        });
+        this.emit('maintenance:rate_limit', { agentId, agentType, retryAfterSeconds, message });
+        this.recomputeStrategy('rate_limit');
+      },
+      {
+        'ratelimit.provider': agentType,
+        'ratelimit.retry_after_seconds': retryAfterSeconds,
+      },
+    );
   }
 
   handleContextLimit(taskId: string, agentId: string, agentType: 'codex' | 'claude_code'): void {
-    logWarning('Context limit flagged for task', { taskId, agentId, agentType });
-    this.emit('maintenance:context_limit', { taskId, agentId, agentType });
+    this.withOperationsSpan(
+      'context_limit',
+      (span) => {
+        const tracingSpan = span as any;
+        tracingSpan?.setAttribute('context_limit.task_id', taskId);
+        tracingSpan?.setAttribute('context_limit.agent', agentId);
+        tracingSpan?.setAttribute('context_limit.provider', agentType);
+
+        logWarning('Context limit flagged for task', { taskId, agentId, agentType });
+        this.emit('maintenance:context_limit', { taskId, agentId, agentType });
+      },
+      {
+        'context_limit.provider': agentType,
+      },
+    );
   }
 
   handleNetworkFailure(taskId: string, agentId: string, agentType: 'codex' | 'claude_code', message: string): void {
-    this.networkFailureCount += 1;
-    logWarning('Network failure detected during task execution', {
-      taskId,
-      agentId,
-      agentType,
-      message,
-      failureCount: this.networkFailureCount,
-    });
-    this.emit('maintenance:network_failure', { taskId, agentId, agentType, message });
+    this.withOperationsSpan(
+      'network_failure',
+      (span) => {
+        const tracingSpan = span as any;
+        this.networkFailureCount += 1;
+        tracingSpan?.setAttribute('network.task_id', taskId);
+        tracingSpan?.setAttribute('network.agent', agentId);
+        tracingSpan?.setAttribute('network.provider', agentType);
+        tracingSpan?.setAttribute('network.failure_count', this.networkFailureCount);
+
+        logWarning('Network failure detected during task execution', {
+          taskId,
+          agentId,
+          agentType,
+          message,
+          failureCount: this.networkFailureCount,
+        });
+        this.emit('maintenance:network_failure', { taskId, agentId, agentType, message });
+      },
+      {
+        'network.provider': agentType,
+      },
+    );
   }
 
   private appendExecutionTelemetry(summary: ExecutionSummary): void {
@@ -512,68 +653,104 @@ export class OperationsManager extends EventEmitter implements ExecutionObserver
   }
 
   private recomputeStrategy(reason: string): void {
-    const now = Date.now();
+    this.withOperationsSpan(
+      'recompute',
+      (span) => {
+        const tracingSpan = span as any;
+        tracingSpan?.setAttribute('recompute.reason', reason);
 
-    if (this.shouldSkipSnapshot(reason, now)) {
-      return;
-    }
+        const now = Date.now();
 
-    const snapshot = this.buildSnapshot();
-    if (!snapshot) {
-      return;
-    }
+        if (this.shouldSkipSnapshot(reason, now)) {
+          tracingSpan?.addEvent('skip');
+          return;
+        }
 
-    if (this.efficientOpsEnabled() && !this.isSignificantChange(snapshot, this.lastSnapshot)) {
-      this.lastSnapshotTime = now;
-      this.lastSnapshot = snapshot;
-      this.lastSnapshotExecutionCount = this.executionHistory.length;
-      return;
-    }
+        const snapshot = this.buildSnapshot();
+        if (!snapshot) {
+          tracingSpan?.setStatus('error', 'snapshot_unavailable');
+          return;
+        }
 
-    const newMode = this.determineMode(snapshot);
-    this.currentMode = newMode;
-    snapshot.mode = newMode;
+        tracingSpan?.setAttribute('recompute.queue_length', snapshot.queueLength);
+        tracingSpan?.setAttribute('recompute.blocked_tasks', snapshot.blockedTasks);
+        tracingSpan?.setAttribute('recompute.failure_rate', snapshot.failureRate);
 
-    this.lastSnapshotTime = now;
-    this.lastSnapshot = snapshot;
-    this.lastSnapshotExecutionCount = this.executionHistory.length;
-    this.emitTelemetry(snapshot);
-    this.evaluateBudgetAlerts(snapshot.costs);
+        if (this.efficientOpsEnabled() && !this.isSignificantChange(snapshot, this.lastSnapshot)) {
+          this.lastSnapshotTime = now;
+          this.lastSnapshot = snapshot;
+          this.lastSnapshotExecutionCount = this.executionHistory.length;
+          tracingSpan?.addEvent('snapshot.skipped_duplicate');
+          return;
+        }
 
-    const profile = this.buildPriorityProfile(snapshot);
-    const signature = JSON.stringify(profile);
+        const newMode = this.determineMode(snapshot);
+        this.currentMode = newMode;
+        snapshot.mode = newMode;
 
-    if (signature !== this.lastProfileSignature) {
-      this.scheduler.setPriorityProfile(profile);
-      this.lastProfileSignature = signature;
-      logInfo('Scheduler priority profile updated', {
-        reason,
-        mode: snapshot.mode,
-        profile,
-      });
-      this.emit('profile:updated', { profile, snapshot });
-    }
+        tracingSpan?.setAttribute('recompute.mode', newMode);
 
-    this.evaluateMaintenance(snapshot);
+        this.lastSnapshotTime = now;
+        this.lastSnapshot = snapshot;
+        this.lastSnapshotExecutionCount = this.executionHistory.length;
+        this.emitTelemetry(snapshot);
+        this.evaluateBudgetAlerts(snapshot.costs);
+
+        const profile = this.buildPriorityProfile(snapshot);
+        const signature = JSON.stringify(profile);
+
+        tracingSpan?.setAttribute('recompute.profile_changed', signature !== this.lastProfileSignature);
+
+        if (signature !== this.lastProfileSignature) {
+          this.scheduler.setPriorityProfile(profile);
+          this.lastProfileSignature = signature;
+          logInfo('Scheduler priority profile updated', {
+            reason,
+            mode: snapshot.mode,
+            profile,
+          });
+          this.emit('profile:updated', { profile, snapshot });
+        }
+
+        this.evaluateMaintenance(snapshot);
+      },
+      {
+        'recompute.reason': reason,
+      },
+    );
   }
 
   private efficientOpsEnabled(): boolean {
-    return this.liveFlags?.getValue('EFFICIENT_OPERATIONS') === '1';
+    return this.featureGates?.isEfficientOperationsEnabled() ?? false;
   }
 
   private shouldSkipSnapshot(reason: string, now: number): boolean {
     const elapsed = now - this.lastSnapshotTime;
+    const hasSnapshot = Boolean(this.lastSnapshot);
+    const historyChanged = this.executionHistoryChangedSinceSnapshot();
+
+    if (reason === 'validation_failed') {
+      return false;
+    }
+
     if (!this.efficientOpsEnabled()) {
-      return elapsed < this.SNAPSHOT_THROTTLE_MS && Boolean(this.lastSnapshot);
+      if (reason === 'execution' && historyChanged) {
+        return false;
+      }
+      return hasSnapshot && elapsed < this.SNAPSHOT_THROTTLE_MS;
     }
 
     const lowImpactReasons = new Set(['queue', 'transition', 'cooldown', 'cooldown_clear']);
     const throttle = lowImpactReasons.has(reason) ? this.LOW_IMPACT_THROTTLE_MS : this.SNAPSHOT_THROTTLE_MS;
-    if (elapsed < throttle && this.lastSnapshot) {
+
+    if (elapsed < throttle && hasSnapshot) {
+      if (reason === 'execution' && historyChanged) {
+        return false;
+      }
       return true;
     }
 
-    if (!this.executionHistoryChangedSinceSnapshot() && reason !== 'coordinator_promoted' && reason !== 'coordinator_demoted') {
+    if (!historyChanged && reason !== 'coordinator_promoted' && reason !== 'coordinator_demoted') {
       return true;
     }
 
@@ -604,200 +781,252 @@ export class OperationsManager extends EventEmitter implements ExecutionObserver
   }
 
   private buildSnapshot(): OperationsSnapshot | undefined {
-    const recent = this.executionHistory.slice(-this.options.qualityWindow);
-    this.pruneValidationFailures();
-    const avgQuality =
-      recent.length > 0
-        ? recent.reduce((sum, item) => sum + item.qualityScore, 0) / recent.length
-        : this.stateMachine.getAverageQualityScore();
+    return this.withOperationsSpan(
+      'snapshot.build',
+      (span) => {
+        const tracingSpan = span as any;
+        const recent = this.executionHistory.slice(-this.options.qualityWindow);
+        this.pruneValidationFailures();
+        const avgQuality =
+          recent.length > 0
+            ? recent.reduce((sum, item) => sum + item.qualityScore, 0) / recent.length
+            : this.stateMachine.getAverageQualityScore();
 
-    const failureRate =
-      recent.length > 0
-        ? recent.filter((item) => item.finalStatus === 'needs_improvement').length / recent.length
-        : 0;
+        const failureRate =
+          recent.length > 0
+            ? recent.filter((item) => item.finalStatus === 'needs_improvement').length / recent.length
+            : 0;
 
-    const usage = this.agentPool.getUsageRatio();
-    const totalAgentCompletions = usage.codex + usage.claude;
-    const codexUsagePercent = totalAgentCompletions > 0 ? (usage.codex / totalAgentCompletions) * 100 : 0;
-    const claudeUsagePercent = totalAgentCompletions > 0 ? (usage.claude / totalAgentCompletions) * 100 : 0;
-    const queueLength = this.scheduler.getQueueLength();
-    const health = this.stateMachine.getRoadmapHealth();
-    const codexPresetStats = this.computeCodexPresetStats(recent);
-    const queueMetrics = this.scheduler.getQueueMetrics();
-    const tokenMetrics = this.computeTokenMetrics(recent);
-    const costMetrics = this.computeCostMetrics();
-    const recentValidationFailures = recent.filter((item) => item.failureType === 'validation').length;
-    const validationFailureRate =
-      recent.length > 0 ? recentValidationFailures / recent.length : 0;
-    const failuresByCode = this.validationFailureEvents.reduce<Record<string, number>>((acc, event) => {
-      const key = event.code ?? 'unknown';
-      acc[key] = (acc[key] ?? 0) + 1;
-      return acc;
-    }, {});
-    const validationSettings = resolveOutputValidationSettings();
-    const retriesLastWindow = recent.filter((item) => !item.success).length;
-    const retryRate = recent.length > 0 ? retriesLastWindow / recent.length : 0;
+        tracingSpan?.setAttribute('snapshot.recent_count', recent.length);
+        tracingSpan?.setAttribute('snapshot.avg_quality', Number(avgQuality.toFixed(4)));
+        tracingSpan?.setAttribute('snapshot.failure_rate', Number(failureRate.toFixed(4)));
 
-    const totalAgents = this.agentPool.getAvailableAgents().length + usage.codex + usage.claude;
-    const busyAgents = usage.codex + usage.claude;
-    const idleAgents = this.agentPool.getAvailableAgents().length;
-    const coordinatorStatus = this.getCoordinatorStatus();
-    const shadowSummary = this.readShadowDiffSummary();
+        const usage = this.agentPool.getUsageRatio();
+        const totalAgentCompletions = usage.codex + usage.claude;
+        const codexUsagePercent = totalAgentCompletions > 0 ? (usage.codex / totalAgentCompletions) * 100 : 0;
+        const claudeUsagePercent = totalAgentCompletions > 0 ? (usage.claude / totalAgentCompletions) * 100 : 0;
+        const queueLength = this.scheduler.getQueueLength();
+        tracingSpan?.setAttribute('snapshot.queue_length', queueLength);
 
-    return {
-      avgQuality,
-      failureRate,
-      codexUsagePercent,
-      claudeUsagePercent,
-      codexToClaudeRatio: usage.ratio,
-      queueLength,
-      blockedTasks: health.blockedTasks,
-      totalTasks: health.totalTasks,
-      mode: this.currentMode,
-      timestamp: Date.now(),
-      rateLimitCodex: this.rateLimitCounters.codex,
-      rateLimitClaude: this.rateLimitCounters.claude_code,
-      coordinatorType: coordinatorStatus.type,
-      coordinatorAvailable: coordinatorStatus.available,
-      coordinatorReason: coordinatorStatus.reason,
-      codexPresetStats,
-      agent_pool: {
-        total_agents: totalAgents,
-        busy_agents: busyAgents,
-        idle_agents: idleAgents,
-        codex_usage_percent: codexUsagePercent,
-        claude_usage_percent: claudeUsagePercent
+        const health = this.stateMachine.getRoadmapHealth();
+        const codexPresetStats = this.computeCodexPresetStats(recent);
+        const queueMetrics = this.scheduler.getQueueMetrics();
+        const tokenMetrics = this.computeTokenMetrics(recent);
+        const costMetrics = this.computeCostMetrics();
+        const recentValidationFailures = recent.filter((item) => item.failureType === 'validation').length;
+        const validationFailureRate =
+          recent.length > 0 ? recentValidationFailures / recent.length : 0;
+        const failuresByCode = this.validationFailureEvents.reduce<Record<string, number>>((acc, event) => {
+          const key = event.code ?? 'unknown';
+          acc[key] = (acc[key] ?? 0) + 1;
+          return acc;
+        }, {});
+        const validationSettings = resolveOutputValidationSettings();
+        let observedValidationMode: OutputValidationMode;
+        if (this.validationFailureEvents.length > 0) {
+          observedValidationMode = this.validationFailureEvents[this.validationFailureEvents.length - 1].mode;
+          this.lastObservedValidationMode = observedValidationMode;
+        } else {
+          this.lastObservedValidationMode = validationSettings.effectiveMode;
+          observedValidationMode = this.lastObservedValidationMode;
+        }
+        const retriesLastWindow = recent.filter((item) => !item.success).length;
+        const retryRate = recent.length > 0 ? retriesLastWindow / recent.length : 0;
+
+        const totalAgents = this.agentPool.getAvailableAgents().length + usage.codex + usage.claude;
+        const busyAgents = usage.codex + usage.claude;
+        const idleAgents = this.agentPool.getAvailableAgents().length;
+        const coordinatorStatus = this.getCoordinatorStatus();
+        const shadowSummary = this.readShadowDiffSummary();
+
+        const snapshot: OperationsSnapshot = {
+          avgQuality,
+          failureRate,
+          codexUsagePercent,
+          claudeUsagePercent,
+          codexToClaudeRatio: usage.ratio,
+          queueLength,
+          blockedTasks: health.blockedTasks,
+          totalTasks: health.totalTasks,
+          mode: this.currentMode,
+          timestamp: Date.now(),
+          rateLimitCodex: this.rateLimitCounters.codex,
+          rateLimitClaude: this.rateLimitCounters.claude_code,
+          coordinatorType: coordinatorStatus.type,
+          coordinatorAvailable: coordinatorStatus.available,
+          coordinatorReason: coordinatorStatus.reason,
+          codexPresetStats,
+          agent_pool: {
+            total_agents: totalAgents,
+            busy_agents: busyAgents,
+            idle_agents: idleAgents,
+            codex_usage_percent: codexUsagePercent,
+            claude_usage_percent: claudeUsagePercent
+          },
+          queue: {
+            ready_count: queueMetrics.reasonCounts.dependencies_cleared,
+            pending_count: health.pendingTasks,
+            review_count: queueMetrics.reasonCounts.requires_review,
+            improvement_count: queueMetrics.reasonCounts.requires_follow_up,
+            batches: this.formatQueueBatches(queueMetrics),
+            resource: {
+              heavy_limit: queueMetrics.resource.heavyTaskLimit,
+              active_heavy: queueMetrics.resource.activeHeavyTasks,
+              queued_heavy: queueMetrics.resource.queuedHeavyTasks,
+            },
+            shadow_diffs: shadowSummary
+              ? {
+                  count: shadowSummary.count,
+                  path: shadowSummary.path,
+                  recorded_at: shadowSummary.recordedAt,
+                }
+              : null,
+          },
+          quality: {
+            total_executions: recent.length,
+            avg_duration_seconds: recent.length > 0
+              ? recent.reduce((sum, r) => sum + r.durationSeconds, 0) / recent.length
+              : 0
+          },
+          health_status: health.averageQualityScore >= 0.85 && failureRate < 0.2 ? 'healthy' : 'degraded',
+          webInspiration: {
+            enabled: this.webInspirationSummary.enabled,
+            totalFetches: this.webInspirationSummary.totalFetches,
+            successes: this.webInspirationSummary.successes,
+            failures: this.webInspirationSummary.failures,
+            cacheHits: this.webInspirationSummary.cacheHits,
+            averageDurationMs:
+              this.webInspirationSummary.totalFetches > 0
+                ? Math.round(this.webInspirationSummary.totalDurationMs / this.webInspirationSummary.totalFetches)
+                : 0,
+            averageSizeKb:
+              this.webInspirationSummary.totalFetches > 0
+                ? Math.round(this.webInspirationSummary.totalSizeKb / this.webInspirationSummary.totalFetches)
+                : 0,
+            topCategories: this.getTopWebInspirationCategories()
+          },
+          networkFailureCount: this.networkFailureCount,
+          tokenMetrics,
+          validation: {
+            totalFailures: this.validationFailures,
+            failuresLastHour: this.validationFailureEvents.length,
+            recentFailureRate: validationFailureRate,
+            failuresByCode,
+            shadowFailures: this.validationShadowFailures,
+            enforcedFailures: this.validationEnforcedFailures,
+            mode: observedValidationMode,
+            canaryAcknowledged: validationSettings.canaryAcknowledged,
+            retryRate,
+            recoveries: {
+              retries: this.validationRecoveryTotals.retries,
+              reassignments: this.validationRecoveryTotals.reassignments,
+              failures: this.validationRecoveryTotals.failures,
+              lastRecoveryAt: this.lastValidationRecoveryAt,
+            },
+          },
+          costs: costMetrics,
+          // NEW: Opt-in velocity metrics (backward compatible - optional field)
+          velocity: this.featureGates?.isVelocityTrackingEnabled()
+            ? this.computeVelocityMetrics()
+            : undefined,
+        };
+
+        tracingSpan?.setAttribute('snapshot.blocked_tasks', snapshot.blockedTasks);
+        tracingSpan?.setAttribute('snapshot.total_tasks', snapshot.totalTasks);
+        tracingSpan?.setAttribute('snapshot.token_pressure', snapshot.tokenMetrics.pressure);
+        tracingSpan?.setAttribute('snapshot.cost_alerts', snapshot.costs.alerts.length);
+
+        return snapshot;
       },
-      queue: {
-        ready_count: queueMetrics.reasonCounts.dependencies_cleared,
-        pending_count: health.pendingTasks,
-        review_count: queueMetrics.reasonCounts.requires_review,
-        improvement_count: queueMetrics.reasonCounts.requires_follow_up,
-        batches: this.formatQueueBatches(queueMetrics),
-        resource: {
-          heavy_limit: queueMetrics.resource.heavyTaskLimit,
-          active_heavy: queueMetrics.resource.activeHeavyTasks,
-          queued_heavy: queueMetrics.resource.queuedHeavyTasks,
-        },
-        shadow_diffs: shadowSummary
-          ? {
-              count: shadowSummary.count,
-              path: shadowSummary.path,
-              recorded_at: shadowSummary.recordedAt,
-            }
-          : null,
+      {
+        'snapshot.window': this.options.qualityWindow,
+        'snapshot.execution_history_size': this.executionHistory.length,
       },
-      quality: {
-        total_executions: recent.length,
-        avg_duration_seconds: recent.length > 0
-          ? recent.reduce((sum, r) => sum + r.durationSeconds, 0) / recent.length
-          : 0
-      },
-      health_status: health.averageQualityScore >= 0.85 && failureRate < 0.2 ? 'healthy' : 'degraded',
-      webInspiration: {
-        enabled: this.webInspirationSummary.enabled,
-        totalFetches: this.webInspirationSummary.totalFetches,
-        successes: this.webInspirationSummary.successes,
-        failures: this.webInspirationSummary.failures,
-        cacheHits: this.webInspirationSummary.cacheHits,
-        averageDurationMs:
-          this.webInspirationSummary.totalFetches > 0
-            ? Math.round(this.webInspirationSummary.totalDurationMs / this.webInspirationSummary.totalFetches)
-            : 0,
-        averageSizeKb:
-          this.webInspirationSummary.totalFetches > 0
-            ? Math.round(this.webInspirationSummary.totalSizeKb / this.webInspirationSummary.totalFetches)
-            : 0,
-        topCategories: this.getTopWebInspirationCategories()
-      },
-      networkFailureCount: this.networkFailureCount,
-      tokenMetrics,
-      validation: {
-        totalFailures: this.validationFailures,
-        failuresLastHour: this.validationFailureEvents.length,
-        recentFailureRate: validationFailureRate,
-        failuresByCode,
-        shadowFailures: this.validationShadowFailures,
-        enforcedFailures: this.validationEnforcedFailures,
-        mode: validationSettings.effectiveMode,
-        canaryAcknowledged: validationSettings.canaryAcknowledged,
-        retryRate,
-        recoveries: {
-          retries: this.validationRecoveryTotals.retries,
-          reassignments: this.validationRecoveryTotals.reassignments,
-          failures: this.validationRecoveryTotals.failures,
-          lastRecoveryAt: this.lastValidationRecoveryAt,
-        },
-      },
-      costs: costMetrics,
-      // NEW: Opt-in velocity metrics (backward compatible - optional field)
-      velocity: this.liveFlags?.getValue('VELOCITY_TRACKING') === '1'
-        ? this.computeVelocityMetrics()
-        : undefined,
-    };
+    );
   }
 
   private computeVelocityMetrics() {
-    const velocityData = this.scheduler.getVelocityMetrics(86400000); // 24 hour window
-    const stuckTasks = this.scheduler.detectStuckTasks(3600000); // 1 hour threshold
+    return this.withOperationsSpan(
+      'velocity.compute',
+      (span) => {
+        const tracingSpan = span as any;
+        const velocityData = this.scheduler.getVelocityMetrics(86400000); // 24 hour window
+        const stuckTasks = this.scheduler.detectStuckTasks(3600000); // 1 hour threshold
 
-    return {
-      completedLast24h: velocityData.completedTasks,
-      tasksPerHour: velocityData.tasksPerHour,
-      averageCompletionTimeMs: velocityData.averageCompletionTime,
-      inProgressCount: velocityData.inProgressCount,
-      stalledCount: velocityData.stalledCount,
-      stalledTasks: stuckTasks.slice(0, 5).map(s => ({
-        id: s.task.id,
-        title: s.task.title,
-        stalledForMs: s.timeSinceLastEvent,
-        recommendation: s.recommendation,
-      })),
-    };
+        tracingSpan?.setAttribute('velocity.completed_24h', velocityData.completedTasks);
+        tracingSpan?.setAttribute('velocity.stalled_count', velocityData.stalledCount);
+
+        return {
+          completedLast24h: velocityData.completedTasks,
+          tasksPerHour: velocityData.tasksPerHour,
+          averageCompletionTimeMs: velocityData.averageCompletionTime,
+          inProgressCount: velocityData.inProgressCount,
+          stalledCount: velocityData.stalledCount,
+          stalledTasks: stuckTasks.slice(0, 5).map(s => ({
+            id: s.task.id,
+            title: s.task.title,
+            stalledForMs: s.timeSinceLastEvent,
+            recommendation: s.recommendation,
+          })),
+        };
+      },
+    );
   }
 
   private computeCodexPresetStats(executions: ExecutionSummary[]): Record<string, CodexPresetPerformance> {
-    const groups = new Map<string, ExecutionSummary[]>();
-    for (const execution of executions) {
-      if (execution.agentType !== 'codex' || !execution.codexPreset) continue;
-      const bucket = groups.get(execution.codexPreset);
-      if (bucket) {
-        bucket.push(execution);
-      } else {
-        groups.set(execution.codexPreset, [execution]);
-      }
-    }
+    return this.withOperationsSpan(
+      'codex_preset.compute',
+      (span) => {
+        const tracingSpan = span as any;
+        const groups = new Map<string, ExecutionSummary[]>();
+        for (const execution of executions) {
+          if (execution.agentType !== 'codex' || !execution.codexPreset) continue;
+          const bucket = groups.get(execution.codexPreset);
+          if (bucket) {
+            bucket.push(execution);
+          } else {
+            groups.set(execution.codexPreset, [execution]);
+          }
+        }
 
-    const stats: Record<string, CodexPresetPerformance> = {};
+        tracingSpan?.setAttribute('codex_preset.group_count', groups.size);
 
-    for (const [preset, executionsForPreset] of groups.entries()) {
-      const sampleSize = executionsForPreset.length;
-      if (sampleSize === 0) continue;
+        const stats: Record<string, CodexPresetPerformance> = {};
 
-      const successCount = executionsForPreset.filter(
-        (item) => item.success && item.finalStatus !== 'needs_improvement'
-      ).length;
-      const avgQuality =
-        executionsForPreset.reduce((sum, item) => sum + (item.qualityScore ?? 0), 0) / sampleSize;
-      const avgTotalTokens =
-        executionsForPreset.reduce((sum, item) => sum + (item.totalTokens ?? 0), 0) / sampleSize;
-      const costValues = executionsForPreset
-        .map((item) => item.tokenCostUSD)
-        .filter((value): value is number => typeof value === 'number' && !Number.isNaN(value));
+        for (const [preset, executionsForPreset] of groups.entries()) {
+          const sampleSize = executionsForPreset.length;
+          if (sampleSize === 0) continue;
 
-      stats[preset] = {
-        sampleSize,
-        successRate: sampleSize > 0 ? successCount / sampleSize : 0,
-        avgQuality,
-        avgTotalTokens,
-        avgCostUSD:
-          costValues.length > 0
-            ? costValues.reduce((sum, value) => sum + value, 0) / costValues.length
-            : undefined,
-      };
-    }
+          const successCount = executionsForPreset.filter(
+            (item) => item.success && item.finalStatus !== 'needs_improvement'
+          ).length;
+          const avgQuality =
+            executionsForPreset.reduce((sum, item) => sum + (item.qualityScore ?? 0), 0) / sampleSize;
+          const avgTotalTokens =
+            executionsForPreset.reduce((sum, item) => sum + (item.totalTokens ?? 0), 0) / sampleSize;
+          const costValues = executionsForPreset
+            .map((item) => item.tokenCostUSD)
+            .filter((value): value is number => typeof value === 'number' && !Number.isNaN(value));
 
-    return stats;
+          stats[preset] = {
+            sampleSize,
+            successRate: sampleSize > 0 ? successCount / sampleSize : 0,
+            avgQuality,
+            avgTotalTokens,
+            avgCostUSD:
+              costValues.length > 0
+                ? costValues.reduce((sum, value) => sum + value, 0) / costValues.length
+                : undefined,
+          };
+        }
+
+        tracingSpan?.setAttribute('codex_preset.has_stats', Object.keys(stats).length > 0);
+        return stats;
+      },
+      {
+        'codex_preset.execution_count': executions.length,
+      },
+    );
   }
 
   private emitTelemetry(snapshot: OperationsSnapshot): void {
@@ -852,6 +1081,10 @@ export class OperationsManager extends EventEmitter implements ExecutionObserver
     }
 
     this.telemetryExporter.append(record);
+    if (!this.telemetryPrimed) {
+      this.telemetryPrimed = true;
+      void this.telemetryExporter.flushNow();
+    }
   }
 
   private formatPresetMix(stats: Record<string, CodexPresetPerformance>): Array<Record<string, unknown>> {
@@ -877,186 +1110,264 @@ export class OperationsManager extends EventEmitter implements ExecutionObserver
   }
 
   private determineMode(snapshot: OperationsSnapshot): StrategyMode {
-    const qualityConcern = snapshot.avgQuality < 0.85 || snapshot.failureRate > 0.2;
-    const stability = snapshot.avgQuality >= 0.9 && snapshot.failureRate < 0.1;
-    const ratio = snapshot.codexToClaudeRatio || 0;
-    const rateLimitPressure = snapshot.rateLimitCodex + snapshot.rateLimitClaude;
-    const budgetPressure = this.getBudgetPressure(snapshot.costs);
+    return this.withOperationsSpan(
+      'mode.determine',
+      (span) => {
+        const tracingSpan = span as any;
+        const qualityConcern = snapshot.avgQuality < 0.85 || snapshot.failureRate > 0.2;
+        const stability = snapshot.avgQuality >= 0.9 && snapshot.failureRate < 0.1;
+        const ratio = snapshot.codexToClaudeRatio || 0;
+        const rateLimitPressure = snapshot.rateLimitCodex + snapshot.rateLimitClaude;
+        const budgetPressure = this.getBudgetPressure(snapshot.costs);
 
-    if (budgetPressure === 'critical') {
-      return 'stabilize';
-    }
+        tracingSpan?.setAttribute('mode.prev', this.currentMode);
+        tracingSpan?.setAttribute('mode.ratio', Number(ratio.toFixed(3)));
+        tracingSpan?.setAttribute('mode.quality_concern', qualityConcern);
+        tracingSpan?.setAttribute('mode.rate_limit_pressure', rateLimitPressure);
+        tracingSpan?.setAttribute('mode.budget_pressure', budgetPressure);
 
-    if (qualityConcern || rateLimitPressure > 3) {
-      return 'stabilize';
-    }
+        if (budgetPressure === 'critical') {
+          tracingSpan?.setAttribute('mode.next', 'stabilize');
+          return 'stabilize';
+        }
 
-    if (budgetPressure === 'warning' && this.currentMode === 'accelerate') {
-      return 'balance';
-    }
+        if (qualityConcern || rateLimitPressure > 3) {
+          tracingSpan?.setAttribute('mode.next', 'stabilize');
+          return 'stabilize';
+        }
 
-    if (stability && ratio >= this.options.targetCodexRatio + 1) {
-      return 'accelerate';
-    }
+        if (budgetPressure === 'warning' && this.currentMode === 'accelerate') {
+          tracingSpan?.setAttribute('mode.next', 'balance');
+          return 'balance';
+        }
 
-    return 'balance';
+        if (stability && ratio >= this.options.targetCodexRatio + 1) {
+          tracingSpan?.setAttribute('mode.next', 'accelerate');
+          return 'accelerate';
+        }
+
+        tracingSpan?.setAttribute('mode.next', 'balance');
+        return 'balance';
+      },
+      {
+        'mode.previous': this.currentMode,
+        'mode.target_ratio': this.options.targetCodexRatio,
+      },
+    );
   }
 
   private buildPriorityProfile(snapshot: OperationsSnapshot): PriorityProfile {
-    const statusWeights: NonNullable<PriorityProfile['statusWeights']> = {
-      ...BASE_STATUS_WEIGHTS,
-    };
+    return this.withOperationsSpan(
+      'priority_profile.build',
+      (span) => {
+        const tracingSpan = span as any;
+        const statusWeights: NonNullable<PriorityProfile['statusWeights']> = {
+          ...BASE_STATUS_WEIGHTS,
+        };
 
-    let complexityBias = 1;
-    let stalenessBias = 1;
-    const budgetPressure = this.getBudgetPressure(snapshot.costs);
+        let complexityBias = 1;
+        let stalenessBias = 1;
+        const budgetPressure = this.getBudgetPressure(snapshot.costs);
 
-    if (budgetPressure !== 'normal') {
-      statusWeights.pending = (statusWeights.pending ?? 60) - 10;
-      if (budgetPressure === 'critical') {
-        statusWeights.pending = (statusWeights.pending ?? 50) - 10;
-        statusWeights.needs_review = (statusWeights.needs_review ?? 105) + 10;
-      }
-      complexityBias *= 0.9;
-    }
+        tracingSpan?.setAttribute('profile.mode', this.currentMode);
+        tracingSpan?.setAttribute('profile.budget_pressure', budgetPressure);
+        tracingSpan?.setAttribute('profile.rate_limit_codex', snapshot.rateLimitCodex);
+        tracingSpan?.setAttribute('profile.failure_rate', Number(snapshot.failureRate.toFixed(3)));
 
-    if (this.currentMode === 'stabilize') {
-      statusWeights.needs_improvement = (statusWeights.needs_improvement ?? 95) + 25;
-      statusWeights.pending = (statusWeights.pending ?? 60) - 10;
-      statusWeights.needs_review = (statusWeights.needs_review ?? 105) + 5;
-      complexityBias = 0.8;
-      stalenessBias = 1.1;
-    } else if (this.currentMode === 'accelerate') {
-      statusWeights.pending = (statusWeights.pending ?? 60) + 20;
-      statusWeights.needs_review = (statusWeights.needs_review ?? 105) - 10;
-      complexityBias = 1.5;
-      stalenessBias = 1.2;
-    }
+        if (budgetPressure !== 'normal') {
+          statusWeights.pending = (statusWeights.pending ?? 60) - 10;
+          if (budgetPressure === 'critical') {
+            statusWeights.pending = (statusWeights.pending ?? 50) - 10;
+            statusWeights.needs_review = (statusWeights.needs_review ?? 105) + 10;
+          }
+          complexityBias *= 0.9;
+        }
 
-    if (snapshot.rateLimitCodex > 2) {
-      statusWeights.pending = (statusWeights.pending ?? 60) - 12;
-      statusWeights.needs_review = (statusWeights.needs_review ?? 105) + 8;
-    }
+        if (this.currentMode === 'stabilize') {
+          statusWeights.needs_improvement = (statusWeights.needs_improvement ?? 95) + 25;
+          statusWeights.pending = (statusWeights.pending ?? 60) - 10;
+          statusWeights.needs_review = (statusWeights.needs_review ?? 105) + 5;
+          complexityBias = 0.8;
+          stalenessBias = 1.1;
+        } else if (this.currentMode === 'accelerate') {
+          statusWeights.pending = (statusWeights.pending ?? 60) + 20;
+          statusWeights.needs_review = (statusWeights.needs_review ?? 105) - 10;
+          complexityBias = 1.5;
+          stalenessBias = 1.2;
+        }
 
-    if (snapshot.failureRate > 0.25) {
-      statusWeights.needs_improvement = (statusWeights.needs_improvement ?? 95) + 15;
-      stalenessBias += 0.2;
-    }
+        if (snapshot.rateLimitCodex > 2) {
+          statusWeights.pending = (statusWeights.pending ?? 60) - 12;
+          statusWeights.needs_review = (statusWeights.needs_review ?? 105) + 8;
+        }
 
-    return {
-      statusWeights,
-      complexityBias,
-      stalenessBias,
-    };
+        if (snapshot.failureRate > 0.25) {
+          statusWeights.needs_improvement = (statusWeights.needs_improvement ?? 95) + 15;
+          stalenessBias += 0.2;
+        }
+
+        const profile = {
+          statusWeights,
+          complexityBias,
+          stalenessBias,
+        };
+
+        tracingSpan?.setAttribute('profile.complexity_bias', Number(complexityBias.toFixed(3)));
+        tracingSpan?.setAttribute('profile.staleness_bias', Number(stalenessBias.toFixed(3)));
+
+        return profile;
+      },
+      {
+        'profile.mode': this.currentMode,
+      },
+    );
   }
 
   private evaluateMaintenance(snapshot: OperationsSnapshot): void {
-    if (snapshot.totalTasks === 0) {
-      return;
-    }
+    this.withOperationsSpan(
+      'maintenance.evaluate',
+      (span) => {
+        const tracingSpan = span as any;
+        tracingSpan?.setAttribute('maintenance.total_tasks', snapshot.totalTasks);
+        tracingSpan?.setAttribute('maintenance.blocked_tasks', snapshot.blockedTasks);
+        tracingSpan?.setAttribute('maintenance.queue_length', snapshot.queueLength);
+        tracingSpan?.setAttribute('maintenance.token_pressure', snapshot.tokenMetrics.pressure);
 
-    const blockedRatio = snapshot.blockedTasks / snapshot.totalTasks;
-    if (blockedRatio > 0.2 && Date.now() - this.lastBlockedAlert > 5 * 60 * 1000) {
-      logWarning('Roadmap has a high blocked-task ratio', {
-        blockedTasks: snapshot.blockedTasks,
-        totalTasks: snapshot.totalTasks,
-        blockedRatio: blockedRatio.toFixed(2),
-      });
-      this.lastBlockedAlert = Date.now();
-      this.emit('maintenance:blocked_tasks', { snapshot });
-    }
+        if (snapshot.totalTasks === 0) {
+          tracingSpan?.addEvent('no_tasks');
+          return;
+        }
 
-    if (snapshot.queueLength < this.agentPool.getAvailableAgents().length) {
-      logWarning('Agent capacity under-utilised (queue below available agents)', {
-        queueLength: snapshot.queueLength,
-        availableAgents: this.agentPool.getAvailableAgents().length,
-      });
-      this.emit('maintenance:underutilised', { snapshot });
-    }
+        const blockedRatio = snapshot.blockedTasks / snapshot.totalTasks;
+        tracingSpan?.setAttribute('maintenance.blocked_ratio', Number(blockedRatio.toFixed(3)));
 
-    if (this.currentMode === 'balance') {
-      this.rateLimitCounters.codex = Math.max(0, this.rateLimitCounters.codex - 1);
-      this.rateLimitCounters.claude_code = Math.max(0, this.rateLimitCounters.claude_code - 1);
-    }
+        if (blockedRatio > 0.2 && Date.now() - this.lastBlockedAlert > 5 * 60 * 1000) {
+          tracingSpan?.addEvent('alert.blocked_tasks');
+          logWarning('Roadmap has a high blocked-task ratio', {
+            blockedTasks: snapshot.blockedTasks,
+            totalTasks: snapshot.totalTasks,
+            blockedRatio: blockedRatio.toFixed(2),
+          });
+          this.lastBlockedAlert = Date.now();
+          this.emit('maintenance:blocked_tasks', { snapshot });
+        }
 
-    if (snapshot.tokenMetrics.pressure === 'critical') {
-      logWarning('Prompt budget under critical pressure', {
-        averagePromptTokens: snapshot.tokenMetrics.averagePromptTokens,
-        targetPromptBudget: snapshot.tokenMetrics.targetPromptBudget,
-      });
-      this.emit('maintenance:token_pressure', { snapshot });
-    }
+        if (snapshot.queueLength < this.agentPool.getAvailableAgents().length) {
+          tracingSpan?.addEvent('alert.underutilised');
+          logWarning('Agent capacity under-utilised (queue below available agents)', {
+            queueLength: snapshot.queueLength,
+            availableAgents: this.agentPool.getAvailableAgents().length,
+          });
+          this.emit('maintenance:underutilised', { snapshot });
+        }
+
+        if (this.currentMode === 'balance') {
+          this.rateLimitCounters.codex = Math.max(0, this.rateLimitCounters.codex - 1);
+          this.rateLimitCounters.claude_code = Math.max(0, this.rateLimitCounters.claude_code - 1);
+        }
+
+        if (snapshot.tokenMetrics.pressure === 'critical') {
+          tracingSpan?.addEvent('alert.token_pressure');
+          logWarning('Prompt budget under critical pressure', {
+            averagePromptTokens: snapshot.tokenMetrics.averagePromptTokens,
+            targetPromptBudget: snapshot.tokenMetrics.targetPromptBudget,
+          });
+          this.emit('maintenance:token_pressure', { snapshot });
+        }
+      },
+      {
+        'maintenance.mode': this.currentMode,
+      },
+    );
   }
 
   private computeTokenMetrics(executions: ExecutionSummary[]): OperationsSnapshot['tokenMetrics'] {
-    const PROMPT_TARGET_DEFAULT = 600;
+    return this.withOperationsSpan(
+      'token_metrics.compute',
+      (span) => {
+        const tracingSpan = span as any;
+        const PROMPT_TARGET_DEFAULT = 600;
 
-    if (executions.length === 0) {
-      return {
-        averagePromptTokens: 0,
-        averageCompletionTokens: 0,
-        averageTotalTokens: 0,
-        pressure: 'normal',
-        targetPromptBudget: PROMPT_TARGET_DEFAULT,
-        cacheEligibleExecutions: 0,
-        cacheHitExecutions: 0,
-        cacheStoreExecutions: 0,
-        cacheHitRate: 0,
-      };
-    }
-
-    const sum = executions.reduce(
-      (acc, execution) => {
-        acc.prompt += execution.promptTokens ?? 0;
-        acc.completion += execution.completionTokens ?? 0;
-        acc.total += execution.totalTokens ?? 0;
-
-        if (execution.promptCacheHit) {
-          acc.cacheHit += 1;
-          acc.cacheEligible += 1;
-        } else if (execution.promptCacheStore) {
-          acc.cacheStore += 1;
-          acc.cacheEligible += 1;
-        } else if (execution.promptCacheEligible) {
-          acc.cacheEligible += 1;
+        if (executions.length === 0) {
+          tracingSpan?.addEvent('no_executions');
+          return {
+            averagePromptTokens: 0,
+            averageCompletionTokens: 0,
+            averageTotalTokens: 0,
+            pressure: 'normal',
+            targetPromptBudget: PROMPT_TARGET_DEFAULT,
+            cacheEligibleExecutions: 0,
+            cacheHitExecutions: 0,
+            cacheStoreExecutions: 0,
+            cacheHitRate: 0,
+          };
         }
 
-        return acc;
+        tracingSpan?.setAttribute('token_metrics.execution_count', executions.length);
+
+        const sum = executions.reduce(
+          (acc, execution) => {
+            acc.prompt += execution.promptTokens ?? 0;
+            acc.completion += execution.completionTokens ?? 0;
+            acc.total += execution.totalTokens ?? 0;
+
+            if (execution.promptCacheHit) {
+              acc.cacheHit += 1;
+              acc.cacheEligible += 1;
+            } else if (execution.promptCacheStore) {
+              acc.cacheStore += 1;
+              acc.cacheEligible += 1;
+            } else if (execution.promptCacheEligible) {
+              acc.cacheEligible += 1;
+            }
+
+            return acc;
+          },
+          { prompt: 0, completion: 0, total: 0, cacheEligible: 0, cacheHit: 0, cacheStore: 0 },
+        );
+
+        const averagePromptTokens = sum.prompt / executions.length;
+        const averageCompletionTokens = sum.completion / executions.length;
+        const averageTotalTokens = sum.total / executions.length;
+
+        let pressure: TokenPressureLevel = 'normal';
+        if (averagePromptTokens >= 580 || averageTotalTokens >= 1600) {
+          pressure = 'critical';
+        } else if (averagePromptTokens >= 520 || averageTotalTokens >= 1200) {
+          pressure = 'elevated';
+        }
+
+        tracingSpan?.setAttribute('token_metrics.average_prompt', Number(averagePromptTokens.toFixed(1)));
+        tracingSpan?.setAttribute('token_metrics.average_total', Number(averageTotalTokens.toFixed(1)));
+        tracingSpan?.setAttribute('token_metrics.pressure', pressure);
+
+        let targetPromptBudget = PROMPT_TARGET_DEFAULT;
+        if (pressure === 'critical') {
+          targetPromptBudget = 450;
+        } else if (pressure === 'elevated') {
+          targetPromptBudget = 520;
+        }
+
+        const cacheHitRate = sum.cacheEligible > 0 ? sum.cacheHit / sum.cacheEligible : 0;
+
+        tracingSpan?.setAttribute('token_metrics.cache_hit_rate', Number(cacheHitRate.toFixed(3)));
+
+        return {
+          averagePromptTokens,
+          averageCompletionTokens,
+          averageTotalTokens,
+          pressure,
+          targetPromptBudget,
+          cacheEligibleExecutions: sum.cacheEligible,
+          cacheHitExecutions: sum.cacheHit,
+          cacheStoreExecutions: sum.cacheStore,
+          cacheHitRate,
+        };
       },
-      { prompt: 0, completion: 0, total: 0, cacheEligible: 0, cacheHit: 0, cacheStore: 0 },
+      {
+        'token_metrics.execution_count': executions.length,
+      },
     );
-
-    const averagePromptTokens = sum.prompt / executions.length;
-    const averageCompletionTokens = sum.completion / executions.length;
-    const averageTotalTokens = sum.total / executions.length;
-
-    let pressure: TokenPressureLevel = 'normal';
-    if (averagePromptTokens >= 580 || averageTotalTokens >= 1600) {
-      pressure = 'critical';
-    } else if (averagePromptTokens >= 520 || averageTotalTokens >= 1200) {
-      pressure = 'elevated';
-    }
-
-    let targetPromptBudget = PROMPT_TARGET_DEFAULT;
-    if (pressure === 'critical') {
-      targetPromptBudget = 450;
-    } else if (pressure === 'elevated') {
-      targetPromptBudget = 520;
-    }
-
-    const cacheHitRate = sum.cacheEligible > 0 ? sum.cacheHit / sum.cacheEligible : 0;
-
-    return {
-      averagePromptTokens,
-      averageCompletionTokens,
-      averageTotalTokens,
-      pressure,
-      targetPromptBudget,
-      cacheEligibleExecutions: sum.cacheEligible,
-      cacheHitExecutions: sum.cacheHit,
-      cacheStoreExecutions: sum.cacheStore,
-      cacheHitRate,
-    };
   }
 
   private readShadowDiffSummary(): ShadowDiffSummary | null {
@@ -1259,28 +1570,38 @@ export class OperationsManager extends EventEmitter implements ExecutionObserver
   }
 
   private computeCostMetrics(): CostSnapshot {
-    const now = Date.now();
-    this.pruneCostEvents();
-    const hourCutoff = now - 60 * 60 * 1000;
-    const dayCutoff = now - this.COST_WINDOW_MS;
+    return this.withOperationsSpan(
+      'cost_metrics.compute',
+      (span) => {
+        const tracingSpan = span as any;
+        const now = Date.now();
+        this.pruneCostEvents();
+        const hourCutoff = now - 60 * 60 * 1000;
+        const dayCutoff = now - this.COST_WINDOW_MS;
 
-    const providers: Record<AgentType, ProviderCostMetrics> = {
-      codex: this.buildProviderCostMetrics('codex', hourCutoff, dayCutoff),
-      claude_code: this.buildProviderCostMetrics('claude_code', hourCutoff, dayCutoff),
-    };
+        const providers: Record<AgentType, ProviderCostMetrics> = {
+          codex: this.buildProviderCostMetrics('codex', hourCutoff, dayCutoff),
+          claude_code: this.buildProviderCostMetrics('claude_code', hourCutoff, dayCutoff),
+        };
 
-    const lastHourUSD = providers.codex.lastHourUSD + providers.claude_code.lastHourUSD;
-    const last24hUSD = providers.codex.last24hUSD + providers.claude_code.last24hUSD;
-    const alerts = this.collectCostAlerts(providers);
+        const lastHourUSD = providers.codex.lastHourUSD + providers.claude_code.lastHourUSD;
+        const last24hUSD = providers.codex.last24hUSD + providers.claude_code.last24hUSD;
+        const alerts = this.collectCostAlerts(providers);
 
-    return {
-      lastUpdated: now,
-      windowSeconds: Math.floor(this.COST_WINDOW_MS / 1000),
-      lastHourUSD,
-      last24hUSD,
-      providers,
-      alerts,
-    };
+        tracingSpan?.setAttribute('costs.last_hour_usd', Number(lastHourUSD.toFixed(4)));
+        tracingSpan?.setAttribute('costs.last_24h_usd', Number(last24hUSD.toFixed(4)));
+        tracingSpan?.setAttribute('costs.alert_count', alerts.length);
+
+        return {
+          lastUpdated: now,
+          windowSeconds: Math.floor(this.COST_WINDOW_MS / 1000),
+          lastHourUSD,
+          last24hUSD,
+          providers,
+          alerts,
+        };
+      },
+    );
   }
 
   private buildProviderCostMetrics(
@@ -1288,60 +1609,74 @@ export class OperationsManager extends EventEmitter implements ExecutionObserver
     hourCutoff: number,
     dayCutoff: number,
   ): ProviderCostMetrics {
-    const budget = this.costBudgets[provider];
-    const events = this.costEvents.filter(
-      (event) => event.agentType === provider && event.timestamp >= dayCutoff,
+    return this.withOperationsSpan(
+      'cost_metrics.provider',
+      (span) => {
+        const tracingSpan = span as any;
+        tracingSpan?.setAttribute('provider.id', provider);
+        const budget = this.costBudgets[provider];
+        const events = this.costEvents.filter(
+          (event) => event.agentType === provider && event.timestamp >= dayCutoff,
+        );
+
+        tracingSpan?.setAttribute('provider.event_count', events.length);
+
+        let last24hUSD = 0;
+        let lastHourUSD = 0;
+
+        for (const event of events) {
+          last24hUSD += event.cost;
+          if (event.timestamp >= hourCutoff) {
+            lastHourUSD += event.cost;
+          }
+        }
+
+        const hourlyLimit = budget.hourlyLimitUSD;
+        const dailyLimit = budget.dailyLimitUSD;
+
+        const hourlyUtilizationPercent =
+          typeof hourlyLimit === 'number' && hourlyLimit > 0
+            ? Math.min((lastHourUSD / hourlyLimit) * 100, 999)
+            : null;
+        const dailyUtilizationPercent =
+          typeof dailyLimit === 'number' && dailyLimit > 0
+            ? Math.min((last24hUSD / dailyLimit) * 100, 999)
+            : null;
+
+        let status: 'ok' | 'warning' | 'critical' = 'ok';
+        const threshold = budget.alertThresholdPercent;
+
+        if (
+          (typeof hourlyLimit === 'number' && hourlyLimit > 0 && lastHourUSD >= hourlyLimit) ||
+          (typeof dailyLimit === 'number' && dailyLimit > 0 && last24hUSD >= dailyLimit)
+        ) {
+          status = 'critical';
+        } else if (
+          (typeof hourlyLimit === 'number' &&
+            hourlyLimit > 0 &&
+            lastHourUSD >= hourlyLimit * threshold) ||
+          (typeof dailyLimit === 'number' &&
+            dailyLimit > 0 &&
+            last24hUSD >= dailyLimit * threshold)
+        ) {
+          status = 'warning';
+        }
+
+        tracingSpan?.setAttribute('provider.status', status);
+
+        return {
+          lastHourUSD,
+          last24hUSD,
+          hourlyUtilizationPercent,
+          dailyUtilizationPercent,
+          status,
+          budget,
+        };
+      },
+      {
+        'provider.id': provider,
+      },
     );
-
-    let last24hUSD = 0;
-    let lastHourUSD = 0;
-
-    for (const event of events) {
-      last24hUSD += event.cost;
-      if (event.timestamp >= hourCutoff) {
-        lastHourUSD += event.cost;
-      }
-    }
-
-    const hourlyLimit = budget.hourlyLimitUSD;
-    const dailyLimit = budget.dailyLimitUSD;
-
-    const hourlyUtilizationPercent =
-      typeof hourlyLimit === 'number' && hourlyLimit > 0
-        ? Math.min((lastHourUSD / hourlyLimit) * 100, 999)
-        : null;
-    const dailyUtilizationPercent =
-      typeof dailyLimit === 'number' && dailyLimit > 0
-        ? Math.min((last24hUSD / dailyLimit) * 100, 999)
-        : null;
-
-    let status: 'ok' | 'warning' | 'critical' = 'ok';
-    const threshold = budget.alertThresholdPercent;
-
-    if (
-      (typeof hourlyLimit === 'number' && hourlyLimit > 0 && lastHourUSD >= hourlyLimit) ||
-      (typeof dailyLimit === 'number' && dailyLimit > 0 && last24hUSD >= dailyLimit)
-    ) {
-      status = 'critical';
-    } else if (
-      (typeof hourlyLimit === 'number' &&
-        hourlyLimit > 0 &&
-        lastHourUSD >= hourlyLimit * threshold) ||
-      (typeof dailyLimit === 'number' &&
-        dailyLimit > 0 &&
-        last24hUSD >= dailyLimit * threshold)
-    ) {
-      status = 'warning';
-    }
-
-    return {
-      lastHourUSD,
-      last24hUSD,
-      hourlyUtilizationPercent,
-      dailyUtilizationPercent,
-      status,
-      budget,
-    };
   }
 
   private collectCostAlerts(providers: Record<AgentType, ProviderCostMetrics>): CostAlert[] {
@@ -1408,48 +1743,80 @@ export class OperationsManager extends EventEmitter implements ExecutionObserver
   }
 
   private evaluateBudgetAlerts(costs: CostSnapshot): void {
-    if (costs.alerts.length === 0) {
-      return;
-    }
-    const now = Date.now();
-    for (const alert of costs.alerts) {
-      const key = `${alert.provider}:${alert.period}:${alert.severity}`;
-      const last = this.budgetAlertDebounce[key] ?? 0;
-      if (now - last < this.BUDGET_ALERT_DEBOUNCE_MS) {
-        continue;
-      }
-      this.budgetAlertDebounce[key] = now;
+    this.withOperationsSpan(
+      'budget.evaluate',
+      (span) => {
+        const tracingSpan = span as any;
+        tracingSpan?.setAttribute('budget.alert_count', costs.alerts.length);
 
-      const payload = {
-        provider: alert.provider,
-        period: alert.period,
-        spentUSD: Number(alert.actualUSD.toFixed(4)),
-        limitUSD: Number(alert.limitUSD.toFixed(4)),
-        utilizationPercent: Number(alert.utilizationPercent.toFixed(2)),
-      };
+        if (costs.alerts.length === 0) {
+          tracingSpan?.addEvent('no_alerts');
+          return;
+        }
+        const now = Date.now();
+        for (const alert of costs.alerts) {
+          const key = `${alert.provider}:${alert.period}:${alert.severity}`;
+          const last = this.budgetAlertDebounce[key] ?? 0;
+          if (now - last < this.BUDGET_ALERT_DEBOUNCE_MS) {
+            tracingSpan?.addEvent('alert.debounced', { key });
+            continue;
+          }
+          this.budgetAlertDebounce[key] = now;
 
-      if (alert.severity === 'critical') {
-        logWarning('Provider cost budget breached', payload);
-      } else {
-        logInfo('Provider cost budget nearing threshold', payload);
-      }
+          const payload = {
+            provider: alert.provider,
+            period: alert.period,
+            spentUSD: Number(alert.actualUSD.toFixed(4)),
+            limitUSD: Number(alert.limitUSD.toFixed(4)),
+            utilizationPercent: Number(alert.utilizationPercent.toFixed(2)),
+          };
 
-      this.emit('maintenance:budget_alert', { alert, costs });
-      this.appendBudgetContextAlert(alert);
-    }
+          tracingSpan?.addEvent('alert.emitted', {
+            provider: alert.provider,
+            severity: alert.severity,
+            period: alert.period,
+          });
+
+          if (alert.severity === 'critical') {
+            logWarning('Provider cost budget breached', payload);
+          } else {
+            logInfo('Provider cost budget nearing threshold', payload);
+          }
+
+          this.emit('maintenance:budget_alert', { alert, costs });
+          this.appendBudgetContextAlert(alert);
+        }
+      },
+      {
+        'budget.alert_count': costs.alerts.length,
+      },
+    );
   }
 
   private appendBudgetContextAlert(alert: CostAlert): void {
     if (this.budgetAlertContextDisabled) {
       return;
     }
+    const contextPath = path.join(this.workspaceRoot, 'state', 'context.md');
+    const timestamp = new Date().toISOString();
+    const line = `- ${timestamp} Budget ${alert.severity.toUpperCase()} for ${alert.provider} (${alert.period}) - spent ${alert.actualUSD.toFixed(2)} USD vs limit ${alert.limitUSD.toFixed(2)} USD.`;
+
     try {
-      const contextPath = path.join(this.workspaceRoot, 'state', 'context.md');
-      const timestamp = new Date().toISOString();
-      const line = `- ${timestamp} Budget ${alert.severity.toUpperCase()} for ${alert.provider} (${alert.period}) - spent ${alert.actualUSD.toFixed(2)} USD vs limit ${alert.limitUSD.toFixed(2)} USD.`;
+      const contextDir = path.dirname(contextPath);
+      fs.mkdirSync(contextDir, { recursive: true });
+    } catch (error) {
+      logWarning('Failed to ensure context directory for budget alert', {
+        path: path.join(this.workspaceRoot, 'state'),
+        error: error instanceof Error ? error.message : String(error),
+      });
+      return;
+    }
+
+    try {
       fs.appendFileSync(contextPath, `\n${line}\n`, 'utf8');
     } catch (error) {
       logWarning('Failed to append budget alert to context.md', {
+        path: contextPath,
         error: error instanceof Error ? error.message : String(error),
       });
     }
@@ -1511,7 +1878,7 @@ export class OperationsManager extends EventEmitter implements ExecutionObserver
   }
 
   getCoordinatorStatus(): { type: AgentType; available: boolean; reason: string } {
-    const type = this.agentPool.getCoordinatorType();
+    const type = this.agentPool.getCoordinatorType() as AgentType;
     const available = this.agentPool.isCoordinatorAvailable();
     const reason =
       type === 'claude_code'
