@@ -56,6 +56,9 @@ Icon?
 
 # WeatherVane MCP Runtime
 .accounts/
+.codex/
+.grok/
+.gemini/
 state/orchestrator.db*
 state/telemetry/*.jsonl
 state/checkpoint.json
@@ -64,6 +67,23 @@ state/accounts_runtime.json
 state/mcp_registry.json
 state/task_memos/
 tools/wvo_mcp/state/
+
+# Credentials & Secrets (HIGH PRIORITY)
+**/auth.json
+**/credentials.json
+**/.env
+**/.env.local
+**/.env.*.local
+.claude/
+.claude-config/
+state/security/
+!.env.example
+!.env.*.example
+*-creds-*.json
+*.pem
+*.key
+*.p12
+*.pfx
 
 .gemini/
 .grok/
