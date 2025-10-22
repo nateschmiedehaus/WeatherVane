@@ -64,9 +64,35 @@ state/telemetry/*.jsonl
 state/checkpoint.json
 state/context.md
 state/accounts_runtime.json
+state/accounts.yaml
 state/mcp_registry.json
 state/task_memos/
+state/worker_pid
+state/backups/
+state/analytics/*.jsonl
+state/analytics/*_watch.json
+state/analytics/*_runtime.json
+state/analytics/orchestration_metrics.json
+state/analytics/worker_manager.json
+state/policy/
+state/autopilot_events.jsonl
+state/autopilot_loop_history.json
 tools/wvo_mcp/state/
+
+# Next.js build output
+apps/web/out/
+apps/web/.next/
+apps/web/tsconfig.tsbuildinfo
+
+# Experiments and temporary data
+experiments/mcp/upgrade/*/
+experiments/orchestration/simulation_report.md
+storage/seeds/synthetic/
+artifacts/
+
+# Sandbox and test artifacts
+sandbox-test/
+shadow_tmp.json
 
 # Credentials & Secrets (HIGH PRIORITY)
 **/auth.json
