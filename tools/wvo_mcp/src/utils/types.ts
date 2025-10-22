@@ -98,15 +98,19 @@ export interface CodexCommandDescriptor {
 }
 
 export type HeavyTaskStatus = "queued" | "running" | "completed" | "cancelled";
+export type TaskPriority = "urgent" | "normal" | "background";
 
 export interface HeavyTaskQueueItem {
   id: string;
   summary: string;
   status: HeavyTaskStatus;
+  priority: TaskPriority;
   created_at: string;
   updated_at: string;
   command?: string;
   notes?: string;
+  execution_start_time?: string;
+  execution_duration_ms?: number;
 }
 
 export interface HeavyTaskUpdateInput {
@@ -114,6 +118,24 @@ export interface HeavyTaskUpdateInput {
   status?: HeavyTaskStatus;
   notes?: string;
   command?: string;
+  execution_start_time?: string;
+  execution_duration_ms?: number;
+}
+
+export interface PriorityLaneStats {
+  lane: TaskPriority;
+  queued_count: number;
+  running_count: number;
+  completed_count: number;
+  cancelled_count: number;
+  avg_wait_time_ms: number;
+  total_processed: number;
+}
+
+export interface PriorityQueueMetrics {
+  total_tasks: number;
+  by_priority: Record<TaskPriority, PriorityLaneStats>;
+  concurrency_usage: Record<TaskPriority, { current: number; limit: number }>;
 }
 
 export interface AutopilotAuditEntry {

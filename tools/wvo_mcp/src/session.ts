@@ -26,12 +26,16 @@ import { IntegrationFuryCritic } from "./critics/integration_fury.js";
 import { NetworkNavigatorCritic } from "./critics/network_navigator.js";
 import { ExperienceFlowCritic } from "./critics/experience_flow.js";
 import { WeatherAestheticCritic } from "./critics/weather_aesthetic.js";
+import { WeatherCoverageCritic } from "./critics/weather_coverage.js";
 import { MotionDesignCritic } from "./critics/motion_design.js";
 import { ResponsiveSurfaceCritic } from "./critics/responsive_surface.js";
 import { InspirationCoverageCritic } from "./critics/inspiration_coverage.js";
 import { StakeholderNarrativeCritic } from "./critics/stakeholder_narrative.js";
 import { DemoConversionCritic } from "./critics/demo_conversion.js";
 import { IntegrationCompletenessCritic } from "./critics/integration_completeness.js";
+import { ModelingRealityCritic } from "./critics/modeling_reality.js";
+import { MetaCritiqueCritic } from "./critics/meta_critique.js";
+import { ModelingDataWatchCritic } from "./critics/modeling_data_watch.js";
 import { runCommand } from "./executor/command_runner.js";
 import { readFile, writeFile } from "./executor/file_ops.js";
 import { GuardrailViolation } from "./executor/guardrails.js";
@@ -42,6 +46,8 @@ import { AutopilotStore } from "./state/autopilot_store.js";
 import { CheckpointStore } from "./state/checkpoint_store.js";
 import { ContextStore } from "./state/context_store.js";
 import { HeavyTaskQueueStore } from "./state/heavy_queue_store.js";
+import { PriorityQueueStore } from "./state/priority_queue_store.js";
+import { PriorityQueueDispatcher } from "./orchestrator/priority_queue_dispatcher.js";
 import { RoadmapStore } from "./state/roadmap_store.js";
 import { ArtifactRegistry } from "./telemetry/artifact_registry.js";
 import { logError, logInfo, logWarning } from "./telemetry/logger.js";
@@ -56,7 +62,12 @@ import type {
   TaskStatus as LegacyTaskStatus,
 } from "./utils/types.js";
 import type { OrchestratorRuntime } from "./orchestrator/orchestrator_runtime.js";
-import type { StateMachine, Task, TaskStatus as OrchestratorTaskStatus } from "./orchestrator/state_machine.js";
+import type {
+  StateMachine,
+  Task,
+  TaskStatus as OrchestratorTaskStatus,
+  CriticHistoryRecord,
+} from "./orchestrator/state_machine.js";
 import {
   buildPlanSummaries,
   syncRoadmapFile,
@@ -88,12 +99,16 @@ const CRITIC_REGISTRY = {
   network_navigator: NetworkNavigatorCritic,
   experience_flow: ExperienceFlowCritic,
   weather_aesthetic: WeatherAestheticCritic,
+  weather_coverage: WeatherCoverageCritic,
   motion_design: MotionDesignCritic,
   responsive_surface: ResponsiveSurfaceCritic,
   inspiration_coverage: InspirationCoverageCritic,
   stakeholder_narrative: StakeholderNarrativeCritic,
   demo_conversion: DemoConversionCritic,
   integration_completeness: IntegrationCompletenessCritic,
+  modeling_reality: ModelingRealityCritic,
+  modeling_data_watch: ModelingDataWatchCritic,
+  meta_critique: MetaCritiqueCritic,
 } as const;
 
 export type CriticKey = keyof typeof CRITIC_REGISTRY;
@@ -132,6 +147,8 @@ export class SessionContext {
   private readonly artifactRegistry: ArtifactRegistry;
   private readonly autopilotStore: AutopilotStore;
   private readonly heavyTaskQueue: HeavyTaskQueueStore;
+  private readonly priorityQueueStore: PriorityQueueStore;
+  private readonly priorityQueueDispatcher: PriorityQueueDispatcher;
   private readonly orchestratorRuntime?: OrchestratorRuntime;
   private readonly stateMachine?: StateMachine;
   private lastRoadmapSyncMs = 0;
@@ -165,6 +182,9 @@ export class SessionContext {
     this.artifactRegistry = new ArtifactRegistry(this.stateRoot);
     this.autopilotStore = new AutopilotStore(this.stateRoot);
     this.heavyTaskQueue = new HeavyTaskQueueStore(this.stateRoot);
+    // Initialize priority queue with blue/green guardrail: max 10 concurrent workers
+    this.priorityQueueStore = new PriorityQueueStore(this.stateRoot);
+    this.priorityQueueDispatcher = new PriorityQueueDispatcher(this.priorityQueueStore, 10);
     this.stateMachine = runtime?.getStateMachine();
   }
 
@@ -257,8 +277,11 @@ export class SessionContext {
     const roadmap = await this.roadmapStore.read();
 
     // Guard against critic blocking loops before planning
-    ensureNoCriticBlocking(roadmap, (msg) => {
-      console.log(msg);
+    ensureNoCriticBlocking(roadmap, (message, details) => {
+      logInfo(message, {
+        source: "CriticAvailabilityGuardian",
+        ...(details ?? {}),
+      });
     });
 
     // Save roadmap if any tasks were unblocked
@@ -556,6 +579,9 @@ export class SessionContext {
       severity = "autopilot";
       reason = `Critic ${result.critic} failed ${failureCount} of the last ${history.length} runs with ${consecutiveFailures} consecutive failures.`;
     } else {
+      if (result.passed) {
+        await this.resolveCriticRecovery(result, history);
+      }
       return null;
     }
 
@@ -579,7 +605,12 @@ export class SessionContext {
     totalCriticsEvaluated: number,
   ): Promise<void> {
     const stateMachine = this.stateMachine;
-    if (!stateMachine || reports.length === 0) {
+    if (!stateMachine) {
+      return;
+    }
+
+    if (reports.length === 0) {
+      await this.resolveSystemicCriticRecovery(totalCriticsEvaluated);
       return;
     }
 
@@ -605,6 +636,145 @@ export class SessionContext {
       totalCriticsEvaluated,
       reports,
     });
+  }
+
+  private async resolveCriticRecovery(result: CriticResult, history: CriticHistoryRecord[]): Promise<void> {
+    const stateMachine = this.stateMachine;
+    if (!stateMachine) {
+      return;
+    }
+
+    const consecutivePasses = this.countConsecutivePasses(history);
+    const minimumPassesRequired = 2;
+    if (consecutivePasses < minimumPassesRequired) {
+      return;
+    }
+
+    const activeTasks = stateMachine.getTasks({ status: ACTIVE_PERFORMANCE_STATUSES });
+    const remediationTask = activeTasks.find((task) => {
+      const metadata = task.metadata as Record<string, unknown> | undefined;
+      if (!metadata) {
+        return false;
+      }
+      return (
+        metadata["source"] === "critic_performance_monitor" &&
+        metadata["remediation_scope"] === "critic" &&
+        metadata["critic"] === result.critic
+      );
+    });
+
+    if (!remediationTask) {
+      return;
+    }
+
+    const correlationId = `critic_performance:${result.critic}:${randomUUID()}:resolve`;
+    const summary = `Critic ${result.critic} recorded ${consecutivePasses} consecutive passing runs; closing remediation task.`;
+    const metadataPatch: Record<string, unknown> = {
+      last_reason: summary,
+      last_evaluated_at: new Date().toISOString(),
+      consecutive_failures: 0,
+      latest_snippet: this.extractResultSnippet(result),
+      resolution_status: "recovered",
+      resolution_details: {
+        consecutive_passes: consecutivePasses,
+        total_observations: history.length,
+      },
+    };
+
+    await stateMachine.transition(remediationTask.id, "done", metadataPatch, correlationId);
+    stateMachine.addContextEntry({
+      entry_type: "decision",
+      topic: `Critic ${result.critic} performance restored`,
+      content: summary,
+      related_tasks: [remediationTask.id],
+      metadata: {
+        source: "critic_performance_monitor",
+        critic: result.critic,
+        action: "resolve",
+        remediation_scope: "critic",
+        consecutive_passes: consecutivePasses,
+        total_observations: history.length,
+      },
+    });
+
+    logInfo("Closed critic performance remediation task", {
+      critic: result.critic,
+      taskId: remediationTask.id,
+      consecutivePasses,
+    });
+  }
+
+  private async resolveSystemicCriticRecovery(totalCriticsEvaluated: number): Promise<void> {
+    const stateMachine = this.stateMachine;
+    if (!stateMachine) {
+      return;
+    }
+
+    const activeTasks = stateMachine.getTasks({ status: ACTIVE_PERFORMANCE_STATUSES });
+    const systemicTask = activeTasks.find((task) => {
+      const metadata = task.metadata as Record<string, unknown> | undefined;
+      if (!metadata) {
+        return false;
+      }
+      return metadata["source"] === "critic_performance_monitor" && metadata["remediation_scope"] === "global";
+    });
+
+    if (!systemicTask) {
+      return;
+    }
+
+    const outstandingCriticTasks = activeTasks.filter((task) => {
+      const metadata = task.metadata as Record<string, unknown> | undefined;
+      if (!metadata) {
+        return false;
+      }
+      return metadata["source"] === "critic_performance_monitor" && metadata["remediation_scope"] === "critic";
+    });
+
+    if (outstandingCriticTasks.length > 0) {
+      return;
+    }
+
+    const correlationId = `critic_performance:systemic:${randomUUID()}:resolve`;
+    const summary = `All monitored critics passed their latest evaluation (${totalCriticsEvaluated} critics). Closing systemic remediation task.`;
+    const metadataPatch: Record<string, unknown> = {
+      last_reason: summary,
+      last_evaluated_at: new Date().toISOString(),
+      affected_critics: [],
+      report_count: 0,
+      total_critics_evaluated: totalCriticsEvaluated,
+      resolution_status: "recovered",
+    };
+
+    await stateMachine.transition(systemicTask.id, "done", metadataPatch, correlationId);
+    stateMachine.addContextEntry({
+      entry_type: "decision",
+      topic: "Systemic critic performance restored",
+      content: summary,
+      related_tasks: [systemicTask.id],
+      metadata: {
+        source: "critic_performance_monitor",
+        remediation_scope: "global",
+        action: "resolve",
+        total_critics_evaluated: totalCriticsEvaluated,
+      },
+    });
+
+    logInfo("Closed systemic critic remediation task", {
+      taskId: systemicTask.id,
+      totalCriticsEvaluated,
+    });
+  }
+
+  private countConsecutivePasses(history: CriticHistoryRecord[]): number {
+    let count = 0;
+    for (const entry of history) {
+      if (!entry.passed) {
+        break;
+      }
+      count += 1;
+    }
+    return count;
   }
 
   private async escalateCriticUnderperformance(input: {
@@ -946,6 +1116,72 @@ export class SessionContext {
 
   async listHeavyTasks(): Promise<HeavyTaskQueueItem[]> {
     return this.heavyTaskQueue.list();
+  }
+
+  /**
+   * Dispatch a task to the priority queue with automatic priority classification
+   * Interactive tasks are automatically routed to urgent lane
+   */
+  async dispatchPriorityTask(input: {
+    summary: string;
+    command?: string;
+    notes?: string;
+    isInteractive?: boolean;
+    isCritical?: boolean;
+    estimatedDurationMs?: number;
+  }): Promise<HeavyTaskQueueItem> {
+    this.ensureWritable("priority_queue_dispatch");
+    return this.priorityQueueDispatcher.dispatchTask(input);
+  }
+
+  /**
+   * Get next batch of tasks to execute from priority queue
+   * Respects concurrency limits and priority order
+   */
+  async getNextPriorityBatch(maxTasks?: number): Promise<HeavyTaskQueueItem[]> {
+    return this.priorityQueueDispatcher.getNextBatch(maxTasks);
+  }
+
+  /**
+   * Start executing a task from the priority queue
+   */
+  async startPriorityTask(taskId: string): Promise<HeavyTaskQueueItem | null> {
+    this.ensureWritable("priority_queue_start");
+    return this.priorityQueueDispatcher.startTask(taskId);
+  }
+
+  /**
+   * Complete a task execution with metrics
+   */
+  async completePriorityTask(
+    taskId: string,
+    durationMs: number,
+    notes?: string
+  ): Promise<HeavyTaskQueueItem | null> {
+    this.ensureWritable("priority_queue_complete");
+    return this.priorityQueueDispatcher.completeTask(taskId, durationMs, notes);
+  }
+
+  /**
+   * Cancel a task execution
+   */
+  async cancelPriorityTask(taskId: string, reason?: string): Promise<HeavyTaskQueueItem | null> {
+    this.ensureWritable("priority_queue_cancel");
+    return this.priorityQueueDispatcher.cancelTask(taskId, reason);
+  }
+
+  /**
+   * Get priority queue status and metrics
+   */
+  async getPriorityQueueStatus() {
+    return this.priorityQueueDispatcher.getStatus();
+  }
+
+  /**
+   * Verify interactive task priority guarantee (used by tests)
+   */
+  async verifyInteractivePriority() {
+    return this.priorityQueueDispatcher.verifyInteractivePriority();
   }
 
   private async ensureStateMachineSynced(correlationBase?: string): Promise<void> {
