@@ -84,6 +84,11 @@ export interface SaturationMarket {
   current_spend: number;
   weather_multiplier: number;
   guardrail_binding: boolean;
+  fairness_gap: number;
+  fairness_ratio: number | null;
+  target_spend: number;
+  spend_delta_vs_target: number;
+  floor_shortfall: number;
 }
 
 export interface SaturationSummary {
@@ -94,6 +99,10 @@ export interface SaturationSummary {
   max_fairness_gap: number;
   total_revenue: number;
   total_spend: number;
+  normalized_fairness_gap: number;
+  under_allocated_markets: number;
+  total_floor_shortfall: number;
+  max_floor_shortfall: number;
 }
 
 export interface SaturationReport {

@@ -8,15 +8,23 @@ import { DisclaimerBanner } from "../components/DisclaimerBanner";
 import { CreativeGuardrailPanel } from "../components/CreativeGuardrailPanel";
 import { RLShadowPanel } from "../components/RLShadowPanel";
 import { SaturationPanel } from "../components/SaturationPanel";
+import { ExperimentExecutiveSummary } from "../components/ExperimentExecutiveSummary";
+import { ExperimentInstrumentationBanner } from "../components/ExperimentInstrumentationBanner";
+import { ExperimentExportActions } from "../components/ExperimentExportActions";
 import styles from "../styles/plan.module.css";
 import { fetchCreativeResponse, fetchExperimentReport, fetchSaturationReport, fetchShadowReport } from "../lib/api";
 import type { BacktestPoint, IncrementalityReport } from "../types/incrementality";
 import type { CreativeResponseReport } from "../types/creative";
 import type { SaturationReport, ShadowRunReport } from "../types/allocator";
+import { useTheme } from "../lib/theme";
+import { getSurfaceTokens } from "../../styles/themes";
+import { buildExecutiveSummary, buildInstrumentationSignals } from "../lib/experiment-insights";
 
 const TENANT_ID = process.env.NEXT_PUBLIC_TENANT_ID ?? "demo-tenant";
 
 export default function ExperimentsPage() {
+  const { theme } = useTheme();
+  const surfaceTokens = getSurfaceTokens(theme, "experiments");
   const [report, setReport] = useState<IncrementalityReport | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -103,19 +111,21 @@ export default function ExperimentsPage() {
     };
   }, []);
 
-  const summary = report?.summary;
   const backtest = (report?.backtest ?? []) as BacktestPoint[];
   const performance = report?.performance_summary as (
     | { status?: string; summary?: { coverage?: { coverage?: number }; coverage_by_horizon?: Record<string, { coverage?: number }>; failing_horizons?: string[]; } }
     | undefined
   );
+  const readyReport = !loading && !error ? report : null;
+  const instrumentationSignals = buildInstrumentationSignals(readyReport);
+  const executiveSummary = buildExecutiveSummary(readyReport, instrumentationSignals);
 
   return (
     <Layout>
       <Head>
         <title>WeatherVane · Experiments</title>
       </Head>
-      <div className={styles.root}>
+      <div className={styles.root} style={surfaceTokens}>
         <DisclaimerBanner message="Experiments measure correlations today; causal validation under active development." />
         <section className={styles.header}>
           <div>
@@ -130,18 +140,42 @@ export default function ExperimentsPage() {
         {loading && <p className={styles.status}>Loading experiment design…</p>}
         {error && <p className={styles.error}>{error}</p>}
 
-        {!loading && !error && report && (
+        {readyReport && executiveSummary && (
           <section className={styles.contextSection}>
-            <IncrementalityPanel design={report.design} summary={report.summary ?? null} />
+            <ExperimentExecutiveSummary summary={executiveSummary} />
           </section>
         )}
-        {!loading && !error && (
+
+        {readyReport && (
+          <section className={styles.contextSection}>
+            <ExperimentInstrumentationBanner signals={instrumentationSignals} />
+          </section>
+        )}
+
+        {readyReport && executiveSummary && (
+          <section className={styles.contextSection}>
+            <ExperimentExportActions
+              report={readyReport}
+              executiveSummary={executiveSummary}
+              signals={instrumentationSignals}
+              disabled={Boolean(error)}
+            />
+          </section>
+        )}
+
+        {readyReport && (
+          <section className={styles.contextSection}>
+            <IncrementalityPanel design={readyReport.design} summary={readyReport.summary ?? null} />
+          </section>
+        )}
+
+        {readyReport && (
           <section className={styles.contextSection}>
             <BacktestChart points={backtest} title="Backtest timeline" />
           </section>
         )}
 
-        {!loading && !error && performance?.summary && (
+        {readyReport && performance?.summary && (
           <section className={styles.contextSection}>
             <div className={styles.summaryCard}>
               <h3>Forecast coverage</h3>

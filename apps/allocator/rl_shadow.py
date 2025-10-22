@@ -9,7 +9,7 @@ measure potential lift and guardrail adherence before enabling them live.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Callable, Dict, List, Mapping, MutableMapping, Sequence, Set
+from typing import Callable, Dict, List, Mapping, MutableMapping, Sequence, Set, Tuple
 
 import math
 import random
@@ -19,6 +19,7 @@ from apps.allocator.marketing_mix import (
     ChannelRecommendation,
     MarketingMixResult,
     MarketingMixScenario,
+    prepare_marketing_mix,
     solve_marketing_mix,
 )
 
@@ -148,6 +149,7 @@ def _realised_profit(
     channel_lookup: Mapping[str, ChannelConstraint],
     shocks: Mapping[str, float],
     model,
+    roas_cache: Dict[Tuple[ChannelConstraint, float], float] | None = None,
 ) -> tuple[float, Dict[str, float]]:
     total_revenue = 0.0
     total_spend = 0.0
@@ -155,7 +157,18 @@ def _realised_profit(
     for name, recommendation in recommendations.items():
         spend = float(recommendation.recommended_spend)
         channel = channel_lookup[name]
-        expected = _channel_roas(model, channel, spend)
+        cache_key: Tuple[ChannelConstraint, float] | None = None
+        expected: float
+        if roas_cache is not None:
+            cache_key = (channel, round(spend, 6))
+            cached = roas_cache.get(cache_key)
+            if cached is not None:
+                expected = cached
+            else:
+                expected = _channel_roas(model, channel, spend)
+                roas_cache[cache_key] = expected
+        else:
+            expected = _channel_roas(model, channel, spend)
         shock = shocks.get(name, 0.0)
         realised = max(expected * (1.0 + shock), 0.0)
         total_spend += spend
@@ -165,8 +178,7 @@ def _realised_profit(
     return float(profit), realised_roas
 
 
-def _build_channel_lookup(channels: Sequence[ChannelConstraint]) -> Dict[str, ChannelConstraint]:
-    return {channel.name: channel for channel in channels}
+DEFAULT_REALISED_PROFIT = _realised_profit
 
 
 def _build_variants() -> List[PolicyVariant]:
@@ -313,8 +325,16 @@ def run_shadow_mode(
     config.validate()
     rng = random.Random(config.seed)
 
-    baseline = solve_marketing_mix(scenario, seed=config.seed)
-    channel_lookup = _build_channel_lookup(scenario.channels)
+    prepared = prepare_marketing_mix(scenario)
+    baseline_solver = solve_marketing_mix
+    variant_solver = marketing_mix_solver or baseline_solver
+    try:
+        baseline = baseline_solver(scenario, seed=config.seed, prepared=prepared)
+    except TypeError as error:
+        if "prepared" not in str(error):
+            raise
+        baseline = baseline_solver(scenario, seed=config.seed)
+    channel_lookup = prepared.channel_lookup
     variants = _build_variants()
     q_values: Dict[str, float] = {variant.name: 0.0 for variant in variants}
     selection_counts: Dict[str, int] = {variant.name: 0 for variant in variants}
@@ -323,6 +343,8 @@ def run_shadow_mode(
     disabled_variants: Set[str] = set()
     episodes: List[ShadowEpisodeLog] = []
     guardrail_violations = 0
+    variant_scenarios_cache: Dict[str, MarketingMixScenario] = {}
+    variant_results_cache: Dict[str, MarketingMixResult] = {}
 
     def _wrapped_select() -> Callable[
         [Sequence[PolicyVariant], MutableMapping[str, float], float, random.Random, Set[str]], PolicyVariant
@@ -348,8 +370,25 @@ def run_shadow_mode(
         return default_selector
 
     select_variant = _wrapped_select()
-    solve_mix = marketing_mix_solver or solve_marketing_mix
-    profit_fn = realised_profit_fn or _realised_profit
+    # Cache channel ROAS evaluations across episodes so repeated candidate checks stay cheap.
+    roas_cache: Dict[Tuple[ChannelConstraint, float], float] = {}
+    if realised_profit_fn is None and _realised_profit is DEFAULT_REALISED_PROFIT:
+        def profit_fn(
+            *,
+            recommendations: Mapping[str, ChannelRecommendation],
+            channel_lookup: Mapping[str, ChannelConstraint],
+            shocks: Mapping[str, float],
+            model,
+        ) -> tuple[float, Dict[str, float]]:
+            return DEFAULT_REALISED_PROFIT(
+                recommendations=recommendations,
+                channel_lookup=channel_lookup,
+                shocks=shocks,
+                model=model,
+                roas_cache=roas_cache,
+            )
+    else:
+        profit_fn = realised_profit_fn or _realised_profit
 
     for idx in range(config.episodes):
         variant = select_variant(
@@ -374,8 +413,33 @@ def run_shadow_mode(
             candidate_scenario = scenario
             candidate_result = baseline
         else:
-            candidate_scenario = _apply_variant(scenario, variant)
-            candidate_result = solve_mix(candidate_scenario, seed=config.seed + idx + 1)
+            if variant_solver is baseline_solver:
+                cached_scenario = variant_scenarios_cache.get(variant.name)
+                if cached_scenario is None:
+                    cached_scenario = _apply_variant(scenario, variant)
+                    variant_scenarios_cache[variant.name] = cached_scenario
+                candidate_scenario = cached_scenario
+
+                cached_result = variant_results_cache.get(variant.name)
+                if cached_result is not None:
+                    candidate_result = cached_result
+                else:
+                    seed_value = config.seed + idx + 1
+                    try:
+                        computed = variant_solver(
+                            candidate_scenario,
+                            seed=seed_value,
+                            prepared=prepared,
+                        )
+                    except TypeError as error:
+                        if "prepared" not in str(error):
+                            raise
+                        computed = variant_solver(candidate_scenario, seed=seed_value)
+                    variant_results_cache[variant.name] = computed
+                    candidate_result = computed
+            else:
+                candidate_scenario = _apply_variant(scenario, variant)
+                candidate_result = variant_solver(candidate_scenario, seed=config.seed + idx + 1)
 
         shocks = {name: rng.gauss(0.0, config.reward_noise) if config.reward_noise > 0 else 0.0 for name in channel_lookup}
         baseline_profit, baseline_roas = profit_fn(

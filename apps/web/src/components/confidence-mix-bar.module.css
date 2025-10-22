@@ -1,0 +1,78 @@
+.container {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.bar {
+  display: flex;
+  align-items: stretch;
+  width: 100%;
+  min-height: 0.6rem;
+  border-radius: 999px;
+  overflow: hidden;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  background: rgba(15, 23, 42, 0.55);
+}
+
+.segment {
+  display: block;
+  height: 100%;
+  position: relative;
+}
+
+.segmentHIGH {
+  background: var(--badge-success-bg, #14532d);
+}
+
+.segmentMEDIUM {
+  background: var(--status-caution-bg, #78350f);
+}
+
+.segmentLOW {
+  background: var(--status-critical-bg, #7f1d1d);
+}
+
+.legend {
+  margin: 0;
+  display: grid;
+  gap: 0.15rem;
+}
+
+.legendItem {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.78rem;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--color-text-tertiary);
+}
+
+.legendLabel {
+  margin: 0;
+}
+
+.legendValue {
+  margin: 0;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.empty {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--color-text-tertiary);
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}

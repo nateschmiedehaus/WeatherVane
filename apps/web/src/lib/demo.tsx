@@ -64,6 +64,8 @@ const parsePreferences = (raw: string | null): DemoPreferences => {
     const automationComfort: AutomationMode =
       parsed.automationComfort === "manual"
         ? "manual"
+        : parsed.automationComfort === "automation"
+        ? "automation"
         : parsed.automationComfort === "autopilot"
         ? "autopilot"
         : "assist";

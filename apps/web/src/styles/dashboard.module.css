@@ -85,6 +85,30 @@
   gap: var(--space-lg);
 }
 
+.consensusSection {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+
+.consensusGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: var(--space-lg);
+  align-items: stretch;
+}
+
+.consensusStatus {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  padding: var(--space-lg);
+  border-radius: var(--radius-xl);
+  border: 1px dashed rgba(148, 163, 184, 0.4);
+}
+
 .guardrailBarContainer {
   display: flex;
   flex-direction: column;
@@ -286,10 +310,129 @@
   gap: var(--space-3xs);
 }
 
+.allocatorDiagnostics {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  padding: var(--space-lg);
+  border-radius: var(--radius-lg);
+  background: var(--surface-subtle);
+}
+
+.allocatorDiagnosticsHeader {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4xs);
+}
+
+.allocatorDiagnosticsMetrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: var(--space-md);
+}
+
+.allocatorDiagnosticsMetrics dt {
+  font-size: var(--font-caption);
+  color: var(--text-muted);
+}
+
+.allocatorDiagnosticsMetrics dd {
+  margin: 0;
+  font-weight: 600;
+  font-feature-settings: "tnum";
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3xs);
+}
+
+.allocatorDiagnosticsMeta {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: var(--space-md);
+  font-size: var(--font-caption);
+  color: var(--text-muted);
+}
+
+.allocatorDiagnosticsMeta dt {
+  font-size: var(--font-caption);
+  color: var(--text-muted);
+}
+
+.allocatorDiagnosticsMeta dd {
+  margin: 0;
+  font-weight: 600;
+  font-feature-settings: "tnum";
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3xs);
+  color: var(--text-primary);
+}
+
+.allocatorBindings {
+  margin: 0;
+  padding-left: var(--space-lg);
+  list-style: disc;
+  color: var(--text-muted);
+  font-size: var(--font-caption);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4xs);
+}
+
+.allocatorOptimizers {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.allocatorOptimizerList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: var(--space-sm);
+}
+
+.allocatorOptimizerItem {
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-lg);
+  background: rgba(15, 23, 42, 0.04);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3xs);
+}
+
+.allocatorOptimizerWinner {
+  box-shadow: inset 0 0 0 1px rgba(34, 197, 94, 0.35);
+  background: rgba(34, 197, 94, 0.08);
+}
+
+.allocatorOptimizerHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2xs);
+}
+
+.allocatorOptimizerMetrics {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4xs);
+}
+
 .allocatorDelta {
   color: var(--text-muted);
   font-size: var(--font-caption);
   font-feature-settings: "tnum";
+}
+
+.allocatorDeltaPositive {
+  color: #34d399;
+}
+
+.allocatorDeltaNegative {
+  color: #f87171;
 }
 
 .allocatorNote {
@@ -328,6 +471,13 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-xs);
+}
+
+.sectionHeaderRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
 }
 
 .trackerGrid {
@@ -814,6 +964,34 @@
   font-size: var(--font-title-sm);
 }
 
+.suggestionTelemetryHighRiskValue {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--space-4xs);
+}
+
+.suggestionTelemetryValueNumber {
+  font-weight: 600;
+  font-size: var(--font-title-sm);
+  line-height: 1.1;
+}
+
+.suggestionTelemetryHighRiskDetail {
+  font-size: var(--font-caption);
+  color: var(--text-muted);
+}
+
+.suggestionTelemetryHighRiskValue[data-level="elevated"] .suggestionTelemetryHighRiskDetail {
+  color: #92400e;
+  font-weight: 600;
+}
+
+.suggestionTelemetryHighRiskValue[data-level="critical"] .suggestionTelemetryHighRiskDetail {
+  color: #991b1b;
+  font-weight: 600;
+}
+
 .suggestionTelemetryConfidence {
   transition: color 0.18s ease;
 }
@@ -1159,6 +1337,51 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-lg);
+}
+
+.coverageSection {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+
+.coverageGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: var(--space-lg);
+}
+
+.coverageCard {
+  padding: var(--space-lg);
+  border-radius: var(--radius-xl);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.coverageCardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.coverageValue {
+  font-size: var(--font-display-sm);
+  font-weight: 600;
+}
+
+.coverageIssues {
+  margin: 0;
+  padding-left: var(--space-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2xs);
+  list-style: disc;
+}
+
+.coverageNoIssues {
+  color: var(--text-muted);
 }
 
 .automationGrid {

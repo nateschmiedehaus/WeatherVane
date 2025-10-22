@@ -7,28 +7,34 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
+    "typecheck": "tsc --noEmit",
     "format": "prettier --write \"src/**/*.{ts,tsx,js,jsx}\"",
     "install:offline": "bash scripts/install_offline_deps.sh",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:ui": "bash scripts/run_playwright.sh"
   },
   "dependencies": {
+    "@tanstack/react-query": "5.45.0",
+    "clsx": "2.1.1",
+    "framer-motion": "11.0.3",
+    "maplibre-gl": "4.1.3",
     "next": "14.2.5",
     "react": "18.3.1",
     "react-dom": "18.3.1",
-    "@tanstack/react-query": "5.45.0",
-    "framer-motion": "11.0.3",
-    "maplibre-gl": "4.1.3",
-    "zod": "3.23.8",
-    "clsx": "2.1.1"
+    "zod": "3.23.8"
   },
   "devDependencies": {
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.0",
+    "@testing-library/user-event": "^14.6.1",
     "@types/node": "20.14.2",
     "@types/react": "18.3.3",
     "@types/react-dom": "18.3.0",
-    "typescript": "5.4.5",
     "eslint": "8.57.0",
     "eslint-config-next": "14.2.5",
+    "jsdom": "24.0.0",
     "prettier": "3.3.2",
+    "typescript": "5.4.5",
     "vitest": "2.1.1"
   }
 }

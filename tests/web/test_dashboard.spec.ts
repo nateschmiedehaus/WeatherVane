@@ -22,6 +22,7 @@ import {
   selectWeatherFocusSuggestion,
   describeGuardrailHero,
   summarizeAllocatorPressure,
+  summarizeAllocatorDiagnostics,
   summarizeSuggestionTelemetry,
   buildSuggestionTelemetryOverview,
   buildHighRiskAlertDescriptor,
@@ -662,6 +663,16 @@ describe("dashboard insights", () => {
       notes: [],
       recommendations: [
         {
+          platform: "Email",
+          spend_delta: 2000,
+          spend_delta_pct: 5,
+          spend_after: 30000,
+          severity: "info",
+          guardrail_count: 0,
+          top_guardrail: null,
+          notes: null,
+        },
+        {
           platform: "Meta",
           spend_delta: -15000,
           spend_delta_pct: -12,
@@ -679,16 +690,6 @@ describe("dashboard insights", () => {
           severity: "warning",
           guardrail_count: 1,
           top_guardrail: "Budget delta exceeds policy",
-          notes: null,
-        },
-        {
-          platform: "Email",
-          spend_delta: 2000,
-          spend_delta_pct: 5,
-          spend_after: 30000,
-          severity: "info",
-          guardrail_count: 0,
-          top_guardrail: null,
           notes: null,
         },
       ],
@@ -710,7 +711,9 @@ describe("dashboard insights", () => {
     it("surfaces warning tone when no critical recommendations exist", () => {
       const withoutCritical: AllocatorSummary = {
         ...baseSummary,
-        recommendations: baseSummary.recommendations.slice(1),
+        recommendations: baseSummary.recommendations.filter(
+          (rec) => rec.severity !== "critical",
+        ),
         guardrail_breaches: 0,
       };
       const summary = summarizeAllocatorPressure(withoutCritical);
@@ -723,6 +726,58 @@ describe("dashboard insights", () => {
       expect(topTwo).toHaveLength(2);
       expect(topTwo[0].platform).toBe("Meta");
       expect(topTwo[1].platform).toBe("Google");
+    });
+
+    it("returns null diagnostics when allocator summary omits telemetry", () => {
+      expect(summarizeAllocatorDiagnostics(baseSummary)).toBeNull();
+    });
+
+    it("summarizes optimizer and constraints when diagnostics exist", () => {
+      const diagnosticsSummary = summarizeAllocatorDiagnostics({
+        ...baseSummary,
+        diagnostics: {
+          optimizer: "projected_gradient",
+          optimizer_winner: "projected_gradient",
+          optimizer_candidates: [
+            { optimizer: "projected_gradient", profit: 430, success: 1 },
+            { optimizer: "coordinate_ascent", profit: 410, success: 0.82 },
+          ],
+          scenario_profit_p10: 380,
+          scenario_profit_p50: 430,
+          scenario_profit_p90: 460,
+          profit_delta_p50: 30,
+          expected_profit_raw: 435,
+          profit_delta_expected: 18,
+          profit_lift: 25,
+          worst_case_profit: 360,
+          baseline_profit: 405,
+          binding_constraints: {
+            binding_min_spend_by_cell: ["Meta", "Google"],
+          },
+        },
+      });
+
+      expect(diagnosticsSummary).not.toBeNull();
+      expect(diagnosticsSummary?.optimizerLabel).toBe("Projected gradient");
+      expect(diagnosticsSummary?.profitP10).toBe(380);
+      expect(diagnosticsSummary?.profitP50Delta).toBe(30);
+      expect(diagnosticsSummary?.profitP50DeltaDirection).toBe("positive");
+      expect(diagnosticsSummary?.profitP90).toBe(460);
+      expect(diagnosticsSummary?.baselineProfit).toBe(405);
+      expect(diagnosticsSummary?.expectedProfitDelta).toBe(18);
+      expect(diagnosticsSummary?.expectedProfitDeltaDirection).toBe("positive");
+      expect(diagnosticsSummary?.profitLiftDirection).toBe("positive");
+      expect(diagnosticsSummary?.bindingHighlights).toContain(
+        "Per-market minimums affects Meta and Google",
+      );
+      expect(diagnosticsSummary?.optimizerCandidates).toHaveLength(2);
+      expect(diagnosticsSummary?.optimizerCandidates[0]?.isWinner).toBe(true);
+      expect(diagnosticsSummary?.optimizerCandidates[0]?.label).toBe(
+        "Projected gradient",
+      );
+      expect(diagnosticsSummary?.optimizerCandidates[1]?.label).toBe(
+        "Coordinate ascent",
+      );
     });
   });
 
@@ -1477,6 +1532,8 @@ describe("dashboard insights", () => {
     expect(summary.engagementRate).toBeCloseTo((19 + 6) / 54, 5);
     expect(summary.engagementConfidenceLevel).toBe("high");
     expect(summary.engagementConfidenceLabel).toBe("High confidence · 54 views");
+    expect(summary.tenantCount).toBe(1);
+    expect(summary.tenantNames).toEqual(["demo-tenant"]);
     });
 
     it("sorts summaries by recency and applies the requested limit", () => {
@@ -1510,6 +1567,7 @@ describe("dashboard insights", () => {
     expect(summaries[0].highRiskSeverity).toBe("critical");
     expect(summaries[0].engagementConfidenceLevel).toBe("medium");
     expect(summaries[0].engagementConfidenceLabel).toBe("Directional signal · 12 views");
+    expect(summaries[0].tenantCount).toBe(1);
     });
 
     it("falls back to reason copy when metadata is empty", () => {
@@ -1541,6 +1599,7 @@ describe("dashboard insights", () => {
     expect(summary.focusRate).toBe(0);
     expect(summary.dismissRate).toBe(0);
     expect(summary.engagementRate).toBe(0);
+    expect(summary.tenantCount).toBe(1);
     expect(summary.engagementConfidenceLevel).toBe("low");
     expect(summary.engagementConfidenceLabel).toBe("No direct views yet");
     });

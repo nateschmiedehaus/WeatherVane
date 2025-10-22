@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import date, datetime, timedelta
+from datetime import date, timedelta
 from math import sqrt
 from typing import Iterable, List, Sequence
 
@@ -209,8 +209,8 @@ class ProductFeatureBuilder:
             ]
         )
         join_on = ["date"]
-        if "geohash" in frame.columns and "geohash" in prepared_weather.columns:
-            join_on.append("geohash")
+        if "geo_scope" in frame.columns and "geo_scope" in prepared_weather.columns:
+            join_on.append("geo_scope")
         joined = frame.join(prepared_weather, on=join_on, how="left", suffix="_weather")
         if "weather_bucket" not in joined.columns:
             joined = joined.with_columns(pl.lit("neutral").alias("weather_bucket"))

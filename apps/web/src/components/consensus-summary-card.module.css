@@ -1,0 +1,153 @@
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+  padding: var(--space-xl);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-lg);
+}
+
+.header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--space-lg);
+}
+
+.meta {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: var(--space-sm);
+  margin: 0;
+}
+
+.meta div {
+  display: grid;
+  gap: var(--space-4xs);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: var(--space-lg);
+}
+
+.column {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.tiers,
+.signals,
+.decisionMix {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.tierItem {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2xs);
+  padding: var(--space-md);
+  border-radius: var(--radius-lg);
+  background: rgba(148, 163, 184, 0.08);
+}
+
+.tierHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--space-sm);
+}
+
+.tierName {
+  font-weight: 600;
+}
+
+.tierDuration {
+  color: var(--text-muted);
+  font-size: 0.875rem;
+}
+
+.participants {
+  margin: 0;
+}
+
+.tierFootnote {
+  margin: 0;
+  color: var(--text-muted);
+}
+
+.signals {
+  gap: var(--space-sm);
+}
+
+.signalItem {
+  display: grid;
+  gap: var(--space-3xs);
+  padding: var(--space-md);
+  border-radius: var(--radius-lg);
+  background: rgba(59, 130, 246, 0.08);
+}
+
+.signalName {
+  font-weight: 600;
+}
+
+.signalThreshold {
+  color: var(--text-muted);
+}
+
+.signalAction {
+  margin: 0;
+  color: var(--text-muted);
+}
+
+.decisionMix {
+  gap: var(--space-sm);
+}
+
+.decisionMix li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-sm) var(--space-md);
+  background: rgba(45, 212, 191, 0.08);
+  border-radius: var(--radius-lg);
+}
+
+.decisionLabel {
+  font-weight: 600;
+}
+
+.decisionValue {
+  font-variant-numeric: tabular-nums;
+}
+
+.execution {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: var(--space-sm);
+  margin: 0;
+}
+
+.execution div {
+  display: grid;
+  gap: var(--space-4xs);
+}
+
+.empty {
+  margin: 0;
+  color: var(--text-muted);
+}
+
+@media (max-width: 768px) {
+  .header {
+    flex-direction: column;
+  }
+}

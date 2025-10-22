@@ -34,7 +34,13 @@ def test_generate_intraday_report_structure() -> None:
                 assert entry["roi"][name] >= report["roas_floor"] - 0.2
 
     assert abs(total_spend - report["budget"]) <= report["budget"] * 0.02
-    assert report["optimizer_diagnostics"]["optimizer"] in {"coordinate_ascent", "trust_constr", "differential_evolution", "fallback"}
+    assert report["optimizer_diagnostics"]["optimizer"] in {
+        "coordinate_ascent",
+        "trust_constr",
+        "differential_evolution",
+        "projected_gradient",
+        "fallback",
+    }
 
 
 def test_write_intraday_report(tmp_path: Path) -> None:
@@ -45,3 +51,84 @@ def test_write_intraday_report(tmp_path: Path) -> None:
     parsed = json.loads(output.read_text())
     assert parsed["budget"] == report["budget"]
     assert parsed["scenario"]["total_budget"] == report["scenario"]["total_budget"]
+
+
+def test_generate_intraday_report_uses_cache(monkeypatch) -> None:
+    from apps.allocator import hf_response
+
+    hf_response._SCENARIO_CACHE.clear()
+    call_counter = {"count": 0}
+
+    def fake_optimise(scenario: hf_response.IntradayScenario, seed: int = 42):
+        call_counter["count"] += 1
+        allocation = hf_response.AllocationResult(
+            spends={"meta_h00": 10.0},
+            profit=5.0,
+            diagnostics={"optimizer": "stub"},
+        )
+        meta = {
+            "meta_h00": (
+                scenario.channels[0],
+                0,
+                scenario.demand_profile[scenario.channels[0].name][0],
+            )
+        }
+        return allocation, meta
+
+    def fake_summarise(*_args, **_kwargs):
+        timeline = [
+            {
+                "hour": hour,
+                "spend": {"meta": 0.42},
+                "revenue": {"meta": 0.63},
+                "roi": {"meta": 1.5},
+            }
+            for hour in range(hf_response.HOURS_PER_DAY)
+        ]
+        return {
+            "budget": 10.0,
+            "total_revenue": 15.0,
+            "profit": 5.0,
+            "average_roas": 1.5,
+            "roas_floor": 1.1,
+            "channels": [
+                {
+                    "channel": "meta",
+                    "total_spend": 10.0,
+                    "total_revenue": 15.0,
+                    "average_roas": 1.5,
+                    "peak_roas": 2.0,
+                    "saturation_spend": 100.0,
+                    "max_hourly_spend": 5.0,
+                    "min_hourly_spend": 1.0,
+                }
+            ],
+            "timeline": timeline,
+            "optimizer_diagnostics": {"optimizer": "stub", "success": 1.0},
+        }
+
+    monkeypatch.setattr(hf_response, "optimise_intraday_schedule", fake_optimise)
+    monkeypatch.setattr(hf_response, "summarise_intraday_result", fake_summarise)
+
+    scenario = hf_response.IntradayScenario(
+        channels=[
+            hf_response.IntradayChannel(
+                name="meta",
+                peak_roas=2.0,
+                saturation_spend=100.0,
+                diminishing=1.2,
+                max_hourly_spend=5.0,
+                min_hourly_spend=1.0,
+            )
+        ],
+        demand_profile={"meta": [1.0] * hf_response.HOURS_PER_DAY},
+        total_budget=10.0,
+        roas_floor=1.1,
+    )
+
+    first = hf_response.generate_intraday_report(scenario=scenario, seed=7)
+    second = hf_response.generate_intraday_report(scenario=scenario, seed=7)
+
+    assert call_counter["count"] == 1
+    assert first == second
+    assert first is not second

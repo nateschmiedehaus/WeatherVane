@@ -58,9 +58,14 @@ const automationComfortOptions: {
     helper: "Preview queued pushes each morning and approve with guardrails enforced.",
   },
   {
-    value: "autopilot",
-    label: "Autopilot – autonomous within safety limits",
+    value: "automation",
+    label: "Automation engine – autonomous within safety limits",
     helper: "WeatherVane pushes inside your ramp caps; shadow logs capture every action.",
+  },
+  {
+    value: "autopilot",
+    label: "Autopilot – fully autonomous with live rehearsal guards",
+    helper: "WeatherVane executes ramps end-to-end, promoting rehearsals and triggering rollbacks when needed.",
   },
 ];
 
@@ -299,7 +304,7 @@ export function DemoTourDrawer() {
             <ul className={styles.storyList}>
               <li>Plan highlights showing the top three weather-driven moves</li>
               <li>Stories timeline with what actually happened when brands acted</li>
-              <li>Automation audit log so execs trust Assist and Autopilot modes</li>
+              <li>Automation audit log so execs trust Assist and full automation modes</li>
             </ul>
             <div className={styles.ctaRow}>
               <button

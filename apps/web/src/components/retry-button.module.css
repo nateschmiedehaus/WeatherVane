@@ -1,0 +1,71 @@
+.retryButton {
+  --retry-button-disabled-opacity: 0.65;
+  --retry-button-disabled-cursor: not-allowed;
+  justify-self: var(--retry-button-justify-self, start);
+  align-self: var(--retry-button-align-self, flex-start);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--retry-button-gap, 0.4rem);
+  padding: var(--retry-button-padding, 0.55rem 1.2rem);
+  border-radius: var(--retry-button-radius, 0.85rem);
+  border: 1px solid var(--retry-button-border, rgba(248, 113, 113, 0.6));
+  background: var(--retry-button-bg, rgba(15, 23, 42, 0.45));
+  color: var(--retry-button-color, var(--status-critical-text, #fee2e2));
+  font-weight: var(--retry-button-font-weight, 600);
+  cursor: pointer;
+  transition: transform var(--retry-button-motion-duration, 140ms)
+      var(--retry-button-motion-easing, ease);
+  text-decoration: none;
+}
+
+.retryButton:hover {
+  transform: var(--retry-button-hover-transform, translateY(-1px));
+}
+
+.retryButton:focus-visible {
+  outline: 2px solid var(--retry-button-focus-outline, var(--color-focus-outline, #93c5fd));
+  outline-offset: var(--retry-button-focus-offset, 3px);
+}
+
+.retryButton:disabled {
+  opacity: var(--retry-button-disabled-opacity, 0.65);
+  cursor: var(--retry-button-disabled-cursor, not-allowed);
+  transform: none;
+}
+
+.retryButtonLoading {
+  --retry-button-disabled-opacity: var(--retry-button-loading-opacity, 0.82);
+  --retry-button-disabled-cursor: var(--retry-button-loading-cursor, wait);
+}
+
+.retryButtonSpinner {
+  width: var(--retry-button-spinner-size, 1rem);
+  height: var(--retry-button-spinner-size, 1rem);
+  border-radius: 9999px;
+  border: var(--retry-button-spinner-border-width, 2px) solid
+    var(--retry-button-spinner-border, currentColor);
+  border-right-color: transparent;
+  display: inline-flex;
+  flex-shrink: 0;
+  animation: retry-button-spin var(--retry-button-spinner-duration, 0.6s) linear infinite;
+}
+
+.retryButtonLabel {
+  display: inline-flex;
+  align-items: center;
+}
+
+@keyframes retry-button-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .retryButtonSpinner {
+    animation-duration: calc(var(--retry-button-spinner-duration, 0.6s) * 1.8);
+  }
+}

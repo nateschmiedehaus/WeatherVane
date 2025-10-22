@@ -1,9 +1,11 @@
-import { defineConfig, devices } from '@playwright/test';
+const { defineConfig, devices } = require('playwright/test');
+const path = require('node:path');
+const { pathToFileURL } = require('node:url');
 
-const port = Number(process.env.PLAYWRIGHT_PORT ?? 3131);
-const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? `http://127.0.0.1:${port}`;
+const exportDir = path.join(__dirname, 'playwright-export');
+const defaultBaseUrl = (process.env.PLAYWRIGHT_BASE_URL ?? pathToFileURL(exportDir).href).replace(/\/?$/, '/');
 
-export default defineConfig({
+module.exports = defineConfig({
   testDir: './playwright',
   timeout: 90_000,
   expect: {
@@ -15,7 +17,7 @@ export default defineConfig({
     ['html', { outputFolder: './playwright-report', open: 'never' }],
   ],
   use: {
-    baseURL,
+    baseURL: defaultBaseUrl,
     headless: true,
     viewport: { width: 1440, height: 900 },
     ignoreHTTPSErrors: true,
@@ -28,7 +30,7 @@ export default defineConfig({
       name: 'chromium-desktop',
       use: {
         ...devices['Desktop Chrome'],
-        baseURL,
+        baseURL: defaultBaseUrl,
         viewport: { width: 1440, height: 900 },
         ignoreHTTPSErrors: true,
       },
@@ -37,16 +39,9 @@ export default defineConfig({
       name: 'webkit-tablet',
       use: {
         ...devices['iPad Pro 11'],
-        baseURL,
+        baseURL: defaultBaseUrl,
         ignoreHTTPSErrors: true,
       },
     },
   ],
-  webServer: {
-    command: `npm run dev -- --hostname 127.0.0.1 --port ${port}`,
-    cwd: './apps/web',
-    timeout: 120_000,
-    reuseExistingServer: !process.env.CI,
-    url: baseURL,
-  },
 });

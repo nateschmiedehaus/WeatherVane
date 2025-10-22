@@ -1,65 +1,6 @@
 .root {
   position: relative;
   padding-bottom: 4rem;
-  --automations-backdrop:
-    radial-gradient(circle at 15% 20%, rgba(147, 197, 253, 0.18), transparent 55%),
-    radial-gradient(circle at 85% 20%, rgba(165, 243, 252, 0.16), transparent 55%),
-    radial-gradient(circle at 50% 80%, rgba(94, 234, 212, 0.15), transparent 55%),
-    linear-gradient(135deg, rgba(13, 25, 43, 0.94), rgba(15, 23, 42, 0.82));
-  --automations-header-text: rgba(226, 232, 240, 0.78);
-  --automations-panel-border: rgba(71, 85, 105, 0.35);
-  --automations-panel-bg: linear-gradient(135deg, rgba(30, 41, 59, 0.62), rgba(15, 23, 42, 0.54));
-  --automations-panel-shadow:
-    inset 0 0 0 1px rgba(148, 163, 184, 0.1),
-    0 20px 44px rgba(15, 23, 42, 0.35);
-  --automations-muted-text: rgba(148, 163, 184, 0.85);
-  --automations-label-text: rgba(226, 232, 240, 0.92);
-  --automations-input-bg: rgba(15, 23, 42, 0.45);
-  --automations-input-border: rgba(148, 163, 184, 0.35);
-  --automations-input-focus-border: rgba(165, 243, 252, 0.65);
-  --automations-input-focus-shadow: 0 0 0 3px rgba(56, 189, 248, 0.18);
-  --automations-mode-active-border: rgba(129, 230, 217, 0.55);
-  --automations-mode-active-bg: linear-gradient(135deg, rgba(56, 189, 248, 0.22), rgba(34, 211, 238, 0.18));
-  --automations-mode-shadow: 0 20px 45px rgba(56, 189, 248, 0.18);
-  --automations-primary-button-bg: linear-gradient(135deg, rgba(59, 130, 246, 0.4), rgba(56, 189, 248, 0.35));
-  --automations-primary-button-border: rgba(59, 130, 246, 0.5);
-  --automations-primary-button-shadow: 0 20px 42px rgba(56, 189, 248, 0.24);
-  --automations-meta-border: rgba(71, 85, 105, 0.35);
-  --automations-meta-bg: linear-gradient(135deg, rgba(30, 41, 59, 0.6), rgba(15, 23, 42, 0.55));
-  --automations-meta-shadow:
-    inset 0 0 0 1px rgba(148, 163, 184, 0.1),
-    0 18px 38px rgba(15, 23, 42, 0.32);
-}
-
-:global([data-theme="calm"]) .root {
-  --automations-backdrop:
-    radial-gradient(circle at 18% 18%, rgba(148, 205, 255, 0.18), transparent 55%),
-    radial-gradient(circle at 82% 26%, rgba(103, 232, 249, 0.16), transparent 58%),
-    radial-gradient(circle at 50% 80%, rgba(125, 211, 252, 0.14), transparent 60%),
-    linear-gradient(138deg, rgba(6, 16, 30, 0.95), rgba(8, 23, 36, 0.88));
-  --automations-header-text: rgba(224, 242, 254, 0.82);
-  --automations-panel-border: rgba(94, 109, 130, 0.28);
-  --automations-panel-bg: linear-gradient(135deg, rgba(14, 27, 44, 0.68), rgba(7, 17, 30, 0.58));
-  --automations-panel-shadow:
-    inset 0 0 0 1px rgba(148, 191, 233, 0.14),
-    0 24px 46px rgba(8, 19, 33, 0.4);
-  --automations-muted-text: rgba(186, 209, 234, 0.78);
-  --automations-label-text: rgba(232, 244, 255, 0.94);
-  --automations-input-bg: rgba(7, 16, 28, 0.52);
-  --automations-input-border: rgba(102, 123, 146, 0.34);
-  --automations-input-focus-border: rgba(125, 211, 252, 0.6);
-  --automations-input-focus-shadow: 0 0 0 3px rgba(56, 189, 248, 0.24);
-  --automations-mode-active-border: rgba(99, 179, 237, 0.58);
-  --automations-mode-active-bg: linear-gradient(135deg, rgba(56, 189, 248, 0.26), rgba(14, 165, 233, 0.2));
-  --automations-mode-shadow: 0 24px 48px rgba(56, 189, 248, 0.22);
-  --automations-primary-button-bg: linear-gradient(135deg, rgba(14, 165, 233, 0.45), rgba(125, 211, 252, 0.38));
-  --automations-primary-button-border: rgba(56, 189, 248, 0.52);
-  --automations-primary-button-shadow: 0 24px 48px rgba(56, 189, 248, 0.26);
-  --automations-meta-border: rgba(82, 105, 130, 0.3);
-  --automations-meta-bg: linear-gradient(135deg, rgba(12, 27, 45, 0.64), rgba(8, 19, 33, 0.58));
-  --automations-meta-shadow:
-    inset 0 0 0 1px rgba(148, 191, 233, 0.12),
-    0 20px 40px rgba(6, 18, 30, 0.38);
 }
 
 .root::before {
@@ -118,6 +59,12 @@
   border: 1px solid rgba(239, 68, 68, 0.55);
   display: grid;
   gap: 0.75rem;
+  --retry-button-border: rgba(239, 68, 68, 0.55);
+  --retry-button-bg: var(--automations-input-bg);
+  --retry-button-color: var(--status-critical-text, #fee2e2);
+  --retry-button-motion-duration: var(--motion-duration-snappy);
+  --retry-button-motion-easing: var(--motion-easing-standard);
+  --retry-button-hover-transform: translateY(-1px);
 }
 
 .success {
@@ -126,25 +73,10 @@
   border: 1px solid rgba(74, 222, 128, 0.55);
 }
 
-.retryButton {
-  justify-self: start;
-  padding: 0.55rem 1.2rem;
-  border-radius: 0.85rem;
-  border: 1px solid rgba(239, 68, 68, 0.55);
-  background: var(--automations-input-bg);
-  color: var(--status-critical-text, #fee2e2);
-  font-weight: 600;
-  cursor: pointer;
-  transition: transform var(--motion-duration-snappy) var(--motion-easing-standard);
-}
-
-.retryButton:hover {
-  transform: translateY(-1px);
-}
-
-.retryButton:focus-visible {
-  outline: 2px solid var(--color-focus-outline, #93c5fd);
-  outline-offset: 3px;
+.changeLogFallback {
+  margin-top: 2.5rem;
+  display: grid;
+  gap: 1.5rem;
 }
 
 .layout {
@@ -160,18 +92,64 @@
   }
 }
 
+.trustSection {
+  margin-top: 3rem;
+  display: grid;
+  gap: 1.5rem;
+}
+
+.trustIntro {
+  display: grid;
+  gap: 0.4rem;
+  max-width: 60ch;
+}
+
+.trustIntro h3 {
+  margin: 0;
+}
+
+.trustIntro p {
+  margin: 0;
+  color: var(--automations-muted-text);
+}
+
+.trustGrid {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.readinessCard {
+  grid-column: 1 / -1;
+}
+
+.timelinePanel {
+  height: 100%;
+}
+
+@media (min-width: 960px) {
+  .trustGrid {
+    grid-template-columns: minmax(0, 1.75fr) minmax(260px, 320px);
+    align-items: stretch;
+  }
+
+  .readinessCard {
+    grid-column: 1 / -1;
+  }
+}
+
 .form {
   display: grid;
   gap: 2rem;
 }
 
 .fieldset {
+  composes: panelSurface from "./panel-surface.module.css";
+  --panel-surface-border: var(--automations-panel-border);
+  --panel-surface-background: var(--automations-panel-bg);
+  --panel-surface-shadow: var(--automations-panel-shadow);
   margin: 0;
   padding: 1.6rem;
   border-radius: 1rem;
-  border: 1px solid var(--automations-panel-border);
-  background: var(--automations-panel-bg) border-box;
-  box-shadow: var(--automations-panel-shadow);
   display: grid;
   gap: 1.25rem;
 }
@@ -188,13 +166,15 @@
 }
 
 .modeItem {
+  composes: panelSurface from "./panel-surface.module.css";
+  --panel-surface-border: var(--automations-panel-border);
+  --panel-surface-background: var(--automations-panel-bg);
+  --panel-surface-shadow: var(--automations-panel-shadow);
   display: flex;
   gap: 1rem;
   align-items: flex-start;
   padding: 1rem;
   border-radius: 0.9rem;
-  border: 1px solid var(--automations-panel-border);
-  background: var(--automations-panel-bg) border-box;
   cursor: pointer;
   transition:
     transform var(--motion-duration-standard) var(--motion-easing-emphasized),
@@ -268,6 +248,95 @@
   resize: vertical;
 }
 
+.guardrailNarratives {
+  display: grid;
+  gap: 0.9rem;
+  padding: 1rem 1.2rem;
+  border-radius: 0.9rem;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  background: rgba(15, 23, 42, 0.45);
+  box-shadow:
+    inset 0 0 0 1px rgba(148, 163, 184, 0.08),
+    0 16px 32px rgba(15, 23, 42, 0.28);
+}
+
+.guardrailNarratives h4 {
+  margin: 0;
+  color: var(--automations-label-text);
+}
+
+.guardrailNarrativesList {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 0.8rem;
+}
+
+.guardrailNarrative {
+  display: grid;
+  gap: 0.5rem;
+  padding: 0.9rem 1rem;
+  border-radius: 0.8rem;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  background: rgba(30, 41, 59, 0.58);
+}
+
+.guardrailNarrative[data-tone="success"] {
+  border-color: rgba(52, 211, 153, 0.55);
+  background: rgba(15, 118, 110, 0.35);
+}
+
+.guardrailNarrative[data-tone="caution"] {
+  border-color: rgba(251, 191, 36, 0.55);
+  background: rgba(180, 83, 9, 0.35);
+}
+
+.guardrailNarrative[data-tone="critical"] {
+  border-color: rgba(248, 113, 113, 0.6);
+  background: rgba(127, 29, 29, 0.45);
+}
+
+.guardrailNarrativeHeader {
+  display: grid;
+  gap: 0.3rem;
+}
+
+.guardrailNarrativeHeader p {
+  margin: 0;
+  color: var(--automations-muted-text);
+  line-height: 1.4;
+}
+
+.guardrailNarrativeBody {
+  margin: 0;
+  color: var(--automations-label-text);
+  line-height: 1.45;
+}
+
+.guardrailNarrativeExample {
+  margin: 0;
+  color: var(--automations-muted-text);
+  line-height: 1.4;
+}
+
+.inputInvalid {
+  border-color: rgba(248, 113, 113, 0.75);
+  box-shadow:
+    0 0 0 1px rgba(248, 113, 113, 0.32),
+    0 16px 32px rgba(127, 29, 29, 0.24);
+}
+
+.fieldError {
+  margin-top: 0.25rem;
+  padding: 0.4rem 0.6rem;
+  border-radius: 0.5rem;
+  background: rgba(127, 29, 29, 0.6);
+  border: 1px solid rgba(248, 113, 113, 0.5);
+  color: var(--status-critical-text, #fee2e2);
+  line-height: 1.35;
+}
+
 .fieldset input:focus-visible,
 .fieldset select:focus-visible,
 .fieldset textarea:focus-visible {
@@ -338,7 +407,11 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .retryButton,
+  .error {
+    --retry-button-motion-duration: 0ms;
+    --retry-button-hover-transform: none;
+  }
+
   .modeItem,
   .primaryButton,
   .fieldset input,
@@ -347,7 +420,6 @@
     transition: none;
   }
 
-  .retryButton:hover,
   .modeItem:hover,
   .modeItem:has(input:checked),
   .primaryButton:not(:disabled):hover {

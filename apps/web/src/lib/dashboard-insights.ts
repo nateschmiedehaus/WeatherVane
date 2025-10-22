@@ -8,6 +8,9 @@ import type {
   IngestionConnector,
   WeatherKpi,
   WeatherRiskEvent,
+  DataCoverageBucket,
+  TenantDataCoverage,
+  CoverageStatus,
 } from "../types/dashboard";
 
 export interface GuardrailSummary {
@@ -94,12 +97,12 @@ export function describeGuardrailHero(
     return "No guardrails published yet. Publish guardrails in Plan to unlock live health tracking.";
   }
   if (summary.overallStatus === "breach" || summary.breachCount > 0) {
-    return "Guardrail breach detected. Rally the owning team and coordinate a fix before Autopilot resumes spend.";
+    return "Guardrail breach detected. Rally the owning team and coordinate a fix before Automation engine resumes spend.";
   }
   if (summary.overallStatus === "watch" || summary.watchCount > 0) {
     return "Guardrails are drifting. Align with Finance on pacing adjustments before the next allocator sync.";
   }
-  return "Guardrails holding steady. Autopilot will surface new drift the moment it appears.";
+  return "Guardrails holding steady. Automation engine will surface new drift the moment it appears.";
 }
 
 export interface AlertSeveritySummary {
@@ -212,6 +215,157 @@ export function summarizeIngestionLag(
     slowestConnector,
     averageLagMinutes: totalLag / connectors.length,
     outOfSlaCount,
+  };
+}
+
+const COVERAGE_BUCKET_ORDER = ["sales", "spend", "weather"];
+
+const clampCoverageRatio = (value: number): number => {
+  if (!Number.isFinite(value)) {
+    return 0;
+  }
+  if (value < 0) {
+    return 0;
+  }
+  if (value > 1) {
+    return 1;
+  }
+  return value;
+};
+
+const normaliseIsoInstant = (value: string | null | undefined): string | null => {
+  if (!value) {
+    return null;
+  }
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return null;
+  }
+  return parsed.toISOString();
+};
+
+const normaliseDateToInstant = (value: string | null | undefined): string | null => {
+  if (!value) {
+    return null;
+  }
+  if (value.includes("T")) {
+    return normaliseIsoInstant(value);
+  }
+  return normaliseIsoInstant(`${value}T00:00:00Z`);
+};
+
+const dedupeStrings = (values: string[]): string[] => {
+  const seen = new Set<string>();
+  const result: string[] = [];
+  values.forEach((value) => {
+    const trimmed = value.trim();
+    if (!trimmed || seen.has(trimmed)) {
+      return;
+    }
+    seen.add(trimmed);
+    result.push(trimmed);
+  });
+  return result;
+};
+
+export interface CoverageBucketInsight {
+  key: string;
+  name: string;
+  status: CoverageStatus;
+  coverageRatio: number;
+  observedDays: number;
+  windowDays: number;
+  missingDays: number;
+  latestDateRaw: string | null;
+  latestDateIso: string | null;
+  issues: string[];
+  sources: string[];
+  geocodedRatio: number | null;
+}
+
+export interface DataCoverageInsight {
+  status: CoverageStatus;
+  windowDays: number;
+  endDateRaw: string | null;
+  endDateIso: string | null;
+  generatedAtRaw: string | null;
+  generatedAtIso: string | null;
+  buckets: CoverageBucketInsight[];
+}
+
+const coverageBucketOrderIndex = (name: string): number => {
+  const index = COVERAGE_BUCKET_ORDER.indexOf(name.toLowerCase());
+  return index === -1 ? COVERAGE_BUCKET_ORDER.length : index;
+};
+
+export function buildDataCoverageInsight(
+  coverage: TenantDataCoverage | null | undefined,
+): DataCoverageInsight | null {
+  if (!coverage) {
+    return null;
+  }
+
+  const entries = Object.entries(coverage.buckets ?? {});
+  entries.sort((a, b) => {
+    const aIndex = coverageBucketOrderIndex(a[0]);
+    const bIndex = coverageBucketOrderIndex(b[0]);
+    if (aIndex !== bIndex) {
+      return aIndex - bIndex;
+    }
+    return a[0].localeCompare(b[0]);
+  });
+
+  const buckets: CoverageBucketInsight[] = entries.map(([key, bucket]) => {
+    const issues = Array.isArray(bucket.issues)
+      ? dedupeStrings(
+          bucket.issues
+            .filter((issue): issue is string => typeof issue === "string")
+            .map((issue) => issue.trim()),
+        )
+      : [];
+    const sources = Array.isArray(bucket.sources)
+      ? dedupeStrings(
+          bucket.sources
+            .filter((source): source is string => typeof source === "string")
+            .map((source) => source.trim()),
+        )
+      : [];
+    const coverageRatio = clampCoverageRatio(bucket.coverage_ratio);
+    const observedDays = Math.max(0, bucket.observed_days);
+    const windowDays = Math.max(1, bucket.window_days);
+    const missingDays = Math.max(0, windowDays - observedDays);
+    const extra = bucket.extra_metrics ?? {};
+    const geocodedRaw =
+      typeof extra === "object" && extra !== null
+        ? (extra as Record<string, unknown>)["geocoded_order_ratio"]
+        : null;
+    const geocodedRatio =
+      typeof geocodedRaw === "number" && Number.isFinite(geocodedRaw) ? geocodedRaw : null;
+
+    return {
+      key,
+      name: bucket.name || key,
+      status: bucket.status,
+      coverageRatio,
+      observedDays,
+      windowDays,
+      missingDays,
+      latestDateRaw: bucket.latest_date ?? null,
+      latestDateIso: normaliseDateToInstant(bucket.latest_date),
+      issues,
+      sources,
+      geocodedRatio,
+    };
+  });
+
+  return {
+    status: coverage.status,
+    windowDays: Math.max(1, coverage.window_days),
+    endDateRaw: coverage.end_date ?? null,
+    endDateIso: normaliseDateToInstant(coverage.end_date),
+    generatedAtRaw: coverage.generated_at ?? null,
+    generatedAtIso: normaliseIsoInstant(coverage.generated_at),
+    buckets,
   };
 }
 
@@ -441,17 +595,23 @@ export function mapWeatherTimelineItems(
   });
 }
 
+const weatherRegionSlugCache = new Map<string, string>();
+
 export function weatherRegionSlug(region: string | null | undefined): string {
   const normalized = normalizeWeatherRegionLabel(region);
-  const slug = normalized
-    .toLowerCase()
+  const cacheKey = normalized.toLowerCase();
+  const cached = weatherRegionSlugCache.get(cacheKey);
+  if (cached) {
+    return cached;
+  }
+
+  const slug = cacheKey
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "")
     .replace(/-{2,}/g, "-");
-  if (slug.length) {
-    return slug;
-  }
-  return "unspecified-region";
+  const result = slug.length ? slug : "unspecified-region";
+  weatherRegionSlugCache.set(cacheKey, result);
+  return result;
 }
 
 export function findRegionLabelBySlug(
@@ -629,7 +789,7 @@ export function buildWeatherSuggestionIdleStory(
   if (!regions.length) {
     return {
       heading: "No weather signals detected",
-      detail: "Autopilot hasn't detected active weather risk windows for your campaigns.",
+      detail: "Automation engine hasn't detected active weather risk windows for your campaigns.",
       caption: "We'll alert you immediately when new weather events register on telemetry.",
     };
   }
@@ -676,7 +836,7 @@ export function buildWeatherSuggestionIdleStory(
 
   return {
     heading,
-    detail: `Autopilot is monitoring ${eventLabel} across ${regionCount} ${regionLabel}. ${highRiskSentence}`,
+    detail: `Automation engine is monitoring ${eventLabel} across ${regionCount} ${regionLabel}. ${highRiskSentence}`,
     caption,
   };
 }
@@ -863,6 +1023,24 @@ const RECOMMENDATION_SEVERITY_ORDER: Readonly<Record<AllocatorRecommendation["se
     info: 2,
   });
 
+function sortAllocatorRecommendations(
+  recommendations: AllocatorRecommendation[] | null | undefined,
+): AllocatorRecommendation[] {
+  if (!Array.isArray(recommendations) || recommendations.length === 0) {
+    return [];
+  }
+
+  return [...recommendations].sort((a, b) => {
+    const severityDelta =
+      (RECOMMENDATION_SEVERITY_ORDER[a.severity] ?? 3) -
+      (RECOMMENDATION_SEVERITY_ORDER[b.severity] ?? 3);
+    if (severityDelta !== 0) {
+      return severityDelta;
+    }
+    return Math.abs(b.spend_delta) - Math.abs(a.spend_delta);
+  });
+}
+
 export function summarizeAllocatorPressure(
   summary: AllocatorSummary | null | undefined,
 ): { tone: BadgeTone; message: string } {
@@ -870,13 +1048,7 @@ export function summarizeAllocatorPressure(
     return { tone: "muted", message: "Allocator telemetry unavailable." };
   }
 
-  const sortedRecommendations = [...(summary.recommendations ?? [])].sort((a, b) => {
-    const severityDelta =
-      (RECOMMENDATION_SEVERITY_ORDER[a.severity] ?? 3) -
-      (RECOMMENDATION_SEVERITY_ORDER[b.severity] ?? 3);
-    if (severityDelta !== 0) return severityDelta;
-    return Math.abs(b.spend_delta) - Math.abs(a.spend_delta);
-  });
+  const sortedRecommendations = sortAllocatorRecommendations(summary.recommendations);
 
   const critical = sortedRecommendations.find((rec) => rec.severity === "critical");
   if (critical) {
@@ -916,7 +1088,290 @@ export function topAllocatorRecommendations(
   if (!summary) {
     return [];
   }
-  return summary.recommendations.slice(0, Math.max(0, limit));
+  const safeLimit =
+    typeof limit === "number" && Number.isFinite(limit) ? Math.max(0, Math.trunc(limit)) : 0;
+  if (safeLimit === 0) {
+    return [];
+  }
+
+  return sortAllocatorRecommendations(summary.recommendations).slice(0, safeLimit);
+}
+
+const ALLOCATOR_BINDING_LABELS: Readonly<Record<string, string>> = Object.freeze({
+  binding_min_spend: "Global minimum spend",
+  binding_max_spend: "Global maximum spend",
+  binding_min_spend_by_cell: "Per-market minimums",
+  binding_max_spend_by_cell: "Per-market maximums",
+  binding_roas_floor: "ROAS floor",
+  binding_learning_cap: "Learning cap",
+});
+const ALLOCATOR_BINDING_ORDER = Object.freeze(Object.keys(ALLOCATOR_BINDING_LABELS));
+
+const OPTIMIZER_LABELS: Readonly<Record<string, string>> = Object.freeze({
+  coordinate_ascent: "Coordinate ascent",
+  projected_gradient: "Projected gradient",
+  trust_constr: "Trust-constr",
+  differential_evolution: "Differential evolution",
+  fallback: "Fallback",
+});
+
+export type AllocatorDeltaDirection = "positive" | "negative" | "neutral";
+
+export interface AllocatorDiagnosticsSummary {
+  optimizerLabel: string | null;
+  profitP10: number | null;
+  profitP50: number | null;
+  profitP90: number | null;
+  profitP50Delta: number | null;
+  profitP50DeltaDirection: AllocatorDeltaDirection;
+  expectedProfit: number | null;
+  expectedProfitDelta: number | null;
+  expectedProfitDeltaDirection: AllocatorDeltaDirection;
+  baselineProfit: number | null;
+  worstCaseProfit: number | null;
+  profitLift: number | null;
+  profitLiftDirection: AllocatorDeltaDirection;
+  bindingHighlights: string[];
+  evaluationCount: number | null;
+  iterationCount: number | null;
+  improvementCount: number | null;
+  projectionTarget: number | null;
+  projectionResidualLower: number | null;
+  projectionResidualUpper: number | null;
+  successScore: number | null;
+  wasMinSoftened: boolean | null;
+  objectiveValue: number | null;
+  optimizerCandidates: AllocatorOptimizerCandidate[];
+}
+
+export interface AllocatorOptimizerCandidate {
+  id: string;
+  label: string;
+  profit: number | null;
+  success: number | null;
+  isWinner: boolean;
+}
+
+export function summarizeAllocatorDiagnostics(
+  summary: AllocatorSummary | null | undefined,
+): AllocatorDiagnosticsSummary | null {
+  const diagnostics = summary?.diagnostics;
+  if (!diagnostics) {
+    return null;
+  }
+
+  const bindingHighlights: string[] = [];
+  const constraints = diagnostics.binding_constraints ?? {};
+  const orderedKeys = [
+    ...ALLOCATOR_BINDING_ORDER,
+    ...Object.keys(constraints).filter((key) => !ALLOCATOR_BINDING_ORDER.includes(key)).sort(),
+  ];
+  orderedKeys.forEach((rawKey) => {
+    const values = constraints[rawKey];
+    if (!Array.isArray(values) || values.length === 0) {
+      return;
+    }
+    const label = ALLOCATOR_BINDING_LABELS[rawKey] ?? rawKey.replace(/_/g, " ");
+    const formattedValues = values
+      .map(humanizeBindingValue)
+      .filter((value) => value.length > 0);
+    if (formattedValues.length === 0) {
+      return;
+    }
+    bindingHighlights.push(`${label} affects ${formatBindingList(formattedValues)}`);
+  });
+
+  const humanizeOptimizer = (raw: string): string => {
+    const normalised = raw.trim().toLowerCase();
+    if (normalised in OPTIMIZER_LABELS) {
+      return OPTIMIZER_LABELS[normalised as keyof typeof OPTIMIZER_LABELS];
+    }
+    return raw
+      .replace(/[_-]+/g, " ")
+      .toLowerCase()
+      .replace(/\b(\w)/g, (match) => match.toUpperCase())
+      .trim();
+  };
+
+  const winnerIdRaw =
+    typeof diagnostics.optimizer_winner === "string" ? diagnostics.optimizer_winner.trim() : "";
+  const optimizerIdRaw =
+    typeof diagnostics.optimizer === "string" ? diagnostics.optimizer.trim() : "";
+  const winnerId = winnerIdRaw.length
+    ? winnerIdRaw
+    : optimizerIdRaw.length
+    ? optimizerIdRaw
+    : null;
+  const optimizerLabel = winnerId ? humanizeOptimizer(winnerId) : null;
+
+  const optimizerCandidates: AllocatorOptimizerCandidate[] = [];
+  if (Array.isArray(diagnostics.optimizer_candidates)) {
+    const seen = new Set<string>();
+    diagnostics.optimizer_candidates.forEach((rawCandidate) => {
+      if (!rawCandidate || typeof rawCandidate !== "object") {
+        return;
+      }
+      const rawId = typeof rawCandidate.optimizer === "string" ? rawCandidate.optimizer.trim() : "";
+      if (!rawId || seen.has(rawId)) {
+        return;
+      }
+      seen.add(rawId);
+      const profit =
+        typeof rawCandidate.profit === "number" && Number.isFinite(rawCandidate.profit)
+          ? rawCandidate.profit
+          : null;
+      const successRaw =
+        typeof rawCandidate.success === "number" && Number.isFinite(rawCandidate.success)
+          ? rawCandidate.success
+          : null;
+      const success =
+        successRaw == null ? null : Math.max(0, Math.min(1, successRaw));
+      optimizerCandidates.push({
+        id: rawId,
+        label: humanizeOptimizer(rawId),
+        profit,
+        success,
+        isWinner: winnerId ? rawId === winnerId : false,
+      });
+    });
+    optimizerCandidates.sort((a, b) => {
+      const left = typeof a.profit === "number" ? a.profit : Number.NEGATIVE_INFINITY;
+      const right = typeof b.profit === "number" ? b.profit : Number.NEGATIVE_INFINITY;
+      if (right === left) {
+        return a.label.localeCompare(b.label);
+      }
+      return right - left;
+    });
+  }
+
+  const normalizeCount = (value: unknown): number | null => {
+    if (typeof value !== "number" || !Number.isFinite(value)) {
+      return null;
+    }
+    return Math.round(value);
+  };
+
+  const normalizeNumber = (value: unknown): number | null => {
+    if (typeof value !== "number" || !Number.isFinite(value)) {
+      return null;
+    }
+    return value;
+  };
+
+  const profitP10 = normalizeNumber(diagnostics.scenario_profit_p10 ?? null);
+  const profitP50 = normalizeNumber(diagnostics.scenario_profit_p50 ?? null);
+  const profitP90 = normalizeNumber(diagnostics.scenario_profit_p90 ?? null);
+  const profitP50Delta = normalizeNumber(diagnostics.profit_delta_p50 ?? null);
+  const expectedProfit = normalizeNumber(diagnostics.expected_profit_raw ?? null);
+  const baselineProfit = normalizeNumber(diagnostics.baseline_profit ?? null);
+  const expectedProfitDelta =
+    normalizeNumber(diagnostics.profit_delta_expected ?? null) ??
+    (expectedProfit != null && baselineProfit != null ? expectedProfit - baselineProfit : null);
+  const worstCaseProfit = normalizeNumber(diagnostics.worst_case_profit ?? null);
+  const profitLift = normalizeNumber(diagnostics.profit_lift ?? null);
+  const evaluationSource =
+    diagnostics.evaluations ??
+    (Object.prototype.hasOwnProperty.call(
+      diagnostics as Record<string, unknown>,
+      "nfev",
+    )
+      ? (diagnostics as Record<string, unknown>).nfev
+      : null);
+  const evaluationCount = normalizeCount(evaluationSource);
+  const iterationCount =
+    normalizeCount(
+      diagnostics.iterations ?? diagnostics.iterations_with_improvement ?? null,
+    ) ?? null;
+
+  const improvementCount =
+    normalizeCount(
+      diagnostics.improvements ?? diagnostics.iterations_with_improvement ?? null,
+    ) ?? null;
+
+  const projectionTarget = normalizeNumber(diagnostics.projection_target ?? null);
+  const projectionResidualLower = normalizeNumber(diagnostics.projection_residual_lower ?? null);
+  const projectionResidualUpper = normalizeNumber(diagnostics.projection_residual_upper ?? null);
+  const successScore = normalizeNumber(diagnostics.success ?? null);
+  const objectiveValue = normalizeNumber(diagnostics.objective_value ?? null);
+  const wasMinSoftened =
+    typeof diagnostics.min_softened === "boolean"
+      ? diagnostics.min_softened
+      : diagnostics.min_softened == null
+      ? null
+      : Boolean(diagnostics.min_softened);
+
+  return {
+    optimizerLabel,
+    profitP10,
+    profitP50,
+    profitP90,
+    profitP50Delta,
+    profitP50DeltaDirection: classifyDelta(profitP50Delta),
+    expectedProfit,
+    expectedProfitDelta,
+    expectedProfitDeltaDirection: classifyDelta(expectedProfitDelta),
+    baselineProfit,
+    worstCaseProfit,
+    profitLift,
+    profitLiftDirection: classifyDelta(profitLift),
+    bindingHighlights,
+    evaluationCount,
+    iterationCount,
+    improvementCount,
+    projectionTarget,
+    projectionResidualLower,
+    projectionResidualUpper,
+    successScore,
+    wasMinSoftened,
+    objectiveValue,
+    optimizerCandidates,
+  };
+}
+
+function humanizeBindingValue(value: unknown): string {
+  if (typeof value !== "string") {
+    return "";
+  }
+  const cleaned = value.replace(/[|_/.-]+/g, " ").replace(/\s+/g, " ").trim();
+  if (!cleaned) {
+    return "";
+  }
+  const words = cleaned.split(" ");
+  const formatted = words.map((word) => {
+    if (!word) {
+      return "";
+    }
+    const upper = word.toUpperCase();
+    if (upper.length <= 3 || /^[A-Z0-9]+$/.test(word)) {
+      return upper;
+    }
+    return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+  });
+  return formatted.filter(Boolean).join(" ");
+}
+
+function formatBindingList(values: string[]): string {
+  if (values.length === 1) {
+    return values[0] ?? "";
+  }
+  if (values.length === 2) {
+    return `${values[0]} and ${values[1]}`;
+  }
+  const [head, ...rest] = values;
+  return `${head}, ${rest.slice(0, -1).join(", ")}, and ${rest[rest.length - 1]}`;
+}
+
+function classifyDelta(value: number | null): AllocatorDeltaDirection {
+  if (value == null || !Number.isFinite(value)) {
+    return "neutral";
+  }
+  if (value > 0) {
+    return "positive";
+  }
+  if (value < 0) {
+    return "negative";
+  }
+  return "neutral";
 }
 
 export type SuggestionHighRiskSeverity = "none" | "elevated" | "critical";
@@ -1035,6 +1490,8 @@ export interface SuggestionTelemetrySummary {
   tenantMode: "demo" | "live" | "unknown";
   layoutVariant: "dense" | "stacked" | "unknown";
   ctaShown: boolean;
+  tenantCount: number;
+  tenantNames: string[];
   viewCount: number;
   focusCount: number;
   dismissCount: number;
@@ -1053,6 +1510,43 @@ export interface SuggestionTelemetrySummary {
 
 export interface SuggestionTelemetrySummaryOptions {
   limit?: number;
+}
+
+export interface TenantSample {
+  sample: string[];
+  remainder: number;
+}
+
+export function buildTenantSample(
+  tenantNames: string[],
+  limit = 3,
+): TenantSample {
+  if (!Array.isArray(tenantNames) || tenantNames.length === 0) {
+    return {
+      sample: [],
+      remainder: 0,
+    };
+  }
+
+  const safeLimit =
+    typeof limit === "number" && Number.isFinite(limit)
+      ? Math.max(0, Math.trunc(limit))
+      : 0;
+
+  if (safeLimit === 0) {
+    return {
+      sample: [],
+      remainder: tenantNames.length,
+    };
+  }
+
+  const sample = tenantNames.slice(0, safeLimit);
+  const remainder = Math.max(0, tenantNames.length - sample.length);
+
+  return {
+    sample,
+    remainder,
+  };
 }
 
 function normaliseString(value: unknown): string | null {
@@ -1117,6 +1611,38 @@ function resolveBoolean(value: unknown): boolean {
     return normalised === "true" || normalised === "1" || normalised === "yes";
   }
   return Boolean(value);
+}
+
+function collectTenantNames(...sources: unknown[]): string[] {
+  const names: string[] = [];
+  const seen = new Set<string>();
+
+  const pushName = (raw: unknown) => {
+    if (typeof raw !== "string") {
+      return;
+    }
+    const trimmed = raw.trim();
+    if (!trimmed.length) {
+      return;
+    }
+    const collapsed = trimmed.replace(/\s+/g, " ");
+    const key = collapsed.toLowerCase();
+    if (seen.has(key)) {
+      return;
+    }
+    seen.add(key);
+    names.push(collapsed);
+  };
+
+  sources.forEach((source) => {
+    if (Array.isArray(source)) {
+      source.forEach(pushName);
+      return;
+    }
+    pushName(source);
+  });
+
+  return names;
 }
 
 function timestampScore(value: string | null | undefined): number {
@@ -1275,6 +1801,12 @@ export function summarizeSuggestionTelemetry(
       const engagementRateInput = normaliseRateValue(record.engagement_rate);
       const confidence = computeEngagementConfidence(viewCount, engagementCount);
       const highRiskSeverity = resolveHighRiskSeverity(highRiskCount);
+      const tenantNames = collectTenantNames(
+        record.tenants,
+        metadata.tenants,
+        metadata.primaryTenant,
+        metadata["primary_tenant"],
+      );
 
       return {
         signature: record.signature,
@@ -1285,6 +1817,8 @@ export function summarizeSuggestionTelemetry(
         tenantMode: resolveTenantMode(metadata.tenantMode),
         layoutVariant: resolveLayoutVariant(metadata.layoutVariant),
         ctaShown: resolveBoolean(metadata.ctaShown),
+        tenantCount: tenantNames.length,
+        tenantNames,
         viewCount,
         focusCount,
         dismissCount,
@@ -1685,6 +2219,8 @@ const SUGGESTION_TELEMETRY_CSV_HEADER = Object.freeze([
   "Engagement rate",
   "Guardrail status",
   "Tenant mode",
+  "Tenant count",
+  "Tenant sample",
   "Layout variant",
   "CTA shown",
   "First occurred at",
@@ -1761,6 +2297,14 @@ export function buildSuggestionTelemetryCsv(
   rows.push(SUGGESTION_TELEMETRY_CSV_HEADER.map(escapeCsvValue).join(","));
 
   exportRows.forEach((summary) => {
+    const tenantSample = buildTenantSample(summary.tenantNames, 3);
+    const tenantSampleLabel =
+      tenantSample.sample.length === 0
+        ? ""
+        : tenantSample.remainder > 0
+        ? `${tenantSample.sample.join(" | ")} (+${tenantSample.remainder} more)`
+        : tenantSample.sample.join(" | ");
+
     rows.push(
       [
         summary.region,
@@ -1777,6 +2321,8 @@ export function buildSuggestionTelemetryCsv(
         formatCsvRate(summary.engagementRate),
         summary.guardrailStatus,
         summary.tenantMode,
+        summary.tenantCount,
+        tenantSampleLabel,
         summary.layoutVariant,
         summary.ctaShown,
         summary.firstOccurredAt ?? "",

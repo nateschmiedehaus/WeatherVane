@@ -24,6 +24,7 @@ from shared.feature_store.reports import generate_weather_join_report
 from shared.libs.storage.lake import LakeWriter, read_parquet
 from shared.libs.storage.state import JsonStateStore
 from apps.worker.validation.geocoding import evaluate_geocoding_coverage
+from shared.services.data_quality import run_data_quality_validation
 from shared.validation.schemas import (
     validate_google_ads,
     validate_meta_ads,
@@ -378,11 +379,15 @@ async def fetch_ads_data(
             }
         ]
         validate_meta_ads(sample_meta)
-        meta_summary = base._write_incremental(
+        meta_summary = base._write_records(
             dataset=f"{context.tenant_id}_meta_ads",
             rows=sample_meta,
-            unique_keys=("tenant_id", "date", "campaign_id", "adset_id"),
             source="stub",
+            metadata={
+                "new_rows": len(sample_meta),
+                "updated_rows": 0,
+                "total_rows": len(sample_meta),
+            },
         )
 
         sample_google = [
@@ -397,11 +402,15 @@ async def fetch_ads_data(
             }
         ]
         validate_google_ads(sample_google)
-        google_summary = base._write_incremental(
+        google_summary = base._write_records(
             dataset=f"{context.tenant_id}_google_ads",
             rows=sample_google,
-            unique_keys=("tenant_id", "date", "campaign_id"),
             source="stub",
+            metadata={
+                "new_rows": len(sample_google),
+                "updated_rows": 0,
+                "total_rows": len(sample_google),
+            },
         )
         source = "stub"
     else:
@@ -456,7 +465,7 @@ async def fetch_promo_data(
 
     writer = LakeWriter(root=lake_root)
     store = JsonStateStore(root=state_root)
-    ingestor = build_promo_ingestor_from_env(lake_root)
+    ingestor = build_promo_ingestor_from_env(lake_root, state_root=state_root)
     summary = (
         await ingestor.ingest_campaigns(context.tenant_id, context.start_date, context.end_date)
         if ingestor.connector
@@ -698,6 +707,8 @@ async def build_feature_matrix(
         output_path=resolved_report_path,
     )
 
+    rounded_weather_ratio = round(float(matrix.weather_coverage_ratio), 4)
+
     return {
         "design_matrix": matrix.frame.to_dict(as_series=False),
         "observed_design_matrix": matrix.observed_frame.to_dict(as_series=False),
@@ -713,6 +724,10 @@ async def build_feature_matrix(
             "latest_observed_target_date": matrix.latest_observed_date,
             "join_mode": matrix.join_mode,
             "geocoded_order_ratio": matrix.geocoded_order_ratio,
+            "geography_level": matrix.geography_level,
+            "geography_fallback_reason": matrix.geography_fallback_reason,
+            "weather_coverage_ratio": rounded_weather_ratio,
+            "weather_coverage_threshold": matrix.weather_coverage_threshold,
             "leakage_guardrail": {
                 "target_available_column": "target_available",
                 "observed_rows": matrix.observed_rows,
@@ -737,13 +752,43 @@ async def build_feature_matrix(
                 "issues": weather_join_report.get("issues", []),
                 "weather_missing_rows": matrix.weather_missing_rows,
                 "leakage_rows": matrix.leakage_risk_rows,
+                "join_mode": matrix.join_mode,
+                "geography_level": matrix.geography_level,
+                "weather_coverage_ratio": rounded_weather_ratio,
+                "weather_coverage_threshold": matrix.weather_coverage_threshold,
+                "geography_fallback_reason": matrix.geography_fallback_reason,
             },
         },
     }
 
 
+@task(name="Validate data quality")
+async def validate_data_quality(
+    feature_payload: Dict[str, Any],
+    context: TenantContext,
+    *,
+    output_path: str = "state/analytics/data_quality.json",
+) -> Dict[str, Any]:
+    logger = get_run_logger()
+    logger.info("Validating data quality for tenant %s", context.tenant_id)
+
+    report = run_data_quality_validation(
+        context.tenant_id,
+        (context.start_date, context.end_date),
+        design_matrix=feature_payload.get("observed_design_matrix") or feature_payload.get("design_matrix") or {},
+        metadata=feature_payload.get("metadata") or {},
+        weather_join_report=feature_payload.get("weather_join_report") or {},
+        output_path=output_path,
+    )
+    return report
+
+
 @task(name="Fit models")
-async def fit_models(feature_payload: Dict[str, Any], context: TenantContext) -> Dict[str, Any]:
+async def fit_models(
+    feature_payload: Dict[str, Any],
+    context: TenantContext,
+    data_quality_report: Mapping[str, Any] | None = None,
+) -> Dict[str, Any]:
     logger = get_run_logger()
     logger.info("Fitting baseline + MMM models for tenant %s", context.tenant_id)
 
@@ -766,6 +811,29 @@ async def fit_models(feature_payload: Dict[str, Any], context: TenantContext) ->
                 "quantile_width": 0.0,
             },
             "quantiles": {"expected_revenue": {"p10": 0.0, "p50": 0.0, "p90": 0.0}},
+        }
+
+    if data_quality_report and data_quality_report.get("status") == "fail":
+        logger.error(
+            "Data quality validation failed for tenant %s; skipping model training",
+            context.tenant_id,
+        )
+        return {
+            "models": {},
+            "metrics": {
+                "row_count": 0.0,
+                "baseline_r2": 0.0,
+                "timeseries_r2": 0.0,
+                "holdout_r2": 0.0,
+                "mae": 0.0,
+                "rmse": 0.0,
+                "bias": 0.0,
+                "prediction_std": 0.0,
+                "quantile_width": 0.0,
+            },
+            "quantiles": {"expected_revenue": {"p10": 0.0, "p50": 0.0, "p90": 0.0}},
+            "status": "DEGRADED",
+            "reason": "data_quality_failed",
         }
 
     from apps.model.pipelines.poc_models import train_poc_models  # local import to avoid heavy deps at module load
@@ -1126,22 +1194,28 @@ async def orchestrate_poc_flow(
     )
     weather_source = _derive_weather_source(weather_payload)
     features = await build_feature_matrix(shopify_payload, ads_payload, promo_payload, weather_payload, context, lake_root=lake_root)
+    data_quality_report = await validate_data_quality(features, context)
 
+    feature_metadata = features.get("metadata", {})
     tag_metadata = {
         "weather_source": weather_source,
         "dataset_rows": {
-            "orders": features.get("metadata", {}).get("orders_rows"),
-            "ads": features.get("metadata", {}).get("ads_rows"),
-            "promos": features.get("metadata", {}).get("promo_rows"),
-            "weather": features.get("metadata", {}).get("weather_row_count"),
+            "orders": feature_metadata.get("orders_rows"),
+            "ads": feature_metadata.get("ads_rows"),
+            "promos": feature_metadata.get("promo_rows"),
+            "weather": feature_metadata.get("weather_row_count"),
         },
         "orders_geocoded_ratio": shopify_payload.get("summary", {}).get("orders_geocoded_ratio"),
         "incrementality_design": incrementality_design,
+        "geography_level": feature_metadata.get("geography_level"),
+        "geography_fallback_reason": feature_metadata.get("geography_fallback_reason"),
+        "weather_coverage_ratio": feature_metadata.get("weather_coverage_ratio"),
+        "weather_coverage_threshold": feature_metadata.get("weather_coverage_threshold"),
     }
 
     context_tags = default_context_service.derive_tags(context.tenant_id, tag_metadata)
 
-    models = await fit_models(features, context)
+    models = await fit_models(features, context, data_quality_report=data_quality_report)
     simulations = await simulate_counterfactuals(models, features, context)
     plan = await allocate_budget(models, simulations, context, context_tags=context_tags)
     ensemble = await generate_ensemble_forecast(
@@ -1185,4 +1259,5 @@ async def orchestrate_poc_flow(
         },
         "incrementality_design": incrementality_design,
         "forecast_ensemble": ensemble,
+        "data_quality_report": data_quality_report,
     }

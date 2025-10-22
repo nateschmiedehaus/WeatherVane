@@ -1,8 +1,10 @@
 import Head from "next/head";
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
 import { Layout } from "../components/Layout";
 import styles from "../styles/landing.module.css";
 import { useDemo } from "../lib/demo";
+import { useTheme } from "../lib/theme";
+import { getSurfaceTokens } from "../../styles/themes";
 
 const checklist = [
   {
@@ -19,7 +21,7 @@ const checklist = [
   },
   {
     title: "Push",
-    detail: "Choose Manual, Assist, or Autopilot. WeatherVane applies ramp limits and guardrails before touching campaigns."
+    detail: "Choose Manual, Assist, or Automation. WeatherVane applies ramp limits and guardrails before touching campaigns."
   }
 ];
 
@@ -40,12 +42,14 @@ const promises = [
 
 export default function Home() {
   const { openTour } = useDemo();
+  const { theme } = useTheme();
+  const marketingTokens = useMemo(() => getSurfaceTokens(theme, "marketing"), [theme]);
   const handleSamplePlan = useCallback(() => {
     openTour();
   }, [openTour]);
 
   return (
-    <Layout>
+    <Layout surfaceStyle={marketingTokens}>
       <Head>
         <title>WeatherVane · Weather-Intelligent Ads Allocation</title>
       </Head>

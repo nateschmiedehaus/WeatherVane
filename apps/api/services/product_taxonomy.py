@@ -8,19 +8,16 @@ from typing import Iterable, List, Sequence, Set, Tuple
 
 from shared.libs.tagging.text import TextTagger
 from shared.schemas.product_taxonomy import ProductSourceRecord, ProductTaxonomyEntry
+from shared.services.product_taxonomy import (
+    AFFINITY_SEASONALITY,
+    ProductTaxonomyClassifier,
+    ProductTaxonomyLLMResult,
+)
 
 logger = logging.getLogger(__name__)
 
 
 _TOKEN_PATTERN = re.compile(r"[a-z0-9]+")
-
-AFFINITY_SEASONALITY = {
-    "winter": "seasonal_q4_q1",
-    "summer": "seasonal_q2_q3",
-    "heat": "seasonal_q2_q3",
-    "rain": "weather_triggered",
-    "neutral": "evergreen",
-}
 
 
 def _slug(value: str) -> str:
@@ -236,6 +233,11 @@ class ProductTaxonomyService:
 
     tagger: TextTagger = field(default_factory=TextTagger)
     logger: logging.Logger = field(default=logger)
+    classifier: ProductTaxonomyClassifier | None = field(default=None, repr=False)
+
+    def __post_init__(self) -> None:
+        if self.classifier is None:
+            self.classifier = ProductTaxonomyClassifier(logger=self.logger)
 
     def classify(self, records: Iterable[ProductSourceRecord]) -> List[ProductTaxonomyEntry]:
         buckets = self._group_records(records)
@@ -258,11 +260,18 @@ class ProductTaxonomyService:
 
         token_set, token_counts, combined_text = self._combined_tokens(records)
         rule, score, matched_tokens = self._match_rule(token_set)
+        llm_result = self._classify_with_llm(records, combined_text)
 
         category_l1 = rule.category_l1 if rule else "general"
         category_l2 = rule.category_l2 if rule else "general"
         weather_affinity = rule.weather_affinity if rule else "neutral"
         seasonality = _seasonality_for_rule(rule)
+
+        if llm_result:
+            category_l1 = llm_result.category_l1
+            category_l2 = llm_result.category_l2
+            weather_affinity = llm_result.weather_affinity
+            seasonality = llm_result.seasonality
 
         product_name = self._resolve_product_name(records, category_l2)
         brand_ids = sorted(
@@ -294,7 +303,13 @@ class ProductTaxonomyService:
             or _collect_unique(record.vendor for record in records),
         }
 
-        confidence = self._confidence(score, token_counts)
+        if llm_result:
+            evidence["llm_reasoning"] = llm_result.reasoning
+            evidence["llm_confidence"] = llm_result.confidence
+            evidence["llm_model"] = llm_result.model
+            evidence["llm_payload"] = llm_result.raw_payload
+
+        confidence = max(self._confidence(score, token_counts), llm_result.confidence if llm_result else 0.0)
 
         exemplar = records[0]
         return ProductTaxonomyEntry(
@@ -312,6 +327,17 @@ class ProductTaxonomyService:
             confidence=confidence,
             evidence=evidence,
         )
+
+    def _classify_with_llm(
+        self, records: Sequence[ProductSourceRecord], combined_text: str
+    ) -> ProductTaxonomyLLMResult | None:
+        if not self.classifier:
+            return None
+        try:
+            return self.classifier.classify(records, combined_text=combined_text)
+        except Exception:  # pragma: no cover - defensive logging path
+            self.logger.exception("LLM-driven taxonomy classification failed")
+            return None
 
     def _combined_tokens(
         self, records: Sequence[ProductSourceRecord]

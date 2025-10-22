@@ -1,4 +1,4 @@
-import type { CreativeResponseReport } from "../types/creative";
+import type { CreativeChannelGuardrail, CreativeResponseReport } from "../types/creative";
 import styles from "../styles/plan.module.css";
 
 interface Props {
@@ -8,6 +8,9 @@ interface Props {
 export function CreativeGuardrailPanel({ report }: Props) {
   const highlights = report.top_creatives.slice(0, 3);
   const rows = report.creatives.slice(0, 8);
+  const channelRows = (report.channel_guardrails ?? [])
+    .slice()
+    .sort((a, b) => b.flagged_spend_share - a.flagged_spend_share);
   const spendShares = [
     {
       key: "active",
@@ -42,6 +45,39 @@ export function CreativeGuardrailPanel({ report }: Props) {
       return word.charAt(0).toUpperCase() + word.slice(1);
     });
     return words.join(" ");
+  };
+  const formatFlaggedBreakdown = (row: CreativeChannelGuardrail): string => {
+    if (row.flagged_creatives === 0) {
+      return "0";
+    }
+    const segments: string[] = [];
+    if (row.watchlist_creatives > 0) {
+      segments.push(`${row.watchlist_creatives} watchlist`);
+    }
+    if (row.blocked_creatives > 0) {
+      segments.push(`${row.blocked_creatives} blocked`);
+    }
+    const detail = segments.length > 0 ? ` (${segments.join(" · ")})` : "";
+    return `${row.flagged_creatives}${detail}`;
+  };
+  const formatStatusLabel = (status: string | null): string => {
+    if (!status) {
+      return "";
+    }
+    return status.charAt(0).toUpperCase() + status.slice(1);
+  };
+  const formatRepresentative = (row: CreativeChannelGuardrail): string => {
+    if (!row.representative_creative) {
+      return "—";
+    }
+    const status = formatStatusLabel(row.representative_status);
+    return status ? `${row.representative_creative} (${status})` : row.representative_creative;
+  };
+  const describeDominantGuardrail = (row: CreativeChannelGuardrail): string => {
+    if (!row.top_guardrail || row.top_guardrail_count === 0) {
+      return "Clear";
+    }
+    return `${formatGuardrailLabel(row.top_guardrail)} (${row.top_guardrail_count})`;
   };
 
   return (
@@ -119,6 +155,43 @@ export function CreativeGuardrailPanel({ report }: Props) {
           )}
         </div>
       </div>
+
+      {channelRows.length > 0 && (
+        <div className={styles.tableWrap} role="region" aria-label="Channel guardrail posture">
+          <div className={styles.tableHeader}>
+            <h4 className="ds-body-strong">Channel guardrail posture</h4>
+            <p className="ds-caption">Sorted by flagged spend share to elevate riskiest surfaces.</p>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th scope="col">Channel</th>
+                <th scope="col">Active creatives</th>
+                <th scope="col">Flagged creatives</th>
+                <th scope="col">Flagged spend</th>
+                <th scope="col">Avg. adj. ROAS</th>
+                <th scope="col">Avg. brand safety</th>
+                <th scope="col">Dominant guardrail</th>
+                <th scope="col">Primary escalation</th>
+              </tr>
+            </thead>
+            <tbody>
+              {channelRows.map((channel) => (
+                <tr key={channel.channel}>
+                  <td>{channel.channel}</td>
+                  <td>{`${channel.active_creatives} / ${channel.creative_count}`}</td>
+                  <td>{formatFlaggedBreakdown(channel)}</td>
+                  <td>{`${toPercent(channel.flagged_spend_share).toFixed(1)}%`}</td>
+                  <td>{channel.average_roas.toFixed(2)}×</td>
+                  <td>{Math.round(channel.average_brand_safety * 100)}%</td>
+                  <td>{describeDominantGuardrail(channel)}</td>
+                  <td>{formatRepresentative(channel)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       <div className={styles.summaryCard} aria-label="Top performing creatives">
         <h4 className="ds-body-strong">Top creatives</h4>

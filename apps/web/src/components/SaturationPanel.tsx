@@ -29,6 +29,18 @@ export function SaturationPanel({ report }: Props) {
             <dt className="ds-caption">Total spend</dt>
             <dd className="ds-body-strong">{report.summary.total_spend.toFixed(2)}</dd>
           </div>
+          <div>
+            <dt className="ds-caption">Normalised gap</dt>
+            <dd className="ds-body-strong">{report.summary.normalized_fairness_gap.toFixed(3)}</dd>
+          </div>
+          <div>
+            <dt className="ds-caption">Under-allocated</dt>
+            <dd className="ds-body-strong">{report.summary.under_allocated_markets}</dd>
+          </div>
+          <div>
+            <dt className="ds-caption">Floor shortfall</dt>
+            <dd className="ds-body-strong">{report.summary.total_floor_shortfall.toFixed(2)}</dd>
+          </div>
         </dl>
       </div>
 
@@ -40,6 +52,8 @@ export function SaturationPanel({ report }: Props) {
               <th scope="col">Spend</th>
               <th scope="col">Share</th>
               <th scope="col">Fair share</th>
+              <th scope="col">Δ vs fair</th>
+              <th scope="col">Floor shortfall</th>
               <th scope="col">Adj. ROAS</th>
               <th scope="col">Guardrail</th>
             </tr>
@@ -51,6 +65,8 @@ export function SaturationPanel({ report }: Props) {
                 <td>{market.allocated_spend.toFixed(2)}</td>
                 <td>{Math.round(market.share * 100)}%</td>
                 <td>{Math.round(market.fair_share * 100)}%</td>
+                <td>{`${market.fairness_gap >= 0 ? "+" : ""}${Math.round(market.fairness_gap * 100)}%`}</td>
+                <td>{market.floor_shortfall.toFixed(2)}</td>
                 <td>{market.roas.toFixed(2)}×</td>
                 <td>{market.guardrail_binding ? "Binding" : "Clear"}</td>
               </tr>

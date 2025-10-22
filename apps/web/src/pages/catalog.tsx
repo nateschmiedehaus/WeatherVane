@@ -3,6 +3,7 @@ import Head from "next/head";
 
 import { Layout } from "../components/Layout";
 import { ContextPanel } from "../components/ContextPanel";
+import { RetryButton } from "../components/RetryButton";
 import styles from "../styles/catalog.module.css";
 import { fetchCatalog } from "../lib/api";
 import type { CatalogCategory, CatalogResponse } from "../types/catalog";
@@ -98,9 +99,7 @@ export default function CatalogPage() {
         {error && (
           <div className={styles.error} role="alert">
             <p className="ds-body">{error}</p>
-            <button type="button" onClick={handleRetry} className={`${styles.retryButton} ds-body-strong`}>
-              Retry loading catalog
-            </button>
+            <RetryButton onClick={handleRetry}>Retry loading catalog</RetryButton>
           </div>
         )}
 

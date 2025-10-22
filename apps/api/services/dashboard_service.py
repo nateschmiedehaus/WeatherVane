@@ -5,11 +5,13 @@ import logging
 import os
 import random
 from collections import defaultdict
+from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Callable, Mapping, Sequence
 from zoneinfo import ZoneInfo
 
+from apps.worker.validation.tenant_coverage import evaluate_tenant_data_coverage
 from shared.data_context.service import ContextService, default_context_service
 from shared.data_context.warnings import ContextWarningEngine, default_warning_engine
 from shared.schemas.base import ContextWarning
@@ -17,6 +19,7 @@ from shared.schemas.dashboard import (
     AlertAcknowledgeResponse,
     AlertEscalateResponse,
     AlertSeverity,
+    AllocatorDiagnostics,
     AllocatorMode,
     AllocatorRecommendation,
     AllocatorSummary,
@@ -37,6 +40,7 @@ from shared.schemas.dashboard import (
     WeatherRiskEvent,
     WeatherRiskSeverity,
 )
+from shared.schemas.coverage import TenantCoverageSummary as CoverageSummaryModel
 from shared.services.dashboard_analytics_ingestion import (
     DashboardSuggestionAggregate,
     aggregate_dashboard_suggestion_metrics,
@@ -48,6 +52,15 @@ DEFAULT_WEATHER_GEOHASH_OVERRIDES = {
     "demo-tenant": "9q8yy",
 }
 DEFAULT_AUTOMATION_UPTIME = 99.1
+ALLOCATOR_DIAGNOSTICS_MAX_AGE_MINUTES = 14 * 24 * 60
+
+
+@dataclass(slots=True)
+class _AllocatorDiagnosticsCacheEntry:
+    diagnostics: AllocatorDiagnostics | None
+    generated_at: datetime | None
+    mtime_ns: int
+    size: int
 
 
 def _utcnow() -> datetime:
@@ -68,10 +81,14 @@ class DashboardService:
         weather_root: Path | str | None = None,
         suggestion_metrics_path: Path | str | None = None,
         suggestion_metrics_root: Path | str | None = None,
+        allocator_report_path: Path | str | None = None,
         fallback_tenant_id: str | None = "tenant-safety",
         context_service: ContextService | None = None,
         warning_engine: ContextWarningEngine | None = None,
         weather_geohash_overrides: dict[str, str] | None = None,
+        coverage_window_days: int = 90,
+        coverage_lake_root: Path | str | None = None,
+        coverage_weather_report_template: str | Path | None = None,
         now_factory: Callable[[], datetime] = _utcnow,
     ) -> None:
         self.logger = logging.getLogger(__name__)
@@ -95,14 +112,33 @@ class DashboardService:
         self.suggestion_metrics_root = Path(
             suggestion_metrics_root or os.getenv("METRICS_OUTPUT_DIR", "tmp/metrics")
         ).expanduser()
+        self.allocator_report_path = Path(
+            allocator_report_path
+            or os.getenv("ALLOCATOR_SATURATION_PATH", "experiments/allocator/saturation_report.json")
+        ).expanduser()
         self.fallback_tenant_id = fallback_tenant_id
         self.context_service = context_service or default_context_service
         self.warning_engine = warning_engine or default_warning_engine
         self.weather_geohash_overrides = dict(DEFAULT_WEATHER_GEOHASH_OVERRIDES)
         if weather_geohash_overrides:
             self.weather_geohash_overrides.update(weather_geohash_overrides)
+        window_env = os.getenv("TENANT_COVERAGE_WINDOW_DAYS")
+        fallback_window = coverage_window_days if coverage_window_days > 0 else 90
+        try:
+            resolved_window = int(window_env) if window_env is not None else int(coverage_window_days)
+        except (TypeError, ValueError):
+            resolved_window = fallback_window
+        self.coverage_window_days = resolved_window if resolved_window > 0 else fallback_window
+        lake_template_value = coverage_lake_root or os.getenv("TENANT_COVERAGE_LAKE_ROOT", "storage/lake/raw")
+        self.coverage_lake_root_template = str(lake_template_value)
+        report_template_value = coverage_weather_report_template or os.getenv(
+            "TENANT_COVERAGE_WEATHER_REPORT_TEMPLATE",
+            "experiments/features/weather_join_validation.json",
+        )
+        self.coverage_weather_report_template = str(report_template_value)
         self.now_factory = now_factory
         self.random = random.Random()
+        self._allocator_diagnostics_cache: dict[tuple[str, str], _AllocatorDiagnosticsCacheEntry] = {}
 
     async def get_dashboard(self, tenant_id: str, since: datetime | None = None) -> DashboardResponse:
         try:
@@ -140,6 +176,13 @@ class DashboardService:
         if suggestion_telemetry:
             suggestion_telemetry_summary = summarize_dashboard_suggestion_telemetry(suggestion_telemetry)
 
+        data_coverage = self._load_data_coverage(tenant_id, now)
+        if data_coverage:
+            coverage_generated_at = self._parse_datetime(data_coverage.generated_at)
+            if coverage_generated_at:
+                timestamps.append(coverage_generated_at)
+            generated_at = max(timestamps) if timestamps else generated_at
+
         return DashboardResponse(
             tenant_id=tenant_id,
             generated_at=generated_at,
@@ -155,7 +198,27 @@ class DashboardService:
             suggestion_telemetry_summary=suggestion_telemetry_summary,
             context_tags=context_tags,
             context_warnings=context_warnings,
+            data_coverage=data_coverage,
         )
+
+    def _load_data_coverage(self, tenant_id: str, now: datetime) -> CoverageSummaryModel | None:
+        try:
+            summary = evaluate_tenant_data_coverage(
+                tenant_id,
+                lake_root=self._resolve_coverage_lake_root(tenant_id),
+                weather_report_path=self._resolve_coverage_weather_report_path(tenant_id),
+                window_days=self.coverage_window_days,
+                end_date=now.date(),
+            )
+        except Exception:
+            self.logger.exception("Failed to evaluate tenant coverage for tenant %s", tenant_id)
+            return None
+
+        try:
+            return CoverageSummaryModel.model_validate(summary.to_dict())
+        except Exception:
+            self.logger.exception("Failed to normalise tenant coverage payload for tenant %s", tenant_id)
+            return None
 
     def _context_payload(self, tenant_id: str) -> tuple[list[str], list[ContextWarning]]:
         service = self.context_service
@@ -364,10 +427,10 @@ class DashboardService:
         ]
 
         autopilot_status = AutomationLaneStatus.normal
-        autopilot_notes = "Autopilot executing pushes within policy."
+        autopilot_notes = "Automation engine executing pushes within policy."
         if critical_recent:
             autopilot_status = AutomationLaneStatus.degraded
-            autopilot_notes = "Autopilot throttled after critical guardrail breach."
+            autopilot_notes = "Automation engine throttled after critical guardrail breach."
         elif any(str(alert.get("severity")).lower() == "warning" for alert in alerts_raw):
             autopilot_status = AutomationLaneStatus.degraded
             autopilot_notes = "Monitoring guardrail warnings before re-enabling full automation."
@@ -376,7 +439,7 @@ class DashboardService:
         autopilot_last = self._parse_datetime(alerts_raw[0].get("generated_at")) if alerts_raw else None
         lanes.append(
             AutomationLane(
-                name="Autopilot Execution",
+                name="Automation engine Execution",
                 uptime_pct=round(max(85.0, uptime - autopilot_incidents * 1.2), 1),
                 incidents_7d=autopilot_incidents,
                 last_incident_at=autopilot_last,
@@ -466,6 +529,10 @@ class DashboardService:
         if not run_id:
             run_id = f"allocator-run-{len(diffs)}"
 
+        diagnostics = self._extract_allocator_diagnostics(latest)
+        if diagnostics is None:
+            diagnostics = self._load_allocator_diagnostics(tenant_id, now=now)
+
         return AllocatorSummary(
             run_id=str(run_id),
             generated_at=generated_at,
@@ -476,8 +543,232 @@ class DashboardService:
             guardrail_breaches=max(0, guardrail_breaches),
             notes=notes,
             recommendations=recommendations,
+            diagnostics=diagnostics,
         )
 
+    def _extract_allocator_diagnostics(self, payload: Mapping[str, Any]) -> AllocatorDiagnostics | None:
+        allocator_section = payload.get("allocator")
+        if not isinstance(allocator_section, Mapping):
+            return None
+        return self._build_allocator_diagnostics_model(
+            allocator_section.get("diagnostics"),
+            summary=allocator_section.get("summary"),
+        )
+
+    def _load_allocator_diagnostics(self, tenant_id: str, *, now: datetime) -> AllocatorDiagnostics | None:
+        path = self.allocator_report_path
+        if not path:
+            return None
+
+        cache_key = (tenant_id, str(path))
+        try:
+            stat = path.stat()
+        except (FileNotFoundError, OSError):
+            self._allocator_diagnostics_cache.pop(cache_key, None)
+            return None
+
+        mtime_ns = getattr(stat, "st_mtime_ns", int(stat.st_mtime * 1_000_000_000))
+        size = getattr(stat, "st_size", -1)
+
+        cached = self._allocator_diagnostics_cache.get(cache_key)
+        if cached and cached.mtime_ns == mtime_ns and cached.size == size:
+            if cached.generated_at is not None:
+                age_minutes = self._minutes_between(now, cached.generated_at)
+                if age_minutes > ALLOCATOR_DIAGNOSTICS_MAX_AGE_MINUTES:
+                    self._allocator_diagnostics_cache.pop(cache_key, None)
+                    return None
+            if cached.diagnostics is None:
+                return None
+            return cached.diagnostics.model_copy(deep=True)
+
+        try:
+            raw_text = path.read_text(encoding="utf-8")
+        except FileNotFoundError:
+            self._allocator_diagnostics_cache.pop(cache_key, None)
+            return None
+        except OSError:
+            self.logger.warning("Unable to read allocator diagnostics at %s", path, exc_info=True)
+            self._allocator_diagnostics_cache.pop(cache_key, None)
+            return None
+
+        try:
+            payload = json.loads(raw_text)
+        except json.JSONDecodeError:
+            self.logger.warning("Invalid allocator diagnostics payload at %s", path, exc_info=True)
+            self._allocator_diagnostics_cache.pop(cache_key, None)
+            return None
+
+        tenant_marker = payload.get("tenant_id")
+        if isinstance(tenant_marker, str) and tenant_marker and tenant_marker != tenant_id:
+            self._allocator_diagnostics_cache.pop(cache_key, None)
+            return None
+
+        generated_at = self._parse_datetime(payload.get("generated_at"))
+        if generated_at is not None:
+            age_minutes = self._minutes_between(now, generated_at)
+            if age_minutes > ALLOCATOR_DIAGNOSTICS_MAX_AGE_MINUTES:
+                self._allocator_diagnostics_cache.pop(cache_key, None)
+                return None
+
+        allocator_section = payload.get("allocator")
+        summary_section = payload.get("summary")
+        diagnostics = self._build_allocator_diagnostics_model(
+            allocator_section.get("diagnostics") if isinstance(allocator_section, Mapping) else None,
+            summary=summary_section if isinstance(summary_section, Mapping) else None,
+        )
+
+        try:
+            stat_after = path.stat()
+            mtime_ns = getattr(stat_after, "st_mtime_ns", int(stat_after.st_mtime * 1_000_000_000))
+            size = getattr(stat_after, "st_size", -1)
+        except (FileNotFoundError, OSError):
+            pass
+
+        self._allocator_diagnostics_cache[cache_key] = _AllocatorDiagnosticsCacheEntry(
+            diagnostics=diagnostics,
+            generated_at=generated_at,
+            mtime_ns=mtime_ns,
+            size=size,
+        )
+        return diagnostics
+
+    def _build_allocator_diagnostics_model(
+        self,
+        diagnostics_payload: Any,
+        *,
+        summary: Mapping[str, Any] | None,
+    ) -> AllocatorDiagnostics | None:
+        if not isinstance(diagnostics_payload, Mapping):
+            return None
+
+        def maybe_float(value: Any) -> float | None:
+            try:
+                if value is None:
+                    return None
+                return float(value)
+            except (TypeError, ValueError):
+                return None
+
+        def clean_sequence(values: Any) -> list[str]:
+            if not isinstance(values, Sequence) or isinstance(values, (str, bytes)):
+                return []
+            cleaned: list[str] = []
+            for entry in values:
+                if isinstance(entry, str):
+                    candidate = entry.strip()
+                    if candidate:
+                        cleaned.append(candidate)
+                elif isinstance(entry, (int, float)):
+                    cleaned.append(str(entry))
+            return cleaned
+
+        summary_payload = summary or {}
+        baseline_profit = maybe_float(summary_payload.get("baseline_profit"))
+        profit_lift = maybe_float(summary_payload.get("profit_lift"))
+
+        scenario_p10 = maybe_float(diagnostics_payload.get("scenario_profit_p10"))
+        scenario_p50 = maybe_float(diagnostics_payload.get("scenario_profit_p50"))
+        scenario_p90 = maybe_float(diagnostics_payload.get("scenario_profit_p90"))
+        expected_profit_raw = maybe_float(diagnostics_payload.get("expected_profit_raw"))
+        worst_case_profit = maybe_float(diagnostics_payload.get("worst_case_profit"))
+
+        profit_delta_p50 = None
+        if scenario_p50 is not None and baseline_profit is not None:
+            profit_delta_p50 = scenario_p50 - baseline_profit
+
+        profit_delta_expected = None
+        if expected_profit_raw is not None and baseline_profit is not None:
+            profit_delta_expected = expected_profit_raw - baseline_profit
+
+        binding_constraints: dict[str, list[str]] = {}
+        for key in (
+            "binding_min_spend",
+            "binding_max_spend",
+            "binding_min_spend_by_cell",
+            "binding_max_spend_by_cell",
+            "binding_roas_floor",
+            "binding_learning_cap",
+        ):
+            values = clean_sequence(diagnostics_payload.get(key))
+            if values:
+                binding_constraints[key] = values
+
+        raw_candidates = diagnostics_payload.get("optimizer_candidates")
+        optimizer_candidates: list[dict[str, Any]] = []
+        if isinstance(raw_candidates, Sequence) and not isinstance(raw_candidates, (str, bytes)):
+            for candidate in raw_candidates:
+                if not isinstance(candidate, Mapping):
+                    continue
+                cleaned_candidate: dict[str, Any] = {}
+                for key, value in candidate.items():
+                    key_str = str(key)
+                    if isinstance(value, (int, float)):
+                        cleaned_candidate[key_str] = float(value)
+                    elif isinstance(value, str):
+                        cleaned_candidate[key_str] = value
+                if cleaned_candidate:
+                    optimizer_candidates.append(cleaned_candidate)
+
+        evaluations = maybe_float(diagnostics_payload.get("nfev"))
+        iterations = maybe_float(
+            diagnostics_payload.get("iterations")
+            if diagnostics_payload.get("iterations") is not None
+            else diagnostics_payload.get("nit")
+        )
+        iterations_with_improvement = maybe_float(diagnostics_payload.get("iterations_with_improvement"))
+        improvements = maybe_float(diagnostics_payload.get("improvements"))
+        if improvements is None and iterations_with_improvement is not None:
+            improvements = iterations_with_improvement
+
+        projection_target = maybe_float(diagnostics_payload.get("projection_target"))
+        projection_residual_lower = maybe_float(diagnostics_payload.get("projection_residual_lower"))
+        projection_residual_upper = maybe_float(diagnostics_payload.get("projection_residual_upper"))
+        success_score = maybe_float(diagnostics_payload.get("success"))
+        objective_value = maybe_float(diagnostics_payload.get("objective_value"))
+
+        min_softened_value = diagnostics_payload.get("min_softened")
+        min_softened: bool | None
+        if isinstance(min_softened_value, bool):
+            min_softened = min_softened_value
+        else:
+            coerced = maybe_float(min_softened_value)
+            min_softened = bool(coerced) if coerced is not None else None
+
+        optimizer_raw = diagnostics_payload.get("optimizer")
+        optimizer = str(optimizer_raw).strip() if isinstance(optimizer_raw, str) and optimizer_raw.strip() else None
+
+        optimizer_winner_raw = diagnostics_payload.get("optimizer_winner")
+        optimizer_winner = (
+            str(optimizer_winner_raw).strip()
+            if isinstance(optimizer_winner_raw, str) and optimizer_winner_raw.strip()
+            else None
+        )
+
+        return AllocatorDiagnostics(
+            optimizer=optimizer,
+            optimizer_winner=optimizer_winner,
+            scenario_profit_p10=scenario_p10,
+            scenario_profit_p50=scenario_p50,
+            scenario_profit_p90=scenario_p90,
+            expected_profit_raw=expected_profit_raw,
+            worst_case_profit=worst_case_profit,
+            baseline_profit=baseline_profit,
+            profit_lift=profit_lift,
+            profit_delta_p50=profit_delta_p50,
+            profit_delta_expected=profit_delta_expected,
+            binding_constraints=binding_constraints,
+            optimizer_candidates=optimizer_candidates,
+            evaluations=evaluations,
+            iterations=iterations,
+            improvements=improvements,
+            iterations_with_improvement=iterations_with_improvement,
+            projection_target=projection_target,
+            projection_residual_lower=projection_residual_lower,
+            projection_residual_upper=projection_residual_upper,
+            success=success_score,
+            objective_value=objective_value,
+            min_softened=min_softened,
+        )
     @staticmethod
     def _allocator_mode_from_string(raw: str) -> AllocatorMode:
         normalised = raw.strip().lower()
@@ -1281,6 +1572,14 @@ class DashboardService:
     # Helpers
     # --------------------------------------------------------------------- #
 
+    def _resolve_coverage_lake_root(self, tenant_id: str) -> Path:
+        formatted = self.coverage_lake_root_template.format(tenant_id=tenant_id)
+        return Path(formatted).expanduser()
+
+    def _resolve_coverage_weather_report_path(self, tenant_id: str) -> Path:
+        formatted = self.coverage_weather_report_template.format(tenant_id=tenant_id)
+        return Path(formatted).expanduser()
+
     def _read_json_list(self, path: Path) -> list[dict[str, Any]]:
         try:
             if not path.exists():
@@ -1395,12 +1694,12 @@ class DashboardService:
                 notes="Assist guardrails idle; ready for operator approvals.",
             ),
             AutomationLane(
-                name="Autopilot Execution",
+                name="Automation engine Execution",
                 uptime_pct=DEFAULT_AUTOMATION_UPTIME,
                 incidents_7d=0,
                 last_incident_at=None,
                 status=AutomationLaneStatus.normal,
-                notes="Autopilot standing by; enable once live telemetry streams in.",
+                notes="Automation engine standing by; enable once live telemetry streams in.",
             ),
         ]
 
@@ -1441,7 +1740,7 @@ class DashboardService:
                 target=50.0,
                 unit="usd",
                 delta_pct=6.9,
-                notes="Autopilot paused for Apparel South due to storm drag.",
+                notes="Automation engine paused for Apparel South due to storm drag.",
             ),
         ]
 
@@ -1601,7 +1900,7 @@ class DashboardService:
                 notes="Operator acknowledged CPA drift within SLA.",
             ),
             AutomationLane(
-                name="Autopilot Execution",
+                name="Automation engine Execution",
                 uptime_pct=96.8,
                 incidents_7d=2,
                 last_incident_at=generated_at - timedelta(hours=6),
@@ -1644,7 +1943,7 @@ class DashboardService:
             DashboardAlert(
                 id="alert-apparel-south",
                 title="CPA breach: Apparel South",
-                detail="Autopilot paused pushes while CPA exceeds $50 ceiling.",
+                detail="Automation engine paused pushes while CPA exceeds $50 ceiling.",
                 severity=AlertSeverity.critical,
                 occurred_at=generated_at - timedelta(minutes=35),
                 acknowledged=False,

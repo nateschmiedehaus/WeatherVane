@@ -77,3 +77,22 @@ def test_save_ensemble_metrics_as_json(tmp_path: Path):
     assert "metrics" in payload
     assert "diagnostics" in payload
     assert len(payload["forecasts"]) == 2
+
+
+def test_run_multi_horizon_ensemble_handles_suffix_collisions():
+    design_matrix = _build_design_matrix()
+    count = len(design_matrix["date"])
+    design_matrix.update(
+        {
+            "geo_level": ["dma"] * count,
+            "geo_level_right": ["dma"] * count,
+            "state_abbr": ["CA"] * count,
+            "state_abbr_right": ["CA"] * count,
+        }
+    )
+
+    result = run_multi_horizon_ensemble(design_matrix, horizon_days=3, seed=77)
+
+    assert result.forecasts, "Expected ensemble to produce forecasts with duplicated geo columns"
+    assert len(result.forecasts) == 3
+    assert result.metrics["forecast_rows"] == 3

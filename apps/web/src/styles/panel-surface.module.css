@@ -1,0 +1,6 @@
+.panelSurface {
+  border: 1px solid var(--panel-surface-border, rgba(148, 163, 184, 0.32));
+  background: var(--panel-surface-background, var(--surface-panel)) border-box;
+  box-shadow: var(--panel-surface-shadow, var(--shadow-soft));
+}
+

@@ -1,6 +1,6 @@
 import type { ContextWarning } from "./context";
 
-export type AutomationMode = "manual" | "assist" | "autopilot";
+export type AutomationMode = "manual" | "assist" | "automation" | "autopilot";
 export type ConsentStatus = "pending" | "granted" | "revoked";
 
 export interface GuardrailSettings {

@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import json
-from datetime import datetime, timedelta, timezone
+import os
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
 import pytest
@@ -10,11 +11,67 @@ from apps.api.services.dashboard_service import DashboardService
 from shared.schemas.dashboard import GuardrailStatus
 from shared.data_context.service import ContextService
 from shared.services.dashboard_analytics_summary import summarize_dashboard_suggestion_telemetry
+from shared.libs.storage.lake import LakeWriter
 
 
 def _write_json(path: Path, payload: dict) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload, indent=2))
+
+
+def _orders_rows(tenant_id: str, dates: list[date]) -> list[dict[str, object]]:
+    records: list[dict[str, object]] = []
+    for index, current in enumerate(dates):
+        records.append(
+            {
+                "tenant_id": tenant_id,
+                "order_id": f"SO-{index}",
+                "name": f"Order {index}",
+                "created_at": current.isoformat(),
+                "currency": "USD",
+                "total_price": 125.0,
+                "subtotal_price": 110.0,
+                "total_tax": 8.0,
+                "total_discounts": 5.0,
+                "ship_geohash": "9q8yy",
+            }
+        )
+    return records
+
+
+def _meta_rows(tenant_id: str, dates: list[date]) -> list[dict[str, object]]:
+    records: list[dict[str, object]] = []
+    for index, current in enumerate(dates):
+        records.append(
+            {
+                "tenant_id": tenant_id,
+                "date": current.isoformat(),
+                "campaign_id": f"M-{index}",
+                "adset_id": f"MA-{index}",
+                "spend": 45.0,
+                "impressions": 1200 + index,
+                "clicks": 85 + index,
+                "conversions": 3.0,
+            }
+        )
+    return records
+
+
+def _google_rows(tenant_id: str, dates: list[date]) -> list[dict[str, object]]:
+    records: list[dict[str, object]] = []
+    for index, current in enumerate(dates):
+        records.append(
+            {
+                "tenant_id": tenant_id,
+                "date": current.isoformat(),
+                "campaign_id": f"G-{index}",
+                "spend": 22.0,
+                "impressions": 900 + index,
+                "clicks": 50 + index,
+                "conversions": 1.5,
+            }
+        )
+    return records
 
 
 @pytest.mark.asyncio
@@ -120,6 +177,46 @@ async def test_dashboard_service_aggregates_live_telemetry(tmp_path: Path) -> No
         ],
     )
 
+    allocator_report = tmp_path / "experiments" / "allocator" / "saturation_report.json"
+    _write_json(
+        allocator_report,
+        {
+            "tenant_id": tenant_id,
+            "generated_at": "2025-10-14T07:45:00+00:00",
+            "summary": {
+                "baseline_profit": 400.0,
+                "profit_lift": 25.0,
+            },
+            "allocator": {
+                "diagnostics": {
+                    "optimizer": "projected_gradient",
+                    "optimizer_winner": "projected_gradient",
+                    "scenario_profit_p10": 380.0,
+                    "scenario_profit_p50": 430.0,
+                    "scenario_profit_p90": 480.0,
+                    "expected_profit_raw": 435.0,
+                    "worst_case_profit": 360.0,
+                    "binding_min_spend_by_cell": ["meta", "google"],
+                    "binding_learning_cap": ["display"],
+                    "optimizer_candidates": [
+                        {"optimizer": "projected_gradient", "profit": 430.0, "success": 0.8},
+                        {"optimizer": "coordinate_ascent", "profit": 418.0, "success": 1.0},
+                    ],
+                    "nfev": 118,
+                    "iterations": 12,
+                    "min_softened": 0,
+                    "improvements": 5,
+                    "iterations_with_improvement": 7,
+                    "projection_target": 410.0,
+                    "projection_residual_lower": 0.0,
+                    "projection_residual_upper": 2.5e-4,
+                    "success": 0.95,
+                    "objective_value": -430.0,
+                }
+            },
+        },
+    )
+
     weather_root = tmp_path / "weather"
     _write_json(
         weather_root / "9q8yy" / "2025-10-14__2025-10-16.json",
@@ -140,6 +237,38 @@ async def test_dashboard_service_aggregates_live_telemetry(tmp_path: Path) -> No
         },
     )
 
+    coverage_window_days = 30
+    coverage_end = now.date()
+    lake_root = tmp_path / "lake"
+    writer = LakeWriter(root=lake_root)
+    order_dates = sorted(coverage_end - timedelta(days=offset) for offset in range(coverage_window_days))
+    writer.write_records(f"{tenant_id}_shopify_orders", _orders_rows(tenant_id, order_dates))
+    spend_dates = sorted(coverage_end - timedelta(days=offset) for offset in range(coverage_window_days))
+    writer.write_records(f"{tenant_id}_meta_ads", _meta_rows(tenant_id, spend_dates))
+    writer.write_records(f"{tenant_id}_google_ads", _google_rows(tenant_id, spend_dates))
+    weather_report = tmp_path / "coverage" / "weather_report.json"
+    weather_payload = {
+        "tenant_id": tenant_id,
+        "generated_at": now.isoformat(),
+        "window": {
+            "start": (coverage_end - timedelta(days=coverage_window_days - 1)).isoformat(),
+            "end": coverage_end.isoformat(),
+        },
+        "join": {
+            "mode": "geohash",
+            "orders_rows": len(order_dates),
+            "weather_rows": len(order_dates),
+            "feature_rows": len(order_dates),
+            "observed_target_rows": len(order_dates),
+            "geocoded_order_ratio": 0.94,
+        },
+        "weather_gaps": {"rows": 0, "dates": []},
+        "coverage": {"unique_geohash_count": 6},
+        "issues": [],
+    }
+    weather_report.parent.mkdir(parents=True, exist_ok=True)
+    weather_report.write_text(json.dumps(weather_payload, indent=2))
+
     context_root = tmp_path / "context"
     _write_json(
         context_root / f"{tenant_id}_2025-10-13T00-00-00.json",
@@ -158,8 +287,12 @@ async def test_dashboard_service_aggregates_live_telemetry(tmp_path: Path) -> No
         ad_push_diff_path=ad_push_root / "ad_push_diffs.json",
         ad_push_alerts_path=ad_push_root / "ad_push_alerts.json",
         weather_root=weather_root,
+        allocator_report_path=allocator_report,
         context_service=context_service,
         weather_geohash_overrides={tenant_id: "9q8yy"},
+        coverage_window_days=coverage_window_days,
+        coverage_lake_root=lake_root,
+        coverage_weather_report_template=str(weather_report),
         now_factory=lambda: now,
     )
 
@@ -175,7 +308,39 @@ async def test_dashboard_service_aggregates_live_telemetry(tmp_path: Path) -> No
     assert dashboard.alerts
     assert dashboard.weather_events
     assert "ads.sparse" in dashboard.context_tags
+    assert dashboard.allocator is not None
+    diagnostics = dashboard.allocator.diagnostics
+    assert diagnostics is not None
+    assert diagnostics.optimizer_winner == "projected_gradient"
+    assert diagnostics.binding_constraints.get("binding_min_spend_by_cell") == ["meta", "google"]
+    assert diagnostics.profit_delta_p50 == pytest.approx(30.0)
+    assert diagnostics.profit_delta_expected == pytest.approx(35.0)
+    assert diagnostics.evaluations == pytest.approx(118.0)
+    assert diagnostics.iterations == pytest.approx(12.0)
+    assert diagnostics.improvements == pytest.approx(5.0)
+    assert diagnostics.iterations_with_improvement == pytest.approx(7.0)
+    assert diagnostics.projection_target == pytest.approx(410.0)
+    assert diagnostics.projection_residual_lower == pytest.approx(0.0)
+    assert diagnostics.projection_residual_upper == pytest.approx(2.5e-4)
+    assert diagnostics.success == pytest.approx(0.95)
+    assert diagnostics.objective_value == pytest.approx(-430.0)
+    assert diagnostics.min_softened is False
     assert dashboard.generated_at.tzinfo is not None
+    assert dashboard.data_coverage is not None
+    coverage = dashboard.data_coverage
+    assert coverage.window_days == coverage_window_days
+    assert coverage.status in {"ok", "warning"}
+    sales_bucket = coverage.buckets.get("sales")
+    assert sales_bucket is not None
+    assert sales_bucket.observed_days == coverage_window_days
+    assert sales_bucket.coverage_ratio == pytest.approx(1.0)
+    spend_bucket = coverage.buckets.get("spend")
+    assert spend_bucket is not None
+    assert spend_bucket.coverage_ratio == pytest.approx(1.0)
+    weather_bucket = coverage.buckets.get("weather")
+    assert weather_bucket is not None
+    assert weather_bucket.coverage_ratio == pytest.approx(1.0)
+    assert weather_bucket.extra_metrics.get("geocoded_order_ratio") == pytest.approx(0.94)
 
 
 @pytest.mark.asyncio
@@ -445,6 +610,103 @@ async def test_dashboard_service_since_filters_suggestion_telemetry(tmp_path: Pa
     assert summary.total_view_count == 1
     assert summary.total_focus_count == 1
     assert summary.average_focus_rate == pytest.approx(1.0)
+
+
+def test_allocator_diagnostics_file_cache(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    tenant_id = "tenant-cache"
+    now = datetime(2025, 10, 18, 12, 0, tzinfo=timezone.utc)
+    allocator_path = tmp_path / "allocator" / "report.json"
+
+    diagnostics_payload = {
+        "scenario_profit_p10": 390.0,
+        "scenario_profit_p50": 410.0,
+        "scenario_profit_p90": 430.0,
+        "expected_profit_raw": 410.0,
+        "worst_case_profit": 390.0,
+        "binding_min_spend": ["meta"],
+        "binding_min_spend_by_cell": ["meta"],
+        "evaluations": 118.0,
+        "iterations": 12.0,
+        "improvements": 5.0,
+        "iterations_with_improvement": 7.0,
+        "projection_target": 410.0,
+        "projection_residual_lower": 0.0,
+        "projection_residual_upper": 0.00025,
+        "success": 0.95,
+        "objective_value": -430.0,
+        "min_softened": False,
+    }
+    summary_payload = {"baseline_profit": 380.0, "profit_lift": 35.0}
+
+    _write_json(
+        allocator_path,
+        {
+            "tenant_id": tenant_id,
+            "generated_at": now.isoformat(),
+            "allocator": {"diagnostics": diagnostics_payload, "summary": summary_payload},
+            "summary": summary_payload,
+        },
+    )
+
+    path_class = type(allocator_path)
+    read_calls = 0
+    original_read_text = path_class.read_text
+
+    def tracked_read_text(self: Path, *args: object, **kwargs: object) -> str:
+        nonlocal read_calls
+        if self == allocator_path:
+            read_calls += 1
+        return original_read_text(self, *args, **kwargs)
+
+    monkeypatch.setattr(path_class, "read_text", tracked_read_text)
+
+    service = DashboardService(
+        allocator_report_path=allocator_path,
+        now_factory=lambda: now,
+    )
+
+    first = service._load_allocator_diagnostics(tenant_id, now=now)
+    assert read_calls == 1
+    assert first is not None
+    assert first.profit_delta_p50 == pytest.approx(30.0)
+
+    second_now = now + timedelta(minutes=5)
+    second = service._load_allocator_diagnostics(tenant_id, now=second_now)
+    assert read_calls == 1, "expected cached diagnostics to reuse file payload"
+    assert second is not None
+    assert second is not first
+    assert second.profit_delta_p50 == pytest.approx(30.0)
+
+    stale_now = now + timedelta(days=15)
+    stale = service._load_allocator_diagnostics(tenant_id, now=stale_now)
+    assert stale is None
+    assert read_calls == 1
+    assert (tenant_id, str(allocator_path)) not in service._allocator_diagnostics_cache
+
+    refreshed_payload = {
+        "tenant_id": tenant_id,
+        "generated_at": (stale_now + timedelta(minutes=1)).isoformat(),
+        "allocator": {
+            "diagnostics": {
+                **diagnostics_payload,
+                "scenario_profit_p10": 400.0,
+                "scenario_profit_p50": 420.0,
+                "scenario_profit_p90": 440.0,
+                "expected_profit_raw": 420.0,
+                "worst_case_profit": 400.0,
+            },
+            "summary": {"baseline_profit": 385.0, "profit_lift": 38.0},
+        },
+        "summary": {"baseline_profit": 385.0, "profit_lift": 38.0},
+    }
+    _write_json(allocator_path, refreshed_payload)
+    os.utime(allocator_path, None)
+
+    refreshed_now = stale_now + timedelta(minutes=6)
+    refreshed = service._load_allocator_diagnostics(tenant_id, now=refreshed_now)
+    assert refreshed is not None
+    assert refreshed.profit_delta_p50 == pytest.approx(35.0)
+    assert read_calls == 2, "expected file to be re-read after modification"
 
 
 def test_fallback_dashboard_includes_suggestion_telemetry() -> None:

@@ -57,4 +57,4 @@ async def test_orchestrate_poc_flow_generates_plan(tmp_path, monkeypatch):
     assert report_path.exists()
     payload = json.loads(report_path.read_text())
     assert payload["tenant_id"] == tenant_id
-    assert payload["join"]["mode"] in {"date_geohash", "date_only"}
+    assert payload["join"]["mode"] in {"date_dma", "date_state", "date_global"}

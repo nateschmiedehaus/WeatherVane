@@ -12,6 +12,7 @@ export function buildDemoDashboard(now: Date = new Date()): DashboardResponse {
 
   const offsets = Array.from({ length: 12 }, (_, idx) => idx);
   const baseSeries = offsets.map((idx) => 92 + Math.sin(idx / 2) * 3);
+  const coverageEndDate = iso(midnight).slice(0, 10);
 
   return {
     tenant_id: "demo-tenant",
@@ -42,7 +43,7 @@ export function buildDemoDashboard(now: Date = new Date()): DashboardResponse {
         target: 50,
         unit: "usd",
         delta_pct: 6.9,
-        notes: "Autopilot paused for Apparel South due to storm drag.",
+        notes: "Automation engine paused for Apparel South due to storm drag.",
       },
     ],
     spend_trackers: [
@@ -122,7 +123,7 @@ export function buildDemoDashboard(now: Date = new Date()): DashboardResponse {
         notes: "Operator acknowledged CPA drift within SLA.",
       },
       {
-        name: "Autopilot Execution",
+        name: "Automation engine Execution",
         uptime_pct: 96.8,
         incidents_7d: 2,
         last_incident_at: iso(new Date(generatedAt.getTime() - 6 * 60 * 60 * 1000)),
@@ -130,6 +131,59 @@ export function buildDemoDashboard(now: Date = new Date()): DashboardResponse {
         notes: "Paused Apparel South while storm response recalibrates.",
       },
     ],
+    data_coverage: {
+      tenant_id: "demo-tenant",
+      window_days: 90,
+      end_date: coverageEndDate,
+      generated_at: iso(generatedAt),
+      status: "warning",
+      buckets: {
+        sales: {
+          name: "sales",
+          status: "ok",
+          observed_days: 90,
+          window_days: 90,
+          coverage_ratio: 1,
+          latest_date: coverageEndDate,
+          sources: ["storage/lake/raw/demo-tenant_shopify_orders"],
+          issues: [],
+          extra_metrics: {
+            latest_created_at: coverageEndDate,
+          },
+        },
+        spend: {
+          name: "spend",
+          status: "warning",
+          observed_days: 82,
+          window_days: 90,
+          coverage_ratio: 0.91,
+          latest_date: coverageEndDate,
+          sources: [
+            "storage/lake/raw/demo-tenant_meta_ads",
+            "storage/lake/raw/demo-tenant_google_ads",
+          ],
+          issues: ["Meta Ads missing 3 days in the trailing window."],
+          extra_metrics: {
+            latest_observation: coverageEndDate,
+            source_count: 2,
+          },
+        },
+        weather: {
+          name: "weather",
+          status: "ok",
+          observed_days: 88,
+          window_days: 90,
+          coverage_ratio: 0.98,
+          latest_date: coverageEndDate,
+          sources: ["experiments/features/weather_join_validation.json"],
+          issues: [],
+          extra_metrics: {
+            geocoded_order_ratio: 0.9,
+            missing_dates: [],
+          },
+        },
+      },
+    },
     ingestion: [
       {
         name: "Shopify",
@@ -163,7 +217,7 @@ export function buildDemoDashboard(now: Date = new Date()): DashboardResponse {
       {
         id: "alert-apparel-south",
         title: "CPA breach: Apparel South",
-        detail: "Autopilot paused pushes while CPA exceeds $50 ceiling.",
+        detail: "Automation engine paused pushes while CPA exceeds $50 ceiling.",
         severity: "critical",
         occurred_at: iso(new Date(generatedAt.getTime() - 35 * 60 * 1000)),
         acknowledged: false,

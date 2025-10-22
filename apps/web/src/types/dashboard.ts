@@ -74,7 +74,7 @@ export interface DashboardAlert {
   related_objects: string[];
 }
 
-export type AllocatorMode = "autopilot" | "assist" | "demo" | "fallback";
+export type AllocatorMode = "automation" | "assist" | "demo" | "fallback";
 
 export type RecommendationSeverity = "critical" | "warning" | "info";
 
@@ -89,6 +89,32 @@ export interface AllocatorRecommendation {
   notes?: string | null;
 }
 
+export interface AllocatorDiagnostics {
+  optimizer?: string | null;
+  optimizer_winner?: string | null;
+  scenario_profit_p10?: number | null;
+  scenario_profit_p50?: number | null;
+  scenario_profit_p90?: number | null;
+  expected_profit_raw?: number | null;
+  worst_case_profit?: number | null;
+  baseline_profit?: number | null;
+  profit_lift?: number | null;
+  profit_delta_p50?: number | null;
+  profit_delta_expected?: number | null;
+  binding_constraints?: Record<string, string[]>;
+  optimizer_candidates?: Array<Record<string, unknown>>;
+  evaluations?: number | null;
+  iterations?: number | null;
+  improvements?: number | null;
+  iterations_with_improvement?: number | null;
+  projection_target?: number | null;
+  projection_residual_lower?: number | null;
+  projection_residual_upper?: number | null;
+  success?: number | null;
+  objective_value?: number | null;
+  min_softened?: boolean | null;
+}
+
 export interface AllocatorSummary {
   run_id?: string | null;
   generated_at?: string | null;
@@ -99,6 +125,7 @@ export interface AllocatorSummary {
   guardrail_breaches: number;
   notes: string[];
   recommendations: AllocatorRecommendation[];
+  diagnostics?: AllocatorDiagnostics | null;
 }
 
 export type WeatherKpiUnit = "usd" | "pct" | "count" | "index" | "hours";
@@ -111,6 +138,29 @@ export interface WeatherKpi {
   delta_pct?: number | null;
   sparkline: number[];
   description: string;
+}
+
+export type CoverageStatus = "ok" | "warning" | "critical";
+
+export interface DataCoverageBucket {
+  name: string;
+  status: CoverageStatus;
+  observed_days: number;
+  window_days: number;
+  coverage_ratio: number;
+  latest_date?: string | null;
+  sources: string[];
+  issues: string[];
+  extra_metrics: Record<string, unknown>;
+}
+
+export interface TenantDataCoverage {
+  tenant_id: string;
+  window_days: number;
+  end_date: string;
+  generated_at: string;
+  status: CoverageStatus;
+  buckets: Record<string, DataCoverageBucket>;
 }
 
 export interface SuggestionTelemetry {
@@ -178,6 +228,7 @@ export interface DashboardResponse {
   suggestion_telemetry_summary?: SuggestionTelemetrySummary | null;
   context_tags: string[];
   context_warnings: { code: string; message: string; severity: string }[];
+  data_coverage?: TenantDataCoverage | null;
 }
 
 export interface AlertAcknowledgeResponse {

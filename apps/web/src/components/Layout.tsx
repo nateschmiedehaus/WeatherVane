@@ -1,27 +1,24 @@
-import { ReactNode, useEffect, useState } from "react";
+import { CSSProperties, ReactNode } from "react";
 import { NavTabs } from "./NavTabs";
 import { ThemeToggle } from "./ThemeToggle";
 import { DemoTourDrawer } from "./DemoTourDrawer";
 import styles from "../styles/layout.module.css";
+import { useMotionTokens } from "../hooks/useMotionTokens";
 
 interface LayoutProps {
   children: ReactNode;
+  surfaceStyle?: CSSProperties;
 }
 
-export function Layout({ children }: LayoutProps) {
-  const [prefersReducedMotion, setReducedMotion] = useState(false);
-
-  useEffect(() => {
-    const media = window.matchMedia("(prefers-reduced-motion: reduce)");
-    setReducedMotion(media.matches);
-    const listener = (event: MediaQueryListEvent) => setReducedMotion(event.matches);
-    media.addEventListener("change", listener);
-    document.documentElement.dataset.reducedMotion = media.matches ? "true" : "false";
-    return () => media.removeEventListener("change", listener);
-  }, []);
+export function Layout({ children, surfaceStyle }: LayoutProps) {
+  const prefersReducedMotion = useMotionTokens();
 
   return (
-    <div className={styles.shell} data-reduced-motion={prefersReducedMotion}>
+    <div
+      className={styles.shell}
+      data-reduced-motion={prefersReducedMotion}
+      style={surfaceStyle}
+    >
       <a href="#main-content" className={`${styles.skipLink} ds-pill ds-caption`}>
         Skip to main content
       </a>

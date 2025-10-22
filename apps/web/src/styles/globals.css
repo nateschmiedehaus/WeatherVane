@@ -281,6 +281,119 @@ a {
   border-radius: var(--radius-pill);
 }
 
+:where(.ds-button) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.55rem 1.45rem;
+  border-radius: var(--radius-pill);
+  border: 1px solid rgba(148, 163, 184, 0.45);
+  background: rgba(15, 23, 42, 0.55);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-medium);
+  letter-spacing: 0.01em;
+  min-height: 2.5rem;
+  cursor: pointer;
+  position: relative;
+  transition:
+    transform var(--motion-duration-snappy) var(--motion-easing-standard),
+    box-shadow var(--motion-duration-snappy) var(--motion-easing-standard),
+    background-color var(--motion-duration-short) var(--motion-easing-standard),
+    border-color var(--motion-duration-short) var(--motion-easing-standard);
+}
+
+:where(.ds-button[data-variant="primary"]) {
+  border-color: rgba(96, 165, 250, 0.6);
+  background: var(--interactive-gradient);
+  color: rgba(7, 11, 21, 0.92);
+  box-shadow: var(--interactive-focus-shadow);
+}
+
+:where(.ds-button[data-variant="secondary"]) {
+  border-color: rgba(148, 163, 184, 0.5);
+  background: linear-gradient(135deg, rgba(30, 41, 59, 0.65), rgba(15, 23, 42, 0.6));
+  color: var(--color-text-primary);
+}
+
+:where(.ds-button[data-variant="ghost"]) {
+  border-color: rgba(148, 163, 184, 0.2);
+  background: transparent;
+  color: var(--color-text-secondary);
+}
+
+:where(.ds-button[data-variant="critical"]) {
+  border-color: rgba(248, 113, 113, 0.6);
+  background: rgba(127, 29, 29, 0.68);
+  color: var(--status-critical-text);
+}
+
+:where(.ds-button[data-variant="success"]) {
+  border-color: rgba(52, 211, 153, 0.55);
+  background: rgba(15, 118, 110, 0.68);
+  color: rgba(240, 253, 250, 0.92);
+}
+
+:where(.ds-button:hover:not([disabled])) {
+  transform: translateY(-1px);
+}
+
+:where(.ds-button:active:not([disabled])) {
+  transform: translateY(0);
+  box-shadow: none;
+}
+
+:where(.ds-button[data-state="success"]) {
+  border-color: rgba(52, 211, 153, 0.65);
+  background: rgba(13, 148, 136, 0.68);
+  color: rgba(236, 253, 245, 0.95);
+}
+
+:where(.ds-button[data-state="error"]) {
+  border-color: rgba(248, 113, 113, 0.65);
+  background: rgba(127, 29, 29, 0.72);
+  color: rgba(254, 226, 226, 0.95);
+}
+
+:where(.ds-button[disabled]) {
+  cursor: not-allowed;
+  opacity: 0.6;
+  box-shadow: none;
+  transform: none;
+}
+
+:where(.ds-status) {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.85rem;
+  border-radius: var(--radius-pill);
+  border: 1px solid rgba(148, 163, 184, 0.4);
+  background: rgba(15, 23, 42, 0.55);
+  font-size: var(--font-size-sm);
+  letter-spacing: 0.02em;
+  color: var(--color-text-secondary);
+}
+
+:where(.ds-status[data-tone="success"]) {
+  border-color: rgba(52, 211, 153, 0.6);
+  background: rgba(13, 148, 136, 0.45);
+  color: rgba(236, 253, 245, 0.95);
+}
+
+:where(.ds-status[data-tone="critical"]) {
+  border-color: rgba(248, 113, 113, 0.6);
+  background: rgba(127, 29, 29, 0.55);
+  color: rgba(254, 226, 226, 0.95);
+}
+
+:where(.ds-status[data-tone="muted"]) {
+  border-color: rgba(148, 163, 184, 0.28);
+  background: rgba(71, 85, 105, 0.24);
+  color: rgba(226, 232, 240, 0.88);
+}
+
 :where(a, button, [role="button"], input, select, textarea, summary) {
   transition:
     outline-color var(--motion-duration-snappy) var(--motion-easing-standard),

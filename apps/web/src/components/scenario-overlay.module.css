@@ -1,0 +1,153 @@
+.overlayContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding: 24px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+@media (min-width: 1200px) {
+  .overlayContainer {
+    padding: 32px;
+    gap: 28px;
+  }
+}
+
+.overlayHeader {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.confidenceBands {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.bandGrid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+}
+
+.bandItem {
+  padding: 14px 16px;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  transition: transform 120ms ease, box-shadow 120ms ease;
+}
+
+.bandItem:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.16);
+}
+
+.bandMeta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.85rem;
+}
+
+.confidencePill {
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.confidenceHIGH {
+  background: rgba(31, 195, 146, 0.24);
+  color: #1fc392;
+  border: 1px solid rgba(31, 195, 146, 0.48);
+}
+
+.confidenceMEDIUM {
+  background: rgba(255, 184, 0, 0.24);
+  color: #ffb800;
+  border: 1px solid rgba(255, 184, 0, 0.48);
+}
+
+.confidenceLOW {
+  background: rgba(255, 122, 122, 0.24);
+  color: #ff7a7a;
+  border: 1px solid rgba(255, 122, 122, 0.48);
+}
+
+.weatherImpact {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.impactChart {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.impactBars {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 0;
+}
+
+.impactRow {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 12px;
+  align-items: center;
+}
+
+.barContainer {
+  position: relative;
+  height: 28px;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.impactBar {
+  height: 100%;
+  border-radius: 6px;
+  transition: width 300ms cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+}
+
+.impactBar::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 4px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.32)
+  );
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bandItem {
+    transition: none;
+  }
+
+  .impactBar {
+    transition: none;
+  }
+
+  .bandItem:hover {
+    transform: none;
+  }
+}

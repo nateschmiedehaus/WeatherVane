@@ -108,3 +108,87 @@ describe("buildSuggestionTelemetryTopSignal", () => {
     expect(topSignal?.meta).toContain("Engagement");
   });
 });
+
+describe("buildSuggestionTelemetryHighRiskStat", () => {
+  it("surfaces critical risk context alongside the top alert count", async () => {
+    const { buildSuggestionTelemetryHighRiskStat } = await import(
+      "../../apps/web/src/pages/dashboard"
+    );
+
+    const overview = {
+      totalSuggestions: 4,
+      totalViewCount: 72,
+      totalInteractions: 28,
+      averageFocusRate: 0.4,
+      averageDismissRate: 0.05,
+      averageEngagementRate: 0.45,
+      topRegion: "Storm Coast",
+      topSummary: "Storm Coast under direct impact",
+      topReason: "Critical front approaching",
+      topFocusRate: 0.3,
+      topDismissRate: 0.1,
+      topEngagementRate: 0.4,
+      topHasScheduledStart: true,
+      topGuardrailStatus: "breach" as const,
+      topLayoutVariant: "stacked" as const,
+      topViewCount: 60,
+      topFocusCount: 18,
+      topDismissCount: 6,
+      topHighRiskCount: 4,
+      topHighRiskSeverity: "critical" as const,
+      topEventCount: 5,
+      topConfidenceLevel: "high" as const,
+      topConfidenceLabel: "Strong engagement",
+      hasSignals: true,
+    };
+
+    const stat = buildSuggestionTelemetryHighRiskStat(overview);
+
+    expect(stat.value).toBe("4");
+    expect(stat.badge).toBe("Critical risk");
+    expect(stat.supportingText).toBe("Critical risk · 4 alerts");
+    expect(stat.assistiveText).toBe("Critical risk · 4 alerts.");
+    expect(stat.severity).toBe("critical");
+  });
+
+  it("communicates when the API omits a high-risk count", async () => {
+    const { buildSuggestionTelemetryHighRiskStat } = await import(
+      "../../apps/web/src/pages/dashboard"
+    );
+
+    const overview = {
+      totalSuggestions: 1,
+      totalViewCount: 0,
+      totalInteractions: 0,
+      averageFocusRate: null,
+      averageDismissRate: null,
+      averageEngagementRate: null,
+      topRegion: "Harbor District",
+      topSummary: null,
+      topReason: null,
+      topFocusRate: null,
+      topDismissRate: null,
+      topEngagementRate: null,
+      topHasScheduledStart: false,
+      topGuardrailStatus: null,
+      topLayoutVariant: "dense" as const,
+      topViewCount: null,
+      topFocusCount: null,
+      topDismissCount: null,
+      topHighRiskCount: null,
+      topHighRiskSeverity: null,
+      topEventCount: null,
+      topConfidenceLevel: null,
+      topConfidenceLabel: "",
+      hasSignals: true,
+    };
+
+    const stat = buildSuggestionTelemetryHighRiskStat(overview);
+
+    expect(stat.value).toBe("—");
+    expect(stat.badge).toBeNull();
+    expect(stat.supportingText).toBe("No high-risk alerts logged");
+    expect(stat.assistiveText).toBe("No high-risk alerts logged.");
+    expect(stat.severity).toBe("none");
+  });
+});

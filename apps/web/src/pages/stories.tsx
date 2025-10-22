@@ -4,6 +4,7 @@ import Link from "next/link";
 
 import { Layout } from "../components/Layout";
 import { ContextPanel } from "../components/ContextPanel";
+import { RetryButton } from "../components/RetryButton";
 import styles from "../styles/stories.module.css";
 import { fetchStories } from "../lib/api";
 import type { StoriesResponse, WeatherStory } from "../types/stories";
@@ -98,7 +99,6 @@ export default function StoriesPage() {
   const contextWarnings = response?.context_warnings ?? [];
   const metadata = (response?.data_context?.metadata as { [key: string]: unknown } | undefined) ?? {};
   const weatherSource = (metadata as { weather_source?: string }).weather_source ?? "unknown";
-
   return (
     <Layout>
       <Head>
@@ -139,9 +139,7 @@ export default function StoriesPage() {
         {error && (
           <div className={styles.error} role="alert">
             <p className="ds-body">{error}</p>
-            <button type="button" onClick={handleRetry} className={`${styles.retryButton} ds-body-strong`}>
-              Retry loading stories
-            </button>
+            <RetryButton onClick={handleRetry}>Retry loading stories</RetryButton>
           </div>
         )}
 
@@ -165,6 +163,12 @@ export default function StoriesPage() {
               )}&date=${encodeURIComponent(story.plan_date)}`;
               const isCopied = copiedStoryKey === storyKey;
               const hasCopyError = copyErrorStoryKey === storyKey;
+              const statusMessage = isCopied
+                ? "Briefing copied to clipboard."
+                : hasCopyError
+                  ? "Copy failed. Use Cmd/Ctrl+C to share manually."
+                  : "";
+              const statusTone = isCopied ? "success" : hasCopyError ? "critical" : "muted";
 
               return (
                 <article key={storyKey}>
@@ -215,21 +219,23 @@ export default function StoriesPage() {
                     <button
                       type="button"
                       onClick={() => handleCopyStory(story)}
-                      className={styles.primaryAction}
+                      className="ds-button"
                       data-state={isCopied ? "success" : hasCopyError ? "error" : undefined}
+                      data-variant="primary"
                     >
                       {isCopied ? "Copied briefing" : "Copy briefing"}
                     </button>
-                    <Link href={planHref} className={styles.secondaryAction}>
+                    <Link href={planHref} className="ds-button" data-variant="ghost">
                       Open in Plan
                     </Link>
                   </div>
-                  <div className={styles.cardFeedback} role="status" aria-live="polite">
-                    {isCopied
-                      ? "Briefing copied to clipboard."
-                      : hasCopyError
-                      ? "Copy failed. Use Cmd/Ctrl+C to share manually."
-                      : ""}
+                  <div
+                    className={statusMessage ? "ds-status" : "sr-only"}
+                    data-tone={statusMessage ? statusTone : undefined}
+                    role="status"
+                    aria-live="polite"
+                  >
+                    {statusMessage || " "}
                   </div>
                 </article>
               );

@@ -9,6 +9,7 @@ from typing import Any, Dict, Optional
 import geohash2  # type: ignore
 from prefect import flow, get_run_logger
 
+from apps.worker.flows.incrementality_step import run_incrementality_step
 from apps.worker.ingestion import BaseIngestor, IngestionSummary
 from apps.worker.ingestion.ads import build_ads_ingestor_from_env
 from apps.worker.ingestion.promo import build_promo_ingestor_from_env
@@ -352,7 +353,7 @@ async def ingest_promo(
 ) -> Dict[str, Any]:
     logger = get_run_logger()
     store = JsonStateStore(root=state_root)
-    ingestor = build_promo_ingestor_from_env(lake_root)
+    ingestor = build_promo_ingestor_from_env(lake_root, state_root=state_root)
     summary = await ingestor.ingest_campaigns(context.tenant_id, context.start_date, context.end_date) if ingestor.connector else None
 
     if summary is None:
@@ -447,6 +448,31 @@ async def orchestrate_ingestion_flow(
     ads_payload = await ingest_ads(context, resolved_lake_root, resolved_state_root)
     promo_payload = await ingest_promo(context, resolved_lake_root, resolved_state_root)
 
+    # Run geo holdout design (incrementality measurement)
+    incrementality_result = await run_incrementality_step(
+        tenant_id,
+        resolved_lake_root,
+        base_dir=Path.cwd(),
+    )
+    if incrementality_result["status"] == "success":
+        logger.info(
+            "Geo holdout assignment persisted for tenant %s at %s",
+            tenant_id,
+            incrementality_result["assignment_path"],
+        )
+    elif incrementality_result["status"] == "skip":
+        logger.warning(
+            "Geo holdout skipped for tenant %s: %s",
+            tenant_id,
+            incrementality_result["reason"],
+        )
+    else:
+        logger.error(
+            "Geo holdout failed for tenant %s: %s",
+            tenant_id,
+            incrementality_result.get("reason"),
+        )
+
     dq_report = assemble_dq_report(context, shopify_payload, ads_payload, promo_payload)
     _write_report(resolved_report_path, dq_report)
     monitoring_snapshot = update_dq_monitoring(
@@ -489,4 +515,5 @@ async def orchestrate_ingestion_flow(
             "promos": _summary_to_dict(promo_payload.get("promo")),
         },
         "dq_monitoring": monitoring_snapshot,
+        "incrementality": incrementality_result,
     }

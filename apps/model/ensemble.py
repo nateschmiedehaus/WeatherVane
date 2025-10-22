@@ -260,15 +260,22 @@ def _extend_with_weather_forecast(
         return full_frame.sort(date_col)
     future_df = pl.DataFrame(future_rows)
     cast_expressions: List[pl.Expr] = []
-    for column, dtype in full_frame.schema.items():
-        if column not in future_df.columns:
-            continue
-        current_dtype = future_df[column].dtype
-        if current_dtype != dtype:
-            cast_expressions.append(pl.col(column).cast(dtype, strict=False).alias(column))
+    missing_expressions: List[pl.Expr] = []
+    full_schema = full_frame.schema
+    for column, dtype in full_schema.items():
+        if column in future_df.columns:
+            current_dtype = future_df[column].dtype
+            if current_dtype != dtype:
+                cast_expressions.append(pl.col(column).cast(dtype, strict=False).alias(column))
+        else:
+            missing_expressions.append(pl.lit(None).cast(dtype).alias(column))
+    if missing_expressions:
+        future_df = future_df.with_columns(missing_expressions)
     if cast_expressions:
         future_df = future_df.with_columns(cast_expressions)
-    combined = pl.concat([full_frame, future_df], how="align")
+    ordered_columns = [column for column in full_frame.columns if column in future_df.columns]
+    future_df = future_df.select(ordered_columns)
+    combined = pl.concat([full_frame, future_df], how="vertical")
     return combined.sort(date_col)
 
 

@@ -14,7 +14,13 @@ import numpy as np
 import polars as pl
 from loguru import logger
 
-from apps.model.baseline import BaselineModel, LinearGAM, evaluate_r2, fit_baseline_model
+from apps.model.baseline import (
+    BaselineModel,
+    LinearGAM,
+    WEATHER_KEYWORDS,
+    evaluate_r2,
+    fit_baseline_model,
+)
 from shared.feature_store.feature_builder import (
     FeatureBuilder,
     FeatureLeakageError,
@@ -44,6 +50,58 @@ class BaselineTrainingResult:
     model_path: Path
     metadata_path: Path
     metadata: Dict[str, Any]
+
+
+@dataclass(frozen=True)
+class BaselineEvaluation:
+    train_metrics: Dict[str, float]
+    holdout_metrics: Dict[str, float]
+    influences: List[Dict[str, float]]
+    weather_fit: Dict[str, Any]
+    gam_reason: str
+    gam_min_rows: int
+
+    @property
+    def gam_used(self) -> bool:
+        return self.gam_reason == "gam"
+
+
+def evaluate_baseline_run(
+    model: BaselineModel,
+    train_frame: pl.DataFrame,
+    holdout_frame: pl.DataFrame,
+    *,
+    target: str,
+) -> BaselineEvaluation:
+    train_metrics = _compute_metrics(model, train_frame, target)
+    holdout_metrics = _compute_metrics(model, holdout_frame, target)
+    influences = _rank_features(model, train_frame)
+    weather_fit = _summarize_weather_fit(influences)
+
+    total_rows = train_frame.height + holdout_frame.height
+    feature_count = len(model.features)
+    gam_min_rows = max(24, feature_count * 4) if feature_count else 24
+
+    if model.gam is None:
+        if feature_count == 0:
+            gam_reason = "no_features"
+        elif total_rows < gam_min_rows:
+            gam_reason = "insufficient_rows"
+        elif LinearGAM is None:
+            gam_reason = "pygam_unavailable"
+        else:
+            gam_reason = "fallback_linear"
+    else:
+        gam_reason = "gam"
+
+    return BaselineEvaluation(
+        train_metrics=train_metrics,
+        holdout_metrics=holdout_metrics,
+        influences=influences,
+        weather_fit=weather_fit,
+        gam_reason=gam_reason,
+        gam_min_rows=gam_min_rows,
+    )
 
 
 def train_baseline(
@@ -97,22 +155,12 @@ def train_baseline(
     train_frame, holdout_frame = _split_train_holdout(observed)
     model = fit_baseline_model(train_frame, target=TARGET_COLUMN, features=features)
 
-    train_metrics = _compute_metrics(model, train_frame, TARGET_COLUMN)
-    holdout_metrics = _compute_metrics(model, holdout_frame, TARGET_COLUMN)
-    influences = _rank_features(model, train_frame)
-
-    gam_min_rows = max(24, len(model.features) * 4) if model.features else 24
-    if model.gam is None:
-        if not model.features:
-            gam_reason = "no_features"
-        elif len(train_frame) + len(holdout_frame) < gam_min_rows:
-            gam_reason = "insufficient_rows"
-        elif LinearGAM is None:
-            gam_reason = "pygam_unavailable"
-        else:
-            gam_reason = "fallback_linear"
-    else:
-        gam_reason = "gam"
+    evaluation = evaluate_baseline_run(
+        model,
+        train_frame,
+        holdout_frame,
+        target=TARGET_COLUMN,
+    )
 
     timestamp = datetime.utcnow().replace(microsecond=0).isoformat() + "Z"
     resolved_run_id = run_id or datetime.utcnow().strftime("%Y%m%dT%H%M%SZ")
@@ -140,7 +188,7 @@ def train_baseline(
             "observed_rows": int(observed.height),
             "train_rows": int(train_frame.height),
             "holdout_rows": int(holdout_frame.height),
-            "feature_columns": len(features),
+            "feature_columns": len(model.features),
             "orders_rows": matrix.orders_rows,
             "ads_rows": matrix.ads_rows,
             "promo_rows": matrix.promo_rows,
@@ -148,14 +196,15 @@ def train_baseline(
             "latest_observed_target_date": matrix.latest_observed_date,
         },
         "features": list(model.features),
-        "top_features": influences,
+        "top_features": evaluation.influences,
+        "weather_fit": evaluation.weather_fit,
         "gam": {
-            "used": model.gam is not None,
-            "reason": gam_reason,
-            "min_required_rows": gam_min_rows,
+            "used": evaluation.gam_used,
+            "reason": evaluation.gam_reason,
+            "min_required_rows": evaluation.gam_min_rows,
         },
-        "training": train_metrics,
-        "holdout": holdout_metrics,
+        "training": evaluation.train_metrics,
+        "holdout": evaluation.holdout_metrics,
         "leakage_guardrail": {
             **leakage_info,
             "leakage_risk_rows": matrix.leakage_risk_rows,
@@ -291,6 +340,42 @@ def _rank_features(model: BaselineModel, frame: pl.DataFrame, limit: int = 8) ->
     rankings.sort(key=lambda item: item[1], reverse=True)
     top = rankings[:limit]
     return [{"feature": name, "influence": _clean_float(score)} for name, score in top]
+
+
+def _is_weather_feature(name: str) -> bool:
+    lowered = name.lower()
+    return any(keyword in lowered for keyword in WEATHER_KEYWORDS)
+
+
+def _weather_fit_payload(score: float, weather_features: List[Dict[str, float]]) -> Dict[str, Any]:
+    if score >= 0.45:
+        classification = "strong"
+        message = "Weather signals dominate observed revenue."
+    elif score >= 0.25:
+        classification = "moderate"
+        message = "Weather contributes meaningfully alongside other drivers."
+    elif score >= 0.1:
+        classification = "weak"
+        message = "Weather impact is limited; treat recommendations with caution."
+    else:
+        classification = "none"
+        message = "Weather impact negligible; WeatherVane is not a fit for this brand."
+    return {
+        "score": round(score, 3),
+        "classification": classification,
+        "message": message,
+        "weather_features": weather_features[:3],
+    }
+
+
+def _summarize_weather_fit(influences: List[Dict[str, float]]) -> Dict[str, Any]:
+    if not influences:
+        return _weather_fit_payload(0.0, [])
+    weather_influences = [item for item in influences if _is_weather_feature(item["feature"])]
+    total = sum(item["influence"] for item in influences) or 1.0
+    weather_sum = sum(item["influence"] for item in weather_influences)
+    score = max(0.0, min(1.0, weather_sum / total))
+    return _weather_fit_payload(score, weather_influences)
 
 
 def _clean_float(value: float) -> float:

@@ -33,6 +33,30 @@ export interface PlanSlice {
   status?: string | null;
 }
 
+export interface ExperimentLift {
+  absolute_lift: number;
+  lift_pct: number;
+  confidence_low: number;
+  confidence_high: number;
+  p_value: number;
+  sample_size: number;
+  is_significant: boolean;
+  generated_at?: string | null;
+}
+
+export interface ExperimentPayload {
+  experiment_id: string;
+  status: "pending" | "running" | "completed" | "failed";
+  start_date?: string | null;
+  end_date?: string | null;
+  treatment_geos: string[];
+  control_geos: string[];
+  treatment_spend?: number | null;
+  control_spend?: number | null;
+  metric_name: string;
+  lift?: ExperimentLift | null;
+}
+
 export interface PlanResponse {
   tenant_id: string;
   generated_at: string;
@@ -43,4 +67,6 @@ export interface PlanResponse {
   context_warnings?: ContextWarning[];
   incrementality_design?: IncrementalityDesign | null;
   incrementality_summary?: IncrementalitySummary | null;
+  experiments?: ExperimentPayload[];
+  lift_summary?: ExperimentLift | null;
 }

@@ -1,0 +1,266 @@
+.root {
+  padding: var(--space-xl);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xl);
+}
+
+.header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-lg);
+}
+
+.meta {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: var(--space-md);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: var(--space-xl);
+}
+
+.summaryColumn,
+.historyColumn,
+.guidanceColumn {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+
+.decisionList,
+.tokenList,
+.criticList,
+.historyList,
+.profileList,
+.signalList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.decisionList li,
+.tokenList li {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--space-sm);
+}
+
+.decisionType {
+  text-transform: capitalize;
+  font-weight: 600;
+}
+
+.decisionCount {
+  font-variant-numeric: tabular-nums;
+}
+
+.tokenName {
+  text-transform: capitalize;
+  color: rgba(30, 41, 59, 0.72);
+}
+
+.tokenValue {
+  font-variant-numeric: tabular-nums;
+}
+
+.criticSummary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: var(--space-md);
+  margin: 0 0 var(--space-lg);
+}
+
+.criticStat[data-status="passing"] {
+  color: rgba(34, 197, 94, 0.95);
+}
+
+.criticStat[data-status="failing"] {
+  color: rgba(239, 68, 68, 0.9);
+}
+
+.criticList {
+  gap: var(--space-md);
+}
+
+.criticItem {
+  padding: var(--space-lg);
+  border-radius: var(--radius-lg);
+  background: rgba(30, 64, 175, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.criticHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--space-md);
+}
+
+.criticIdentity {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2xs);
+}
+
+.criticName {
+  font-weight: 600;
+  text-transform: lowercase;
+  letter-spacing: 0.01em;
+}
+
+.criticTitle {
+  font-size: 0.85rem;
+  color: rgba(15, 23, 42, 0.7);
+}
+
+.criticStatus {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.criticStatus[data-status="passing"] {
+  color: rgba(34, 197, 94, 0.95);
+}
+
+.criticStatus[data-status="failing"] {
+  color: rgba(239, 68, 68, 0.9);
+}
+
+.criticSummaryText {
+  color: rgba(30, 41, 59, 0.8);
+}
+
+.criticFooter {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--space-md);
+  color: rgba(71, 85, 105, 0.8);
+}
+
+.historyList {
+  gap: var(--space-lg);
+}
+
+.historyItem {
+  padding: var(--space-lg);
+  border-radius: var(--radius-lg);
+  background: rgba(148, 163, 184, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.historyHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--space-md);
+}
+
+.historyType {
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.historyTimestamp {
+  font-variant-numeric: tabular-nums;
+  color: rgba(30, 41, 59, 0.68);
+}
+
+.historyMeta {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: var(--space-md);
+}
+
+.historyStatus[data-status="met"] {
+  color: rgba(34, 197, 94, 0.95);
+}
+
+.historyStatus[data-status="escalated"] {
+  color: rgba(239, 68, 68, 0.9);
+}
+
+.profileItem {
+  padding: var(--space-lg);
+  border-radius: var(--radius-lg);
+  background: rgba(148, 163, 184, 0.1);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.profileHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--space-md);
+}
+
+.profileName {
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.profileDurations {
+  font-variant-numeric: tabular-nums;
+  color: rgba(71, 85, 105, 0.85);
+}
+
+.profileParticipants {
+  color: rgba(15, 23, 42, 0.82);
+}
+
+.signalItem {
+  padding: var(--space-lg);
+  border-radius: var(--radius-lg);
+  background: rgba(59, 130, 246, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.signalHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--space-md);
+}
+
+.signalName {
+  font-weight: 600;
+}
+
+.signalThreshold {
+  font-variant-numeric: tabular-nums;
+  color: rgba(37, 99, 235, 0.85);
+}
+
+.signalAction {
+  color: rgba(30, 64, 175, 0.85);
+}
+
+@media (max-width: 768px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+
+  .historyMeta {
+    grid-template-columns: 1fr 1fr;
+  }
+}

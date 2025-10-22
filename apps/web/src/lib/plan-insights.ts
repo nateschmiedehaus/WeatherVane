@@ -3,6 +3,7 @@ import type { ConfidenceLevel, PlanSlice } from "../types/plan";
 export interface HeroMetricSummary {
   roiMultiple: number | null;
   roiDeltaPct: number | null;
+  liftAmount: number | null;
   guardrailConfidencePct: number | null;
   topDriver: string | null;
 }
@@ -17,6 +18,18 @@ export interface OpportunityDescriptor {
 }
 
 const CONFIDENCE_ORDER: ConfidenceLevel[] = ["HIGH", "MEDIUM", "LOW"];
+
+export interface ConfidenceMixSegment {
+  level: ConfidenceLevel;
+  count: number;
+  percentage: number;
+}
+
+export interface ConfidenceMixSummary {
+  total: number;
+  counts: Record<ConfidenceLevel, number>;
+  segments: ConfidenceMixSegment[];
+}
 
 const sliceKey = (slice: PlanSlice): string =>
   `${slice.plan_date}::${slice.geo_group_id}::${slice.channel}`;
@@ -61,6 +74,7 @@ export const computeHeroMetricSummary = (slices: PlanSlice[]): HeroMetricSummary
     return {
       roiMultiple: null,
       roiDeltaPct: null,
+      liftAmount: null,
       guardrailConfidencePct: null,
       topDriver: null,
     };
@@ -71,6 +85,10 @@ export const computeHeroMetricSummary = (slices: PlanSlice[]): HeroMetricSummary
 
   const roiMultiple = safeDivide(revenueTotal, spendTotal);
   const roiDeltaPct = safeDivide(revenueTotal - spendTotal, spendTotal);
+  const liftAmount =
+    Number.isFinite(revenueTotal) && Number.isFinite(spendTotal)
+      ? revenueTotal - spendTotal
+      : null;
 
   const counts = slices.reduce<Record<ConfidenceLevel, number>>(
     (acc, slice) => {
@@ -92,9 +110,30 @@ export const computeHeroMetricSummary = (slices: PlanSlice[]): HeroMetricSummary
   return {
     roiMultiple,
     roiDeltaPct: roiDeltaPct === null ? null : roiDeltaPct * 100,
+    liftAmount,
     guardrailConfidencePct,
     topDriver,
   };
+};
+
+const roundPercentage = (value: number): number =>
+  Number.isFinite(value) ? Math.max(0, Math.min(100, Math.round(value * 10) / 10)) : 0;
+
+export const computeConfidenceMixSummary = (slices: PlanSlice[]): ConfidenceMixSummary => {
+  const counts: Record<ConfidenceLevel, number> = { HIGH: 0, MEDIUM: 0, LOW: 0 };
+
+  slices.forEach((slice) => {
+    counts[slice.confidence] += 1;
+  });
+
+  const total = counts.HIGH + counts.MEDIUM + counts.LOW;
+  const segments: ConfidenceMixSegment[] = CONFIDENCE_ORDER.map((level) => {
+    const count = counts[level];
+    const percentage = total === 0 ? 0 : roundPercentage((count / total) * 100);
+    return { level, count, percentage };
+  });
+
+  return { total, counts, segments };
 };
 
 export const deriveOpportunityQueue = (slices: PlanSlice[]): OpportunityDescriptor[] => {

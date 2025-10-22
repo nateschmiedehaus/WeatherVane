@@ -1,10 +1,13 @@
 import json
+import time
 from datetime import datetime
 from pathlib import Path
 
+import geohash2  # type: ignore
 import pytest
 import polars as pl
 
+import shared.feature_store.feature_builder as feature_builder_module
 from shared.feature_store.feature_builder import FeatureBuilder, FeatureLeakageError
 from shared.feature_store.reports import generate_weather_join_report
 from shared.libs.storage.lake import LakeWriter, read_parquet
@@ -22,6 +25,7 @@ async def test_feature_builder_with_synthetic_data(tmp_path: Path):
     assert matrix.frame.height > 0
     expected_columns = {"date", "net_revenue", "meta_spend", "google_spend", "promos_sent"}
     assert expected_columns.issubset(set(matrix.frame.columns))
+    assert {"geo_scope", "geo_level"}.issubset(set(matrix.frame.columns))
     lagged_expected = {
         "net_revenue_lag1",
         "net_revenue_roll7",
@@ -48,10 +52,13 @@ async def test_feature_builder_with_synthetic_data(tmp_path: Path):
     assert matrix.observed_rows == matrix.observed_frame.height
     assert matrix.observed_rows == matrix.frame.filter(pl.col("target_available")).height
     assert matrix.latest_observed_date is not None
-    assert matrix.join_mode == "date_geohash"
+    assert matrix.join_mode == "date_dma"
     assert matrix.geocoded_order_ratio is not None and matrix.geocoded_order_ratio > 0.99
     assert matrix.weather_missing_rows == 0
     assert matrix.weather_missing_records == []
+    assert matrix.geography_level == "dma"
+    assert matrix.weather_coverage_ratio >= matrix.weather_coverage_threshold
+    assert matrix.geography_fallback_reason is None
 
 
 @pytest.mark.asyncio
@@ -141,15 +148,116 @@ def test_feature_builder_falls_back_to_date_join_without_geohash(tmp_path: Path)
     builder = FeatureBuilder(lake_root=tmp_path)
     matrix = builder.build(tenant_id, start=datetime(2024, 1, 3), end=datetime(2024, 1, 7))
 
-    assert matrix.join_mode == "date_only"
+    assert matrix.join_mode == "date_global"
     assert matrix.geocoded_order_ratio is None
     unique_dates = matrix.frame.get_column("date").n_unique()
     assert matrix.frame.height == unique_dates
-    geohash_series = matrix.frame.get_column("geohash")
-    assert geohash_series.null_count() == 0
-    assert set(geohash_series.unique().to_list()) == {"GLOBAL"}
+    scope_series = matrix.frame.get_column("geo_scope")
+    assert scope_series.null_count() == 0
+    assert set(scope_series.unique().to_list()) == {"GLOBAL"}
     assert matrix.weather_missing_rows == 0
     assert matrix.weather_missing_records == []
+    assert matrix.geography_level == "global"
+    assert matrix.geography_fallback_reason == "state_level_unavailable"
+    assert matrix.weather_coverage_ratio >= matrix.weather_coverage_threshold
+
+
+@pytest.mark.asyncio
+async def test_feature_builder_falls_back_to_state_when_dma_weather_sparse(tmp_path: Path):
+    tenant_id = "tenantStateFallback"
+    california_geos = [(37.7749, -122.4194), (34.0522, -118.2437)]
+    seed_synthetic_tenant(tmp_path, tenant_id, days=21, geos=california_geos)
+
+    writer = LakeWriter(root=tmp_path)
+    orders_path = writer.latest(f"{tenant_id}_shopify_orders")
+    weather_path = writer.latest(f"{tenant_id}_weather_daily")
+    assert orders_path is not None
+    assert weather_path is not None
+
+    geohashes = [geohash2.encode(lat, lon, 5) for lat, lon in california_geos]
+    orders_rows = read_parquet(orders_path).to_dicts()
+    assert orders_rows
+    for idx, row in enumerate(orders_rows):
+        geo_index = idx % len(geohashes)
+        row["ship_geohash"] = geohashes[geo_index]
+        row["ship_latitude"] = california_geos[geo_index][0]
+        row["ship_longitude"] = california_geos[geo_index][1]
+    pl.DataFrame(orders_rows).write_parquet(orders_path)
+
+    weather_frame = read_parquet(weather_path)
+    assert not weather_frame.is_empty()
+    weather_filtered = weather_frame.filter(pl.col("geohash") != geohashes[1])
+    assert weather_filtered.height < weather_frame.height
+    weather_filtered.write_parquet(weather_path)
+
+    builder = FeatureBuilder(lake_root=tmp_path)
+    matrix = builder.build(tenant_id, start=datetime(2023, 12, 15), end=datetime(2024, 1, 7))
+
+    assert matrix.join_mode == "date_state"
+    assert matrix.geography_level == "state"
+    assert matrix.geography_fallback_reason == "dma_weather_coverage_below_0.85"
+    assert matrix.weather_coverage_ratio >= matrix.weather_coverage_threshold
+    assert matrix.weather_coverage_threshold >= 0.7
+    assert matrix.weather_missing_rows == 0
+    assert matrix.geocoded_order_ratio is not None and matrix.geocoded_order_ratio > 0.9
+
+
+def test_feature_builder_caches_dataset_reads(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    tenant_id = "tenantCache"
+    seed_synthetic_tenant(tmp_path, tenant_id, days=21)
+    builder = FeatureBuilder(lake_root=tmp_path)
+
+    original_read = feature_builder_module.read_parquet
+    calls: list[Path] = []
+
+    def tracking_read(path: str | Path):
+        calls.append(Path(path))
+        return original_read(path)
+
+    monkeypatch.setattr(feature_builder_module, "read_parquet", tracking_read)
+
+    builder.build(tenant_id, start=datetime(2024, 1, 1), end=datetime(2024, 1, 21))
+    initial_calls = len(calls)
+    assert initial_calls > 0
+
+    builder.build(tenant_id, start=datetime(2024, 1, 1), end=datetime(2024, 1, 21))
+
+    assert len(calls) == initial_calls
+
+
+def test_feature_builder_refreshes_cache_when_dataset_changes(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    tenant_id = "tenantCacheRefresh"
+    seed_synthetic_tenant(tmp_path, tenant_id, days=21)
+    builder = FeatureBuilder(lake_root=tmp_path)
+
+    original_read = feature_builder_module.read_parquet
+    calls: list[Path] = []
+
+    def tracking_read(path: str | Path):
+        calls.append(Path(path))
+        return original_read(path)
+
+    monkeypatch.setattr(feature_builder_module, "read_parquet", tracking_read)
+
+    builder.build(tenant_id, start=datetime(2024, 1, 1), end=datetime(2024, 1, 21))
+    initial_calls = len(calls)
+    assert initial_calls > 0
+
+    writer = LakeWriter(root=tmp_path)
+    orders_path = writer.latest(f"{tenant_id}_shopify_orders")
+    assert orders_path is not None
+
+    orders_frame = original_read(orders_path)
+    assert not orders_frame.is_empty()
+    mutated = orders_frame.with_columns(pl.lit("cache_refresh").alias("cache_marker"))
+    mutated.write_parquet(orders_path)
+    time.sleep(0.01)
+
+    builder.build(tenant_id, start=datetime(2024, 1, 1), end=datetime(2024, 1, 21))
+
+    assert len(calls) == initial_calls + 1
 
 
 def test_generate_weather_join_report(tmp_path: Path):
@@ -172,7 +280,11 @@ def test_generate_weather_join_report(tmp_path: Path):
     payload = json.loads(report_path.read_text())
     assert payload["tenant_id"] == tenant_id
     assert payload["join"]["mode"] == matrix.join_mode
-    assert payload["coverage"]["unique_geohash_count"] >= 1
+    assert payload["join"]["geography_level"] == matrix.geography_level
+    assert payload["join"]["weather_coverage_ratio"] == round(float(matrix.weather_coverage_ratio), 4)
+    assert payload["join"]["weather_coverage_threshold"] == matrix.weather_coverage_threshold
+    assert payload["join"]["geography_fallback_reason"] == matrix.geography_fallback_reason
+    assert payload["coverage"]["unique_geo_scope_count"] >= 1
     assert payload["leakage"]["total_rows"] == matrix.leakage_risk_rows
     assert payload["weather_gaps"]["rows"] == matrix.weather_missing_rows
     assert report["issues"] == payload["issues"]

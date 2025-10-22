@@ -13,10 +13,13 @@ from . import (
     creative,
     health,
     onboarding,
+    operations,
     plans,
     privacy,
+    reports,
     settings,
     stories,
+    weather,
 )
 
 LOGGER = logging.getLogger(__name__)
@@ -37,7 +40,10 @@ def register_routes(app: FastAPI) -> None:
     router.include_router(creative.router, prefix="/creative", tags=["creative"])
     router.include_router(allocator.router, prefix="/allocator", tags=["allocator"])
     router.include_router(onboarding.router)
+    router.include_router(operations.router)
     router.include_router(ad_push.router, tags=["ad_push"])
+    router.include_router(reports.router, tags=["reports"])
+    router.include_router(weather.router, tags=["weather"])
 
     if os.getenv("WEATHERVANE_DISABLE_EXPERIMENTS_ROUTES") == "1":
         LOGGER.warning("Experiments routes disabled via environment override")

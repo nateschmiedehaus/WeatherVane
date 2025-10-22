@@ -142,7 +142,7 @@ async def test_update_settings_emits_context_warnings():
             actor="ops@brand.com",
         ),
         retention_days=365,
-        notes="Enable Autopilot under guardrails",
+        notes="Enable Automation engine under guardrails",
     )
 
     response = await service.update_settings(tenant_id, payload)

@@ -1,0 +1,193 @@
+.root {
+  width: 100%;
+}
+
+.snapshotList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ds-spacing-md, 16px);
+}
+
+.snapshotCard {
+  background: var(--ds-surface-card, #ffffff);
+  border: 1px solid var(--ds-border-default, #e5e7eb);
+  border-radius: var(--ds-radius-lg, 12px);
+  padding: var(--ds-spacing-md, 16px);
+  transition: all 0.2s ease;
+}
+
+.snapshotCard:hover {
+  border-color: var(--ds-border-hover, #d1d5db);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05),
+    0 2px 4px -1px rgba(0, 0, 0, 0.03);
+}
+
+.snapshotCard.expanded {
+  border-color: var(--ds-primary, #3b82f6);
+}
+
+.cardHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--ds-spacing-md, 16px);
+  margin-bottom: var(--ds-spacing-sm, 12px);
+}
+
+.cardTitle {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--ds-spacing-xs, 4px);
+}
+
+.cardActions {
+  display: flex;
+  gap: var(--ds-spacing-xs, 8px);
+  flex-shrink: 0;
+}
+
+.loadButton {
+  padding: var(--ds-spacing-xs, 8px) var(--ds-spacing-md, 16px);
+  background: var(--ds-primary, #3b82f6);
+  color: white;
+  border: none;
+  border-radius: var(--ds-radius-md, 6px);
+  font-size: var(--ds-font-size-caption, 12px);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.loadButton:hover {
+  background: var(--ds-primary-hover, #2563eb);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.expandButton {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--ds-surface-secondary, #f3f4f6);
+  border: 1px solid var(--ds-border-default, #d1d5db);
+  border-radius: var(--ds-radius-md, 6px);
+  font-size: 20px;
+  font-weight: bold;
+  color: var(--ds-text-secondary, #6b7280);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.expandButton:hover {
+  background: var(--ds-surface-hover, #e5e7eb);
+  color: var(--ds-text-primary, #111827);
+}
+
+.description {
+  margin-bottom: var(--ds-spacing-sm, 12px);
+  color: var(--ds-text-secondary, #6b7280);
+}
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ds-spacing-xs, 6px);
+  margin-bottom: var(--ds-spacing-sm, 12px);
+}
+
+.tag {
+  display: inline-block;
+  padding: var(--ds-spacing-xs, 4px) var(--ds-spacing-sm, 10px);
+  background: var(--ds-primary-subtle, #dbeafe);
+  color: var(--ds-primary-text, #1e40af);
+  border-radius: var(--ds-radius-full, 9999px);
+  font-size: var(--ds-font-size-caption, 11px);
+  font-weight: 500;
+}
+
+.summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: var(--ds-spacing-md, 16px);
+  padding: var(--ds-spacing-sm, 12px);
+  background: var(--ds-surface-subtle, #f9fafb);
+  border-radius: var(--ds-radius-md, 6px);
+}
+
+.summary > div {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ds-spacing-xs, 4px);
+}
+
+.details {
+  margin-top: var(--ds-spacing-md, 16px);
+  padding-top: var(--ds-spacing-md, 16px);
+  border-top: 1px solid var(--ds-border-subtle, #e5e7eb);
+  animation: slideDown 0.2s ease;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.details h4 {
+  margin-bottom: var(--ds-spacing-sm, 12px);
+}
+
+.adjustments {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: var(--ds-spacing-sm, 12px);
+  margin-bottom: var(--ds-spacing-md, 16px);
+}
+
+.adjustmentRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--ds-spacing-xs, 8px) var(--ds-spacing-sm, 12px);
+  background: var(--ds-surface-subtle, #f9fafb);
+  border-radius: var(--ds-radius-sm, 4px);
+}
+
+.adjustmentRow .positive {
+  color: var(--ds-success, #059669);
+}
+
+.adjustmentRow .negative {
+  color: var(--ds-error, #dc2626);
+}
+
+.detailActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--ds-spacing-sm, 12px);
+}
+
+.deleteButton {
+  padding: var(--ds-spacing-xs, 8px) var(--ds-spacing-md, 16px);
+  background: var(--ds-surface-secondary, #f3f4f6);
+  color: var(--ds-error, #dc2626);
+  border: 1px solid var(--ds-border-default, #d1d5db);
+  border-radius: var(--ds-radius-md, 6px);
+  font-size: var(--ds-font-size-caption, 12px);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.deleteButton:hover {
+  background: var(--ds-error-subtle, #fee2e2);
+  border-color: var(--ds-error, #dc2626);
+}

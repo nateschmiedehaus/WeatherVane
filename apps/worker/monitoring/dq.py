@@ -17,16 +17,16 @@ _SEVERITY_ORDER = {"ok": 0, "warning": 1, "critical": 2}
 class MonitoringThresholds:
     """Thresholds controlling anomaly detection for ingestion data quality."""
 
-    warning_row_drop: float = 0.5
-    critical_row_drop: float = 0.2
+    warning_row_drop: float = 0.8
+    critical_row_drop: float = 0.6
     new_rows_warning_drop: float = 0.5
     new_rows_critical_drop: float = 0.1
     new_rows_baseline: int = 20
     zero_new_rows_warning_streak: int = 2
     zero_new_rows_critical_streak: int = 4
-    geocoded_ratio_warning: float = 0.7
-    geocoded_ratio_critical: float = 0.5
-    history_length: int = 5
+    geocoded_ratio_warning: float = 0.88
+    geocoded_ratio_critical: float = 0.75
+    history_length: int = 7
 
 
 def update_dq_monitoring(

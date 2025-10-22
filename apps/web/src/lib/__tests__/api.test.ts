@@ -1,67 +1,45 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { fetchDashboard } from "../api";
-import type { DashboardResponse } from "../../types/dashboard";
+import { fetchOnboardingProgress } from "../api";
+import type { OnboardingProgressResponse } from "../../types/onboarding";
 
-const mockDashboardResponse: DashboardResponse = {
-  tenant_id: "demo-tenant",
-  generated_at: new Date("2025-05-01T12:00:00Z").toISOString(),
-  guardrails: [],
-  spend_trackers: [],
-  weather_events: [],
-  automation: [],
-  ingestion: [],
-  alerts: [],
-  allocator: null,
-  weather_kpis: [],
-  suggestion_telemetry: [],
-  suggestion_telemetry_summary: null,
-  context_tags: [],
-  context_warnings: [],
-};
-
-describe("fetchDashboard", () => {
-  let fetchSpy: ReturnType<typeof vi.fn>;
+describe("api onboarding progress", () => {
+  const originalEnv = { ...process.env };
 
   beforeEach(() => {
-    fetchSpy = vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => mockDashboardResponse,
-    });
-    vi.stubGlobal("fetch", fetchSpy);
+    vi.useRealTimers();
   });
 
   afterEach(() => {
+    Object.assign(process.env, originalEnv);
     vi.unstubAllGlobals();
+    vi.resetModules();
   });
 
-  it("appends a since query parameter when provided a Date lookback", async () => {
-    const since = new Date("2025-05-01T00:00:00Z");
+  it("forwards abort signal to onboarding progress request", async () => {
+    const response: OnboardingProgressResponse = {
+      tenant_id: "tenant-123",
+      mode: "demo",
+      generated_at: new Date().toISOString(),
+      connectors: [],
+      audits: [],
+    };
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => response,
+      status: 200,
+      statusText: "OK",
+    });
+    vi.stubGlobal("fetch", fetchMock);
 
-    await fetchDashboard("demo-tenant", { since });
+    const controller = new AbortController();
+    await fetchOnboardingProgress("tenant-123", "demo", { signal: controller.signal });
 
-    expect(fetchSpy).toHaveBeenCalledTimes(1);
-    const [url] = fetchSpy.mock.calls[0] as [RequestInfo | URL, RequestInit?];
-    const requestUrl = new URL(typeof url === "string" ? url : url.toString());
-    expect(requestUrl.pathname).toBe("/v1/dashboard/demo-tenant");
-    expect(requestUrl.searchParams.get("since")).toBe(since.toISOString());
-  });
-
-  it("omits the since query parameter when no lookback is provided", async () => {
-    await fetchDashboard("demo-tenant");
-
-    expect(fetchSpy).toHaveBeenCalledTimes(1);
-    const [url] = fetchSpy.mock.calls[0] as [RequestInfo | URL, RequestInit?];
-    const requestUrl = new URL(typeof url === "string" ? url : url.toString());
-    expect(requestUrl.searchParams.has("since")).toBe(false);
-  });
-
-  it("ignores invalid since values to avoid emitting malformed requests", async () => {
-    await fetchDashboard("demo-tenant", { since: "not-a-real-timestamp" });
-
-    expect(fetchSpy).toHaveBeenCalledTimes(1);
-    const [url] = fetchSpy.mock.calls[0] as [RequestInfo | URL, RequestInit?];
-    const requestUrl = new URL(typeof url === "string" ? url : url.toString());
-    expect(requestUrl.searchParams.has("since")).toBe(false);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const [url, init] = fetchMock.mock.calls[0] ?? [];
+    expect(url).toContain("/onboarding/progress?");
+    expect(url).toContain("tenant_id=tenant-123");
+    expect(init?.signal).toBe(controller.signal);
+    expect(init?.headers).toMatchObject({ "Content-Type": "application/json" });
   });
 });

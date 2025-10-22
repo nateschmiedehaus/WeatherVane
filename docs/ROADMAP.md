@@ -21,8 +21,15 @@ Objective: Prove that weather-aware recommendations drive measurable lift so mar
 4. ❗ Forecast reliability
    - Validate quantile calibration (target ≥80% coverage for p10–p90 band) and log results in `/calibration`.
    - Inflate forecast uncertainty for long horizons (Day 4–7) and disclose widened bands in plan UI.
+5. ❗ Full-fidelity demo brand
+   - Generate a realistic synthetic tenant (weather, Shopify, Meta, Google, Klaviyo) seeded from public schemas + Open-Meteo archives so the entire lake matches production column coverage.
+   - Stand up an automated pipeline that ingests the dataset, trains the MMM/causal stack end-to-end, and publishes allocator outputs + diagnostics as a regression fixture.
+   - Document dataset provenance, connector assumptions, and reset instructions in `docs/DEMO_BRAND_PLAYBOOK.md`; add smoke tests that fail if any connector payload shape or MMM outcome drifts.
+   - Feed three-year Open-Meteo daily history into `seed_synthetic_tenant`/`seed_synthetic_brand_portfolio`, enforce scenario guardrails via `tests/model/test_weather_brand_scenarios.py` + `tests/apps/model/test_train.py::test_weather_fit_flags_low_signal`, and wire Autopilot (task `T13.3.1`) to rerun those suites whenever modeling or geo reporting changes.
+   - Align synthetic + live geo coverage with platform limits: follow Meta Insights breakdown constraints (`country`, `region`, `dma` only; off-Meta actions omit `region`/`dma` per [Meta Marketing API – Insights Breakdowns](https://developers.facebook.com/docs/marketing-api/insights/breakdowns/)) and rely on first-party orders for city/ZIP lift; leverage Google Ads segments (`segments.geo_target_city`, `segments.geo_target_postal_code`, etc.) per [Google Ads API fields](https://developers.google.com/google-ads/api/fields/v22/segments) when campaigns export granular geo IDs.
+   - Evaluate Meteostat as a supplemental historical feed (station-level accuracy, CC-BY licence) to decide whether we should pair it with Open-Meteo for dense urban tenants; document findings and integration requirements.
 
-Exit criteria: A/B experiment results available for at least one tenant; plan UI displays significance, confidence, lift benchmarks, and clear causal disclaimers.
+Exit criteria: A/B experiment results available for at least one tenant; plan UI displays significance, confidence, lift benchmarks, and clear causal disclaimers; demo brand runs nightly on the full-fidelity synthetic dataset with green MMM/allocator diagnostics.
 
 ---
 

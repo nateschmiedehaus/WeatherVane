@@ -6,8 +6,12 @@ const tabs = [
   { href: "/", label: "Overview" },
   { href: "/setup", label: "Setup" },
   { href: "/plan", label: "Plan" },
+  { href: "/scenarios", label: "Scenarios" },
   { href: "/dashboard", label: "WeatherOps" },
+  { href: "/weather-runbook", label: "Runbook" },
   { href: "/stories", label: "Stories" },
+  { href: "/reports", label: "Reports" },
+  { href: "/experiments", label: "Experiments" },
   { href: "/catalog", label: "Catalog" },
   { href: "/automations", label: "Automations" },
 ];

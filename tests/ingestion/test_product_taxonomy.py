@@ -1,9 +1,30 @@
 from __future__ import annotations
 
+import json
 from typing import Iterable
 
 from apps.api.services.product_taxonomy import ProductTaxonomyService
 from shared.schemas.product_taxonomy import ProductSourceRecord
+from shared.services.product_taxonomy import ProductTaxonomyClassifier
+
+
+class _StubLLMResponse:
+    def __init__(self, text: str, model: str = "claude-test") -> None:
+        self.content = [{"type": "text", "text": text}]
+        self.model = model
+
+
+class _StubLLMMessages:
+    def __init__(self, text: str) -> None:
+        self._text = text
+
+    def create(self, **_: object) -> _StubLLMResponse:
+        return _StubLLMResponse(self._text)
+
+
+class _StubLLMClient:
+    def __init__(self, text: str) -> None:
+        self.messages = _StubLLMMessages(text)
 
 
 def _build_record(
@@ -118,6 +139,41 @@ def test_detects_gender_modifier_for_cross_brand_key() -> None:
     assert entry.weather_affinity in {"summer", "heat"}
     assert "womens" in entry.cross_brand_key
     assert entry.seasonality == "seasonal_q2_q3"
+
+
+def test_llm_classification_overrides_rule_based_result() -> None:
+    llm_payload = {
+        "category_l1": "electronics",
+        "category_l2": "smart_home_fans",
+        "weather_affinity": "heat",
+        "seasonality": "seasonal_q2_q3",
+        "confidence": 0.88,
+        "reasoning": "Smart fan clearly used for cooling in warm weather",
+    }
+    client = _StubLLMClient(json.dumps(llm_payload))
+    classifier = ProductTaxonomyClassifier(llm_client=client)
+    service = ProductTaxonomyService(classifier=classifier)
+
+    records = [
+        _build_record(
+            canonical_product_id="smart-fan-001",
+            product_id="shopify:smart-fan-001",
+            source="shopify",
+            product_name="Eco Breeze Smart Fan",
+            category="Home > Cooling",
+            tags=["smart", "fan", "cooling"],
+            description="Wi-Fi enabled smart fan with adaptive cooling modes and voice integration.",
+        )
+    ]
+
+    [entry] = service.classify(records)
+
+    assert entry.category_l1 == "electronics"
+    assert entry.category_l2 == "smart_home_fans"
+    assert entry.weather_affinity == "heat"
+    assert entry.seasonality == "seasonal_q2_q3"
+    assert entry.cross_brand_key.startswith("smart_home_fans_heat")
+    assert entry.evidence["llm_reasoning"].startswith("Smart fan")
 
 
 def test_falls_back_to_neutral_when_no_rule_matches() -> None:

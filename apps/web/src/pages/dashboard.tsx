@@ -11,10 +11,15 @@ import {
 import { useRouter } from "next/router";
 
 import { Layout } from "../components/Layout";
+import { ConsensusSummaryCard } from "../components/ConsensusSummaryCard";
+import { StaffingTelemetryPanel } from "../components/StaffingTelemetryPanel";
+import { RetryButton } from "../components/RetryButton";
 import styles from "../styles/dashboard.module.css";
 import {
   acknowledgeDashboardAlert,
   escalateDashboardAlert,
+  fetchConsensusWorkload,
+  fetchOrchestrationMetrics,
   fetchDashboard,
   recordDashboardSuggestionEvent,
 } from "../lib/api";
@@ -43,8 +48,11 @@ import {
   selectWeatherFocusSuggestion,
   buildWeatherSuggestionIdleStory,
   summarizeAllocatorPressure,
+  summarizeAllocatorDiagnostics,
   summarizeSuggestionTelemetry,
   buildSuggestionTelemetryOverview,
+  buildTenantSample,
+  buildDataCoverageInsight,
   describeHighRiskAlerts,
   topAllocatorRecommendations,
   formatWeatherKpiValue,
@@ -52,6 +60,8 @@ import {
   type SuggestionHighRiskSeverity,
   type EngagementConfidenceLevel,
   type SuggestionTelemetryOverview,
+  type AllocatorDiagnosticsSummary,
+  type AllocatorDeltaDirection,
   type WeatherFocusSuggestion,
 } from "../lib/dashboard-insights";
 import {
@@ -75,7 +85,12 @@ import type {
   IngestionConnector,
   WeatherRiskEvent,
   WeatherKpi,
+  CoverageStatus,
 } from "../types/dashboard";
+import type {
+  ConsensusWorkloadResponse,
+  OrchestrationMetricsResponse,
+} from "../types/operations";
 
 const TENANT_ID = process.env.NEXT_PUBLIC_TENANT_ID ?? "demo-tenant";
 const DEFAULT_ESCALATION_TARGET = "#weather-ops";
@@ -117,6 +132,34 @@ function formatPercentage(value: number): string {
   return `${scaled.toFixed(fractionDigits)}%`;
 }
 
+function buildAllocatorDeltaClass(direction: AllocatorDeltaDirection | null | undefined): string {
+  const classes = [styles.allocatorDelta];
+  if (direction === "positive") {
+    classes.push(styles.allocatorDeltaPositive);
+  } else if (direction === "negative") {
+    classes.push(styles.allocatorDeltaNegative);
+  }
+  return classes.join(" ");
+}
+
+function formatProjectionResidualValue(value: number | null): string {
+  if (value == null || !Number.isFinite(value)) {
+    return "0";
+  }
+  const magnitude = Math.abs(value);
+  let formatted: string;
+  if (magnitude >= 1) {
+    formatted = magnitude.toFixed(2);
+  } else if (magnitude >= 0.01) {
+    formatted = magnitude.toFixed(3);
+  } else if (magnitude >= 0.0001) {
+    formatted = magnitude.toFixed(4);
+  } else {
+    formatted = magnitude.toExponential(1);
+  }
+  return value < 0 ? `-${formatted}` : formatted;
+}
+
 function guardrailLabel(segment: GuardrailSegment): string {
   const valueLabel = formatCurrency(segment.value, segment.unit);
   const targetLabel = formatCurrency(segment.target, segment.unit);
@@ -152,6 +195,19 @@ function connectorBadge(status: IngestionConnector["status"]): { tone: BadgeTone
       return { tone: "info", label: "Syncing" };
     default:
       return { tone: "success", label: "Healthy" };
+  }
+}
+
+function coverageBadge(status: CoverageStatus): { tone: BadgeTone; label: string } {
+  switch (status) {
+    case "critical":
+      return { tone: "critical", label: "Action needed" };
+    case "warning":
+      return { tone: "caution", label: "Review" };
+    case "ok":
+      return { tone: "success", label: "On track" };
+    default:
+      return { tone: "muted", label: "Unknown" };
   }
 }
 
@@ -278,6 +334,47 @@ export function buildSuggestionTelemetryTopSignal(
     highRiskDetail: highRiskCopy.detail,
     highRiskSeverity: highRiskCopy.severity,
     highRiskCount: highRiskCopy.count,
+  };
+}
+
+export interface SuggestionTelemetryHighRiskStatDisplay {
+  value: string;
+  supportingText: string;
+  badge: string | null;
+  severity: SuggestionHighRiskSeverity;
+  assistiveText: string;
+}
+
+export function buildSuggestionTelemetryHighRiskStat(
+  overview: SuggestionTelemetryOverview | null | undefined,
+): SuggestionTelemetryHighRiskStatDisplay {
+  if (!overview) {
+    return {
+      value: "—",
+      supportingText: "High-risk telemetry unavailable",
+      badge: null,
+      severity: "none",
+      assistiveText: "High-risk alerts are unavailable for this time window.",
+    };
+  }
+
+  const description = describeHighRiskAlerts(
+    overview.topHighRiskSeverity,
+    overview.topHighRiskCount,
+  );
+  const hasCount = typeof overview.topHighRiskCount === "number";
+  const value = hasCount ? formatDashboardCount(overview.topHighRiskCount) : "—";
+  const supportingText = description.detail;
+  const assistiveLabel = description.detail.endsWith(".")
+    ? description.detail
+    : `${description.detail}.`;
+
+  return {
+    value,
+    supportingText,
+    badge: description.badge,
+    severity: description.severity,
+    assistiveText: assistiveLabel,
   };
 }
 
@@ -472,6 +569,15 @@ export default function DashboardPage() {
   const [ackPendingId, setAckPendingId] = useState<string | null>(null);
   const [escalatePendingId, setEscalatePendingId] = useState<string | null>(null);
   const [reloadCount, setReloadCount] = useState(0);
+  const [consensusWorkload, setConsensusWorkload] = useState<ConsensusWorkloadResponse | null>(null);
+  const [consensusLoading, setConsensusLoading] = useState(true);
+  const [consensusError, setConsensusError] = useState<string | null>(null);
+  const [consensusReloadCount, setConsensusReloadCount] = useState(0);
+  const [orchestrationMetrics, setOrchestrationMetrics] =
+    useState<OrchestrationMetricsResponse | null>(null);
+  const [metricsLoading, setMetricsLoading] = useState(true);
+  const [metricsError, setMetricsError] = useState<string | null>(null);
+  const [metricsReloadCount, setMetricsReloadCount] = useState(0);
   const [focusedRegion, setFocusedRegion] = useState<string | null>(null);
   const suggestionViewRef = useRef<string | null>(null);
   const suggestionFocusRef = useRef<WeatherFocusSuggestion | null>(null);
@@ -526,6 +632,60 @@ export default function DashboardPage() {
     };
   }, []);
 
+  const loadConsensus = useCallback(() => {
+    let active = true;
+    setConsensusLoading(true);
+    setConsensusError(null);
+    fetchConsensusWorkload()
+      .then((res) => {
+        if (!active) return;
+        setConsensusWorkload(res);
+        setConsensusError(null);
+      })
+      .catch((err: Error) => {
+        if (!active) return;
+        setConsensusWorkload(null);
+        setConsensusError(
+          err.message?.trim() || "Consensus telemetry temporarily unavailable.",
+        );
+      })
+      .finally(() => {
+        if (active) {
+          setConsensusLoading(false);
+        }
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const loadOrchestrationMetrics = useCallback(() => {
+    let active = true;
+    setMetricsLoading(true);
+    setMetricsError(null);
+    fetchOrchestrationMetrics()
+      .then((res) => {
+        if (!active) return;
+        setOrchestrationMetrics(res);
+        setMetricsError(null);
+      })
+      .catch((err: Error) => {
+        if (!active) return;
+        setOrchestrationMetrics(null);
+        setMetricsError(
+          err.message?.trim() || "Staffing telemetry temporarily unavailable.",
+        );
+      })
+      .finally(() => {
+        if (active) {
+          setMetricsLoading(false);
+        }
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
   useEffect(() => {
     if (isDemoMode) {
       setSnapshot(buildDemoDashboard());
@@ -536,6 +696,9 @@ export default function DashboardPage() {
     }
     return loadDashboard();
   }, [isDemoMode, loadDashboard, reloadCount]);
+
+  useEffect(() => loadConsensus(), [loadConsensus, consensusReloadCount]);
+  useEffect(() => loadOrchestrationMetrics(), [loadOrchestrationMetrics, metricsReloadCount]);
 
   const generatedAtIso = snapshot?.generated_at ?? null;
   const generatedAtDate = useMemo(
@@ -583,9 +746,28 @@ export default function DashboardPage() {
     () => buildSuggestionTelemetryTopSignal(suggestionTelemetryOverview),
     [suggestionTelemetryOverview],
   );
+  const suggestionTelemetryHighRiskStat = useMemo(
+    () => buildSuggestionTelemetryHighRiskStat(suggestionTelemetryOverview),
+    [suggestionTelemetryOverview],
+  );
   const hasSuggestionTelemetry = suggestionTelemetrySummaries.length > 0;
   const showSuggestionTelemetryOverview =
     hasSuggestionTelemetry && !!suggestionTelemetryOverview?.hasSignals;
+
+  const dataCoverageSnapshot = useMemo(
+    () => snapshot?.data_coverage ?? null,
+    [snapshot],
+  );
+  const coverageInsight = useMemo(
+    () => buildDataCoverageInsight(dataCoverageSnapshot),
+    [dataCoverageSnapshot],
+  );
+  const coverageStatusSummary = useMemo(
+    () => (coverageInsight ? coverageBadge(coverageInsight.status) : null),
+    [coverageInsight],
+  );
+  const coverageBuckets = coverageInsight?.buckets ?? [];
+  const hasCoverageInsights = coverageBuckets.length > 0;
 
   const guardrailSummary = useMemo(
     () => summarizeGuardrails(guardrails),
@@ -724,6 +906,23 @@ export default function DashboardPage() {
     () => topAllocatorRecommendations(allocatorSummary, 3),
     [allocatorSummary],
   );
+  const allocatorDiagnostics = useMemo<AllocatorDiagnosticsSummary | null>(
+    () => summarizeAllocatorDiagnostics(allocatorSummary),
+    [allocatorSummary],
+  );
+  const allocatorProjectionResidualLabel = useMemo<string | null>(() => {
+    if (!allocatorDiagnostics) {
+      return null;
+    }
+    const lower = allocatorDiagnostics.projectionResidualLower;
+    const upper = allocatorDiagnostics.projectionResidualUpper;
+    if (lower == null && upper == null) {
+      return null;
+    }
+    const lowerLabel = formatProjectionResidualValue(lower ?? 0);
+    const upperLabel = formatProjectionResidualValue(upper ?? 0);
+    return `${lowerLabel}/${upperLabel}`;
+  }, [allocatorDiagnostics]);
 
   useEffect(() => {
     if (isRegionFiltering || !suggestedRegion) {
@@ -922,7 +1121,7 @@ export default function DashboardPage() {
         return {
           title: "Incident mode",
           description:
-            "Guardrail breach detected. Coordinate a fix in Plan before re-enabling Autopilot.",
+            "Guardrail breach detected. Coordinate a fix in Plan before re-enabling Automation.",
           analyticsId: "dashboard.incident_mode",
           toneClass: styles.modeBannerIncident,
           cta: (
@@ -1076,13 +1275,16 @@ export default function DashboardPage() {
             <h1 className="ds-display">Guardrail &amp; Weather Command Center</h1>
             <p className="ds-body">
               Track allocator guardrails, connector latency, and upcoming weather events so
-              Autopilot stays one step ahead of risk.
+              Automation stays one step ahead of risk.
             </p>
           </div>
           <div className={styles.headerActions}>
             <button
               type="button"
-              onClick={() => setReloadCount((count) => count + 1)}
+              onClick={() => {
+                setReloadCount((count) => count + 1);
+                setConsensusReloadCount((count) => count + 1);
+              }}
               className="ds-button"
               data-analytics-id="dashboard.refresh"
               disabled={loading}
@@ -1198,6 +1400,49 @@ export default function DashboardPage() {
           </div>
         </section>
 
+        <section className={styles.consensusSection} aria-label="Consensus telemetry">
+          <div className={styles.consensusGrid}>
+            <div>
+              {consensusLoading ? (
+                <div className={`${styles.consensusStatus} ds-surface-glass`} role="status">
+                  <p className="ds-body">Loading consensus telemetry…</p>
+                </div>
+              ) : consensusError ? (
+                <div className={`${styles.consensusStatus} ds-surface-glass`} role="alert">
+                  <p className="ds-body">{consensusError}</p>
+                  <RetryButton onClick={() => setConsensusReloadCount((count) => count + 1)}>
+                    Retry consensus fetch
+                  </RetryButton>
+                </div>
+              ) : consensusWorkload ? (
+                <ConsensusSummaryCard
+                  workload={consensusWorkload}
+                  data-testid="consensus-summary"
+                />
+              ) : null}
+            </div>
+            <div>
+              {metricsLoading ? (
+                <div className={`${styles.consensusStatus} ds-surface-glass`} role="status">
+                  <p className="ds-body">Loading staffing telemetry…</p>
+                </div>
+              ) : metricsError ? (
+                <div className={`${styles.consensusStatus} ds-surface-glass`} role="alert">
+                  <p className="ds-body">{metricsError}</p>
+                  <RetryButton onClick={() => setMetricsReloadCount((count) => count + 1)}>
+                    Retry staffing fetch
+                  </RetryButton>
+                </div>
+              ) : orchestrationMetrics ? (
+                <StaffingTelemetryPanel
+                  metrics={orchestrationMetrics}
+                  data-testid="staffing-telemetry"
+                />
+              ) : null}
+            </div>
+          </div>
+        </section>
+
         {allocatorSummary ? (
           <section className={styles.allocatorSection}>
             <header className={styles.sectionHeader}>
@@ -1237,6 +1482,216 @@ export default function DashboardPage() {
                     <dd>{allocatorSummary.guardrail_breaches}</dd>
                   </div>
                 </dl>
+                {allocatorDiagnostics ? (
+                  <div className={styles.allocatorDiagnostics}>
+                    <div className={styles.allocatorDiagnosticsHeader}>
+                      <span className="ds-label-strong">Optimizer evidence</span>
+                      {allocatorDiagnostics.optimizerLabel ? (
+                        <p className="ds-caption">
+                          {allocatorDiagnostics.optimizerLabel} winner
+                        </p>
+                      ) : null}
+                    </div>
+                    <dl className={styles.allocatorDiagnosticsMetrics}>
+                      {(allocatorDiagnostics.baselineProfit != null ||
+                        allocatorDiagnostics.expectedProfitDelta != null) && (
+                        <div>
+                          <dt>Baseline profit</dt>
+                          <dd>
+                            {allocatorDiagnostics.baselineProfit != null
+                              ? formatCurrency(allocatorDiagnostics.baselineProfit)
+                              : "—"}
+                            {allocatorDiagnostics.expectedProfitDelta != null ? (
+                              <span
+                                className={buildAllocatorDeltaClass(
+                                  allocatorDiagnostics.expectedProfitDeltaDirection,
+                                )}
+                              >
+                                Δ vs expected {formatCurrency(allocatorDiagnostics.expectedProfitDelta)}
+                              </span>
+                            ) : null}
+                          </dd>
+                        </div>
+                      )}
+                      <div>
+                        <dt>P50 profit</dt>
+                        <dd>
+                          {allocatorDiagnostics.profitP50 != null
+                            ? formatCurrency(allocatorDiagnostics.profitP50)
+                            : "—"}
+                          {allocatorDiagnostics.profitP50Delta != null ? (
+                            <span
+                              className={buildAllocatorDeltaClass(
+                                allocatorDiagnostics.profitP50DeltaDirection,
+                              )}
+                            >
+                              Δ {formatCurrency(allocatorDiagnostics.profitP50Delta)}
+                            </span>
+                          ) : null}
+                        </dd>
+                      </div>
+                      <div>
+                        <dt>Expected profit</dt>
+                        <dd>
+                          {allocatorDiagnostics.expectedProfit != null
+                            ? formatCurrency(allocatorDiagnostics.expectedProfit)
+                            : "—"}
+                          {allocatorDiagnostics.profitLift != null ? (
+                            <span
+                              className={buildAllocatorDeltaClass(
+                                allocatorDiagnostics.profitLiftDirection,
+                              )}
+                            >
+                              Lift {formatCurrency(allocatorDiagnostics.profitLift)}
+                            </span>
+                          ) : null}
+                        </dd>
+                      </div>
+                      <div>
+                        <dt>Worst-case profit</dt>
+                        <dd>
+                          {allocatorDiagnostics.worstCaseProfit != null
+                            ? formatCurrency(allocatorDiagnostics.worstCaseProfit)
+                            : "—"}
+                        </dd>
+                      </div>
+                      {(allocatorDiagnostics.profitP10 != null ||
+                        allocatorDiagnostics.profitP90 != null) && (
+                        <div>
+                          <dt>Profit range (P10 - P90)</dt>
+                          <dd>
+                            {allocatorDiagnostics.profitP10 != null &&
+                            allocatorDiagnostics.profitP90 != null
+                              ? `${formatCurrency(
+                                  allocatorDiagnostics.profitP10,
+                                )} - ${formatCurrency(allocatorDiagnostics.profitP90)}`
+                              : allocatorDiagnostics.profitP10 != null
+                              ? `>= ${formatCurrency(allocatorDiagnostics.profitP10)}`
+                              : allocatorDiagnostics.profitP90 != null
+                              ? `<= ${formatCurrency(allocatorDiagnostics.profitP90)}`
+                              : "—"}
+                          </dd>
+                        </div>
+                      )}
+                    </dl>
+                    {(allocatorDiagnostics.evaluationCount != null ||
+                      allocatorDiagnostics.iterationCount != null ||
+                      allocatorDiagnostics.improvementCount != null ||
+                      allocatorDiagnostics.projectionTarget != null ||
+                      allocatorProjectionResidualLabel ||
+                      allocatorDiagnostics.wasMinSoftened != null ||
+                      allocatorDiagnostics.objectiveValue != null) && (
+                      <dl className={styles.allocatorDiagnosticsMeta}>
+                        <div>
+                          <dt>Solver evaluations</dt>
+                          <dd>
+                            {allocatorDiagnostics.evaluationCount != null
+                              ? formatDashboardCount(allocatorDiagnostics.evaluationCount)
+                              : "—"}
+                            {allocatorDiagnostics.successScore != null ? (
+                              <span className={styles.allocatorDelta}>
+                                Confidence{" "}
+                                {formatPercentage(
+                                  Math.max(
+                                    0,
+                                    Math.min(1, allocatorDiagnostics.successScore),
+                                  ),
+                                )}
+                              </span>
+                            ) : null}
+                          </dd>
+                        </div>
+                        <div>
+                          <dt>Solver iterations</dt>
+                          <dd>
+                            {allocatorDiagnostics.iterationCount != null
+                              ? formatDashboardCount(allocatorDiagnostics.iterationCount)
+                              : "—"}
+                            {allocatorDiagnostics.improvementCount != null ? (
+                              <span className={styles.allocatorDelta}>
+                                {formatDashboardCount(
+                                  allocatorDiagnostics.improvementCount,
+                                )}{" "}
+                                improvements
+                              </span>
+                            ) : null}
+                          </dd>
+                        </div>
+                        <div>
+                          <dt>Projection target</dt>
+                          <dd>
+                            {allocatorDiagnostics.projectionTarget != null
+                              ? formatCurrency(allocatorDiagnostics.projectionTarget)
+                              : "—"}
+                            {allocatorProjectionResidualLabel ? (
+                              <span className={styles.allocatorDelta}>
+                                Residual {allocatorProjectionResidualLabel}
+                              </span>
+                            ) : null}
+                          </dd>
+                        </div>
+                        {allocatorDiagnostics.wasMinSoftened != null ? (
+                          <div>
+                            <dt>Min guardrail</dt>
+                            <dd>
+                              {allocatorDiagnostics.wasMinSoftened ? "Softened" : "Exact"}
+                            </dd>
+                          </div>
+                        ) : null}
+                        {allocatorDiagnostics.objectiveValue != null ? (
+                          <div>
+                            <dt>Objective value</dt>
+                            <dd>{formatCurrency(allocatorDiagnostics.objectiveValue)}</dd>
+                          </div>
+                        ) : null}
+                      </dl>
+                    )}
+                    {allocatorDiagnostics.bindingHighlights.length ? (
+                      <ul className={styles.allocatorBindings}>
+                        {allocatorDiagnostics.bindingHighlights.map((highlight) => (
+                          <li key={highlight}>{highlight}</li>
+                        ))}
+                      </ul>
+                    ) : null}
+                    {allocatorDiagnostics.optimizerCandidates.length ? (
+                      <div className={styles.allocatorOptimizers}>
+                        <span className="ds-label-strong">Solver comparison</span>
+                        <ul className={styles.allocatorOptimizerList}>
+                          {allocatorDiagnostics.optimizerCandidates.map((candidate) => (
+                            <li
+                              key={candidate.id}
+                              className={[
+                                styles.allocatorOptimizerItem,
+                                candidate.isWinner ? styles.allocatorOptimizerWinner : "",
+                              ]
+                                .filter(Boolean)
+                                .join(" ")}
+                            >
+                              <div className={styles.allocatorOptimizerHeader}>
+                                <span className="ds-caption">{candidate.label}</span>
+                                {candidate.isWinner ? (
+                                  <span className={`ds-badge ${styles.badgeUpper}`} data-tone="success">
+                                    Winner
+                                  </span>
+                                ) : null}
+                              </div>
+                              <div className={styles.allocatorOptimizerMetrics}>
+                                <span className="ds-body-strong">
+                                  {candidate.profit != null ? formatCurrency(candidate.profit) : "—"}
+                                </span>
+                                <span className={styles.allocatorDelta}>
+                                  {candidate.success != null
+                                    ? `Success ${formatPercentage(candidate.success)}`
+                                    : "Success —"}
+                                </span>
+                              </div>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    ) : null}
+                  </div>
+                ) : null}
                 {allocatorSummary.notes.length ? (
                   <p className={`${styles.allocatorNote} ds-caption`}>
                     {allocatorSummary.notes[0]}
@@ -1300,7 +1755,7 @@ export default function DashboardPage() {
             <header className={styles.sectionHeader}>
               <h2 className="ds-title">Telemetry context</h2>
               <p className="ds-body">
-                Autopilot tags highlight active guardrails and ingestion caveats for this tenant.
+                Automation tags highlight active guardrails and ingestion caveats for this tenant.
               </p>
             </header>
             {contextTags.length ? (
@@ -1627,10 +2082,30 @@ export default function DashboardPage() {
                 </div>
                 <div>
                   <dt className="ds-caption">Top high-risk alerts</dt>
-                  <dd className={styles.suggestionTelemetryValue}>
-                    {suggestionTelemetryOverview.topHighRiskCount !== null
-                      ? formatDashboardCount(suggestionTelemetryOverview.topHighRiskCount)
-                      : "—"}
+                  <dd
+                    className={`${styles.suggestionTelemetryValue} ${styles.suggestionTelemetryHighRiskValue}`}
+                    data-level={suggestionTelemetryHighRiskStat.severity}
+                  >
+                    <span
+                      aria-hidden="true"
+                      className={styles.suggestionTelemetryValueNumber}
+                    >
+                      {suggestionTelemetryHighRiskStat.value}
+                    </span>
+                    <span className="sr-only">
+                      {`Top high-risk alerts. ${suggestionTelemetryHighRiskStat.assistiveText}`}
+                    </span>
+                    {suggestionTelemetryHighRiskStat.badge ? (
+                      <span
+                        className={styles.suggestionTelemetryRiskBadge}
+                        data-level={suggestionTelemetryHighRiskStat.severity}
+                      >
+                        {suggestionTelemetryHighRiskStat.badge}
+                      </span>
+                    ) : null}
+                    <span className={styles.suggestionTelemetryHighRiskDetail}>
+                      {suggestionTelemetryHighRiskStat.supportingText}
+                    </span>
                   </dd>
                 </div>
                 <div>
@@ -1711,6 +2186,24 @@ export default function DashboardPage() {
                     summary.highRiskSeverity,
                     summary.highRiskCount,
                   );
+                  if (summary.tenantCount > 0) {
+                    const { sample: tenantSample, remainder: tenantRemainder } = buildTenantSample(
+                      summary.tenantNames,
+                      2,
+                    );
+                    if (tenantSample.length > 0) {
+                      const tenantCountLabel = formatDashboardCount(summary.tenantCount);
+                      let tenantDescriptor = tenantSample.join(", ");
+                      if (tenantRemainder > 0) {
+                        tenantDescriptor = `${tenantDescriptor} +${tenantRemainder} more`;
+                      }
+                      const tenantMetaLabel =
+                        summary.tenantCount === 1 && tenantRemainder === 0
+                          ? `Tenant coverage: ${tenantDescriptor}`
+                          : `Tenant coverage: ${tenantCountLabel} (${tenantDescriptor})`;
+                      metaParts.push(tenantMetaLabel);
+                    }
+                  }
                   if (highRiskCopy.countLabel && !highRiskCopy.badge) {
                     metaParts.push(highRiskCopy.countLabel);
                   }
@@ -1818,7 +2311,7 @@ export default function DashboardPage() {
                   <p className="ds-body">
                     {isRegionFiltering && focusedRegion
                       ? `No forecasted weather events are pressuring ${focusedRegion} right now. We will flag new risk windows the moment forecasts shift.`
-                      : "All clear — no upcoming weather events are threatening spend. Autopilot will surface the next risk window automatically."}
+                      : "All clear — no upcoming weather events are threatening spend. Automation will surface the next risk window automatically."}
                   </p>
                   <p className="ds-caption">
                     Weather telemetry refreshes every 15 minutes or sooner during incidents.
@@ -1905,24 +2398,24 @@ export default function DashboardPage() {
 
         <section
           className={styles.automationSection}
-          data-analytics-id="dashboard.autopilot_status_view"
+          data-analytics-id="dashboard.automation_status_view"
         >
           <header className={styles.sectionHeader}>
             <h2 className="ds-title">Automation uptime</h2>
             <p className="ds-body">
-              Confirm Autopilot handoffs remain safe. Incident history rolls up to guardrail callouts above.
+              Confirm Automation handoffs remain safe. Incident history rolls up to guardrail callouts above.
             </p>
           </header>
           <div className={styles.automationGrid}>
             {!hasAutomation ? (
               <article
                 className={`${styles.emptyStateCard} ds-surface`}
-                data-analytics-id="dashboard.autopilot_status.empty_state"
+                data-analytics-id="dashboard.automation_status.empty_state"
                 data-size="compact"
               >
                 <h3 className="ds-label-strong">No automation lanes configured</h3>
                 <p className="ds-body">
-                  Wire Autopilot lanes in the worker config to track uptime and incident history
+                  Wire Automation lanes in the worker config to track uptime and incident history
                   here.
                 </p>
               </article>
@@ -1933,7 +2426,7 @@ export default function DashboardPage() {
                   <article
                     key={lane.name}
                     className={`${styles.automationCard} ds-surface-glass`}
-                    data-analytics-id={`dashboard.autopilot_status.${lane.name
+                    data-analytics-id={`dashboard.automation_status.${lane.name
                       .toLowerCase()
                       .replace(/\\s+/g, "-")}`}
                   >
@@ -1953,6 +2446,114 @@ export default function DashboardPage() {
               })
             )}
           </div>
+        </section>
+
+        <section className={styles.coverageSection}>
+          <header className={styles.sectionHeader}>
+            <div className={styles.sectionHeaderRow}>
+              <h2 className="ds-title">Data coverage</h2>
+              {coverageStatusSummary ? (
+                <span
+                  className={`ds-badge ${styles.badgeUpper}`}
+                  data-tone={coverageStatusSummary.tone}
+                >
+                  {coverageStatusSummary.label}
+                </span>
+              ) : null}
+            </div>
+            <p className="ds-body">
+              Trailing {coverageInsight?.windowDays ?? 90}-day completeness across sales, spend,
+              and weather joins.
+            </p>
+          </header>
+          {coverageInsight ? (
+            hasCoverageInsights ? (
+              <div className={styles.coverageGrid}>
+                {coverageBuckets.map((bucket) => {
+                  const badge = coverageBadge(bucket.status);
+                  const coveragePercent = formatPercentage(bucket.coverageRatio);
+                  const latestRelative = bucket.latestDateIso
+                    ? formatRelativeTime(bucket.latestDateIso, { now: generatedAtDate })
+                    : null;
+                  const bucketLabelSource = bucket.name && bucket.name.length ? bucket.name : bucket.key;
+                  const bucketTitle =
+                    bucketLabelSource.charAt(0).toUpperCase() + bucketLabelSource.slice(1);
+                  const geocodedPercent =
+                    typeof bucket.geocodedRatio === "number"
+                      ? formatPercentage(Math.max(0, Math.min(bucket.geocodedRatio, 1)))
+                      : null;
+                  return (
+                    <article
+                      key={bucket.key}
+                      className={`${styles.coverageCard} ds-surface-glass`}
+                      data-analytics-id={`dashboard.coverage.${bucket.key}`}
+                    >
+                      <header className={styles.coverageCardHeader}>
+                        <h3 className="ds-label-strong">{bucketTitle}</h3>
+                        <span
+                          className={`ds-badge ${styles.badgeUpper}`}
+                          data-tone={badge.tone}
+                        >
+                          {badge.label}
+                        </span>
+                      </header>
+                      <p className={styles.coverageValue}>{coveragePercent}</p>
+                      <p className="ds-caption">
+                        {bucket.observedDays} of {bucket.windowDays} days captured
+                        {bucket.missingDays > 0
+                          ? ` · Missing ${bucket.missingDays} day${
+                              bucket.missingDays === 1 ? "" : "s"
+                            }`
+                          : ""}
+                      </p>
+                      <p className="ds-caption">
+                        Latest {bucket.latestDateRaw ?? "unknown"}
+                        {latestRelative ? ` · ${latestRelative}` : ""}
+                      </p>
+                      {geocodedPercent ? (
+                        <p className="ds-caption">Geocoded orders {geocodedPercent}</p>
+                      ) : null}
+                      {bucket.issues.length > 0 ? (
+                        <ul className={styles.coverageIssues}>
+                          {bucket.issues.map((issue) => (
+                            <li key={issue} className="ds-caption">
+                              {issue}
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p className={`${styles.coverageNoIssues} ds-caption`}>
+                          No coverage issues detected.
+                        </p>
+                      )}
+                    </article>
+                  );
+                })}
+              </div>
+            ) : (
+              <div
+                className={`${styles.emptyStateCard} ds-surface`}
+                data-analytics-id="dashboard.coverage.waiting"
+                data-size="compact"
+              >
+                <h3 className="ds-label-strong">Waiting for coverage snapshot</h3>
+                <p className="ds-body">
+                  Run the coverage validator to capture sales, spend, and weather completeness.
+                </p>
+              </div>
+            )
+          ) : (
+            <div
+              className={`${styles.emptyStateCard} ds-surface`}
+              data-analytics-id="dashboard.coverage.missing"
+              data-size="compact"
+            >
+              <h3 className="ds-label-strong">No coverage telemetry yet</h3>
+              <p className="ds-body">
+                Trigger the tenant coverage validation job to populate this snapshot.
+              </p>
+            </div>
+          )}
         </section>
 
         <section className={styles.ingestionSection}>
@@ -2036,7 +2637,7 @@ export default function DashboardPage() {
           <header className={styles.sectionHeader}>
             <h2 className="ds-title">Alert inbox</h2>
             <p className="ds-body">
-              Triage and escalate incidents. Critical alerts pause Autopilot until acknowledged.
+              Triage and escalate incidents. Critical alerts pause Automation until acknowledged.
             </p>
           </header>
           {alertError ? (

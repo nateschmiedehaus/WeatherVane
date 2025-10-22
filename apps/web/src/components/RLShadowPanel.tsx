@@ -1,3 +1,4 @@
+import { buildShadowGuardrailSummary } from "../lib/shadow-insights";
 import type { ShadowRunReport } from "../types/allocator";
 import styles from "../styles/plan.module.css";
 
@@ -18,6 +19,7 @@ export function RLShadowPanel({ report }: Props) {
   const stressTest = validation.stress_test;
   const stressEpisodes = stressTest.episodes.slice(0, 5);
   const stressAssertions = stressTest.assertions ?? {};
+  const guardrailSummary = buildShadowGuardrailSummary(report);
 
   const formatShare = (value: number | undefined): string => {
     if (value === undefined || Number.isNaN(value)) return "—";
@@ -173,6 +175,33 @@ export function RLShadowPanel({ report }: Props) {
               </table>
             </div>
           )}
+        </div>
+      </div>
+
+      <div className={styles.guardrailStatus}>
+        <span className={styles.guardrailStatusBadge} data-tone={guardrailSummary.badgeTone}>
+          {guardrailSummary.badgeLabel}
+        </span>
+        <p className="ds-body">{guardrailSummary.message}</p>
+        <div className={styles.guardrailSummary}>
+          {guardrailSummary.items.map((item) => {
+            const width = Math.min(100, Math.max(0, Math.round(item.progress * 100)));
+            return (
+              <div key={item.label} className={styles.guardrailSummaryItem}>
+                <div>
+                  <span className="ds-caption">{item.label}</span>
+                  <span className="ds-body-strong">{item.detail}</span>
+                </div>
+                <div className={styles.guardrailBar} role="presentation">
+                  <div
+                    className={styles.guardrailBarFill}
+                    style={{ width: `${width}%` }}
+                    data-tone={item.tone === "pass" ? undefined : item.tone}
+                  />
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
 

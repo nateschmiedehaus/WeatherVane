@@ -18,13 +18,52 @@ export interface ConnectorProgress {
 
 export type AutomationAuditStatus = "approved" | "pending" | "shadow";
 
+export type AutomationAuditEvidenceTone = "success" | "caution" | "info";
+
+export interface AutomationAuditEvidenceLink {
+  href: string;
+  label: string;
+}
+
+export interface AutomationAuditEvidenceItem {
+  id: string;
+  label: string;
+  value: string;
+  tone?: AutomationAuditEvidenceTone;
+  context?: string;
+  link?: AutomationAuditEvidenceLink;
+}
+
+export type AutomationAuditActionIntent = "approve" | "rollback" | "view_evidence" | "acknowledge";
+
+export interface AutomationAuditAction {
+  id: string;
+  label: string;
+  intent?: AutomationAuditActionIntent;
+  href?: string;
+  tooltip?: string;
+}
+
+export interface AutomationAuditNarrative {
+  why?: string;
+  impact?: string;
+  impactLabel?: string;
+  impactValue?: string;
+  impactContext?: string;
+  nextStep?: string;
+}
+
 export interface AutomationAuditPreview {
   id: string;
   actor: string;
   headline: string;
   detail: string;
   timeAgo: string;
+  minutesAgo?: number;
   status: AutomationAuditStatus;
+  evidence?: AutomationAuditEvidenceItem[];
+  narrative?: AutomationAuditNarrative;
+  actions?: AutomationAuditAction[];
 }
 
 const CHANNEL_BLUEPRINT: Record<
@@ -131,7 +170,7 @@ const MODE_BLUEPRINT: Record<
       actor: "Assist queue",
       headline: (channelLabel) => `Assist ready: ${channelLabel} ramp in morning review`,
       detail: (channelLabel) =>
-        `${channelLabel} push simulated. Approvers will confirm before the 7am guardrail window.`,
+        `${channelLabel} push simulated. Approvers will confirm before the 7am safety window.`,
       minutesAgo: 6,
     },
     third: {
@@ -142,27 +181,331 @@ const MODE_BLUEPRINT: Record<
       minutesAgo: 120,
     },
   },
-  autopilot: {
-    label: "Autopilot · guardrails enforced",
+  automation: {
+    label: "Automation engine · safety band enforced",
     first: {
       status: "approved",
-      actor: "Autopilot engine",
-      headline: (channelLabel) => `Autopilot executed ${channelLabel} ramp`,
+      actor: "Automation engine",
+      headline: (channelLabel) => `Automation engine executed ${channelLabel} ramp`,
       detail: (channelLabel) =>
-        `${channelLabel} budgets rebalanced +12% within delta guardrails. Shadow rollback primed.`,
+        `${channelLabel} budgets rebalanced +12% inside the shared safety band. Shadow rollback primed.`,
       minutesAgo: 4,
     },
     third: {
       status: "shadow",
       actor: "Telemetry monitor",
       headline: "Shadow rollback rehearsal logged",
-      detail: "Autopilot replayed ramp in shadow to validate rollback path & retention hooks.",
+      detail: "Automation engine replayed ramp in shadow to validate rollback path & retention hooks.",
       minutesAgo: 90,
+    },
+  },
+  autopilot: {
+    label: "Autopilot runtime · self-healing",
+    first: {
+      status: "approved",
+      actor: "Autopilot runtime",
+      headline: (channelLabel) => `Autopilot executed ${channelLabel} ramp end-to-end`,
+      detail: (channelLabel) =>
+        `${channelLabel} budgets rebalanced autonomously. Autopilot synced telemetry + rehearsal evidence in real time.`,
+      minutesAgo: 3,
+    },
+    third: {
+      status: "pending",
+      actor: "Shadow rehearsal desk",
+      headline: "Shadow rehearsal ready for promotion",
+      detail:
+        "Shadow autopilot rehearsal cleared guardrails. Manual promotion recommended to capture exec signature.",
+      minutesAgo: 54,
     },
   },
 };
 
-const GUARDRAIL_DETAIL = "Guardrails · max Δ 12% · ROAS floor 1.6× · change windows: weekdays";
+const SAFETY_BAND_DETAIL = "Safety band · max Δ 12% · ROAS floor 1.6× · change windows: weekdays";
+
+function buildEvidenceTone(
+  tone: string | undefined,
+  fallback: AutomationAuditEvidenceTone = "info",
+): AutomationAuditEvidenceTone {
+  if (tone === "success" || tone === "caution" || tone === "info") {
+    return tone;
+  }
+  return fallback;
+}
+
+function buildEvidenceForStatus(
+  status: AutomationAuditStatus,
+  channelLabel: string,
+  mode: AutomationMode,
+): AutomationAuditEvidenceItem[] {
+  const normalizedMode: Exclude<AutomationMode, "autopilot"> =
+    mode === "autopilot" ? "automation" : mode;
+
+  if (status === "approved") {
+    const roasValue =
+      normalizedMode === "automation" ? "2.3×" : normalizedMode === "assist" ? "2.1×" : "1.9×";
+    const budgetDelta =
+      normalizedMode === "automation" ? "+10.8%" : normalizedMode === "assist" ? "+9.4%" : "+7.2%";
+    const rehearsalContext =
+      mode === "autopilot"
+        ? "Shadow autopilot replay validated rollback hooks and retention signals."
+        : "Shadow automation replay validated rollback hooks and retention signals.";
+    return [
+      {
+        id: "roas-proof",
+        label: "ROAS uplift",
+        value: roasValue,
+        tone: "success",
+        context: `Weighted against the ${channelLabel} control cell across the last 14 days.`,
+      },
+      {
+        id: "budget-window",
+        label: "Budget shift",
+        value: budgetDelta,
+        tone: "success",
+        context: `Inside the ${SAFETY_BAND_DETAIL.toLowerCase()}. Weather surge forecast accounted for.`,
+      },
+      {
+        id: "rollback-readiness",
+        label: "Rollback rehearsal",
+        value: "3 passes",
+        tone: "info",
+        context: rehearsalContext,
+        link: {
+          label: "Open rehearsal log",
+          href: "https://demo.weathervane.ai/audit/rollback/demo",
+        },
+      },
+    ];
+  }
+
+  if (status === "pending") {
+    const reviewer =
+      mode === "manual" ? "Marketing Ops" : mode === "autopilot" ? "Autopilot oversight" : "Ops & Finance";
+    const sla = mode === "manual" ? "2h SLA" : mode === "autopilot" ? "30m SLA" : "45m SLA";
+    return [
+      {
+        id: "reviewer",
+        label: "Reviewer",
+        value: reviewer,
+        tone: "info",
+        context: `${sla} before the review window closes for the ${channelLabel} push.`,
+      },
+      {
+        id: "confidence-band",
+        label: "Confidence",
+        value: "88%",
+        tone: "success",
+        context: "Scenario coverage across heat surge and humidity safety bands for this channel.",
+      },
+      {
+        id: "proof-bundle",
+        label: "Proof bundle",
+        value: "Signed hash",
+        tone: "info",
+        context: "Compliance packet ready for download once approvals log is complete.",
+        link: {
+          label: "Preview bundle",
+          href: "https://demo.weathervane.ai/audit/bundles/demo",
+        },
+      },
+    ];
+  }
+
+  const variance =
+    normalizedMode === "automation" ? "±0.6%" : normalizedMode === "assist" ? "±0.9%" : "±1.1%";
+  return [
+    {
+      id: "simulation-load",
+      label: "Simulation",
+      value: normalizedMode === "automation" ? "24 runs" : "18 runs",
+      tone: "info",
+      context: "Safety rehearsal coverage over the last 30 minutes of weather volatility.",
+    },
+    {
+      id: "variance-band",
+      label: "Variance",
+      value: variance,
+      tone: "success",
+      context: "Within rollback tolerance threshold. No breach escalations recorded.",
+    },
+    {
+      id: "retention-hook",
+      label: "Retention hook",
+      value: "Live",
+      tone: "success",
+      context: "Retention webhooks captured evidence packets for exec review.",
+      link: {
+        label: "View retention log",
+        href: "https://demo.weathervane.ai/audit/retention/demo",
+      },
+    },
+  ];
+}
+
+export function mergeEvidenceWithFallback(
+  evidence: AutomationAuditEvidenceItem[] | undefined,
+  fallback: AutomationAuditEvidenceItem[] | undefined,
+): AutomationAuditEvidenceItem[] | undefined {
+  if (evidence && evidence.length > 0) {
+    return evidence.map((item, index) => {
+      const fallbackItem =
+        (item.id && fallback?.find((candidate) => candidate.id === item.id)) ?? fallback?.[index];
+      const label = item.label || fallbackItem?.label || `Evidence ${index + 1}`;
+      const value = item.value || fallbackItem?.value || "";
+      return {
+        id: item.id || fallbackItem?.id || `evidence-${index}`,
+        label,
+        value,
+        tone: buildEvidenceTone(item.tone, fallbackItem?.tone),
+        context: item.context ?? fallbackItem?.context,
+        link: item.link ?? fallbackItem?.link,
+      };
+    });
+  }
+  return fallback;
+}
+
+function createActionId(auditId: string, suffix: string): string {
+  const base = auditId.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "audit";
+  return `${base}-${suffix}`;
+}
+
+function findEvidenceById(
+  evidence: AutomationAuditEvidenceItem[] | undefined,
+  id: string,
+): AutomationAuditEvidenceItem | undefined {
+  return evidence?.find((item) => item.id === id);
+}
+
+function buildAuditNarrative(
+  status: AutomationAuditStatus,
+  detail: string,
+  channelLabel: string,
+  _mode: AutomationMode,
+  evidence: AutomationAuditEvidenceItem[] | undefined,
+): AutomationAuditNarrative {
+  if (status === "pending") {
+    const reviewer = findEvidenceById(evidence, "reviewer");
+    const confidence = findEvidenceById(evidence, "confidence-band");
+    return {
+      why: detail,
+      impactLabel: confidence?.label ?? "Confidence",
+      impactValue: confidence?.value ?? "Pending",
+      impactContext:
+        confidence?.context ??
+        "WeatherVane is holding the change until a human reviewer signs off.",
+      impact:
+        reviewer?.value && reviewer.value.length > 0
+          ? `${reviewer.value} still needs to sign off before WeatherVane pushes live.`
+          : "A reviewer still needs to approve before WeatherVane pushes live.",
+      nextStep:
+        reviewer?.value && reviewer.value.length > 0
+          ? `${reviewer.value} can approve or request changes from the review queue.`
+          : `Approve or request changes before the ${channelLabel} review window closes.`,
+    };
+  }
+
+  if (status === "approved") {
+    const uplift = findEvidenceById(evidence, "roas-proof");
+    const budget = findEvidenceById(evidence, "budget-window");
+    const rehearsal = findEvidenceById(evidence, "rollback-readiness");
+    const primary = uplift ?? budget ?? evidence?.[0];
+    return {
+      why: detail,
+      impactLabel: primary?.label ?? "Impact",
+      impactValue: primary?.value ?? "Healthy",
+      impactContext:
+        primary?.context ??
+        `Budget shifts stayed inside the ${SAFETY_BAND_DETAIL.toLowerCase()}.`,
+      impact: budget
+        ? `${budget.value} shift executed inside the safety band.`
+        : "Automation engine executed the plan inside the agreed safety band.",
+      nextStep:
+        rehearsal?.value && rehearsal.value.length > 0
+          ? `Rollback rehearsal ready (${rehearsal.value}); trigger it if live metrics soften.`
+          : "Monitor live performance; request a rollback if the trend slips.",
+    };
+  }
+
+  const simulation = findEvidenceById(evidence, "simulation-load");
+  const variance = findEvidenceById(evidence, "variance-band");
+  return {
+    why: detail,
+    impactLabel: simulation?.label ?? "Rehearsal load",
+    impactValue: simulation?.value ?? "Shadow",
+    impactContext:
+      simulation?.context ??
+      "Shadow rehearsal validates the rollback path against live weather swings.",
+    impact: variance
+      ? `Variance holding at ${variance.value}; rehearsal coverage looks stable.`
+      : "Rehearsal coverage looks stable across safety checks.",
+    nextStep: "Promote the rehearsal once manual spot checks line up with expectations.",
+  };
+}
+
+function buildAuditActions(
+  auditId: string,
+  status: AutomationAuditStatus,
+  evidence: AutomationAuditEvidenceItem[] | undefined,
+): AutomationAuditAction[] {
+  const encodedId = encodeURIComponent(auditId);
+  const reviewHref = `/automations/review?audit=${encodedId}`;
+  const rollbackHref = `/automations/rollback?audit=${encodedId}`;
+  const defaultEvidenceHref = `/automations/evidence?audit=${encodedId}`;
+  const evidenceLink = evidence?.find((item) => Boolean(item.link?.href))?.link?.href;
+
+  if (status === "pending") {
+    return [
+      {
+        id: createActionId(auditId, "approve"),
+        label: "Approve change",
+        intent: "approve",
+        href: reviewHref,
+      },
+      {
+        id: createActionId(auditId, "rollback"),
+        label: "Request rollback",
+        intent: "rollback",
+        href: rollbackHref,
+      },
+    ];
+  }
+
+  if (status === "approved") {
+    return [
+      {
+        id: createActionId(auditId, "evidence"),
+        label: "View evidence",
+        intent: "view_evidence",
+        href: defaultEvidenceHref,
+        tooltip: evidenceLink,
+      },
+      {
+        id: createActionId(auditId, "rollback"),
+        label: "Request rollback",
+        intent: "rollback",
+        href: rollbackHref,
+      },
+    ];
+  }
+
+  const rehearsalLink =
+    findEvidenceById(evidence, "rollback-readiness")?.link?.href ?? evidenceLink ?? defaultEvidenceHref;
+  return [
+    {
+      id: createActionId(auditId, "promote"),
+      label: "Promote rehearsal",
+      intent: "approve",
+      href: reviewHref,
+    },
+    {
+      id: createActionId(auditId, "rehearsal-log"),
+      label: "Open rehearsal log",
+      intent: "view_evidence",
+      href: rehearsalLink,
+    },
+  ];
+}
 
 function formatRelative(minutes: number): string {
   if (minutes < 1) {
@@ -248,31 +591,78 @@ export function buildAutomationAuditPreview(
 ): AutomationAuditPreview[] {
   const channelLabel = getChannelLabel(preferences.primaryChannel);
   const modeBlueprint = MODE_BLUEPRINT[preferences.automationComfort];
+  const firstDetail = modeBlueprint.first.detail(channelLabel);
+  const thirdDetail = modeBlueprint.third.detail;
+  const firstEvidence = buildEvidenceForStatus(
+    modeBlueprint.first.status,
+    channelLabel,
+    preferences.automationComfort,
+  );
+  const shadowEvidence = buildEvidenceForStatus(
+    "shadow",
+    channelLabel,
+    preferences.automationComfort,
+  );
+  const thirdEvidence = buildEvidenceForStatus(
+    modeBlueprint.third.status,
+    channelLabel,
+    preferences.automationComfort,
+  );
 
   return [
     {
       id: "audit-1",
       actor: modeBlueprint.first.actor,
       headline: modeBlueprint.first.headline(channelLabel),
-      detail: modeBlueprint.first.detail(channelLabel),
+      detail: firstDetail,
       timeAgo: formatRelative(modeBlueprint.first.minutesAgo),
+      minutesAgo: modeBlueprint.first.minutesAgo,
       status: modeBlueprint.first.status,
+      evidence: firstEvidence,
+      narrative: buildAuditNarrative(
+        modeBlueprint.first.status,
+        firstDetail,
+        channelLabel,
+        preferences.automationComfort,
+        firstEvidence,
+      ),
+      actions: buildAuditActions("audit-1", modeBlueprint.first.status, firstEvidence),
     },
     {
       id: "audit-2",
-      actor: "Guardrail engine",
-      headline: "Guardrail simulation passed",
-      detail: `${GUARDRAIL_DETAIL} · ${channelLabel}`,
+      actor: "Safety rehearsal engine",
+      headline: "Safety rehearsal cleared",
+      detail: `Shadow replay covered the ${SAFETY_BAND_DETAIL.toLowerCase()} for ${channelLabel}.`,
       timeAgo: formatRelative(24),
+      minutesAgo: 24,
       status: "shadow",
+      evidence: shadowEvidence,
+      narrative: buildAuditNarrative(
+        "shadow",
+        `Shadow replay covered the ${SAFETY_BAND_DETAIL.toLowerCase()} for ${channelLabel}.`,
+        channelLabel,
+        preferences.automationComfort,
+        shadowEvidence,
+      ),
+      actions: buildAuditActions("audit-2", "shadow", shadowEvidence),
     },
     {
       id: "audit-3",
       actor: modeBlueprint.third.actor,
       headline: modeBlueprint.third.headline,
-      detail: modeBlueprint.third.detail,
+      detail: thirdDetail,
       timeAgo: formatRelative(modeBlueprint.third.minutesAgo),
+      minutesAgo: modeBlueprint.third.minutesAgo,
       status: modeBlueprint.third.status,
+      evidence: thirdEvidence,
+      narrative: buildAuditNarrative(
+        modeBlueprint.third.status,
+        thirdDetail,
+        channelLabel,
+        preferences.automationComfort,
+        thirdEvidence,
+      ),
+      actions: buildAuditActions("audit-3", modeBlueprint.third.status, thirdEvidence),
     },
   ];
 }

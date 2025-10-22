@@ -8,25 +8,32 @@ import { ContextPanel } from "../components/ContextPanel";
 import { IncrementalityPanel } from "../components/IncrementalityPanel";
 import { DisclaimerBanner } from "../components/DisclaimerBanner";
 import { Layout } from "../components/Layout";
+import { ConfidenceMixBar } from "../components/ConfidenceMixBar";
+import { LiftConfidenceCard } from "../components/LiftConfidenceCard";
+import { PlanDownloadButton } from "../components/PlanDownloadButton";
 import { OnboardingConnectorList } from "../components/OnboardingConnectorList";
+import { RetryButton } from "../components/RetryButton";
 import styles from "../styles/plan.module.css";
 import { fetchPlan } from "../lib/api";
 import { useDemo } from "../lib/demo";
 import { buildDemoPlan } from "../demo/plan";
 import { useOnboardingProgress } from "../hooks/useOnboardingProgress";
+import { useTheme } from "../lib/theme";
 import type { ConfidenceLevel, PlanResponse, PlanSlice } from "../types/plan";
 import {
+  computeConfidenceMixSummary,
   computeHeroMetricSummary,
   deriveOpportunityQueue,
   driverFromSlice,
   type OpportunityKind,
 } from "../lib/plan-insights";
+import { getSurfaceTokens } from "../../styles/themes";
 
 const TENANT_ID = process.env.NEXT_PUBLIC_TENANT_ID ?? "demo-tenant";
 const HORIZON_DAYS = Number(process.env.NEXT_PUBLIC_PLAN_HORIZON ?? "7");
 const PLAN_PERSONA_STORAGE_KEY = "wvo-plan-persona-mode";
 
-type PersonaMode = "demo" | "assist" | "autopilot";
+type PersonaMode = "demo" | "assist" | "automation";
 
 interface PersonaOption {
   id: PersonaMode;
@@ -49,10 +56,10 @@ const PERSONA_OPTIONS: PersonaOption[] = [
     analyticsId: "plan.mode.assist",
   },
   {
-    id: "autopilot",
-    label: "Autopilot",
+    id: "automation",
+    label: "Automation",
     description: "Guardrails execute autonomously",
-    analyticsId: "plan.mode.autopilot",
+    analyticsId: "plan.mode.automation",
   },
 ];
 
@@ -69,17 +76,17 @@ const PERSONA_PROMPTS: Record<
   },
   assist: {
     title: "Review today’s diff drawer",
-    body: "Approve or adjust the primary automation so Autopilot can inherit your guardrail decisions. Record rationale for Sarah in Stories.",
+    body: "Approve or adjust the primary automation so the automated engine can inherit your guardrail decisions. Record rationale for Sarah in Stories.",
     ctaLabel: "Jump to Automations",
     href: "/automations?source=plan",
     analyticsId: "plan.prompt.assist_automations",
   },
-  autopilot: {
+  automation: {
     title: "Monitor WeatherOps uptime",
-    body: "Keep an eye on guardrail health and connector latency. Any sustained anomaly will pause Autopilot pushes until an operator acknowledges it.",
+    body: "Keep an eye on guardrail health and connector latency. Any sustained anomaly will pause automated pushes until an operator acknowledges it.",
     ctaLabel: "Open WeatherOps dashboard",
     href: "/dashboard?source=plan",
-    analyticsId: "plan.prompt.autopilot_dashboard",
+    analyticsId: "plan.prompt.automation_dashboard",
   },
 };
 
@@ -142,7 +149,7 @@ const OPPORTUNITY_TARGETS: Record<
   risk: {
     href: "/dashboard?tab=guardrails&source=plan",
     label: "Acknowledge guardrail",
-    helper: "Resolve the alert so Autopilot can resume confidently.",
+    helper: "Resolve the alert so automation can resume confidently.",
   },
 };
 
@@ -260,6 +267,8 @@ export default function PlanPage() {
   const [reloadCount, setReloadCount] = useState(0);
   const [scenarioId, setScenarioId] = useState<ScenarioId>("base");
   const router = useRouter();
+  const { theme } = useTheme();
+  const surfaceTokens = useMemo(() => getSurfaceTokens(theme, "plan"), [theme]);
   const { isDemoActive, preferences, activateDemo, resetDemo, setPreferences } = useDemo();
 
   const demoParam = router.query.demo;
@@ -272,7 +281,7 @@ export default function PlanPage() {
   const isDemoMode = isDemoActive || wantsDemo;
 
   const defaultMode: PersonaMode =
-    preferences.automationComfort === "autopilot" ? "autopilot" : "assist";
+    preferences.automationComfort === "automation" ? "automation" : "assist";
   const [personaMode, setPersonaMode] = useState<PersonaMode>(
     isDemoActive ? "demo" : defaultMode,
   );
@@ -280,7 +289,7 @@ export default function PlanPage() {
   useEffect(() => {
     if (typeof window === "undefined") return;
     const stored = window.localStorage.getItem(PLAN_PERSONA_STORAGE_KEY);
-    if (stored === "demo" || stored === "assist" || stored === "autopilot") {
+    if (stored === "demo" || stored === "assist" || stored === "automation") {
       setPersonaMode(stored);
     }
   }, []);
@@ -292,7 +301,7 @@ export default function PlanPage() {
     }
     setPersonaMode((current) => {
       if (current === "demo") {
-        return preferences.automationComfort === "autopilot" ? "autopilot" : "assist";
+        return preferences.automationComfort === "automation" ? "automation" : "assist";
       }
       return current;
     });
@@ -403,7 +412,7 @@ export default function PlanPage() {
         resetDemo();
       }
 
-      const nextComfort = mode === "autopilot" ? "autopilot" : "assist";
+      const nextComfort = mode === "automation" ? "automation" : "assist";
       if (preferences.automationComfort !== nextComfort) {
         setPreferences({ ...preferences, automationComfort: nextComfort });
       }
@@ -472,20 +481,10 @@ export default function PlanPage() {
     return formatDateRange(dates);
   }, [slices]);
 
-  const confidenceBreakdown: ConfidenceBreakdown = useMemo(
-    () =>
-      slices.reduce(
-        (acc, slice) => {
-          acc[slice.confidence] += 1;
-          return acc;
-        },
-        { HIGH: 0, MEDIUM: 0, LOW: 0 } as ConfidenceBreakdown,
-      ),
-    [slices],
-  );
-
-  const totalConfidenceSlices =
-    confidenceBreakdown.HIGH + confidenceBreakdown.MEDIUM + confidenceBreakdown.LOW;
+  const confidenceMix = useMemo(() => computeConfidenceMixSummary(slices), [slices]);
+  const confidenceBreakdown: ConfidenceBreakdown = confidenceMix.counts;
+  const totalConfidenceSlices = confidenceMix.total;
+  const heroConfidenceSegments = confidenceMix.segments;
 
   const dayOutlook: DayOutlook[] = useMemo(() => {
     if (!slices.length) return [];
@@ -562,8 +561,12 @@ export default function PlanPage() {
     heroSummary.roiDeltaPct === null
       ? "Awaiting telemetry"
       : `${heroSummary.roiDeltaPct >= 0 ? "+" : ""}${heroSummary.roiDeltaPct.toFixed(
-          0,
+          heroSummary.roiDeltaPct >= 10 ? 0 : 1,
         )}% vs spend`;
+  const heroLiftLabel =
+    heroSummary.liftAmount === null ? "—" : formatCurrencyDelta(heroSummary.liftAmount);
+  const heroLiftContext =
+    heroSummary.liftAmount === null ? "Awaiting telemetry" : "Incremental revenue vs spend";
   const guardrailConfidenceLabel = formatPercentage(heroSummary.guardrailConfidencePct);
   const guardrailConfidenceValue =
     heroSummary.guardrailConfidencePct === null
@@ -581,7 +584,7 @@ export default function PlanPage() {
       <Head>
         <title>WeatherVane · Plan</title>
       </Head>
-      <div className={styles.root}>
+      <div className={styles.root} style={surfaceTokens}>
         <DisclaimerBanner message="Predictions reflect historical correlations; causal lift remains under validation until Phase 4 completes." />
 
         <header className={styles.hero}>
@@ -602,7 +605,7 @@ export default function PlanPage() {
                   <Link href="/setup" className={styles.demoLink} data-analytics-id="plan.demo.setup">
                     Open the setup bridge
                   </Link>{" "}
-                  to connect live systems and graduate into assist or Autopilot mode.
+                  to connect live systems and graduate into assist or automation mode.
                 </p>
               </div>
             )}
@@ -616,6 +619,13 @@ export default function PlanPage() {
                 </dd>
               </div>
               <div>
+                <dt>Projected lift (p50)</dt>
+                <dd>
+                  <span className={styles.metricValue}>{heroLiftLabel}</span>
+                  <span className={styles.metricHint}>{heroLiftContext}</span>
+                </dd>
+              </div>
+              <div>
                 <dt>Guardrail confidence</dt>
                 <dd>
                   <span className={styles.metricValue}>{guardrailConfidenceLabel}</span>
@@ -625,6 +635,11 @@ export default function PlanPage() {
                       style={{ width: `${guardrailConfidenceValue}%` }}
                     />
                   </span>
+                  <ConfidenceMixBar
+                    segments={heroConfidenceSegments}
+                    total={totalConfidenceSlices}
+                    className={styles.heroConfidenceMix}
+                  />
                 </dd>
               </div>
               <div>
@@ -660,16 +675,28 @@ export default function PlanPage() {
               </dl>
               {hasPlanContent && (
                 <div className={styles.heroActions}>
-                  <Link
-                    href="/reports?source=plan"
-                    className={styles.heroShareCta}
-                    data-analytics-id="plan.banner.share"
-                  >
-                    Open executive report →
-                  </Link>
-                  <p className={styles.heroActionsHint}>
-                    Share this week’s ROI storyline with Sarah ahead of the exec review.
-                  </p>
+                  <div className={styles.heroAction}>
+                    <Link
+                      href="/reports?source=plan"
+                      className={styles.heroShareCta}
+                      data-analytics-id="plan.banner.share"
+                    >
+                      Open executive report →
+                    </Link>
+                    <p className={styles.heroActionsHint}>
+                      Share this week’s ROI storyline with Sarah ahead of the exec review.
+                    </p>
+                  </div>
+                  <div className={styles.heroAction}>
+                    <PlanDownloadButton
+                      plan={plan}
+                      tenantId={TENANT_ID}
+                      className={styles.heroShareCta}
+                    />
+                    <p className={styles.heroActionsHint}>
+                      Export the full recommendation set to audit lift and guardrails offline.
+                    </p>
+                  </div>
                 </div>
               )}
             </div>
@@ -716,9 +743,7 @@ export default function PlanPage() {
               for pipeline status.
             </p>
             <div className={styles.errorActions}>
-              <button type="button" onClick={handleRetry} className={styles.retryButton}>
-                Try again
-              </button>
+              <RetryButton onClick={handleRetry}>Try again</RetryButton>
             </div>
           </div>
         )}
@@ -831,6 +856,14 @@ export default function PlanPage() {
                 <p className={styles.scenarioFootnote}>
                   Scenario effect applied: {selectedScenario.description.toLowerCase()}.
                 </p>
+                <div className={styles.scenarioBuilderCta}>
+                  <Link href="/scenarios" className={styles.scenarioBuilderLink}>
+                    Open advanced scenario builder →
+                  </Link>
+                  <span className="ds-caption">
+                    Tune channel-level assumptions and export what-if briefs for Sarah and Priya.
+                  </span>
+                </div>
                 <div className={styles.dayGrid}>
                   {scenarioOutlook.map((day) => (
                     <article key={day.dateKey} className={styles.dayCard}>
@@ -906,7 +939,7 @@ export default function PlanPage() {
                 <div className={styles.sectionHeader}>
                   <h3 className="ds-title">Connector tracker</h3>
                   <p className="ds-caption">
-                    Keep ingestion healthy so WeatherOps can maintain Autopilot guardrails.
+                    Keep ingestion healthy so WeatherOps can maintain automation guardrails.
                   </p>
                 </div>
                 <OnboardingConnectorList
@@ -934,7 +967,7 @@ export default function PlanPage() {
                 <div className={styles.sectionHeader}>
                   <h3 className="ds-title">Activity rail</h3>
                   <p className="ds-caption">
-                    Live feed of Autopilot pushes, approvals, and annotations.
+                    Live feed of automation pushes, approvals, and annotations.
                   </p>
                 </div>
                 <AutomationAuditList
@@ -956,6 +989,10 @@ export default function PlanPage() {
             <IncrementalityPanel
               design={plan?.incrementality_design ?? null}
               summary={plan?.incrementality_summary ?? null}
+            />
+            <LiftConfidenceCard
+              lift={plan?.lift_summary ?? null}
+              experiment={plan?.experiments?.[0] ?? null}
             />
             <div className={styles.contextMeta}>
               <div className={styles.metaRow}>

@@ -89,6 +89,26 @@ def test_get_creative_response_returns_payload(monkeypatch, tmp_path):
                         "profit_expectation": 0.06,
                     },
                 ],
+                "channel_guardrails": [
+                    {
+                        "channel": "meta",
+                        "creative_count": 2,
+                        "active_creatives": 1,
+                        "watchlist_creatives": 1,
+                        "blocked_creatives": 0,
+                        "flagged_creatives": 1,
+                        "active_spend_share": 0.6,
+                        "watchlist_spend_share": 0.4,
+                        "blocked_spend_share": 0.0,
+                        "flagged_spend_share": 0.4,
+                        "average_roas": 2.38,
+                        "average_brand_safety": 0.695,
+                        "top_guardrail": "brand_safety_watch",
+                        "top_guardrail_count": 1,
+                        "representative_creative": "cr_002",
+                        "representative_status": "watchlist",
+                    }
+                ],
             }
         )
     )
@@ -104,3 +124,5 @@ def test_get_creative_response_returns_payload(monkeypatch, tmp_path):
     assert payload["summary"]["active_spend_share"] == 0.6
     assert payload["summary"]["watchlist_spend_share"] == 0.4
     assert payload["summary"]["guardrail_counts"]["brand_safety_watch"] == 1
+    assert payload["channel_guardrails"][0]["channel"] == "meta"
+    assert payload["channel_guardrails"][0]["representative_creative"] == "cr_002"

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import math
+from collections import defaultdict
 
 import pytest
 
@@ -364,3 +365,140 @@ def test_shadow_mode_throttles_when_variant_cap_rounds_to_zero(monkeypatch: pyte
     assert all(count == 0 for name, count in result.selection_counts.items() if name != "baseline")
     assert result.diagnostics["max_variant_fraction"] == 0.0
     assert result.diagnostics["safety_override_rate"] > 0.0
+
+
+def test_shadow_mode_caches_channel_roas(monkeypatch: pytest.MonkeyPatch) -> None:
+    scenario = _build_scenario()
+    order = iter(["baseline", "steady_defensive", "weather_aggressive", "learning_expansion", "risk_off"])
+
+    def choose_variant(
+        variants,
+        q_values,
+        epsilon,
+        rng,
+        disabled,
+    ):
+        try:
+            target = next(order)
+        except StopIteration:
+            target = "baseline"
+        for variant in variants:
+            if variant.name == target and variant.name not in disabled:
+                return variant
+        for variant in variants:
+            if variant.name not in disabled:
+                return variant
+        return variants[0]
+
+    call_count = 0
+    combos = set()
+
+    original_channel_roas = rl_shadow._channel_roas
+
+    def counting_channel_roas(model, channel, spend):
+        nonlocal call_count
+        call_count += 1
+        combos.add((channel.name, round(spend, 6)))
+        return original_channel_roas(model, channel, spend)
+
+    monkeypatch.setattr(rl_shadow, "_channel_roas", counting_channel_roas)
+    assert rl_shadow._realised_profit is rl_shadow.DEFAULT_REALISED_PROFIT
+
+    config = ShadowPolicyConfig(
+        episodes=5,
+        epsilon=0.0,
+        reward_noise=0.0,
+        seed=7,
+        min_baseline_fraction=0.0,
+        max_variant_fraction=1.0,
+    )
+
+    run_shadow_mode(scenario, config, variant_selector=choose_variant)
+
+    expected_max = len(scenario.channels) * len(rl_shadow._build_variants())
+    assert call_count == len(combos)
+    assert len(combos) <= expected_max
+
+
+def test_shadow_mode_caches_variant_solver_results(monkeypatch: pytest.MonkeyPatch) -> None:
+    scenario = _build_scenario()
+    target_variant = "learning_expansion"
+    calls_by_cap = defaultdict(int)
+
+    sequence = iter([target_variant] * 6)
+
+    def fake_select(
+        *,
+        variants,
+        q_values,
+        epsilon,
+        rng,
+        disabled,
+    ):
+        try:
+            desired = next(sequence)
+        except StopIteration:
+            desired = target_variant
+        for variant in variants:
+            if variant.name == desired and variant.name not in disabled:
+                return variant
+        return variants[0]
+
+    def fake_solve(candidate_scenario, seed, prepared=None):
+        calls_by_cap[candidate_scenario.learning_cap] += 1
+        recommendations = {}
+        for idx, channel in enumerate(candidate_scenario.channels):
+            spend = channel.current_spend
+            average_roas = 1.35 + 0.05 * idx
+            expected_revenue = spend * average_roas
+            recommendations[channel.name] = ChannelRecommendation(
+                name=channel.name,
+                recommended_spend=spend,
+                average_roas=average_roas,
+                marginal_roas=average_roas,
+                expected_revenue=expected_revenue,
+                weather_multiplier=channel.weather_multiplier,
+                commentary=None,
+            )
+        total_revenue = sum(rec.expected_revenue for rec in recommendations.values())
+        total_spend = sum(rec.recommended_spend for rec in recommendations.values())
+        return MarketingMixResult(
+            allocation=None,
+            recommendations=recommendations,
+            total_revenue=total_revenue,
+            profit=float(total_revenue - total_spend),
+            diagnostics={"stub": "cache"},
+        )
+
+    def fake_realised_profit(
+        *,
+        recommendations,
+        channel_lookup,
+        shocks,
+        model,
+    ):
+        revenue = sum(rec.expected_revenue for rec in recommendations.values())
+        spend = sum(rec.recommended_spend for rec in recommendations.values())
+        realised = {name: rec.average_roas for name, rec in recommendations.items()}
+        return float(revenue - spend), realised
+
+    monkeypatch.setattr(rl_shadow, "_select_variant", fake_select)
+    monkeypatch.setattr(rl_shadow, "solve_marketing_mix", fake_solve)
+    monkeypatch.setattr(rl_shadow, "_realised_profit", fake_realised_profit)
+
+    config = ShadowPolicyConfig(
+        episodes=6,
+        epsilon=0.0,
+        reward_noise=0.0,
+        seed=9,
+        min_baseline_fraction=0.0,
+        max_variant_fraction=1.0,
+    )
+    result = run_shadow_mode(scenario, config)
+
+    baseline_cap = scenario.learning_cap
+    variant_caps = [cap for cap in calls_by_cap if not math.isclose(cap, baseline_cap)]
+    assert result.selection_counts[target_variant] == config.episodes
+    assert calls_by_cap[baseline_cap] == 1
+    assert len(variant_caps) == 1
+    assert calls_by_cap[variant_caps[0]] == 1

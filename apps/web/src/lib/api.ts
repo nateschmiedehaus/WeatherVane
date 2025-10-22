@@ -2,6 +2,7 @@ import type {
   AutomationSettingsResponse,
   AutomationUpdatePayload,
 } from "../types/automation";
+import type { AuditLogResponse } from "../types/audit";
 import type { PlanResponse } from "../types/plan";
 import type { DashboardResponse } from "../types/dashboard";
 import type { IncrementalityReport } from "../types/incrementality";
@@ -15,6 +16,12 @@ import type {
 } from "../types/onboarding";
 import type { AlertAcknowledgeResponse, AlertEscalateResponse } from "../types/dashboard";
 import type { WeatherFocusSuggestionAnalyticsPayload } from "./dashboard-analytics";
+import type {
+  ConsensusWorkloadResponse,
+  OrchestrationMetricsResponse,
+} from "../types/operations";
+import type { ReportsResponse } from "../types/reports";
+import type { ScenarioRecommendationResponse } from "../types/scenario";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000/v1";
 
@@ -50,12 +57,101 @@ export function updateAutomationSettings(
   });
 }
 
+export function fetchAuditLogs(tenantId: string, limit = 25): Promise<AuditLogResponse> {
+  const search = new URLSearchParams({ limit: String(limit) }).toString();
+  return request<AuditLogResponse>(`/audit/${tenantId}?${search}`);
+}
+
 export function fetchPlan(
   tenantId: string,
   horizonDays = 7,
 ): Promise<PlanResponse> {
   const search = new URLSearchParams({ horizon_days: String(horizonDays) }).toString();
   return request<PlanResponse>(`/plans/${tenantId}?${search}`);
+}
+
+export function fetchScenarioRecommendations(
+  tenantId: string,
+  horizonDays = 7,
+): Promise<ScenarioRecommendationResponse> {
+  const search = new URLSearchParams({ horizon_days: String(horizonDays) }).toString();
+  return request<ScenarioRecommendationResponse>(`/plans/${tenantId}/scenarios/recommendations?${search}`);
+}
+
+export interface ScenarioSnapshot {
+  id: string | null;
+  tenant_id: string;
+  name: string;
+  description: string | null;
+  horizon_days: number;
+  adjustments: Record<string, number>;
+  created_at: string;
+  created_by: string | null;
+  tags: string[];
+  total_base_spend: number | null;
+  total_scenario_spend: number | null;
+  total_base_revenue: number | null;
+  total_scenario_revenue: number | null;
+  scenario_roi: number | null;
+}
+
+export interface ScenarioSnapshotListResponse {
+  tenant_id: string;
+  snapshots: ScenarioSnapshot[];
+}
+
+export function createScenarioSnapshot(
+  tenantId: string,
+  payload: {
+    name: string;
+    adjustments: Record<string, number>;
+    horizon_days?: number;
+    description?: string;
+    tags?: string[];
+    created_by?: string;
+  },
+): Promise<ScenarioSnapshot> {
+  return request<ScenarioSnapshot>(`/plans/${tenantId}/scenarios/snapshots`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function fetchScenarioSnapshots(
+  tenantId: string,
+): Promise<ScenarioSnapshotListResponse> {
+  return request<ScenarioSnapshotListResponse>(`/plans/${tenantId}/scenarios/snapshots`);
+}
+
+export function fetchScenarioSnapshot(
+  tenantId: string,
+  snapshotId: string,
+): Promise<ScenarioSnapshot> {
+  return request<ScenarioSnapshot>(`/plans/${tenantId}/scenarios/snapshots/${snapshotId}`);
+}
+
+export function deleteScenarioSnapshot(
+  tenantId: string,
+  snapshotId: string,
+): Promise<void> {
+  return request<void>(`/plans/${tenantId}/scenarios/snapshots/${snapshotId}`, {
+    method: "DELETE",
+  });
+}
+
+export function updateScenarioSnapshot(
+  tenantId: string,
+  snapshotId: string,
+  payload: {
+    name?: string;
+    description?: string;
+    tags?: string[];
+  },
+): Promise<ScenarioSnapshot> {
+  return request<ScenarioSnapshot>(`/plans/${tenantId}/scenarios/snapshots/${snapshotId}`, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
 }
 
 export function fetchStories(
@@ -65,6 +161,14 @@ export function fetchStories(
 ): Promise<StoriesResponse> {
   const search = new URLSearchParams({ horizon_days: String(horizonDays), limit: String(limit) }).toString();
   return request<StoriesResponse>(`/stories/${tenantId}?${search}`);
+}
+
+export function fetchReports(
+  tenantId: string,
+  horizonDays = 7,
+): Promise<ReportsResponse> {
+  const search = new URLSearchParams({ horizon_days: String(horizonDays) }).toString();
+  return request<ReportsResponse>(`/reports/${tenantId}?${search}`);
 }
 
 export function fetchCatalog(
@@ -120,6 +224,14 @@ export function fetchDashboard(
   return request<DashboardResponse>(path);
 }
 
+export function fetchConsensusWorkload(): Promise<ConsensusWorkloadResponse> {
+  return request<ConsensusWorkloadResponse>("/operations/consensus");
+}
+
+export function fetchOrchestrationMetrics(): Promise<OrchestrationMetricsResponse> {
+  return request<OrchestrationMetricsResponse>("/operations/orchestration-metrics");
+}
+
 export interface AlertAcknowledgePayload {
   acknowledgedBy?: string;
   note?: string;
@@ -165,15 +277,22 @@ export function fetchSaturationReport(tenantId: string): Promise<SaturationRepor
   return request<SaturationReport>(`/allocator/saturation/${tenantId}`);
 }
 
+export interface FetchOnboardingProgressOptions {
+  signal?: AbortSignal;
+}
+
 export function fetchOnboardingProgress(
   tenantId: string,
   mode: OnboardingMode = "demo",
+  options?: FetchOnboardingProgressOptions,
 ): Promise<OnboardingProgressResponse> {
   const search = new URLSearchParams({
     tenant_id: tenantId,
     mode,
   }).toString();
-  return request<OnboardingProgressResponse>(`/onboarding/progress?${search}`);
+  return request<OnboardingProgressResponse>(`/onboarding/progress?${search}`, {
+    signal: options?.signal,
+  });
 }
 
 type OnboardingEventMetadata = Record<string, unknown>;

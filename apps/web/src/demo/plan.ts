@@ -58,10 +58,10 @@ const automationCopy: Record<
     label: "Assist mode (one-click approvals)",
     guardrail: "Assist queue batches approvals at 7am local time; guardrails re-check before push.",
   },
-  autopilot: {
-    label: "Autopilot mode (hands-off within limits)",
+  automation: {
+    label: "Automation engine mode (hands-off within limits)",
     guardrail:
-      "Autopilot respects daily delta caps and resets to Assist when guardrail breaches occur.",
+      "Automation engine respects daily delta caps and resets to Assist when guardrail breaches occur.",
   },
 };
 

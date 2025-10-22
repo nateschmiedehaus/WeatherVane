@@ -2,6 +2,10 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   buildAutomationAuditPreview,
   buildConnectorProgress,
+  mergeEvidenceWithFallback,
+  type AutomationAuditAction,
+  type AutomationAuditEvidenceItem,
+  type AutomationAuditNarrative,
   type AutomationAuditPreview,
   type AutomationAuditStatus,
   type ConnectorProgress,
@@ -10,6 +14,9 @@ import {
 import { fetchOnboardingProgress, recordOnboardingEvent } from "../lib/api";
 import { useDemo } from "../lib/demo";
 import type {
+  OnboardingAuditEvidenceResponse,
+  OnboardingAuditActionResponse,
+  OnboardingAuditNarrativeResponse,
   OnboardingAuditResponse,
   OnboardingConnectorResponse,
   OnboardingMode,
@@ -30,6 +37,7 @@ interface OnboardingProgressResult {
   mode: OnboardingMode;
   snapshot?: OnboardingProgressResponse;
   isFallback: boolean;
+  fallbackReason: string | null;
 }
 
 const CONNECTOR_STATUS_MAP: Record<string, ConnectorStatus> = {
@@ -75,15 +83,18 @@ export function useOnboardingProgress(options: UseOnboardingProgressOptions): On
     }
 
     let isMounted = true;
+    const controller = new AbortController();
+    const { signal } = controller;
+
     async function load() {
       setLoading(true);
       setError(null);
 
       try {
-        await recordOnboardingEvent(tenantId, "progress.requested", effectiveMode, {
+        void recordOnboardingEvent(tenantId, "progress.requested", effectiveMode, {
           enabled,
         });
-        const response = await fetchOnboardingProgress(tenantId, effectiveMode);
+        const response = await fetchOnboardingProgress(tenantId, effectiveMode, { signal });
         if (!isMounted) {
           return;
         }
@@ -106,7 +117,7 @@ export function useOnboardingProgress(options: UseOnboardingProgressOptions): On
         ].join("|");
         if (lastSnapshotEvent.current !== snapshotKey) {
           lastSnapshotEvent.current = snapshotKey;
-          await recordOnboardingEvent(tenantId, "progress.loaded", effectiveMode, {
+          void recordOnboardingEvent(tenantId, "progress.loaded", effectiveMode, {
             fallback_reason: response.fallback_reason ?? null,
             connectors: response.connectors.length,
             audits: response.audits.length,
@@ -116,7 +127,7 @@ export function useOnboardingProgress(options: UseOnboardingProgressOptions): On
         if (response.fallback_reason) {
           if (lastFallbackEvent.current !== response.fallback_reason) {
             lastFallbackEvent.current = response.fallback_reason;
-            await recordOnboardingEvent(tenantId, "progress.fallback", effectiveMode, {
+            void recordOnboardingEvent(tenantId, "progress.fallback", effectiveMode, {
               fallback_reason: response.fallback_reason,
               connectors: response.connectors.length,
               audits: response.audits.length,
@@ -126,6 +137,12 @@ export function useOnboardingProgress(options: UseOnboardingProgressOptions): On
           lastFallbackEvent.current = null;
         }
       } catch (caught) {
+        const isAbortError =
+          (caught instanceof DOMException && caught.name === "AbortError") ||
+          (caught instanceof Error && caught.name === "AbortError");
+        if (isAbortError) {
+          return;
+        }
         if (!isMounted) {
           return;
         }
@@ -143,13 +160,13 @@ export function useOnboardingProgress(options: UseOnboardingProgressOptions): On
         const errorKey = fallbackError.message ?? "unknown";
         if (lastErrorEvent.current !== errorKey) {
           lastErrorEvent.current = errorKey;
-          await recordOnboardingEvent(tenantId, "progress.error", effectiveMode, {
+          void recordOnboardingEvent(tenantId, "progress.error", effectiveMode, {
             message: errorKey,
           });
         }
         if (lastFallbackEvent.current !== "client_error") {
           lastFallbackEvent.current = "client_error";
-          await recordOnboardingEvent(tenantId, "progress.fallback", effectiveMode, {
+          void recordOnboardingEvent(tenantId, "progress.fallback", effectiveMode, {
             fallback_reason: "client_error",
             connectors: demoConnectors.length,
             audits: demoAudits.length,
@@ -165,6 +182,7 @@ export function useOnboardingProgress(options: UseOnboardingProgressOptions): On
     void load();
     return () => {
       isMounted = false;
+      controller.abort();
     };
   }, [tenantId, effectiveMode, enabled, demoConnectors, demoAudits, setOnboardingProgress]);
 
@@ -185,6 +203,7 @@ export function useOnboardingProgress(options: UseOnboardingProgressOptions): On
         mode: effectiveMode,
         snapshot,
         isFallback: activeProgress.isFallback,
+        fallbackReason: activeProgress.fallbackReason ?? null,
       };
     }
     return {
@@ -195,6 +214,7 @@ export function useOnboardingProgress(options: UseOnboardingProgressOptions): On
       mode: effectiveMode,
       snapshot,
       isFallback: true,
+      fallbackReason: snapshot?.fallback_reason ?? null,
     };
   }, [activeProgress, demoConnectors, demoAudits, loading, error, effectiveMode, snapshot]);
 
@@ -260,6 +280,7 @@ function mapConnectorRecord(
   const progress =
     typeof record.progress === "number" ? record.progress : fallback?.progress ?? 0;
   const updatedAt = parseISOToDate(record.updated_at);
+  const relative = formatRelativeFromDate(updatedAt);
 
   return {
     slug: record.slug,
@@ -268,9 +289,116 @@ function mapConnectorRecord(
     progress,
     summary: summary ?? "",
     action: action ?? undefined,
-    timeAgo: formatRelativeFromDate(updatedAt) ?? fallback?.timeAgo ?? "Just now",
+    timeAgo: relative?.label ?? fallback?.timeAgo ?? "Just now",
     focus: fallback?.focus,
   };
+}
+
+export function normaliseAuditEvidence(
+  evidence: OnboardingAuditEvidenceResponse[] | null | undefined,
+  fallback: AutomationAuditEvidenceItem[] | undefined,
+): AutomationAuditEvidenceItem[] | undefined {
+  const mapped: AutomationAuditEvidenceItem[] | undefined =
+    evidence?.map((item, index) => {
+      const fallbackItem =
+        (item.id && fallback?.find((candidate) => candidate.id === item.id)) ??
+        fallback?.[index];
+      const label = (item.label ?? fallbackItem?.label ?? "").trim();
+      const value = (item.value ?? fallbackItem?.value ?? "").trim();
+      if (!label || !value) {
+        return undefined;
+      }
+      const tone = item.tone ? item.tone.trim().toLowerCase() : undefined;
+      const link =
+        item.link_href && item.link_href.trim().length > 0
+          ? {
+              href: item.link_href,
+              label: item.link_label?.trim().length
+                ? item.link_label
+                : fallbackItem?.link?.label ?? "View evidence",
+            }
+          : fallbackItem?.link;
+
+      return {
+        id: item.id ?? fallbackItem?.id ?? `evidence-${index}`,
+        label,
+        value,
+        tone: tone === "success" || tone === "caution" || tone === "info"
+          ? tone
+          : fallbackItem?.tone,
+        context: item.context ?? fallbackItem?.context,
+        link,
+      };
+    }).filter((candidate): candidate is AutomationAuditEvidenceItem => Boolean(candidate));
+
+  return mergeEvidenceWithFallback(mapped, fallback);
+}
+
+function normaliseAuditNarrative(
+  narrative: OnboardingAuditNarrativeResponse | null | undefined,
+  fallback: AutomationAuditNarrative | undefined,
+): AutomationAuditNarrative | undefined {
+  if (!narrative) {
+    return fallback;
+  }
+  const merged: AutomationAuditNarrative = {
+    why: narrative.why ?? fallback?.why,
+    impact: narrative.impact ?? fallback?.impact,
+    impactLabel: narrative.impact_label ?? fallback?.impactLabel,
+    impactValue: narrative.impact_value ?? fallback?.impactValue,
+    impactContext: narrative.impact_context ?? fallback?.impactContext,
+    nextStep: narrative.next_step ?? fallback?.nextStep,
+  };
+  const hasValue = Object.values(merged).some((value) => Boolean(value));
+  return hasValue ? merged : fallback;
+}
+
+function normaliseActionIntent(
+  intent: string | null | undefined,
+  fallback: AutomationAuditAction["intent"] | undefined,
+): AutomationAuditAction["intent"] | undefined {
+  if (intent) {
+    const key = intent.trim().toLowerCase();
+    if (key === "approve" || key === "rollback" || key === "view_evidence" || key === "acknowledge") {
+      return key;
+    }
+  }
+  return fallback;
+}
+
+function normaliseAuditActions(
+  actions: OnboardingAuditActionResponse[] | null | undefined,
+  fallback: AutomationAuditAction[] | undefined,
+): AutomationAuditAction[] | undefined {
+  if (!actions || actions.length === 0) {
+    return fallback;
+  }
+  const mapped = actions
+    .map((action, index) => {
+      const fallbackAction = fallback?.[index];
+      const label = action.label?.trim().length ? action.label : fallbackAction?.label;
+      const intent = normaliseActionIntent(action.intent, fallbackAction?.intent);
+      if (!label || !intent) {
+        return undefined;
+      }
+      const id = action.id?.trim().length
+        ? action.id
+        : fallbackAction?.id ?? `action-${index}`;
+      return {
+        id,
+        label,
+        intent,
+        href: action.href?.trim().length ? action.href : fallbackAction?.href,
+        tooltip: action.tooltip ?? fallbackAction?.tooltip,
+      };
+    })
+    .filter((candidate): candidate is AutomationAuditAction => Boolean(candidate));
+
+  if (mapped.length === 0) {
+    return fallback;
+  }
+
+  return mapped;
 }
 
 function mapAuditRecord(
@@ -278,13 +406,21 @@ function mapAuditRecord(
   fallback: AutomationAuditPreview | undefined,
 ): AutomationAuditPreview {
   const occurredAt = parseISOToDate(record.occurred_at);
+  const evidence = normaliseAuditEvidence(record.evidence, fallback?.evidence);
+  const narrative = normaliseAuditNarrative(record.narrative, fallback?.narrative);
+  const actions = normaliseAuditActions(record.actions, fallback?.actions);
+  const relative = formatRelativeFromDate(occurredAt);
   return {
     id: record.id,
     actor: record.actor ?? fallback?.actor ?? "",
     headline: record.headline || fallback?.headline || "",
     detail: record.detail ?? fallback?.detail ?? "",
     status: normaliseAuditStatus(record.status, fallback?.status),
-    timeAgo: formatRelativeFromDate(occurredAt) ?? fallback?.timeAgo ?? "Just now",
+    timeAgo: relative?.label ?? fallback?.timeAgo ?? "Just now",
+    minutesAgo: relative?.minutes ?? fallback?.minutesAgo,
+    evidence,
+    narrative,
+    actions,
   };
 }
 
@@ -316,7 +452,12 @@ function normaliseAuditStatus(
   return fallback ?? "pending";
 }
 
-function formatRelativeFromDate(date: Date | null | undefined): string | undefined {
+interface RelativeTimeLabel {
+  label: string;
+  minutes: number;
+}
+
+function formatRelativeFromDate(date: Date | null | undefined): RelativeTimeLabel | undefined {
   if (!date) {
     return undefined;
   }
@@ -324,17 +465,29 @@ function formatRelativeFromDate(date: Date | null | undefined): string | undefin
   const diffMs = now - date.getTime();
   const diffMinutes = Math.max(Math.round(diffMs / 60000), 0);
   if (diffMinutes < 1) {
-    return "Just now";
+    return {
+      label: "Just now",
+      minutes: diffMinutes,
+    };
   }
   if (diffMinutes < 60) {
-    return `${diffMinutes}m ago`;
+    return {
+      label: `${diffMinutes}m ago`,
+      minutes: diffMinutes,
+    };
   }
   const diffHours = Math.round(diffMinutes / 60);
   if (diffHours < 24) {
-    return `${diffHours}h ago`;
+    return {
+      label: `${diffHours}h ago`,
+      minutes: diffMinutes,
+    };
   }
   const diffDays = Math.round(diffHours / 24);
-  return `${diffDays}d ago`;
+  return {
+    label: `${diffDays}d ago`,
+    minutes: diffMinutes,
+  };
 }
 
 function parseISOToDate(value: string | null | undefined): Date | null {

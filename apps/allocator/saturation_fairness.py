@@ -167,6 +167,10 @@ def optimise_cross_market_allocation(
     total_revenue = 0.0
     total_current_spend = 0.0
     baseline_revenue = 0.0
+    total_floor_shortfall = 0.0
+    max_floor_shortfall = 0.0
+    under_allocated = 0
+    total_weights = sum(market.fairness_weight for market in markets)
 
     for market in markets:
         cell = market.name
@@ -188,6 +192,18 @@ def optimise_cross_market_allocation(
         if current > 0:
             lift_vs_current = (spend - current) / current
 
+        target_spend = target_share * total_spend
+        spend_delta_vs_target = spend - target_spend
+        floor_required = min_by_cell[cell]
+        floor_shortfall = max(0.0, floor_required - spend)
+        total_floor_shortfall += floor_shortfall
+        max_floor_shortfall = max(max_floor_shortfall, floor_shortfall)
+        if gap < -1e-6:
+            under_allocated += 1
+        fairness_ratio = None
+        if target_share > 0:
+            fairness_ratio = share / target_share
+
         markets_report.append(
             {
                 "name": market.name,
@@ -202,11 +218,17 @@ def optimise_cross_market_allocation(
                 "current_spend": current,
                 "weather_multiplier": market.weather_multiplier,
                 "guardrail_binding": spend <= min_by_cell[cell] + 1e-6,
+                "fairness_gap": gap,
+                "fairness_ratio": fairness_ratio,
+                "target_spend": target_spend,
+                "spend_delta_vs_target": spend_delta_vs_target,
+                "floor_shortfall": floor_shortfall,
             }
         )
 
     total_profit = total_revenue - total_spend
     baseline_profit = baseline_revenue - total_current_spend
+    normalized_gap = weighted_gap / total_weights if total_weights > 0 else 0.0
 
     summary = {
         "profit": total_profit,
@@ -216,6 +238,10 @@ def optimise_cross_market_allocation(
         "max_fairness_gap": max_gap,
         "total_revenue": total_revenue,
         "total_spend": total_spend,
+        "normalized_fairness_gap": normalized_gap,
+        "under_allocated_markets": under_allocated,
+        "total_floor_shortfall": total_floor_shortfall,
+        "max_floor_shortfall": max_floor_shortfall,
     }
 
     return {

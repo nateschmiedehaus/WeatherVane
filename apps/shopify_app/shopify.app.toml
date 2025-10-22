@@ -1,0 +1,24 @@
+name = "WeatherVane Data"
+client_id = ""
+application_url = "https://localhost:3000"
+embedded = true
+
+[build]
+command = "npm run build"
+automatically_update_urls_on_dev = true
+dev_store_url = "your-dev-store.myshopify.com"
+
+[access_scopes]
+scopes = "read_orders,read_products,read_inventory,read_customers,read_discounts,read_price_rules,write_metafields"
+
+[auth]
+redirect_urls = [
+  "https://localhost:3000/auth/callback"
+]
+
+[webhooks]
+api_version = "2024-04"
+
+[[webhooks.subscriptions]]
+topic = "APP_UNINSTALLED"
+uri = "https://localhost:3000/webhooks"

@@ -200,6 +200,91 @@ def score_creatives(frame: pl.DataFrame, policy: BrandSafetyPolicy | None = None
     return scored.sort("roas_adjusted", descending=True)
 
 
+def _build_channel_guardrails(scored: pl.DataFrame) -> List[Dict[str, Any]]:
+    """Aggregate guardrail posture by channel with spend + status mix."""
+
+    channel_frames = scored.partition_by("channel", maintain_order=True)
+    summaries: List[Dict[str, Any]] = []
+
+    for frame in channel_frames:
+        metrics = frame.select(
+            [
+                pl.first("channel").alias("channel"),
+                pl.len().alias("creative_count"),
+                pl.col("status").eq("active").cast(pl.Int64).sum().alias("active_creatives"),
+                pl.col("status").eq("watchlist").cast(pl.Int64).sum().alias("watchlist_creatives"),
+                pl.col("status").eq("blocked").cast(pl.Int64).sum().alias("blocked_creatives"),
+                pl.when(pl.col("status") == "active")
+                .then(pl.col("spend_share"))
+                .otherwise(0.0)
+                .sum()
+                .alias("active_spend_share"),
+                pl.when(pl.col("status") == "watchlist")
+                .then(pl.col("spend_share"))
+                .otherwise(0.0)
+                .sum()
+                .alias("watchlist_spend_share"),
+                pl.when(pl.col("status") == "blocked")
+                .then(pl.col("spend_share"))
+                .otherwise(0.0)
+                .sum()
+                .alias("blocked_spend_share"),
+                pl.col("roas_adjusted").mean().alias("average_roas"),
+                pl.col("brand_safety_score").mean().alias("average_brand_safety"),
+            ]
+        ).to_dicts()[0]
+
+        guardrail_counts = (
+            frame.filter(pl.col("guardrail").is_not_null())
+            .group_by("guardrail")
+            .agg(pl.len().alias("count"))
+            .sort("count", descending=True)
+            .to_dicts()
+        )
+        top_guardrail = guardrail_counts[0]["guardrail"] if guardrail_counts else None
+        top_guardrail_count = int(guardrail_counts[0]["count"]) if guardrail_counts else 0
+
+        flagged = frame.filter(pl.col("status") != "active")
+        representative_creative = None
+        representative_status = None
+        if flagged.height > 0:
+            representative_data = (
+                flagged.sort(["guardrail_factor", "roas_adjusted"], descending=[False, True])
+                .select(["creative_id", "status"])
+                .to_dicts()[0]
+            )
+            representative_creative = representative_data["creative_id"]
+            representative_status = representative_data["status"]
+
+        watchlist_creatives = int(metrics["watchlist_creatives"])
+        blocked_creatives = int(metrics["blocked_creatives"])
+        watchlist_spend_share = float(metrics["watchlist_spend_share"])
+        blocked_spend_share = float(metrics["blocked_spend_share"])
+
+        summaries.append(
+            {
+                "channel": metrics["channel"],
+                "creative_count": int(metrics["creative_count"]),
+                "active_creatives": int(metrics["active_creatives"]),
+                "watchlist_creatives": watchlist_creatives,
+                "blocked_creatives": blocked_creatives,
+                "flagged_creatives": watchlist_creatives + blocked_creatives,
+                "active_spend_share": float(metrics["active_spend_share"]),
+                "watchlist_spend_share": watchlist_spend_share,
+                "blocked_spend_share": blocked_spend_share,
+                "flagged_spend_share": watchlist_spend_share + blocked_spend_share,
+                "average_roas": float(metrics["average_roas"] or 0.0),
+                "average_brand_safety": float(metrics["average_brand_safety"] or 0.0),
+                "top_guardrail": top_guardrail,
+                "top_guardrail_count": top_guardrail_count,
+                "representative_creative": representative_creative,
+                "representative_status": representative_status,
+            }
+        )
+
+    return sorted(summaries, key=lambda row: row["flagged_spend_share"], reverse=True)
+
+
 def _round_columns(frame: pl.DataFrame, decimals: int) -> pl.DataFrame:
     numeric_cols = [
         name
@@ -302,6 +387,8 @@ def generate_response_report(
         decimals=4,
     )
 
+    channel_guardrails = _build_channel_guardrails(scored)
+
     report: Dict[str, Any] = {
         "generated_at": datetime.utcnow().isoformat(),
         "policy": {
@@ -313,6 +400,7 @@ def generate_response_report(
         "summary": summary,
         "top_creatives": top_creatives.to_dicts(),
         "creatives": presentation.to_dicts(),
+        "channel_guardrails": channel_guardrails,
     }
 
     destination = Path(output_path)

@@ -35,6 +35,7 @@ class LightweightMMMResult:
     adstock_lags: Dict[str, int]
     saturation_k: Dict[str, float]
     saturation_s: Dict[str, float]
+    transformed_media: np.ndarray
 
 
 def available() -> bool:
@@ -89,4 +90,5 @@ def fit_lightweight_mmm(
         adstock_lags=adstock_lags or {name: 1 for name in media_cols},
         saturation_k=saturation_k or {name: 1.0 for name in media_cols},
         saturation_s=saturation_s or {name: 1.0 for name in media_cols},
+        transformed_media=saturation_data,
     )

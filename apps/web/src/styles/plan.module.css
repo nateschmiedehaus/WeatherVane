@@ -1,95 +1,6 @@
 .root {
   position: relative;
   padding-bottom: 4rem;
-  --plan-backdrop:
-    radial-gradient(circle at 12% 18%, rgba(129, 161, 248, 0.2), transparent 55%),
-    radial-gradient(circle at 80% 15%, rgba(94, 234, 212, 0.18), transparent 55%),
-    radial-gradient(circle at 50% 82%, rgba(251, 191, 36, 0.12), transparent 55%),
-    linear-gradient(135deg, rgba(13, 25, 43, 0.95), rgba(15, 23, 42, 0.8));
-  --plan-panel-border: rgba(71, 85, 105, 0.35);
-  --plan-panel-bg: var(--surface-panel);
-  --plan-panel-shadow:
-    inset 0 0 0 1px rgba(148, 163, 184, 0.1),
-    var(--shadow-soft);
-  --plan-elevated-border: rgba(71, 85, 105, 0.45);
-  --plan-elevated-bg: var(--surface-card);
-  --plan-insight-border: rgba(79, 70, 229, 0.25);
-  --plan-insight-bg: var(--surface-highlight);
-  --plan-insight-shadow:
-    inset 0 0 0 1px rgba(148, 163, 184, 0.12),
-    var(--shadow-elevated);
-  --plan-daycard-border: rgba(71, 85, 105, 0.35);
-  --plan-daycard-bg: var(--surface-card);
-  --plan-daycard-shadow:
-    inset 0 0 0 1px rgba(148, 163, 184, 0.12),
-    var(--shadow-soft);
-  --plan-link-color: rgba(96, 165, 250, 0.95);
-  --plan-highlight-border: rgba(59, 130, 246, 0.25);
-  --plan-highlight-bg: var(--surface-highlight);
-  --plan-highlight-shadow:
-    inset 0 0 0 1px rgba(148, 163, 184, 0.12),
-    var(--shadow-elevated);
-  --plan-context-border: rgba(71, 85, 105, 0.4);
-  --plan-context-bg: var(--surface-panel);
-  --plan-context-shadow:
-    inset 0 0 0 1px rgba(148, 163, 184, 0.12),
-    var(--shadow-soft);
-  --plan-table-hover-bg: rgba(56, 189, 248, 0.1);
-  --plan-skeleton-base: rgba(15, 23, 42, 0.55);
-  --plan-skeleton-border: rgba(71, 85, 105, 0.32);
-  --plan-skeleton-sheen:
-    linear-gradient(
-      135deg,
-      rgba(30, 41, 59, 0.35),
-      rgba(56, 189, 248, 0.12),
-      rgba(30, 41, 59, 0.35)
-    );
-}
-
-:global([data-theme="calm"]) .root {
-  --plan-backdrop:
-    radial-gradient(circle at 16% 20%, rgba(148, 205, 255, 0.18), transparent 55%),
-    radial-gradient(circle at 82% 18%, rgba(103, 232, 249, 0.16), transparent 56%),
-    radial-gradient(circle at 50% 82%, rgba(125, 211, 252, 0.14), transparent 60%),
-    linear-gradient(138deg, rgba(6, 16, 30, 0.95), rgba(8, 23, 36, 0.86));
-  --plan-panel-border: rgba(94, 109, 130, 0.28);
-  --plan-panel-bg: linear-gradient(135deg, rgba(14, 28, 46, 0.68), rgba(7, 18, 31, 0.58));
-  --plan-panel-shadow:
-    inset 0 0 0 1px rgba(148, 191, 233, 0.14),
-    0 26px 48px rgba(6, 17, 29, 0.42);
-  --plan-elevated-border: rgba(90, 113, 136, 0.34);
-  --plan-elevated-bg: rgba(7, 16, 28, 0.52);
-  --plan-insight-border: rgba(129, 140, 248, 0.3);
-  --plan-insight-bg: linear-gradient(150deg, rgba(12, 27, 45, 0.7), rgba(9, 21, 36, 0.55));
-  --plan-insight-shadow:
-    inset 0 0 0 1px rgba(148, 191, 233, 0.12),
-    0 26px 46px rgba(6, 17, 29, 0.38);
-  --plan-daycard-border: rgba(90, 113, 136, 0.34);
-  --plan-daycard-bg: linear-gradient(145deg, rgba(12, 27, 45, 0.64), rgba(7, 18, 31, 0.56));
-  --plan-daycard-shadow:
-    inset 0 0 0 1px rgba(148, 191, 233, 0.12),
-    0 24px 42px rgba(6, 17, 29, 0.36);
-  --plan-link-color: rgba(125, 211, 252, 0.92);
-  --plan-highlight-border: rgba(56, 189, 248, 0.35);
-  --plan-highlight-bg: linear-gradient(155deg, rgba(14, 29, 50, 0.72), rgba(8, 21, 36, 0.6));
-  --plan-highlight-shadow:
-    inset 0 0 0 1px rgba(148, 191, 233, 0.12),
-    0 28px 50px rgba(6, 17, 29, 0.4);
-  --plan-context-border: rgba(90, 113, 136, 0.32);
-  --plan-context-bg: linear-gradient(135deg, rgba(12, 26, 43, 0.64), rgba(7, 18, 31, 0.54));
-  --plan-context-shadow:
-    inset 0 0 0 1px rgba(148, 191, 233, 0.12),
-    0 22px 42px rgba(6, 17, 29, 0.38);
-  --plan-table-hover-bg: rgba(56, 189, 248, 0.16);
-  --plan-skeleton-base: rgba(7, 16, 28, 0.55);
-  --plan-skeleton-border: rgba(90, 113, 136, 0.3);
-  --plan-skeleton-sheen:
-    linear-gradient(
-      135deg,
-      rgba(12, 27, 45, 0.35),
-      rgba(56, 189, 248, 0.16),
-      rgba(12, 27, 45, 0.35)
-    );
 }
 
 .root::before {
@@ -122,13 +33,14 @@
 }
 
 .heroStrip {
+  composes: panelSurface from "./panel-surface.module.css";
+  --panel-surface-border: var(--plan-panel-border);
+  --panel-surface-background: var(--plan-panel-bg);
+  --panel-surface-shadow: var(--plan-panel-shadow);
   display: grid;
   gap: 1.4rem;
   padding: 1.8rem 2rem;
   border-radius: 1.5rem;
-  border: 1px solid var(--plan-panel-border);
-  background: var(--plan-panel-bg) border-box;
-  box-shadow: var(--plan-panel-shadow);
 }
 
 .heroMetrics {
@@ -188,8 +100,13 @@
 .heroActions {
   margin-top: 1.2rem;
   display: grid;
-  gap: 0.45rem;
+  gap: 0.9rem;
   align-content: start;
+}
+
+.heroAction {
+  display: grid;
+  gap: 0.35rem;
 }
 
 .heroShareCta {
@@ -223,6 +140,12 @@
   box-shadow: var(--shadow-focus-ring);
 }
 
+.heroShareCta:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+  box-shadow: none;
+}
+
 .heroActionsHint {
   margin: 0;
   font-size: 0.85rem;
@@ -254,6 +177,10 @@
   inset: 0;
   background: linear-gradient(135deg, rgba(56, 189, 248, 0.65), rgba(6, 182, 212, 0.9));
   transition: width 240ms ease;
+}
+
+.heroConfidenceMix {
+  margin-top: 0.65rem;
 }
 
 .modeSwitch {
@@ -433,6 +360,12 @@
   border: 1px solid rgba(248, 113, 113, 0.6);
   display: grid;
   gap: 0.8rem;
+  --retry-button-border: rgba(248, 113, 113, 0.6);
+  --retry-button-bg: rgba(15, 23, 42, 0.45);
+  --retry-button-color: var(--status-critical-text, #fee2e2);
+  --retry-button-motion-duration: 140ms;
+  --retry-button-motion-easing: ease;
+  --retry-button-hover-transform: translateY(-1px);
 }
 
 .errorTitle {
@@ -451,26 +384,6 @@
   display: flex;
   flex-wrap: wrap;
   gap: 0.8rem;
-}
-
-.retryButton {
-  padding: 0.55rem 1.2rem;
-  border-radius: 0.85rem;
-  border: 1px solid rgba(248, 113, 113, 0.6);
-  background: rgba(15, 23, 42, 0.45);
-  color: var(--status-critical-text, #fee2e2);
-  font-weight: 600;
-  cursor: pointer;
-  transition: transform 140ms ease;
-}
-
-.retryButton:hover {
-  transform: translateY(-1px);
-}
-
-.retryButton:focus-visible {
-  outline: 2px solid var(--color-focus-outline, #93c5fd);
-  outline-offset: 3px;
 }
 
 .planBody {
@@ -694,6 +607,36 @@
   color: var(--color-text-tertiary);
 }
 
+.scenarioBuilderCta {
+  margin-top: 0.8rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+@media (min-width: 768px) {
+  .scenarioBuilderCta {
+    flex-direction: row;
+    align-items: baseline;
+    gap: 0.75rem;
+  }
+}
+
+.scenarioBuilderLink {
+  align-self: flex-start;
+  font-weight: 600;
+  text-decoration: none;
+  color: var(--color-text-primary);
+  border-bottom: 1px solid rgba(56, 189, 248, 0.4);
+  padding-bottom: 2px;
+  transition: border-color 160ms ease;
+}
+
+.scenarioBuilderLink:hover,
+.scenarioBuilderLink:focus-visible {
+  border-bottom-color: rgba(56, 189, 248, 0.75);
+}
+
 .dayGrid {
   display: grid;
   gap: 1.2rem;
@@ -776,13 +719,14 @@
 }
 
 .insightTile {
+  composes: panelSurface from "./panel-surface.module.css";
+  --panel-surface-border: var(--plan-insight-border);
+  --panel-surface-background: var(--plan-insight-bg);
+  --panel-surface-shadow: var(--plan-insight-shadow);
   padding: 1.3rem;
   display: grid;
   gap: 0.6rem;
   border-radius: var(--radius-lg);
-  border: 1px solid var(--plan-insight-border);
-  background: var(--plan-insight-bg) border-box;
-  box-shadow: var(--plan-insight-shadow);
 }
 
 .insightTile h4 {
@@ -801,14 +745,25 @@
   gap: 1rem;
   padding: 1.4rem 1.5rem;
   border-radius: 1.3rem;
-  border: 1px solid var(--plan-panel-border);
-  background: var(--plan-panel-bg) border-box;
-  box-shadow: var(--plan-panel-shadow);
 }
 
 .connectorList,
 .activityList {
   width: 100%;
+}
+
+.connectorSection {
+  composes: panelSurface from "./panel-surface.module.css";
+  --panel-surface-border: var(--plan-panel-border);
+  --panel-surface-background: var(--plan-panel-bg);
+  --panel-surface-shadow: var(--plan-panel-shadow);
+}
+
+.activitySection {
+  composes: panelSurface from "./panel-surface.module.css";
+  --panel-surface-border: var(--plan-panel-border);
+  --panel-surface-background: var(--plan-panel-bg);
+  --panel-surface-shadow: var(--plan-panel-shadow);
 }
 
 .personaPrompt {
@@ -868,18 +823,192 @@
 }
 
 .summaryCard {
+  composes: panelSurface from "./panel-surface.module.css";
+  --panel-surface-border: var(--plan-panel-border);
+  --panel-surface-background: var(--plan-panel-bg);
+  --panel-surface-shadow: var(--plan-panel-shadow);
   display: grid;
   gap: 1rem;
   padding: 1.2rem 1.35rem;
   border-radius: 1.1rem;
-  border: 1px solid var(--plan-panel-border);
-  background: var(--plan-panel-bg) border-box;
-  box-shadow: var(--plan-panel-shadow);
+}
+
+.experimentSummaryHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.experimentSummaryTitle {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.experimentSummaryBadges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.experimentSummaryContent {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.experimentSummaryFallback,
+.experimentSummaryRisk {
+  display: grid;
+  gap: 0.3rem;
+  padding: 0.85rem 0.95rem;
+  border-radius: 0.85rem;
+  background: rgba(148, 163, 184, 0.1);
+}
+
+.instrumentationHeader {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.instrumentationSignals {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 0.8rem;
+}
+
+.instrumentationSignal {
+  display: grid;
+  gap: 0.4rem;
+  padding: 0.85rem 1rem;
+  border-radius: 0.9rem;
+  background: rgba(30, 41, 59, 0.12);
+}
+
+.instrumentationSignalLabel {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1.2rem;
+  flex-wrap: wrap;
+}
+
+.exportHeader {
+  display: grid;
+  gap: 1rem;
+}
+
+.exportActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.exportButton,
+.exportButtonSecondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.6rem 1.2rem;
+  border-radius: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: transform 120ms ease, box-shadow 120ms ease, opacity 120ms ease;
+}
+
+.exportButton {
+  border: 1px solid rgba(56, 189, 248, 0.6);
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.85), rgba(14, 165, 233, 0.9));
+  color: var(--color-text-primary);
+  box-shadow: var(--shadow-elevated);
+}
+
+.exportButtonSecondary {
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  background: rgba(15, 23, 42, 0.55);
+  color: var(--color-text-secondary);
+}
+
+.exportButton:hover,
+.exportButtonSecondary:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-focus-ring);
+}
+
+.exportButton:disabled,
+.exportButtonSecondary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
+}
+
+.exportStatus {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
 }
 
 .guardrailSummary {
   display: grid;
   gap: 0.75rem;
+}
+
+@media (min-width: 960px) {
+  .guardrailStatus {
+    padding: 1.2rem 1.35rem;
+  }
+}
+
+.guardrailStatus {
+  display: grid;
+  gap: 0.6rem;
+  padding: 1rem 1.1rem;
+  border-radius: 1rem;
+  background: rgba(56, 189, 248, 0.08);
+  border: 1px solid rgba(56, 189, 248, 0.22);
+}
+
+.guardrailStatus p {
+  margin: 0;
+  color: var(--color-text-secondary);
+}
+
+.guardrailStatusBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  border: 1px solid transparent;
+  background: rgba(56, 189, 248, 0.16);
+  color: var(--color-text-primary);
+}
+
+.guardrailStatusBadge[data-tone="pass"] {
+  background: var(--badge-success-bg, #14532d);
+  color: var(--badge-success-text, #bbf7d0);
+  border-color: rgba(74, 222, 128, 0.6);
+}
+
+.guardrailStatusBadge[data-tone="caution"] {
+  background: var(--status-caution-bg, #78350f);
+  color: var(--status-caution-text, #fde68a);
+  border-color: rgba(251, 191, 36, 0.55);
+}
+
+.guardrailStatusBadge[data-tone="critical"] {
+  background: var(--status-critical-bg, #7f1d1d);
+  color: var(--status-critical-text, #fee2e2);
+  border-color: rgba(248, 113, 113, 0.6);
 }
 
 .guardrailSummaryItem {
@@ -1104,10 +1233,11 @@
 }
 
 .detailWrapper {
+  composes: panelSurface from "./panel-surface.module.css";
+  --panel-surface-border: var(--plan-panel-border);
+  --panel-surface-background: var(--plan-panel-bg);
+  --panel-surface-shadow: var(--plan-panel-shadow);
   border-radius: 1.2rem;
-  border: 1px solid var(--plan-panel-border);
-  background: var(--plan-panel-bg) border-box;
-  box-shadow: var(--plan-panel-shadow);
 }
 
 .detailSummary {
@@ -1133,12 +1263,31 @@
 }
 
 .tableWrap {
+  composes: panelSurface from "./panel-surface.module.css";
+  --panel-surface-border: var(--plan-panel-border);
+  --panel-surface-background: var(--plan-panel-bg);
+  --panel-surface-shadow: var(--plan-panel-shadow);
   margin-top: 1.5rem;
   overflow-x: auto;
   border-radius: 1.2rem;
-  border: 1px solid var(--plan-panel-border);
-  background: var(--plan-panel-bg) border-box;
-  box-shadow: var(--plan-panel-shadow);
+}
+
+.tableHeader {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.4rem;
+  padding: 1.15rem 1.35rem 0.5rem;
+}
+
+.tableHeader h4 {
+  margin: 0;
+}
+
+.tableHeader p {
+  margin: 0;
+  color: var(--color-text-tertiary);
 }
 
 .tableWrap table {

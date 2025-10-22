@@ -1,23 +1,43 @@
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/router";
 import Head from "next/head";
 
 import { AutomationAuditList } from "../components/AutomationAuditList";
+import { AutomationAuditTimeline } from "../components/AutomationAuditTimeline";
+import { AutomationReadinessCard } from "../components/AutomationReadinessCard";
+import { GuardrailBreachPanel } from "../components/GuardrailBreachPanel";
 import styles from "../styles/automations.module.css";
 import { Layout } from "../components/Layout";
 import { ContextPanel } from "../components/ContextPanel";
+import { RetryButton } from "../components/RetryButton";
 import {
   fetchAutomationSettings,
+  fetchDashboard,
+  fetchAuditLogs,
   updateAutomationSettings,
 } from "../lib/api";
 import { useDemo } from "../lib/demo";
 import { useOnboardingProgress } from "../hooks/useOnboardingProgress";
+import { mapAutomationAuditLogs } from "../lib/automationInsights";
+import {
+  buildAutomationUpdatePayload,
+  validateAutomationSettings,
+  type AutomationValidationErrors,
+  type AutomationValidationField,
+} from "../lib/automationValidation";
+import { buildAutomationReadinessSnapshot } from "../lib/automationReadiness";
+import { describeOnboardingFallback } from "../lib/onboardingFallback";
+import { buildGuardrailNarratives } from "../lib/guardrailCopy";
 import type {
   AutomationMode,
   AutomationSettings,
   AutomationSettingsResponse,
-  AutomationUpdatePayload,
   ConsentStatus,
 } from "../types/automation";
+import type { GuardrailSegment } from "../types/dashboard";
+import type { AutomationAuditTimelineItem } from "../lib/automationInsights";
+import { useTheme } from "../lib/theme";
+import { getSurfaceTokens } from "../../styles/themes";
 
 const TENANT_ID = process.env.NEXT_PUBLIC_TENANT_ID ?? "demo-tenant";
 const UPDATED_BY = process.env.NEXT_PUBLIC_OPERATOR_EMAIL ?? "ops@weathervane";
@@ -25,7 +45,7 @@ const UPDATED_BY = process.env.NEXT_PUBLIC_OPERATOR_EMAIL ?? "ops@weathervane";
 const automationModes: { value: AutomationMode; label: string; description: string }[] = [
   { value: "manual", label: "Manual", description: "Read-only plan & proof" },
   { value: "assist", label: "Assist", description: "Require approvals before pushes" },
-  { value: "autopilot", label: "Autopilot", description: "Auto-push within guardrails" },
+  { value: "automation", label: "Automation", description: "Auto-push within guardrails" },
 ];
 
 const consentStatuses: { value: ConsentStatus; label: string }[] = [
@@ -44,13 +64,24 @@ function formatDateTime(value: string | null) {
 }
 
 export default function AutomationsPage() {
+  const router = useRouter();
+  const { theme } = useTheme();
+  const surfaceTokens = useMemo(() => getSurfaceTokens(theme, "automations"), [theme]);
   const [settings, setSettings] = useState<AutomationSettings | null>(null);
   const [responseMeta, setResponseMeta] = useState<AutomationSettingsResponse | null>(null);
+  const [validationErrors, setValidationErrors] = useState<AutomationValidationErrors>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [reloadCount, setReloadCount] = useState(0);
+  const [auditTimeline, setAuditTimeline] = useState<AutomationAuditTimelineItem[]>([]);
+  const [auditLoading, setAuditLoading] = useState(true);
+  const [auditError, setAuditError] = useState<string | null>(null);
+  const [guardrailSegments, setGuardrailSegments] = useState<GuardrailSegment[]>([]);
+  const [guardrailGeneratedAt, setGuardrailGeneratedAt] = useState<string | null>(null);
+  const [guardrailLoading, setGuardrailLoading] = useState(true);
+  const [guardrailError, setGuardrailError] = useState<string | null>(null);
   const { isDemoActive } = useDemo();
   const onboarding = useOnboardingProgress({
     tenantId: TENANT_ID,
@@ -58,6 +89,9 @@ export default function AutomationsPage() {
   });
   const onboardingAudits = onboarding.audits;
   const onboardingErrorMessage = onboarding.error?.message ?? null;
+  const fallbackReason = onboarding.fallbackReason ?? onboarding.snapshot?.fallback_reason ?? null;
+  const fallbackDetails = onboarding.isFallback ? describeOnboardingFallback(fallbackReason) : null;
+  const guardrailMetadata = responseMeta?.data_context ?? undefined;
 
   const loadSettings = useCallback(() => {
     let active = true;
@@ -88,6 +122,15 @@ export default function AutomationsPage() {
     return cancel;
   }, [loadSettings, reloadCount]);
 
+  useEffect(() => {
+    if (!settings) {
+      setValidationErrors({});
+      return;
+    }
+    const { errors } = validateAutomationSettings(settings);
+    setValidationErrors(errors);
+  }, [settings]);
+
   const handleRetry = () => setReloadCount((value) => value + 1);
 
   const changeWindowsText = useMemo(
@@ -97,6 +140,94 @@ export default function AutomationsPage() {
 
   const contextTags = responseMeta?.context_tags ?? [];
   const contextWarnings = responseMeta?.context_warnings ?? [];
+  const guardrailNarratives = useMemo(
+    () =>
+      settings
+        ? buildGuardrailNarratives(settings.guardrails, {
+            metadata: guardrailMetadata,
+          })
+        : [],
+    [settings, guardrailMetadata],
+  );
+
+  const fallbackAuditTimeline = useMemo<AutomationAuditTimelineItem[]>(
+    () =>
+      onboardingAudits.map((audit, index) => ({
+        id: audit.id ? String(audit.id) : `fallback-${index}`,
+        headline: audit.headline,
+        detail: audit.detail ?? undefined,
+        actor: audit.actor ?? "WeatherVane",
+        occurredAt: new Date().toISOString(),
+        timeAgo: audit.timeAgo,
+        tone: audit.status === "approved" ? "success" : audit.status === "pending" ? "caution" : "info",
+      })),
+    [onboardingAudits],
+  );
+
+  const readinessSnapshot = useMemo(
+    () =>
+      buildAutomationReadinessSnapshot(onboardingAudits, guardrailSegments, {
+        guardrailGeneratedAt,
+        isFallback: onboarding.isFallback,
+        fallbackReason,
+      }),
+    [onboardingAudits, guardrailSegments, guardrailGeneratedAt, onboarding.isFallback, fallbackReason],
+  );
+  const readinessLoading = onboarding.loading || auditLoading || guardrailLoading;
+
+  useEffect(() => {
+    let active = true;
+    setAuditLoading(true);
+    setAuditError(null);
+    fetchAuditLogs(TENANT_ID, 40)
+      .then((res) => {
+        if (!active) return;
+        if (res.logs.length === 0) {
+          setAuditTimeline(fallbackAuditTimeline);
+          setAuditError(onboardingErrorMessage ?? "No automation changes recorded yet.");
+          return;
+        }
+        setAuditTimeline(mapAutomationAuditLogs(res.logs));
+      })
+      .catch((err) => {
+        if (!active) return;
+        setAuditTimeline(fallbackAuditTimeline);
+        const message = err instanceof Error ? err.message : "Failed to load audit history";
+        setAuditError(message);
+      })
+      .finally(() => {
+        if (!active) return;
+        setAuditLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [reloadCount, fallbackAuditTimeline, onboardingErrorMessage]);
+
+  useEffect(() => {
+    let active = true;
+    setGuardrailLoading(true);
+    setGuardrailError(null);
+    fetchDashboard(TENANT_ID)
+      .then((res) => {
+        if (!active) return;
+        setGuardrailSegments(res.guardrails);
+        setGuardrailGeneratedAt(res.generated_at ?? null);
+      })
+      .catch((err) => {
+        if (!active) return;
+        const message = err instanceof Error ? err.message : "Failed to load guardrail posture";
+        setGuardrailError(message);
+        setGuardrailSegments([]);
+      })
+      .finally(() => {
+        if (!active) return;
+        setGuardrailLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [reloadCount]);
 
   const handleModeChange = (mode: AutomationMode) => {
     setSettings((prev) => (prev ? { ...prev, mode } : prev));
@@ -161,6 +292,10 @@ export default function AutomationsPage() {
     );
   };
 
+  const handleOpenDashboard = useCallback(() => {
+    void router.push("/dashboard");
+  }, [router]);
+
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!settings) return;
@@ -168,18 +303,14 @@ export default function AutomationsPage() {
     setStatusMessage(null);
     setError(null);
 
-    const payload: AutomationUpdatePayload = {
-      mode: settings.mode,
-      pushes_enabled: settings.pushes_enabled,
-      daily_push_cap: settings.daily_push_cap,
-      push_window_start_utc: settings.push_window_start_utc,
-      push_window_end_utc: settings.push_window_end_utc,
-      guardrails: settings.guardrails,
-      consent: settings.consent,
-      retention_days: settings.retention_days,
-      notes: settings.notes,
-      updated_by: UPDATED_BY,
-    };
+    const { payload, validation } = buildAutomationUpdatePayload(settings, UPDATED_BY);
+    setValidationErrors(validation.errors);
+
+    if (!validation.isValid) {
+      setSaving(false);
+      setError("Resolve the highlighted guardrail issues before saving.");
+      return;
+    }
 
     try {
       const res = await updateAutomationSettings(TENANT_ID, payload);
@@ -194,17 +325,21 @@ export default function AutomationsPage() {
     }
   };
 
+  const fieldError = (field: AutomationValidationField) => validationErrors[field];
+  const fieldErrorId = (field: AutomationValidationField) =>
+    fieldError(field) ? `${field.replace(/\./g, "-")}-error` : undefined;
+
   return (
     <Layout>
       <Head>
         <title>WeatherVane · Automations</title>
       </Head>
-      <div className={styles.root}>
+      <div className={styles.root} style={surfaceTokens}>
         <section className={styles.header}>
-          <h2 className="ds-title">Guided automation &amp; guardrails</h2>
+          <h2 className="ds-title">Guided automation you can trust</h2>
           <p className="ds-body">
-            Control how WeatherVane pushes budgets, maintain tenant consent, and keep your guardrails in
-            sync with finance. Changes sync instantly to the API and are captured in the audit log.
+            Control how WeatherVane pushes budgets, maintain tenant consent, and keep your safety bands
+            aligned with finance. Every change is logged in plain language with evidence and next steps.
           </p>
         </section>
 
@@ -216,9 +351,7 @@ export default function AutomationsPage() {
       {error && (
         <div className={styles.error} role="alert">
           <p className="ds-body">{error}</p>
-          <button type="button" onClick={handleRetry} className={`${styles.retryButton} ds-body-strong`}>
-            Retry loading settings
-          </button>
+          <RetryButton onClick={handleRetry}>Retry loading settings</RetryButton>
         </div>
       )}
       {statusMessage && (
@@ -227,9 +360,24 @@ export default function AutomationsPage() {
         </p>
       )}
 
+      {!settings && (
+        <section className={styles.changeLogFallback} aria-label="Automation change log preview">
+          <AutomationAuditList
+            audits={onboardingAudits}
+            loading={onboarding.loading}
+            isFallback={onboarding.isFallback}
+            errorMessage={fallbackDetails ? fallbackDetails.summary : onboardingErrorMessage}
+            metaLabel={fallbackDetails?.title ?? undefined}
+            limit={5}
+            className={styles.auditRail}
+          />
+        </section>
+      )}
+
       {!loading && settings && (
-        <div className={styles.layout}>
-          <form className={styles.form} onSubmit={handleSubmit}>
+        <>
+          <div className={styles.layout}>
+            <form className={styles.form} onSubmit={handleSubmit}>
             <fieldset className={styles.fieldset}>
               <legend className="ds-caption">Automation mode</legend>
               <div className={styles.modeList}>
@@ -263,7 +411,18 @@ export default function AutomationsPage() {
                     onChange={(event) =>
                       handleInputChange("daily_push_cap", Number(event.target.value))
                     }
+                    className={fieldError("daily_push_cap") ? styles.inputInvalid : undefined}
+                    aria-invalid={fieldError("daily_push_cap") ? true : false}
+                    aria-describedby={fieldErrorId("daily_push_cap")}
                   />
+                  {fieldError("daily_push_cap") && (
+                    <span
+                      className={`${styles.fieldError} ds-caption`}
+                      id={fieldErrorId("daily_push_cap")}
+                    >
+                      {fieldError("daily_push_cap")}
+                    </span>
+                  )}
                 </label>
                 <label>
                   <span className="ds-caption">Push window start (UTC)</span>
@@ -273,7 +432,18 @@ export default function AutomationsPage() {
                     onChange={(event) =>
                       handleInputChange("push_window_start_utc", event.target.value || null)
                     }
+                    className={fieldError("push_window_start_utc") ? styles.inputInvalid : undefined}
+                    aria-invalid={fieldError("push_window_start_utc") ? true : false}
+                    aria-describedby={fieldErrorId("push_window_start_utc")}
                   />
+                  {fieldError("push_window_start_utc") && (
+                    <span
+                      className={`${styles.fieldError} ds-caption`}
+                      id={fieldErrorId("push_window_start_utc")}
+                    >
+                      {fieldError("push_window_start_utc")}
+                    </span>
+                  )}
                 </label>
                 <label>
                   <span className="ds-caption">Push window end (UTC)</span>
@@ -283,7 +453,18 @@ export default function AutomationsPage() {
                     onChange={(event) =>
                       handleInputChange("push_window_end_utc", event.target.value || null)
                     }
+                    className={fieldError("push_window_end_utc") ? styles.inputInvalid : undefined}
+                    aria-invalid={fieldError("push_window_end_utc") ? true : false}
+                    aria-describedby={fieldErrorId("push_window_end_utc")}
                   />
+                  {fieldError("push_window_end_utc") && (
+                    <span
+                      className={`${styles.fieldError} ds-caption`}
+                      id={fieldErrorId("push_window_end_utc")}
+                    >
+                      {fieldError("push_window_end_utc")}
+                    </span>
+                  )}
                 </label>
               </div>
 
@@ -303,7 +484,20 @@ export default function AutomationsPage() {
                   value={changeWindowsText}
                   onChange={(event) => handleGuardrailChange("change_windows", event.target.value)}
                   placeholder="e.g. weekdays, black_friday"
+                  className={
+                    fieldError("guardrails.change_windows") ? styles.inputInvalid : undefined
+                  }
+                  aria-invalid={fieldError("guardrails.change_windows") ? true : false}
+                  aria-describedby={fieldErrorId("guardrails.change_windows")}
                 />
+                {fieldError("guardrails.change_windows") && (
+                  <span
+                    className={`${styles.fieldError} ds-caption`}
+                    id={fieldErrorId("guardrails.change_windows")}
+                  >
+                    {fieldError("guardrails.change_windows")}
+                  </span>
+                )}
               </label>
 
               <div className={styles.gridRow}>
@@ -316,7 +510,22 @@ export default function AutomationsPage() {
                     onChange={(event) =>
                       handleGuardrailChange("max_daily_budget_delta_pct", event.target.value)
                     }
+                    className={
+                      fieldError("guardrails.max_daily_budget_delta_pct")
+                        ? styles.inputInvalid
+                        : undefined
+                    }
+                    aria-invalid={fieldError("guardrails.max_daily_budget_delta_pct") ? true : false}
+                    aria-describedby={fieldErrorId("guardrails.max_daily_budget_delta_pct")}
                   />
+                  {fieldError("guardrails.max_daily_budget_delta_pct") && (
+                    <span
+                      className={`${styles.fieldError} ds-caption`}
+                      id={fieldErrorId("guardrails.max_daily_budget_delta_pct")}
+                    >
+                      {fieldError("guardrails.max_daily_budget_delta_pct")}
+                    </span>
+                  )}
                 </label>
                 <label>
                   <span className="ds-caption">Min daily spend</span>
@@ -327,7 +536,20 @@ export default function AutomationsPage() {
                     onChange={(event) =>
                       handleGuardrailChange("min_daily_spend", event.target.value)
                     }
+                    className={
+                      fieldError("guardrails.min_daily_spend") ? styles.inputInvalid : undefined
+                    }
+                    aria-invalid={fieldError("guardrails.min_daily_spend") ? true : false}
+                    aria-describedby={fieldErrorId("guardrails.min_daily_spend")}
                   />
+                  {fieldError("guardrails.min_daily_spend") && (
+                    <span
+                      className={`${styles.fieldError} ds-caption`}
+                      id={fieldErrorId("guardrails.min_daily_spend")}
+                    >
+                      {fieldError("guardrails.min_daily_spend")}
+                    </span>
+                  )}
                 </label>
                 <label>
                   <span className="ds-caption">ROAS floor</span>
@@ -339,7 +561,20 @@ export default function AutomationsPage() {
                       handleGuardrailChange("roas_floor", event.target.value)
                     }
                     placeholder="—"
+                    className={
+                      fieldError("guardrails.roas_floor") ? styles.inputInvalid : undefined
+                    }
+                    aria-invalid={fieldError("guardrails.roas_floor") ? true : false}
+                    aria-describedby={fieldErrorId("guardrails.roas_floor")}
                   />
+                  {fieldError("guardrails.roas_floor") && (
+                    <span
+                      className={`${styles.fieldError} ds-caption`}
+                      id={fieldErrorId("guardrails.roas_floor")}
+                    >
+                      {fieldError("guardrails.roas_floor")}
+                    </span>
+                  )}
                 </label>
                 <label>
                   <span className="ds-caption">CPA ceiling</span>
@@ -351,9 +586,50 @@ export default function AutomationsPage() {
                       handleGuardrailChange("cpa_ceiling", event.target.value)
                     }
                     placeholder="—"
+                    className={
+                      fieldError("guardrails.cpa_ceiling") ? styles.inputInvalid : undefined
+                    }
+                    aria-invalid={fieldError("guardrails.cpa_ceiling") ? true : false}
+                    aria-describedby={fieldErrorId("guardrails.cpa_ceiling")}
                   />
+                  {fieldError("guardrails.cpa_ceiling") && (
+                    <span
+                      className={`${styles.fieldError} ds-caption`}
+                      id={fieldErrorId("guardrails.cpa_ceiling")}
+                    >
+                      {fieldError("guardrails.cpa_ceiling")}
+                    </span>
+                  )}
                 </label>
               </div>
+
+              {guardrailNarratives.length > 0 && (
+                <div className={styles.guardrailNarratives} aria-live="polite">
+                  <h4 className="ds-subtitle">How these guardrails behave</h4>
+                  <ul className={styles.guardrailNarrativesList}>
+                    {guardrailNarratives.map((narrative) => (
+                      <li
+                        key={narrative.id}
+                        className={styles.guardrailNarrative}
+                        data-tone={narrative.tone}
+                      >
+                        <header className={styles.guardrailNarrativeHeader}>
+                          <span className="ds-body-strong">{narrative.title}</span>
+                          <p className="ds-caption">{narrative.summary}</p>
+                        </header>
+                        <p className={`${styles.guardrailNarrativeBody} ds-caption`}>
+                          {narrative.rationale}
+                        </p>
+                        {narrative.example && (
+                          <p className={`${styles.guardrailNarrativeExample} ds-caption`}>
+                            {narrative.example}
+                          </p>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </fieldset>
 
             <fieldset className={styles.fieldset}>
@@ -424,7 +700,18 @@ export default function AutomationsPage() {
                   onChange={(event) =>
                     handleInputChange("retention_days", Number(event.target.value))
                   }
+                  className={fieldError("retention_days") ? styles.inputInvalid : undefined}
+                  aria-invalid={fieldError("retention_days") ? true : false}
+                  aria-describedby={fieldErrorId("retention_days")}
                 />
+                {fieldError("retention_days") && (
+                  <span
+                    className={`${styles.fieldError} ds-caption`}
+                    id={fieldErrorId("retention_days")}
+                  >
+                    {fieldError("retention_days")}
+                  </span>
+                )}
               </label>
               <label>
                 <span className="ds-caption">Notes</span>
@@ -443,57 +730,88 @@ export default function AutomationsPage() {
             >
               {saving ? "Saving…" : "Save automation settings"}
             </button>
-          </form>
+            </form>
 
-          <aside className={styles.meta}>
-            <h3 className="ds-title">Current status</h3>
-            <AutomationAuditList
-              audits={onboardingAudits}
-              loading={onboarding.loading}
-              isFallback={onboarding.isFallback}
-              errorMessage={onboardingErrorMessage}
-              limit={5}
-              className={styles.auditRail}
-            />
-            <ContextPanel tags={contextTags} warnings={contextWarnings} />
-            <dl>
-              <div>
-                <dt className="ds-caption">Mode</dt>
-                <dd className="ds-body">{settings.mode}</dd>
+            <aside className={styles.meta}>
+              <h3 className="ds-title">Current status</h3>
+              <AutomationAuditList
+                audits={onboardingAudits}
+                loading={onboarding.loading}
+                isFallback={onboarding.isFallback}
+                errorMessage={fallbackDetails ? fallbackDetails.summary : onboardingErrorMessage}
+                metaLabel={fallbackDetails?.title ?? undefined}
+                limit={5}
+                className={styles.auditRail}
+              />
+              <ContextPanel tags={contextTags} warnings={contextWarnings} />
+              <dl>
+                <div>
+                  <dt className="ds-caption">Mode</dt>
+                  <dd className="ds-body">{settings.mode}</dd>
+                </div>
+                <div>
+                  <dt className="ds-caption">Pushes enabled</dt>
+                  <dd className="ds-body">{settings.pushes_enabled ? "Yes" : "No"}</dd>
+                </div>
+                <div>
+                  <dt className="ds-caption">Consent status</dt>
+                  <dd className="ds-body">{settings.consent.status}</dd>
+                </div>
+                <div>
+                  <dt className="ds-caption">Consent actor</dt>
+                  <dd className="ds-body">{settings.consent.actor ?? "—"}</dd>
+                </div>
+                <div>
+                  <dt className="ds-caption">Last export</dt>
+                  <dd className="ds-body">{formatDateTime(settings.last_export_at)}</dd>
+                </div>
+                <div>
+                  <dt className="ds-caption">Last delete</dt>
+                  <dd className="ds-body">{formatDateTime(settings.last_delete_at)}</dd>
+                </div>
+                <div>
+                  <dt className="ds-caption">Last updated</dt>
+                  <dd className="ds-body">
+                    {formatDateTime(responseMeta?.updated_at ?? settings.last_updated_at)}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="ds-caption">Updated by</dt>
+                  <dd className="ds-body">{settings.updated_by ?? "—"}</dd>
+                </div>
+              </dl>
+            </aside>
+          </div>
+
+          <section className={styles.trustSection} aria-labelledby="automation-trust-heading">
+            <div className={styles.trustIntro}>
+              <h3 id="automation-trust-heading" className="ds-title">
+                Automation trust
+              </h3>
+              <p className="ds-body">
+                Review recent automation decisions and guardrail posture before re-enabling automated pushes.
+              </p>
+            </div>
+            <div className={styles.trustGrid}>
+              <div className={styles.readinessCard}>
+                <AutomationReadinessCard snapshot={readinessSnapshot} loading={readinessLoading} />
               </div>
-              <div>
-                <dt className="ds-caption">Pushes enabled</dt>
-                <dd className="ds-body">{settings.pushes_enabled ? "Yes" : "No"}</dd>
-              </div>
-              <div>
-                <dt className="ds-caption">Consent status</dt>
-                <dd className="ds-body">{settings.consent.status}</dd>
-              </div>
-              <div>
-                <dt className="ds-caption">Consent actor</dt>
-                <dd className="ds-body">{settings.consent.actor ?? "—"}</dd>
-              </div>
-              <div>
-                <dt className="ds-caption">Last export</dt>
-                <dd className="ds-body">{formatDateTime(settings.last_export_at)}</dd>
-              </div>
-              <div>
-                <dt className="ds-caption">Last delete</dt>
-                <dd className="ds-body">{formatDateTime(settings.last_delete_at)}</dd>
-              </div>
-              <div>
-                <dt className="ds-caption">Last updated</dt>
-                <dd className="ds-body">
-                  {formatDateTime(responseMeta?.updated_at ?? settings.last_updated_at)}
-                </dd>
-              </div>
-              <div>
-                <dt className="ds-caption">Updated by</dt>
-                <dd className="ds-body">{settings.updated_by ?? "—"}</dd>
-              </div>
-            </dl>
-          </aside>
-        </div>
+              <AutomationAuditTimeline
+                className={styles.timelinePanel}
+                items={auditTimeline}
+                loading={auditLoading}
+                error={auditError}
+              />
+              <GuardrailBreachPanel
+                guardrails={guardrailSegments}
+                generatedAt={guardrailGeneratedAt}
+                loading={guardrailLoading}
+                error={guardrailError}
+                onNavigate={handleOpenDashboard}
+              />
+            </div>
+          </section>
+        </>
       )}
       </div>
     </Layout>

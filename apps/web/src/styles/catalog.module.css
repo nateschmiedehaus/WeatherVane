@@ -112,27 +112,12 @@
   border: 1px solid rgba(239, 68, 68, 0.55);
   display: grid;
   gap: 0.75rem;
-}
-
-.retryButton {
-  justify-self: start;
-  padding: 0.55rem 1.2rem;
-  border-radius: 0.85rem;
-  border: 1px solid rgba(239, 68, 68, 0.55);
-  background: rgba(15, 23, 42, 0.45);
-  color: rgba(254, 202, 202, 0.95);
-  font-weight: 600;
-  cursor: pointer;
-  transition: transform 140ms ease;
-}
-
-.retryButton:hover {
-  transform: translateY(-1px);
-}
-
-.retryButton:focus-visible {
-  outline: 2px solid var(--color-focus-outline, #93c5fd);
-  outline-offset: 3px;
+  --retry-button-border: rgba(239, 68, 68, 0.55);
+  --retry-button-bg: rgba(15, 23, 42, 0.45);
+  --retry-button-color: rgba(254, 202, 202, 0.95);
+  --retry-button-motion-duration: 140ms;
+  --retry-button-motion-easing: ease;
+  --retry-button-hover-transform: translateY(-1px);
 }
 
 .contextSection {

@@ -83,6 +83,8 @@ def test_generate_response_report_persists_json(tmp_path) -> None:
     assert "active_spend_share" in payload["summary"]
     assert "watchlist_spend_share" in payload["summary"]
     assert "blocked_spend_share" in payload["summary"]
+    assert "channel_guardrails" in payload
+    assert isinstance(payload["channel_guardrails"], list)
     assert pytest.approx(
         payload["summary"]["active_spend_share"]
         + payload["summary"]["watchlist_spend_share"]
@@ -97,6 +99,78 @@ def test_generate_response_report_persists_json(tmp_path) -> None:
         "low_roas",
         "limited_sample",
     }
+
+
+def test_channel_guardrails_capture_flagged_mix(tmp_path) -> None:
+    frame = pl.DataFrame(
+        [
+            {
+                "creative_id": "meta_safe",
+                "channel": "meta",
+                "impressions": 6200,
+                "clicks": 430,
+                "conversions": 82,
+                "spend": 960.0,
+                "revenue": 2985.0,
+                "brand_safety_score": 0.9,
+            },
+            {
+                "creative_id": "meta_risky",
+                "channel": "meta",
+                "impressions": 2600,
+                "clicks": 94,
+                "conversions": 12,
+                "spend": 540.0,
+                "revenue": 420.0,
+                "brand_safety_score": 0.4,
+            },
+            {
+                "creative_id": "display_blocked",
+                "channel": "display",
+                "impressions": 1800,
+                "clicks": 44,
+                "conversions": 4,
+                "spend": 320.0,
+                "revenue": 160.0,
+                "brand_safety_score": 0.2,
+            },
+        ]
+    )
+    policy = BrandSafetyPolicy(roas_floor=1.25, warn_threshold=0.65, block_threshold=0.35)
+    destination = tmp_path / "channel-report.json"
+
+    report = generate_response_report(frame, policy, output_path=destination)
+    payload = json.loads(destination.read_text(encoding="utf-8"))
+
+    channel_guardrails = {entry["channel"]: entry for entry in report["channel_guardrails"]}
+    payload_guardrails = {entry["channel"]: entry for entry in payload["channel_guardrails"]}
+
+    assert set(channel_guardrails) == {"meta", "display"}
+    assert set(payload_guardrails) == {"meta", "display"}
+
+    meta_summary = channel_guardrails["meta"]
+    assert meta_summary["creative_count"] == 2
+    assert meta_summary["flagged_creatives"] == 1
+    assert meta_summary["flagged_creatives"] == meta_summary["watchlist_creatives"] + meta_summary["blocked_creatives"]
+    assert meta_summary["flagged_spend_share"] == pytest.approx(
+        meta_summary["watchlist_spend_share"] + meta_summary["blocked_spend_share"]
+    )
+    assert meta_summary["representative_creative"] == "meta_risky"
+    assert meta_summary["representative_status"] == "watchlist"
+    assert meta_summary["top_guardrail"] in {"brand_safety_watch", "low_roas"}
+    assert meta_summary["top_guardrail_count"] >= 1
+
+    display_summary = channel_guardrails["display"]
+    assert display_summary["creative_count"] == 1
+    assert display_summary["blocked_creatives"] == 1
+    assert display_summary["representative_creative"] == "display_blocked"
+    assert display_summary["representative_status"] == "blocked"
+    assert display_summary["top_guardrail"] == "brand_safety_block"
+    assert display_summary["top_guardrail_count"] == 1
+    assert display_summary["flagged_spend_share"] == pytest.approx(display_summary["blocked_spend_share"])
+
+    assert payload_guardrails["meta"]["representative_creative"] == "meta_risky"
+    assert payload_guardrails["display"]["top_guardrail"] == "brand_safety_block"
 
     roas_values = [row["roas_adjusted"] for row in payload["creatives"]]
     assert payload["top_creatives"][0]["roas_adjusted"] == max(roas_values)

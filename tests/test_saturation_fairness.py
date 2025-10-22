@@ -59,6 +59,14 @@ def test_optimise_cross_market_respects_fairness_limits():
         share = entry["allocated_spend"] / total_spend
         assert share + 1e-6 >= entry["min_share"] - 1e-6
         assert entry["roas"] >= 1.12 - 1e-6
+        assert abs(entry["fairness_gap"]) <= 1.0
+        assert entry["floor_shortfall"] >= 0.0
+        if entry["fair_share"] > 0:
+            assert entry["fairness_ratio"] is not None
+            assert entry["fairness_ratio"] >= 0.0
+        else:
+            assert entry["fairness_ratio"] is None
+        assert abs(entry["spend_delta_vs_target"]) <= total_spend
 
 
 def test_generate_saturation_report_writes_payload(tmp_path):
@@ -73,3 +81,6 @@ def test_generate_saturation_report_writes_payload(tmp_path):
     stored = json.loads(destination.read_text())
     assert stored["fairness_floor"] == 0.75
     assert abs(payload["summary"]["profit"] - stored["summary"]["profit"]) <= 1e-9
+    summary = stored["summary"]
+    assert summary["under_allocated_markets"] >= 0
+    assert summary["total_floor_shortfall"] >= 0.0

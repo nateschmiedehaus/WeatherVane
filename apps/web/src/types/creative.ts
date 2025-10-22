@@ -50,10 +50,30 @@ export interface CreativeRow {
   profit_expectation: number;
 }
 
+export interface CreativeChannelGuardrail {
+  channel: string;
+  creative_count: number;
+  active_creatives: number;
+  watchlist_creatives: number;
+  blocked_creatives: number;
+  flagged_creatives: number;
+  active_spend_share: number;
+  watchlist_spend_share: number;
+  blocked_spend_share: number;
+  flagged_spend_share: number;
+  average_roas: number;
+  average_brand_safety: number;
+  top_guardrail: string | null;
+  top_guardrail_count: number;
+  representative_creative: string | null;
+  representative_status: string | null;
+}
+
 export interface CreativeResponseReport {
   generated_at: string;
   policy: CreativePolicy;
   summary: CreativeSummary;
   top_creatives: CreativeHighlight[];
   creatives: CreativeRow[];
+  channel_guardrails: CreativeChannelGuardrail[];
 }

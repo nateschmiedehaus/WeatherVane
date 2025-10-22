@@ -1,10 +1,26 @@
 from __future__ import annotations
 
+from importlib import util as importlib_util
 from pathlib import Path
 
 import pytest
 
-from tests.test_mcp_tools import MCPTestClient, _extract_json_payload
+TESTS_ROOT = Path(__file__).resolve().parent
+HELPERS_PATH = TESTS_ROOT / "test_mcp_tools.py"
+
+if not HELPERS_PATH.exists():
+    # Align with pytest skip semantics so the failure is explicit in CI
+    raise ImportError("test_mcp_tools.py helper is required for worker dry-run coverage")
+
+_helpers_spec = importlib_util.spec_from_file_location("test_mcp_tools", HELPERS_PATH)
+if _helpers_spec is None or _helpers_spec.loader is None:
+    raise ImportError("Unable to load MCP helpers for dry-run tests")
+
+_helpers_module = importlib_util.module_from_spec(_helpers_spec)
+_helpers_spec.loader.exec_module(_helpers_module)  # type: ignore[attr-defined]
+
+MCPTestClient = _helpers_module.MCPTestClient
+_extract_json_payload = _helpers_module._extract_json_payload
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 

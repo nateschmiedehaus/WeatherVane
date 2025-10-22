@@ -67,7 +67,7 @@ describe("dashboard analytics helpers", () => {
       buildSuggestionSignature(baseSuggestion),
     );
     expect(focusEvent.payload.metadata.regionSlug).toBe(
-      weatherRegionSlug(baseSuggestion.region),
+      "custom-region",
     );
     expect(focusEvent.payload.metadata.regionSummary).toBe(
       baseSuggestion.summary,

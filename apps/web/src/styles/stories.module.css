@@ -99,11 +99,12 @@
 }
 
 .meta {
+  composes: panelSurface from "./panel-surface.module.css";
+  --panel-surface-border: var(--stories-panel-border);
+  --panel-surface-background: var(--stories-panel-bg);
+  --panel-surface-shadow: var(--stories-panel-shadow);
   padding: 1.4rem;
   border-radius: 1.1rem;
-  border: 1px solid var(--stories-panel-border);
-  background: var(--stories-panel-bg) border-box;
-  box-shadow: var(--stories-panel-shadow);
 }
 
 .meta dl {
@@ -142,27 +143,12 @@
   border: 1px solid var(--stories-error-border);
   display: grid;
   gap: 0.75rem;
-}
-
-.retryButton {
-  justify-self: start;
-  padding: 0.55rem 1.2rem;
-  border-radius: 0.85rem;
-  border: 1px solid var(--stories-error-border);
-  background: var(--stories-button-bg);
-  color: var(--status-critical-text, #fee2e2);
-  font-weight: 600;
-  cursor: pointer;
-  transition: transform var(--motion-duration-snappy) var(--motion-easing-standard);
-}
-
-.retryButton:hover {
-  transform: translateY(-1px);
-}
-
-.retryButton:focus-visible {
-  outline: 2px solid var(--color-focus-outline, #93c5fd);
-  outline-offset: 3px;
+  --retry-button-border: var(--stories-error-border);
+  --retry-button-bg: var(--stories-button-bg);
+  --retry-button-color: var(--status-critical-text, #fee2e2);
+  --retry-button-motion-duration: var(--motion-duration-snappy);
+  --retry-button-motion-easing: var(--motion-easing-standard);
+  --retry-button-hover-transform: translateY(-1px);
 }
 
 .contextSection {
@@ -323,68 +309,6 @@
   flex-wrap: wrap;
 }
 
-.primaryAction {
-  padding: 0.6rem 1.4rem;
-  border-radius: 999px;
-  border: 1px solid rgba(129, 140, 248, 0.45);
-  background: linear-gradient(135deg, rgba(79, 70, 229, 0.3), rgba(59, 130, 246, 0.24));
-  color: rgba(226, 232, 240, 0.98);
-  font-weight: 600;
-  letter-spacing: 0.01em;
-  cursor: pointer;
-  transition: transform var(--motion-duration-snappy) var(--motion-easing-standard),
-    box-shadow var(--motion-duration-snappy) var(--motion-easing-standard);
-}
-
-.primaryAction:hover {
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-md);
-}
-
-.primaryAction[data-state="success"] {
-  border-color: rgba(34, 197, 94, 0.55);
-  background: linear-gradient(135deg, rgba(34, 197, 94, 0.32), rgba(16, 185, 129, 0.28));
-}
-
-.primaryAction[data-state="error"] {
-  border-color: rgba(248, 113, 113, 0.6);
-  background: linear-gradient(135deg, rgba(239, 68, 68, 0.35), rgba(248, 113, 113, 0.28));
-}
-
-.primaryAction:focus-visible {
-  outline: 2px solid var(--color-focus-outline, #93c5fd);
-  outline-offset: 3px;
-}
-
-.secondaryAction {
-  display: inline-flex;
-  align-items: center;
-  padding: 0.55rem 1.2rem;
-  border-radius: 999px;
-  border: 1px solid rgba(148, 163, 184, 0.32);
-  color: rgba(226, 232, 240, 0.9);
-  text-decoration: none;
-  font-weight: 500;
-  transition: transform var(--motion-duration-snappy) var(--motion-easing-standard);
-  cursor: pointer;
-}
-
-.secondaryAction:hover {
-  transform: translateY(-1px);
-}
-
-.secondaryAction:focus-visible {
-  outline: 2px solid var(--color-focus-outline, #93c5fd);
-  outline-offset: 3px;
-}
-
-.cardFeedback {
-  min-height: 1.2rem;
-  margin-top: 0.35rem;
-  font-size: 0.8rem;
-  color: rgba(226, 232, 240, 0.72);
-}
-
 .placeholder {
   text-align: center;
   background: var(--stories-placeholder-bg) border-box;
@@ -398,21 +322,9 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .retryButton {
-    transition: none;
-  }
-
-  .retryButton:hover {
-    transform: none;
-  }
-
-  .primaryAction {
-    transition: none;
-  }
-
-  .primaryAction:hover,
-  .secondaryAction:hover {
-    transform: none;
+  .error {
+    --retry-button-motion-duration: 0ms;
+    --retry-button-hover-transform: none;
   }
 }
 
