@@ -1588,7 +1588,7 @@ epics:
         tasks:
           - id: T12.0.1
             title: Generate synthetic multi-tenant dataset with weather-sensitive products
-            status: in_progress
+            status: done
             dependencies: []
             exit_criteria:
               - artifact:storage/seeds/synthetic/*.parquet
