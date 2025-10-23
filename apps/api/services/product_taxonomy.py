@@ -258,7 +258,7 @@ class ProductTaxonomyService:
         if not records:
             raise ValueError("Cannot classify an empty record group")
 
-        token_set, token_counts, combined_text = self._combined_tokens(records)
+        token_set, token_counts, combined_text, brand_tokens = self._combined_tokens(records)
         rule, score, matched_tokens = self._match_rule(token_set)
         llm_result = self._classify_with_llm(records, combined_text)
 
@@ -284,7 +284,9 @@ class ProductTaxonomyService:
                 if brand_slug
             }
         )
-        cross_brand_key = self._build_cross_brand_key(category_l2, weather_affinity, token_counts)
+        cross_brand_key = self._build_cross_brand_key(
+            category_l2, weather_affinity, token_counts, brand_tokens
+        )
         sources = sorted({record.source for record in records})
         product_ids = sorted({record.product_id for record in records})
 
@@ -301,6 +303,7 @@ class ProductTaxonomyService:
             "raw_tags": sorted({tag for record in records for tag in record.tags}),
             "raw_brands": _collect_unique(record.brand for record in records)
             or _collect_unique(record.vendor for record in records),
+            "brand_tokens": sorted(brand_tokens),
         }
 
         if llm_result:
@@ -341,9 +344,14 @@ class ProductTaxonomyService:
 
     def _combined_tokens(
         self, records: Sequence[ProductSourceRecord]
-    ) -> tuple[Set[str], Counter[str], str]:
+    ) -> tuple[Set[str], Counter[str], str, Set[str]]:
         components: List[str] = []
+        brand_tokens: Set[str] = set()
         for record in records:
+            if record.brand:
+                brand_tokens.update(_tokenize(record.brand))
+            if record.vendor:
+                brand_tokens.update(_tokenize(record.vendor))
             components.extend(
                 filter(
                     None,
@@ -361,7 +369,7 @@ class ProductTaxonomyService:
             )
         combined_text = " ".join(components)
         tokens = _tokenize(combined_text)
-        return set(tokens), Counter(tokens), combined_text
+        return set(tokens), Counter(tokens), combined_text, brand_tokens
 
     def _match_rule(self, tokens: Set[str]) -> tuple[TaxonomyRule | None, int, Set[str]]:
         best_rule: TaxonomyRule | None = None
@@ -408,20 +416,25 @@ class ProductTaxonomyService:
         return 0.45
 
     def _build_cross_brand_key(
-        self, category_l2: str, weather_affinity: str, token_counts: Counter[str]
+        self,
+        category_l2: str,
+        weather_affinity: str,
+        token_counts: Counter[str],
+        brand_tokens: Set[str],
     ) -> str:
-        tokens = set(token_counts)
+        all_tokens = set(token_counts)
+        non_brand_tokens = {token for token in all_tokens if token not in brand_tokens}
         modifiers: List[str] = []
-        if tokens & {"mens", "men", "male"}:
+        if non_brand_tokens & {"mens", "men", "male"}:
             modifiers.append("mens")
-        elif tokens & {"womens", "women", "female"}:
+        elif non_brand_tokens & {"womens", "women", "female"}:
             modifiers.append("womens")
-        elif tokens & {"kids", "kid", "youth", "child"}:
+        elif non_brand_tokens & {"kids", "kid", "youth", "child"}:
             modifiers.append("kids")
 
-        if tokens & {"plus", "curvy"}:
+        if non_brand_tokens & {"plus", "curvy"}:
             modifiers.append("plus")
-        if tokens & {"petite"}:
+        if non_brand_tokens & {"petite"}:
             modifiers.append("petite")
 
         base_parts = [_slug(category_l2), _slug(weather_affinity)]
@@ -431,7 +444,8 @@ class ProductTaxonomyService:
             descriptive = [
                 token
                 for token, count in token_counts.most_common(4)
-                if token not in {"the", "and", "with", "for", "sale"}
+                if token not in brand_tokens
+                and token not in {"the", "and", "with", "for", "sale"}
                 and len(token) > 2
             ]
             for token in descriptive:

@@ -57,16 +57,37 @@ class CreativeRow(BaseModel):
     profit_expectation: float
 
 
+class CreativeChannelGuardrail(BaseModel):
+    channel: str
+    creative_count: int
+    active_creatives: int
+    watchlist_creatives: int
+    blocked_creatives: int
+    flagged_creatives: int
+    active_spend_share: float
+    watchlist_spend_share: float
+    blocked_spend_share: float
+    flagged_spend_share: float
+    average_roas: float
+    average_brand_safety: float
+    top_guardrail: str | None
+    top_guardrail_count: int
+    representative_creative: str | None
+    representative_status: str | None
+
+
 class CreativeResponseReport(BaseModel):
     generated_at: datetime = Field(default_factory=datetime.utcnow)
     policy: CreativePolicy
     summary: CreativeSummary
     top_creatives: list[CreativeHighlight]
     creatives: list[CreativeRow]
+    channel_guardrails: list[CreativeChannelGuardrail]
 
 
 __all__ = [
     "CreativePolicy",
+    "CreativeChannelGuardrail",
     "CreativeResponseReport",
     "CreativeRow",
     "CreativeSummary",

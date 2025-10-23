@@ -27,6 +27,7 @@ from shared.feature_store.feature_builder import (
     FeatureMatrix,
     TARGET_COLUMN,
 )
+from shared.services.data_quality import run_data_quality_validation, DataQualityConfig
 
 NUMERIC_DTYPES = {
     pl.Float64,
@@ -113,8 +114,23 @@ def train_baseline(
     output_root: Path | str = Path("storage/models/baseline"),
     run_id: str | None = None,
     feature_min_rows: int = 14,
+    skip_data_quality_check: bool = False,
 ) -> BaselineTrainingResult:
-    """Train and persist the weather-aware baseline model for a tenant."""
+    """Train and persist the weather-aware baseline model for a tenant.
+
+    Args:
+        tenant_id: Tenant identifier
+        start: Training window start date
+        end: Training window end date
+        lake_root: Root directory for raw data
+        output_root: Directory for model outputs
+        run_id: Optional run identifier (defaults to timestamp)
+        feature_min_rows: Minimum rows before feature engineering
+        skip_data_quality_check: If False, runs data quality validation before training
+
+    Returns:
+        BaselineTrainingResult with trained model and metadata
+    """
 
     builder = FeatureBuilder(lake_root=lake_root, feature_min_rows=feature_min_rows)
     leakage_info: Dict[str, Any] = {
@@ -149,6 +165,35 @@ def train_baseline(
     observed = _prepare_observed_frame(matrix)
     if observed.is_empty():
         raise ValueError(f"No observed targets available for tenant={tenant_id}")
+
+    # Convert to pandas for data quality checks
+    pandas_frame = observed.to_pandas()
+
+    # Run data quality validation before training
+    if not skip_data_quality_check:
+        dq_config = DataQualityConfig()
+        dq_report = run_data_quality_validation(
+            tenant_id=tenant_id,
+            window=(start, end),
+            design_matrix=pandas_frame.to_dict("list"),
+            metadata={
+                "feature_rows": matrix.orders_rows,
+                "ads_rows": matrix.ads_rows,
+                "promo_rows": matrix.promo_rows,
+                "weather_rows": matrix.weather_rows,
+            },
+            output_path=Path(output_root) / tenant_id / "data_quality_report.json",
+            config=dq_config,
+            target_column=TARGET_COLUMN,
+            date_column="date" if "date" in observed.columns else None,
+        )
+        # Log data quality results
+        logger.info(
+            "Data quality validation for tenant=%s | status=%s | issues=%d",
+            tenant_id,
+            dq_report.get("status"),
+            len(dq_report.get("issues", [])),
+        )
 
     features = _candidate_features(observed)
 

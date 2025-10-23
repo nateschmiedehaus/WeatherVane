@@ -14,7 +14,7 @@ This document outlines the architecture for semi-permanent authentication and au
 ### Model Discovery Issues
 1. **Hardcoded Models**: CODEX_PRESETS hardcoded with gpt-5-codex, gpt-5
 2. **No Claude Model Variants**: Claude treated as single 'claude_code' agent
-3. **Static Cost Table**: MODEL_COST_TABLE hardcoded in claude_code_coordinator.ts
+3. **Static Cost Table**: MODEL_COST_TABLE hardcoded in agent_coordinator.ts
 4. **No API Discovery**: Models never queried from provider APIs or docs
 5. **Subscription vs API Not Distinguished**: No awareness of access method
 

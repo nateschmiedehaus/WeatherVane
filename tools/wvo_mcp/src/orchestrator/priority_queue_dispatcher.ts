@@ -55,25 +55,34 @@ export class PriorityQueueDispatcher {
     summary: string;
     command?: string;
     notes?: string;
+    id?: string;
+    priority?: TaskPriority;
     isInteractive?: boolean;
     isCritical?: boolean;
     estimatedDurationMs?: number;
   }): Promise<HeavyTaskQueueItem> {
-    const priority = this.classifyPriority({
-      isInteractive: input.isInteractive ?? false,
+    const isInteractive = input.isInteractive ?? false;
+    const priority = this.resolvePriority({
+      explicitPriority: input.priority,
+      isInteractive,
       isCritical: input.isCritical ?? false,
       estimatedDurationMs: input.estimatedDurationMs,
     });
 
     logInfo(
       `Dispatching task to ${priority} lane: ${input.summary}`,
-      { priority, isInteractive: input.isInteractive }
+      {
+        priority,
+        isInteractive,
+        priority_source: input.priority ? "explicit" : "classifier",
+      }
     );
 
     return this.queue.enqueue({
       summary: input.summary,
       command: input.command,
       notes: input.notes,
+      id: input.id,
       priority,
     });
   }
@@ -194,5 +203,31 @@ export class PriorityQueueDispatcher {
       valid: violations.length === 0,
       violations,
     };
+  }
+
+  private resolvePriority(input: {
+    explicitPriority?: TaskPriority;
+    isInteractive: boolean;
+    isCritical: boolean;
+    estimatedDurationMs?: number;
+  }): TaskPriority {
+    if (input.isInteractive) {
+      if (input.explicitPriority && input.explicitPriority !== "urgent") {
+        logWarning("Interactive task requested non-urgent priority. Overriding to urgent.", {
+          requested_priority: input.explicitPriority,
+        });
+      }
+      return "urgent";
+    }
+
+    if (input.explicitPriority) {
+      return input.explicitPriority;
+    }
+
+    return this.classifyPriority({
+      isInteractive: input.isInteractive,
+      isCritical: input.isCritical,
+      estimatedDurationMs: input.estimatedDurationMs,
+    });
   }
 }

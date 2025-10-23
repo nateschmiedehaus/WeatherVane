@@ -1,0 +1,122 @@
+import { describe, expect, it, beforeEach } from "vitest";
+import fs from "node:fs/promises";
+import path from "node:path";
+import os from "node:os";
+
+import { ConsensusTelemetryRecorder } from "../telemetry/consensus_metrics.js";
+import type { ConsensusDecision } from "../orchestrator/consensus/consensus_engine.js";
+
+const buildDecision = (overrides: Partial<ConsensusDecision> = {}): ConsensusDecision => ({
+  id: "CONS-TEST-1",
+  taskId: "T-x",
+  type: "strategic",
+  quorumSatisfied: true,
+  proposals: [],
+  selectedProposalIndex: 0,
+  metadata: {},
+  agenda: {
+    decisionType: "strategic",
+    rationale: ["test"],
+    participants: ["atlas", "claude_council"],
+  },
+  createdAt: Date.now(),
+  ...overrides,
+});
+
+describe("ConsensusTelemetryRecorder", () => {
+  let workspace: string;
+  let recorder: ConsensusTelemetryRecorder;
+
+  beforeEach(async () => {
+    workspace = await fs.mkdtemp(path.join(os.tmpdir(), "consensus-telemetry-"));
+    recorder = new ConsensusTelemetryRecorder(workspace);
+  });
+
+  it("writes metrics file and aggregates counts", async () => {
+    await recorder.recordDecision(buildDecision());
+    await recorder.recordDecision(buildDecision({ id: "CONS-TEST-2", type: "critical" }));
+
+    const metricsPath = path.join(workspace, "state", "analytics", "orchestration_metrics.json");
+    const serialized = await fs.readFile(metricsPath, "utf8");
+    const parsed = JSON.parse(serialized);
+
+    expect(parsed.totalDecisions).toBe(2);
+    expect(parsed.byType.critical).toBe(1);
+    expect(parsed.history.length).toBeGreaterThan(0);
+    expect(parsed.history[0].participants).toContain("atlas");
+
+    const workloadPath = path.join(workspace, "state", "analytics", "consensus_workload.json");
+    const workload = JSON.parse(await fs.readFile(workloadPath, "utf8"));
+    expect(Array.isArray(workload.live_observations)).toBe(true);
+    expect(workload.live_summary.total_decisions).toBe(2);
+  });
+
+  it("enriches staffing guidance from workload dataset", async () => {
+    const workloadPath = path.join(workspace, "state", "analytics", "consensus_workload.json");
+    await fs.mkdir(path.dirname(workloadPath), { recursive: true });
+    await fs.writeFile(
+      workloadPath,
+      JSON.stringify(
+        {
+          generated_at: "2025-10-20T07:20:00Z",
+          sample_window: { start: "2025-10-19T00:00:00Z", end: "2025-10-20T07:20:00Z" },
+          quorum_profiles: {
+            specialist: {
+              default_participants: ["atlas", "claude_council"],
+              expected_duration_seconds: { median: 347, p90: 936.7 },
+              expected_iterations: 1,
+              token_cost_usd: 0.0059,
+              notes: "Baseline quorum",
+            },
+          },
+          escalation_signals: [
+            {
+              signal: "duration_p90_gt_900s",
+              threshold_seconds: 900,
+              observed_p90_success: 936.7,
+              recommended_action: "Promote to critical quorum.",
+            },
+            {
+              signal: "repeat_retries_gt_1",
+              threshold: 1,
+              observed_retry_rate: 0.03,
+              recommended_action: "Pull Research Orchestrator for context prep.",
+            },
+          ],
+          token_cost_per_run_usd: 0.0059,
+        },
+        null,
+        2,
+      ),
+      "utf8",
+    );
+
+    const decision = buildDecision({
+      id: "CONS-GUIDE-1",
+      type: "specialist",
+      durationSeconds: 420,
+      tokenCostUsd: 0.0061,
+    });
+    await recorder.recordDecision(decision);
+
+    const metricsPath = path.join(workspace, "state", "analytics", "orchestration_metrics.json");
+    const serialized = await fs.readFile(metricsPath, "utf8");
+    const parsed = JSON.parse(serialized);
+
+    expect(parsed.staffingGuidance).toBeDefined();
+    expect(parsed.staffingGuidance.profiles.specialist.defaultParticipants).toEqual([
+      "atlas",
+      "claude_council",
+    ]);
+    expect(parsed.staffingGuidance.tokenBudgetUsd.baseline).toBeCloseTo(0.0059, 5);
+    expect(parsed.staffingGuidance.tokenBudgetUsd.specialist).toBeCloseTo(0.0059, 5);
+    expect(parsed.staffingGuidance.escalationTriggers.durationP90Seconds).toBe(900);
+    expect(parsed.history[0].durationSeconds).toBe(420);
+    expect(parsed.history[0].tokenCostUsd).toBeCloseTo(0.0061, 5);
+
+    const updatedWorkload = JSON.parse(await fs.readFile(workloadPath, "utf8"));
+    expect(updatedWorkload.live_observations[0].id).toBe("CONS-GUIDE-1");
+    expect(updatedWorkload.live_observations[0].duration_seconds).toBe(420);
+    expect(updatedWorkload.live_summary.by_type.specialist).toBe(1);
+  });
+});

@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "AllocatorResponse",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["report_type"],
+  "properties": {
+    "report_type": {
+      "enum": ["shadow", "saturation"]
+    },
+    "tenant_id": {
+      "type": ["string", "null"]
+    },
+    "generated_at": {
+      "type": ["string", "null"],
+      "format": "date-time"
+    },
+    "run_id": {
+      "type": ["string", "null"]
+    },
+    "mode": {
+      "enum": ["autopilot", "assist", "demo", "fallback", null]
+    },
+    "status": {
+      "type": ["string", "null"]
+    },
+    "total_spend": {
+      "type": ["number", "null"]
+    },
+    "total_spend_delta": {
+      "type": ["number", "null"]
+    },
+    "total_spend_delta_pct": {
+      "type": ["number", "null"]
+    },
+    "recommendations": {
+      "type": ["array", "null"],
+      "items": {
+        "type": "object"
+      }
+    },
+    "diagnostics": {
+      "type": ["object", "null"]
+    }
+  }
+}

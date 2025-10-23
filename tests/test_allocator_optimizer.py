@@ -355,3 +355,452 @@ def test_no_heuristic_rules_in_code():
     content = Path("apps/allocator/optimizer.py").read_text()
     assert "budget *= 1.10" not in content
     assert "if roas >" not in content
+
+
+# ============================================================================
+# DIMENSION 3: Error Cases - Comprehensive error handling
+# ============================================================================
+
+
+def test_empty_items_raises_error():
+    """Error case: optimizer must reject empty item lists."""
+    request = OptimizerRequest(total_budget=100.0, items=[])
+    with pytest.raises(Exception) as exc_info:
+        _solve(request)
+    assert "at least one budget item" in str(exc_info.value).lower()
+
+
+def test_zero_budget_raises_error():
+    """Error case: optimizer must reject zero or negative budgets."""
+    items = [
+        BudgetItem(
+            id="test_item",
+            name="Test",
+            min_spend=0.0,
+            max_spend=100.0,
+            expected_roas=2.0,
+        )
+    ]
+    request = OptimizerRequest(total_budget=0.0, items=items)
+    with pytest.raises(Exception) as exc_info:
+        _solve(request)
+    assert "total_budget must be positive" in str(exc_info.value).lower()
+
+
+def test_negative_budget_raises_error():
+    """Error case: negative budgets should fail."""
+    items = [
+        BudgetItem(
+            id="test_item",
+            name="Test",
+            min_spend=0.0,
+            max_spend=100.0,
+            expected_roas=2.0,
+        )
+    ]
+    request = OptimizerRequest(total_budget=-100.0, items=items)
+    with pytest.raises(Exception) as exc_info:
+        _solve(request)
+    assert "total_budget must be positive" in str(exc_info.value).lower()
+
+
+def test_duplicate_item_ids_raises_error():
+    """Error case: duplicate item IDs should be rejected."""
+    items = [
+        BudgetItem(id="duplicate", name="Item 1", min_spend=0.0, max_spend=100.0, expected_roas=2.0),
+        BudgetItem(id="duplicate", name="Item 2", min_spend=0.0, max_spend=100.0, expected_roas=2.5),
+    ]
+    request = OptimizerRequest(total_budget=100.0, items=items)
+    with pytest.raises(Exception) as exc_info:
+        _solve(request)
+    assert "duplicate" in str(exc_info.value).lower()
+
+
+def test_infeasible_budget_constraint_raises_error():
+    """Error case: impossible budget constraint (total min > total budget) should fail."""
+    items = [
+        BudgetItem(
+            id="item1",
+            name="Item 1",
+            min_spend=150.0,  # Combined min exceeds budget
+            max_spend=200.0,
+            expected_roas=2.0,
+        ),
+        BudgetItem(
+            id="item2",
+            name="Item 2",
+            min_spend=100.0,  # Combined min = 250, budget = 100
+            max_spend=150.0,
+            expected_roas=2.5,
+        ),
+    ]
+    request = OptimizerRequest(
+        total_budget=100.0,
+        items=items,
+        hierarchy_constraints=[
+            HierarchyConstraint(id="total", members=["item1", "item2"], min_spend=100.0, max_spend=100.0)
+        ],
+    )
+    # This should fail because min spends exceed total budget
+    with pytest.raises(Exception):
+        _solve(request)
+
+
+def test_missing_hierarchy_members_raises_error():
+    """Error case: hierarchy constraints referencing unknown items should fail."""
+    items = [
+        BudgetItem(id="item1", name="Item 1", min_spend=0.0, max_spend=100.0, expected_roas=2.0),
+    ]
+    constraints = [
+        HierarchyConstraint(
+            id="invalid_group",
+            members=["item1", "nonexistent_item"],
+            min_spend=0.0,
+        )
+    ]
+    request = OptimizerRequest(total_budget=100.0, items=items, hierarchy_constraints=constraints)
+    with pytest.raises(Exception) as exc_info:
+        _solve(request)
+    assert "unknown" in str(exc_info.value).lower() or "references" in str(exc_info.value).lower()
+
+
+# ============================================================================
+# DIMENSION 4: Concurrency & Thread Safety
+# ============================================================================
+
+
+def test_concurrent_optimization_isolated():
+    """Concurrency test: multiple concurrent optimizations should not interfere."""
+    import concurrent.futures
+
+    items = [
+        BudgetItem(
+            id="concurrent_item",
+            name="Concurrent Test",
+            min_spend=10.0,
+            max_spend=100.0,
+            expected_roas=3.0,
+            roi_curve=[
+                {"spend": 0.0, "revenue": 0.0},
+                {"spend": 50.0, "revenue": 150.0},
+                {"spend": 100.0, "revenue": 280.0},
+            ],
+        ),
+    ]
+    request = OptimizerRequest(
+        total_budget=50.0,
+        items=items,
+        hierarchy_constraints=[
+            HierarchyConstraint(id="total", members=["concurrent_item"], min_spend=50.0, max_spend=50.0)
+        ],
+    )
+
+    # Run 10 concurrent optimizations
+    with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+        futures = [executor.submit(_solve, request) for _ in range(10)]
+        results = [f.result() for f in concurrent.futures.as_completed(futures)]
+
+    # All results should be identical
+    expected_spend = results[0].spends["concurrent_item"]
+    expected_profit = results[0].profit
+    for result in results:
+        assert result.spends["concurrent_item"] == pytest.approx(expected_spend, abs=1e-3)
+        assert result.profit == pytest.approx(expected_profit, abs=1e-3)
+
+
+# ============================================================================
+# DIMENSION 5: Resource Management & Memory
+# ============================================================================
+
+
+def test_large_scale_optimization_bounded_memory():
+    """Resource test: optimizer should handle 100+ items without excessive memory usage."""
+    import gc
+
+    gc.collect()
+    initial_memory = 0  # Can't easily measure memory portably, but test should complete
+
+    # Create 100 items
+    items = [
+        BudgetItem(
+            id=f"item_{i}",
+            name=f"Item {i}",
+            min_spend=0.0,
+            max_spend=50.0,
+            expected_roas=2.0 + (i % 10) * 0.1,
+            roi_curve=[
+                {"spend": 0.0, "revenue": 0.0},
+                {"spend": 25.0, "revenue": 50.0 + i},
+                {"spend": 50.0, "revenue": 95.0 + i * 2},
+            ],
+        )
+        for i in range(100)
+    ]
+    request = OptimizerRequest(
+        total_budget=2500.0,
+        items=items,
+        hierarchy_constraints=[
+            HierarchyConstraint(id="total", members=[f"item_{i}" for i in range(100)], min_spend=2500.0, max_spend=2500.0)
+        ],
+    )
+
+    # Should complete without memory errors
+    result = _solve(request)
+    assert len(result.spends) == 100
+    assert math.isclose(sum(result.spends.values()), 2500.0, abs_tol=1e-3)
+
+    gc.collect()
+    # Test should complete without running out of memory
+
+
+def test_dense_roi_curve_memory_efficiency():
+    """Resource test: dense ROI curves (1000+ points) should be handled efficiently."""
+    # Create ROI curve with 1000 points
+    roi_curve = [
+        {"spend": float(i), "revenue": float(i * (3.0 - 0.0001 * i))}
+        for i in range(0, 1001)
+    ]
+    items = [
+        BudgetItem(
+            id="dense_curve",
+            name="Dense Curve Item",
+            min_spend=100.0,
+            max_spend=800.0,
+            expected_roas=2.5,
+            roi_curve=roi_curve,
+        ),
+    ]
+    request = OptimizerRequest(
+        total_budget=500.0,
+        items=items,
+        hierarchy_constraints=[
+            HierarchyConstraint(id="total", members=["dense_curve"], min_spend=500.0, max_spend=500.0)
+        ],
+    )
+
+    # Should complete efficiently
+    import time
+
+    start = time.time()
+    result = _solve(request)
+    duration = time.time() - start
+
+    assert result.spends["dense_curve"] == pytest.approx(500.0, abs=1e-3)
+    # Should complete in reasonable time (< 10 seconds even on slow machines)
+    assert duration < 10.0
+
+
+# ============================================================================
+# DIMENSION 6: State Management & Side Effects
+# ============================================================================
+
+
+def test_optimizer_does_not_modify_input_request():
+    """State test: optimizer should not modify input request objects."""
+    import copy
+
+    items = [
+        BudgetItem(
+            id="immutable_test",
+            name="Immutable Test",
+            min_spend=10.0,
+            max_spend=100.0,
+            expected_roas=2.5,
+        ),
+    ]
+    constraints = [
+        HierarchyConstraint(id="total", members=["immutable_test"], min_spend=50.0, max_spend=50.0)
+    ]
+    request = OptimizerRequest(total_budget=50.0, items=items, hierarchy_constraints=constraints)
+
+    # Deep copy before optimization
+    request_copy = copy.deepcopy(request)
+
+    _solve(request)
+
+    # Original request should be unchanged
+    assert request.total_budget == request_copy.total_budget
+    assert request.items == request_copy.items
+    assert request.hierarchy_constraints == request_copy.hierarchy_constraints
+
+
+def test_optimizer_is_deterministic():
+    """State test: optimizer should produce identical results for same input."""
+    items = [
+        BudgetItem(
+            id="deterministic_1",
+            name="Det 1",
+            min_spend=0.0,
+            max_spend=100.0,
+            expected_roas=3.0,
+            roi_curve=[{"spend": 0.0, "revenue": 0.0}, {"spend": 100.0, "revenue": 280.0}],
+        ),
+        BudgetItem(
+            id="deterministic_2",
+            name="Det 2",
+            min_spend=0.0,
+            max_spend=100.0,
+            expected_roas=2.5,
+            roi_curve=[{"spend": 0.0, "revenue": 0.0}, {"spend": 100.0, "revenue": 230.0}],
+        ),
+    ]
+    request = OptimizerRequest(
+        total_budget=150.0,
+        items=items,
+        hierarchy_constraints=[
+            HierarchyConstraint(
+                id="total",
+                members=["deterministic_1", "deterministic_2"],
+                min_spend=150.0,
+                max_spend=150.0,
+            )
+        ],
+    )
+
+    # Run multiple times
+    results = [_solve(request) for _ in range(5)]
+
+    # All results should be identical
+    reference = results[0]
+    for result in results[1:]:
+        for item_id in reference.spends:
+            assert result.spends[item_id] == pytest.approx(reference.spends[item_id], abs=1e-3)
+        assert result.profit == pytest.approx(reference.profit, abs=1e-3)
+
+
+# ============================================================================
+# DIMENSION 7: Real-World Integration
+# ============================================================================
+
+
+def test_realistic_multi_platform_allocation():
+    """Integration test: simulate realistic multi-platform budget allocation."""
+    # Realistic scenario: Meta, Google, TikTok across multiple campaigns
+    items = [
+        # Meta - High performing, saturates quickly
+        BudgetItem(
+            id="meta_core",
+            name="Meta - Core Audience",
+            min_spend=50.0,
+            max_spend=500.0,
+            expected_roas=3.2,
+            platform_minimum=25.0,
+            roi_curve=[
+                {"spend": 0.0, "revenue": 0.0},
+                {"spend": 100.0, "revenue": 320.0},
+                {"spend": 300.0, "revenue": 840.0},
+                {"spend": 500.0, "revenue": 1300.0},
+            ],
+        ),
+        # Google Search - Steady performer
+        BudgetItem(
+            id="google_search",
+            name="Google Search - Brand",
+            min_spend=30.0,
+            max_spend=400.0,
+            expected_roas=2.8,
+            platform_minimum=20.0,
+            roi_curve=[
+                {"spend": 0.0, "revenue": 0.0},
+                {"spend": 200.0, "revenue": 560.0},
+                {"spend": 400.0, "revenue": 1040.0},
+            ],
+        ),
+        # TikTok - High variance, low stock product
+        BudgetItem(
+            id="tiktok_viral",
+            name="TikTok - Viral Campaign",
+            min_spend=0.0,
+            max_spend=300.0,
+            expected_roas=3.5,
+            inventory_status="low_stock",
+            inventory_multiplier=0.4,
+            roi_curve=[
+                {"spend": 0.0, "revenue": 0.0},
+                {"spend": 100.0, "revenue": 350.0},
+                {"spend": 120.0, "revenue": 400.0},  # Capped by inventory
+            ],
+        ),
+    ]
+
+    constraints = [
+        HierarchyConstraint(
+            id="meta_platform",
+            members=["meta_core"],
+            max_spend=500.0,
+        ),
+        HierarchyConstraint(
+            id="google_platform",
+            members=["google_search"],
+            max_spend=400.0,
+        ),
+        HierarchyConstraint(
+            id="total",
+            members=["meta_core", "google_search", "tiktok_viral"],
+            min_spend=800.0,
+            max_spend=800.0,
+        ),
+    ]
+
+    request = OptimizerRequest(
+        total_budget=800.0,
+        items=items,
+        hierarchy_constraints=constraints,
+        roas_floor=2.0,  # Minimum acceptable ROAS
+    )
+
+    result = _solve(request)
+
+    # Verify budget allocation
+    assert math.isclose(sum(result.spends.values()), 800.0, abs_tol=1e-3)
+
+    # Verify platform minimums respected
+    assert result.spends["meta_core"] >= 25.0 - 1e-6
+    assert result.spends["google_search"] >= 20.0 - 1e-6
+
+    # Verify inventory cap on TikTok
+    assert result.spends["tiktok_viral"] <= 300.0 * 0.4 + 1e-6
+
+    # Verify ROAS floor
+    for item_id, spend in result.spends.items():
+        if spend > 0:
+            item = next(i for i in items if i.id == item_id)
+            revenue = _evaluate_roi(item.roi_curve, spend, item.expected_roas)
+            roas = revenue / spend
+            assert roas >= request.roas_floor - 1e-3
+
+    # Verify profitability
+    assert result.profit > 0.0
+
+
+def test_edge_case_all_items_out_of_stock():
+    """Integration edge case: all products out of stock should fail gracefully."""
+    items = [
+        BudgetItem(
+            id="oos_1",
+            name="OOS Item 1",
+            min_spend=0.0,
+            max_spend=200.0,
+            expected_roas=3.0,
+            inventory_status="out_of_stock",
+        ),
+        BudgetItem(
+            id="oos_2",
+            name="OOS Item 2",
+            min_spend=0.0,
+            max_spend=200.0,
+            expected_roas=2.5,
+            inventory_status="out_of_stock",
+        ),
+    ]
+    request = OptimizerRequest(
+        total_budget=100.0,
+        items=items,
+        hierarchy_constraints=[
+            HierarchyConstraint(id="total", members=["oos_1", "oos_2"], min_spend=100.0, max_spend=100.0)
+        ],
+    )
+
+    # This should fail because we can't allocate budget to OOS items
+    with pytest.raises(Exception):
+        _solve(request)

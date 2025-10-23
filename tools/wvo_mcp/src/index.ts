@@ -15,7 +15,6 @@ import { SERVER_NAME, SERVER_VERSION } from "./utils/version.js";
 import { toJsonSchema } from "./utils/schema.js";
 import { planNextInputSchema } from "./utils/schemas.js";
 import { LiveFlags } from "./state/live_flags.js";
-import { FeatureGates } from "./orchestrator/feature_gates.js";
 import {
   orchestratorStatusInput,
   authStatusInput,
@@ -35,6 +34,10 @@ import {
   lspHoverInput,
   lspServerStatusInput,
   lspInitializeInput,
+  adminFlagsInput,
+  settingsUpdateInput,
+  upgradeApplyPatchInput,
+  routeSwitchInput,
 } from "./tools/input_schemas.js";
 
 type JsonSchema = ReturnType<typeof toJsonSchema>;
@@ -113,6 +116,10 @@ async function main() {
   const lspHoverSchema = toJsonSchema(lspHoverInput, "LspHoverInput");
   const lspServerStatusSchema = toJsonSchema(lspServerStatusInput, "LspServerStatusInput");
   const lspInitializeSchema = toJsonSchema(lspInitializeInput, "LspInitializeInput");
+  const adminFlagsSchema = toJsonSchema(adminFlagsInput, "AdminFlagsInput");
+  const settingsUpdateSchema = toJsonSchema(settingsUpdateInput, "SettingsUpdateInput");
+  const upgradeApplyPatchSchema = toJsonSchema(upgradeApplyPatchInput, "UpgradeApplyPatchInput");
+  const routeSwitchSchema = toJsonSchema(routeSwitchInput, "RouteSwitchInput");
 
   const proxyTools: ProxyToolDefinition[] = [
     {
@@ -227,6 +234,22 @@ async function main() {
       name: "tool_manifest",
       description: "Describe available MCP tools with schemas, costs, and prerequisites.",
     },
+    {
+      name: "mcp_admin_flags",
+      description:
+        "Manage runtime flags for tool routing, feature toggles, and behavior control without restart.",
+      schema: adminFlagsSchema,
+    },
+    {
+      name: "settings_update",
+      description: "Update live flag settings atomically without restarting the MCP server.",
+      schema: settingsUpdateSchema,
+    },
+    {
+      name: "upgrade_apply_patch",
+      description: "Apply or dry-run git patches during controlled upgrade rollouts.",
+      schema: upgradeApplyPatchSchema,
+    },
   ];
 
   const shutdown = () => {
@@ -315,6 +338,72 @@ async function main() {
           ok: snapshot.status === "healthy",
           snapshot,
           analytics_path: snapshot.persisted_path,
+        });
+      },
+    );
+
+    server.registerTool(
+      "route_switch",
+      {
+        description: "Promote the canary worker or request rollback via structured routing controls.",
+        inputSchema: routeSwitchSchema,
+      },
+      async (input) => {
+        let parsed;
+        try {
+          parsed = routeSwitchInput.parse(input ?? {});
+        } catch (error) {
+          return jsonResponse({
+            ok: false,
+            error: {
+              code: "invalid_input",
+              message: error instanceof Error ? error.message : String(error),
+            },
+          });
+        }
+
+        if (liveFlags.getValue("ROUTING_TOOLS") !== "1") {
+          return jsonResponse({
+            ok: false,
+            error: {
+              code: "flag_disabled",
+              message: "route_switch is disabled until ROUTING_TOOLS flag is enabled",
+              flag: "ROUTING_TOOLS",
+            },
+          });
+        }
+
+        if (parsed.action === "promote_canary") {
+          const canary = workerManager.getCanary();
+          if (!canary) {
+            return jsonResponse({
+              ok: false,
+              error: {
+                code: "no_canary",
+                message: "No canary worker is currently running; start one before switching.",
+              },
+            });
+          }
+          try {
+            const summary = await workerManager.switchToCanary();
+            return jsonResponse({ ok: true, summary });
+          } catch (error) {
+            return jsonResponse({
+              ok: false,
+              error: {
+                code: "switch_failed",
+                message: error instanceof Error ? error.message : String(error),
+              },
+            });
+          }
+        }
+
+        return jsonResponse({
+          ok: false,
+          error: {
+            code: "not_supported",
+            message: "Rollback routing is not yet implemented; use promote_canary action only.",
+          },
         });
       },
     );

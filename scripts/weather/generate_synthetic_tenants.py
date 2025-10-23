@@ -70,6 +70,34 @@ TENANTS = {
     }
 }
 
+AFFINITY_WEIGHTS_BY_TENANT = {
+    "extreme_weather_sensitivity": {
+        "winter": 3.2,
+        "summer": 0.35,
+        "rain": 1.6,
+        "neutral": 1.0,
+    },
+    "high_weather_sensitivity": {
+        "winter": 1.6,
+        "summer": 0.9,
+        "rain": 1.2,
+        "neutral": 1.0,
+    },
+    "medium_weather_sensitivity": {
+        "winter": 1.1,
+        "summer": 1.0,
+        "rain": 1.0,
+        "neutral": 1.0,
+    },
+}
+
+TENANT_SENSITIVITY_SCALE = {
+    "extreme_weather_sensitivity": 0.9,
+    "high_weather_sensitivity": 0.35,
+    "medium_weather_sensitivity": 0.12,
+    "no_weather_sensitivity": 0.0,
+}
+
 
 def get_weather_multiplier(date: datetime, weather_affinity: str, lat: float, lon: float) -> float:
     """
@@ -86,35 +114,36 @@ def get_weather_multiplier(date: datetime, weather_affinity: str, lat: float, lo
         Multiplier between 0.3 and 4.0 (increased range for stronger signal)
     """
     day_of_year = date.timetuple().tm_yday
+    # Convert the seasonal cycle into a smooth 0-1 "heat score".
+    # Shift by 80 days so the peak aligns with late June in the northern hemisphere.
+    seasonal_angle = 2 * np.pi * (day_of_year - 80) / 365.25
+    heat_score = (np.sin(seasonal_angle) + 1.0) / 2.0  # 0 (coldest) → 1 (hottest)
 
-    # Simulate seasonal patterns - AMPLIFIED for PoC detectability
+    # Southern hemisphere: invert the seasons so heat_score still describes "hotter" weather.
+    if lat < 0:
+        heat_score = 1.0 - heat_score
+
+    rng_noise = np.random.normal
+
     if weather_affinity == "winter":
-        # Winter products peak Dec-Feb (day 1-60, 330-365) - 3x stronger
-        if day_of_year < 60 or day_of_year > 330:
-            return 3.2 + np.random.normal(0, 0.15)  # was 1.8
-        elif day_of_year < 150 or day_of_year > 240:
-            return 1.8 + np.random.normal(0, 0.12)  # was 1.2
-        else:
-            return 0.4 + np.random.normal(0, 0.08)  # was 0.6
-
+        # Winter products thrive when it's cold. Map heat_score 0→1 to multiplier 4.0→0.3.
+        base = 5.0 - heat_score * (5.0 - 0.2)
+        noise = rng_noise(0, 0.04)
     elif weather_affinity == "summer":
-        # Summer products peak Jun-Aug (day 152-244) - 3x stronger
-        if day_of_year > 150 and day_of_year < 245:
-            return 3.0 + np.random.normal(0, 0.15)  # was 1.7
-        elif day_of_year > 90 and day_of_year < 300:
-            return 1.6 + np.random.normal(0, 0.12)  # was 1.1
-        else:
-            return 0.35 + np.random.normal(0, 0.08)  # was 0.5
-
+        # Summer products thrive when it's hot. Map heat_score 0→1 to multiplier 0.3→4.2.
+        base = 0.3 + heat_score * (4.2 - 0.3)
+        noise = rng_noise(0, 0.04)
     elif weather_affinity == "rain":
-        # Simulate rain pattern (simplified) - 3x stronger
-        if day_of_year in range(60, 120) or day_of_year in range(240, 300):
-            return 2.8 + np.random.normal(0, 0.15)  # was 1.5
-        else:
-            return 0.5 + np.random.normal(0, 0.08)  # was 0.8
+        # Shoulder seasons: peak demand when heat_score ≈ 0.25 or 0.75.
+        shoulder = 1.0 - abs(heat_score - 0.5) * 2  # 0 at extremes, 1 in the middle.
+        base = 0.5 + shoulder * (3.2 - 0.5)
+        noise = rng_noise(0, 0.03)
+    else:  # neutral products
+        base = 1.0
+        noise = rng_noise(0, 0.01)
 
-    else:  # neutral
-        return 1.0 + np.random.normal(0, 0.02)  # tighter noise
+    multiplier = np.clip(base + noise, 0.2, 4.5)
+    return float(multiplier)
 
 
 def generate_daily_data(tenant_name: str, tenant_config: dict, days: int = 180) -> pd.DataFrame:
@@ -127,37 +156,53 @@ def generate_daily_data(tenant_name: str, tenant_config: dict, days: int = 180) 
     products = tenant_config["products"]
     channels = tenant_config["channels"]
 
-    start_date = datetime.now() - timedelta(days=days)
+    # Pre-sample stable price and spend profiles so weather is the dominant driver.
+    product_base_price = {
+        product["id"]: np.random.uniform(60, 180) for product in products
+    }
+    product_spend_per_unit = {
+        product["id"]: np.random.uniform(3.5, 5.5) for product in products
+    }
+
+    start_date = datetime(2024, 1, 1)
     dates = [start_date + timedelta(days=i) for i in range(days)]
 
     records = []
+    affinity_weights = AFFINITY_WEIGHTS_BY_TENANT.get(tenant_name, {})
 
     for date in dates:
         # CRITICAL: Calculate a SINGLE daily weather multiplier (not per-product)
         # This ensures weather signal aggregates correctly when we sum across products
-        date_weather_effects = {}
+        date_weather_effects: dict[str, float] = {}
         for product in products:
-            # Get the weather multiplier for this product on this date
-            date_weather_effects[product["id"]] = get_weather_multiplier(date, product["weather_affinity"], lat, lon)
+            affinity = product["weather_affinity"]
+            if affinity not in date_weather_effects:
+                # Calculate once per affinity to avoid introducing conflicting random noise.
+                date_weather_effects[affinity] = get_weather_multiplier(date, affinity, lat, lon)
 
         # Generate daily metrics
         for product in products:
             # Use the pre-calculated weather multiplier for this product/date
-            weather_mult = date_weather_effects[product["id"]]
+            raw_weather_mult = date_weather_effects[product["weather_affinity"]]
+            sensitivity_scale = TENANT_SENSITIVITY_SCALE.get(tenant_name, 1.0)
+            weather_mult = 1.0 + sensitivity_scale * (raw_weather_mult - 1.0)
 
             # Base units with weather impact (stronger signal)
             # Use a deterministic base, then apply weather: units_base * weather_mult + small random noise
-            base_units = 20
-            units_sold = max(1, int(base_units * weather_mult + np.random.normal(0, 1)))
-            product_revenue = units_sold * np.random.uniform(60, 180)
+            affinity_weight = affinity_weights.get(product["weather_affinity"], 1.0)
+            base_units = max(18, int(base_revenue / (len(products) * 90)))
+            adjusted_units = base_units * affinity_weight
+            units_sold = max(1, int(adjusted_units * weather_mult + np.random.normal(0, 0.15)))
+            price = product_base_price[product["id"]]
+            product_revenue = units_sold * price
 
             # CRITICAL FIX: Spend should correlate with demand (units_sold)
             # This ensures the model can learn spend elasticity and weather relationships
-            base_spend_per_unit = np.random.uniform(3.5, 5.5)
-            meta_spend = units_sold * base_spend_per_unit * np.random.uniform(0.6, 0.8)
-            google_spend = units_sold * base_spend_per_unit * np.random.uniform(0.4, 0.6)
+            spend_per_unit = product_spend_per_unit[product["id"]]
+            meta_spend = units_sold * spend_per_unit * 0.72
+            google_spend = units_sold * spend_per_unit * 0.52
 
-            email_sends = max(100, int(base_units * 30 * weather_mult + np.random.normal(0, 10)))
+            email_sends = max(100, int(adjusted_units * 30 * weather_mult + np.random.normal(0, 10)))
             email_opens = int(email_sends * np.random.uniform(0.15, 0.35))
             email_clicks = int(email_opens * np.random.uniform(0.05, 0.15))
 
@@ -190,7 +235,7 @@ def generate_weather_data(tenant_name: str, lat: float, lon: float, days: int = 
     STRENGTHENED: More pronounced seasonal patterns to ensure weather signal is detectable.
     """
     location, _, _ = TENANTS[tenant_name]["location"]
-    start_date = datetime.now() - timedelta(days=days)
+    start_date = datetime(2024, 1, 1)
     dates = [start_date + timedelta(days=i) for i in range(days)]
 
     # Simulate realistic weather patterns by latitude/longitude
@@ -201,8 +246,8 @@ def generate_weather_data(tenant_name: str, lat: float, lon: float, days: int = 
         day_of_year = date.timetuple().tm_yday
 
         # STRONGER Seasonal temperature variation (amplitude 25 instead of 20)
-        seasonal_temp = base_temp + 25 * np.sin(2 * np.pi * day_of_year / 365.25)
-        daily_temp = seasonal_temp + np.random.normal(0, 3)  # tighter noise
+        seasonal_temp = base_temp + 25 * np.sin(2 * np.pi * (day_of_year - 80) / 365.25)
+        daily_temp = seasonal_temp + np.random.normal(0, 1.5)  # tighter noise
 
         # STRONGER Precipitation patterns
         if day_of_year in range(80, 150) or day_of_year in range(240, 310):

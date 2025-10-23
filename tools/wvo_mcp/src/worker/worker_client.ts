@@ -3,6 +3,12 @@ import type { WorkerCallOptions } from "./protocol.js";
 import { logError } from "../telemetry/logger.js";
 import { withSpan } from "../telemetry/tracing.js";
 
+const EXECUTOR_ROUTED_TOOLS = new Set([
+  "cmd_run",
+  "fs_read",
+  "fs_write",
+]);
+
 export interface WorkerErrorPayload {
   error: string;
   method: string;
@@ -50,6 +56,10 @@ export function isWorkerErrorPayload(value: unknown): value is WorkerErrorPayloa
   return typeof candidate.error === "string" && typeof candidate.method === "string";
 }
 
+export interface WorkerToolCallOptions extends WorkerCallOptions {
+  idempotencyKey?: string;
+}
+
 export class WorkerClient {
   constructor(private readonly manager: WorkerManager) {}
 
@@ -83,19 +93,55 @@ export class WorkerClient {
   async callTool<T>(
     name: string,
     input?: unknown,
-    options?: WorkerCallOptions,
+    options?: WorkerToolCallOptions,
   ): Promise<T | WorkerErrorPayload> {
     const method = `runTool:${name}`;
+    const idempotencyKey = options?.idempotencyKey;
     return withSpan<T | WorkerErrorPayload>(
       "worker.client.callTool",
       async (span) => {
-        try {
-          const worker = this.manager.getActive();
-          span?.setAttribute("worker.tool", name);
-          if (typeof worker.pid === "number") {
-            span?.setAttribute("worker.pid", worker.pid);
+        span?.setAttribute("worker.tool", name);
+
+        const executor = this.selectWorkerForTool(name);
+        if (executor) {
+          span?.setAttribute("worker.role", "executor");
+          try {
+            if (typeof executor.pid === "number") {
+              span?.setAttribute("worker.pid", executor.pid);
+            }
+            return await executor.call<T>(
+              "runTool",
+              { name, input, idempotencyKey },
+              options,
+            );
+          } catch (error) {
+            if (this.shouldFallbackToActive(error)) {
+              const active = this.manager.getActive();
+              span?.setAttribute("worker.role", "active");
+              if (typeof active.pid === "number") {
+                span?.setAttribute("worker.pid", active.pid);
+              }
+              return await active.call<T>(
+                "runTool",
+                { name, input, idempotencyKey },
+                options,
+              );
+            }
+            return this.handleError(method, error);
           }
-          return await worker.call<T>("runTool", { name, input }, options);
+        }
+
+        try {
+          const active = this.manager.getActive();
+          span?.setAttribute("worker.role", "active");
+          if (typeof active.pid === "number") {
+            span?.setAttribute("worker.pid", active.pid);
+          }
+          return await active.call<T>(
+            "runTool",
+            { name, input, idempotencyKey },
+            options,
+          );
         } catch (error: unknown) {
           return this.handleError(method, error);
         }
@@ -105,6 +151,31 @@ export class WorkerClient {
           "worker.tool": name,
         },
       },
+    );
+  }
+
+  private selectWorkerForTool(name: string) {
+    if (EXECUTOR_ROUTED_TOOLS.has(name)) {
+      const executor = this.manager.getExecutor();
+      if (executor) {
+        return executor;
+      }
+    }
+    return null;
+  }
+
+  private shouldFallbackToActive(error: unknown): boolean {
+    if (!error) {
+      return false;
+    }
+    const message = error instanceof Error ? error.message : String(error);
+    if (!message) {
+      return false;
+    }
+    return (
+      message.includes('executor_unsupported') ||
+      message.includes('unknown method') ||
+      message.includes('unknown tool')
     );
   }
 

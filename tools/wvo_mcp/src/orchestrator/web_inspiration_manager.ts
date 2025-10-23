@@ -71,8 +71,19 @@ export class WebInspirationManager {
 
   shouldFetch(task: Task): boolean {
     if (!this.enabled) return false;
-    const text = `${task.title} ${task.description ?? ''}`.toLowerCase();
-    return this.getKeywordHints().some((hint) => text.includes(hint));
+
+    const exitCriteria = this.getExitCriteria(task);
+    const combinedText = `${task.title} ${task.description ?? ''} ${exitCriteria.join(' ')}`.toLowerCase();
+
+    if (this.getKeywordHints().some((hint) => combinedText.includes(hint))) {
+      return true;
+    }
+
+    if (exitCriteria.some((criterion) => this.isDesignExitCriterion(criterion))) {
+      return true;
+    }
+
+    return false;
   }
 
   async ensureInspiration(task: Task): Promise<void> {
@@ -84,7 +95,13 @@ export class WebInspirationManager {
     const existing = await this.readMetadata(metadataPath);
 
     if (existing && await this.pathsExist(existing)) {
+      logInfo('Using cached web inspiration', {
+        taskId: task.id,
+        url: existing.metadata?.url ?? 'cache',
+        category: existing.metadata?.category,
+      });
       this.operationsManager.recordWebInspiration({
+        taskId: task.id,
         url: existing.metadata?.url ?? 'cache',
         success: true,
         cached: true,
@@ -112,6 +129,7 @@ export class WebInspirationManager {
 
     if (!result.success) {
       this.operationsManager.recordWebInspiration({
+        taskId: task.id,
         url,
         success: false,
         cached: false,
@@ -134,6 +152,7 @@ export class WebInspirationManager {
     await this.writeMetadata(metadataPath, record);
 
     this.operationsManager.recordWebInspiration({
+      taskId: task.id,
       url,
       success: true,
       cached: Boolean(result.metadata.cached),
@@ -350,6 +369,50 @@ export class WebInspirationManager {
 
   private getKeywordHints(): string[] {
     return ['design', 'ui', 'ux', 'layout', 'visual', 'style', 'frontend', 'marketing', 'story', 'branding', 'hardware'];
+  }
+
+  private getDesignExitCriteriaHints(): string[] {
+    return [
+      'design_system',
+      'design-system',
+      'design review',
+      'design_review',
+      'designsystem',
+      'apps/web',
+      'styleguide',
+      'storybook'
+    ];
+  }
+
+  private getExitCriteria(task: Task): string[] {
+    const collected: string[] = [];
+    const push = (value: unknown) => {
+      if (typeof value === 'string' && value.trim()) {
+        collected.push(value.trim().toLowerCase());
+      }
+    };
+
+    const metadata = task.metadata as Record<string, unknown> | undefined;
+    if (metadata) {
+      const metaExit = metadata['exit_criteria'] ?? metadata['exitCriteria'];
+      if (Array.isArray(metaExit)) {
+        metaExit.forEach(push);
+      } else if (typeof metaExit === 'string') {
+        push(metaExit);
+      }
+    }
+
+    const taskAny = task as unknown as { exit_criteria?: unknown };
+    if (Array.isArray(taskAny.exit_criteria)) {
+      taskAny.exit_criteria.forEach(push);
+    }
+
+    return Array.from(new Set(collected));
+  }
+
+  private isDesignExitCriterion(value: string): boolean {
+    const hints = this.getDesignExitCriteriaHints();
+    return hints.some((hint) => value.includes(hint));
   }
 
   private getMetadataPath(taskId: string): string {

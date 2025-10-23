@@ -11,6 +11,8 @@
 ## Success Criteria
 - Security critic (`critics_run(security)`) executes without capability skips and
   surfaces no blocking findings.
+- `make security` runs the repository secret scanner (`tools/security/run_security_checks.py`)
+  and returns clean results (no tracked secret files, no high-risk token signatures).
 - Completed artifact set:
   - Inventory spreadsheet (`state/security/credential_catalog.json`) covering owners,
     storage location, rotation SLA, and fallback contact for every credential.

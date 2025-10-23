@@ -150,7 +150,7 @@ Currently the system only reacts to rate limits after hitting them. This would p
 #### What's Needed:
 - Integrate `ModelManager` into `OrchestratorRuntime`
 - Update `model_selector.ts` to query registry instead of hardcoded `CODEX_PRESETS`
-- Update `MODEL_COST_TABLE` in `claude_code_coordinator.ts` to use registry
+- Update `MODEL_COST_TABLE` in `agent_coordinator.ts` to use registry
 - Add model awareness to Director and Critics
 
 ### 6. Testing (Phase 6)
@@ -216,7 +216,7 @@ const registry = modelManager.getRegistry();
 const availableModels = registry.getCodexModelsByCapability();
 ```
 
-3. **Update claude_code_coordinator.ts costs:**
+3. **Update agent_coordinator.ts costs:**
 ```typescript
 // Replace MODEL_COST_TABLE with registry lookup
 const modelManager = /* get from context */;

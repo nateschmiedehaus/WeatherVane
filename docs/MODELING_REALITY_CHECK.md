@@ -12,7 +12,7 @@
 
 **Current vague approach:** "Weather-aware recommendations"
 
-**Reality check:** Need to answer these questions:
+**Reality check (Oct 2025 update):** We now ship a DMA-first geography hierarchy; the open questions remain below for historical context and future refinement.
 
 ### Question 1.1: What's the unit of analysis?
 
@@ -37,14 +37,18 @@
   - Pros: More meaningful than political boundaries
   - Cons: Doesn't match ad platform targeting
 
-**Recommendation:** **Hierarchical approach**
-```
-Level 1: State (for sparse data, new brands)
-Level 2: Metro/DMA (for most brands, matches ad platforms)
-Level 3: Zip/County (for large brands with rich data)
-```
+**Decision (Oct 2025):** Adopt a DMA-first hierarchical pipeline that automatically backs off when coverage weakens.
 
-Model predicts at most granular level with sufficient data, then aggregates up.
+- **Level 2 — DMA (default):** Applied when ≥55 % of orders in the lookback window expose a `ship_geohash` and ≥85 % of DMA/date combinations hit complete weather coverage. Coverage is measured on the precise join keys and exposed via `FeatureMatrix.weather_coverage_ratio`.
+- **Level 1 — State fallback:** Triggered when DMA coverage fails but ≥25 % of orders retain DMA or state geography and ≥70 % of state/date rows have complete weather coverage. Orders and weather remap to `STATE:<abbr>` scopes so sparse DMAs inherit the nearest in-state signal.
+- **Level 0 — Global fallback:** Activated when geographic metadata collapses entirely (e.g., no geocodes or state mapping). Feature builders emit a single `GLOBAL` scope while guardrails flag the loss of resolution.
+
+Implementation details:
+- `shared.libs.geography.GeographyMapper` resolves geohashes → DMA/state using `shared/data/geography/dma_county_crosswalk.csv` and county geometries.
+- `shared.feature_store.feature_builder.FeatureBuilder._select_geography_level` evaluates coverage thresholds and records the chosen tier alongside fallback reasoning.
+- `shared.feature_store.reports.generate_weather_join_report` and `apps.worker.monitoring.weather_guardrail` surface the coverage metrics so Atlas and Dana can track regressions.
+
+Modeling and downstream allocators consume DMA metrics whenever thresholds hold; otherwise they inherit the broader scope selected above. This DMA-first stance aligns with Meta/Google targeting while ensuring we never silently operate on unreliable micro-geographies.
 
 ### Question 1.2: Customer location vs delivery location?
 

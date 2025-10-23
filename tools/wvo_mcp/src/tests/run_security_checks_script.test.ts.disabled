@@ -1,0 +1,163 @@
+import { mkdtempSync } from "node:fs";
+import path from "node:path";
+import { tmpdir } from "node:os";
+
+import { beforeEach, describe, expect, it } from "vitest";
+
+type SpawnCall = {
+  cmd: string;
+  args: string[];
+  options: {
+    env: NodeJS.ProcessEnv;
+    cwd: string;
+  };
+};
+
+describe("run_security_checks script", () => {
+  let workspaceRoot: string;
+  let spawnCalls: SpawnCall[];
+
+  beforeEach(() => {
+    workspaceRoot = mkdtempSync(path.join(tmpdir(), "security-checks-"));
+    spawnCalls = [];
+  });
+
+  it("runs make security without invoking the fallback when the command succeeds", async () => {
+    // @ts-expect-error -- script is distributed as plain JS without types
+    const module: any = await import("../../scripts/run_security_checks.mjs");
+    const { runSecurityChecks, PRIMARY_COMMAND, FALLBACK_COMMAND } = module;
+
+    const spawn = async (cmd: string, args: string[], options: any) => {
+      spawnCalls.push({
+        cmd,
+        args: [...args],
+        options: { env: { ...options.env }, cwd: options.cwd },
+      });
+      if (cmd === PRIMARY_COMMAND.cmd) {
+        return { exitCode: 0 };
+      }
+      throw new Error(`unexpected command ${cmd}`);
+    };
+
+    const exitCode = await runSecurityChecks({
+      workspaceRoot,
+      env: { CUSTOM_ENV: "1" },
+      spawn,
+    });
+
+    expect(exitCode).toBe(0);
+    expect(spawnCalls).toHaveLength(1);
+    expect(spawnCalls[0]).toEqual({
+      cmd: PRIMARY_COMMAND.cmd,
+      args: PRIMARY_COMMAND.args,
+      options: {
+        env: expect.objectContaining({ CUSTOM_ENV: "1" }),
+        cwd: workspaceRoot,
+      },
+    });
+    expect(spawnCalls[0].cmd).not.toBe(FALLBACK_COMMAND.cmd);
+  });
+
+  it("invokes pip-audit when make security exits non-zero", async () => {
+    // @ts-expect-error -- script is distributed as plain JS without types
+    const module: any = await import("../../scripts/run_security_checks.mjs");
+    const { runSecurityChecks, PRIMARY_COMMAND, FALLBACK_COMMAND } = module;
+
+    const responses = [
+      { exitCode: 2 },
+      { exitCode: 0 },
+    ];
+
+    const spawn = async (cmd: string, args: string[], options: any) => {
+      spawnCalls.push({
+        cmd,
+        args: [...args],
+        options: { env: { ...options.env }, cwd: options.cwd },
+      });
+      const response = responses.shift();
+      if (!response) {
+        throw new Error(`no response configured for ${cmd}`);
+      }
+      return response;
+    };
+
+    const exitCode = await runSecurityChecks({
+      workspaceRoot,
+      spawn,
+    });
+
+    expect(exitCode).toBe(0);
+    expect(spawnCalls).toHaveLength(2);
+    expect(spawnCalls[0].cmd).toBe(PRIMARY_COMMAND.cmd);
+    expect(spawnCalls[1].cmd).toBe(FALLBACK_COMMAND.cmd);
+  });
+
+  it("propagates the fallback exit code when make security throws with an exit code", async () => {
+    // @ts-expect-error -- script is distributed as plain JS without types
+    const module: any = await import("../../scripts/run_security_checks.mjs");
+    const { runSecurityChecks, PRIMARY_COMMAND, FALLBACK_COMMAND } = module;
+
+    const spawn = async (cmd: string, args: string[], options: any) => {
+      spawnCalls.push({
+        cmd,
+        args: [...args],
+        options: { env: { ...options.env }, cwd: options.cwd },
+      });
+
+      if (cmd === PRIMARY_COMMAND.cmd) {
+        const error: any = new Error("primary failure");
+        error.exitCode = 3;
+        throw error;
+      }
+
+      if (cmd === FALLBACK_COMMAND.cmd) {
+        return { exitCode: 5 };
+      }
+
+      throw new Error(`unexpected command ${cmd}`);
+    };
+
+    const exitCode = await runSecurityChecks({
+      workspaceRoot,
+      spawn,
+    });
+
+    expect(exitCode).toBe(5);
+    expect(spawnCalls).toHaveLength(2);
+    expect(spawnCalls[0].cmd).toBe(PRIMARY_COMMAND.cmd);
+    expect(spawnCalls[1].cmd).toBe(FALLBACK_COMMAND.cmd);
+  });
+
+  it("discovers the repository root when invoked from inside tools/wvo_mcp", async () => {
+    // @ts-expect-error -- script is distributed as plain JS without types
+    const module: any = await import("../../scripts/run_security_checks.mjs");
+    const { runSecurityChecks, PRIMARY_COMMAND } = module;
+
+    const originalCwd = process.cwd();
+    const expectedRoot = path.resolve(__dirname, "..", "..", "..", "..");
+    process.chdir(path.resolve(__dirname, "..", ".."));
+
+    try {
+      const calls: SpawnCall[] = [];
+      const exitCode = await runSecurityChecks({
+        spawn: async (cmd: string, args: string[], options: any) => {
+          calls.push({
+            cmd,
+            args: [...args],
+            options: { env: { ...options.env }, cwd: options.cwd },
+          });
+          if (cmd === PRIMARY_COMMAND.cmd) {
+            return { exitCode: 0 };
+          }
+          throw new Error(`unexpected command ${cmd}`);
+        },
+      });
+
+      expect(exitCode).toBe(0);
+      expect(calls).toHaveLength(1);
+      expect(calls[0]?.options.cwd).toBe(expectedRoot);
+    } finally {
+      process.chdir(originalCwd);
+    }
+  });
+});

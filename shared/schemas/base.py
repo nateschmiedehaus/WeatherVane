@@ -4,7 +4,7 @@ from datetime import datetime
 from enum import Enum
 from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from shared.schemas.incrementality import IncrementalityDesign, IncrementalitySummary
 
@@ -12,9 +12,7 @@ from shared.schemas.incrementality import IncrementalityDesign, IncrementalitySu
 class APIModel(BaseModel):
     """Base schema with sensible defaults."""
 
-    class Config:
-        from_attributes = True
-        json_encoders = {datetime: lambda value: value.isoformat()}
+    model_config = ConfigDict(from_attributes=True)
 
 
 class HealthResponse(APIModel):
@@ -59,6 +57,40 @@ class PlanSlice(APIModel):
     status: str | None = None
 
 
+class ExperimentLift(APIModel):
+    """Lift and confidence metrics from experiment execution."""
+
+    absolute_lift: float = Field(
+        description="Absolute lift in revenue or ROAS, e.g., +0.15 for 15% lift"
+    )
+    lift_pct: float = Field(description="Lift as percentage, e.g., 15.0 for 15%")
+    confidence_low: float = Field(description="Lower bound of 95% confidence interval")
+    confidence_high: float = Field(description="Upper bound of 95% confidence interval")
+    p_value: float = Field(description="Statistical significance p-value")
+    sample_size: int = Field(description="Number of observations used in experiment")
+    is_significant: bool = Field(
+        default=False, description="Whether lift is statistically significant (p < 0.05)"
+    )
+    generated_at: datetime | None = None
+
+
+class ExperimentPayload(APIModel):
+    """API payload for experiment execution and results."""
+
+    experiment_id: str = Field(description="Unique experiment identifier")
+    status: str = Field(
+        description="Experiment status: pending, running, completed, failed"
+    )
+    start_date: datetime | None = None
+    end_date: datetime | None = None
+    treatment_geos: list[str] = Field(default_factory=list, description="Geos in treatment group")
+    control_geos: list[str] = Field(default_factory=list, description="Geos in control group")
+    treatment_spend: float | None = None
+    control_spend: float | None = None
+    metric_name: str = Field(default="roas", description="Metric being measured")
+    lift: ExperimentLift | None = None
+
+
 class PlanResponse(APIModel):
     tenant_id: str
     generated_at: datetime
@@ -69,6 +101,64 @@ class PlanResponse(APIModel):
     context_warnings: list[ContextWarning] = Field(default_factory=list)
     incrementality_design: "IncrementalityDesign | None" = None
     incrementality_summary: "IncrementalitySummary | None" = None
+    experiments: list[ExperimentPayload] = Field(
+        default_factory=list, description="Active and historical experiments"
+    )
+    lift_summary: ExperimentLift | None = Field(
+        default=None, description="Aggregated lift metrics across all experiments"
+    )
+
+
+class ScenarioRecommendationAdjustment(APIModel):
+    channel: str
+    multiplier: float = Field(gt=0)
+    rationale: str
+    confidence: ConfidenceLevel
+
+
+class ScenarioRecommendation(APIModel):
+    id: str
+    label: str
+    description: str
+    adjustments: list[ScenarioRecommendationAdjustment] = Field(default_factory=list)
+    tags: list[str] = Field(default_factory=list)
+
+
+class ScenarioRecommendationResponse(APIModel):
+    tenant_id: str
+    generated_at: datetime
+    horizon_days: int
+    recommendations: list[ScenarioRecommendation] = Field(default_factory=list)
+
+
+class ScenarioSnapshot(APIModel):
+    """A saved scenario configuration for what-if analysis."""
+
+    id: str | None = None
+    tenant_id: str
+    name: str = Field(description="Human-readable scenario name")
+    description: str | None = Field(default=None, description="Optional scenario description")
+    horizon_days: int
+    adjustments: dict[str, float] = Field(
+        description="Channel-to-multiplier mapping (e.g., {'Meta': 1.15, 'Google': 0.9})"
+    )
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_by: str | None = Field(default=None, description="User who created the scenario")
+    tags: list[str] = Field(default_factory=list, description="Scenario classification tags")
+
+    # Computed outcome summary (optional, populated when loading)
+    total_base_spend: float | None = None
+    total_scenario_spend: float | None = None
+    total_base_revenue: float | None = None
+    total_scenario_revenue: float | None = None
+    scenario_roi: float | None = None
+
+
+class ScenarioSnapshotListResponse(APIModel):
+    """List of saved scenario snapshots."""
+
+    tenant_id: str
+    snapshots: list[ScenarioSnapshot] = Field(default_factory=list)
 
 
 class AutomationMode(str, Enum):
@@ -172,6 +262,77 @@ class StoriesResponse(APIModel):
     tenant_id: str
     generated_at: datetime
     stories: list[WeatherStory]
+    context_tags: list[str] = Field(default_factory=list)
+    data_context: dict[str, Any] | None = None
+    context_warnings: list[ContextWarning] = Field(default_factory=list)
+
+
+class ReportHeroTile(APIModel):
+    id: str
+    label: str
+    value: float
+    unit: str
+    narrative: str
+    delta_pct: float | None = None
+    delta_value: float | None = None
+
+
+class ReportNarrativeCard(APIModel):
+    id: str
+    headline: str
+    summary: str
+    weather_driver: str
+    spend: float
+    expected_revenue: float
+    confidence: ConfidenceLevel
+    plan_date: datetime
+    category: str
+    channel: str
+
+
+class ReportTrendPoint(APIModel):
+    date: datetime
+    recommended_spend: float
+    weather_index: float
+    guardrail_score: float
+
+
+class ReportTrend(APIModel):
+    cadence: str
+    points: list[ReportTrendPoint]
+
+
+class ReportSchedule(APIModel):
+    status: str
+    cadence: str
+    recipients: list[str] = Field(default_factory=list)
+    delivery_format: str = Field(default="email")
+    next_delivery_at: datetime | None = None
+    last_sent_at: datetime | None = None
+    can_edit: bool = False
+    time_zone: str | None = None
+    note: str | None = None
+
+
+class ReportSuccessHighlight(APIModel):
+    headline: str
+    summary: str
+    metric_label: str
+    metric_value: float
+    metric_unit: str
+    cta_label: str
+    cta_href: str
+    persona: str
+
+
+class ReportsResponse(APIModel):
+    tenant_id: str
+    generated_at: datetime
+    hero_tiles: list[ReportHeroTile]
+    narratives: list[ReportNarrativeCard]
+    trend: ReportTrend
+    schedule: ReportSchedule
+    success: ReportSuccessHighlight
     context_tags: list[str] = Field(default_factory=list)
     data_context: dict[str, Any] | None = None
     context_warnings: list[ContextWarning] = Field(default_factory=list)

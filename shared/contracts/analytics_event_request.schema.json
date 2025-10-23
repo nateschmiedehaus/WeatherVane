@@ -1,0 +1,105 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "DashboardSuggestionEventRequest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["tenant_id", "event", "payload", "occurred_at"],
+  "properties": {
+    "tenant_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "event": {
+      "enum": [
+        "dashboard.weather_focus.suggestion.view",
+        "dashboard.weather_focus.suggestion.focus",
+        "dashboard.weather_focus.suggestion.dismiss"
+      ]
+    },
+    "payload": {
+      "$ref": "#/$defs/DashboardSuggestionPayload"
+    },
+    "occurred_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "user_agent": {
+      "oneOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "ip_address": {
+      "oneOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "$defs": {
+    "DashboardSuggestionPayload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "region",
+        "severity",
+        "high_risk_count",
+        "event_count",
+        "has_scheduled_start",
+        "reason",
+        "viewport_breakpoint"
+      ],
+      "properties": {
+        "region": {
+          "type": "string",
+          "minLength": 1
+        },
+        "severity": {
+          "type": "string",
+          "minLength": 1
+        },
+        "high_risk_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "event_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "next_event_starts_at": {
+          "oneOf": [
+            {
+              "type": "string",
+              "format": "date-time"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "has_scheduled_start": {
+          "type": "boolean"
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1
+        },
+        "viewport_breakpoint": {
+          "enum": ["mobile", "tablet", "desktop", "unknown"]
+        },
+        "metadata": {
+          "type": "object",
+          "default": {}
+        }
+      }
+    }
+  }
+}

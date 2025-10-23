@@ -12,6 +12,22 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Tuple
 
+
+def safe_print(*args, **kwargs) -> None:
+  try:
+    print(*args, **kwargs)
+  except BrokenPipeError:
+    raise SystemExit(0)
+
+
+def parse_iso_datetime(value: str) -> float:
+  try:
+    if value.endswith("Z"):
+      value = value[:-1] + "+00:00"
+    return datetime.fromisoformat(value).timestamp()
+  except Exception:
+    return 0.0
+
 ROOT = Path(__file__).resolve().parents[3]
 STATE_DIR = ROOT / "state"
 EVENTS_PATH = STATE_DIR / "autopilot_events.jsonl"
@@ -32,6 +48,15 @@ def _format_int(value: object) -> str:
   return str(value)
 
 
+def trim_text(value: Optional[str], limit: int = 80) -> str:
+  if not value:
+    return ""
+  text = str(value).strip()
+  if len(text) <= limit:
+    return text
+  return text[: max(1, limit - 1)] + "…"
+
+
 @dataclass
 class ActivityEvent:
   type: str
@@ -43,11 +68,14 @@ class ActivityEvent:
   @classmethod
   def from_json(cls, raw: str) -> "ActivityEvent":
     payload = json.loads(raw)
+    agent_id = payload.get("agentId")
+    if agent_id is None:
+      agent_id = payload.get("agent")
     return cls(
       type=payload.get("type", "unknown"),
       timestamp=int(payload.get("timestamp") or 0),
       task_id=payload.get("taskId"),
-      agent_id=payload.get("agentId"),
+      agent_id=agent_id,
       data=payload.get("data") or {},
     )
 
@@ -110,6 +138,8 @@ class FeedState:
     self.tokens_per_agent: Dict[str, Dict[str, float]] = {}
     self.last_summary: Optional[str] = None
     self.agent_states: Dict[str, AgentState] = {}
+    self.capacity_summary: Optional[dict] = None
+    self._last_summary_time: float = 0.0
 
   def _ensure_agent(self, agent_id: str, agent_type: Optional[str], timestamp: int) -> AgentState:
     state = self.agent_states.get(agent_id)
@@ -209,10 +239,47 @@ class FeedState:
           agent.current_label = reasoning[:160] or None
         agent.started_at = None
         agent.last_result = None
+    elif event.type == "agent_capacity":
+      payload = event.data or {}
+      summary = payload.get("summary") if isinstance(payload, dict) else None
+      if isinstance(summary, dict):
+        self.capacity_summary = summary
+
+      agents_payload = payload.get("agents") if isinstance(payload, dict) else None
+      if isinstance(agents_payload, list):
+        seen_agents: set[str] = set()
+        for agent_entry in agents_payload:
+          if not isinstance(agent_entry, dict):
+            continue
+          agent_id = agent_entry.get("id")
+          if not isinstance(agent_id, str) or not agent_id:
+            continue
+          seen_agents.add(agent_id)
+          agent_type = agent_entry.get("type")
+          state = self._ensure_agent(agent_id, agent_type, event.timestamp)
+          status = agent_entry.get("status")
+          if isinstance(status, str) and status:
+            state.status = status
+          current_task = agent_entry.get("currentTask") or agent_entry.get("assignedTaskId")
+          state.current_task = current_task or None
+          assigned_at = agent_entry.get("assignedAt")
+          if isinstance(assigned_at, (int, float)):
+            state.started_at = int(assigned_at)
+          elif isinstance(assigned_at, str):
+            try:
+              state.started_at = int(parse_iso_datetime(assigned_at) * 1000)
+            except Exception:
+              state.started_at = None
+          role = agent_entry.get("role")
+          if isinstance(role, str) and role:
+            if not state.current_task:
+              state.current_label = role
+        # Leave previously-known agents in place so we keep history
 
     return self._build_summary()
 
-  def _build_summary(self) -> Optional[str]:
+  def _build_summary(self, force: bool = False) -> Optional[str]:
+    now_dt = datetime.now(timezone.utc)
     active_parts = []
     for task_id, (agent_id, _) in sorted(self.active_tasks.items()):
       active_parts.append(f"{agent_id}→{task_id}")
@@ -220,6 +287,36 @@ class FeedState:
 
     reservation_count = len(self.reservations)
     conflicts = self.conflict_count
+    capacity_fragments = []
+    if isinstance(self.capacity_summary, dict):
+      total_info = self.capacity_summary.get("total") or {}
+      total_agents = _format_int(total_info.get("total"))
+      available = _format_int(total_info.get("available"))
+      busy = _format_int(total_info.get("busy"))
+      cooldown = total_info.get("cooldown")
+      capacity_bits = [f"total={total_agents}", f"idle={available}", f"busy={busy}"]
+      if cooldown not in (None, 0, "0"):
+        capacity_bits.append(f"cooldown={_format_int(cooldown)}")
+      by_type = (
+        self.capacity_summary.get("byType")
+        or self.capacity_summary.get("by_type")
+        or {}
+      )
+      type_bits = []
+      if isinstance(by_type, dict):
+        for agent_type, stats in sorted(by_type.items()):
+          if isinstance(stats, dict):
+            snapshot = (
+              f"{agent_type} busy={_format_int(stats.get('busy'))} idle={_format_int(stats.get('available'))}"
+            )
+            cooldown_val = stats.get("cooldown")
+            if cooldown_val not in (None, 0, "0"):
+              snapshot += f" cooldown={_format_int(cooldown_val)}"
+            type_bits.append(snapshot)
+      capacity_text = "agents " + ", ".join(capacity_bits)
+      if type_bits:
+        capacity_text += f" | mix {'; '.join(type_bits)}"
+      capacity_fragments.append(capacity_text)
 
     token_parts = []
     if self.tokens_overall:
@@ -230,16 +327,61 @@ class FeedState:
         token_parts.append(f"{agent}:{int(total_tokens)}")
     tokens_str = ", ".join(token_parts) if token_parts else "n/a"
 
-    summary = (
-      f"active: {active_str} | reservations: {reservation_count}"
-      + (f" (conflicts: {conflicts})" if conflicts else "")
-      + f" | tokens: {tokens_str}"
-    )
+    summary_bits = []
+    summary_bits.extend(capacity_fragments)
+    if self.agent_states:
+      working = sum(1 for snapshot in self.agent_states.values() if snapshot.status == "working")
+      assigned = sum(1 for snapshot in self.agent_states.values() if snapshot.status == "assigned")
+      idle = sum(1 for snapshot in self.agent_states.values() if snapshot.status == "idle")
+      attention = sum(1 for snapshot in self.agent_states.values() if snapshot.status == "attention")
+      summary_bits.append(
+        f"status working={working} assigned={assigned} idle={idle} attention={attention}"
+      )
 
-    if summary == self.last_summary:
+    agent_descriptions: List[str] = []
+    for agent_id, snapshot in sorted(self.agent_states.items()):
+      descriptor = ""
+      if snapshot.current_task:
+        descriptor = snapshot.current_task
+      elif snapshot.current_label:
+        descriptor = snapshot.current_label
+      elif snapshot.last_result:
+        descriptor = snapshot.last_result
+      descriptor = trim_text(descriptor, 80)
+      elapsed_text = ""
+      if snapshot.started_at:
+        elapsed = _format_elapsed(snapshot.started_at, now_dt)
+        if elapsed and elapsed != "-":
+          elapsed_text = f" elapsed={elapsed}"
+      if descriptor:
+        agent_descriptions.append(f"{agent_id}:{snapshot.status}({descriptor}{elapsed_text})")
+      else:
+        agent_descriptions.append(f"{agent_id}:{snapshot.status}{elapsed_text}")
+
+    if agent_descriptions:
+      summary_bits.append("agents " + ", ".join(agent_descriptions))
+
+    reservations_text = f"reservations: {reservation_count}"
+    if conflicts:
+      reservations_text += f" (conflicts: {conflicts})"
+    summary_bits.append(f"active: {active_str}")
+    summary_bits.append(reservations_text)
+    summary_bits.append(f"tokens: {tokens_str}")
+    summary = " | ".join(summary_bits)
+
+    if summary == self.last_summary and not force:
       return None
     self.last_summary = summary
+    self._last_summary_time = time.time()
     return summary
+
+  def heartbeat(self, interval: float = 5.0) -> Optional[str]:
+    now = time.time()
+    if not self.agent_states and not self.capacity_summary and not self.active_tasks and not self.reservations:
+      return None
+    if now - self._last_summary_time >= interval:
+      return self._build_summary(force=True)
+    return None
 
 
 def _colour(text: str, colour: str) -> str:
@@ -502,6 +644,58 @@ def format_token_usage(event: ActivityEvent) -> str:
   return " | ".join(pieces)
 
 
+def format_agent_task_completed(event: ActivityEvent) -> str:
+  details = event.data or {}
+  success = details.get("success")
+  duration = details.get("durationSeconds")
+  parts = [
+    f"success={bool(success)}",
+    f"duration={duration}s" if isinstance(duration, (int, float)) else None,
+  ]
+  compact = " | ".join(filter(None, parts))
+  return compact or "task completed"
+
+
+def format_web_inspiration(event: ActivityEvent) -> str:
+  data = event.data or {}
+  status = "captured" if data.get("success") else "failed"
+  if data.get("enabled") is False:
+    status = "disabled"
+  cached = "cached" if data.get("cached") else "fresh"
+  parts = [status, cached]
+  category = data.get("category")
+  if category:
+    parts.append(f"category={trim_text(str(category), 40)}")
+  duration = data.get("durationMs")
+  if isinstance(duration, (int, float)):
+    parts.append(f"{int(duration)}ms")
+  url = data.get("url")
+  url_text = trim_text(str(url), 80) if url else ""
+  detail = " | ".join(parts)
+  if url_text:
+    return f"{url_text} :: {detail}"
+  return detail
+
+
+def format_agent_capacity(event: ActivityEvent) -> str:
+  payload = event.data or {}
+  summary = payload.get("summary") or {}
+  total = summary.get("total") or {}
+  by_type = summary.get("byType") or summary.get("by_type") or {}
+  reason = payload.get("reason") or "update"
+  total_text = (
+    f"total={total.get('total', 0)} idle={total.get('available', 0)} busy={total.get('busy', 0)}"
+  )
+  type_bits = []
+  for agent_type, stats in sorted(by_type.items()):
+    type_bits.append(
+      f"{agent_type}: idle={stats.get('available', 0)} busy={stats.get('busy', 0)} cooldown={stats.get('cooldown', 0)}"
+    )
+  snapshot = "; ".join(type_bits)
+  if snapshot:
+    return f"{reason} :: {total_text}; {snapshot}"
+  return f"{reason} :: {total_text}"
+
 EVENT_FORMATTERS = {
   "task_assigned": format_task_assigned,
   "execution_started": format_execution_started,
@@ -509,7 +703,152 @@ EVENT_FORMATTERS = {
   "reservation_update": format_reservation_update,
   "reservation_conflict": format_reservation_conflict,
   "token_usage": format_token_usage,
+  "agent_task_completed": format_agent_task_completed,
+  "agent_capacity": format_agent_capacity,
+  "web_inspiration": format_web_inspiration,
 }
+
+
+def format_agent_log(event: ActivityEvent) -> Optional[str]:
+  if event.type == "web_inspiration":
+    data = event.data or {}
+    ts = datetime.fromtimestamp(event.timestamp / 1000).strftime("%Y-%m-%d %H:%M:%S")
+    url = trim_text(str(data.get("url") or "unknown"), 80)
+    status = "captured" if data.get("success") else "failed"
+    if data.get("enabled") is False:
+      status = "disabled"
+    cached = "cached" if data.get("cached") else "fresh"
+    pieces = [status, cached]
+    category = data.get("category")
+    if category:
+      pieces.append(f"category={trim_text(str(category), 32)}")
+    duration = data.get("durationMs")
+    if isinstance(duration, (int, float)):
+      pieces.append(f"{int(duration)}ms")
+    task_ref = data.get("taskId") or event.task_id
+    if task_ref:
+      pieces.append(f"task={task_ref}")
+    detail = " | ".join(pieces)
+    return f"[{ts}] [inspiration] {url} :: {detail}"
+
+  if event.type == "agent_capacity":
+    payload = event.data or {}
+    summary = payload.get("summary") or {}
+    total = summary.get("total") or {}
+    by_type = summary.get("byType") or summary.get("by_type") or {}
+    reason = payload.get("reason") or "update"
+    ts = datetime.fromtimestamp(event.timestamp / 1000).strftime("%Y-%m-%d %H:%M:%S")
+    bits = []
+    for agent_type, stats in sorted(by_type.items()):
+      bits.append(
+        f"{agent_type}: idle={stats.get('available', 0)} busy={stats.get('busy', 0)} cooldown={stats.get('cooldown', 0)}"
+      )
+    total_text = (
+      f"total={total.get('total', 0)} idle={total.get('available', 0)} busy={total.get('busy', 0)}"
+    )
+    detail = "; ".join(bits)
+    suffix = f"{total_text}; {detail}" if detail else total_text
+    return f"[{ts}] [capacity] {reason} :: {suffix}"
+
+  agent_id = event.agent_id or event.data.get("agentId")
+  if not agent_id:
+    return None
+
+  ts = datetime.fromtimestamp(event.timestamp / 1000).strftime("%Y-%m-%d %H:%M:%S")
+  prefix = f"[{ts}] [agent {agent_id}]"
+  task_id = event.task_id or event.data.get("taskId")
+
+  if event.type == "task_assigned":
+    agent_type = event.data.get("agentType")
+    reason = event.data.get("reasoning")
+    context = event.data.get("contextSummary") or {}
+    context_brief = ""
+    if isinstance(context, dict):
+      context_brief = context.get("brief") or context.get("title") or ""
+    details: List[str] = []
+    if agent_type:
+      details.append(agent_type)
+    if reason:
+      details.append(trim_text(reason, 100))
+    if context_brief:
+      details.append(trim_text(context_brief, 100))
+    detail_text = f" :: {' | '.join(details)}" if details else ""
+    return f"{prefix} assigned {task_id or 'unknown'}{detail_text}"
+
+  if event.type == "execution_started":
+    reason = event.data.get("reasoning")
+    files = event.data.get("files") or []
+    brief = event.data.get("briefPath")
+    details = []
+    if task_id:
+      details.append(f"task={task_id}")
+    if reason:
+      details.append(trim_text(reason, 100))
+    if files:
+      details.append(f"{len(files)} file(s)")
+    if brief:
+      details.append(f"brief={brief}")
+    detail_text = " | ".join(details)
+    return f"{prefix} execution_started {detail_text}"
+
+  if event.type == "execution_completed":
+    success = bool(event.data.get("success"))
+    final_status = event.data.get("finalStatus") or ""
+    duration = event.data.get("durationSeconds")
+    tokens = event.data.get("totalTokens")
+    issues = event.data.get("issues") or []
+    pieces = [
+      f"task={task_id}" if task_id else "",
+      "✅ success" if success else "⚠️ failed",
+    ]
+    if final_status:
+      pieces.append(f"final={final_status}")
+    if duration is not None:
+      pieces.append(f"{duration}s")
+    if tokens is not None:
+      pieces.append(f"{tokens} tok")
+    if issues:
+      pieces.append("issues=" + ", ".join(map(lambda s: trim_text(str(s), 40), issues[:2])))
+    detail_text = " | ".join(filter(None, pieces))
+    return f"{prefix} execution_completed {detail_text}"
+
+  if event.type == "reservation_update":
+    status = event.data.get("status")
+    files = event.data.get("files") or []
+    file_sample = trim_text(files[0], 60) if files else ""
+    parts = [status or "update"]
+    if task_id:
+      parts.append(f"task={task_id}")
+    if files:
+      parts.append(f"{len(files)} file(s)")
+    if file_sample:
+      parts.append(f"ex={file_sample}")
+    return f"{prefix} reservation_update {' | '.join(parts)}"
+
+  if event.type == "reservation_conflict":
+    file_path = event.data.get("file")
+    existing_agent = event.data.get("existingAgentId")
+    existing_task = event.data.get("existingTaskId")
+    details = []
+    if file_path:
+      details.append(trim_text(file_path, 80))
+    if existing_agent:
+      details.append(f"held_by={existing_agent}")
+    if existing_task:
+      details.append(f"task={existing_task}")
+    return f"{prefix} reservation_conflict {' | '.join(details)}"
+
+  if event.type == "agent_task_completed":
+    success = bool(event.data.get("success"))
+    duration = event.data.get("durationSeconds")
+    parts = [
+      f"task={task_id}" if task_id else "",
+      "✅ success" if success else "⚠️ failed",
+      f"{duration}s" if duration is not None else "",
+    ]
+    return f"{prefix} completed {' | '.join(filter(None, parts))}".strip()
+
+  return None
 
 
 def read_events(path: Path) -> List[ActivityEvent]:
@@ -534,9 +873,9 @@ def print_feed(events: Iterable[ActivityEvent]) -> None:
   last_summary_output = False
   for event in events:
     summary = state.apply(event)
-    print(event.format())
+    safe_print(event.format())
     if summary:
-      print(f"   ↳ {summary}")
+      safe_print(f"   ↳ {summary}")
       last_summary_output = True
     else:
       last_summary_output = False
@@ -551,7 +890,7 @@ def follow_feed(path: Path, interval: float, tail: int) -> None:
   printed = False
   while not path.exists():
     if not printed:
-      print("Waiting for activity feed...", file=sys.stderr)
+      safe_print("Waiting for activity feed...", file=sys.stderr)
       printed = True
     time.sleep(interval)
 
@@ -570,9 +909,9 @@ def follow_feed(path: Path, interval: float, tail: int) -> None:
         except json.JSONDecodeError:
           continue
         summary = state.apply(event)
-        print(event.format())
+        safe_print(event.format())
         if summary:
-          print(f"   ↳ {summary}")
+          safe_print(f"   ↳ {summary}")
     handle.seek(len("".join(lines)))
     try:
       while True:
@@ -580,6 +919,9 @@ def follow_feed(path: Path, interval: float, tail: int) -> None:
         line = handle.readline()
         if not line:
           time.sleep(interval)
+          heartbeat = state.heartbeat(max(interval, 2.0))
+          if heartbeat:
+            safe_print(heartbeat)
           handle.seek(where)
           continue
         line = line.strip()
@@ -590,11 +932,45 @@ def follow_feed(path: Path, interval: float, tail: int) -> None:
         except json.JSONDecodeError:
           continue
         summary = state.apply(event)
-        print(event.format())
+        safe_print(event.format())
         if summary:
-          print(f"   ↳ {summary}")
+          safe_print(f"   ↳ {summary}")
     except KeyboardInterrupt:
       return
+
+
+def follow_agent_log(path: Path, interval: float, tail: int, follow: bool) -> None:
+  printed_wait = False
+  while not path.exists():
+    if not printed_wait:
+      safe_print("Waiting for agent activity...", file=sys.stderr)
+      printed_wait = True
+    if not follow:
+      return
+    time.sleep(interval)
+
+  processed = 0
+  primed = False
+  try:
+    while True:
+      events = read_events(path)
+      if processed > len(events):
+        processed = 0
+      start_index = processed
+      if not primed:
+        if tail > 0 and len(events) > 0:
+          start_index = max(0, len(events) - tail)
+        primed = True
+      for event in events[start_index:]:
+        line = format_agent_log(event)
+        if line:
+          safe_print(line)
+      processed = len(events)
+      if not follow:
+        break
+      time.sleep(interval if interval > 0 else 2.0)
+  except KeyboardInterrupt:
+    return
 
 
 def show_reservations(path: Path) -> None:
@@ -837,7 +1213,7 @@ def parse_args(argv: List[str]) -> argparse.Namespace:
   parser = argparse.ArgumentParser(description=__doc__)
   parser.add_argument(
     "--mode",
-    choices=("feed", "reservations", "budget", "summary", "release", "agents"),
+    choices=("feed", "reservations", "budget", "summary", "release", "agents", "agent-log"),
     default="feed",
     help="View mode (default: feed)",
   )
@@ -933,6 +1309,11 @@ def main(argv: List[str]) -> int:
     if not follow and not sys.stdout.isatty():
       follow = True
     render_agents(EVENTS_PATH, follow, refresh)
+    return 0
+
+  if args.mode == "agent-log":
+    refresh = args.interval if args.interval > 0 else 2.0
+    follow_agent_log(EVENTS_PATH, refresh, args.tail, args.follow)
     return 0
 
   if args.mode == "release":

@@ -14,10 +14,10 @@ import type {
 } from './agent_pool.js';
 import type { OperationsManager } from './operations_manager.js';
 import type {
-  ClaudeCodeCoordinator,
+  AgentCoordinator,
   ExecutionLifecycleEvent,
   ExecutionSummary,
-} from './claude_code_coordinator.js';
+} from './agent_coordinator.js';
 
 interface ActivityFeedWriterConfig {
   workspaceRoot: string;
@@ -25,7 +25,7 @@ interface ActivityFeedWriterConfig {
   scheduler: TaskScheduler;
   agentPool: AgentPool;
   operationsManager: OperationsManager;
-  coordinator: ClaudeCodeCoordinator;
+  coordinator: AgentCoordinator;
 }
 
 interface ActivityEvent {
@@ -195,6 +195,18 @@ export class ActivityFeedWriter {
       });
     });
 
+    this.bind(agentPool, 'agent:capacity', (payload: Record<string, unknown>) => {
+      this.enqueue(async () => {
+        await this.appendEvents([
+          {
+            type: 'agent_capacity',
+            timestamp: Date.now(),
+            data: payload,
+          },
+        ]);
+      });
+    });
+
     this.bind(scheduler, 'task:scheduled', (event: { taskId: string; reason: string }) => {
       this.enqueue(async () => {
         await this.appendEvents([
@@ -230,6 +242,21 @@ export class ActivityFeedWriter {
 
     this.bind(operationsManager, 'execution:recorded', (summary: ExecutionSummary) => {
       this.handleExecutionRecorded(summary);
+    });
+
+    this.bind(operationsManager, 'web_inspiration', (payload: Record<string, unknown>) => {
+      this.enqueue(async () => {
+        const timestamp =
+          typeof payload.timestamp === 'number' ? payload.timestamp : Date.now();
+        await this.appendEvents([
+          {
+            type: 'web_inspiration',
+            timestamp,
+            taskId: typeof payload.taskId === 'string' ? payload.taskId : undefined,
+            data: payload,
+          },
+        ]);
+      });
     });
   }
 

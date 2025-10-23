@@ -17,6 +17,7 @@
  */
 
 import type { RoadmapDocument, RoadmapTask } from '../utils/types.js';
+import { logInfo } from '../telemetry/logger.js';
 
 export interface CriticRequirement {
   taskId: string;
@@ -41,6 +42,8 @@ export interface GuardianReport {
   criticRequirements: CriticRequirement[];
   warnings: string[];
 }
+
+export type GuardianLogger = (message: string, details?: Record<string, unknown>) => void;
 
 /**
  * Check if a critic is available for review
@@ -204,28 +207,56 @@ export function guardAgainstCriticBlocking(roadmap: RoadmapDocument): GuardianRe
 /**
  * Log guardian report to telemetry
  */
-export function logGuardianReport(report: GuardianReport, logger?: (msg: string) => void): void {
-  const log = logger ?? console.log;
+export function logGuardianReport(report: GuardianReport, logger?: GuardianLogger): void {
+  const log: GuardianLogger =
+    logger ??
+    ((message, details) =>
+      logInfo(message, {
+        source: 'CriticAvailabilityGuardian',
+        ...details,
+      }));
 
   if (report.overridesApplied > 0) {
-    log(`[CriticAvailabilityGuardian] Applied ${report.overridesApplied} override(s) to prevent blocking loops`);
-    log(`[CriticAvailabilityGuardian] Unblocked tasks: ${report.tasksUnblocked.join(', ')}`);
+    log('CriticAvailabilityGuardian applied overrides', {
+      overridesApplied: report.overridesApplied,
+      tasksUnblocked: report.tasksUnblocked,
+      warnings: report.warnings,
+    });
+  }
 
-    for (const warning of report.warnings) {
-      log(`[CriticAvailabilityGuardian] ⚠️  ${warning}`);
-    }
+  if (report.overridesApplied === 0 && report.criticRequirements.length === 0) {
+    return;
   }
 
   const deferredCritics = report.criticRequirements.filter(r => r.status === 'deferred');
+  const pendingCritics = report.criticRequirements.filter(r => r.status === 'pending');
+
   if (deferredCritics.length > 0) {
-    log(`[CriticAvailabilityGuardian] ${deferredCritics.length} critic review(s) deferred until critics are online`);
+    log('CriticAvailabilityGuardian deferred critic reviews', {
+      deferredCount: deferredCritics.length,
+      critics: deferredCritics.map(entry => ({
+        taskId: entry.taskId,
+        criticName: entry.criticName,
+        reason: entry.reason,
+      })),
+    });
+  }
+
+  if (pendingCritics.length > 0) {
+    log('CriticAvailabilityGuardian pending critic reviews', {
+      pendingCount: pendingCritics.length,
+      critics: pendingCritics.map(entry => ({
+        taskId: entry.taskId,
+        criticName: entry.criticName,
+      })),
+    });
   }
 }
 
 /**
  * Integration point: Call this before returning tasks from plan_next
  */
-export function ensureNoCriticBlocking(roadmap: RoadmapDocument, logger?: (msg: string) => void): void {
+export function ensureNoCriticBlocking(roadmap: RoadmapDocument, logger?: GuardianLogger): void {
   const report = guardAgainstCriticBlocking(roadmap);
   logGuardianReport(report, logger);
 }

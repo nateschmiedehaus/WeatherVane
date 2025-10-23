@@ -1,0 +1,28 @@
+# Meta/Google Ads Automation Capability Matrix
+
+## Purpose
+This research snapshot compares the automation surfaces available in Meta’s Marketing API and Google Ads API. The goal is to make allocator, workflow automation, and security critics comfortable that we understand the guardrails before enabling self-serve campaign execution inside WeatherOps. Findings consolidate vendor documentation, prior in-product experiments, and feedback from security/legal reviews captured in `docs/api/meta_marketing.md` and `docs/api/google_ads.md`.
+
+## Capability Matrix
+| Capability | Meta Marketing API | Google Ads API | WeatherVane Impact |
+| --- | --- | --- | --- |
+| **Access prerequisites** | Requires Business Manager with business verification, system user with `ads_management` + `business_management`, and app review for Marketing API Advanced Access. | Requires approved developer token, Google Ads Manager (MCC) account linked to tenant CID, and OAuth client with `https://www.googleapis.com/auth/adwords`. | We must stage tenant onboarding playbooks that collect Business Manager IDs _and_ Google CIDs before enabling automation. |
+| **Credential model** | Long-lived system user access tokens exchanged from app secret; refresh via Graph API and store securely. | OAuth2 refresh tokens per user or service account (for server-to-server). Google enforces per-user OAuth audit logs. | Secrets manager must isolate Meta system tokens from Google refresh tokens to satisfy segregation-of-duties. |
+| **Sandbox / test accounts** | Limited “test Ad Account” with spend capped and restricted targeting. Missing several delivery surfaces (Advantage+, Conversions API). | Full-featured test accounts supported via test manager accounts; all API services available but no real delivery. | Expect broader integration coverage from Google during development; Meta tests should focus on creative/build flows with mocked delivery metrics. |
+| **Rate limits** | Business-tier throttling: default 200 calls per hour per app per user; burst scaling tied to spend and prior history. | Mutating operations capped by `operationsPerMutate`; typical quota ~1,500 ops per request and 50k/day per developer token, plus broader queries per customer. | Allocator job orchestration must batch writes and respect vendor-specific backoff (exponential for Meta, retry-with-more-budget for Google). |
+| **Budget & bidding controls** | Supports campaign and ad-set budget adjustments, bid cap/ROAS controls, and learning phase guidance. Advantage campaign types impose guardrails (e.g., spend floors). | Offers fine-grained bidding strategies (tCPA, tROAS, Maximize conversions), shared budgets, and experiment toggles. | Our automation engine needs a per-channel feature toggle list to hide controls unavailable in Meta Advantage campaigns while exposing Google bid strategies. |
+| **Creative automation** | Dynamic creative endpoints allow template-driven asset swaps. Video uploads limited to 1 GB per request; branded content requires approvals. | AssetGroupService with responsive search/display creatives; policy review enforces final URL and trademark checks automatically. | Creative builder should expose asynchronous status polling to surface review rejections to the UX. |
+| **Attribution & reporting** | 1/7-day click/view windows by default; Attribution API for extended windows but restricted per account. Real-time insights limited; aggregated by ad account. | Query-based reporting via Google Ads Query Language (GAQL) with near real-time metrics; conversion lag data available. | Need separate normalization pipeline to reconcile Meta delayed conversions with Google near real-time metrics before allocator critic runs. |
+| **Compliance / policy** | Ads must comply with Meta advertising policies; special categories (credit, housing, political) require additional review and legal attestation. | Google restricts sensitive categories (healthcare, finance) and enforces identity verification; failure disables the developer token. | Run tenant vertical classification upfront and require legal sign-off before generating creatives for regulated industries. |
+
+## Shared Constraints & Gaps
+- **Credential rotation** – Both vendors expect 90-day token rotation; failing to refresh deactivates automation. We need rotation jobs (worker task) and alerting into the allocator critic telemetry.
+- **Offline conversions** – Upload APIs require matching identifiers (GCLID/CLID). Our ingestion layer lacks deterministic ID reconciliation; we must map ingestion schema updates before promising full funnel reporting.
+- **Regulatory logging** – Both platforms require storing API request IDs for audit. We should persist them with campaign mutation metadata so security critic can validate audit trails.
+- **Data residency** – EU tenants require storing access tokens in EU regions. Our secrets manager currently operates single-region; security SOP captures interim mitigations.
+
+## Recommendations
+1. Ship shared `adsAutomationCapabilities` configuration that enumerates which allocator features unlock per channel; consumers gate UI and critic expectations from the config.
+2. Extend the worker rotation flow to refresh Meta system tokens nightly and Google refresh tokens weekly, logging to `state/telemetry/usage.jsonl`.
+3. Add rate-limit-aware backoff helpers (Meta Graph exponential, Google Ads `Retry-After`) in `shared/services/dashboard_analytics_ingestion.py` before enabling live campaign writes.
+4. Align allocator critic evidence with this matrix—require both capability doc links and compliance JSON artifact (`state/artifacts/research/ads_api_compliance.json`) before marking automation slices done.

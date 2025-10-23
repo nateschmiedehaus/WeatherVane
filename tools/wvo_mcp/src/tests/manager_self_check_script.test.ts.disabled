@@ -1,0 +1,662 @@
+import fs from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+import { afterEach, describe, expect, it } from "vitest";
+
+import { runCommand } from "./helpers/autopilot";
+
+const moduleDir = path.dirname(fileURLToPath(import.meta.url));
+const SCRIPT_PATH = path.resolve(moduleDir, "..", "..", "scripts", "check_manager_state.mjs");
+const GATE_SEQUENCE = ["build", "unit", "selfchecks", "canary_ready"];
+const PREFLIGHT_ENV = "WVO_MANAGER_SELF_CHECK_PREFLIGHT";
+
+const workspaces: string[] = [];
+
+async function createWorkspace(): Promise<string> {
+  const workspaceRoot = await fs.mkdtemp(path.join(os.tmpdir(), "manager-self-check-"));
+  workspaces.push(workspaceRoot);
+
+  await fs.mkdir(path.join(workspaceRoot, "state"));
+  await fs.mkdir(path.join(workspaceRoot, "experiments", "allocator"), { recursive: true });
+
+  await fs.writeFile(
+    path.join(workspaceRoot, "state", "context.md"),
+    "# Context\nNext actions:\n- hydrate rollback\n",
+    "utf8",
+  );
+
+  await fs.writeFile(
+    path.join(workspaceRoot, "state", "roadmap.yaml"),
+    "epics:\n  - milestones:\n      - tasks:\n          - id: T1\n            status: pending\n",
+    "utf8",
+  );
+
+  return workspaceRoot;
+}
+
+async function seedWorkerSnapshot(
+  workspaceRoot: string,
+  overrides: {
+    recorded_at?: string;
+    status?: "healthy" | "degraded";
+    active?: Partial<Record<string, unknown>>;
+    events?: Array<Record<string, unknown>>;
+  } = {},
+): Promise<void> {
+  const analyticsDir = path.join(workspaceRoot, "state", "analytics");
+  await fs.mkdir(analyticsDir, { recursive: true });
+
+  const recordedAt = overrides.recorded_at ?? new Date().toISOString();
+  const snapshotPath = path.join(analyticsDir, "worker_manager.json");
+  const recordedAtMs = Date.parse(recordedAt);
+  const defaultActive = {
+    role: "active",
+    label: "active",
+    status: "ready",
+    pid: 4242,
+    spawned_at: recordedAt,
+    ready_at: recordedAt,
+    started_at: recordedAt,
+    uptime_ms: 1500,
+    uptime_seconds: 1.5,
+    version: "vTest",
+    flags: { dryRun: false },
+    last_health: { ok: true, version: "vTest" },
+    last_health_at: recordedAt,
+    last_exit: null,
+  } satisfies Record<string, unknown>;
+  const snapshot = {
+    recorded_at: recordedAt,
+    recorded_at_ms: Number.isFinite(recordedAtMs) ? recordedAtMs : Date.now(),
+    status: overrides.status ?? "healthy",
+    notes: [],
+    active: { ...defaultActive, ...(overrides.active ?? {}) },
+    canary: null,
+    events: overrides.events ?? [],
+    event_limit: 50,
+    persisted_path: snapshotPath,
+  };
+
+  await fs.writeFile(snapshotPath, JSON.stringify(snapshot, null, 2), "utf8");
+}
+
+async function seedUpgradeGates(
+  workspaceRoot: string,
+  options: {
+    recordedAtIso?: string;
+    ok?: boolean;
+    failedCheck?: string;
+    gates?: Array<Record<string, unknown>>;
+    versions?: Array<Record<string, unknown>>;
+  } = {},
+): Promise<void> {
+  const qualityDir = path.join(workspaceRoot, "state", "quality");
+  await fs.mkdir(qualityDir, { recursive: true });
+
+  const artifactRel = "experiments/mcp/upgrade/latest/preflight.json";
+  const artifactPath = path.join(workspaceRoot, artifactRel);
+  await fs.mkdir(path.dirname(artifactPath), { recursive: true });
+  await fs.writeFile(artifactPath, JSON.stringify({ ok: true }, null, 2), "utf8");
+
+  const recordedAt = options.recordedAtIso ?? new Date().toISOString();
+
+  const gates =
+    options.gates ??
+    GATE_SEQUENCE.map((gate) => ({
+      gate,
+      status: "pending",
+      timestamp: recordedAt,
+    }));
+
+  const versions =
+    options.versions ??
+    [
+      {
+        tool: "node",
+        detected: "v18.19.0",
+        constraint: ">=18",
+        constraintSource: ".nvmrc",
+        satisfies: true,
+      },
+      {
+        tool: "npm",
+        detected: "9.8.0",
+        constraint: ">=9",
+        constraintSource: "package.json",
+        satisfies: true,
+      },
+    ];
+
+  const evidence = {
+    recorded_at: recordedAt,
+    ok: options.ok ?? true,
+    failedCheck: options.failedCheck,
+    artifact: artifactRel,
+    gates,
+    versions,
+  };
+
+  await fs.writeFile(
+    path.join(qualityDir, "upgrade_gates.json"),
+    JSON.stringify(evidence, null, 2),
+    "utf8",
+  );
+}
+
+async function writePreflightStub(
+  workspaceRoot: string,
+  options: {
+    behaviour?: "success" | "failure";
+    recordedAtIso?: string;
+  } = {},
+): Promise<string> {
+  const behaviour = options.behaviour ?? "success";
+  const stubPath = path.join(workspaceRoot, "preflight_stub.mjs");
+
+  if (behaviour === "failure") {
+    const code = `export async function runUpgradePreflight() {\n  throw new Error("preflight boom");\n}\n`;
+    await fs.writeFile(stubPath, code, "utf8");
+    return stubPath;
+  }
+
+  const recordedAt = options.recordedAtIso ?? new Date().toISOString();
+  const code = `import fs from "node:fs/promises";\nimport path from "node:path";\n\nconst GATES = ${JSON.stringify(
+    GATE_SEQUENCE,
+  )};\n\nexport async function runUpgradePreflight({ rootDir, stateDir }) {\n  const qualityDir = path.join(stateDir, "quality");\n  await fs.mkdir(qualityDir, { recursive: true });\n  const artifactRel = "experiments/mcp/upgrade/test/preflight.json";\n  const artifactPath = path.join(rootDir, artifactRel);\n  await fs.mkdir(path.dirname(artifactPath), { recursive: true });\n  await fs.writeFile(artifactPath, JSON.stringify({ ok: true }, null, 2), "utf8");\n\n  const payload = {\n    recorded_at: ${JSON.stringify(recordedAt)},\n    ok: true,\n    artifact: artifactRel,\n    gates: GATES.map((gate, index) => ({ gate, status: "pending", timestamp: ${JSON.stringify(
+      recordedAt,
+    )}, index })),\n    versions: [\n      { tool: "node", satisfies: true, detected: "v24.10.0", constraint: ">=24", constraintSource: ".nvmrc" },\n      { tool: "npm", satisfies: true, detected: "11.6.0", constraint: ">=10", constraintSource: "package.json" }\n    ],\n  };\n\n  await fs.writeFile(\n    path.join(qualityDir, "upgrade_gates.json"),\n    JSON.stringify(payload, null, 2),\n    "utf8",\n  );\n\n  return {\n    ok: true,\n    logs: [],\n    gates: payload.gates,\n    versions: payload.versions,\n  };\n}\n`;
+
+  await fs.writeFile(stubPath, code, "utf8");
+  return stubPath;
+}
+
+async function seedRollbackManifest(
+  workspaceRoot: string,
+  options: {
+    runId: string;
+    tenantId: string;
+    generatedAtIso?: string;
+  },
+): Promise<void> {
+  const storeDir = path.join(
+    workspaceRoot,
+    "storage",
+    "metadata",
+    "ad_push_rollback",
+    options.tenantId,
+  );
+  await fs.mkdir(storeDir, { recursive: true });
+
+  const manifest = {
+    run_id: options.runId,
+    tenant_id: options.tenantId,
+    generated_at: options.generatedAtIso ?? new Date().toISOString(),
+    baseline: {
+      entities: [
+        {
+          entity_type: "ad_set",
+          entity_id: "adset-123",
+          name: "Baseline",
+          sections: {
+            spend: {
+              daily_budget: {
+                field_path: "ad_set.daily_budget",
+                label: "Daily budget",
+                kind: "numeric",
+                unit: "usd",
+                value: 90,
+              },
+            },
+          },
+        },
+      ],
+    },
+    proposed: {
+      entities: [
+        {
+          entity_type: "ad_set",
+          entity_id: "adset-123",
+          name: "Baseline",
+          sections: {
+            spend: {
+              daily_budget: {
+                field_path: "ad_set.daily_budget",
+                label: "Daily budget",
+                kind: "numeric",
+                unit: "usd",
+                value: 120,
+              },
+            },
+          },
+        },
+      ],
+    },
+    guardrails: {
+      max_daily_budget_delta_pct: 50,
+      min_daily_spend: 150,
+    },
+    guardrail_breaches: [
+      {
+        code: "spend_below_minimum",
+        severity: "critical",
+        message: "Daily spend breached minimum guardrail",
+        limit: 150,
+        observed: 120,
+      },
+    ],
+    notes: ["Preflight smoke"],
+  };
+
+  await fs.writeFile(
+    path.join(storeDir, `${options.runId}.json`),
+    JSON.stringify(manifest, null, 2),
+    "utf8",
+  );
+}
+
+afterEach(async () => {
+  for (const workspace of workspaces.splice(0)) {
+    await fs.rm(workspace, { recursive: true, force: true });
+  }
+  delete process.env[PREFLIGHT_ENV];
+});
+
+describe("manager self-check script", () => {
+  it("fails when worker manager snapshot is missing", async () => {
+    const workspace = await createWorkspace();
+    await seedUpgradeGates(workspace);
+
+    const result = await runCommand("node", [SCRIPT_PATH, workspace], {
+      cwd: process.cwd(),
+      env: process.env as NodeJS.ProcessEnv,
+      timeoutMs: 10_000,
+    });
+
+    expect(result.exitCode).not.toBe(0);
+    expect(result.stderr).toContain("Worker manager snapshot missing");
+  });
+
+  it("fails when Next actions section lacks actionable items", async () => {
+    const workspace = await createWorkspace();
+    await seedWorkerSnapshot(workspace);
+    await seedUpgradeGates(workspace);
+
+    await fs.writeFile(
+      path.join(workspace, "state", "context.md"),
+      "# Context\nNext actions:\n- TBD\n",
+      "utf8",
+    );
+
+    const result = await runCommand("node", [SCRIPT_PATH, workspace], {
+      cwd: process.cwd(),
+      env: process.env as NodeJS.ProcessEnv,
+      timeoutMs: 10_000,
+    });
+
+    expect(result.exitCode).not.toBe(0);
+    expect(result.stderr).toContain("Next actions section missing actionable items");
+  });
+
+  it("fails when worker manager snapshot is stale", async () => {
+    const workspace = await createWorkspace();
+    const staleIso = new Date(Date.now() - 30 * 60 * 1000).toISOString();
+    await seedWorkerSnapshot(workspace, {
+      recorded_at: staleIso,
+      active: {
+        last_health_at: staleIso,
+      },
+    });
+    await seedUpgradeGates(workspace);
+
+    const result = await runCommand("node", [SCRIPT_PATH, workspace], {
+      cwd: process.cwd(),
+      env: process.env as NodeJS.ProcessEnv,
+      timeoutMs: 10_000,
+    });
+
+    expect(result.exitCode).not.toBe(0);
+    expect(result.stderr).toContain("snapshot stale");
+  });
+
+  it("fails when recent worker exit is recorded", async () => {
+    const workspace = await createWorkspace();
+    const recentExitIso = new Date(Date.now() - 60_000).toISOString();
+    await seedWorkerSnapshot(workspace, {
+      events: [
+        {
+          timestamp: recentExitIso,
+          type: "exit",
+          worker: "active",
+          message: "Active worker exited unexpectedly",
+        },
+      ],
+    });
+    await seedUpgradeGates(workspace);
+
+    const result = await runCommand("node", [SCRIPT_PATH, workspace], {
+      cwd: process.cwd(),
+      env: process.env as NodeJS.ProcessEnv,
+      timeoutMs: 10_000,
+    });
+
+    expect(result.exitCode).not.toBe(0);
+    expect(result.stderr).toContain("Recent worker exit");
+  });
+
+  it("fails when critical alert lacks rollback simulation", async () => {
+    const workspace = await createWorkspace();
+    await seedWorkerSnapshot(workspace);
+    await seedUpgradeGates(workspace);
+    const alertsPath = path.join(workspace, "state", "ad_push_alerts.json");
+    await fs.writeFile(
+      alertsPath,
+      JSON.stringify(
+        [
+          {
+            run_id: "run-1",
+            tenant_id: "tenant-1",
+            generated_at: new Date().toISOString(),
+            severity: "critical",
+            codes: ["spend_below_minimum"],
+            message: "Budget fell below minimum",
+          },
+        ],
+        null,
+        2,
+      ),
+      "utf8",
+    );
+
+    const result = await runCommand("node", [SCRIPT_PATH, workspace], {
+      cwd: process.cwd(),
+      env: process.env as NodeJS.ProcessEnv,
+      timeoutMs: 10_000,
+    });
+    expect(result.exitCode).not.toBe(0);
+    expect(result.stderr).toContain("rollback_sim artifact");
+  });
+
+  it("passes when rollback simulation matches critical alert", async () => {
+    const workspace = await createWorkspace();
+    const now = new Date();
+    await seedWorkerSnapshot(workspace);
+    await seedUpgradeGates(workspace);
+    const alertsPath = path.join(workspace, "state", "ad_push_alerts.json");
+    await fs.writeFile(
+      alertsPath,
+      JSON.stringify(
+        [
+          {
+            run_id: "run-2",
+            tenant_id: "tenant-9",
+            generated_at: now.toISOString(),
+            severity: "critical",
+            codes: ["spend_below_minimum"],
+            message: "Budget fell below minimum",
+          },
+        ],
+        null,
+        2,
+      ),
+      "utf8",
+    );
+
+    const simulationPath = path.join(
+      workspace,
+      "experiments",
+      "allocator",
+      "rollback_sim.json",
+    );
+    await fs.writeFile(
+      simulationPath,
+      JSON.stringify(
+        {
+          run_id: "run-2",
+          tenant_id: "tenant-9",
+          simulated_at: new Date(now.getTime() + 5 * 60 * 1000).toISOString(),
+          rollback_ready: true,
+          actions: [
+            {
+              entity_type: "ad_set",
+              entity_id: "123",
+              field_path: "ad_set.daily_budget",
+              baseline_value: 90,
+              proposed_value: 110,
+            },
+          ],
+          critical_guardrail_codes: ["spend_below_minimum"],
+        },
+        null,
+        2,
+      ),
+      "utf8",
+    );
+
+    const result = await runCommand("node", [SCRIPT_PATH, workspace], {
+      cwd: process.cwd(),
+      env: process.env as NodeJS.ProcessEnv,
+      timeoutMs: 10_000,
+    });
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout).toContain("Manager self-check passed");
+  });
+
+  it("refreshes stale rollback simulation when manifest is available", async () => {
+    const workspace = await createWorkspace();
+    const now = new Date();
+    const runId = "run-refresh-cli";
+    const tenantId = "tenant-refresh-cli";
+
+    await seedWorkerSnapshot(workspace);
+    await seedUpgradeGates(workspace);
+    await seedRollbackManifest(workspace, {
+      runId,
+      tenantId,
+      generatedAtIso: now.toISOString(),
+    });
+
+    const alertsPath = path.join(workspace, "state", "ad_push_alerts.json");
+    await fs.writeFile(
+      alertsPath,
+      JSON.stringify(
+        [
+          {
+            run_id: runId,
+            tenant_id: tenantId,
+            generated_at: now.toISOString(),
+            severity: "critical",
+            codes: ["spend_below_minimum"],
+            message: "Budget fell below minimum",
+          },
+        ],
+        null,
+        2,
+      ),
+      "utf8",
+    );
+
+    const simulationPath = path.join(
+      workspace,
+      "experiments",
+      "allocator",
+      "rollback_sim.json",
+    );
+    const staleTimestamp = new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000).toISOString();
+    await fs.writeFile(
+      simulationPath,
+      JSON.stringify(
+        {
+          run_id: runId,
+          tenant_id: tenantId,
+          simulated_at: staleTimestamp,
+          rollback_ready: true,
+          actions: [
+            {
+              entity_type: "ad_set",
+              entity_id: "adset-123",
+              field_path: "ad_set.daily_budget",
+              baseline_value: 90,
+              proposed_value: 120,
+            },
+          ],
+          critical_guardrail_codes: ["spend_below_minimum"],
+        },
+        null,
+        2,
+      ),
+      "utf8",
+    );
+
+    const result = await runCommand("node", [SCRIPT_PATH, workspace], {
+      cwd: process.cwd(),
+      env: process.env as NodeJS.ProcessEnv,
+      timeoutMs: 10_000,
+    });
+
+    if (result.exitCode !== 0) {
+      throw new Error(`exit=${result.exitCode} stdout=${JSON.stringify(result.stdout)} stderr=${JSON.stringify(result.stderr)}`);
+    }
+    expect(result.stderr).toBe("");
+    expect(result.stdout).toContain("Manager self-check passed");
+
+    const refreshedPayload = JSON.parse(await fs.readFile(simulationPath, "utf8"));
+    expect(refreshedPayload.run_id).toBe(runId);
+    expect(refreshedPayload.tenant_id).toBe(tenantId);
+    expect(refreshedPayload.simulated_at).not.toBe(staleTimestamp);
+    expect(Date.parse(refreshedPayload.simulated_at)).toBeGreaterThan(Date.parse(staleTimestamp));
+    expect(refreshedPayload.critical_guardrail_codes).toContain("spend_below_minimum");
+    expect(refreshedPayload.rollback_ready).toBe(true);
+    expect(Array.isArray(refreshedPayload.actions)).toBe(true);
+    expect(refreshedPayload.actions.length).toBeGreaterThan(0);
+  });
+
+  it("refreshes stale upgrade gate evidence via automatic preflight", async () => {
+    const workspace = await createWorkspace();
+    const staleTimestamp = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString();
+    await seedWorkerSnapshot(workspace, { recorded_at: new Date().toISOString() });
+    await seedUpgradeGates(workspace, { recordedAtIso: staleTimestamp });
+
+    const refreshedTimestamp = new Date().toISOString();
+    const stubPath = await writePreflightStub(workspace, {
+      behaviour: "success",
+      recordedAtIso: refreshedTimestamp,
+    });
+    process.env[PREFLIGHT_ENV] = stubPath;
+
+    const result = await runCommand("node", [SCRIPT_PATH, workspace], {
+      cwd: process.cwd(),
+      env: process.env as NodeJS.ProcessEnv,
+      timeoutMs: 10_000,
+    });
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout).toContain("Manager self-check passed");
+
+    const payload = JSON.parse(
+      await fs.readFile(path.join(workspace, "state", "quality", "upgrade_gates.json"), "utf8"),
+    );
+    expect(Date.parse(payload.recorded_at)).toBeGreaterThan(Date.parse(staleTimestamp));
+    expect(payload.ok).toBe(true);
+    expect(Array.isArray(payload.gates)).toBe(true);
+    expect(Array.isArray(payload.versions)).toBe(true);
+    expect(typeof payload.artifact).toBe("string");
+    await expect(fs.access(path.join(workspace, payload.artifact))).resolves.toBeUndefined();
+  });
+
+  it("reports failure when automatic preflight refresh fails", async () => {
+    const workspace = await createWorkspace();
+    await seedWorkerSnapshot(workspace);
+
+    const stubPath = await writePreflightStub(workspace, { behaviour: "failure" });
+    process.env[PREFLIGHT_ENV] = stubPath;
+
+    const result = await runCommand("node", [SCRIPT_PATH, workspace], {
+      cwd: process.cwd(),
+      env: process.env as NodeJS.ProcessEnv,
+      timeoutMs: 10_000,
+    });
+    expect(result.exitCode).not.toBe(0);
+    expect(result.stderr).toContain("preflight boom");
+  });
+
+  it("fails when upgrade preflight guardrail reports failure", async () => {
+    const workspace = await createWorkspace();
+    await seedWorkerSnapshot(workspace);
+    await seedUpgradeGates(workspace, { ok: false, failedCheck: "node_version" });
+
+    const result = await runCommand("node", [SCRIPT_PATH, workspace], {
+      cwd: process.cwd(),
+      env: process.env as NodeJS.ProcessEnv,
+      timeoutMs: 10_000,
+    });
+    expect(result.exitCode).not.toBe(0);
+    expect(result.stderr).toContain("Automatic upgrade preflight failed");
+  });
+
+  it("refreshes upgrade gate evidence from a clean worktree when workspace is dirty", async () => {
+    const workspace = await createWorkspace();
+    await seedWorkerSnapshot(workspace);
+    await seedUpgradeGates(workspace, { ok: false, failedCheck: "git_clean" });
+
+    const stubPath = await writePreflightStub(workspace);
+    process.env[PREFLIGHT_ENV] = stubPath;
+
+    const gitEnv = {
+      ...process.env,
+      GIT_AUTHOR_NAME: "Manager Self-Check",
+      GIT_AUTHOR_EMAIL: "manager-self-check@example.com",
+      GIT_COMMITTER_NAME: "Manager Self-Check",
+      GIT_COMMITTER_EMAIL: "manager-self-check@example.com",
+    } as NodeJS.ProcessEnv;
+
+    await runCommand("git", ["init"], {
+      cwd: workspace,
+      env: gitEnv,
+      timeoutMs: 10_000,
+    });
+
+    await fs.writeFile(path.join(workspace, "README.md"), "# manager self-check\n", "utf8");
+    await runCommand("git", ["add", "."], {
+      cwd: workspace,
+      env: gitEnv,
+      timeoutMs: 10_000,
+    });
+    await runCommand("git", ["commit", "-m", "seed workspace"], {
+      cwd: workspace,
+      env: gitEnv,
+      timeoutMs: 10_000,
+    });
+
+    await fs.writeFile(path.join(workspace, "dirty.txt"), "dirty workspace\n", "utf8");
+
+    const result = await runCommand("node", [SCRIPT_PATH, workspace], {
+      cwd: process.cwd(),
+      env: process.env as NodeJS.ProcessEnv,
+      timeoutMs: 10_000,
+    });
+
+    if (result.exitCode !== 0) {
+      throw new Error(
+        `exit=${result.exitCode} stdout=${JSON.stringify(result.stdout)} stderr=${JSON.stringify(result.stderr)}`,
+      );
+    }
+    expect(result.stderr).toBe("");
+
+    const evidencePath = path.join(workspace, "state", "quality", "upgrade_gates.json");
+    const evidence = JSON.parse(await fs.readFile(evidencePath, "utf8"));
+    expect(evidence.ok).toBe(true);
+    expect(evidence.failedCheck ?? null).not.toBe("git_clean");
+
+    const cleanRoot = path.join(workspace, ".clean_worktree");
+    const artifactPath = path.join(
+      cleanRoot,
+      "experiments",
+      "mcp",
+      "upgrade",
+      "test",
+      "preflight.json",
+    );
+    await expect(fs.access(artifactPath)).resolves.toBeUndefined();
+  });
+});

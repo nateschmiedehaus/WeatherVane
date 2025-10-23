@@ -1,0 +1,479 @@
+/**
+ * Unit tests for UnifiedOrchestrator
+ *
+ * Tests multi-provider orchestration, agent spawning, and task routing.
+ */
+
+import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
+import { EventEmitter } from 'node:events';
+import { UnifiedOrchestrator, CodexExecutor, ClaudeExecutor, type Agent, type ExecutionResult } from '../orchestrator/unified_orchestrator.js';
+import type { StateMachine, Task } from '../orchestrator/state_machine.js';
+
+// Mock execa
+vi.mock('execa', () => ({
+  execa: vi.fn(),
+}));
+
+// Mock StateMachine
+const createMockStateMachine = (): StateMachine => ({
+  // Add minimal interface for testing
+  close: vi.fn(),
+} as any);
+
+describe('CodexExecutor', () => {
+  let executor: CodexExecutor;
+
+  beforeEach(() => {
+    executor = new CodexExecutor('/test/codex/home');
+    vi.clearAllMocks();
+  });
+
+  it('should execute with correct arguments', async () => {
+    const { execa } = await import('execa');
+    vi.mocked(execa).mockResolvedValueOnce({
+      exitCode: 0,
+      stdout: 'success output',
+      stderr: '',
+    } as any);
+
+    const result = await executor.exec('gpt-5-codex', 'test prompt');
+
+    expect(execa).toHaveBeenCalledWith(
+      'codex',
+      expect.arrayContaining([
+        'exec',
+        '--model', 'gpt-5-codex',
+        '--profile', 'weathervane_orchestrator',
+        '--dangerously-bypass-approvals-and-sandbox',
+        'test prompt'
+      ]),
+      expect.objectContaining({
+        env: expect.objectContaining({
+          CODEX_HOME: '/test/codex/home'
+        })
+      })
+    );
+
+    expect(result.success).toBe(true);
+    expect(result.output).toBe('success output');
+  });
+
+  it('should handle execution failures', async () => {
+    const { execa } = await import('execa');
+    vi.mocked(execa).mockRejectedValueOnce(new Error('command failed'));
+
+    const result = await executor.exec('gpt-5-codex', 'test prompt');
+
+    expect(result.success).toBe(false);
+    expect(result.error).toBe('command failed');
+  });
+
+  it('should check auth status', async () => {
+    const { execa } = await import('execa');
+    vi.mocked(execa).mockResolvedValueOnce({
+      exitCode: 0,
+      stdout: 'Logged in as user@example.com',
+      stderr: '',
+    } as any);
+
+    const authenticated = await executor.checkAuth();
+
+    expect(authenticated).toBe(true);
+    expect(execa).toHaveBeenCalledWith(
+      'codex',
+      ['status'],
+      expect.objectContaining({
+        env: expect.objectContaining({
+          CODEX_HOME: '/test/codex/home'
+        })
+      })
+    );
+  });
+
+  it('should return false when auth check fails', async () => {
+    const { execa } = await import('execa');
+    vi.mocked(execa).mockRejectedValueOnce(new Error('not authenticated'));
+
+    const authenticated = await executor.checkAuth();
+
+    expect(authenticated).toBe(false);
+  });
+});
+
+describe('ClaudeExecutor', () => {
+  let executor: ClaudeExecutor;
+
+  beforeEach(() => {
+    executor = new ClaudeExecutor('/test/claude/config');
+    vi.clearAllMocks();
+  });
+
+  it('should execute with correct arguments', async () => {
+    const { execa } = await import('execa');
+    vi.mocked(execa).mockResolvedValueOnce({
+      exitCode: 0,
+      stdout: 'claude output',
+      stderr: '',
+    } as any);
+
+    const result = await executor.exec('claude-3.5-sonnet', 'test prompt', 'weathervane');
+
+    expect(execa).toHaveBeenCalledWith(
+      'claude',
+      expect.arrayContaining([
+        'exec',
+        '--model', 'claude-3.5-sonnet',
+        'test prompt',
+        '--mcp', 'weathervane'
+      ]),
+      expect.objectContaining({
+        env: expect.objectContaining({
+          CLAUDE_CONFIG_DIR: '/test/claude/config'
+        })
+      })
+    );
+
+    expect(result.success).toBe(true);
+    expect(result.output).toBe('claude output');
+  });
+
+  it('should check auth with whoami', async () => {
+    const { execa } = await import('execa');
+    vi.mocked(execa).mockResolvedValueOnce({
+      exitCode: 0,
+      stdout: 'user@example.com',
+      stderr: '',
+    } as any);
+
+    const authenticated = await executor.checkAuth();
+
+    expect(authenticated).toBe(true);
+    expect(execa).toHaveBeenCalledWith(
+      'claude',
+      ['whoami'],
+      expect.objectContaining({
+        env: expect.objectContaining({
+          CLAUDE_CONFIG_DIR: '/test/claude/config'
+        })
+      })
+    );
+  });
+});
+
+describe('UnifiedOrchestrator', () => {
+  let orchestrator: UnifiedOrchestrator;
+  let mockStateMachine: StateMachine;
+
+  beforeEach(() => {
+    mockStateMachine = createMockStateMachine();
+    orchestrator = new UnifiedOrchestrator(mockStateMachine, {
+      agentCount: 5,
+      preferredOrchestrator: 'claude',
+      workspaceRoot: '/test/workspace',
+      codexHome: '/test/codex',
+      claudeConfigDir: '/test/claude',
+    });
+    vi.clearAllMocks();
+  });
+
+  afterEach(() => {
+    vi.clearAllMocks();
+  });
+
+  describe('Initialization', () => {
+    it('should create orchestrator with correct config', () => {
+      expect(orchestrator).toBeDefined();
+      const state = orchestrator.getState();
+      expect(state.running).toBe(false);
+      expect(state.totalAgents).toBe(0);
+    });
+  });
+
+  describe('start()', () => {
+    it('should spawn orchestrator with Claude Sonnet when preferred and authenticated', async () => {
+      const { execa } = await import('execa');
+
+      // Mock both auth checks
+      vi.mocked(execa)
+        .mockResolvedValueOnce({ exitCode: 0, stdout: 'Logged in', stderr: '' } as any) // Codex auth
+        .mockResolvedValueOnce({ exitCode: 0, stdout: 'user@example.com', stderr: '' } as any); // Claude auth
+
+      await orchestrator.start();
+
+      const state = orchestrator.getState();
+      expect(state.running).toBe(true);
+      expect(state.orchestrator?.config.provider).toBe('claude');
+      expect(state.orchestrator?.config.model).toBe('claude-3.5-sonnet');
+    });
+
+    it('should fallback to Codex if Claude not authenticated', async () => {
+      const { execa } = await import('execa');
+
+      // Mock Codex authenticated, Claude not
+      vi.mocked(execa)
+        .mockResolvedValueOnce({ exitCode: 0, stdout: 'Logged in', stderr: '' } as any) // Codex auth
+        .mockRejectedValueOnce(new Error('not authenticated')); // Claude auth fails
+
+      await orchestrator.start();
+
+      const state = orchestrator.getState();
+      expect(state.orchestrator?.config.provider).toBe('codex');
+      expect(state.orchestrator?.config.model).toBe('gpt-5-codex');
+    });
+
+    it('should spawn correct number of workers and critics', async () => {
+      const { execa } = await import('execa');
+
+      // Mock auth checks
+      vi.mocked(execa)
+        .mockResolvedValue({ exitCode: 0, stdout: 'auth ok', stderr: '' } as any);
+
+      await orchestrator.start();
+
+      const state = orchestrator.getState();
+      // With agentCount=5: 1 orchestrator + 3 workers + 1 critic
+      expect(state.workers.length).toBe(3);
+      expect(state.critics.length).toBe(1);
+      expect(state.totalAgents).toBe(5);
+    });
+
+    it('should throw error if no providers authenticated', async () => {
+      const { execa } = await import('execa');
+
+      // Mock both auth checks failing
+      vi.mocked(execa)
+        .mockRejectedValue(new Error('not authenticated'));
+
+      await expect(orchestrator.start()).rejects.toThrow('No providers authenticated');
+    });
+
+    it('should emit started event', async () => {
+      const { execa } = await import('execa');
+      vi.mocked(execa).mockResolvedValue({ exitCode: 0, stdout: 'ok', stderr: '' } as any);
+
+      const startedHandler = vi.fn();
+      orchestrator.on('started', startedHandler);
+
+      await orchestrator.start();
+
+      expect(startedHandler).toHaveBeenCalledWith(
+        expect.objectContaining({
+          orchestrator: expect.any(Object),
+          workers: expect.any(Array),
+          critics: expect.any(Array),
+        })
+      );
+    });
+  });
+
+  describe('Task Complexity Assessment', () => {
+    beforeEach(async () => {
+      const { execa } = await import('execa');
+      vi.mocked(execa).mockResolvedValue({ exitCode: 0, stdout: 'ok', stderr: '' } as any);
+      await orchestrator.start();
+    });
+
+    it('should assess critic tasks as simple', async () => {
+      const { execa } = await import('execa');
+      vi.mocked(execa).mockResolvedValue({ exitCode: 0, stdout: 'success', stderr: '' } as any);
+
+      const task: Task = {
+        id: 'CRIT-TEST-123',
+        title: 'Run build critic',
+        type: 'task',
+        status: 'pending',
+        created_at: Date.now(),
+      };
+
+      const result = await orchestrator.executeTask(task);
+      expect(result).toBeDefined();
+      // Critic tasks should use simple workers (Haiku)
+    });
+
+    it('should assess Phase 0/1 tasks as complex', async () => {
+      const { execa } = await import('execa');
+      vi.mocked(execa).mockResolvedValue({ exitCode: 0, stdout: 'success', stderr: '' } as any);
+
+      const task: Task = {
+        id: 'T-PHASE0-1',
+        title: 'Implement geo holdout UI',
+        type: 'task',
+        epic_id: 'E-PHASE0',
+        status: 'pending',
+        created_at: Date.now(),
+      };
+
+      const result = await orchestrator.executeTask(task);
+      expect(result).toBeDefined();
+      // Complex tasks should use orchestrator
+    });
+
+    it('should assess modeling tasks as moderate', async () => {
+      const { execa } = await import('execa');
+      vi.mocked(execa).mockResolvedValue({ exitCode: 0, stdout: 'success', stderr: '' } as any);
+
+      const task: Task = {
+        id: 'T-MODEL-1',
+        title: 'Run model backtest',
+        type: 'task',
+        status: 'pending',
+        created_at: Date.now(),
+      };
+
+      const result = await orchestrator.executeTask(task);
+      expect(result).toBeDefined();
+      // Moderate tasks should use Codex workers
+    });
+  });
+
+  describe('Agent Selection', () => {
+    beforeEach(async () => {
+      const { execa } = await import('execa');
+      vi.mocked(execa).mockResolvedValue({ exitCode: 0, stdout: 'ok', stderr: '' } as any);
+      await orchestrator.start();
+    });
+
+    it('should prefer Haiku workers for simple tasks', () => {
+      const workers = orchestrator.getWorkers();
+      const haikuWorker = workers.find(w => w.config.model === 'claude-3-haiku');
+      expect(haikuWorker).toBeDefined();
+    });
+
+    it('should distribute workers across providers', () => {
+      const workers = orchestrator.getWorkers();
+      const codexWorkers = workers.filter(w => w.config.provider === 'codex');
+      const claudeWorkers = workers.filter(w => w.config.provider === 'claude');
+
+      // Should have workers from both providers (if both authenticated)
+      expect(codexWorkers.length + claudeWorkers.length).toBe(workers.length);
+    });
+  });
+
+  describe('Task Execution', () => {
+    beforeEach(async () => {
+      const { execa } = await import('execa');
+      vi.mocked(execa).mockResolvedValue({ exitCode: 0, stdout: 'ok', stderr: '' } as any);
+      await orchestrator.start();
+    });
+
+    it('should execute task and update agent state', async () => {
+      const { execa } = await import('execa');
+      vi.mocked(execa).mockResolvedValue({ exitCode: 0, stdout: 'task completed', stderr: '' } as any);
+
+      const task: Task = {
+        id: 'TEST-1',
+        title: 'Test task',
+        type: 'task',
+        status: 'pending',
+        created_at: Date.now(),
+      };
+
+      const result = await orchestrator.executeTask(task);
+
+      expect(result.success).toBe(true);
+      expect(result.output).toBe('task completed');
+    });
+
+    it('should emit task:completed event', async () => {
+      const { execa } = await import('execa');
+      vi.mocked(execa).mockResolvedValue({ exitCode: 0, stdout: 'done', stderr: '' } as any);
+
+      const completedHandler = vi.fn();
+      orchestrator.on('task:completed', completedHandler);
+
+      const task: Task = {
+        id: 'TEST-2',
+        title: 'Test task 2',
+        type: 'task',
+        status: 'pending',
+        created_at: Date.now(),
+      };
+
+      await orchestrator.executeTask(task);
+
+      expect(completedHandler).toHaveBeenCalledWith(
+        expect.objectContaining({
+          task,
+          agent: expect.any(Object),
+          result: expect.any(Object),
+        })
+      );
+    });
+
+    it('should handle task failures gracefully', async () => {
+      const { execa } = await import('execa');
+      vi.mocked(execa).mockRejectedValue(new Error('execution failed'));
+
+      const task: Task = {
+        id: 'TEST-3',
+        title: 'Failing task',
+        type: 'task',
+        status: 'pending',
+        created_at: Date.now(),
+      };
+
+      const result = await orchestrator.executeTask(task);
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('execution failed');
+    });
+
+    it('should throw error if not running', async () => {
+      await orchestrator.stop();
+
+      const task: Task = {
+        id: 'TEST-4',
+        title: 'Task after stop',
+        type: 'task',
+        status: 'pending',
+        created_at: Date.now(),
+      };
+
+      await expect(orchestrator.executeTask(task)).rejects.toThrow('not running');
+    });
+  });
+
+  describe('stop()', () => {
+    it('should clean up agents and emit stopped event', async () => {
+      const { execa } = await import('execa');
+      vi.mocked(execa).mockResolvedValue({ exitCode: 0, stdout: 'ok', stderr: '' } as any);
+
+      await orchestrator.start();
+
+      const stoppedHandler = vi.fn();
+      orchestrator.on('stopped', stoppedHandler);
+
+      await orchestrator.stop();
+
+      const state = orchestrator.getState();
+      expect(state.running).toBe(false);
+      expect(stoppedHandler).toHaveBeenCalled();
+    });
+  });
+
+  describe('getState()', () => {
+    it('should return correct state when not running', () => {
+      const state = orchestrator.getState();
+
+      expect(state.running).toBe(false);
+      expect(state.orchestrator).toBeUndefined();
+      expect(state.workers).toEqual([]);
+      expect(state.critics).toEqual([]);
+      expect(state.totalAgents).toBe(0);
+    });
+
+    it('should return correct state when running', async () => {
+      const { execa } = await import('execa');
+      vi.mocked(execa).mockResolvedValue({ exitCode: 0, stdout: 'ok', stderr: '' } as any);
+
+      await orchestrator.start();
+
+      const state = orchestrator.getState();
+
+      expect(state.running).toBe(true);
+      expect(state.orchestrator).toBeDefined();
+      expect(state.workers.length).toBeGreaterThan(0);
+      expect(state.totalAgents).toBe(5);
+    });
+  });
+});

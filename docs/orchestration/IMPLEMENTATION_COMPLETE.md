@@ -35,7 +35,7 @@ WVO_CLEAN_TELEMETRY=0 make mcp-autopilot
 ✅ ModelDiscoveryService - Discovers models via CLI
 ✅ ModelManager - High-level interface with auto-refresh
 ✅ Integration with model_selector.ts
-✅ Integration with claude_code_coordinator.ts for cost calculations
+✅ Integration with agent_coordinator.ts for cost calculations
 ✅ 22 comprehensive unit/integration tests (all passing)
 
 **Files Created:**
@@ -47,7 +47,7 @@ WVO_CLEAN_TELEMETRY=0 make mcp-autopilot
 **Files Modified:**
 - `tools/wvo_mcp/src/orchestrator/orchestrator_runtime.ts`
 - `tools/wvo_mcp/src/orchestrator/model_selector.ts`
-- `tools/wvo_mcp/src/orchestrator/claude_code_coordinator.ts`
+- `tools/wvo_mcp/src/orchestrator/agent_coordinator.ts`
 
 **Key Features:**
 - ✅ Automatic model discovery from Claude and Codex CLIs

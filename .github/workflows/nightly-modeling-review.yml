@@ -1,0 +1,100 @@
+name: Nightly Modeling Review
+
+on:
+  schedule:
+    - cron: '0 0 * * *'  # Run at midnight every day
+  workflow_dispatch:  # Allow manual trigger
+
+jobs:
+  model-review:
+    name: Model Review
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+        cache: 'pip'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install -r requirements-dev.txt
+
+    - name: Run meta-evaluation
+      run: |
+        python tools/wvo_mcp/scripts/run_meta_critique.py
+
+    - name: Check evaluation status
+      id: check
+      run: |
+        report_path=$(ls -t state/analytics/meta_evaluation_*.json | head -1)
+        status=$(jq -r '.conclusion.overall_status' "$report_path")
+        quality_score=$(jq -r '.metrics.quality_score' "$report_path")
+        echo "status=$status" >> $GITHUB_OUTPUT
+        echo "quality_score=$quality_score" >> $GITHUB_OUTPUT
+
+    - name: Create issue for failing models
+      if: steps.check.outputs.quality_score < 75
+      uses: actions/github-script@v6
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        script: |
+          const fs = require('fs');
+          const path = require('path');
+
+          // Get latest report
+          const reportPath = fs.readdirSync('state/analytics')
+            .filter(f => f.startsWith('meta_evaluation_'))
+            .sort()
+            .reverse()[0];
+
+          const report = JSON.parse(fs.readFileSync(
+            path.join('state/analytics', reportPath)
+          ));
+
+          // Create issue title and body
+          const title = `🔴 Model Quality Alert: Quality Score ${report.metrics.quality_score.toFixed(1)}%`;
+
+          let body = `# Model Quality Alert\n\n`;
+          body += `## Quality Score: ${report.metrics.quality_score.toFixed(1)}%\n`;
+          body += `**Status**: ${report.conclusion.overall_status}\n\n`;
+
+          body += `## Key Metrics\n`;
+          body += `- Model Pass Rate: ${(report.metrics.model_pass_rate * 100).toFixed(1)}%\n`;
+          body += `- Mean R²: ${report.metrics.mean_r2.toFixed(3)}\n`;
+          body += `- Mean MAPE: ${report.metrics.mean_mape.toFixed(1)}%\n\n`;
+
+          if (report.conclusion.key_risks.length > 0) {
+            body += `## Key Risks\n`;
+            report.conclusion.key_risks.forEach(risk => {
+              body += `- 🚨 **${risk.risk}** (${risk.severity})\n`;
+              body += `  - Mitigation: ${risk.mitigation}\n\n`;
+            });
+          }
+
+          if (report.conclusion.recommendations.length > 0) {
+            body += `## Recommendations\n`;
+            report.conclusion.recommendations.forEach(rec => {
+              body += `- ${rec.action} (${rec.priority})\n`;
+              body += `  - Expected Impact: ${rec.expected_impact}\n\n`;
+            });
+          }
+
+          body += `\nSee full report at: \`${reportPath}\``;
+
+          // Create GitHub issue
+          await github.rest.issues.create({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            title: title,
+            body: body,
+            labels: ['modeling', 'quality-alert']
+          });

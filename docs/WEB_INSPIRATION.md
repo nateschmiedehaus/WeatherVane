@@ -23,6 +23,10 @@ When enabled, `tools/wvo_mcp/scripts/autopilot.sh` ensures that Playwright is in
 4. **Context** – A context entry is recorded so agents can reference the assets in prompts and critics can enforce their usage.
 5. **Telemetry** – Metrics are reported through `OperationsManager` (`webInspiration` block) and written to `state/telemetry/operations.jsonl`.
 
+Autopilot relies on these Playwright captures during iteration cycles: once inspiration is fetched, the Codex workers keep rendering fresh previews, comparing against references, and refining layout/copy/motion until the experience feels grounded and premium. Expect multiple passes—shipping stops only when the output reads like deliberate human craft.
+
+> 🔒 **Non-negotiable:** Inspiration is a starting point, not an excuse for generic AI-looking work. Final layouts, copy, motion, and micro-interactions must read as bespoke WeatherVane craft. Anything that feels like stock AI output—placeholder lorem, templated hero slogans, cookie-cutter gradient cards—fails design review and must be reworked.
+
 ## MCP Tool
 
 `web_inspiration_capture` is available to all MCP clients. Parameters:

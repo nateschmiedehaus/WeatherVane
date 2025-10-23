@@ -104,6 +104,66 @@ describe('runUpgradePreflight', () => {
     expect(fs.existsSync(lockPath)).toBe(false);
   });
 
+  it('accepts sandbox artifact evidence when docker and bwrap are unavailable', async () => {
+    const rootDir = makeTempDir();
+    const stateDir = path.join(rootDir, 'state');
+    fs.mkdirSync(stateDir, { recursive: true });
+    const sqlitePath = path.join(stateDir, 'orchestrator.db');
+    new Database(sqlitePath).close();
+    fs.writeFileSync(path.join(rootDir, '.nvmrc'), 'v24.10.0\n', 'utf-8');
+    fs.mkdirSync(path.join(rootDir, 'experiments', 'meta'), { recursive: true });
+    fs.writeFileSync(
+      path.join(rootDir, 'experiments', 'meta', 'sandbox_run.json'),
+      JSON.stringify(
+        {
+          dry_run: true,
+          generated_at: new Date().toISOString(),
+        },
+        null,
+        2,
+      ),
+      'utf-8',
+    );
+    fs.writeFileSync(
+      path.join(rootDir, 'package.json'),
+      JSON.stringify({ engines: { npm: '>=10.0.0' } }, null, 2),
+      'utf-8',
+    );
+
+    const commandRunner: CommandRunner = vi.fn(async (cmd, args) => {
+      if (cmd === 'git' && args[0] === 'status') {
+        return { stdout: '\n' };
+      }
+      if (cmd === 'npm' && args[0] === '--version') {
+        return { stdout: '11.6.0\n' };
+      }
+      if (cmd === 'df') {
+        return {
+          stdout: [
+            'Filesystem 1024-blocks Used Available Capacity Mounted on',
+            '/dev/disk1 1024000 1000 1023000 1% /',
+          ].join('\n'),
+        };
+      }
+      if (cmd === 'which') {
+        throw new Error(`${args[0] ?? 'unknown'} not found`);
+      }
+      throw new Error(`Unexpected command ${cmd} ${args.join(' ')}`);
+    });
+
+    const outcome = await runUpgradePreflight({
+      rootDir,
+      stateDir,
+      sqlitePath,
+      commandRunner,
+      nodeVersion: 'v24.10.0',
+      diskCheckPath: rootDir,
+      timeProvider: () => new Date('2024-06-01T10:00:00Z'),
+    });
+
+    expect(outcome.ok).toBe(true);
+  });
+
   it('fails fast when git working tree is dirty and removes the lock', async () => {
     const rootDir = makeTempDir();
     const stateDir = path.join(rootDir, 'state');

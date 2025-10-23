@@ -90,6 +90,13 @@ experiments/orchestration/simulation_report.md
 storage/seeds/synthetic/
 artifacts/
 
+# Temporary modeling and data directories
+tmp_models/
+tmp_synth_lake/
+tmp_synth_lake2/
+storage/lake/
+storage/metadata/
+
 # Sandbox and test artifacts
 sandbox-test/
 shadow_tmp.json
@@ -115,3 +122,7 @@ state/security/
 .grok/
 grok-cli/
 gha-creds-*.json
+
+# Shopify connector and external projects
+integrations/shopify-connector/weathervane-connector/
+weather-vane/

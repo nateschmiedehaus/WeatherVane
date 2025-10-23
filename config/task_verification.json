@@ -1,0 +1,247 @@
+{
+  "version": "1.0.0",
+  "description": "Per-task verification commands and evidence requirements. Every task must pass its verifiers before marked 'done'.",
+  "global_rules": {
+    "require_evidence_bundle": true,
+    "require_artifact_verification": true,
+    "require_integration_tests": true,
+    "block_on_verification_failure": true,
+    "log_verification_telemetry": true
+  },
+  "task_verifiers": {
+    "T12.0.1": {
+      "title": "Generate synthetic multi-tenant dataset",
+      "pre_checks": [
+        {
+          "name": "environment_check",
+          "command": "bash scripts/check_modeling_env.sh",
+          "timeout_seconds": 30,
+          "required": true
+        }
+      ],
+      "post_checks": [
+        {
+          "name": "data_files_exist",
+          "command": "ls storage/seeds/synthetic/*.parquet | wc -l | grep -E '^[4-9]|^[1-9][0-9]'",
+          "timeout_seconds": 5,
+          "required": true
+        },
+        {
+          "name": "data_quality_validation",
+          "command": "python -m pytest tests/test_synthetic_data_quality.py -v",
+          "timeout_seconds": 60,
+          "required": true
+        },
+        {
+          "name": "correlation_analysis",
+          "command": "python scripts/validate_weather_correlations.py storage/seeds/synthetic/",
+          "timeout_seconds": 30,
+          "required": true
+        }
+      ],
+      "required_artifacts": [
+        "storage/seeds/synthetic/*.parquet",
+        "state/analytics/synthetic_tenant_profiles.json",
+        "state/analytics/synthetic_data_validation.json"
+      ],
+      "required_metrics": {
+        "total_rows": {"min": 3000},
+        "tenants": {"min": 4},
+        "weather_correlation_accuracy": {"min": 0.80}
+      },
+      "evidence_template": "docs/evidence/T12.0.1_synthetic_data_generation.md"
+    },
+    "T12.PoC.1": {
+      "title": "Train weather-aware model on synthetic tenant data",
+      "pre_checks": [
+        {
+          "name": "environment_check",
+          "command": "bash scripts/check_modeling_env.sh",
+          "timeout_seconds": 30,
+          "required": true
+        },
+        {
+          "name": "data_availability",
+          "command": "test -f storage/seeds/synthetic/extreme_weather_sensitivity.parquet",
+          "timeout_seconds": 5,
+          "required": true
+        }
+      ],
+      "post_checks": [
+        {
+          "name": "model_training_test",
+          "command": "python -m pytest tests/model/test_train_weather_mmm.py::test_train_weather_mmm_persists_artifacts -v",
+          "timeout_seconds": 120,
+          "required": true
+        },
+        {
+          "name": "model_performance_validation",
+          "command": "python scripts/validate_model_performance.py experiments/mcp/weather_poc_model.pkl",
+          "timeout_seconds": 60,
+          "required": true
+        },
+        {
+          "name": "baseline_comparison",
+          "command": "python scripts/compare_to_baseline.py experiments/mcp/weather_poc_model.pkl",
+          "timeout_seconds": 60,
+          "required": true
+        }
+      ],
+      "required_artifacts": [
+        "experiments/mcp/weather_poc_model.pkl",
+        "experiments/mcp/weather_poc_metrics.json",
+        "experiments/mcp/validation_report.json"
+      ],
+      "required_metrics": {
+        "out_of_sample_r2": {"min": 0.50},
+        "weather_elasticity_sign_correct": {"equals": true},
+        "beats_naive_baseline": {"min": 1.10}
+      },
+      "evidence_template": "docs/evidence/T12.PoC.1_model_training.md"
+    },
+    "T12.3.1": {
+      "title": "Train weather-aware MMM on validated 90-day tenant data",
+      "pre_checks": [
+        {
+          "name": "environment_check",
+          "command": "bash scripts/check_modeling_env.sh",
+          "timeout_seconds": 30,
+          "required": true
+        },
+        {
+          "name": "data_quality_gate",
+          "command": "python scripts/check_data_quality.py --min-rows 90 --check-weather",
+          "timeout_seconds": 30,
+          "required": true
+        }
+      ],
+      "post_checks": [
+        {
+          "name": "mmm_training_integration",
+          "command": "python -m pytest tests/model/test_mmm_lightweight.py -v",
+          "timeout_seconds": 180,
+          "required": true
+        },
+        {
+          "name": "weather_feature_integration",
+          "command": "python -m pytest tests/model/test_weather_features.py -v",
+          "timeout_seconds": 60,
+          "required": true
+        },
+        {
+          "name": "model_validation",
+          "command": "python scripts/validate_mmm_model.py experiments/mcp/mmm_weather_model.json",
+          "timeout_seconds": 60,
+          "required": true
+        },
+        {
+          "name": "robustness_check",
+          "command": "python scripts/test_model_robustness.py experiments/mcp/mmm_weather_model.json",
+          "timeout_seconds": 60,
+          "required": true
+        }
+      ],
+      "required_artifacts": [
+        "experiments/mcp/mmm_weather_model.json",
+        "experiments/mcp/mmm_metrics.json",
+        "experiments/mcp/validation_report.json",
+        "experiments/mcp/baseline_comparison.json"
+      ],
+      "required_metrics": {
+        "out_of_sample_r2": {"min": 0.50},
+        "weather_sensitive_r2": {"min": 0.50},
+        "beats_all_baselines": {"equals": true},
+        "weather_elasticity_signs_correct": {"equals": true}
+      },
+      "evidence_template": "docs/evidence/T12.3.1_mmm_training.md"
+    },
+    "T13.5.1": {
+      "title": "Train weather-aware allocation model",
+      "pre_checks": [
+        {
+          "name": "environment_check",
+          "command": "bash scripts/check_modeling_env.sh",
+          "timeout_seconds": 30,
+          "required": true
+        },
+        {
+          "name": "mmm_baseline_check",
+          "command": "test -f experiments/mcp/mmm_weather_model.json",
+          "timeout_seconds": 5,
+          "required": true
+        }
+      ],
+      "post_checks": [
+        {
+          "name": "allocation_model_tests",
+          "command": "python -m pytest tests/test_allocator.py -v",
+          "timeout_seconds": 120,
+          "required": true
+        },
+        {
+          "name": "weather_allocation_integration",
+          "command": "python -m pytest tests/test_weather_allocation.py -v",
+          "timeout_seconds": 60,
+          "required": true
+        },
+        {
+          "name": "constraint_validation",
+          "command": "python scripts/validate_allocation_constraints.py",
+          "timeout_seconds": 60,
+          "required": true
+        }
+      ],
+      "required_artifacts": [
+        "experiments/allocation/weather_aware_model.json",
+        "experiments/allocation/validation_report.json"
+      ],
+      "required_metrics": {
+        "allocation_accuracy": {"min": 0.70},
+        "respects_weather_constraints": {"equals": true}
+      },
+      "evidence_template": "docs/evidence/T13.5.1_allocation_model.md"
+    }
+  },
+  "critic_reviews": {
+    "modeling_tasks": {
+      "critics": ["modeling_reality_v2", "academic_rigor", "data_quality", "integration_fury"],
+      "perspectives": [
+        "statistical_validity",
+        "computational_correctness",
+        "integration_completeness",
+        "operational_readiness"
+      ],
+      "minimum_passing_critics": 3,
+      "blocking_critics": ["modeling_reality_v2"]
+    },
+    "data_tasks": {
+      "critics": ["data_quality", "leakage"],
+      "perspectives": ["data_completeness", "data_correctness"],
+      "minimum_passing_critics": 2,
+      "blocking_critics": ["data_quality"]
+    }
+  },
+  "verification_telemetry": {
+    "log_file": "state/telemetry/task_verification.jsonl",
+    "include_stdout": true,
+    "include_stderr": true,
+    "include_timing": true,
+    "include_exit_codes": true,
+    "include_artifacts_found": true,
+    "include_metrics_extracted": true
+  },
+  "evidence_bundle_requirements": {
+    "required_sections": [
+      "task_summary",
+      "verification_commands_run",
+      "artifacts_generated",
+      "metrics_achieved",
+      "tests_passed",
+      "critics_passed",
+      "limitations",
+      "next_steps"
+    ],
+    "auto_generate": true,
+    "fail_without_evidence": true
+  }
+}

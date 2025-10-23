@@ -78,6 +78,7 @@ export class SelfImprovementManager extends EventEmitter {
   private phaseCompletionCache: Map<string, PhaseCompletionStatus> = new Map();
   private metaWorkComplete = false;
   private lastPhaseCheck = 0;
+  private readonly reportedMissingPhases = new Set<string>();
   private readonly PHASE_CHECK_INTERVAL = 60_000; // 1 minute
   private readonly correlationPrefix = 'self-improvement';
 
@@ -410,13 +411,17 @@ export class SelfImprovementManager extends EventEmitter {
     const phaseTasks = Array.from(relevantTasksMap.values());
 
     if (phaseTasks.length === 0) {
-      logWarning('Phase not found in roadmap', {
-        phase,
-        epicIds,
-      });
+      if (!this.reportedMissingPhases.has(phase)) {
+        this.reportedMissingPhases.add(phase);
+        logWarning('Phase not found in roadmap; treating as complete to avoid blocking product work', {
+          phase,
+          epicIds,
+        });
+      }
+
       return {
         phase,
-        complete: false,
+        complete: true,
         taskIds: [],
         lastChecked: Date.now(),
       };

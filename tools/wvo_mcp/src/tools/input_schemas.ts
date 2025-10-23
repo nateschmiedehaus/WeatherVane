@@ -67,6 +67,30 @@ export const artifactRecordInput = z.object({
   metadata: z.record(z.any()).optional(),
 });
 
+export const settingsUpdateInput = z.object({
+  updates: z
+    .array(
+      z.object({
+        key: z.string().min(1),
+        value: z.union([z.string(), z.number(), z.boolean()]),
+      }),
+    )
+    .min(1),
+});
+
+export const upgradeApplyPatchInput = z.object({
+  path: z.string().min(1),
+  mode: z.enum(['check', 'apply']).optional().default('apply'),
+  strip: z.number().int().min(0).max(3).optional(),
+  reverse: z.boolean().optional(),
+  verbose: z.boolean().optional(),
+});
+
+export const routeSwitchInput = z.object({
+  action: z.enum(['promote_canary', 'rollback']).default('promote_canary'),
+  allowFallback: z.boolean().optional(),
+});
+
 // LSP Tool Schemas
 export const lspDefinitionInput = z.object({
   language: z.enum(["typescript", "python"]),
@@ -117,6 +141,9 @@ export type AutopilotAuditInput = z.infer<typeof autopilotAuditInput>;
 export type HeavyQueueEnqueueInput = z.infer<typeof heavyQueueEnqueueInput>;
 export type HeavyQueueUpdateInput = z.infer<typeof heavyQueueUpdateInput>;
 export type ArtifactRecordInput = z.infer<typeof artifactRecordInput>;
+export type SettingsUpdateInput = z.infer<typeof settingsUpdateInput>;
+export type UpgradeApplyPatchInput = z.infer<typeof upgradeApplyPatchInput>;
+export type RouteSwitchInput = z.infer<typeof routeSwitchInput>;
 export type LspDefinitionInput = z.infer<typeof lspDefinitionInput>;
 export type LspReferencesInput = z.infer<typeof lspReferencesInput>;
 export type LspHoverInput = z.infer<typeof lspHoverInput>;

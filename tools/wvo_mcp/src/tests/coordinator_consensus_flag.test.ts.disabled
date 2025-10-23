@@ -1,0 +1,143 @@
+import { EventEmitter } from "node:events";
+import { afterEach, describe, expect, it } from "vitest";
+
+import { AgentCoordinator } from "../orchestrator/agent_coordinator.js";
+import type { LiveFlagsReader } from "../orchestrator/live_flags.js";
+import type { LiveFlagSnapshot } from "../state/live_flags.js";
+import { DEFAULT_LIVE_FLAGS } from "../state/live_flags.js";
+
+function buildLiveFlags(consensus: "0" | "1"): LiveFlagsReader {
+  const snapshot: LiveFlagSnapshot = {
+    ...DEFAULT_LIVE_FLAGS,
+    CONSENSUS_ENGINE: consensus,
+  };
+  return {
+    get: () => ({ ...snapshot }),
+    getValue: (key) => snapshot[key],
+  };
+}
+
+function buildScheduler(): import("../orchestrator/task_scheduler.js").TaskScheduler {
+  return Object.assign(new EventEmitter(), {
+    takeNextTask: () => undefined,
+    releaseTask: () => undefined,
+    on: EventEmitter.prototype.on,
+    removeListener: EventEmitter.prototype.removeListener,
+  }) as unknown as import("../orchestrator/task_scheduler.js").TaskScheduler;
+}
+
+function buildStateMachine(): import("../orchestrator/state_machine.js").StateMachine {
+  return Object.assign(new EventEmitter(), {
+    getTasks: () => [],
+    on: EventEmitter.prototype.on,
+    removeListener: EventEmitter.prototype.removeListener,
+  }) as unknown as import("../orchestrator/state_machine.js").StateMachine;
+}
+
+function buildAgentPool(): import("../orchestrator/agent_pool.js").AgentPool {
+  return {
+    assignTask: () => undefined,
+    completeTask: () => undefined,
+    executeWithCodex: async () => ({
+      success: true,
+      output: "",
+      durationSeconds: 0,
+    }),
+    getAvailableAgents: () => [],
+    hasAvailableAgent: () => false,
+    getCoordinatorType: () => "claude_code",
+    isCoordinatorAvailable: () => true,
+    getUsageRatio: () => ({ codex: 0, claude: 0, ratio: 0 }),
+    promoteCoordinatorRole: () => undefined,
+    imposeCooldown: () => undefined,
+    getUsageEstimator: () => ({
+      estimateTokens: () => ({ prompt: 0, completion: 0, total: 0 }),
+    }),
+  } as unknown as import("../orchestrator/agent_pool.js").AgentPool;
+}
+
+function buildContextAssembler(): import("../orchestrator/context_assembler.js").ContextAssembler {
+  return {
+    formatForPromptCompact: () => "{}",
+    formatForPrompt: () => "{}",
+    assembleForTask: async () => ({
+      task: {
+        id: "T-test",
+        title: "test",
+        status: "pending",
+        type: "task",
+        created_at: Date.now(),
+      },
+      relatedTasks: [],
+      relevantDecisions: [],
+      relevantConstraints: [],
+      recentLearnings: [],
+      qualityIssuesInArea: [],
+      overallQualityTrend: [],
+      projectPhase: "development",
+      velocityMetrics: {
+        tasksCompletedToday: 0,
+        averageTaskDuration: 0,
+        qualityTrendOverall: "stable",
+      },
+    }),
+  } as unknown as import("../orchestrator/context_assembler.js").ContextAssembler;
+}
+
+function buildQualityMonitor(): import("../orchestrator/quality_monitor.js").QualityMonitor {
+  return {
+    evaluate: () => undefined,
+    on: () => undefined,
+    removeListener: () => undefined,
+  } as unknown as import("../orchestrator/quality_monitor.js").QualityMonitor;
+}
+
+function createCoordinator(consensusFlag: "0" | "1", envOverride?: string | undefined) {
+  if (envOverride === undefined) {
+    delete process.env.WVO_CONSENSUS_ENABLED;
+  } else {
+    process.env.WVO_CONSENSUS_ENABLED = envOverride;
+  }
+
+  return new AgentCoordinator(
+    process.cwd(),
+    buildStateMachine(),
+    buildScheduler(),
+    buildAgentPool(),
+    buildContextAssembler(),
+    buildLiveFlags(consensusFlag),
+    buildQualityMonitor(),
+    undefined,
+    undefined,
+    undefined,
+    undefined,
+    undefined
+  );
+}
+
+describe("AgentCoordinator consensus activation", () => {
+  const originalEnv = process.env.WVO_CONSENSUS_ENABLED;
+
+  afterEach(() => {
+    if (originalEnv === undefined) {
+      delete process.env.WVO_CONSENSUS_ENABLED;
+    } else {
+      process.env.WVO_CONSENSUS_ENABLED = originalEnv;
+    }
+  });
+
+  it("instantiates the consensus engine when the live flag is enabled", () => {
+    const coordinator = createCoordinator("1");
+    expect((coordinator as unknown as { consensusEngine?: unknown }).consensusEngine).toBeDefined();
+  });
+
+  it("disables the consensus engine when the environment override is explicitly off", () => {
+    const coordinator = createCoordinator("1", "0");
+    expect((coordinator as unknown as { consensusEngine?: unknown }).consensusEngine).toBeUndefined();
+  });
+
+  it("honours the environment override to enable consensus even if the flag is off", () => {
+    const coordinator = createCoordinator("0", "1");
+    expect((coordinator as unknown as { consensusEngine?: unknown }).consensusEngine).toBeDefined();
+  });
+});

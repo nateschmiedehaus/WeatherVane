@@ -45,6 +45,8 @@ SPEND_COL_PATTERNS = {
     "amazon_spend",
     "organic_spend",
     "email_spend",
+    "ads_spend",  # General ads spend column
+    "spend"  # Generic spend pattern
 }
 
 

@@ -55,3 +55,12 @@ Guardrails:
 
 Tests live in `tests/test_weather_coverage.py` and cover both the happy path and
 guardrail-triggered scenarios with synthetic data to keep local runs deterministic.
+
+## Nightly Monitoring
+- The `Nightly Weather QA` GitHub Action (`.github/workflows/nightly-weather-ingestion.yml`)
+  runs every day at 05:00 UTC.
+- It executes `make smoke-context` followed by `tools/ci/run_weather_ingestion_tests.sh`
+  to exercise ingestion and weather coverage regressions end-to-end.
+- Each run emits a structured summary at `state/telemetry/weather_ingestion.json`
+  and uploads logs plus telemetry as workflow artefacts for quick triage when a
+  regression slips in.

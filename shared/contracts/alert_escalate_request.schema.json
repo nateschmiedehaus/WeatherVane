@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "AlertEscalateRequest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["target"],
+  "properties": {
+    "channel": {
+      "type": "string",
+      "maxLength": 50,
+      "default": "slack"
+    },
+    "target": {
+      "type": "string",
+      "maxLength": 120
+    },
+    "note": {
+      "oneOf": [
+        {
+          "type": "string",
+          "maxLength": 500
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  }
+}

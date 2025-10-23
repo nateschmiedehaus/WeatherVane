@@ -21,6 +21,8 @@ const IGNORE_KEYS = new Set([
   "tookMs",
   "duration",
   "notes",
+  "uptimeMs",
+  "uptimeSeconds",
 ]);
 
 function parseArgs(argv) {
@@ -95,6 +97,39 @@ async function ensureDir(dir) {
   await fs.mkdir(dir, { recursive: true });
 }
 
+async function createWorktree(workspaceRoot, stageRoot) {
+  await runCommand("git", ["worktree", "prune"], { cwd: workspaceRoot });
+  try {
+    await runCommand("git", ["worktree", "remove", "--force", stageRoot], {
+      cwd: workspaceRoot,
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (!/not found|No worktree/i.test(message)) {
+      throw error;
+    }
+  }
+  await fs.rm(stageRoot, { recursive: true, force: true });
+  await runCommand("git", ["worktree", "add", "--force", "--detach", stageRoot, "HEAD"], {
+    cwd: workspaceRoot,
+  });
+  await runCommand("git", ["reset", "--hard", "HEAD"], { cwd: stageRoot });
+  await runCommand("git", ["clean", "-fdx"], { cwd: stageRoot });
+}
+
+async function removeWorktree(workspaceRoot, stageRoot) {
+  try {
+    await runCommand("git", ["worktree", "remove", "--force", stageRoot], {
+      cwd: workspaceRoot,
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (!/not found|No worktree/i.test(message)) {
+      throw error;
+    }
+  }
+}
+
 async function runCommand(cmd, args, options = {}) {
   await execa(cmd, args, {
     cwd: options.cwd,
@@ -144,16 +179,6 @@ function compareOutputs(active, canary) {
   };
 }
 
-async function copySourcePackage(sourceDir, destinationDir) {
-  await ensureDir(destinationDir);
-  const separator = `${path.sep}node_modules${path.sep}`;
-  await fs.cp(sourceDir, destinationDir, {
-    recursive: true,
-    force: true,
-    filter: (src) => !src.includes(separator),
-  });
-}
-
 async function copyNodeModules(baseRoot, stageRoot) {
   const source = path.join(baseRoot, "tools", "wvo_mcp", "node_modules");
   const dest = path.join(stageRoot, "tools", "wvo_mcp", "node_modules");
@@ -174,6 +199,20 @@ async function copyStateSnapshot(baseRoot, stageRoot) {
     return;
   }
   await fs.cp(source, dest, { recursive: true, force: true });
+}
+
+function normalizeHealthResult(result) {
+  if (!result || typeof result !== "object") {
+    return result;
+  }
+  const clone = { ...result };
+  if (typeof clone.workspaceRoot === "string") {
+    clone.workspaceRoot = "__WORKSPACE__";
+  }
+  if (clone.flags && typeof clone.flags === "object") {
+    clone.flags = { ...clone.flags };
+  }
+  return clone;
 }
 
 async function runShadowChecks(
@@ -208,6 +247,53 @@ async function runShadowChecks(
     if (!canary) throw new Error("Failed to start canary worker");
 
     const checks = [
+      {
+        name: "health",
+        exec: (worker) => worker.call("health", {}),
+        normalize: normalizeHealthResult,
+        validate: (activeOut, canaryOut) => {
+          const issues = [];
+          if (!canaryOut || typeof canaryOut !== "object" || canaryOut.dryRun !== true) {
+            issues.push("canary dryRun flag disabled");
+          }
+          if (!activeOut || typeof activeOut !== "object" || activeOut.dryRun !== true) {
+            issues.push("active worker must run in dryRun mode");
+          }
+          if (
+            activeOut &&
+            canaryOut &&
+            typeof activeOut === "object" &&
+            typeof canaryOut === "object" &&
+            typeof activeOut.workspaceRoot === "string" &&
+            typeof canaryOut.workspaceRoot === "string" &&
+            activeOut.workspaceRoot === canaryOut.workspaceRoot
+          ) {
+            issues.push("active and canary share workspace root");
+          }
+          if (issues.length > 0) {
+            return {
+              ok: false,
+              reason: issues.join(", "),
+            };
+          }
+          return { ok: true };
+        },
+      },
+      {
+        name: "plan",
+        exec: (worker) =>
+          worker.call("plan", {
+            limit: 3,
+          }),
+      },
+      {
+        name: "report.mo",
+        exec: (worker) =>
+          worker.call("report.mo", {
+            limit: 3,
+            include_operations: true,
+          }),
+      },
       {
         name: "dispatch",
         exec: (worker) =>
@@ -246,7 +332,30 @@ async function runShadowChecks(
     ];
 
     for (const check of checks) {
-      const [activeOut, canaryOut] = await Promise.all([check.exec(active), check.exec(canary)]);
+      const [activeOutRaw, canaryOutRaw] = await Promise.all([
+        check.exec(active),
+        check.exec(canary),
+      ]);
+
+      if (check.validate) {
+        const validation = check.validate(activeOutRaw, canaryOutRaw);
+        if (validation && validation.ok === false) {
+          results.push({
+            name: check.name,
+            ok: false,
+            diff: {
+              error: validation.reason ?? "validation failed",
+              active: scrub(activeOutRaw),
+              canary: scrub(canaryOutRaw),
+            },
+          });
+          break;
+        }
+      }
+
+      const activeOut = check.normalize ? check.normalize(activeOutRaw, "active") : activeOutRaw;
+      const canaryOut = check.normalize ? check.normalize(canaryOutRaw, "canary") : canaryOutRaw;
+
       const comparison = compareOutputs(activeOut, canaryOut);
       results.push({ name: check.name, ok: comparison.ok, diff: comparison.diff });
       if (!comparison.ok) break;
@@ -374,10 +483,11 @@ async function main() {
       });
     }
 
-    const stageStep = startStep("stage-copy");
+    const stageStep = startStep("worktree-stage");
     try {
-      await fs.rm(stageRoot, { recursive: true, force: true });
-      await copySourcePackage(path.join(workspaceRoot, "tools", "wvo_mcp"), stagePackageDir);
+      await ensureDir(path.dirname(stageRoot));
+      await createWorktree(workspaceRoot, stageRoot);
+      worktreeCreated = true;
       await copyStateSnapshot(workspaceRoot, stageRoot);
       stageCreated = true;
     } catch (error) {

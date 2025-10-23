@@ -1,0 +1,262 @@
+/**
+ * TaskProgressEstimator - Estimates task duration and complexity for progress tracking
+ *
+ * Features:
+ * - Complexity scoring based on task type, description, dependencies
+ * - Duration estimation from historical data
+ * - Progress percentage calculation based on elapsed time
+ */
+
+import type { Task } from './state_machine.js';
+import { StateMachine } from './state_machine.js';
+
+export interface TaskEstimate {
+  complexity: number; // 1-10
+  estimatedDuration: number; // milliseconds
+  confidence: number; // 0-1
+  reasoning: string[];
+}
+
+export interface TaskProgress {
+  taskId: string;
+  startTime: number;
+  estimatedDuration: number;
+  elapsedTime: number;
+  progressPercentage: number;
+  isOverdue: boolean;
+  estimatedCompletion: number; // timestamp
+}
+
+export class TaskProgressEstimator {
+  constructor(private readonly stateMachine: StateMachine) {}
+
+  /**
+   * Estimate task complexity and duration
+   */
+  estimateTask(task: Task): TaskEstimate {
+    const reasoning: string[] = [];
+    let complexity = 5; // Base complexity
+    let estimatedDuration = 120_000; // Base: 2 minutes
+
+    // 1. Task type complexity
+    switch (task.type) {
+      case 'epic':
+        complexity += 4;
+        estimatedDuration *= 5;
+        reasoning.push('Epic: +4 complexity, 5x duration');
+        break;
+      case 'story':
+        complexity += 2;
+        estimatedDuration *= 2;
+        reasoning.push('Story: +2 complexity, 2x duration');
+        break;
+      case 'bug':
+        complexity += 1;
+        estimatedDuration *= 1.5;
+        reasoning.push('Bug: +1 complexity, 1.5x duration');
+        break;
+      case 'task':
+        // Base complexity
+        reasoning.push('Task: base complexity');
+        break;
+    }
+
+    // 2. Description length (indicator of complexity)
+    if (task.description) {
+      const descLength = task.description.length;
+      if (descLength > 500) {
+        complexity += 2;
+        estimatedDuration *= 1.5;
+        reasoning.push('Long description (>500 chars): +2 complexity, 1.5x duration');
+      } else if (descLength > 200) {
+        complexity += 1;
+        estimatedDuration *= 1.2;
+        reasoning.push('Medium description (>200 chars): +1 complexity, 1.2x duration');
+      }
+    }
+
+    // 3. Title keywords indicating complexity
+    const titleLower = task.title.toLowerCase();
+    const complexKeywords = [
+      'architecture', 'refactor', 'design', 'strategic', 'integrate',
+      'implement', 'build', 'create', 'develop'
+    ];
+    const simpleKeywords = [
+      'fix', 'update', 'add', 'remove', 'change', 'modify'
+    ];
+
+    const hasComplexKeywords = complexKeywords.some(kw => titleLower.includes(kw));
+    const hasSimpleKeywords = simpleKeywords.some(kw => titleLower.includes(kw));
+
+    if (hasComplexKeywords) {
+      complexity += 2;
+      estimatedDuration *= 1.5;
+      reasoning.push('Complex keywords in title: +2 complexity, 1.5x duration');
+    } else if (hasSimpleKeywords) {
+      complexity -= 1;
+      estimatedDuration *= 0.8;
+      reasoning.push('Simple keywords in title: -1 complexity, 0.8x duration');
+    }
+
+    // 4. Review tasks are typically faster
+    if (task.status === 'needs_review') {
+      complexity = Math.max(1, complexity - 2);
+      estimatedDuration *= 0.5;
+      reasoning.push('Review task: -2 complexity, 0.5x duration');
+    }
+
+    // 5. Historical data from similar tasks
+    const historicalData = this.getHistoricalData(task);
+    if (historicalData.count > 0) {
+      const avgDuration = historicalData.averageDuration;
+      const confidence = Math.min(0.9, historicalData.count / 10);
+
+      // Blend historical with estimated
+      estimatedDuration = estimatedDuration * (1 - confidence) + avgDuration * confidence;
+      reasoning.push(`Historical data: ${historicalData.count} similar tasks, avg ${(avgDuration / 1000).toFixed(0)}s`);
+
+      return {
+        complexity: Math.max(1, Math.min(10, Math.round(complexity))),
+        estimatedDuration: Math.round(estimatedDuration),
+        confidence,
+        reasoning
+      };
+    }
+
+    // Clamp complexity to 1-10
+    complexity = Math.max(1, Math.min(10, Math.round(complexity)));
+
+    return {
+      complexity,
+      estimatedDuration: Math.round(estimatedDuration),
+      confidence: 0.5, // Medium confidence without historical data
+      reasoning
+    };
+  }
+
+  /**
+   * Calculate current progress for an in-progress task
+   */
+  calculateProgress(task: Task, startTime: number, estimatedDuration: number): TaskProgress {
+    const now = Date.now();
+    const elapsedTime = now - startTime;
+
+    // Calculate progress percentage (capped at 99% until actually done)
+    let progressPercentage = Math.min(99, (elapsedTime / estimatedDuration) * 100);
+
+    // If task is taking longer than estimated, slow down progress growth
+    if (progressPercentage >= 90) {
+      // Asymptotic approach to 99%
+      const overageRatio = elapsedTime / estimatedDuration;
+      progressPercentage = 90 + (9 * (1 - Math.exp(-(overageRatio - 0.9))));
+    }
+
+    const isOverdue = elapsedTime > estimatedDuration;
+    const estimatedCompletion = isOverdue
+      ? now + (estimatedDuration * 0.2) // Estimate 20% more time needed
+      : startTime + estimatedDuration;
+
+    return {
+      taskId: task.id,
+      startTime,
+      estimatedDuration,
+      elapsedTime,
+      progressPercentage: Math.round(progressPercentage),
+      isOverdue,
+      estimatedCompletion
+    };
+  }
+
+  /**
+   * Generate a text-based progress bar
+   */
+  generateProgressBar(progress: TaskProgress, width: number = 20): string {
+    const filledWidth = Math.round((progress.progressPercentage / 100) * width);
+    const emptyWidth = width - filledWidth;
+
+    const filled = '█'.repeat(filledWidth);
+    const empty = '░'.repeat(emptyWidth);
+
+    const color = progress.isOverdue ? '\x1b[33m' : '\x1b[32m'; // Yellow if overdue, green otherwise
+    const reset = '\x1b[0m';
+
+    return `${color}[${filled}${empty}]${reset} ${progress.progressPercentage}%`;
+  }
+
+  /**
+   * Get historical performance data for similar tasks
+   */
+  private getHistoricalData(task: Task): { count: number; averageDuration: number } {
+    // Query completed tasks of same type
+    const similarTasks = this.stateMachine.getTasks({
+      status: ['done'],
+      type: [task.type]
+    });
+
+    if (similarTasks.length === 0) {
+      return { count: 0, averageDuration: 0 };
+    }
+
+    // Get events for these tasks to calculate durations
+    let totalDuration = 0;
+    let count = 0;
+
+    for (const similarTask of similarTasks) {
+      const duration = this.getTaskDuration(similarTask.id);
+      if (duration > 0) {
+        totalDuration += duration;
+        count++;
+      }
+    }
+
+    if (count === 0) {
+      return { count: 0, averageDuration: 0 };
+    }
+
+    return {
+      count,
+      averageDuration: totalDuration / count
+    };
+  }
+
+  /**
+   * Get actual duration of a completed task from events
+   */
+  private getTaskDuration(taskId: string): number {
+    try {
+      const events = this.stateMachine.getEvents({
+        taskId,
+        limit: 100
+      });
+
+      // Find task_assigned and task_completed events
+      const assignedEvent = events.find(e => e.type === 'task_assigned');
+      const completedEvent = events.find(e => e.type === 'task_completed');
+
+      if (assignedEvent && completedEvent) {
+        return completedEvent.timestamp - assignedEvent.timestamp;
+      }
+
+      return 0;
+    } catch {
+      return 0;
+    }
+  }
+
+  /**
+   * Format time duration as human-readable string
+   */
+  formatDuration(ms: number): string {
+    const seconds = Math.floor(ms / 1000);
+    const minutes = Math.floor(seconds / 60);
+    const hours = Math.floor(minutes / 60);
+
+    if (hours > 0) {
+      return `${hours}h ${minutes % 60}m`;
+    } else if (minutes > 0) {
+      return `${minutes}m ${seconds % 60}s`;
+    } else {
+      return `${seconds}s`;
+    }
+  }
+}

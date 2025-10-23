@@ -1,0 +1,155 @@
+import fs from 'node:fs';
+import { promises as fsp } from 'node:fs';
+import { EventEmitter } from 'node:events';
+import os from 'node:os';
+import path from 'node:path';
+import { setTimeout as delay } from 'node:timers/promises';
+
+import { afterEach, describe, expect, it } from 'vitest';
+
+import type { AgentType } from '../orchestrator/agent_pool.js';
+import { OperationsManager } from '../orchestrator/operations_manager.js';
+
+class StubAgentPool extends EventEmitter {
+  getUsageRatio() {
+    return { codex: 0, claude: 0, ratio: 0 };
+  }
+
+  getAvailableAgents(): Array<{ id: string; type: AgentType }> {
+    return [];
+  }
+
+  isCoordinatorAvailable(): boolean {
+    return true;
+  }
+
+  getCoordinatorType(): AgentType {
+    return 'claude_code';
+  }
+
+  promoteCoordinatorRole(): void {
+    // no-op for tests
+  }
+
+  demoteCoordinatorRole(): void {
+    // no-op for tests
+  }
+}
+
+class StubScheduler extends EventEmitter {
+  setPriorityProfile(): void {
+    // no-op
+  }
+
+  getQueueLength(): number {
+    return 0;
+  }
+
+  getQueueMetrics() {
+    return {
+      updatedAt: Date.now(),
+      size: 0,
+      reasonCounts: {
+        requires_review: 0,
+        requires_follow_up: 0,
+        dependencies_cleared: 0,
+      },
+      heads: {
+        requires_review: [],
+        requires_follow_up: [],
+        dependencies_cleared: [],
+      },
+      resource: {
+        heavyTaskLimit: 1,
+        activeHeavyTasks: 0,
+        queuedHeavyTasks: 0,
+      },
+    };
+  }
+
+  getVelocityMetrics() {
+    return {
+      completedTasks: 0,
+      tasksPerHour: 0,
+      averageCompletionTime: 0,
+    };
+  }
+
+  detectStuckTasks() {
+    return [];
+  }
+}
+
+class StubQualityMonitor extends EventEmitter {}
+
+class StubStateMachine extends EventEmitter {
+  constructor(private readonly root: string) {
+    super();
+  }
+
+  getWorkspaceRoot(): string {
+    return this.root;
+  }
+
+  getAverageQualityScore(): number {
+    return 0.9;
+  }
+
+  getRoadmapHealth() {
+    return {
+      totalTasks: 0,
+      pendingTasks: 0,
+      inProgressTasks: 0,
+      completedTasks: 0,
+      blockedTasks: 0,
+      completionRate: 0,
+      averageQualityScore: 0.9,
+      currentPhase: 'foundation',
+    };
+  }
+}
+
+describe('OperationsManager failover telemetry', () => {
+  const tmpRoots: string[] = [];
+
+  afterEach(async () => {
+    for (const dir of tmpRoots.splice(0)) {
+      await fsp.rm(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('emits an initial operations snapshot so failover guardrail has data', async () => {
+    const workspaceRoot = await fsp.mkdtemp(path.join(os.tmpdir(), 'ops-telemetry-'));
+    tmpRoots.push(workspaceRoot);
+
+    const stateMachine = new StubStateMachine(workspaceRoot);
+    const scheduler = new StubScheduler();
+    const agentPool = new StubAgentPool();
+    const qualityMonitor = new StubQualityMonitor();
+
+    const operations = new OperationsManager(
+      stateMachine as unknown as any,
+      scheduler as unknown as any,
+      agentPool as unknown as any,
+      qualityMonitor as unknown as any,
+    );
+
+    try {
+      await delay(50);
+
+      const telemetryPath = path.join(workspaceRoot, 'state', 'telemetry', 'operations.jsonl');
+      expect(fs.existsSync(telemetryPath)).toBe(true);
+
+      const content = await fsp.readFile(telemetryPath, 'utf8');
+      const lines = content.trim().split(/\r?\n/).filter(Boolean);
+      expect(lines.length).toBeGreaterThan(0);
+
+      const lastRecord = JSON.parse(lines[lines.length - 1]) as Record<string, unknown>;
+      expect(lastRecord.type).toBe('operations_snapshot');
+      expect(lastRecord.coordinatorType).toBe('claude_code');
+      expect(typeof lastRecord.coordinatorAvailable).toBe('boolean');
+    } finally {
+      operations.stop();
+    }
+  });
+});

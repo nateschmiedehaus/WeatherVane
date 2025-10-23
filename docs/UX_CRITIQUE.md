@@ -4,6 +4,48 @@
 **Perspective:** World-class product design (Jobs, Ive, Norman, Zhuo, Rams principles)  
 **Scope:** Landing, Plan, Stories, Catalog, Automations surfaces (`apps/web/src/pages/*`)  
 **Method:** Code and UX artifact review within sandbox (no live data; relying on stateful mocks and component analysis)
+ 
+---
+
+## Iteration Loop Requirements
+
+To ensure every UX change converges on clarity, simplicity, and elegance without manual guidance:
+
+1. **Start with a brief** (3–5 sentences) logged in this file: who the user is, the question they’re trying to answer, the value WeatherVane must prove, and how we’ll know it worked.
+2. **Ship a concrete iteration** that speaks in plain language (no jargon) and structures the page around “What changed?” and “Why?” so users can act immediately.
+3. **Run Playwright + available critics** after each pass. Record findings, open questions, and next steps in `state/context.md` so the feedback loop is transparent.
+4. **Attach evidence** (screenshots, traces, diff snapshots) so critiques stay objective and comparable across iterations.
+5. **Repeat the loop**—brief → build → critique → evidence—until the experience feels obvious, minimal, and beautiful; escalate unresolved tensions inside the brief instead of leaving ambiguous code comments.
+
+---
+
+### WeatherOps dashboard plain-language brief
+- **User:** Performance marketer checking the app each morning to understand what spend/strategy changes are needed.
+- **Question:** “Did WeatherVane change anything? Do I need to act, and why?”
+- **Value proof:** Show a single hero tile (“Here’s the change and reason”), supporting evidence, and explicit actions (apply/override) without jargon.
+- **Success signals:** Playwright smoke shows the hero copy + CTA; critics confirm copy clarity, and state/context includes before/after screenshots.
+
+### Automations trust brief
+- **User:** Marketing ops / finance partner reviewing WeatherVane’s automated changes before sign-off.
+- **Primary questions to answer:**
+  - *What exactly changed and when did WeatherVane act?*
+  - *Why was the move safe and what evidence backs it up?*
+  - *What decision do I owe right now (approve, pause, roll back)?*
+- **Design moves:**
+  - Collapse the legacy “audit rail” into a trust-first change log with “What changed · Why · Impact · Next step” columns.
+  - Promote approvals/rollback controls into first-class actions with intent-specific styling and explicit review windows.
+  - Keep evidence packets one click away (metrics, rehearsal logs, retention hooks) while surfacing the headline impact inline.
+- **Acceptance metrics:**
+  - Playwright `automation_trust` + UI spec confirm copy, actions, and evidence packets render for demo + live tenants.
+  - 95% of pending changes show both an impact metric and a clear next step (tracked via Vitest assertions).
+  - Review completion rate ≥ 90% within the SLA window in future telemetry (`automation.review_completed` event).
+- **Success signals:** design_system + exec_review critics pass; `state/context.md` captures before/after screenshots and open trust gaps for Dana.
+
+### Experiments & Reports validation brief
+- **User:** Sarah (CMO), Leo (Marketing Ops), Priya (Growth Analyst) assessing experiment lift, operational guardrails, and instrumentation health.
+- **Question:** “Is this experiment ready to approve, and what follow-up or escalation do I owe my team?”
+- **Value proof:** Provide an executive summary card, guardrail-aware exports (Slides/CSV/JSON), and inline recovery workflow so decisions happen without leaving WeatherVane.
+- **Success signals:** SUS ≥ 78, critical task success ≥ 90%, decision confidence +2, export interactions tracked (`experiments.summary_exported`, `experiments.retry_triggered`), and research replay captured in `docs/research/experiments_reports_validation.md`.
 
 ---
 
@@ -17,12 +59,15 @@
 
 ## Signals of Progress
 
+- Dashboard suggestion telemetry now pairs the high-risk alert count with severity badges and accessible copy so execs can triage urgent clusters without digging into Plan (`apps/web/src/pages/dashboard.tsx`).
+- Automations guardrail form now validates push windows, budget deltas, and retention inline with accessible guidance so unsafe autopilot configurations are caught before saving (`apps/web/src/pages/automations.tsx`, `apps/web/src/lib/automationValidation.ts`, `tests/web/automation_validation.spec.ts`).
 - Setup bridge inventories live connector runs, automation audits, and actionable blockers so GTM has a single launch hub (`apps/web/src/pages/setup.tsx`, `apps/web/src/components/OnboardingConnectorList.tsx`).
 - Plan page scaffolds the full narrative—hero summary, action queue, seven-day outlook, and rich empty state guidance—backed by accessible markup (`apps/web/src/pages/plan.tsx`).
 - Stories and Catalog surfaces mirror the context panel and metadata atoms, keeping copy and structure aligned (`apps/web/src/pages/stories.tsx`, `apps/web/src/pages/catalog.tsx`).
 - Automations exposes a mature guardrail form with data-theme support and optimistic status messaging (`apps/web/src/pages/automations.tsx`, `apps/web/src/styles/automations.module.css`).
 - Guided demo tour replaces the inert landing CTA, collects channel + automation intent, and routes into seeded plan data for exec storytelling (`apps/web/src/components/DemoTourDrawer.tsx`, `apps/web/src/demo/plan.ts`, `apps/web/src/pages/index.tsx`).
 - Stories share actions deliver clipboard-ready briefings with weather highlights so Marketing Ops can drop updates into Slack without reformatting (`apps/web/src/pages/stories.tsx`, `apps/web/src/lib/stories-insights.ts`).
+- Experiments research replay now codifies persona acceptance metrics and closing gaps for executive approval, guardrail exports, and instrumentation recovery (`docs/research/experiments_reports_validation.md`, `state/artifacts/research/experiments_sessions/*`).
 
 ## Critical Gaps Blocking Award-Level Polish
 
@@ -30,6 +75,7 @@
 - Plan empty state still points to manual pipeline runs; the experience should embed a one-click launch or live progress widget instead of external instructions (`apps/web/src/pages/plan.tsx`, `apps/web/src/components/OnboardingConnectorList.tsx`).
 - Automations lacks proof of safety—no inline history, cannot visualize guardrail breaches, and form inputs accept invalid sequences without inline validation (`apps/web/src/pages/automations.tsx`).
 - Stories now carry share actions and highlight bullets, but Catalog still lacks motion/interaction parity; both surfaces need saved views + multi-channel export hooks (`apps/web/src/pages/stories.tsx`, `apps/web/src/pages/catalog.tsx`).
+- Experiments/Reports surface still hides recovery workflows, lacks exec-ready summary copy, and ships no data provenance links; adoption would stall without the research-backed fixes (`apps/web/src/pages/experiments.tsx`, `shared/services/experiments/*`, `docs/research/experiments_reports_validation.md`).
 
 ## Remediation Playbook (prioritized)
 
@@ -37,6 +83,7 @@
 2. **Design system debt cleanup** – Promote calm/aero tokens into a shared `theme.css`, unify badge/button styles, and add motion primitives for hero transitions and success states.
 3. **Automation trust surfaces** – Add inline validation, last-run audit log, and guardrail breach visualization so consent + pushes feel reviewable.
 4. **Storytelling upgrades** – Layer interaction affordances (save/share, copy briefing), tasteful motion, and highlight weather deltas to deliver the "award-level" narrative.
+5. **Experiments decision runway** – Ship executive summary card, guardrail-aware exports, JSON/Slides/CSV download paths, and inline retry ownership so personas can approve or escalate without leaving WeatherVane (`docs/research/experiments_reports_validation.md`).
 
 ## Surface Notes
 
@@ -1041,6 +1088,8 @@ These limits prevent WeatherVane from making extreme changes:
    [Adjust: ____%]
 
 2. Minimum daily spend: $100
+
+**Update 2025-10-19:** The Automations guardrail form now renders a "How these guardrails behave" rail beneath the inputs. Each card translates raw thresholds into plain-language summaries, highlights why the guardrail exists, and injects concrete examples (e.g., budget ranges on a $5K day) using data-context metadata when available. This gives marketers the narrative context the audit requested while preserving the original controls for power users.
 
    Example: WeatherVane will never reduce a campaign below
    $100/day, even if weather is unfavorable.

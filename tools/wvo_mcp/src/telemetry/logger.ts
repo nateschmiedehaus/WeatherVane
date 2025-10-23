@@ -27,3 +27,13 @@ export function logError(message: string, payload?: Record<string, unknown>): vo
   };
   process.stderr.write(`${JSON.stringify(base)}\n`);
 }
+
+export function logDebug(message: string, payload?: Record<string, unknown>): void {
+  const base = {
+    level: "debug",
+    message,
+    timestamp: new Date().toISOString(),
+    ...payload,
+  };
+  process.stderr.write(`${JSON.stringify(base)}\n`);
+}

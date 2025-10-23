@@ -1,0 +1,113 @@
+import fs from "node:fs/promises";
+import path from "node:path";
+import { afterEach, describe, expect, it } from "vitest";
+
+declare global {
+  // Augment Node's global scope so TypeScript recognizes the test helpers we stash on globalThis.
+  // These helpers are used to observe how the prompt-budget script toggles compact/verbose modes.
+  // eslint-disable-next-line no-var -- Global augmentation requires `var` declarations.
+  var __PROMPT_BUDGET_VERBOSE__: number | undefined;
+  // eslint-disable-next-line no-var -- Global augmentation requires `var` declarations.
+  var __PROMPT_BUDGET_COMPACT__: number | undefined;
+  // eslint-disable-next-line no-var -- Global augmentation requires `var` declarations.
+  var __PROMPT_BUDGET_LIVE_FLAGS__: unknown;
+  // eslint-disable-next-line no-var -- Global augmentation requires `var` declarations.
+  var __PROMPT_BUDGET_LIVE_FLAGS_DISPOSED__: boolean | undefined;
+}
+
+const SCRIPT_URL = new URL("../../scripts/check_prompt_budget.mjs", import.meta.url);
+
+async function createStubWorkspace(): Promise<string> {
+  const workspaceRoot = await fs.mkdtemp(path.join(process.cwd(), "tmp-prompt-budget-"));
+  const distDir = path.join(workspaceRoot, "tools", "wvo_mcp", "dist", "orchestrator");
+  await fs.mkdir(distDir, { recursive: true });
+  await fs.mkdir(path.join(workspaceRoot, "state"), { recursive: true });
+
+  const stateMachineStub = `
+export class StateMachine {
+  constructor(workspaceRoot) {
+    this.workspaceRoot = workspaceRoot;
+  }
+  getTasks() {
+    return [
+      { id: "TASK-123", title: "Stub task", status: "pending", type: "task" }
+    ];
+  }
+  getTask(id) {
+    return { id, title: "Stub task", status: "pending", type: "task" };
+  }
+  close() {}
+}
+`;
+
+  const contextAssemblerStub = `
+export class ContextAssembler {
+  constructor(_stateMachine, _workspaceRoot, config = {}) {
+    globalThis.__PROMPT_BUDGET_LIVE_FLAGS__ = config.liveFlags ?? null;
+  }
+  async assembleForTask(taskId) {
+    return { id: taskId };
+  }
+  formatForPrompt() {
+    globalThis.__PROMPT_BUDGET_VERBOSE__ = (globalThis.__PROMPT_BUDGET_VERBOSE__ ?? 0) + 1;
+    return "v".repeat(2600);
+  }
+  formatForPromptCompact(context) {
+    globalThis.__PROMPT_BUDGET_COMPACT__ = (globalThis.__PROMPT_BUDGET_COMPACT__ ?? 0) + 1;
+    return JSON.stringify({ id: context.id, mode: "compact" });
+  }
+  async dispose() {}
+}
+`;
+
+  const liveFlagsStub = `
+export class LiveFlags {
+  constructor() {}
+  get() {
+    return {};
+  }
+  getValue(key) {
+    if (key === "PROMPT_MODE") return "compact";
+    if (key === "EFFICIENT_OPERATIONS") return "1";
+    return "0";
+  }
+  dispose() {
+    globalThis.__PROMPT_BUDGET_LIVE_FLAGS_DISPOSED__ = true;
+  }
+}
+`;
+
+  await fs.writeFile(path.join(distDir, "state_machine.js"), stateMachineStub, "utf8");
+  await fs.writeFile(path.join(distDir, "context_assembler.js"), contextAssemblerStub, "utf8");
+  await fs.writeFile(path.join(distDir, "live_flags.js"), liveFlagsStub, "utf8");
+
+  return workspaceRoot;
+}
+
+afterEach(() => {
+  delete globalThis.__PROMPT_BUDGET_VERBOSE__;
+  delete globalThis.__PROMPT_BUDGET_COMPACT__;
+  delete globalThis.__PROMPT_BUDGET_LIVE_FLAGS__;
+  delete globalThis.__PROMPT_BUDGET_LIVE_FLAGS_DISPOSED__;
+});
+
+describe("check_prompt_budget script", () => {
+  it("uses compact prompt assembly when live flags are available", async () => {
+    const workspaceRoot = await createStubWorkspace();
+    const originalArgv = [...process.argv];
+    process.argv = [process.argv[0], process.argv[1], workspaceRoot];
+
+    try {
+      const module = await import(SCRIPT_URL.href);
+      await module.main();
+
+      expect(globalThis.__PROMPT_BUDGET_COMPACT__ ?? 0).toBeGreaterThan(0);
+      expect(globalThis.__PROMPT_BUDGET_VERBOSE__ ?? 0).toBe(0);
+      expect(globalThis.__PROMPT_BUDGET_LIVE_FLAGS__).not.toBeNull();
+      expect(globalThis.__PROMPT_BUDGET_LIVE_FLAGS_DISPOSED__).toBe(true);
+    } finally {
+      await fs.rm(workspaceRoot, { recursive: true, force: true });
+      process.argv = originalArgv;
+    }
+  });
+});

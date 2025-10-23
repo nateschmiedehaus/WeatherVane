@@ -1,8 +1,7 @@
 /* @vitest-environment jsdom */
 
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { act } from "react-dom/test-utils";
-import { createElement, Fragment } from "react";
+import { afterEach, beforeEach, describe, expect, it, vi, type SpyInstance } from "vitest";
+import { act, createElement, Fragment } from "react";
 import { createRoot } from "react-dom/client";
 import type { Root } from "react-dom/client";
 
@@ -18,6 +17,17 @@ declare global {
 }
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
+
+let consoleErrorSpy: SpyInstance | undefined;
+
+beforeEach(() => {
+  consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+});
+
+afterEach(() => {
+  consoleErrorSpy?.mockRestore();
+  consoleErrorSpy = undefined;
+});
 
 vi.mock("../../apps/web/src/lib/api", () => ({
   __esModule: true,
@@ -247,6 +257,12 @@ describe("Design system acceptance – Stories page", () => {
 
     const title = container.querySelector(".ds-title");
     expect(title?.textContent).toContain("Weekly weather stories");
+
+    const errorSpy = consoleErrorSpy!;
+    const copyRelatedCalls = errorSpy.mock.calls.filter(([message]) =>
+      typeof message === "string" && message.startsWith("Failed to copy"),
+    );
+    expect(copyRelatedCalls).toHaveLength(0);
   });
 
   it("announces copy interactions through the design system status pattern", async () => {
@@ -292,6 +308,12 @@ describe("Design system acceptance – Stories page", () => {
       await advanceMicrotasks();
 
       expect(copyButton?.getAttribute("data-state")).toBeNull();
+
+      const errorSpy = consoleErrorSpy!;
+      const copyRelatedCalls = errorSpy.mock.calls.filter(([message]) =>
+        typeof message === "string" && message.startsWith("Failed to copy"),
+      );
+      expect(copyRelatedCalls).toHaveLength(0);
     } finally {
       vi.useRealTimers();
       if (originalClipboard) {
@@ -340,6 +362,11 @@ describe("Design system acceptance – Stories page", () => {
       expect(status).toBeTruthy();
       expect(status?.classList.contains("ds-status")).toBe(true);
       expect(status?.getAttribute("data-tone")).toBe("critical");
+
+      const errorSpy = consoleErrorSpy!;
+      const failureCall = errorSpy.mock.calls.find(([message]) => message === "Failed to copy story briefing");
+      expect(failureCall).toBeTruthy();
+      expect(failureCall?.[1]).toEqual(expect.objectContaining({ message: "denied" }));
     } finally {
       if (originalClipboard) {
         Object.defineProperty(navigator, "clipboard", originalClipboard);
@@ -386,6 +413,11 @@ describe("Design system acceptance – Stories page", () => {
       expect(status).toBeTruthy();
       expect(status?.classList.contains("ds-status")).toBe(true);
       expect(status?.getAttribute("data-tone")).toBe("critical");
+
+      const errorSpy = consoleErrorSpy!;
+      const failureCall = errorSpy.mock.calls.find(([message]) => message === "Failed to copy report briefing");
+      expect(failureCall).toBeTruthy();
+      expect(failureCall?.[1]).toEqual(expect.objectContaining({ message: "blocked" }));
     } finally {
       if (originalClipboard) {
         Object.defineProperty(navigator, "clipboard", originalClipboard);
@@ -444,6 +476,12 @@ describe("Design system acceptance – Reports page", () => {
       button.textContent?.includes("Copy executive briefing"),
     );
     expect(primaryShare?.getAttribute("data-variant")).toBe("primary");
+
+    const errorSpy = consoleErrorSpy!;
+    const copyRelatedCalls = errorSpy.mock.calls.filter(([message]) =>
+      typeof message === "string" && message.startsWith("Failed to copy"),
+    );
+    expect(copyRelatedCalls).toHaveLength(0);
   });
 
   it("surfaced share feedback through the status region when copying", async () => {
@@ -480,6 +518,12 @@ describe("Design system acceptance – Reports page", () => {
       expect(status?.classList.contains("ds-status")).toBe(true);
       expect(status?.getAttribute("data-tone")).toBe("success");
       expect(status?.getAttribute("aria-live")).toBe("polite");
+
+      const errorSpy = consoleErrorSpy!;
+      const copyRelatedCalls = errorSpy.mock.calls.filter(([message]) =>
+        typeof message === "string" && message.startsWith("Failed to copy"),
+      );
+      expect(copyRelatedCalls).toHaveLength(0);
     } finally {
       if (originalClipboard) {
         Object.defineProperty(navigator, "clipboard", originalClipboard);

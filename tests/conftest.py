@@ -2,9 +2,12 @@ from __future__ import annotations
 
 import asyncio
 import os
+import sys
+from pathlib import Path
 from typing import Any
 
 import httpx
+import pytest
 
 
 class LightweightTestClient:
@@ -93,3 +96,23 @@ _install_test_client_patch()
 
 # Disable experiments routes during tests to avoid optional heavy dependencies.
 os.environ.setdefault("WEATHERVANE_DISABLE_EXPERIMENTS_ROUTES", "1")
+
+# Add project root to Python path
+ROOT = Path(__file__).resolve().parent.parent
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+@pytest.fixture(autouse=True)
+def setup_test_env(tmp_path):
+    """Set up test environment."""
+    # Create directories needed by tests
+    for path in [
+        "state/analytics",
+        "state/telemetry",
+        "state/artifacts/stakeholder",
+        "docs/models"
+    ]:
+        (tmp_path / path).mkdir(parents=True, exist_ok=True)
+
+    # Override root directory for tests
+    os.environ["WEATHERVANE_ROOT"] = str(tmp_path)

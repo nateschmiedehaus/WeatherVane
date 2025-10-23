@@ -1,0 +1,150 @@
+/**
+ * IdleManager - Ensures the worker pool never sits idle silently.
+ *
+ * Responsibilities:
+ *   1. When the active queue is empty and workers are idle, proactively
+ *      create follow-up work (QA, integration, documentation improvements).
+ *   2. Escalate to supervisors by logging when auto-generated work has
+ *      already been issued recently.
+ */
+
+import { randomUUID } from 'node:crypto';
+import { logInfo, logWarning } from '../telemetry/logger.js';
+import type { StateMachine, Task } from './state_machine.js';
+import type { Agent } from './unified_orchestrator.js';
+
+interface IdleContext {
+  idleAgents: Agent[];
+  queueLength: number;
+  pendingTasks: number;
+}
+
+const AUTO_TASK_COOLDOWN_MS = 10 * 60 * 1000; // 10 minutes
+const ESCALATION_COOLDOWN_MS = 5 * 60 * 1000; // 5 minutes
+
+export class IdleManager {
+  private lastAutoTaskAt = 0;
+  private lastEscalationAt = 0;
+
+  constructor(
+    private readonly stateMachine: StateMachine
+  ) {}
+
+  async handleIdle(context: IdleContext): Promise<void> {
+    if (context.idleAgents.length === 0) {
+      return;
+    }
+
+    // First, try to unblock ready-but-blocked tasks across the roadmap.
+    const unblocked = this.unblockReadyTasks();
+    if (unblocked > 0) {
+      logInfo('IdleManager unblocked tasks marked as blocked but ready', { count: unblocked });
+      return;
+    }
+
+    // If we still have pending tasks, the prefetcher will handle them shortly.
+    if (context.pendingTasks > 0 || context.queueLength > 0) {
+      return;
+    }
+
+    const now = Date.now();
+
+    if (now - this.lastAutoTaskAt > AUTO_TASK_COOLDOWN_MS) {
+      await this.createProductiveFollowUpWork(context.idleAgents);
+      this.lastAutoTaskAt = now;
+      return;
+    }
+
+    if (now - this.lastEscalationAt > ESCALATION_COOLDOWN_MS) {
+      logWarning('IdleManager escalation: queue empty despite recent auto-tasks. Escalating to supervisors.', {
+        idleAgents: context.idleAgents.map(agent => agent.id),
+      });
+      this.lastEscalationAt = now;
+    }
+  }
+
+  private unblockReadyTasks(): number {
+    let unblocked = 0;
+    const blockedTasks = this.stateMachine.getTasks({ status: ['blocked'] });
+    for (const task of blockedTasks) {
+      try {
+        if (this.stateMachine.isTaskReady(task.id)) {
+          this.stateMachine.transition(task.id, 'pending', undefined, 'idle_manager:auto_unblock');
+          unblocked++;
+        }
+      } catch (error: any) {
+        logWarning('IdleManager failed to auto-unblock task', {
+          taskId: task.id,
+          error: error?.message,
+        });
+      }
+    }
+    return unblocked;
+  }
+
+  private async createProductiveFollowUpWork(idleAgents: Agent[]): Promise<void> {
+    const architectureIdle = idleAgents.filter(agent => agent.config.role === 'architecture_planner' || agent.config.role === 'architecture_reviewer');
+    const templates: Array<{ title: string; description: string; metadata?: Record<string, unknown> }> = [];
+
+    if (architectureIdle.length > 0) {
+      templates.push({
+        title: 'Architecture Deep Dive: Refresh unified web architecture blueprint',
+        description: 'Revisit docs/WEB_DESIGN_SYSTEM.md and docs/UNIFIED_AUTOPILOT_IMPLEMENTATION.md, consolidate learnings, and propose an updated architecture plan with clear component boundaries.',
+        metadata: {
+          requires_architecture_lane: true,
+          domain: 'architecture',
+        },
+      });
+      templates.push({
+        title: 'Architecture Critique: Validate latest planner outputs',
+        description: 'Analyze recent architecture memos and identify gaps or risks. Summarize recommendations for Codex 5-high reviewer follow-up.',
+        metadata: {
+          requires_architecture_lane: true,
+          domain: 'architecture',
+        },
+      });
+    }
+
+    templates.push(
+      {
+        title: 'Autogen QA Sweep: Verify modeling pipeline health',
+        description: 'Automatically generated task to run modeling / verification smoke tests, ensuring Shapely/GEOS and MMM pipelines remain healthy.',
+      },
+      {
+        title: 'Autogen Integration Check: Refresh documentation & telemetry',
+        description: 'Auto-generated to review documentation, telemetry dashboards, and integration artifacts for the modeling stack.',
+      },
+      {
+        title: 'Autogen Improvement: Identify new roadmap follow-ups',
+        description: 'Auto-generated to propose new improvements or follow-up items when backlog is exhausted.',
+      },
+    );
+
+    const tasksToCreate = Math.min(idleAgents.length, templates.length);
+
+    for (let i = 0; i < tasksToCreate; i++) {
+      const template = templates[i];
+      const id = `AUTO-${Date.now()}-${randomUUID().slice(0, 6)}`;
+
+      this.stateMachine.createTask({
+        id,
+        title: template.title,
+        description: template.description,
+        type: 'task',
+        status: 'pending',
+        epic_id: 'E-GENERAL',
+        metadata: {
+          autogenerated: true,
+          reason: 'idle_workers',
+          created_at: new Date().toISOString(),
+          ...(template.metadata ?? {}),
+        },
+      });
+
+      logInfo('IdleManager created follow-up task', {
+        taskId: id,
+        title: template.title,
+      });
+    }
+  }
+}

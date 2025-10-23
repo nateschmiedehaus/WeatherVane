@@ -5,6 +5,11 @@
   "properties": {
     "date": {"type": "string", "format": "date"},
     "geohash": {"type": ["string", "null"]},
+    "geo_scope": {"type": ["string", "null"]},
+    "geo_level": {"type": ["string", "null"]},
+    "state_abbr": {"type": ["string", "null"]},
+    "dma_code": {"type": ["string", "null"]},
+    "dma_name": {"type": ["string", "null"]},
     "net_revenue": {"type": "number"},
     "meta_spend": {"type": "number"},
     "google_spend": {"type": "number"},

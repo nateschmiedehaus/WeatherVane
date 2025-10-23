@@ -5,8 +5,6 @@
 
 import { logError, logInfo, logWarning } from "../telemetry/logger.js";
 import { spawn, ChildProcess } from "child_process";
-import * as fs from "fs";
-import * as path from "path";
 
 export interface HealthCheckResult {
   healthy: boolean;
@@ -147,58 +145,20 @@ export class WorkerHealthMonitor {
  * Prevents multiple concurrent autopilot instances
  */
 export class AutopilotLockManager {
-  private lockFile: string;
-
-  constructor(workspaceRoot: string) {
-    this.lockFile = path.join(workspaceRoot, "state", "autopilot.lock");
-  }
+  // Autopilot locks have been deprecated; keep a lean stub for compatibility.
+  // This allows older call sites to proceed without coordinating via a sentinel file.
+  constructor(_workspaceRoot: string) {}
 
   async acquire(): Promise<boolean> {
-    try {
-      // Check if lock exists and is still valid
-      if (fs.existsSync(this.lockFile)) {
-        const lockData = JSON.parse(fs.readFileSync(this.lockFile, "utf-8"));
-        const pid = lockData.pid;
-
-        // Check if process is still running
-        try {
-          process.kill(pid, 0);
-          logWarning("Autopilot already running", { pid });
-          return false;
-        } catch {
-          // Process dead, stale lock
-          logInfo("Removing stale autopilot lock", { pid });
-          fs.unlinkSync(this.lockFile);
-        }
-      }
-
-      // Acquire lock
-      const lockData = {
-        pid: process.pid,
-        started: new Date().toISOString(),
-        hostname: require("os").hostname(),
-      };
-      fs.writeFileSync(this.lockFile, JSON.stringify(lockData, null, 2));
-      logInfo("Autopilot lock acquired", { pid: process.pid });
-      return true;
-    } catch (err) {
-      logError("Failed to acquire autopilot lock", { error: String(err) });
-      return false;
-    }
+    logInfo("Autopilot lock manager disabled. Proceeding without lock coordination.");
+    return true;
   }
 
   release(): void {
-    try {
-      if (fs.existsSync(this.lockFile)) {
-        fs.unlinkSync(this.lockFile);
-        logInfo("Autopilot lock released");
-      }
-    } catch (err) {
-      logError("Failed to release autopilot lock", { error: String(err) });
-    }
+    logInfo("Autopilot lock manager disabled. Release is a no-op.");
   }
 
   cleanup(): void {
-    this.release();
+    // No state persisted; nothing to clean up.
   }
 }

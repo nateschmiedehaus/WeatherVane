@@ -21,6 +21,10 @@ export interface FeatureGatesReader {
   getPromptMode(): 'compact' | 'verbose';
   isSandboxPoolEnabled(): boolean;
   getSandboxMode(): 'pool' | 'none';
+  getSchedulerMode(): 'wsjf' | 'legacy';
+  isAdminToolsEnabled(): boolean;
+  isUpgradeToolsEnabled(): boolean;
+  isRoutingToolsEnabled(): boolean;
 }
 
 export interface FeatureGatesConfig {
@@ -60,6 +64,27 @@ export class FeatureGates implements FeatureGatesReader {
    */
   getSandboxMode(): 'pool' | 'none' {
     return this.liveFlags.getValue('SANDBOX_MODE') as 'pool' | 'none';
+  }
+
+  /**
+   * Check if administrative runtime tooling is enabled
+   */
+  isAdminToolsEnabled(): boolean {
+    return this.liveFlags.getValue('ADMIN_TOOLS') === '1';
+  }
+
+  /**
+   * Check if upgrade/patch tooling is enabled
+   */
+  isUpgradeToolsEnabled(): boolean {
+    return this.liveFlags.getValue('UPGRADE_TOOLS') === '1';
+  }
+
+  /**
+   * Check if route switching controls are enabled
+   */
+  isRoutingToolsEnabled(): boolean {
+    return this.liveFlags.getValue('ROUTING_TOOLS') === '1';
   }
 
   /**
@@ -236,6 +261,9 @@ export class FeatureGates implements FeatureGatesReader {
       velocityTrackingEnabled: this.isVelocityTrackingEnabled(),
       consensusEngineEnabled: this.isConsensusEngineEnabled(),
       disableNewFeatures: this.shouldDisableNewFeatures(),
+      adminToolsEnabled: this.isAdminToolsEnabled(),
+      upgradeToolsEnabled: this.isUpgradeToolsEnabled(),
+      routingToolsEnabled: this.isRoutingToolsEnabled(),
     };
   }
 }

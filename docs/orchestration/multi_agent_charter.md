@@ -55,6 +55,13 @@ Roadmap Intake → Atlas → (Task Assignment)
 | Collaboration | Escalation turnaround, review latencies | < 4 hours for critical escalations |
 | Cost & Efficiency | Token spend vs. budget, autopilot staffing utilisation | < 80% of daily budget, > 70% active staffing utilisation |
 
+## 2025-10-20 Refresh
+
+- Consensus engine pilot now records staffing pressure and priority signals in `state/policy/autopilot_policy.json`, giving Atlas immediate feedback when Integration Fury or Manager Self-Check trend red.
+- Atlas and Director Dana agreed on a dual-review cadence: Atlas clears PRODUCT execution blockers while Dana handles consensus and director-level critic follow-ups (`CRIT-PERF-GLOBAL-*` stream).
+- Allocator, design system, and build critics now run in the high profile without shell chaining; structured telemetry keeps Autopilot able to respond before failures stack.
+- Product telemetry hooks (WeatherOps dashboards, allocator diagnostics) now publish evidence packets so consensus delegates can sanity-check roadmaps before the Claude Council ratifies them.
+
 ## Immediate Actions
 
 1. Run `critic manager_self_check` and `critic org_pm` against this charter to align the roadmap with the documented process.

@@ -7,6 +7,7 @@ from typing import Any, Literal, Sequence
 from pydantic import Field
 
 from .base import APIModel, ContextWarning
+from .coverage import TenantCoverageSummary
 
 
 class GuardrailStatus(str, Enum):
@@ -130,6 +131,32 @@ class AllocatorRecommendation(APIModel):
     notes: str | None = None
 
 
+class AllocatorDiagnostics(APIModel):
+    optimizer: str | None = None
+    optimizer_winner: str | None = None
+    scenario_profit_p10: float | None = None
+    scenario_profit_p50: float | None = None
+    scenario_profit_p90: float | None = None
+    expected_profit_raw: float | None = None
+    worst_case_profit: float | None = None
+    baseline_profit: float | None = None
+    profit_lift: float | None = None
+    profit_delta_p50: float | None = None
+    profit_delta_expected: float | None = None
+    binding_constraints: dict[str, list[str]] = Field(default_factory=dict)
+    optimizer_candidates: list[dict[str, Any]] = Field(default_factory=list)
+    evaluations: float | None = None
+    iterations: float | None = None
+    improvements: float | None = None
+    iterations_with_improvement: float | None = None
+    projection_target: float | None = None
+    projection_residual_lower: float | None = None
+    projection_residual_upper: float | None = None
+    success: float | None = None
+    objective_value: float | None = None
+    min_softened: bool | None = None
+
+
 class AllocatorSummary(APIModel):
     run_id: str | None = None
     generated_at: datetime | None = None
@@ -140,6 +167,7 @@ class AllocatorSummary(APIModel):
     guardrail_breaches: int = Field(default=0, ge=0)
     notes: list[str] = Field(default_factory=list)
     recommendations: list[AllocatorRecommendation] = Field(default_factory=list)
+    diagnostics: AllocatorDiagnostics | None = None
 
 
 class WeatherKpiUnit(str, Enum):
@@ -225,6 +253,7 @@ class DashboardResponse(APIModel):
     suggestion_telemetry_summary: DashboardSuggestionTelemetrySummary | None = None
     context_tags: list[str] = Field(default_factory=list)
     context_warnings: list[ContextWarning] = Field(default_factory=list)
+    data_coverage: TenantCoverageSummary | None = None
 
 
 class AlertAcknowledgeRequest(APIModel):

@@ -5,14 +5,14 @@ The `SelfImprovementManager` enables the orchestrator to safely improve itself a
 
 ## Integration Points
 
-### 1. Add to ClaudeCodeCoordinator Constructor
+### 1. Add to AgentCoordinator Constructor
 
 ```typescript
-// tools/wvo_mcp/src/orchestrator/claude_code_coordinator.ts
+// tools/wvo_mcp/src/orchestrator/agent_coordinator.ts
 
 import { SelfImprovementManager } from './self_improvement_manager.js';
 
-export class ClaudeCodeCoordinator extends EventEmitter {
+export class AgentCoordinator extends EventEmitter {
   private readonly selfImprovementManager?: SelfImprovementManager;
 
   constructor(
@@ -75,7 +75,7 @@ if (this.selfImprovementManager && finalStatus === 'done') {
 Add at the start of `dispatchWork`:
 
 ```typescript
-// tools/wvo_mcp/src/orchestrator/claude_code_coordinator.ts
+// tools/wvo_mcp/src/orchestrator/agent_coordinator.ts
 // In dispatchWork method, after line 177:
 
 private async dispatchWork(): Promise<void> {
@@ -120,7 +120,7 @@ export class OrchestratorRuntime {
     );
 
     // Pass to coordinator
-    this.coordinator = new ClaudeCodeCoordinator(
+    this.coordinator = new AgentCoordinator(
       workspaceRoot,
       this.stateMachine,
       this.scheduler,

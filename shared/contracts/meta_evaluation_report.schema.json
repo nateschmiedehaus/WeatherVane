@@ -1,0 +1,187 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Meta-evaluation Report Schema",
+  "type": "object",
+  "required": ["timestamp", "evaluation_id", "metrics", "criteria", "conclusion"],
+  "properties": {
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO timestamp of evaluation"
+    },
+    "evaluation_id": {
+      "type": "string",
+      "pattern": "^ME-\\d{8}-[A-F0-9]{8}$",
+      "description": "Unique ID for this meta-evaluation"
+    },
+    "metrics": {
+      "type": "object",
+      "required": ["model_pass_rate", "mean_r2", "mean_mape", "quality_score"],
+      "properties": {
+        "model_pass_rate": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Fraction of models passing quality thresholds"
+        },
+        "mean_r2": {
+          "type": "number",
+          "minimum": -1,
+          "maximum": 1,
+          "description": "Mean R² across all models"
+        },
+        "mean_mape": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Mean MAPE across all models"
+        },
+        "quality_score": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100,
+          "description": "Overall quality score (0-100)"
+        }
+      }
+    },
+    "criteria": {
+      "type": "object",
+      "required": ["data_integrity", "model_performance", "robustness", "observability", "responsible_ai"],
+      "properties": {
+        "data_integrity": {
+          "type": "object",
+          "required": ["score", "findings"],
+          "properties": {
+            "score": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 100
+            },
+            "findings": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "model_performance": {
+          "type": "object",
+          "required": ["score", "findings"],
+          "properties": {
+            "score": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 100
+            },
+            "findings": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "robustness": {
+          "type": "object",
+          "required": ["score", "findings"],
+          "properties": {
+            "score": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 100
+            },
+            "findings": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "observability": {
+          "type": "object",
+          "required": ["score", "findings"],
+          "properties": {
+            "score": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 100
+            },
+            "findings": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "responsible_ai": {
+          "type": "object",
+          "required": ["score", "findings"],
+          "properties": {
+            "score": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 100
+            },
+            "findings": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "conclusion": {
+      "type": "object",
+      "required": ["overall_status", "key_risks", "recommendations"],
+      "properties": {
+        "overall_status": {
+          "type": "string",
+          "enum": ["excellent", "good", "needs_improvement", "at_risk", "critical"],
+          "description": "Overall evaluation status"
+        },
+        "key_risks": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["risk", "severity", "mitigation"],
+            "properties": {
+              "risk": {
+                "type": "string"
+              },
+              "severity": {
+                "type": "string",
+                "enum": ["low", "medium", "high", "critical"]
+              },
+              "mitigation": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "recommendations": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["action", "priority", "expected_impact"],
+            "properties": {
+              "action": {
+                "type": "string"
+              },
+              "priority": {
+                "type": "string",
+                "enum": ["p0", "p1", "p2", "p3"]
+              },
+              "expected_impact": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

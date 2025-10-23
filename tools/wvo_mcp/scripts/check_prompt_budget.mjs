@@ -85,23 +85,43 @@ async function main() {
     "orchestrator",
     "context_assembler.js",
   );
-  const stateMachineModulePath = path.join(
-    distRoot,
-    "orchestrator",
-    "state_machine.js",
-  );
+  const stateMachineModulePath = path.join(distRoot, "orchestrator", "state_machine.js");
+  const liveFlagsModulePath = path.join(distRoot, "orchestrator", "live_flags.js");
 
   let stateMachine;
+  let assembler;
+  let liveFlags;
+  let promptMode = "compact";
   try {
-    const [stateMachineModule, contextAssemblerModule] = await Promise.all([
+    const [stateMachineModule, contextAssemblerModule, liveFlagsModule] = await Promise.all([
       import(pathToFileURL(stateMachineModulePath).href),
       import(pathToFileURL(contextModulePath).href),
+      import(pathToFileURL(liveFlagsModulePath).href).catch((error) => {
+        console.warn(
+          `[check_prompt_budget] Live flags module unavailable; defaulting to compact prompts: ${error instanceof Error ? error.message : String(error)}`,
+        );
+        return null;
+      }),
     ]);
     const { StateMachine } = stateMachineModule;
     const { ContextAssembler } = contextAssemblerModule;
+    const LiveFlags = liveFlagsModule?.LiveFlags;
 
     stateMachine = new StateMachine(workspaceRoot);
-    const assembler = new ContextAssembler(stateMachine, workspaceRoot);
+    if (typeof LiveFlags === "function") {
+      try {
+        liveFlags = new LiveFlags({ workspaceRoot });
+        promptMode = liveFlags.getValue("PROMPT_MODE") === "verbose" ? "verbose" : "compact";
+      } catch (error) {
+        console.warn(
+          `[check_prompt_budget] Failed to initialise live flags; using compact prompts: ${error instanceof Error ? error.message : String(error)}`,
+        );
+        liveFlags = undefined;
+      }
+    }
+    assembler = new ContextAssembler(stateMachine, workspaceRoot, {
+      liveFlags: liveFlags ?? undefined,
+    });
 
     const tasks = stateMachine.getTasks({
       status: ["pending", "in_progress", "needs_review", "needs_improvement"],
@@ -116,7 +136,10 @@ async function main() {
         maxLearnings: 3,
         hoursBack: 24,
       });
-      const prompt = assembler.formatForPrompt(context);
+      const prompt =
+        promptMode === "verbose"
+          ? assembler.formatForPrompt(context)
+          : assembler.formatForPromptCompact(context);
       const tokens = estimateTokens(prompt);
       details.promptsChecked += 1;
       details.maxPromptTokens = Math.max(details.maxPromptTokens, tokens);
@@ -134,8 +157,14 @@ async function main() {
       `Skipped prompt assembly check (build dist first with "npm run build"): ${error instanceof Error ? error.message : String(error)}`,
     );
   } finally {
+    if (assembler && typeof assembler.dispose === "function") {
+      await assembler.dispose();
+    }
     if (stateMachine && typeof stateMachine.close === "function") {
       stateMachine.close();
+    }
+    if (liveFlags && typeof liveFlags.dispose === "function") {
+      liveFlags.dispose();
     }
   }
 
@@ -162,4 +191,12 @@ async function main() {
   );
 }
 
-await main();
+const isExecutedDirectly =
+  typeof process.argv[1] === "string" &&
+  import.meta.url === pathToFileURL(process.argv[1]).href;
+
+if (isExecutedDirectly) {
+  await main();
+}
+
+export { estimateTokens, main };

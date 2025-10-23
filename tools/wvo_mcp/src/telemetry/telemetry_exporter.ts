@@ -64,6 +64,10 @@ export class TelemetryExporter {
     void this.flush(); // Final flush
   }
 
+  async flushNow(): Promise<void> {
+    await this.flush();
+  }
+
   /**
    * Archive existing telemetry file and start fresh.
    * This ensures metrics are accurate for the current session.

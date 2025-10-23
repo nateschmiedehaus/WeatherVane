@@ -108,6 +108,7 @@ export class TokenEfficiencyManager {
   private optimizing = false;
   private lastOptimization = 0;
   private readonly enabled: boolean;
+  private pendingSignal: { signal: 'token_pressure' | 'context_limit'; event?: TokenPressureEvent } | null = null;
 
   private readonly tokenPressureListener = (event: TokenPressureEvent) => {
     void this.handleSignal('token_pressure', event);
@@ -127,7 +128,8 @@ export class TokenEfficiencyManager {
     this.enabled = !isDryRunEnabled();
     this.settingsStore = this.enabled ? new SettingsStore({ workspaceRoot }) : null;
     this.maxContextWords = Math.max(300, options.maxContextWords ?? MAX_CONTEXT_WORDS_DEFAULT);
-    this.minIntervalMs = Math.max(60_000, options.minIntervalMs ?? MIN_INTERVAL_MS_DEFAULT);
+    const requestedInterval = options.minIntervalMs ?? MIN_INTERVAL_MS_DEFAULT;
+    this.minIntervalMs = Math.max(0, requestedInterval);
     this.backupRetention = Math.max(3, options.backupRetention ?? BACKUP_RETENTION_DEFAULT);
 
     if (this.enabled) {
@@ -177,6 +179,7 @@ export class TokenEfficiencyManager {
 
     const now = Date.now();
     if (this.optimizing) {
+      this.pendingSignal = { signal, event };
       return;
     }
 
@@ -209,6 +212,11 @@ export class TokenEfficiencyManager {
       this.optimizing = false;
       if (!result?.optimized) {
         this.lastOptimization = Math.max(this.lastOptimization, now);
+      }
+      const next = this.pendingSignal;
+      this.pendingSignal = null;
+      if (next) {
+        void this.handleSignal(next.signal, next.event);
       }
     }
   }

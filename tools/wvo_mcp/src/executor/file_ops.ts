@@ -2,6 +2,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 
 import { assertDryRunWriteAllowed } from "../utils/dry_run.js";
+import { withSpan } from "../telemetry/tracing.js";
 
 function assertInWorkspace(workspaceRoot: string, targetPath: string): string {
   const resolved = path.resolve(workspaceRoot, targetPath);
@@ -51,8 +52,24 @@ export async function readFile(
   relativePath: string,
   options: { encoding?: BufferEncoding } = { encoding: "utf8" },
 ): Promise<string> {
-  const resolved = assertInWorkspace(workspaceRoot, relativePath);
-  return fs.readFile(resolved, options.encoding ?? "utf8");
+  return withSpan("file.read", async (span) => {
+    const resolved = assertInWorkspace(workspaceRoot, relativePath);
+    span?.setAttribute("file.path", relativePath);
+    span?.setAttribute("file.encoding", options.encoding ?? "utf8");
+
+    try {
+      const content = await fs.readFile(resolved, options.encoding ?? "utf8");
+      span?.setAttribute("file.bytesRead", content.length);
+      return content;
+    } catch (error: unknown) {
+      span?.recordException(error);
+      throw error;
+    }
+  }, {
+    attributes: {
+      "file.operation": "read",
+    },
+  });
 }
 
 export async function writeFile(
@@ -61,28 +78,43 @@ export async function writeFile(
   content: string,
   options?: { allowProtected?: boolean },
 ): Promise<void> {
-  assertDryRunWriteAllowed(`fs.write(${relativePath})`);
-  const resolved = assertInWorkspace(workspaceRoot, relativePath);
+  return withSpan("file.write", async (span) => {
+    assertDryRunWriteAllowed(`fs.write(${relativePath})`);
+    const resolved = assertInWorkspace(workspaceRoot, relativePath);
 
-  // Check if this is a protected file
-  if (isProtectedFile(relativePath)) {
-    if (!protectedWritesAllowed(options)) {
-      throw new Error(
-        `SELF-PRESERVATION: Cannot modify protected infrastructure file: ${relativePath}\n\n` +
-        `This file is part of the autopilot's critical infrastructure and requires human review.\n\n` +
-        `To allow this write set WVO_ALLOW_PROTECTED_WRITES=1 (or pass {allowProtected:true}) after verifying:\n` +
-        `1. The change is intentional and reviewed.\n` +
-        `2. Builds/tests succeed (npm run build --prefix tools/wvo_mcp).\n` +
-        `3. You understand the risk of modifying automation scripts.\n`
-      );
-    } else {
-      console.warn(
-        `[self-preservation] Overriding protection for ${relativePath}. ` +
-        `This should only happen for reviewed, intentional changes.`
-      );
+    span?.setAttribute("file.path", relativePath);
+    span?.setAttribute("file.bytesWritten", content.length);
+    span?.setAttribute("file.protected", isProtectedFile(relativePath));
+
+    try {
+      // Check if this is a protected file
+      if (isProtectedFile(relativePath)) {
+        if (!protectedWritesAllowed(options)) {
+          throw new Error(
+            `SELF-PRESERVATION: Cannot modify protected infrastructure file: ${relativePath}\n\n` +
+            `This file is part of the autopilot's critical infrastructure and requires human review.\n\n` +
+            `To allow this write set WVO_ALLOW_PROTECTED_WRITES=1 (or pass {allowProtected:true}) after verifying:\n` +
+            `1. The change is intentional and reviewed.\n` +
+            `2. Builds/tests succeed (npm run build --prefix tools/wvo_mcp).\n` +
+            `3. You understand the risk of modifying automation scripts.\n`
+          );
+        } else {
+          console.warn(
+            `[self-preservation] Overriding protection for ${relativePath}. ` +
+            `This should only happen for reviewed, intentional changes.`
+          );
+        }
+      }
+
+      await fs.mkdir(path.dirname(resolved), { recursive: true });
+      await fs.writeFile(resolved, content, "utf8");
+    } catch (error: unknown) {
+      span?.recordException(error);
+      throw error;
     }
-  }
-
-  await fs.mkdir(path.dirname(resolved), { recursive: true });
-  await fs.writeFile(resolved, content, "utf8");
+  }, {
+    attributes: {
+      "file.operation": "write",
+    },
+  });
 }

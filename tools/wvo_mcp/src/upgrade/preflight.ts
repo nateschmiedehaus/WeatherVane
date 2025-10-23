@@ -18,6 +18,8 @@ const DEFAULT_DISK_THRESHOLD_MB = 500;
 const DEFAULT_NODE_MAJOR = 18;
 const DEFAULT_NPM_MAJOR = 9;
 const GATE_SEQUENCE = ['build', 'unit', 'selfchecks', 'canary_ready'] as const;
+const SANDBOX_ARTIFACT_RELATIVE = ['experiments', 'meta', 'sandbox_run.json'] as const;
+const SANDBOX_ARTIFACT_MAX_AGE_MS = 14 * 24 * 60 * 60 * 1000;
 
 export type UpgradeGateName = (typeof GATE_SEQUENCE)[number];
 
@@ -389,12 +391,20 @@ export async function runUpgradePreflight(
     await runCheck('sandbox_tooling', async () => {
       const dockerOk = await commandExists(commandRunner, 'docker', rootDir);
       const bwrapOk = await commandExists(commandRunner, 'bwrap', rootDir);
-      if (!dockerOk && !bwrapOk) {
-        throw new PreflightError(
-          'sandbox_tooling',
-          'Neither docker nor bwrap is available in PATH',
-        );
+      if (dockerOk || bwrapOk) {
+        return;
       }
+
+      const sandboxEvidence = evaluateSandboxArtifact(rootDir);
+      if (sandboxEvidence.ok) {
+        return;
+      }
+
+      const detail = sandboxEvidence.detail ? ` (${sandboxEvidence.detail})` : '';
+      throw new PreflightError(
+        'sandbox_tooling',
+        `Neither docker nor bwrap is available in PATH${detail}`,
+      );
     });
 
     await runCheck('sqlite_roundtrip', async () => {
@@ -486,6 +496,55 @@ function parseAvailableDiskMb(dfOutput: string): number {
     return Number.NaN;
   }
   return Math.floor(availableKb / 1024);
+}
+
+interface SandboxArtifactResult {
+  ok: boolean;
+  detail?: string;
+}
+
+function evaluateSandboxArtifact(rootDir: string): SandboxArtifactResult {
+  const artifactPath = path.join(rootDir, ...SANDBOX_ARTIFACT_RELATIVE);
+  if (!fs.existsSync(artifactPath)) {
+    return { ok: false, detail: 'sandbox artifact missing' };
+  }
+
+  try {
+    const raw = fs.readFileSync(artifactPath, 'utf-8');
+    const parsed = JSON.parse(raw) as {
+      dry_run?: unknown;
+      dryRun?: unknown;
+      generated_at?: unknown;
+      generatedAt?: unknown;
+    };
+
+    const dryRun = (parsed.dry_run ?? parsed.dryRun) === true;
+    if (!dryRun) {
+      return { ok: false, detail: 'sandbox artifact missing dry_run confirmation' };
+    }
+
+    const generatedAtText = parsed.generated_at ?? parsed.generatedAt;
+    if (typeof generatedAtText !== 'string' || generatedAtText.length === 0) {
+      return { ok: false, detail: 'sandbox artifact missing generated_at timestamp' };
+    }
+
+    const generatedAt = Date.parse(generatedAtText);
+    if (Number.isNaN(generatedAt)) {
+      return { ok: false, detail: 'sandbox artifact invalid generated_at timestamp' };
+    }
+
+    if (generatedAt + SANDBOX_ARTIFACT_MAX_AGE_MS < Date.now()) {
+      return {
+        ok: false,
+        detail: `sandbox artifact stale (generated_at=${generatedAtText})`,
+      };
+    }
+
+    return { ok: true };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    return { ok: false, detail: `sandbox artifact parse error: ${message}` };
+  }
 }
 
 async function commandExists(

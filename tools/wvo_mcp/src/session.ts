@@ -59,6 +59,7 @@ import type {
   HeavyTaskQueueItem,
   HeavyTaskUpdateInput,
   PlanNextInput,
+  TaskPriority,
   TaskStatus as LegacyTaskStatus,
 } from "./utils/types.js";
 import type { OrchestratorRuntime } from "./orchestrator/orchestrator_runtime.js";

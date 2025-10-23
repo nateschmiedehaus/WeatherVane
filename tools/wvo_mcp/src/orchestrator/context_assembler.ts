@@ -18,7 +18,7 @@
 import type { StateMachine, Task, ContextEntry, QualityMetric, ResearchCacheRecord } from './state_machine.js';
 import { CodeSearchIndex } from '../utils/code_search.js';
 import type { LiveFlagsReader } from '../state/live_flags.js';
-import { FeatureGates } from './feature_gates.js';
+import { FeatureGates, type FeatureGatesReader } from './feature_gates.js';
 
 // ============================================================================
 // Types
@@ -51,6 +51,9 @@ export interface AssembledContext {
   filesToRead?: string[];
   recentChangesInArea?: string[];
 
+  // Agent library documentation (NEW)
+  agentLibraryDocs?: string[];
+
   // Strategic context
   projectPhase: string;
   velocityMetrics: {
@@ -59,6 +62,10 @@ export interface AssembledContext {
     qualityTrendOverall: string;
   };
 }
+
+// Agent library documentation types
+export type AgentRole = 'worker' | 'critic' | 'atlas' | 'director_dana';
+export type TaskDomain = 'product' | 'ml' | 'infrastructure' | 'security' | 'general';
 
 export interface ContextAssemblyOptions {
   includeCodeContext?: boolean;
@@ -82,6 +89,7 @@ export interface ContextAssemblerConfig {
   enableCodeSearch?: boolean;
   liveFlags?: LiveFlagsReader;
   maxHistoryItems?: number;
+  featureGates?: FeatureGatesReader;
 }
 
 // ============================================================================
@@ -92,7 +100,7 @@ export class ContextAssembler {
   private codeSearch: CodeSearchIndex | null;
   private readonly codeSearchEnabled: boolean;
   private readonly liveFlags?: LiveFlagsReader;
-  private readonly featureGates?: FeatureGates;
+  private readonly featureGates?: FeatureGatesReader;
   private readonly maxHistoryItems: number;
   private readonly contextCache = new Map<string, { timestamp: number; context: AssembledContext }>();
   private static readonly CACHE_TTL_MS = 60_000;
@@ -104,7 +112,9 @@ export class ContextAssembler {
     config: ContextAssemblerConfig = {}
   ) {
     this.codeSearch = config.codeSearch ?? null;
-    this.featureGates = config.liveFlags ? new FeatureGates(config.liveFlags) : undefined;
+    this.featureGates =
+      config.featureGates ??
+      (config.liveFlags ? new FeatureGates(config.liveFlags) : undefined);
     this.codeSearchEnabled = config.enableCodeSearch ?? true;
     this.liveFlags = config.liveFlags;
     this.maxHistoryItems = Math.max(1, config.maxHistoryItems ?? 3);
@@ -189,7 +199,8 @@ export class ContextAssembler {
       includeQualityHistory ? this.getQualityTrends() : Promise.resolve([]),
       includeCodeContext ? this.inferFilesToRead(task) : Promise.resolve(undefined),
       this.getVelocityMetrics(),
-      this.fetchResearchHighlights(task)
+      this.fetchResearchHighlights(task),
+      this.getAgentLibraryDocs(task)  // NEW: Get relevant agent library docs
     ]);
 
     const [
@@ -200,7 +211,8 @@ export class ContextAssembler {
       qualityTrends,
       filesToRead,
       velocityMetrics,
-      researchHighlights
+      researchHighlights,
+      agentLibraryDocs
     ] = settled.map((result, index) => {
       if (result.status === 'fulfilled') {
         return result.value;
@@ -219,6 +231,7 @@ export class ContextAssembler {
         case 6:
           return { tasksCompletedToday: 0, averageTaskDuration: 0, qualityTrendOverall: 'unknown' };
         case 7:
+        case 8:
         default:
           return undefined;
       }
@@ -230,6 +243,7 @@ export class ContextAssembler {
       AssembledContext['overallQualityTrend'],
       string[] | undefined,
       AssembledContext['velocityMetrics'],
+      string[] | undefined,
       string[] | undefined
     ];
 
@@ -269,6 +283,7 @@ export class ContextAssembler {
       overallQualityTrend: qualityTrends,
       filesToRead: uniqueFiles,
       researchHighlights: uniqueResearch,
+      agentLibraryDocs: agentLibraryDocs || undefined,  // NEW: Agent library docs
       projectPhase: health.currentPhase,
       velocityMetrics
     };
@@ -368,6 +383,13 @@ export class ContextAssembler {
       sections.push(`## Relevant Files\n${lines}\n*Use fs_read to examine these files before implementing*`);
     }
 
+    if (context.agentLibraryDocs && context.agentLibraryDocs.length > 0) {
+      const lines = context.agentLibraryDocs
+        .map(docPath => `- ${docPath}`)
+        .join('\n');
+      sections.push(`## Agent Library Documentation\n${lines}\n*Use fs_read to review relevant standards, charters, and guides*`);
+    }
+
     const averageMinutes = Math.round((context.velocityMetrics.averageTaskDuration || 0) / 60);
     sections.push(`## Project Status\nPhase: **${context.projectPhase}** | Tasks completed today: ${context.velocityMetrics.tasksCompletedToday} | Avg task duration: ${averageMinutes}min | Quality trend: ${context.velocityMetrics.qualityTrendOverall}`);
 
@@ -454,6 +476,217 @@ export class ContextAssembler {
       decisions: context.relevantDecisions.length,
       quality: context.overallQualityTrend.map(t => `${t.dimension}:${t.currentScore.toFixed(2)}`).join(',')
     });
+  }
+
+  // ==========================================================================
+  // Agent Library Documentation Injection
+  // ==========================================================================
+
+  /**
+   * Get relevant agent library documentation paths based on task and agent role
+   * This is the intelligent doc selector that dynamically chooses which docs to inject
+   */
+  private async getAgentLibraryDocs(task: Task, agentRole?: AgentRole): Promise<string[]> {
+    const docs: string[] = [];
+
+    // Determine agent role (from metadata or default to worker)
+    const role = agentRole || this.inferAgentRole(task);
+
+    // Determine task domain
+    const domain = this.inferTaskDomain(task);
+
+    // Base path for agent library
+    const basePath = 'docs/agent_library';
+
+    // 1. Common standards (all agents get these)
+    docs.push(`${basePath}/common/standards/quality_standards.md`);
+
+    // 2. Common concepts (all agents need verification loop)
+    docs.push(`${basePath}/common/concepts/verification_loop.md`);
+
+    // 3. Role-specific charter
+    switch (role) {
+      case 'worker':
+        docs.push(`${basePath}/roles/workers/charter.md`);
+        break;
+      case 'critic':
+        docs.push(`${basePath}/roles/critics/charter.md`);
+        break;
+      case 'atlas':
+        docs.push(`${basePath}/roles/atlas/charter.md`);
+        break;
+      case 'director_dana':
+        docs.push(`${basePath}/roles/director_dana/charter.md`);
+        break;
+    }
+
+    // 4. Common concepts based on task complexity
+    if (task.estimated_complexity && task.estimated_complexity >= 5) {
+      // Complex tasks need escalation protocol
+      docs.push(`${basePath}/common/concepts/escalation_protocol.md`);
+    }
+
+    // 5. Common processes based on task type
+    if (task.type === 'story') {
+      docs.push(`${basePath}/common/processes/task_lifecycle.md`);
+    }
+
+    if (role === 'critic') {
+      docs.push(`${basePath}/common/processes/critic_workflow.md`);
+    }
+
+    // 6. Domain-specific guides
+    if (domain !== 'general') {
+      docs.push(`${basePath}/domains/${domain}/overview.md`);
+
+      // Add specific domain docs based on task keywords
+      const taskText = `${task.title} ${task.description || ''}`.toLowerCase();
+
+      if (domain === 'product') {
+        if (taskText.includes('weather') || taskText.includes('forecast')) {
+          docs.push(`${basePath}/domains/product/weather_intelligence.md`);
+        }
+        if (taskText.includes('demo') || taskText.includes('ux')) {
+          docs.push(`${basePath}/domains/product/demo_standards.md`);
+          docs.push(`${basePath}/domains/product/ux_principles.md`);
+        }
+      } else if (domain === 'ml') {
+        if (taskText.includes('model') || taskText.includes('train')) {
+          docs.push(`${basePath}/domains/ml/modeling_standards.md`);
+        }
+        if (taskText.includes('data') || taskText.includes('quality')) {
+          docs.push(`${basePath}/domains/ml/data_quality.md`);
+        }
+        if (taskText.includes('causal') || taskText.includes('incrementality')) {
+          docs.push(`${basePath}/domains/ml/causal_inference.md`);
+        }
+      } else if (domain === 'infrastructure') {
+        if (taskText.includes('mcp') || taskText.includes('tool')) {
+          docs.push(`${basePath}/domains/infrastructure/mcp_architecture.md`);
+        }
+        if (taskText.includes('autopilot') || taskText.includes('orchestrator')) {
+          docs.push(`${basePath}/domains/infrastructure/autopilot_system.md`);
+        }
+        if (taskText.includes('telemetry') || taskText.includes('observability')) {
+          docs.push(`${basePath}/domains/infrastructure/observability.md`);
+        }
+      } else if (domain === 'security') {
+        if (taskText.includes('secret') || taskText.includes('credential')) {
+          docs.push(`${basePath}/domains/security/secrets_management.md`);
+        }
+        if (taskText.includes('audit') || taskText.includes('compliance')) {
+          docs.push(`${basePath}/domains/security/audit_requirements.md`);
+        }
+        if (taskText.includes('threat') || taskText.includes('attack')) {
+          docs.push(`${basePath}/domains/security/threat_model.md`);
+        }
+      }
+    }
+
+    // 7. Testing standards if task involves testing
+    const taskText = `${task.title} ${task.description || ''}`.toLowerCase();
+    if (taskText.includes('test') || taskText.includes('spec')) {
+      docs.push(`${basePath}/common/standards/testing_standards.md`);
+    }
+
+    // 8. Security standards if task involves security
+    if (taskText.includes('security') || taskText.includes('auth') || taskText.includes('secret')) {
+      docs.push(`${basePath}/common/standards/security_standards.md`);
+    }
+
+    // Remove duplicates and limit to reasonable number (max 8 docs)
+    const uniqueDocs = [...new Set(docs)];
+    return uniqueDocs.slice(0, 8);
+  }
+
+  /**
+   * Infer agent role from task metadata or type
+   */
+  private inferAgentRole(task: Task): AgentRole {
+    // Check metadata first
+    if (task.metadata && typeof task.metadata === 'object') {
+      const metadata = task.metadata as Record<string, unknown>;
+      if (metadata.agentRole === 'atlas') return 'atlas';
+      if (metadata.agentRole === 'director_dana') return 'director_dana';
+      if (metadata.agentRole === 'critic') return 'critic';
+    }
+
+    // Infer from task type (story tasks are larger scope, assigned to Atlas)
+    if (task.type === 'story') return 'atlas';
+
+    // Default to worker
+    return 'worker';
+  }
+
+  /**
+   * Infer task domain from task metadata, title, or description
+   */
+  private inferTaskDomain(task: Task): TaskDomain {
+    // Check metadata first
+    if (task.metadata && typeof task.metadata === 'object') {
+      const metadata = task.metadata as Record<string, unknown>;
+      if (typeof metadata.domain === 'string') {
+        const domain = metadata.domain.toLowerCase();
+        if (['product', 'ml', 'infrastructure', 'security'].includes(domain)) {
+          return domain as TaskDomain;
+        }
+      }
+    }
+
+    // Infer from task text
+    const taskText = `${task.title} ${task.description || ''}`.toLowerCase();
+
+    // ML domain keywords
+    if (
+      taskText.includes('model') ||
+      taskText.includes('training') ||
+      taskText.includes('mmm') ||
+      taskText.includes('bayesian') ||
+      taskText.includes('causal') ||
+      taskText.includes('data quality') ||
+      taskText.includes('feature')
+    ) {
+      return 'ml';
+    }
+
+    // Infrastructure domain keywords
+    if (
+      taskText.includes('mcp') ||
+      taskText.includes('orchestrator') ||
+      taskText.includes('autopilot') ||
+      taskText.includes('telemetry') ||
+      taskText.includes('observability') ||
+      taskText.includes('infrastructure')
+    ) {
+      return 'infrastructure';
+    }
+
+    // Security domain keywords
+    if (
+      taskText.includes('security') ||
+      taskText.includes('auth') ||
+      taskText.includes('secret') ||
+      taskText.includes('audit') ||
+      taskText.includes('threat') ||
+      taskText.includes('vulnerability')
+    ) {
+      return 'security';
+    }
+
+    // Product domain keywords
+    if (
+      taskText.includes('weather') ||
+      taskText.includes('demo') ||
+      taskText.includes('ux') ||
+      taskText.includes('dashboard') ||
+      taskText.includes('frontend') ||
+      taskText.includes('ui')
+    ) {
+      return 'product';
+    }
+
+    // Default to general
+    return 'general';
   }
 
   // ==========================================================================
@@ -588,7 +821,10 @@ export class ContextAssembler {
 
   private lazyContextEnabled(): boolean {
     // Compact prompt mode uses condensed context for efficiency
-    return this.featureGates?.isCompactPromptMode() ?? false;
+    if (this.featureGates) {
+      return this.featureGates.isCompactPromptMode();
+    }
+    return this.liveFlags?.getValue('PROMPT_MODE') === 'compact';
   }
 
   private maxFilesToReference(): number {

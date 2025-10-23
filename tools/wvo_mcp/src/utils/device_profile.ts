@@ -97,22 +97,22 @@ export function deriveResourceLimits(profile: DeviceProfile | null): ResourceLim
 
   const suggestedBatchSize = profile?.capabilities?.suggested_batch_size ?? null;
 
-  let codexWorkers = clamp(Math.round(recommended / 2), 2, 6);
-  let heavyTaskConcurrency = clamp(Math.floor(recommended / 4), 1, 3);
+  let codexWorkers = clamp(Math.round(recommended / 2), 2, 16);
+  let heavyTaskConcurrency = clamp(Math.floor(recommended / 4), 1, 8);
 
   if (recommended <= 2) {
     codexWorkers = 2;
     heavyTaskConcurrency = 1;
   } else if (recommended >= 12) {
-    codexWorkers = clamp(Math.round(recommended / 1.5), 4, 6);
-    heavyTaskConcurrency = clamp(Math.floor(recommended / 3), 2, 3);
+    codexWorkers = clamp(Math.round(recommended / 1.5), 4, 16);
+    heavyTaskConcurrency = clamp(Math.floor(recommended / 3), 2, 8);
   }
 
   heavyTaskConcurrency = Math.min(heavyTaskConcurrency, codexWorkers);
 
   const overrideCodex = parsePositiveInteger(process.env.WVO_CODEX_WORKERS);
   if (typeof overrideCodex === 'number') {
-    codexWorkers = clamp(overrideCodex, 1, 8);
+    codexWorkers = clamp(overrideCodex, 1, 32);
   }
 
   const overrideHeavy = parsePositiveInteger(process.env.WVO_HEAVY_TASK_CONCURRENCY);

@@ -58,6 +58,7 @@ export class HeavyTaskQueueStore {
       command: input.command,
       notes: input.notes,
       status: input.status ?? "queued",
+      priority: "normal", // Default priority for legacy heavy_queue.json
       created_at: now,
       updated_at: now,
     };

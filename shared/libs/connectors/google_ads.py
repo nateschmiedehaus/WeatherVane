@@ -90,6 +90,12 @@ class GoogleAdsConnector(HTTPConnector):
                 return await super()._request(method, path, **kwargs)
             raise
 
+    async def _handle_http_status_error(self, exc: httpx.HTTPStatusError, attempt: int) -> bool:
+        if exc.response.status_code in {400, 429} and self._is_rate_limit_error(exc.response):
+            await asyncio.sleep(self._backoff_delay(attempt))
+            return True
+        return await super()._handle_http_status_error(exc, attempt)
+
     async def _ensure_access_token(self) -> None:
         header = self._client.headers.get("Authorization")
         if not header and self.config.access_token:
@@ -128,6 +134,49 @@ class GoogleAdsConnector(HTTPConnector):
             and self.config.client_secret
             and self.config.refresh_token
         )
+
+    @staticmethod
+    def _is_rate_limit_error(response: httpx.Response) -> bool:
+        try:
+            payload = response.json()
+        except ValueError:
+            return False
+
+        error = payload.get("error")
+        if not isinstance(error, dict):
+            return False
+
+        status = error.get("status")
+        if isinstance(status, str) and status.upper() in {"RESOURCE_EXHAUSTED", "RATE_LIMIT_EXCEEDED"}:
+            return True
+
+        code = error.get("code")
+        if isinstance(code, int) and code == 429:
+            return True
+
+        details = error.get("details")
+        if not isinstance(details, list):
+            return False
+
+        for detail in details:
+            if not isinstance(detail, dict):
+                continue
+            errors = detail.get("errors")
+            if not isinstance(errors, list):
+                continue
+            for item in errors:
+                if not isinstance(item, dict):
+                    continue
+                error_code = item.get("errorCode")
+                if not isinstance(error_code, dict):
+                    continue
+                quota_error = error_code.get("quotaError")
+                if isinstance(quota_error, str) and quota_error != "UNSPECIFIED":
+                    return True
+                rate_limit_error = error_code.get("rateLimitError")
+                if isinstance(rate_limit_error, str) and rate_limit_error != "UNSPECIFIED":
+                    return True
+        return False
 
     def _search_endpoint(self, customer_id: str) -> str:
         version = self.config.api_version.rstrip("/")

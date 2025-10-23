@@ -45,6 +45,9 @@ The key allows the feature builder and allocator to aggregate “winter coat” 
 ## Confidence Scoring
 Confidence ranges 0.45–0.95. Direct multi-token matches land ≥0.8, single-token matches ~0.6, and fallback classifications stop at 0.55. Evidence captures the originating rule, tokens, raw titles, categories, tags, and brands for audit trails.
 
+## LLM Weather Affinity Classifier
+`shared/services/product_taxonomy.py::ProductTaxonomyClassifier` now orchestrates an Anthropic Claude prompt that summarises every source record and returns a structured JSON verdict (category hierarchy, weather affinity, seasonality, confidence, reasoning). The API client is pulled from `ANTHROPIC_API_KEY` when present; otherwise the classifier quietly skips so downstream code can fall back to heuristics. The API response is recorded in the taxonomy evidence payload (`llm_model`, `llm_confidence`, `llm_reasoning`) so analysts can audit why the model overrode the keyword rules. Unit coverage injects a stub Claude client to assert that LLM guidance takes precedence over the rule engine while preserving weather-aware cross-brand keys.
+
 ## Limitations & Next Steps
 - Current heuristics are keyword driven; future work should replace them with embedding similarity + supervised classifiers.
 - Google Shopping category trees are only partially interpreted; adding taxonomy lookups will improve accuracy for long-tail verticals.

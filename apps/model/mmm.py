@@ -108,17 +108,14 @@ def _fit_lightweight_mmm(frame: pl.DataFrame, spend_cols: List[str], revenue_col
         else None
     )
 
-    adstock_lags = _estimate_adstock_lags(frame, spend_cols)
-    saturation_k, saturation_s = _estimate_saturation_parameters(media_matrix, spend_cols)
-
+    # Use Bayesian estimation for both adstock and saturation parameters
     result = mmm_lightweight.fit_lightweight_mmm(
         media_spend=media_matrix,
         media_cols=spend_cols,
         target=target,
         extra_features=extra_features,
-        adstock_lags=adstock_lags,
-        saturation_k=saturation_k,
-        saturation_s=saturation_s,
+        estimate_adstock=True,
+        estimate_saturation=True,
     )
 
     try:

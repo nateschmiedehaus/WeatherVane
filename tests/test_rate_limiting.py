@@ -6,17 +6,20 @@ import pytest
 from shared.libs.connectors.base import HTTPConnector
 from shared.libs.connectors.config import (
     ConnectorConfig,
+    GoogleAdsConfig,
     MetaAdsConfig,
     ShopifyConfig,
     WeatherConfig,
 )
-from shared.libs.connectors.rate_limit import AsyncRateLimiter
+from shared.libs.connectors.google_ads import GoogleAdsConnector
 from shared.libs.connectors.meta import MetaAdsConnector
+from shared.libs.connectors.rate_limit import AsyncRateLimiter
 from shared.libs.connectors.shopify import ShopifyConnector
 from shared.libs.connectors.weather import WeatherConnector
 import shared.libs.connectors.base as base_module
-import shared.libs.connectors.rate_limit as rate_limit_module
+import shared.libs.connectors.google_ads as google_ads_module
 import shared.libs.connectors.meta as meta_module
+import shared.libs.connectors.rate_limit as rate_limit_module
 import shared.libs.connectors.shopify as shopify_module
 
 
@@ -216,5 +219,52 @@ async def test_weather_connector_rate_limiter_waits_when_exhausted(
 
     assert sleep_recorder.durations, "rate limiter should enforce a wait"
     assert sleep_recorder.durations[-1] == pytest.approx(0.5)
+
+    await connector.close()
+
+
+@pytest.mark.asyncio
+async def test_google_ads_connector_retries_on_quota_error(monkeypatch: pytest.MonkeyPatch) -> None:
+    config = GoogleAdsConfig(
+        developer_token="dev",
+        client_id="cid",
+        client_secret="secret",
+        refresh_token="refresh",
+        access_token="token",
+    )
+    connector = GoogleAdsConnector(config)
+    quota_error_payload = {
+        "error": {
+            "code": 400,
+            "status": "RESOURCE_EXHAUSTED",
+            "details": [
+                {
+                    "@type": "type.googleapis.com/google.ads.googleads.v14.errors.GoogleAdsFailure",
+                    "errors": [
+                        {
+                            "errorCode": {"quotaError": "RESOURCE_EXHAUSTED"},
+                        }
+                    ],
+                }
+            ],
+        }
+    }
+    connector._client = _StubClient(
+        [
+            _build_response(400, json_body=quota_error_payload),
+            _build_response(200, json_body={"results": []}),
+        ]
+    )
+    connector._client.headers = {"Authorization": "Bearer token"}  # type: ignore[attr-defined]
+
+    sleep_recorder = _SleepRecorder()
+    monkeypatch.setattr(rate_limit_module.asyncio, "sleep", sleep_recorder)
+    monkeypatch.setattr(base_module.asyncio, "sleep", sleep_recorder)
+    monkeypatch.setattr(google_ads_module.asyncio, "sleep", sleep_recorder)
+
+    result = await connector.search("1234567890", "SELECT metrics.clicks FROM customer")
+    assert result["results"] == []
+    assert sleep_recorder.durations, "expected retry backoff to record a pause"
+    assert sleep_recorder.durations[0] == pytest.approx(connector.config.backoff_factor)
 
     await connector.close()

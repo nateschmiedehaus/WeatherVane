@@ -7,6 +7,7 @@ import { runCommand } from "../executor/command_runner.js";
 import { writeFile } from "../executor/file_ops.js";
 import { logInfo, logWarning } from "../telemetry/logger.js";
 import { getCurrentGitSha } from "../utils/git.js";
+import { withSpan } from "../telemetry/tracing.js";
 import type { CommandResult } from "../utils/types.js";
 import type { StateMachine, Task, TaskStatus } from "../orchestrator/state_machine.js";
 import { resolveStateRoot } from "../utils/config.js";
@@ -66,7 +67,7 @@ export abstract class Critic {
     if (options.intelligenceEnabled) {
       this.intelligence = new CriticIntelligenceEngine({
         workspaceRoot,
-        critic: this.constructor.name.replace("Critic", "").toLowerCase(),
+        critic: this.getCriticKey(),
         intelligenceLevel: options.intelligenceLevel,
         researchManager: options.researchManager,
         stateMachine: options.stateMachine,
@@ -75,10 +76,14 @@ export abstract class Critic {
     this.escalationConfig = this.loadEscalationConfig(options.escalationConfigPath);
     this.escalationLogPath = options.escalationLogPath;
     this.identityProfile = this.loadIdentityProfile(
-      this.constructor.name.replace("Critic", "").toLowerCase(),
+      this.getCriticKey(),
       options.identityConfigPath,
       options.defaultIdentity,
     );
+  }
+
+  protected getCriticKey(): string {
+    return this.constructor.name.replace("Critic", "").toLowerCase();
   }
 
   protected abstract command(profile: string): string | null;
@@ -86,7 +91,7 @@ export abstract class Critic {
   protected async pass(message: string, details?: unknown): Promise<CriticResult> {
     const stdout = this.composeDetailOutput(message, details);
     const result: CriticResult = {
-      critic: this.constructor.name.replace("Critic", "").toLowerCase(),
+      critic: this.getCriticKey(),
       code: 0,
       stdout,
       stderr: "",
@@ -101,7 +106,7 @@ export abstract class Critic {
   protected async fail(message: string, details?: unknown): Promise<CriticResult> {
     const stderr = this.composeDetailOutput(message, details);
     const result: CriticResult = {
-      critic: this.constructor.name.replace("Critic", "").toLowerCase(),
+      critic: this.getCriticKey(),
       code: 1,
       stdout: "",
       stderr,
@@ -188,54 +193,74 @@ export abstract class Critic {
   }
 
   async run(profile: string): Promise<CriticResult> {
-    const cmd = this.command(profile);
-    if (!cmd) {
-      const noopResult: CriticResult = {
-        critic: this.constructor.name.replace("Critic", "").toLowerCase(),
-        code: 0,
-        stdout: "skipped due to capability profile",
-        stderr: "",
-        passed: false,
-        analysis: null,
-      };
-      const finalResult = await this.finalizeResult(noopResult);
+    return withSpan("critic.run", async (span) => {
+      const criticKey = this.getCriticKey();
+      span?.setAttribute("critic.name", criticKey);
+      span?.setAttribute("critic.profile", profile);
+
+      const cmd = this.command(profile);
+      if (!cmd) {
+        span?.addEvent("critic.skipped", { reason: "no_command_for_profile" });
+        const noopResult: CriticResult = {
+          critic: criticKey,
+          code: 0,
+          stdout: "skipped due to capability profile",
+          stderr: "",
+          passed: false,
+          analysis: null,
+        };
+        const finalResult = await this.finalizeResult(noopResult);
+        await this.handleEscalation(finalResult);
+        return finalResult;
+      }
+
+      logInfo(`Running critic command`, { critic: this.constructor.name, cmd });
+      let criticResult: CriticResult;
+      try {
+        const result = await runCommand(cmd, { cwd: this.workspaceRoot });
+        criticResult = {
+          critic: criticKey,
+          ...result,
+          passed: result.code === 0,
+          analysis: null,
+        };
+        span?.setAttribute("critic.exitCode", result.code);
+        span?.setAttribute("critic.passed", result.code === 0);
+      } catch (error: any) {
+        criticResult = {
+          critic: criticKey,
+          code: error.exitCode ?? -1,
+          stdout: error.stdout ?? "",
+          stderr: error.stderr ?? error.message,
+          passed: false,
+          analysis: null,
+        };
+        span?.recordException(error);
+        span?.setAttribute("critic.exitCode", error.exitCode ?? -1);
+        span?.setAttribute("critic.passed", false);
+      }
+
+      if (this.intelligence) {
+        if (criticResult.passed) {
+          await this.intelligence.recordSuccess();
+          span?.addEvent("critic.intelligence.success_recorded");
+        } else {
+          const analysis = await this.intelligence.analyzeFailure(criticResult.stderr ?? "");
+          criticResult.analysis = analysis;
+          span?.addEvent("critic.intelligence.failure_analyzed", {
+            analysisAvailable: !!analysis,
+          });
+        }
+      }
+
+      const finalResult = await this.finalizeResult(criticResult);
       await this.handleEscalation(finalResult);
       return finalResult;
-    }
-
-    logInfo(`Running critic command`, { critic: this.constructor.name, cmd });
-    let criticResult: CriticResult;
-    try {
-      const result = await runCommand(cmd, { cwd: this.workspaceRoot });
-      criticResult = {
-        critic: this.constructor.name.replace("Critic", "").toLowerCase(),
-        ...result,
-        passed: result.code === 0,
-        analysis: null,
-      };
-    } catch (error: any) {
-      criticResult = {
-        critic: this.constructor.name.replace("Critic", "").toLowerCase(),
-        code: error.exitCode ?? -1,
-        stdout: error.stdout ?? "",
-        stderr: error.stderr ?? error.message,
-        passed: false,
-        analysis: null,
-      };
-    }
-
-    if (this.intelligence) {
-      if (criticResult.passed) {
-        await this.intelligence.recordSuccess();
-      } else {
-        const analysis = await this.intelligence.analyzeFailure(criticResult.stderr ?? "");
-        criticResult.analysis = analysis;
-      }
-    }
-
-    const finalResult = await this.finalizeResult(criticResult);
-    await this.handleEscalation(finalResult);
-    return finalResult;
+    }, {
+      attributes: {
+        "critic.operation": "execution",
+      },
+    });
   }
 
   private loadEscalationConfig(configPath?: string): Record<string, CriticEscalationConfig> {

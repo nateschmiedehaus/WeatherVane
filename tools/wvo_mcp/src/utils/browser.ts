@@ -1,6 +1,6 @@
 import { logError, logInfo } from '../telemetry/logger.js';
 import type { LiveFlagsReader } from '../state/live_flags.js';
-import { FeatureGates } from '../orchestrator/feature_gates.js';
+import { FeatureGates, type FeatureGatesReader } from '../orchestrator/feature_gates.js';
 
 // Manually define types to avoid hard dependency on @types/playwright
 export type Page = {
@@ -23,11 +23,11 @@ type PlaywrightModule = {
   };
 };
 
-class BrowserManager {
+export class BrowserManager {
   private playwrightModulePromise?: Promise<PlaywrightModule | null>;
   private browserInstancePromise?: Promise<Browser | null>;
   private liveFlags?: LiveFlagsReader;
-  private featureGates?: FeatureGates;
+  private featureGates?: FeatureGatesReader;
 
   private async getPlaywrightModule(): Promise<PlaywrightModule | null> {
     if (!this.playwrightModulePromise) {
@@ -46,6 +46,18 @@ class BrowserManager {
     this.featureGates = new FeatureGates(flags);
   }
 
+  public setFeatureGates(gates: FeatureGatesReader): void {
+    this.featureGates = gates;
+  }
+
+  public getCurrentSandboxMode(): 'pool' | 'none' {
+    if (this.featureGates) {
+      return this.featureGates.isSandboxPoolEnabled() ? 'pool' : 'none';
+    }
+    const flag = this.liveFlags?.getValue('SANDBOX_MODE');
+    return flag === 'pool' ? 'pool' : 'none';
+  }
+
   public async getBrowser(): Promise<Browser | null> {
     if (!this.browserInstancePromise) {
       const playwright = await this.getPlaywrightModule();
@@ -55,7 +67,8 @@ class BrowserManager {
 
       // Determine sandbox mode based on SANDBOX_MODE flag
       // 'pool' = reuse process, 'none' = fresh process (default)
-      const useSandboxPool = this.featureGates?.isSandboxPoolEnabled() ?? false;
+      const sandboxMode = this.getCurrentSandboxMode();
+      const useSandboxPool = sandboxMode === 'pool';
       const args = [
         '--disable-dev-shm-usage',
         '--disable-gpu',

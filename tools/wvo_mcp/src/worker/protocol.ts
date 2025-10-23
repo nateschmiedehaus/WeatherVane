@@ -60,7 +60,7 @@ export interface WorkerCallOptions {
 }
 
 export interface WorkerStartOptions {
-  role: 'active' | 'canary';
+  role: 'active' | 'canary' | 'executor';
   entryPath?: string;
   idleTimeoutMs?: number;
   label?: string;

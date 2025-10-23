@@ -1,0 +1,100 @@
+import path from "node:path";
+import { mkdtempSync, mkdirSync } from "node:fs";
+import { tmpdir } from "node:os";
+
+import { beforeEach, describe, expect, it } from "vitest";
+
+type SpawnCall = {
+  cmd: string;
+  args: string[];
+  options: {
+    env: NodeJS.ProcessEnv;
+    cwd: string;
+  };
+};
+
+describe("run_allocator_checks script", () => {
+  const spawnCalls: SpawnCall[] = [];
+
+  beforeEach(() => {
+    spawnCalls.length = 0;
+  });
+
+  it("normalizes invalid profiles to medium and aggregates allocator suite", async () => {
+    // @ts-expect-error -- script is distributed as plain JS without types
+    const module: any = await import("../../scripts/run_allocator_checks.mjs");
+    const { normalizeProfile, buildCommandPlan } = module;
+
+    expect(normalizeProfile(undefined)).toBe("medium");
+    expect(normalizeProfile("LOW")).toBe("low");
+    expect(normalizeProfile("high")).toBe("high");
+    expect(normalizeProfile("unexpected")).toBe("medium");
+
+    const plan = buildCommandPlan("medium");
+    expect(plan).toHaveLength(1);
+    expect(plan[0]).toEqual({
+      cmd: "pytest",
+      args: [
+        "--maxfail=1",
+        "tests/test_allocator.py",
+        "tests/test_allocator_routes.py",
+        "tests/test_creative_route.py",
+        "tests/apps/model/test_creative_response.py",
+      ],
+    });
+  });
+
+  it("runs high profile checks with consolidated environment", async () => {
+    // @ts-expect-error -- script is distributed as plain JS without types
+    const module: any = await import("../../scripts/run_allocator_checks.mjs");
+    const { runAllocatorSuite } = module;
+
+    const workspaceRoot = mkdtempSync(path.join(tmpdir(), "allocator-suite-"));
+    mkdirSync(path.join(workspaceRoot, ".deps"), { recursive: true });
+
+    const spawn = async (cmd: string, args: string[], options: any) => {
+      spawnCalls.push({
+        cmd,
+        args: [...args],
+        options: {
+          env: { ...options.env },
+          cwd: options.cwd,
+        },
+      });
+      return { exitCode: 0 };
+    };
+
+    const exitCode = await runAllocatorSuite("HIGH", {
+      workspaceRoot,
+      env: { PYTHONPATH: "/existing/path" },
+      spawn,
+    });
+
+    expect(exitCode).toBe(0);
+    expect(spawnCalls).toHaveLength(2);
+
+    const [firstCall, secondCall] = spawnCalls;
+    expect(firstCall.cmd).toBe("pytest");
+    expect(firstCall.args).toEqual([
+      "--maxfail=1",
+      "tests/test_allocator.py",
+      "tests/test_allocator_routes.py",
+      "tests/test_creative_route.py",
+      "tests/apps/model/test_creative_response.py",
+    ]);
+    expect(secondCall.args).toEqual([
+      "--maxfail=1",
+      "tests/test_allocator_stress.py",
+      "tests/apps/test_allocator_rollback_executor.py",
+    ]);
+
+    const pythonPath =
+      firstCall.options.env?.PYTHONPATH ?? "";
+    const pythonPathSegments = pythonPath.split(path.delimiter);
+    expect(pythonPathSegments).toContain("/existing/path");
+    expect(pythonPathSegments).toContain(workspaceRoot);
+    expect(pythonPathSegments).toContain(path.join(workspaceRoot, ".deps"));
+    expect(firstCall.options.cwd).toBe(workspaceRoot);
+    expect(secondCall.options.cwd).toBe(workspaceRoot);
+  });
+});

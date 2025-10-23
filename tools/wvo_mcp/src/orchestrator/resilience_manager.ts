@@ -86,7 +86,7 @@ export class ResilienceManager extends EventEmitter {
     const retryAfter = context.retryAfterSeconds || 300;
 
     // Apply cooldown to the failing agent
-    this.agentPool.imposeCooldown(context.agentId, retryAfter, 'usage_limit');
+    this.agentPool.imposeCooldown(context.agentId, retryAfter);
 
     logInfo('Agent on cooldown due to rate limit', {
       agentId: context.agentId,

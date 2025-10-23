@@ -1,5 +1,10 @@
 # WeatherVane Developer Guide
 
+> **Always-on guardrails**
+> - Before work begins, ensure the task has documented **Requirements, Standards, Implementation Plan, Deliverables, Integration/Data Flow, Evidence** (`docs/TASK_TEMPLATE.md`, `state/roadmap.yaml`).
+> - Execute the **brief → build → critique → evidence** loop for every change and capture results in `state/context.md`.
+> - Explicitly state data flows (sources → transforms → outputs/consumers) so integrations stay transparent.
+
 ## Prerequisites
 - Python 3.11+
 - Node.js 18+
@@ -60,6 +65,48 @@ make format
 
 Use `make clean-metrics` (or the automatic call at the end of `make test`) to purge
 `tmp/metrics/*` artifacts so repeated local runs do not accumulate stale NDJSON logs.
+
+### Front-end iteration & Playwright coverage
+
+When touching product UI/UX:
+
+1. Write a short design brief (user, question, value proof, success evidence) in `docs/UX_CRITIQUE.md`.
+2. Implement the change using plain-language copy—avoid jargon—and structure the screen so a user can answer “What changed and why?” at a glance.
+3. Run both Vitest and the Playwright harness:
+   ```bash
+   npm --prefix apps/web run test
+   npm --prefix apps/web run test:ui
+   ```
+   The Playwright command builds/exports the site and executes the smoke suite. Attach generated evidence (screenshots, report links) to the task context.
+4. Capture critic output and iteration notes in `state/context.md`, then repeat the loop (brief → build → critique → evidence) until the latest build feels obvious, minimal, and elegant.
+
+Roadmap tasks that deliver customer-facing UX are considered incomplete until this loop is documented and Playwright passes.
+
+### Machine learning & modelling iteration
+
+For model research, feature engineering, and worker experimentation:
+
+1. **Brief** – Log the hypothesis, target metric(s), datasets, and acceptance criteria in `docs/ML_EXPERIMENTS.md` (or the relevant experiment log). Include links to notebooks or scripts.
+2. **Build** – Implement the change in a reproducible script/notebook (`apps/model`, `apps/worker`, `shared/libs`). Version datasets or references in `state/artifacts/experiments/**`.
+3. **Critique** – Run the evaluation suite (Pytest, custom bench scripts) plus metrics/plots that prove or disprove the hypothesis. Store outputs under `state/artifacts/{models,experiments}` and summarise results in `state/context.md`.
+4. **Evidence** – Link artefacts (metrics JSON, confusion matrices, feature importances, dashboards) and record whether the hypothesis was accepted, refined, or rejected.
+5. **Repeat** until the model meets the acceptance criteria or the brief is updated with a new direction.
+
+Model/ML changes must not merge without the recorded brief, evaluation artefacts, and context summary.
+
+## Task Authoring Standards
+
+Before a task is considered ready for execution:
+
+1. Ensure the roadmap entry (or ticket) includes the sections defined in `docs/TASK_TEMPLATE.md`:
+   - **Requirements** – user problem, constraints.
+   - **Standards** – quality bars for product/design/engineering/ML.
+   - **Implementation Plan** – concrete steps, iteration loop, owners.
+   - **Deliverables** – code, docs, artifacts.
+    - **Integration Points** – APIs/services/contracts affected, stakeholders to notify, and a data flow sketch (sources → transforms → outputs/consumers).
+   - **Evidence** – tests, critics, metrics, screenshots.
+2. Tasks missing any section should be updated in `state/roadmap.yaml` (or the source planning doc) before work starts.
+3. During execution, keep the sections current—mark completed deliverables, attach artefacts, and log decisions in `state/context.md`.
 
 ### Worker / PoC Pipeline Dependencies
 The worker CLI and PoC pipeline rely on scientific Python packages such as `polars`,
@@ -204,6 +251,11 @@ for direct ingestion into BigQuery or Loki; the roadmap calls for wiring this ex
 Run `python apps/worker/maintenance/secrets.py` (or `make check-secrets`) to verify required connector secrets are present in your
 environment. The command highlights missing required values (Shopify tokens/domains) and optional but
 recommended credentials (Meta, Google Ads, Klaviyo). Use `--json` for CI-friendly output.
+
+### MCP worker pool
+- `WVO_WORKER_COUNT=<n>` opts the MCP runtime into spawning `n` executor processes alongside the orchestrator (defaults to `WVO_CODEX_WORKERS` when unset, `0` disables the pool).
+- Executors expose a slim tool surface (`cmd_run`, `fs_read`, `fs_write`) and never mutate roadmap state; the orchestrator worker remains the single writer so the state machine stays consistent.
+- Inspect `worker_health` (or `state/analytics/worker_manager.json`) to confirm `executors` are reporting; degraded status usually means the pool is undersized or an executor failed to boot.
 
 ## Next Steps Checklist
 - Implement real connector clients under `shared/libs/connectors`.

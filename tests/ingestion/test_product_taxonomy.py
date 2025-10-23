@@ -58,7 +58,7 @@ def _build_record(
     )
 
 
-def test_classifies_winter_coat_with_high_confidence() -> None:
+def test_winter_coat_classified_as_winter() -> None:
     service = ProductTaxonomyService()
     records = [
         _build_record(
@@ -85,38 +85,38 @@ def test_classifies_winter_coat_with_high_confidence() -> None:
     assert "parka" in entry.evidence["matched_tokens"]
 
 
-def test_merges_multi_source_records_and_detects_rain_boots() -> None:
+def test_umbrella_classified_as_rain() -> None:
     service = ProductTaxonomyService()
     records = [
         _build_record(
-            canonical_product_id="rain-boot-777",
-            product_id="shopify:rain-boot-777",
+            canonical_product_id="umbrella-777",
+            product_id="shopify:umbrella-777",
             source="shopify",
-            product_name="StormGuard Rain Boot",
-            category="Footwear",
-            tags=["Rain", "Waterproof", "Boot"],
+            product_name="StormGuard Travel Umbrella",
+            category="Accessories",
+            tags=["Rain", "Waterproof", "Umbrella"],
             vendor="WeatherWorks",
-            description="Waterproof rubber rain boot with sealed seams.",
+            description="Compact waterproof travel umbrella with wind resistant frame.",
         ),
         _build_record(
-            canonical_product_id="rain-boot-777",
-            product_id="meta:rain-boot-creative",
+            canonical_product_id="umbrella-777",
+            product_id="meta:umbrella-creative",
             source="meta",
-            title="StormGuard Waterproof Rain Boot | Stay dry in style",
-            description="Meta creative featuring the StormGuard rain boot, waterproof rubber outsole.",
+            title="StormGuard Umbrella | Stay dry in style",
+            description="Meta creative highlighting the StormGuard umbrella with automatic open button.",
         ),
     ]
 
     [entry] = service.classify(records)
 
-    assert entry.category_l1 == "footwear"
-    assert entry.category_l2 == "rain_boots"
+    assert entry.category_l1 == "accessories"
+    assert entry.category_l2 == "umbrellas"
     assert entry.weather_affinity == "rain"
     assert entry.seasonality == "weather_triggered"
     assert entry.sources == ["meta", "shopify"]
     assert entry.confidence >= 0.8
-    assert entry.evidence["matched_rule"] == "footwear_rain_boots"
-    assert entry.cross_brand_key.startswith("rain_boots_rain")
+    assert entry.evidence["matched_rule"] == "accessories_umbrellas"
+    assert entry.cross_brand_key.startswith("umbrellas_rain")
 
 
 def test_detects_gender_modifier_for_cross_brand_key() -> None:
@@ -139,6 +139,29 @@ def test_detects_gender_modifier_for_cross_brand_key() -> None:
     assert entry.weather_affinity in {"summer", "heat"}
     assert "womens" in entry.cross_brand_key
     assert entry.seasonality == "seasonal_q2_q3"
+
+
+def test_tshirt_classified_as_summer() -> None:
+    service = ProductTaxonomyService()
+    records = [
+        _build_record(
+            canonical_product_id="tee-101",
+            product_id="google:tee-101",
+            source="google",
+            product_name="Sunrise Graphic Tee",
+            category="Apparel > Tops",
+            tags=["Tee", "Summer", "Cotton"],
+            description="Lightweight cotton t-shirt designed for summer weather adventures.",
+        )
+    ]
+
+    [entry] = service.classify(records)
+
+    assert entry.category_l1 == "apparel"
+    assert entry.category_l2 == "tshirts"
+    assert entry.weather_affinity == "summer"
+    assert entry.seasonality == "seasonal_q2_q3"
+    assert entry.confidence >= 0.7
 
 
 def test_llm_classification_overrides_rule_based_result() -> None:
@@ -217,3 +240,40 @@ def test_handles_explicit_heat_products() -> None:
     assert entry.weather_affinity == "heat"
     assert entry.seasonality == "seasonal_q2_q3"
     assert entry.confidence >= 0.8
+
+
+def test_cross_brand_key_consistent() -> None:
+    service = ProductTaxonomyService()
+    records = [
+        _build_record(
+            canonical_product_id="umbrella-1",
+            product_id="shopify:umbrella-1",
+            source="shopify",
+            product_name="NorthPeak Storm Umbrella",
+            category="Accessories > Umbrellas",
+            vendor="NorthPeak",
+            brand="NorthPeak",
+            tags=["Umbrella", "Windproof"],
+            description="NorthPeak windproof umbrella with vented canopy for heavy rain.",
+        ),
+        _build_record(
+            canonical_product_id="umbrella-2",
+            product_id="shopify:umbrella-2",
+            source="shopify",
+            product_name="WeatherWorks Storm Umbrella",
+            category="Accessories > Umbrellas",
+            vendor="WeatherWorks",
+            brand="WeatherWorks",
+            tags=["Umbrella", "Windproof"],
+            description="WeatherWorks windproof umbrella with vented canopy for heavy rain.",
+        ),
+    ]
+
+    entries = service.classify(records)
+    assert len(entries) == 2
+
+    cross_brand_keys = {entry.cross_brand_key for entry in entries}
+    assert len(cross_brand_keys) == 1
+    for entry in entries:
+        assert "northpeak" not in entry.cross_brand_key
+        assert "weatherworks" not in entry.cross_brand_key

@@ -359,19 +359,6 @@ export class StateMachine extends EventEmitter {
         metadata JSON
       );
 
-      -- Code search index (FTS5)
-      CREATE VIRTUAL TABLE IF NOT EXISTS code_fts USING fts5(
-        file_path UNINDEXED,
-        content,
-        language,
-        tokenize = 'unicode61 remove_diacritics 2'
-      );
-
-      CREATE TABLE IF NOT EXISTS code_index_metadata (
-        key TEXT PRIMARY KEY,
-        value TEXT NOT NULL
-      );
-
       -- Indexes for performance
       CREATE INDEX IF NOT EXISTS idx_tasks_status ON tasks(status);
       CREATE INDEX IF NOT EXISTS idx_tasks_assigned ON tasks(assigned_to);
@@ -404,7 +391,50 @@ export class StateMachine extends EventEmitter {
       CREATE INDEX IF NOT EXISTS idx_settings_updated_at ON settings(updated_at);
     `);
 
+    this.ensureCodeIndexSchema(target);
     seedLiveFlagDefaults(target);
+  }
+
+  private ensureCodeIndexSchema(target: Database.Database): void {
+    target.exec(`
+      CREATE TABLE IF NOT EXISTS code_index_metadata (
+        key TEXT PRIMARY KEY,
+        value TEXT NOT NULL
+      );
+    `);
+
+    const existingDefinition = target
+      .prepare(`SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'code_fts'`)
+      .get() as { sql?: string } | undefined;
+
+    const normalizedSql =
+      typeof existingDefinition?.sql === 'string'
+        ? existingDefinition.sql.toLowerCase().replace(/\s+/g, ' ')
+        : '';
+
+    const requiredFragments = [
+      'file_path unindexed',
+      'language unindexed',
+      "tokenize = 'unicode61 remove_diacritics 2'",
+      "prefix = '2 3 4 6 8 10'",
+    ];
+
+    const needsRebuild =
+      normalizedSql.length === 0 || requiredFragments.some((fragment) => !normalizedSql.includes(fragment));
+
+    if (needsRebuild) {
+      target.exec(`
+        DROP TABLE IF EXISTS code_fts;
+        CREATE VIRTUAL TABLE code_fts USING fts5(
+          file_path UNINDEXED,
+          content,
+          language UNINDEXED,
+          tokenize = 'unicode61 remove_diacritics 2',
+          prefix = '2 3 4 6 8 10'
+        );
+        DELETE FROM code_index_metadata WHERE key IN ('updated_at', 'entry_count');
+      `);
+    }
   }
 
   private assertWritable(operation: string): void {
@@ -536,7 +566,7 @@ export class StateMachine extends EventEmitter {
     return rows.map(row => this.rowToTask(row));
   }
 
-  async transition(taskId: string, newStatus: TaskStatus, metadata?: Record<string, unknown>, correlationId?: string): Promise<Task> {
+  async transition(taskId: string, newStatus: TaskStatus, metadata?: Record<string, unknown>, correlationId?: string, agentId?: string): Promise<Task> {
     this.assertWritable('transition');
     const task = this.getTask(taskId);
     if (!task) {
@@ -549,6 +579,21 @@ export class StateMachine extends EventEmitter {
 
     if (newStatus === 'in_progress' && !task.started_at) {
       updates.started_at = now;
+    }
+
+    if (newStatus === 'pending') {
+      updates.started_at = null;
+      updates.completed_at = null;
+      updates.actual_duration_seconds = null;
+    } else if (newStatus !== 'in_progress') {
+      updates.actual_duration_seconds = null;
+      if (newStatus !== 'done') {
+        updates.completed_at = null;
+      }
+    }
+
+    if (newStatus !== 'in_progress') {
+      updates.assigned_to = null;
     }
 
     if (newStatus === 'done' && !task.completed_at) {
@@ -572,7 +617,8 @@ export class StateMachine extends EventEmitter {
       timestamp: now,
       event_type: 'task_transition',
       task_id: taskId,
-      data: { from: task.status, to: newStatus, metadata },
+      agent: agentId,
+      data: { from: task.status, to: newStatus, metadata, agent: agentId, agentId },
       correlation_id: correlationId
     });
 
@@ -606,7 +652,7 @@ export class StateMachine extends EventEmitter {
       event_type: 'task_assigned',
       task_id: taskId,
       agent,
-      data: { agent },
+      data: { agent, agentId: agent },
       correlation_id: correlationId
     });
 
@@ -1225,11 +1271,15 @@ export class StateMachine extends EventEmitter {
     const upsertMeta = this.db.prepare(
       'REPLACE INTO code_index_metadata(key, value) VALUES (?, ?)'
     );
+    const optimize = this.db.prepare("INSERT INTO code_fts(code_fts) VALUES ('optimize')");
 
     const transaction = this.db.transaction((rows: CodeIndexEntry[]) => {
       this.db.prepare('DELETE FROM code_fts').run();
       for (const row of rows) {
         insert.run(row.file_path, row.content, row.language);
+      }
+      if (rows.length > 0) {
+        optimize.run();
       }
       upsertMeta.run('updated_at', String(updatedAt));
       upsertMeta.run('entry_count', String(rows.length));
@@ -1336,6 +1386,14 @@ export class StateMachine extends EventEmitter {
 
   getWorkspaceRoot(): string {
     return this.workspaceRoot;
+  }
+
+  /**
+   * Get database instance for direct SQL queries
+   * Use with caution - prefer using the typed methods above
+   */
+  getDatabase(): Database.Database {
+    return this.db;
   }
 
   close(): void {

@@ -29,6 +29,22 @@ export class PlannerEngine {
       tasks = tasks.filter((task) => task.domain === filters.domain);
     }
 
+    const domainPriority = (task: (typeof tasks)[number]) => {
+      if (task.id && task.id.startsWith("CRIT-")) {
+        return 4;
+      }
+      if (task.epic_id === "E12") {
+        return 0;
+      }
+      if ((task.domain ?? "").toLowerCase() === "product") {
+        return 1;
+      }
+      if ((task.domain ?? "").toLowerCase() === "mcp") {
+        return 3;
+      }
+      return 2;
+    };
+
     const statusOrder: Record<string, number> = {
       blocked: 0,
       pending: 1,
@@ -37,6 +53,8 @@ export class PlannerEngine {
     };
 
     tasks.sort((a, b) => {
+      const priorityDiff = domainPriority(a) - domainPriority(b);
+      if (priorityDiff !== 0) return priorityDiff;
       const statusDiff = statusOrder[a.status] - statusOrder[b.status];
       if (statusDiff !== 0) return statusDiff;
       return (a.estimate_hours ?? 0) - (b.estimate_hours ?? 0);

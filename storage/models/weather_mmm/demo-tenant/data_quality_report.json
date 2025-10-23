@@ -1,0 +1,135 @@
+{
+  "checks": {
+    "autocorrelation": {
+      "dw_statistic": null,
+      "issues": [
+        "insufficient_data_for_autocorr"
+      ],
+      "lag1_autocorr": null,
+      "status": "warning",
+      "target_column": "net_revenue"
+    },
+    "completeness": {
+      "issues": [],
+      "missing_ratios": {
+        "ads_conversions": 0.0,
+        "ads_spend": 0.0,
+        "apparent_temp_c": 0.0,
+        "as_of_utc": 0.0,
+        "date": 0.0,
+        "day_of_year": 0.0,
+        "dma_code": 0.0,
+        "dma_code_right": 0.0,
+        "dma_name": 0.0,
+        "dma_name_right": 0.0,
+        "freeze_flag": 0.0,
+        "geo_level": 0.0,
+        "geo_level_right": 0.0,
+        "geo_scope": 0.0,
+        "geohash": 0.0,
+        "heatwave_flag": 0.0,
+        "high_precip_prob_flag": 0.0,
+        "high_wind_flag": 0.0,
+        "humidity_mean": 0.0,
+        "local_date": 0.0,
+        "local_datetime": 0.0,
+        "net_revenue": 0.0,
+        "observation_type": 0.0,
+        "precip_anomaly": 0.0,
+        "precip_mm": 0.0,
+        "precip_probability": 0.0,
+        "precip_roll7": 0.0,
+        "promos_sent": 0.0,
+        "snow_event_flag": 0.0,
+        "snowfall_mm": 0.0,
+        "state_abbr": 0.0,
+        "state_abbr_right": 0.0,
+        "temp_anomaly": 0.0,
+        "temp_c": 0.0,
+        "temp_max_c": 0.0,
+        "temp_min_c": 0.0,
+        "temp_roll7": 0.0,
+        "timezone": 0.0,
+        "utc_datetime": 0.0,
+        "uv_alert_flag": 0.0,
+        "uv_index_max": 0.0,
+        "windspeed_max": 0.0
+      },
+      "status": "pass"
+    },
+    "coverage": {
+      "column": "date",
+      "issues": [],
+      "missing_dates": [],
+      "status": "pass"
+    },
+    "feature_correlation": {
+      "feature_count": 24,
+      "high_correlations": [],
+      "issues": [],
+      "status": "pass"
+    },
+    "joinability": {
+      "failure_threshold": 0.8,
+      "geocoded_order_ratio": null,
+      "issues": [
+        "missing_join_ratio"
+      ],
+      "status": "warning",
+      "warning_threshold": 0.9
+    },
+    "outliers": {
+      "columns": {},
+      "issues": [],
+      "status": "pass",
+      "threshold": 3.0
+    },
+    "stationarity": {
+      "adf_results": {},
+      "issues": [],
+      "status": "pass"
+    },
+    "target_variance": {
+      "cv": 0.0,
+      "issues": [
+        "target_constant"
+      ],
+      "mean": 0.0,
+      "status": "fail",
+      "std_dev": 0.0,
+      "target_column": "net_revenue",
+      "variance": 0.0
+    },
+    "volume": {
+      "issues": [
+        "row_count_below_min:1"
+      ],
+      "min_required": 90,
+      "row_count": 1,
+      "status": "fail"
+    }
+  },
+  "date_column": "date",
+  "generated_at": "2025-10-23T02:30:35.467297+00:00",
+  "issues": [
+    "volume:row_count_below_min:1",
+    "joinability:missing_join_ratio",
+    "target_variance:target_constant",
+    "autocorrelation:insufficient_data_for_autocorr"
+  ],
+  "metadata": {
+    "ads_rows": 2,
+    "feature_rows": 1,
+    "promo_rows": 1,
+    "weather_rows": 14
+  },
+  "ml_ready": false,
+  "row_count": 1,
+  "status": "fail",
+  "target_column": "net_revenue",
+  "tenant_id": "demo-tenant",
+  "window": {
+    "end": "2024-03-31T00:00:00+00:00",
+    "start": "2024-01-01T00:00:00+00:00"
+  }
+}

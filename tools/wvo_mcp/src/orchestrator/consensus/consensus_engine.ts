@@ -5,6 +5,7 @@ import type { StateMachine, Task, ContextEntry } from "../state_machine.js";
 import { logInfo } from "../../telemetry/logger.js";
 import { buildConsensusAgenda, type ConsensusAgenda, type ConsensusDecisionType } from "./agenda_builder.js";
 import type { ConsensusTelemetryRecorder } from "../../telemetry/consensus_metrics.js";
+import { getConsensusWorkloadSnapshot, type ConsensusWorkloadSnapshot } from "./workload_loader.js";
 
 export interface ConsensusEngineOptions {
   stateMachine: StateMachine;
@@ -40,6 +41,8 @@ export interface ConsensusDecision {
   agenda: ConsensusAgenda;
   createdAt: number;
   escalatedTo?: string[];
+  durationSeconds?: number;
+  tokenCostUsd?: number;
 }
 
 const DEFAULT_DECISION_FRESHNESS_MS = 6 * 60 * 60 * 1000; // 6 hours
@@ -47,6 +50,26 @@ const DEFAULT_DECISION_FRESHNESS_MS = 6 * 60 * 60 * 1000; // 6 hours
 function normaliseMetadata(task: Task): Record<string, unknown> {
   const metadata = task.metadata as Record<string, unknown> | undefined;
   return metadata ?? {};
+}
+
+function extractIdentityAuthority(metadata: Record<string, unknown>): string | null {
+  const identity = metadata.identity;
+  if (!identity || typeof identity !== "object") {
+    return null;
+  }
+  const authority = (identity as Record<string, unknown>).authority;
+  if (typeof authority === "string" && authority.trim().length > 0) {
+    return authority.trim().toLowerCase();
+  }
+  return null;
+}
+
+function extractSeverity(metadata: Record<string, unknown>): string | null {
+  const severity = metadata.severity;
+  if (typeof severity === "string" && severity.trim().length > 0) {
+    return severity.trim().toLowerCase();
+  }
+  return null;
 }
 
 export class ConsensusEngine {
@@ -76,6 +99,19 @@ export class ConsensusEngine {
       return true;
     }
 
+    const authority = extractIdentityAuthority(metadata);
+    if (authority === "critical") {
+      return true;
+    }
+    if (authority === "blocking" && metadata.source === "critic") {
+      return true;
+    }
+
+    const severity = extractSeverity(metadata);
+    if (severity === "director") {
+      return true;
+    }
+
     if (task.status === "needs_review" || task.status === "needs_improvement") {
       return true;
     }
@@ -92,14 +128,25 @@ export class ConsensusEngine {
     context: AssembledContext,
     options: EnsureDecisionOptions = {},
   ): Promise<ConsensusDecision> {
+    const startedAt = Date.now();
     const freshnessWindow = options.refreshWindowMs ?? this.freshnessWindowMs;
     const existing = this.findExistingDecision(task.id, freshnessWindow);
     if (existing && !options.force) {
       return existing;
     }
 
-    const agenda = buildConsensusAgenda(task, context, { forcedType: options.type });
-    const decision = this.createDecision(task, context, agenda);
+    const workload = getConsensusWorkloadSnapshot();
+    const agenda = buildConsensusAgenda(task, context, {
+      forcedType: options.type,
+      workload,
+    });
+    const decision = this.createDecision(task, context, agenda, workload);
+
+    if (!decision.quorumSatisfied) {
+      const escalated = new Set(decision.escalatedTo ?? []);
+      escalated.add("autopilot");
+      decision.escalatedTo = Array.from(escalated);
+    }
 
     const contentLines = [
       `Consensus ${decision.type} decision recorded for task ${task.id} (${task.title}).`,
@@ -130,6 +177,9 @@ export class ConsensusEngine {
       rationale: decision.agenda.rationale,
     });
 
+    const elapsedSeconds = Math.max(1, Math.round((Date.now() - startedAt) / 1000));
+    decision.durationSeconds = elapsedSeconds;
+
     await this.telemetry?.recordDecision(decision);
 
     await this.handlePostDecision(task, decision, options.correlationId);
@@ -137,16 +187,42 @@ export class ConsensusEngine {
     return decision;
   }
 
-  private createDecision(task: Task, context: AssembledContext, agenda: ConsensusAgenda): ConsensusDecision {
+  private createDecision(
+    task: Task,
+    context: AssembledContext,
+    agenda: ConsensusAgenda,
+    workload: ConsensusWorkloadSnapshot | null,
+  ): ConsensusDecision {
     const proposals = this.generateProposals(task, context, agenda);
     const selectedIndex = Math.max(
       proposals.findIndex((proposal) => proposal.author === "atlas"),
       0,
     );
 
-    const quorumRequirement = agenda.decisionType === "critical" ? 3 : agenda.decisionType === "strategic" ? 2 : 2;
+    const quorumRequirement = this.resolveQuorumRequirement(agenda, workload);
     const quorumSatisfied = agenda.participants.length >= quorumRequirement;
-    const escalatedTo = quorumSatisfied ? undefined : ["autopilot"];
+    const escalatedTo = this.resolveEscalationTargets(agenda, quorumSatisfied);
+
+    const tokenBudget = this.resolveTokenBudget(agenda, workload);
+    const metadata: Record<string, unknown> = {
+      rationale: agenda.rationale,
+    };
+    if (agenda.signals?.length) {
+      metadata.triggered_signals = agenda.signals;
+    }
+    if (typeof agenda.expectedDurationSeconds === "number") {
+      metadata.expected_duration_seconds = agenda.expectedDurationSeconds;
+    }
+    if (typeof agenda.expectedP90DurationSeconds === "number") {
+      metadata.expected_p90_duration_seconds = agenda.expectedP90DurationSeconds;
+    }
+    if (tokenBudget !== undefined) {
+      metadata.token_budget_usd = tokenBudget;
+    }
+    const staffingNotes = workload?.quorumProfiles?.[agenda.decisionType]?.notes;
+    if (staffingNotes) {
+      metadata.staffing_notes = staffingNotes;
+    }
 
     return {
       id: `CONS-${task.id}-${randomUUID().slice(0, 6)}`,
@@ -155,13 +231,65 @@ export class ConsensusEngine {
       quorumSatisfied,
       proposals,
       selectedProposalIndex: selectedIndex,
-      metadata: {
-        rationale: agenda.rationale,
-      },
+      metadata,
       agenda,
       createdAt: Date.now(),
-      escalatedTo,
+      escalatedTo: escalatedTo ?? undefined,
+      tokenCostUsd: tokenBudget,
     };
+  }
+
+  private resolveQuorumRequirement(
+    agenda: ConsensusAgenda,
+    workload: ConsensusWorkloadSnapshot | null,
+  ): number {
+    const profile = workload?.quorumProfiles?.[agenda.decisionType];
+    const defaultCount = profile?.defaultParticipants.length ?? 0;
+    if (defaultCount >= 2) {
+      return defaultCount;
+    }
+    return agenda.decisionType === "critical" ? 3 : 2;
+  }
+
+  private resolveTokenBudget(
+    agenda: ConsensusAgenda,
+    workload: ConsensusWorkloadSnapshot | null,
+  ): number | undefined {
+    const fromAgenda = agenda.tokenBudgetUsd;
+    if (typeof fromAgenda === "number" && Number.isFinite(fromAgenda)) {
+      return Number(fromAgenda.toFixed(5));
+    }
+    const mapValue = workload?.tokenBudgetUsd?.[agenda.decisionType];
+    if (typeof mapValue === "number" && Number.isFinite(mapValue)) {
+      return Number(mapValue.toFixed(5));
+    }
+    const baseline = workload?.tokenBudgetUsd?.baseline;
+    if (typeof baseline === "number" && Number.isFinite(baseline)) {
+      return Number(baseline.toFixed(5));
+    }
+    return undefined;
+  }
+
+  private resolveEscalationTargets(
+    agenda: ConsensusAgenda,
+    quorumSatisfied: boolean,
+  ): string[] | null {
+    const targets = new Set<string>();
+    if (agenda.decisionType === "critical") {
+      targets.add("director_dana");
+      targets.add("security_critic");
+    }
+    if (agenda.signals?.includes("duration_p90_gt_900s")) {
+      targets.add("director_dana");
+      targets.add("security_critic");
+    }
+    if (agenda.signals?.includes("repeat_retries_gt_1")) {
+      targets.add("research_orchestrator");
+    }
+    if (!quorumSatisfied && !targets.size) {
+      targets.add("autopilot");
+    }
+    return targets.size ? Array.from(targets) : null;
   }
 
   private generateProposals(
@@ -188,6 +316,9 @@ export class ConsensusEngine {
       } else if (normalized.includes("research_orchestrator")) {
         recommendation = "Run research spike to validate assumptions prior to implementation.";
         proposalRisks.push("Experiment design not yet validated");
+      } else if (normalized.includes("security")) {
+        recommendation = "Pause for security posture review and update the risk register before execution.";
+        proposalRisks.push("Pending security consensus review");
       } else if (normalized.includes("claude")) {
         recommendation = "Prepare consensus summary and pair with Atlas to execute";
       }
@@ -229,7 +360,10 @@ export class ConsensusEngine {
     decision: ConsensusDecision,
     correlationId?: string,
   ): Promise<void> {
-    const needsFollowUp = !decision.quorumSatisfied || decision.type === "critical";
+    const needsFollowUp =
+      !decision.quorumSatisfied ||
+      decision.type === "critical" ||
+      (decision.escalatedTo?.length ?? 0) > 0;
     if (!needsFollowUp) {
       return;
     }
@@ -245,7 +379,12 @@ export class ConsensusEngine {
       return;
     }
 
-    const assignedTo = decision.type === "critical" ? "Director Dana" : "Autopilot";
+    const escalatedTargets = decision.escalatedTo ?? [];
+    const assignedTo =
+      decision.type === "critical" ||
+      escalatedTargets.some((value) => value.toLowerCase().includes("dana"))
+        ? "Director Dana"
+        : "Autopilot";
     const followUpId = `CONS-FOLLOW-${decision.id}`;
 
     try {
@@ -263,6 +402,7 @@ export class ConsensusEngine {
             original_task_id: task.id,
             participants: decision.agenda.participants,
             quorum_satisfied: decision.quorumSatisfied,
+            escalated_to: escalatedTargets,
           },
         },
         correlationId ? `${correlationId}:followup` : `consensus:${decision.id}:followup`,

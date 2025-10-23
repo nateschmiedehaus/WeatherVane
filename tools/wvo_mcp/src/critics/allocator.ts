@@ -2,18 +2,10 @@ import { Critic } from "./base.js";
 
 export class AllocatorCritic extends Critic {
   protected command(profile: string): string | null {
-    if (profile === "low") {
-      return null;
+    const trimmedProfile = (profile ?? "").trim();
+    if (trimmedProfile.length > 0) {
+      return `node tools/wvo_mcp/scripts/run_allocator_checks.mjs ${trimmedProfile}`;
     }
-
-    const pytestCmd = [
-      "PYTHONPATH=. pytest",
-      "tests/test_allocator_routes.py",
-      "tests/test_creative_route.py",
-      "tests/apps/model/test_creative_response.py",
-      "--maxfail=1",
-    ].join(" ");
-
-    return pytestCmd;
+    return "node tools/wvo_mcp/scripts/run_allocator_checks.mjs";
   }
 }

@@ -32,7 +32,13 @@ CODEX_TOOLS = frozenset(
         "heavy_queue_list",
         "artifact_record",
         "codex_commands",
+        "mcp_admin_flags",
         "tool_manifest",
+        "lsp_initialize",
+        "lsp_server_status",
+        "lsp_definition",
+        "lsp_references",
+        "lsp_hover",
     ]
 )
 
@@ -63,9 +69,15 @@ CLAUDE_TOOLS = frozenset(
         "heavy_queue_list",
         "artifact_record",
         "cli_commands",
+        "mcp_admin_flags",
         "screenshot_capture",
         "screenshot_capture_multiple",
         "screenshot_session",
+        "lsp_initialize",
+        "lsp_server_status",
+        "lsp_definition",
+        "lsp_references",
+        "lsp_hover",
     ]
 )
 

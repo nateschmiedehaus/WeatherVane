@@ -10,6 +10,11 @@ from shared.schemas.dashboard import (
     AlertEscalateResponse,
     DashboardResponse,
 )
+from shared.validation.schemas import (
+    enforce_schema,
+    validate_alert_acknowledge_request,
+    validate_alert_escalate_request,
+)
 
 router = APIRouter()
 
@@ -19,6 +24,7 @@ def get_dashboard_service() -> DashboardService:
 
 
 @router.get("/{tenant_id}", response_model=DashboardResponse)
+@enforce_schema("dashboard_response")
 async def get_dashboard(
     tenant_id: str = Path(..., description="Tenant identifier"),
     since: datetime | None = Query(default=None, description="Return suggestion telemetry occurring after this timestamp."),
@@ -41,6 +47,9 @@ async def acknowledge_alert(
     service: DashboardService = Depends(get_dashboard_service),
 ) -> AlertAcknowledgeResponse:
     """Mark a dashboard alert as acknowledged and persist the audit record."""
+
+    # Validate input request
+    validate_alert_acknowledge_request(payload)
 
     try:
         return service.acknowledge_alert(
@@ -65,6 +74,9 @@ async def escalate_alert(
     service: DashboardService = Depends(get_dashboard_service),
 ) -> AlertEscalateResponse:
     """Trigger an escalation workflow for a dashboard alert."""
+
+    # Validate input request
+    validate_alert_escalate_request(payload)
 
     try:
         return service.escalate_alert(

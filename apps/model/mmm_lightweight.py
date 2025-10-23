@@ -52,6 +52,8 @@ def fit_lightweight_mmm(
     adstock_lags: Optional[Dict[str, int]] = None,
     saturation_k: Optional[Dict[str, float]] = None,
     saturation_s: Optional[Dict[str, float]] = None,
+    estimate_adstock: bool = True,
+    estimate_saturation: bool = True,
 ) -> LightweightMMMResult:
     """Fit a Bayesian MMM using LightweightMMM.
 
@@ -66,19 +68,55 @@ def fit_lightweight_mmm(
 
     model = LightweightMMM()
 
-    # Basic transformations; callers can pass pre-computed matrices later if needed.
-    adstock_data = transform_adstock(
-        media=media_spend,
-        adstock_lags=[adstock_lags.get(col, 1) if adstock_lags else 1 for col in media_cols],
-    )
-    saturation_data = transform_saturation(
-        media=adstock_data,
-        gamma=[saturation_s.get(col, 1.0) if saturation_s else 1.0 for col in media_cols],
-        k=[saturation_k.get(col, 1.0) if saturation_k else 1.0 for col in media_cols],
-    )
+    transformed_media = media_spend
+
+    # Use Bayesian estimation if requested, otherwise use provided parameters
+    if estimate_adstock:
+        adstock_data = model.fit_adstock(
+            media=transformed_media,
+            target=target,
+            extra_features=extra_features,
+        )
+        # Update lags from learned decay parameters
+        adstock_lags = {
+            col: max(1, int(round(model.get_adstock_params().get(col, {}).get("lag", 1))))
+            for col in media_cols
+        }
+        transformed_media = adstock_data
+    else:
+        # Basic transformations using provided parameters
+        transformed_media = transform_adstock(
+            media=transformed_media,
+            adstock_lags=[adstock_lags.get(col, 1) if adstock_lags else 1 for col in media_cols],
+        )
+
+    if estimate_saturation:
+        saturation_data = model.fit_saturation(
+            media=transformed_media,
+            target=target,
+            extra_features=extra_features,
+        )
+        # Update saturation parameters from learned Hill curves
+        hill_params = model.get_saturation_params()
+        saturation_k = {
+            col: hill_params.get(col, {}).get("k", 1.0)
+            for col in media_cols
+        }
+        saturation_s = {
+            col: hill_params.get(col, {}).get("gamma", 1.0)
+            for col in media_cols
+        }
+        transformed_media = saturation_data
+    else:
+        # Basic transformations using provided parameters
+        transformed_media = transform_saturation(
+            media=transformed_media,
+            gamma=[saturation_s.get(col, 1.0) if saturation_s else 1.0 for col in media_cols],
+            k=[saturation_k.get(col, 1.0) if saturation_k else 1.0 for col in media_cols],
+        )
 
     model.fit(
-        media=saturation_data,
+        media=transformed_media,
         target=target,
         extra_features=extra_features,
         media_names=media_cols,

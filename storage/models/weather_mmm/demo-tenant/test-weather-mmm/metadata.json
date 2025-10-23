@@ -1,0 +1,67 @@
+{
+  "artifacts": {
+    "holdout_diagnostics": null,
+    "model_path": "storage/models/weather_mmm/demo-tenant/test-weather-mmm/baseline_model.pkl"
+  },
+  "data": {
+    "ads_rows": 2,
+    "feature_columns": 0,
+    "holdout_rows": 0,
+    "latest_observed_target_date": "2024-01-01",
+    "observed_rows": 1,
+    "orders_rows": 1,
+    "promo_rows": 1,
+    "train_rows": 1,
+    "weather_rows": 14
+  },
+  "features": [],
+  "gam": {
+    "min_required_rows": 24,
+    "reason": "no_features",
+    "used": false
+  },
+  "holdout": {
+    "bias": 0.0,
+    "mae": 0.0,
+    "mean_prediction": 0.0,
+    "r2": 0.0,
+    "rmse": 0.0,
+    "rows": 0,
+    "std_prediction": 0.0
+  },
+  "leakage_guardrail": {
+    "forecast_leakage_dates": [],
+    "forecast_leakage_rows": 0,
+    "forecast_leakage_rows_matrix": 0,
+    "forward_leakage_dates": [],
+    "forward_leakage_rows": 0,
+    "forward_leakage_rows_matrix": 0,
+    "leakage_dates": [],
+    "leakage_risk_rows": 0,
+    "removed_rows": 0,
+    "status": "clean"
+  },
+  "run_id": "test-weather-mmm",
+  "tenant_id": "demo-tenant",
+  "timestamp_utc": "2025-10-23T02:30:35Z",
+  "top_features": [],
+  "training": {
+    "bias": 0.0,
+    "mae": 0.0,
+    "mean_prediction": 0.0,
+    "r2": 0.0,
+    "rmse": 0.0,
+    "rows": 1,
+    "std_prediction": 0.0
+  },
+  "weather_fit": {
+    "classification": "none",
+    "message": "Weather impact negligible; WeatherVane is not a fit for this brand.",
+    "score": 0.0,
+    "weather_features": []
+  },
+  "window": {
+    "end": "2024-03-31T00:00:00",
+    "start": "2024-01-01T00:00:00"
+  }
+}

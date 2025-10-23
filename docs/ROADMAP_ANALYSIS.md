@@ -109,7 +109,7 @@ formatForPrompt(ctx: AssembledContext, mode: 'verbose' | 'compact'): string {
   // ... existing verbose markdown
 }
 ```
-**Files:** `context_assembler.ts`, `claude_code_coordinator.ts`
+**Files:** `context_assembler.ts`, `agent_coordinator.ts`
 **Recommendation:** ⭐ **ADD TO ROADMAP** - Major optimization
 
 ---
@@ -119,7 +119,7 @@ formatForPrompt(ctx: AssembledContext, mode: 'verbose' | 'compact'): string {
 **Impact:** HIGH - Already 80% done, finish integration
 **Why now:** Partial implementation exists; complete the vision
 **Implementation:**
-- Already have `AgentPool`, `OperationsManager`, `ClaudeCodeCoordinator`
+- Already have `AgentPool`, `OperationsManager`, `AgentCoordinator`
 - Add coordinator status to `orchestrator_status` tool
 - Expose coordinator type in telemetry
 **Files:** `agent_pool.ts`, `operations_manager.ts`, `index-orchestrator.ts`

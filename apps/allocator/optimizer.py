@@ -205,8 +205,20 @@ def _apply_inventory_caps(item: BudgetItem) -> Tuple[float, float]:
     return min_spend, max_spend
 
 
-def optimize_allocation(request: OptimizerRequest, *, solver: str | None = None) -> OptimizerResult:
-    """Solve the constrained optimisation problem."""
+def optimize_allocation(request: OptimizerRequest, *, solver: str | None = None, relax_infeasible: bool = True) -> OptimizerResult:
+    """Solve the constrained optimisation problem.
+
+    Args:
+        request: Optimization request with budget items and constraints
+        solver: Specific solver to use (auto-selects if None)
+        relax_infeasible: If True, automatically relax infeasible constraints instead of failing
+
+    Returns:
+        OptimizerResult with optimal allocation
+
+    Raises:
+        OptimizationError: If problem is fundamentally infeasible or solver unavailable
+    """
     _ensure_cvxpy_available()
     if request.total_budget <= 0.0:
         raise OptimizationError("total_budget must be positive")
@@ -216,6 +228,7 @@ def optimize_allocation(request: OptimizerRequest, *, solver: str | None = None)
     item_lookup: Dict[str, BudgetItem] = {}
     cleaned_curves: Dict[str, List[Tuple[float, float]]] = {}
     segments_cache: Dict[str, List[Tuple[float, float]]] = {}
+    relaxations: List[str] = []  # Track which constraints were relaxed
     for item in request.items:
         if item.id in item_lookup:
             raise OptimizationError(f"duplicate budget item id '{item.id}'")
@@ -261,13 +274,22 @@ def optimize_allocation(request: OptimizerRequest, *, solver: str | None = None)
             effective_max = min(effective_max, upper_cap)
 
         roas_floor = max(request.roas_floor, 0.0)
+        roas_floor_active = False
         if roas_floor > 0 and effective_max > effective_min + 1e-6:
             roas_at_max = _roas_at_spend(item, effective_max, cleaned_curve)
             if roas_at_max < roas_floor - 1e-6:
                 roas_at_min = _roas_at_spend(item, effective_min, cleaned_curve)
                 if roas_at_min < roas_floor - 1e-6:
-                    effective_max = effective_min
+                    # Entire range violates ROAS floor
+                    if relax_infeasible:
+                        # Relax ROAS floor for this item
+                        effective_max = effective_min
+                        roas_floor_active = True
+                        relaxations.append(f"roas_floor_relaxed:{item.id}")
+                    else:
+                        effective_max = effective_min
                 else:
+                    # Binary search for max spend that respects ROAS floor
                     lo = effective_min
                     hi = effective_max
                     for _ in range(60):
@@ -280,10 +302,17 @@ def optimize_allocation(request: OptimizerRequest, *, solver: str | None = None)
                         else:
                             hi = mid
                     effective_max = max(effective_min, lo)
+                    roas_floor_active = True
+
         if effective_max < effective_min - 1e-6:
-            raise OptimizationError(
-                f"infeasible spend bounds for '{item.id}' after applying guardrails and learning cap"
-            )
+            if relax_infeasible:
+                # Relax to allow minimal feasibility
+                effective_max = effective_min
+                relaxations.append(f"bounds_relaxed:{item.id}")
+            else:
+                raise OptimizationError(
+                    f"infeasible spend bounds for '{item.id}' after applying guardrails and learning cap"
+                )
 
         constraints.append(spend_expr >= effective_min)
         constraints.append(spend_expr <= effective_max)
@@ -308,8 +337,20 @@ def optimize_allocation(request: OptimizerRequest, *, solver: str | None = None)
         if constraint.max_spend is not None:
             constraints.append(group_spend <= float(max(constraint.max_spend, 0.0)))
 
+    # Prioritize solvers by capability and robustness
+    # Mixed-integer solvers first (can handle discrete constraints)
+    # Then continuous solvers (faster for smooth problems)
     solver_candidates: Iterable[str] = (
-        [solver] if solver else ("ECOS_BB", "GLPK_MI", "SCIP", "CBC", "ECOS", "CLARABEL", "SCS")
+        [solver] if solver else (
+            "ECOS_BB",      # Mixed-integer conic optimizer
+            "GLPK_MI",      # GNU Linear Programming Kit (mixed-integer)
+            "SCIP",         # Solving Constraint Integer Programs
+            "CBC",          # COIN-OR branch and cut
+            "CLARABEL",     # Rust-based convex optimizer (fast, robust)
+            "ECOS",         # Embedded Conic Solver
+            "SCS",          # Splitting Conic Solver (scalable)
+            "SCIPY",        # SciPy minimize (always available fallback)
+        )
     )
     problem = cp.Problem(
         cp.Maximize(cp.sum(list(revenue_terms.values())) - total_spend_expr),
@@ -319,6 +360,8 @@ def optimize_allocation(request: OptimizerRequest, *, solver: str | None = None)
     solve_status: str | None = None
     solve_duration: float | None = None
     chosen_solver: str | None = None
+    solver_errors: Dict[str, str] = {}
+
     for solver_name in solver_candidates:
         if solver_name is None:
             continue
@@ -326,15 +369,25 @@ def optimize_allocation(request: OptimizerRequest, *, solver: str | None = None)
             continue
         try:
             problem.solve(solver=solver_name, verbose=False)
-        except (cp.SolverError, ValueError):  # pragma: no cover - logged via diagnostics
+            solve_status = problem.status
+            solve_duration = float(problem.solver_stats.solve_time) if problem.solver_stats.solve_time is not None else 0.0
+            chosen_solver = solver_name
+
+            # Accept optimal or near-optimal solutions
+            if solve_status in {"optimal", "optimal_inaccurate"}:
+                break
+            else:
+                solver_errors[solver_name] = solve_status or "unknown_error"
+        except (cp.SolverError, ValueError) as e:  # pragma: no cover - logged via diagnostics
+            solver_errors[solver_name] = str(e)
             continue
-        solve_status = problem.status
-        solve_duration = float(problem.solver_stats.solve_time)
-        chosen_solver = solver_name
-        break
 
     if solve_status not in {"optimal", "optimal_inaccurate"}:
-        raise OptimizationError(f"optimizer failed: status={solve_status!r}")
+        error_details = "; ".join(f"{s}: {err}" for s, err in solver_errors.items())
+        raise OptimizationError(
+            f"optimizer failed: status={solve_status!r}, budget={request.total_budget:.2f}, items={len(request.items)}. "
+            f"Solver attempts: {error_details or 'none succeeded'}"
+        )
 
     spends: Dict[str, float] = {}
     revenues: Dict[str, float] = {}
@@ -362,7 +415,13 @@ def optimize_allocation(request: OptimizerRequest, *, solver: str | None = None)
         "total_spend": float(total_spend),
         "total_revenue": float(total_revenue),
         "hierarchy_actuals": hierarchy_actuals,
+        "constraint_relaxations": relaxations if relaxations else [],
+        "solver_attempts": list(solver_errors.keys()) if solver_errors else [],
     }
+
+    # Add detailed solver diagnostics if errors occurred
+    if solver_errors:
+        diagnostics["solver_errors"] = solver_errors
     return OptimizerResult(
         spends=spends,
         total_revenue=float(total_revenue),

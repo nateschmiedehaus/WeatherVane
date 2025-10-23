@@ -272,5 +272,26 @@ export function buildDemoPlan(preferences: DemoPreferences): PlanResponse {
       generated_at: new Date().toISOString(),
       is_significant: true,
     },
+    experiments: [
+      {
+        experiment_id: "geo-holdout-demo-tour",
+        status: "completed",
+        metric_name: "revenue",
+        treatment_geos: ["Texas · Gulf Region", "Southwest · Desert Region"],
+        control_geos: ["Pacific Northwest", "Upper Midwest"],
+        start_date: isoDate(-30),
+        end_date: isoDate(0),
+        lift: {
+          absolute_lift: 0.18,
+          lift_pct: 18.2,
+          confidence_low: 0.12,
+          confidence_high: 0.24,
+          p_value: 0.008,
+          sample_size: 8340,
+          is_significant: true,
+          generated_at: new Date().toISOString(),
+        },
+      },
+    ],
   };
 }

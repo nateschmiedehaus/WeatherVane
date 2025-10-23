@@ -72,6 +72,25 @@ describe("PriorityQueueDispatcher", () => {
 
       expect(priority).toBe("urgent");
     });
+
+    it("should honour explicit priority when provided", async () => {
+      const task = await dispatcher.dispatchTask({
+        summary: "Explicit background task",
+        priority: "background",
+      });
+
+      expect(task.priority).toBe("background");
+    });
+
+    it("should override explicit priority if interactive", async () => {
+      const task = await dispatcher.dispatchTask({
+        summary: "Interactive override",
+        priority: "background",
+        isInteractive: true,
+      });
+
+      expect(task.priority).toBe("urgent");
+    });
   });
 
   describe("dispatch and execution flow", () => {

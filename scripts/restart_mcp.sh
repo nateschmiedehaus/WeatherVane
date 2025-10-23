@@ -35,6 +35,10 @@ sleep 1
 
 echo "[restart_mcp] Rebuilding MCP distribution."
 npm run build --prefix "$ROOT/tools/wvo_mcp" >/dev/null
+if [ ! -f "$ROOT/tools/wvo_mcp/dist/index.js" ]; then
+  echo "[restart_mcp] ERROR: MCP entry missing after rebuild (expected tools/wvo_mcp/dist/index.js)." >&2
+  exit 1
+fi
 
 mkdir -p "$LOG_DIR"
 WORKER_LOG="$LOG_DIR/worker_$(date -u +"%Y%m%dT%H%M%SZ").log"

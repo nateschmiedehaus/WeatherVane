@@ -1,0 +1,57 @@
+name: Nightly Weather QA
+
+on:
+  schedule:
+    - cron: "0 5 * * *" # 05:00 UTC daily
+  workflow_dispatch: {}
+
+jobs:
+  weather-regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential \
+            cmake \
+            libatlas-base-dev \
+            liblapack-dev \
+            libffi-dev \
+            libpq-dev \
+            pkg-config \
+            gfortran
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run smoke-context end-to-end suite
+        run: |
+          set -o pipefail
+          mkdir -p artifacts
+          make smoke-context 2>&1 | tee artifacts/smoke-context.log
+
+      - name: Run weather ingestion regression suite
+        run: |
+          set -o pipefail
+          mkdir -p artifacts
+          tools/ci/run_weather_ingestion_tests.sh 2>&1 | tee artifacts/weather-ingestion.log
+
+      - name: Upload telemetry and logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: weather-ingestion-nightly
+          path: |
+            state/telemetry/weather_ingestion.json
+            artifacts/

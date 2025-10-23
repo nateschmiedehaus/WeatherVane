@@ -21,6 +21,7 @@ import { TokenEfficiencyManager } from './token_efficiency_manager.js';
 import { ModelManager } from '../models/model_manager.js';
 import { CriticModelSelector } from '../utils/critic_model_selector.js';
 import { ActivityFeedWriter } from './activity_feed_writer.js';
+import { browserManager } from '../utils/browser.js';
 
 export interface OrchestratorRuntimeOptions {
   codexWorkers?: number;
@@ -74,6 +75,8 @@ export class OrchestratorRuntime {
     this.stateMachine = new StateMachine(workspaceRoot, { readonly: dryRun });
     this.liveFlags = new LiveFlags({ workspaceRoot });
     this.featureGates = new FeatureGates(this.liveFlags);
+    browserManager.setLiveFlags(this.liveFlags);
+    browserManager.setFeatureGates(this.featureGates);
     this.modelManager = new ModelManager(workspaceRoot);
     const researchFlagEnabled = this.featureGates.isResearchLayerEnabled();
     this.researchManager = researchFlagEnabled
@@ -111,6 +114,7 @@ export class OrchestratorRuntime {
     this.contextAssembler = new ContextAssembler(this.stateMachine, workspaceRoot, {
       codeSearch: this.codeSearchIndex,
       liveFlags: this.liveFlags,
+      featureGates: this.featureGates,
       maxHistoryItems: 3,
     });
     this.qualityMonitor = new QualityMonitor(this.stateMachine, {
@@ -182,6 +186,7 @@ export class OrchestratorRuntime {
       this.agentPool,
       this.contextAssembler,
       this.liveFlags,
+      this.featureGates,
       this.qualityMonitor,
       this.webInspirationManager,
       this.operationsManager,
@@ -262,6 +267,10 @@ export class OrchestratorRuntime {
 
   getLiveFlags(): LiveFlags {
     return this.liveFlags;
+  }
+
+  getFeatureGates(): FeatureGates {
+    return this.featureGates;
   }
 
   getResearchManager(): ResearchManager | undefined {

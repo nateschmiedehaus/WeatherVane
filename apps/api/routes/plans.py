@@ -15,6 +15,7 @@ from shared.schemas.base import (
     ScenarioSnapshot,
     ScenarioSnapshotListResponse,
 )
+from shared.validation.schemas import enforce_schema
 
 router = APIRouter()
 
@@ -37,6 +38,7 @@ def get_snapshot_service() -> ScenarioSnapshotService:
 
 
 @router.get("/{tenant_id}", response_model=PlanResponse)
+@enforce_schema("plan_response")
 async def get_plan(
     response: Response,
     tenant_id: str = Path(..., description="Tenant identifier"),
@@ -89,9 +91,45 @@ async def get_experiment_payloads(
 
     Falls back to empty list if no experiments are available.
     """
-    # Placeholder: In production, query the experiments table
-    # For now, return empty list until Phase 1 experiment orchestration is implemented
-    return []
+    from apps.worker.validation import load_experiment_results
+
+    try:
+        experiment_data = load_experiment_results(tenant_id)
+        if not experiment_data or experiment_data.get("status") == "missing":
+            return []
+
+        # Transform stored experiment design + summary into ExperimentPayload format
+        design = experiment_data.get("design", {})
+        summary = experiment_data.get("summary", {})
+
+        # Build experiment payload from design and summary
+        payload = {
+            "experiment_id": f"geo-holdout-{tenant_id}",
+            "status": "completed" if summary else "pending",
+            "treatment_geos": design.get("treatment_geos", []),
+            "control_geos": design.get("control_geos", []),
+            "metric_name": "revenue",
+            "start_date": design.get("start_date"),
+            "end_date": design.get("end_date"),
+        }
+
+        # Add lift metrics if summary is available
+        if summary:
+            payload["lift"] = {
+                "absolute_lift": summary.get("lift", 0.0),
+                "lift_pct": summary.get("lift", 0.0) * 100,
+                "confidence_low": summary.get("conf_low", 0.0),
+                "confidence_high": summary.get("conf_high", 0.0),
+                "p_value": summary.get("p_value", 1.0),
+                "sample_size": summary.get("sample_size_treatment", 0) + summary.get("sample_size_control", 0),
+                "is_significant": summary.get("p_value", 1.0) < 0.05,
+                "generated_at": experiment_data.get("generated_at"),
+            }
+
+        return [payload] if payload.get("treatment_geos") or payload.get("control_geos") else []
+    except Exception:
+        # Best-effort: return empty list if experiment data cannot be loaded
+        return []
 
 
 # Scenario Snapshot Endpoints

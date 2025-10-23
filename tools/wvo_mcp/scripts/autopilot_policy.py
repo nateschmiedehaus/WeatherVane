@@ -762,15 +762,42 @@ def format_prompt_directive(domain: str, action: str, reason: str, tasks: List[T
 
 
 def infer_action(domain: str, domain_features: Dict[str, Any]) -> str:
+    """
+    Infer autopilot action based on available tasks.
+    CRITICAL: Returns 'idle' if no workable tasks available (prevents loops).
+    """
     features: Dict[str, Any] = domain_features if isinstance(domain_features, dict) else {}
     try:
         remaining = int(features.get("remaining", 0) or 0)
     except (TypeError, ValueError):
         remaining = 0
-    if remaining <= 0:
+    try:
+        blocked = int(features.get("blocked", 0) or 0)
+    except (TypeError, ValueError):
+        blocked = 0
+    try:
+        in_progress = int(features.get("in_progress", 0) or 0)
+    except (TypeError, ValueError):
+        in_progress = 0
+
+    # CRITICAL FIX: If no pending tasks and only blocked/in_progress tasks exist, go idle
+    # This prevents the autopilot from looping on tasks it can't actually work on
+    workable_tasks = remaining  # Only pending tasks are workable
+
+    if workable_tasks <= 0:
+        # No pending tasks - either all done, all blocked, or all in-progress
+        # Going idle prevents loop on blocked/in-progress tasks
         return "idle"
+
+    # ADDITIONAL CHECK: If ALL remaining tasks are blocked, also idle
+    # (This shouldn't happen if remaining only counts pending, but defensive)
+    total_tasks = remaining + blocked + in_progress
+    if total_tasks > 0 and blocked >= total_tasks:
+        return "idle"  # Everything is blocked, nothing to do
+
     if domain != "product":
         return "monitor"
+
     return "execute_tasks"
 
 

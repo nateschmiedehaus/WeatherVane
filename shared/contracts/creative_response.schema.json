@@ -1,0 +1,195 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "CreativeResponse",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["tenant_id", "generated_at"],
+  "properties": {
+    "tenant_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "generated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "summary": {
+      "$ref": "#/$defs/CreativeSummary"
+    },
+    "policy": {
+      "$ref": "#/$defs/CreativePolicy"
+    },
+    "highlights": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/CreativeHighlight"
+      }
+    },
+    "rows": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/CreativeRow"
+      }
+    },
+    "by_channel": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/CreativeChannelGuardrail"
+      }
+    },
+    "context_warnings": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/ContextWarning"
+      }
+    }
+  },
+  "$defs": {
+    "CreativePolicy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["roas_floor", "warn_threshold", "block_threshold", "min_impressions"],
+      "properties": {
+        "roas_floor": { "type": "number" },
+        "warn_threshold": { "type": "number" },
+        "block_threshold": { "type": "number" },
+        "min_impressions": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "CreativeSummary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "creative_count",
+        "active_creatives",
+        "blocked_creatives",
+        "watchlist_creatives",
+        "average_roas",
+        "median_roas",
+        "active_spend_share",
+        "watchlist_spend_share",
+        "blocked_spend_share"
+      ],
+      "properties": {
+        "creative_count": { "type": "integer", "minimum": 0 },
+        "active_creatives": { "type": "integer", "minimum": 0 },
+        "blocked_creatives": { "type": "integer", "minimum": 0 },
+        "watchlist_creatives": { "type": "integer", "minimum": 0 },
+        "average_roas": { "type": "number" },
+        "median_roas": { "type": "number" },
+        "active_spend_share": { "type": "number", "minimum": 0.0, "maximum": 1.0 },
+        "watchlist_spend_share": { "type": "number", "minimum": 0.0, "maximum": 1.0 },
+        "blocked_spend_share": { "type": "number", "minimum": 0.0, "maximum": 1.0 },
+        "guardrail_counts": { "type": "object", "default": {} }
+      }
+    },
+    "CreativeHighlight": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["creative_id", "channel", "roas_adjusted", "brand_safety_score", "status"],
+      "properties": {
+        "creative_id": { "type": "string" },
+        "channel": { "type": "string" },
+        "roas_adjusted": { "type": "number" },
+        "brand_safety_score": { "type": "number" },
+        "status": { "type": "string" }
+      }
+    },
+    "CreativeRow": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "creative_id",
+        "channel",
+        "impressions",
+        "clicks",
+        "conversions",
+        "spend",
+        "revenue",
+        "brand_safety_score",
+        "brand_safety_tier",
+        "brand_safety_factor",
+        "sample_size_factor",
+        "ctr",
+        "cvr",
+        "aov",
+        "roas_smoothed",
+        "roas_adjusted",
+        "guardrail_factor",
+        "status",
+        "spend_share",
+        "profit_expectation"
+      ],
+      "properties": {
+        "creative_id": { "type": "string" },
+        "channel": { "type": "string" },
+        "impressions": { "type": "integer", "minimum": 0 },
+        "clicks": { "type": "integer", "minimum": 0 },
+        "conversions": { "type": "number", "minimum": 0 },
+        "spend": { "type": "number" },
+        "revenue": { "type": "number" },
+        "brand_safety_score": { "type": "number" },
+        "brand_safety_tier": { "type": "string" },
+        "brand_safety_factor": { "type": "number" },
+        "sample_size_factor": { "type": "number" },
+        "ctr": { "type": "number" },
+        "cvr": { "type": "number" },
+        "aov": { "type": "number" },
+        "roas_smoothed": { "type": "number" },
+        "roas_adjusted": { "type": "number" },
+        "guardrail_factor": { "type": "number" },
+        "status": { "type": "string" },
+        "guardrail": { "oneOf": [{ "type": "string" }, { "type": "null" }] },
+        "spend_share": { "type": "number" },
+        "profit_expectation": { "type": "number" }
+      }
+    },
+    "CreativeChannelGuardrail": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "channel",
+        "creative_count",
+        "active_creatives",
+        "watchlist_creatives",
+        "blocked_creatives",
+        "flagged_creatives",
+        "active_spend_share",
+        "watchlist_spend_share",
+        "blocked_spend_share",
+        "flagged_spend_share",
+        "average_roas",
+        "average_brand_safety"
+      ],
+      "properties": {
+        "channel": { "type": "string" },
+        "creative_count": { "type": "integer", "minimum": 0 },
+        "active_creatives": { "type": "integer", "minimum": 0 },
+        "watchlist_creatives": { "type": "integer", "minimum": 0 },
+        "blocked_creatives": { "type": "integer", "minimum": 0 },
+        "flagged_creatives": { "type": "integer", "minimum": 0 },
+        "active_spend_share": { "type": "number", "minimum": 0.0, "maximum": 1.0 },
+        "watchlist_spend_share": { "type": "number", "minimum": 0.0, "maximum": 1.0 },
+        "blocked_spend_share": { "type": "number", "minimum": 0.0, "maximum": 1.0 },
+        "flagged_spend_share": { "type": "number", "minimum": 0.0, "maximum": 1.0 },
+        "average_roas": { "type": "number" },
+        "average_brand_safety": { "type": "number" },
+        "top_guardrail": { "oneOf": [{ "type": "string" }, { "type": "null" }] },
+        "top_guardrail_count": { "type": "integer", "minimum": 0 },
+        "representative_creative": { "oneOf": [{ "type": "string" }, { "type": "null" }] },
+        "representative_status": { "oneOf": [{ "type": "string" }, { "type": "null" }] }
+      }
+    },
+    "ContextWarning": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "message", "severity", "tags"],
+      "properties": {
+        "code": { "type": "string" },
+        "message": { "type": "string" },
+        "severity": { "type": "string" },
+        "tags": { "type": "array", "items": { "type": "string" } }
+      }
+    }
+  }
+}

@@ -86,6 +86,11 @@ GOOGLE_ADS_API_VERSION=v14
 For local smoke tests you can omit `GOOGLE_ADS_ACCESS_TOKEN`; the connector will immediately refresh using the
 refresh token. Persist refreshed tokens centrally if you want to avoid repeated token exchanges across runs.
 
+## Klaviyo Promos
+- `PromoIngestor.ingest_campaigns` persists a cursor via `JsonStateStore` (`state/klaviyo/<tenant>_promos.json`) so follow-up runs filter with `greater-than(updated_at, <cursor>)` while still bounding the window by the requested `start_date`/`end_date`.
+- Normalised rows now expose `updated_at`, and the ingestion metadata includes a `checkpoint` string that mirrors the stored cursor. Dashboards can lean on this to spot ingestion drift without parsing raw Parquet.
+- Regression coverage lives in `tests/test_incremental_ingestion.py`, which exercises the dedupe path, verifies checkpoint persistence, and asserts the connector filter includes the cursor guard.
+
 ## Geocoding validation
 - Orders ingestion stores `ship_geohash` alongside the raw record and writes `geocoded_ratio` into the ingestion summary.
 - Existing coordinates on the raw payload (e.g. Shopify shipping latitude/longitude) are normalised and re-encoded before falling back to a lookup, so we avoid redundant external geocoding calls.
@@ -155,5 +160,6 @@ Daily frames keep additional context columns (`temp_max_c`, `humidity_mean`, `uv
 ## Data Quality Monitoring & Alerts
 - `orchestrate_ingestion_flow` now calls `apps.worker.monitoring.update_dq_monitoring` after persisting the data-quality report. The helper appends a bounded history of run snapshots to `state/dq_monitoring.json` with per-dataset severity, alert codes, and rolling metrics (row counts, geocoded ratio).
 - Alert heuristics flag missing datasets, zero-row snapshots, geocoding regressions, large row-count drops, and sustained periods with no new rows (rolling streak + median-based drop checks). The monitoring payload surfaces an overall severity (`ok`, `warning`, `critical`) plus dataset-specific alert lists so operations dashboards and context tags can escalate quickly.
+- Defaults now bias toward weather-model readiness: warning at >=20% row-count drops (`row_count_drop_warning=0.8`), critical at >=40% (`row_count_drop_critical=0.6`), and geocoding ratios falling below 0.88/0.75 trigger warning/critical (`geocoded_ratio_warning=0.88`, `geocoded_ratio_critical=0.75`). Override `MonitoringThresholds` when a tenant demands looser guardrails.
 - History retention defaults to 90 runs and trims automatically; adjust by passing `max_history` or custom `MonitoringThresholds` when calling `update_dq_monitoring` from bespoke flows or one-off scripts.
 - Tests live under `tests/apps/test_dq_monitoring.py` alongside the ingestion flow regression in `tests/test_ingestion_flow.py`. Update or extend them when introducing new alert types or thresholds.

@@ -1,11 +1,12 @@
 import os from 'node:os';
 import path from 'node:path';
-import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { WorkerManager } from '../worker/worker_manager.js';
+import { WorkerClient } from '../worker/worker_client.js';
 
 const THIS_DIR = path.dirname(fileURLToPath(import.meta.url));
 const MOCK_WORKER_PATH = path.resolve(THIS_DIR, 'helpers', 'mock_worker.ts');
@@ -132,6 +133,75 @@ describe('WorkerManager', () => {
     } finally {
       await telemetryManager.stopAll();
       await rm(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  it('spawns executor workers when configured via env', async () => {
+    const original = process.env.WVO_WORKER_COUNT;
+    process.env.WVO_WORKER_COUNT = '2';
+
+    await manager.stopAll();
+    manager = new WorkerManager();
+
+    try {
+      await manager.startActive({ entryPath: MOCK_WORKER_PATH });
+
+    const executor = manager.getExecutor();
+    expect(executor).not.toBeNull();
+    const toolResponse = await executor!.call<{ content: Array<{ type: string; text: string }> }>(
+      'runTool',
+      { name: 'cmd_run', input: { cmd: 'echo executor-ok' } },
+    );
+    expect(Array.isArray(toolResponse.content)).toBe(true);
+
+      const snapshot = await manager.getSnapshot();
+      expect(Array.isArray(snapshot.executors)).toBe(true);
+      expect(snapshot.executors.length).toBeGreaterThanOrEqual(1);
+    } finally {
+      if (original === undefined) {
+        delete process.env.WVO_WORKER_COUNT;
+      } else {
+        process.env.WVO_WORKER_COUNT = original;
+      }
+    }
+  });
+
+  it('falls back to active worker when executor rejects a tool', async () => {
+    const original = process.env.WVO_WORKER_COUNT;
+    process.env.WVO_WORKER_COUNT = '1';
+
+    await manager.stopAll();
+    manager = new WorkerManager();
+
+    try {
+      await manager.startActive({ entryPath: MOCK_WORKER_PATH });
+      const client = new WorkerClient(manager);
+
+    const tempDir = path.join(THIS_DIR, 'helpers');
+    const tempFile = path.join(tempDir, `executor-fallback-${Date.now()}.txt`);
+    await writeFile(tempFile, 'executor fallback test');
+
+    try {
+      const response = await client.callTool<
+        { content: Array<{ type: string; text: string }> }
+      >('fs_read', { path: tempFile });
+
+      if (!response || typeof response !== 'object' || !('content' in response)) {
+        throw new Error(`expected success response, got error payload: ${JSON.stringify(response)}`);
+      }
+
+      expect(Array.isArray(response.content)).toBe(true);
+      const parsed = JSON.parse(response.content[0].text);
+      expect(parsed.path).toBe(tempFile);
+    } finally {
+      await rm(tempFile, { force: true });
+    }
+    } finally {
+      if (original === undefined) {
+        delete process.env.WVO_WORKER_COUNT;
+      } else {
+        process.env.WVO_WORKER_COUNT = original;
+      }
     }
   });
 });

@@ -26,7 +26,7 @@ interface SpanRecord {
   ended: boolean;
 }
 
-interface SpanHandle {
+export interface SpanHandle {
   traceId: string;
   spanId: string;
   setAttribute(key: string, value: unknown): void;

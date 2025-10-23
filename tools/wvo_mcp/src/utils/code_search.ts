@@ -130,6 +130,17 @@ export class CodeSearchIndex {
     }
   }
 
+  async awaitIdle(): Promise<void> {
+    if (!this.buildPromise) {
+      return;
+    }
+    try {
+      await this.buildPromise;
+    } catch {
+      // Error already surfaced via initRebuild logger; preserve background semantics.
+    }
+  }
+
   private getMetadata(): CodeIndexMetadata {
     if (!this.cachedMetadata) {
       this.cachedMetadata = this.stateMachine.getCodeIndexMetadata();

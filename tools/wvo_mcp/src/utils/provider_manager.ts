@@ -4,8 +4,9 @@
  */
 
 import { logError, logInfo } from "../telemetry/logger.js";
+import { getEnabledProviders, getProviderMetadata, isProviderEnabled, KnownProvider } from "../providers/registry.js";
 
-export type Provider = "codex" | "claude_code";
+export type Provider = KnownProvider;
 export type TaskComplexity = "simple" | "moderate" | "complex" | "critical";
 
 export interface ProviderUsage {
@@ -29,29 +30,31 @@ export class ProviderManager {
   private currentProvider: Provider;
   private taskTypes: Map<string, TaskType> = new Map();
 
-  constructor(initialProvider: Provider = "claude_code") {
-    this.currentProvider = initialProvider;
+  constructor(initialProvider: Provider = "codex") {
+    const enabledProviders = getEnabledProviders();
+    if (enabledProviders.length === 0) {
+      throw new Error("ProviderManager: no providers enabled. Enable at least one provider in the registry.");
+    }
 
-    // Initialize usage tracking
-    this.usage.set("codex", {
-      provider: "codex",
-      tokensUsed: 0,
-      requestCount: 0,
-      lastReset: new Date().toISOString(),
-      hourlyLimit: 100000, // Example limits
-      dailyLimit: 500000,
-    });
+    this.currentProvider = enabledProviders.includes(initialProvider)
+      ? initialProvider
+      : (enabledProviders[0] as Provider);
 
-    this.usage.set("claude_code", {
-      provider: "claude_code",
-      tokensUsed: 0,
-      requestCount: 0,
-      lastReset: new Date().toISOString(),
-      hourlyLimit: 150000, // Example limits
-      dailyLimit: 750000,
-    });
+    for (const providerId of enabledProviders) {
+      const metadata = getProviderMetadata(providerId);
+      const hourlyLimit = metadata?.hourlyLimit ?? 100000;
+      const dailyLimit = metadata?.dailyLimit ?? 500000;
 
-    // Define task types and their characteristics
+      this.usage.set(providerId as Provider, {
+        provider: providerId as Provider,
+        tokensUsed: 0,
+        requestCount: 0,
+        lastReset: new Date().toISOString(),
+        hourlyLimit,
+        dailyLimit,
+      });
+    }
+
     this.defineTaskTypes();
   }
 
@@ -126,30 +129,44 @@ export class ProviderManager {
    */
   getBestProvider(taskName: string, estimatedTokens: number = 1000): Provider {
     const task = this.taskTypes.get(taskName);
-
-    // If task has preferred provider and it has capacity, use it
-    if (task?.preferredProvider && this.hasCapacity(task.preferredProvider, estimatedTokens)) {
-      return task.preferredProvider;
+    const enabledProviders = Array.from(this.usage.keys());
+    if (!enabledProviders.includes(this.currentProvider)) {
+      this.currentProvider = enabledProviders[0];
     }
 
-    // Check current provider capacity
-    if (this.hasCapacity(this.currentProvider, estimatedTokens)) {
-      return this.currentProvider;
+    const candidateProviders: Provider[] = [];
+
+    if (task?.preferredProvider && enabledProviders.includes(task.preferredProvider)) {
+      candidateProviders.push(task.preferredProvider);
     }
 
-    // Find alternate provider with capacity
-    const alternateProvider = this.currentProvider === "codex" ? "claude_code" : "codex";
-    if (this.hasCapacity(alternateProvider, estimatedTokens)) {
-      logInfo("Switching to alternate provider", {
-        from: this.currentProvider,
-        to: alternateProvider,
-        reason: "capacity",
-      });
-      this.currentProvider = alternateProvider;
-      return alternateProvider;
+    const prefersLargeContext = Boolean(task?.requiresLargeContext || task?.complexity === "complex" || task?.complexity === "critical");
+    if (prefersLargeContext) {
+      for (const providerId of enabledProviders) {
+        const metadata = getProviderMetadata(providerId);
+        if (metadata?.capabilities?.largeContext && !candidateProviders.includes(providerId)) {
+          candidateProviders.push(providerId);
+        }
+      }
     }
 
-    // No capacity available - log warning and return current
+    if (!candidateProviders.includes(this.currentProvider)) {
+      candidateProviders.push(this.currentProvider);
+    }
+
+    for (const providerId of enabledProviders) {
+      if (!candidateProviders.includes(providerId)) {
+        candidateProviders.push(providerId);
+      }
+    }
+
+    for (const providerId of candidateProviders) {
+      if (this.hasCapacity(providerId, estimatedTokens)) {
+        this.currentProvider = providerId;
+        return providerId;
+      }
+    }
+
     logError("No provider capacity available", {
       currentProvider: this.currentProvider,
       estimatedTokens,
@@ -166,56 +183,33 @@ export class ProviderManager {
     provider: Provider;
     reasoning: string;
   } {
+    const provider = this.getBestProvider(taskName);
+    const metadata = getProviderMetadata(provider);
     const task = this.taskTypes.get(taskName);
-    const currentUsage = this.usage.get(this.currentProvider);
+    const reasons: string[] = [];
 
     if (!task) {
-      return {
-        provider: this.currentProvider,
-        reasoning: "Unknown task type, using current provider",
-      };
-    }
-
-    // Simple tasks - use whichever has more capacity
-    if (task.complexity === "simple") {
-      const codexCapacity = this.usage.get("codex")!.hourlyLimit - this.usage.get("codex")!.tokensUsed;
-      const claudeCapacity = this.usage.get("claude_code")!.hourlyLimit - this.usage.get("claude_code")!.tokensUsed;
-
-      if (codexCapacity > claudeCapacity) {
-        return { provider: "codex", reasoning: "Simple task, Codex has more capacity" };
-      } else {
-        return { provider: "claude_code", reasoning: "Simple task, Claude Code has more capacity" };
+      reasons.push("Unknown task type; defaulting to available provider");
+    } else {
+      reasons.push(`Task complexity: ${task.complexity}`);
+      if (task.requiresLargeContext) {
+        reasons.push("Requires large context window");
       }
     }
 
-    // Complex/Critical tasks - prefer Claude Code (typically more powerful)
-    if (task.complexity === "complex" || task.complexity === "critical") {
-      if (this.hasCapacity("claude_code", 5000)) {
-        return {
-          provider: "claude_code",
-          reasoning: `${task.complexity} task, using Claude Code for better performance`,
-        };
-      } else if (this.hasCapacity("codex", 5000)) {
-        return {
-          provider: "codex",
-          reasoning: `${task.complexity} task, Claude Code at capacity, falling back to Codex`,
-        };
-      }
+    if (metadata?.staging) {
+      reasons.push("Preview provider enabled via environment toggle");
     }
 
-    // Moderate tasks - use current provider if it has capacity
-    if (this.hasCapacity(this.currentProvider, 2000)) {
-      return {
-        provider: this.currentProvider,
-        reasoning: `Moderate task, current provider has capacity`,
-      };
+    const usage = this.usage.get(provider);
+    if (usage) {
+      const remaining = usage.hourlyLimit - usage.tokensUsed;
+      reasons.push(`Capacity remaining ~${remaining} tokens this hour`);
     }
 
-    // Fallback
-    const alternateProvider = this.currentProvider === "codex" ? "claude_code" : "codex";
     return {
-      provider: alternateProvider,
-      reasoning: "Current provider at capacity, switching to alternate",
+      provider,
+      reasoning: reasons.join("; "),
     };
   }
 
@@ -223,15 +217,27 @@ export class ProviderManager {
    * Get current status
    */
   getStatus() {
-    return {
-      currentProvider: this.currentProvider,
-      usage: Array.from(this.usage.entries()).map(([provider, data]) => ({
+    const providers = Array.from(this.usage.entries()).map(([provider, data]) => {
+      const metadata = getProviderMetadata(provider);
+      const hourlyRemaining = data.hourlyLimit - data.tokensUsed;
+      const enabled = metadata ? isProviderEnabled(metadata) : true;
+      return {
         provider,
+        label: metadata?.label ?? provider,
+        stage: metadata?.staging ? "staging" : "production",
+        costTier: metadata?.capabilities?.costTier ?? "unknown",
         tokensUsed: data.tokensUsed,
         requestCount: data.requestCount,
-        hourlyRemaining: data.hourlyLimit - data.tokensUsed,
-        percentUsed: ((data.tokensUsed / data.hourlyLimit) * 100).toFixed(1) + "%",
-      })),
+        hourlyLimit: data.hourlyLimit,
+        hourlyRemaining,
+        percentUsed: data.hourlyLimit > 0 ? ((data.tokensUsed / data.hourlyLimit) * 100).toFixed(1) + "%" : "n/a",
+        enabled,
+      };
+    });
+
+    return {
+      currentProvider: this.currentProvider,
+      providers,
     };
   }
 

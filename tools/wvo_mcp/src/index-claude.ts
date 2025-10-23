@@ -34,7 +34,12 @@ import {
   type LspInitializeInput,
   type AdminFlagsInput,
 } from "./tools/input_schemas.js";
-import { SettingsStore } from "./state/live_flags.js";
+import {
+  SettingsStore,
+  DEFAULT_LIVE_FLAGS,
+  isLiveFlagKey,
+  type LiveFlagKey,
+} from "./state/live_flags.js";
 
 let activeRuntime: OrchestratorRuntime | null = null;
 
@@ -1646,11 +1651,12 @@ Retrieves hover information (type signature, documentation) for symbols. Enables
               if (parsed.flag) {
                 // Get single flag
                 const allFlags = settingsStore.read();
-                if (!(parsed.flag in allFlags)) {
+                if (!isLiveFlagKey(parsed.flag)) {
                   return formatError("Flag not found", `Unknown flag: ${parsed.flag}`);
                 }
+                const flagKey = parsed.flag as LiveFlagKey;
                 const flagRecord: Record<string, any> = {};
-                flagRecord[parsed.flag] = (allFlags as Record<string, any>)[parsed.flag];
+                flagRecord[flagKey] = allFlags[flagKey];
                 return formatData(flagRecord, "Flag Value");
               } else {
                 // Get all flags
@@ -1664,25 +1670,33 @@ Retrieves hover information (type signature, documentation) for symbols. Enables
                 return formatError("Invalid input", "set action requires 'flags' object");
               }
 
-              const updates: Record<string, any> = {};
-              for (const [key, value] of Object.entries(parsed.flags)) {
-                // Validate that each key is a valid flag
-                const stringValue = typeof value === "boolean" || typeof value === "number"
-                  ? String(value)
-                  : value as string;
-                updates[key] = stringValue;
+              const assignments: Partial<Record<LiveFlagKey, string>> = {};
+              for (const [rawKey, rawValue] of Object.entries(parsed.flags)) {
+                if (!isLiveFlagKey(rawKey)) {
+                  return formatError("Invalid flag", `Unknown flag: ${rawKey}`);
+                }
+                const key = rawKey as LiveFlagKey;
+                if (typeof rawValue === "string") {
+                  assignments[key] = rawValue;
+                } else if (typeof rawValue === "number" || typeof rawValue === "boolean") {
+                  assignments[key] = String(rawValue);
+                } else {
+                  return formatError(
+                    "Invalid input",
+                    `Unsupported value type for flag ${rawKey}`,
+                  );
+                }
               }
 
               // Apply updates atomically
-              const finalState: Record<string, any> = {};
-              for (const [key, value] of Object.entries(updates)) {
-                const result = settingsStore.upsert(key as any, value);
-                // Get the updated value from the returned snapshot
-                finalState[key] = (result as Record<string, any>)[key];
+              const snapshot = settingsStore.upsertMany(assignments);
+              const updatedFlags: Record<string, any> = {};
+              for (const key of Object.keys(assignments) as LiveFlagKey[]) {
+                updatedFlags[key] = snapshot[key];
               }
 
               return formatSuccess("Flags updated successfully", {
-                updated_flags: finalState,
+                updated_flags: updatedFlags,
                 note: "Changes take effect immediately via LiveFlags polling",
               });
             }
@@ -1692,18 +1706,17 @@ Retrieves hover information (type signature, documentation) for symbols. Enables
                 return formatError("Invalid input", "reset action requires 'flag' parameter");
               }
 
-              // Import defaults to reset to default value
-              const { DEFAULT_LIVE_FLAGS } = await import("./state/live_flags.js");
-              if (!(parsed.flag in DEFAULT_LIVE_FLAGS)) {
+              if (!isLiveFlagKey(parsed.flag)) {
                 return formatError("Flag not found", `Unknown flag: ${parsed.flag}`);
               }
 
-              const defaultValue = (DEFAULT_LIVE_FLAGS as Record<string, any>)[parsed.flag];
-              const result = settingsStore.upsert(parsed.flag as any, defaultValue);
+              const flagKey = parsed.flag as LiveFlagKey;
+              const defaultValue = DEFAULT_LIVE_FLAGS[flagKey];
+              const result = settingsStore.upsert(flagKey, defaultValue);
 
               return formatSuccess(`Flag reset to default`, {
-                flag: parsed.flag,
-                default_value: (result as Record<string, any>)[parsed.flag],
+                flag: flagKey,
+                default_value: result[flagKey],
               });
             }
 

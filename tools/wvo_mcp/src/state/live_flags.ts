@@ -23,6 +23,10 @@ export const LIVE_FLAG_KEYS = [
   'CRITIC_REPUTATION',
   'EVIDENCE_LINKING',
   'VELOCITY_TRACKING',
+  'CONSENSUS_ENGINE',
+  'ADMIN_TOOLS',
+  'UPGRADE_TOOLS',
+  'ROUTING_TOOLS',
 ] as const;
 
 export type LiveFlagKey = (typeof LIVE_FLAG_KEYS)[number];
@@ -47,6 +51,10 @@ export const DEFAULT_LIVE_FLAGS: LiveFlagSnapshot = {
   CRITIC_REPUTATION: '0',
   EVIDENCE_LINKING: '0',
   VELOCITY_TRACKING: '0',
+  CONSENSUS_ENGINE: '1',
+  ADMIN_TOOLS: '0',
+  UPGRADE_TOOLS: '0',
+  ROUTING_TOOLS: '0',
 };
 
 export function isLiveFlagKey(value: string): value is LiveFlagKey {
@@ -78,6 +86,10 @@ export function normalizeLiveFlagValue<K extends LiveFlagKey>(
     case 'CRITIC_REPUTATION':
     case 'EVIDENCE_LINKING':
     case 'VELOCITY_TRACKING':
+    case 'CONSENSUS_ENGINE':
+    case 'ADMIN_TOOLS':
+    case 'UPGRADE_TOOLS':
+    case 'ROUTING_TOOLS':
       return (stringValue === '1' ? '1' : '0') as LiveFlagSnapshot[K];
     case 'RESEARCH_TRIGGER_SENSITIVITY': {
       const numeric = Number.parseFloat(stringValue);
@@ -170,21 +182,51 @@ export class SettingsStore {
   }
 
   upsert(key: LiveFlagKey, rawValue: unknown): LiveFlagSnapshot {
+    return this.upsertMany({ [key]: rawValue });
+  }
+
+  upsertMany(updates: Partial<Record<LiveFlagKey, unknown>>): LiveFlagSnapshot {
     if (this.readOnly || this.disabled) {
       throw createDryRunError('settings.upsert');
     }
 
-    const value = normalizeLiveFlagValue(key, rawValue);
+    const entries = Object.entries(updates ?? {}) as Array<[string, unknown]>;
+    if (entries.length === 0) {
+      return this.read();
+    }
+
+    const assignments: Array<{ key: LiveFlagKey; value: string }> = [];
+    for (const [rawKey, rawValue] of entries) {
+      if (!isLiveFlagKey(rawKey)) {
+        throw new Error(`Unsupported live flag "${rawKey}"`);
+      }
+      const key = rawKey as LiveFlagKey;
+      const serialised =
+        typeof rawValue === 'string'
+          ? rawValue
+          : typeof rawValue === 'number' || typeof rawValue === 'boolean'
+          ? String(rawValue)
+          : '';
+      const normalised = normalizeLiveFlagValue(key, serialised);
+      assignments.push({ key, value: normalised });
+    }
+
     const timestamp = Date.now();
-    this.db
-      .prepare(
-        `INSERT INTO settings (key, val, updated_at)
-         VALUES (?, ?, ?)
-         ON CONFLICT(key) DO UPDATE SET
-           val = excluded.val,
-           updated_at = excluded.updated_at`,
-      )
-      .run(key, value, timestamp);
+    const statement = this.db.prepare(
+      `INSERT INTO settings (key, val, updated_at)
+       VALUES (?, ?, ?)
+       ON CONFLICT(key) DO UPDATE SET
+         val = excluded.val,
+         updated_at = excluded.updated_at`,
+    );
+
+    const transaction = this.db.transaction((rows: Array<{ key: LiveFlagKey; value: string }>) => {
+      for (const assignment of rows) {
+        statement.run(assignment.key, assignment.value, timestamp);
+      }
+    });
+
+    transaction(assignments);
     return this.read();
   }
 
@@ -212,3 +254,6 @@ export class SettingsStore {
     this.db.close();
   }
 }
+
+export type { LiveFlagsOptions, LiveFlagsReader } from '../orchestrator/live_flags.js';
+export { LiveFlags } from '../orchestrator/live_flags.js';

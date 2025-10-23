@@ -1,0 +1,284 @@
+import fs from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
+
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
+
+import type { AssembledContext } from "../orchestrator/context_assembler.js";
+import type { Task, ContextEntry } from "../orchestrator/state_machine.js";
+import { ConsensusEngine } from "../orchestrator/consensus/consensus_engine.js";
+import { buildConsensusAgenda } from "../orchestrator/consensus/agenda_builder.js";
+import { invalidateConsensusWorkloadCache } from "../orchestrator/consensus/workload_loader.js";
+
+describe("ConsensusEngine", () => {
+  const baseTask: Task = {
+    id: "T-test",
+    title: "Pilot consensus",
+    description: "Scaffold consensus engine",
+    type: "task",
+    status: "needs_review",
+    assigned_to: undefined,
+    created_at: Date.now(),
+    metadata: {},
+  };
+
+  const baseContext: AssembledContext = {
+    task: baseTask,
+    relatedTasks: [],
+    relevantDecisions: [],
+    relevantConstraints: [],
+    recentLearnings: [],
+    qualityIssuesInArea: [],
+    overallQualityTrend: [],
+    projectPhase: "development",
+    velocityMetrics: {
+      tasksCompletedToday: 1,
+      averageTaskDuration: 3600,
+      qualityTrendOverall: "stable",
+    },
+    researchHighlights: [],
+  };
+
+  class MockStateMachine {
+    public entries: ContextEntry[] = [];
+
+    addContextEntry(entry: Omit<ContextEntry, "id" | "timestamp">) {
+      const stored: ContextEntry = {
+        id: this.entries.length + 1,
+        timestamp: Date.now(),
+        ...entry,
+      };
+      this.entries.unshift(stored);
+      return stored;
+    }
+
+    getContextEntries(filter?: { type?: string; topic?: string }) {
+      return this.entries.filter((entry) => {
+        if (filter?.type && entry.entry_type !== filter.type) {
+          return false;
+        }
+        if (filter?.topic && !entry.topic?.includes(filter.topic)) {
+          return false;
+        }
+        return true;
+      });
+    }
+  }
+
+  let stateMachine: MockStateMachine;
+  let engine: ConsensusEngine;
+  let tempDir: string;
+  let workloadPath: string;
+
+  beforeAll(async () => {
+    tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "consensus-workload-"));
+    workloadPath = path.join(tempDir, "consensus_workload.json");
+    const workloadFixture = {
+      generated_at: new Date().toISOString(),
+      token_cost_per_run_usd: 0.0059,
+      token_budget_per_run: {
+        prompt: 402.36,
+        completion: 51.62,
+        total: 453.98,
+      },
+      quorum_profiles: {
+        specialist: {
+          default_participants: ["atlas", "claude_council"],
+          expected_duration_seconds: {
+            median: 347,
+            p90: 936,
+          },
+          expected_iterations: 1,
+          token_cost_usd: 0.0059,
+          notes: "Baseline quorum",
+        },
+        strategic: {
+          default_participants: ["atlas", "claude_council", "research_orchestrator"],
+          expected_duration_seconds: {
+            median: 509,
+            p90: 890,
+          },
+          expected_iterations: 1,
+          token_cost_usd: 0.0071,
+          notes: "Adds research orchestrator context",
+        },
+        critical: {
+          default_participants: ["atlas", "claude_council", "director_dana", "security_critic"],
+          expected_duration_seconds: {
+            median: 1204,
+            p90: 3264,
+          },
+          expected_iterations: 2,
+          token_cost_usd: 0.014,
+          notes: "Director Dana + security coverage",
+        },
+      },
+      escalation_signals: [
+        {
+          signal: "duration_p90_gt_900s",
+          threshold_seconds: 900,
+          recommended_action: "Promote to critical quorum with Director Dana + security critic.",
+        },
+        {
+          signal: "repeat_retries_gt_1",
+          threshold: 1,
+          recommended_action: "Add Research Orchestrator for additional context.",
+        },
+      ],
+    };
+    await fs.writeFile(workloadPath, JSON.stringify(workloadFixture, null, 2), "utf8");
+  });
+
+  beforeEach(() => {
+    process.env.WVO_CONSENSUS_WORKLOAD_PATH = workloadPath;
+    invalidateConsensusWorkloadCache();
+    stateMachine = new MockStateMachine();
+    engine = new ConsensusEngine({ stateMachine: stateMachine as unknown as any, enabled: true });
+  });
+
+  afterEach(() => {
+    invalidateConsensusWorkloadCache();
+    delete process.env.WVO_CONSENSUS_WORKLOAD_PATH;
+  });
+
+  afterAll(async () => {
+    if (tempDir) {
+      await fs.rm(tempDir, { recursive: true, force: true });
+    }
+  });
+
+  it("builds an agenda with inferred type", () => {
+    const agenda = buildConsensusAgenda(baseTask, baseContext);
+    expect(agenda.decisionType).toBe("strategic");
+    expect(agenda.participants).toContain("atlas");
+    expect(agenda.participants).toContain("research_orchestrator");
+    expect(agenda.tokenBudgetUsd).toBeCloseTo(0.0071, 4);
+  });
+
+  it("records a consensus decision when none exists", async () => {
+    const decision = await engine.ensureDecision(baseTask, baseContext);
+    expect(decision.taskId).toBe(baseTask.id);
+    expect(decision.proposals.length).toBeGreaterThan(0);
+    expect(stateMachine.entries).toHaveLength(1);
+    const entry = stateMachine.entries[0];
+    expect(entry.topic).toMatch(/Consensus decision/);
+    const consensus = entry.metadata?.consensus as { id?: string } | undefined;
+    expect(consensus?.id).toBe(decision.id);
+    expect(decision.metadata?.token_budget_usd).toBeCloseTo(0.0071, 4);
+  });
+
+  it("reuses recent decisions when not forced", async () => {
+    const first = await engine.ensureDecision(baseTask, baseContext);
+    const second = await engine.ensureDecision(baseTask, baseContext);
+    expect(second.id).toBe(first.id);
+    expect(stateMachine.entries).toHaveLength(1);
+  });
+
+  it("requires consensus only when enabled and task warrants it", async () => {
+    const disabled = new ConsensusEngine({
+      stateMachine: stateMachine as unknown as any,
+      enabled: false,
+    });
+    expect(disabled.shouldEnsureDecision(baseTask, baseContext)).toBe(false);
+    expect(engine.shouldEnsureDecision(baseTask, baseContext)).toBe(true);
+  });
+
+  it("triggers consensus for critical critic authority even when status is pending", () => {
+    const criticalTask: Task = {
+      ...baseTask,
+      status: "pending",
+      metadata: {
+        identity: {
+          authority: "critical",
+        },
+      },
+    };
+    expect(engine.shouldEnsureDecision(criticalTask, { ...baseContext, task: criticalTask })).toBe(true);
+  });
+
+  it("escalates blocking critic follow-ups from critic sources", () => {
+    const blockingTask: Task = {
+      ...baseTask,
+      status: "pending",
+      metadata: {
+        source: "critic",
+        identity: {
+          authority: "blocking",
+        },
+      },
+    };
+    expect(engine.shouldEnsureDecision(blockingTask, { ...baseContext, task: blockingTask })).toBe(true);
+  });
+
+  it("records telemetry when provided", async () => {
+    class StubTelemetry {
+      public recorded: string[] = [];
+      async recordDecision(decision: { id: string }): Promise<void> {
+        this.recorded.push(decision.id);
+      }
+    }
+
+    const telemetry = new StubTelemetry();
+    const instrumented = new ConsensusEngine({
+      stateMachine: stateMachine as unknown as any,
+      enabled: true,
+      telemetryRecorder: telemetry as unknown as any,
+    });
+
+    const decision = await instrumented.ensureDecision(baseTask, baseContext);
+    expect(telemetry.recorded).toContain(decision.id);
+  });
+
+  it("escalates to strategic quorum when retry signal exceeds threshold", () => {
+    const retryTask: Task = {
+      ...baseTask,
+      metadata: {
+        consensus_retry_count: 3,
+      },
+    };
+    const agenda = buildConsensusAgenda(retryTask, { ...baseContext, task: retryTask });
+    expect(agenda.decisionType).toBe("strategic");
+    expect(agenda.signals).toContain("repeat_retries_gt_1");
+    expect(agenda.participants).toContain("research_orchestrator");
+  });
+
+  it("promotes to critical quorum when duration signal is triggered", async () => {
+    const slowTask: Task = {
+      ...baseTask,
+      metadata: {
+        observed_duration_seconds: 1200,
+      },
+    };
+    const agenda = buildConsensusAgenda(slowTask, { ...baseContext, task: slowTask });
+    expect(agenda.decisionType).toBe("critical");
+    expect(agenda.signals).toContain("duration_p90_gt_900s");
+    expect(agenda.participants).toContain("director_dana");
+    expect(agenda.participants).toContain("security_critic");
+
+    const decision = await engine.ensureDecision(slowTask, { ...baseContext, task: slowTask });
+    expect(decision.type).toBe("critical");
+    expect(decision.escalatedTo).toContain("director_dana");
+  });
+
+  it("seeds hierarchy participants from critic identity and metadata", () => {
+    const criticalTask: Task = {
+      ...baseTask,
+      status: "pending",
+      metadata: {
+        identity: {
+          authority: "critical",
+          preferred_delegates: ["Director Dana", "Autopilot"],
+        },
+        critic: "integrationfury",
+        call_agents: ["Operations Steward"],
+      },
+    };
+    const agenda = buildConsensusAgenda(criticalTask, { ...baseContext, task: criticalTask });
+    expect(agenda.decisionType).toBe("critical");
+    expect(agenda.rationale).toContain("identity:critical");
+    expect(agenda.participants).toContain("autopilot");
+    expect(agenda.participants).toContain("director_dana");
+    expect(agenda.participants).toContain("operations_steward");
+    expect(agenda.participants).toContain("integrationfury");
+  });
+});

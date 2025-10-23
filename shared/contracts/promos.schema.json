@@ -36,6 +36,12 @@
         "string",
         "null"
       ]
+    },
+    "updated_at": {
+      "type": [
+        "string",
+        "null"
+      ]
     }
   },
   "required": [

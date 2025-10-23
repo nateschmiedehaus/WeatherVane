@@ -18,11 +18,12 @@ import {
   type WorkerLogMessage,
   type WorkerExitMessage,
 } from './protocol.js';
-import { logError } from '../telemetry/logger.js';
+import { logError, logInfo, logWarning } from '../telemetry/logger.js';
 import { resolveStateRoot } from '../utils/config.js';
 import { withSpan } from '../telemetry/tracing.js';
 
-type WorkerRole = 'active' | 'canary';
+type PrimaryWorkerRole = 'active' | 'canary';
+type WorkerRole = PrimaryWorkerRole | 'executor';
 
 interface WorkerManagerOptions {
   workspaceRoot?: string;
@@ -53,7 +54,7 @@ interface WorkerExitSnapshot {
 interface WorkerProcessMetadata {
   role: WorkerRole;
   label: string;
-  status: 'starting' | 'ready' | 'stopped';
+  status: 'starting' | 'ready' | 'stopped' | 'failed';
   spawnedAtMs: number;
   readyAtMs?: number;
   startedAtIso?: string;
@@ -67,7 +68,7 @@ interface WorkerProcessMetadata {
 interface WorkerProcessSnapshot {
   role: WorkerRole;
   label: string;
-  status: 'starting' | 'ready' | 'stopped';
+  status: 'starting' | 'ready' | 'stopped' | 'failed';
   pid: number | null;
   spawned_at: string;
   ready_at?: string | null;
@@ -88,6 +89,7 @@ interface WorkerManagerSnapshot {
   notes: string[];
   active: WorkerProcessSnapshot | null;
   canary: WorkerProcessSnapshot | null;
+  executors: WorkerProcessSnapshot[];
   events: WorkerEventSnapshot[];
   event_limit: number;
   persisted_path: string | null;
@@ -103,6 +105,7 @@ interface PendingCall {
 // Increased from 30s to 5min to handle long-running operations like critics_run with multiple critics
 const DEFAULT_CALL_TIMEOUT_MS = 300_000;  // 5 minutes
 const DEFAULT_START_TIMEOUT_MS = 20_000;
+const DEFAULT_SHUTDOWN_GRACE_PERIOD_MS = 15_000;
 
 class ManagedWorker extends EventEmitter {
   private readonly child: ChildProcess;
@@ -113,12 +116,12 @@ class ManagedWorker extends EventEmitter {
   public readonly label: string;
   private readonly idleTimer?: NodeJS.Timeout;
 
-  public readonly role: 'active' | 'canary';
+  public readonly role: WorkerRole;
   public readonly entryPath: string;
   public readonly startedAt: number = Date.now();
 
   constructor(
-    role: 'active' | 'canary',
+    role: WorkerRole,
     entryPath: string,
     execArgv: string[],
     options: WorkerStartOptions,
@@ -370,10 +373,14 @@ export class WorkerManager extends EventEmitter {
     }
   >();
 
-  private readonly metadata: Record<WorkerRole, WorkerProcessMetadata | null> = {
+  private readonly metadata: Record<PrimaryWorkerRole, WorkerProcessMetadata | null> = {
     active: null,
     canary: null,
   };
+  private readonly executorWorkers: ManagedWorker[] = [];
+  private readonly executorMetadata = new Map<ManagedWorker, WorkerProcessMetadata>();
+  private executorRoundRobinIndex = 0;
+  private readonly desiredExecutorCount: number;
 
   private readonly events: WorkerEventSnapshot[] = [];
   private readonly eventLimit: number;
@@ -391,6 +398,13 @@ export class WorkerManager extends EventEmitter {
     } else {
       this.telemetryPath = null;
     }
+
+    this.desiredExecutorCount = this.parseDesiredExecutorCount(process.env.WVO_WORKER_COUNT);
+    logInfo('WorkerManager configured executor pool', {
+      desiredExecutors: this.desiredExecutorCount,
+      envWorkerCount: process.env.WVO_WORKER_COUNT,
+      envCodexWorkers: process.env.WVO_CODEX_WORKERS,
+    });
 
     // Periodically persist snapshot every 30 seconds
     if (this.telemetryPath) {
@@ -439,6 +453,8 @@ export class WorkerManager extends EventEmitter {
     await worker.ready();
     this.activeWorker = worker;
     this.emit('active:ready', { pid: worker.pid });
+
+    await this.reconcileExecutorPool();
   }
 
   async startCanary(options: Omit<WorkerStartOptions, 'role'> = {}): Promise<void> {
@@ -464,6 +480,64 @@ export class WorkerManager extends EventEmitter {
     await worker.ready();
     this.canaryWorker = worker;
     this.emit('canary:ready', { pid: worker.pid });
+  }
+
+  private async reconcileExecutorPool(): Promise<void> {
+    const desired = this.desiredExecutorCount;
+    const current = this.executorWorkers.length;
+
+    if (desired <= 0) {
+      if (current > 0) {
+        while (this.executorWorkers.length > 0) {
+          const worker = this.executorWorkers.pop();
+          if (!worker) {
+            break;
+          }
+          this.executorMetadata.delete(worker);
+          this.detachWorker(worker);
+          worker.dispose();
+        }
+        this.executorRoundRobinIndex = 0;
+      }
+      return;
+    }
+
+    if (!this.activeWorker) {
+      // Defer executor start until the orchestrator is ready
+      return;
+    }
+
+    if (current < desired) {
+      const { entryPath, execArgv } = resolveWorkerEntry();
+      for (let index = current; index < desired; index += 1) {
+        const label = `executor-${index + 1}`;
+        const worker = new ManagedWorker('executor', entryPath, execArgv, {
+          role: 'executor',
+          label,
+          env: {
+            WVO_DRY_RUN: '0',
+          },
+        });
+        this.attachWorker(worker, 'executor');
+        await worker.ready();
+      }
+      return;
+    }
+
+    if (current > desired) {
+      while (this.executorWorkers.length > desired) {
+        const worker = this.executorWorkers.pop();
+        if (!worker) {
+          break;
+        }
+        this.executorMetadata.delete(worker);
+        this.detachWorker(worker);
+        worker.dispose();
+      }
+      this.executorRoundRobinIndex = this.executorWorkers.length > 0
+        ? this.executorRoundRobinIndex % this.executorWorkers.length
+        : 0;
+    }
   }
 
   async switchToCanary(): Promise<WorkerSwitchSummary> {
@@ -521,6 +595,25 @@ export class WorkerManager extends EventEmitter {
     return this.canaryWorker;
   }
 
+  getExecutor(): ManagedWorker | null {
+    if (this.executorWorkers.length === 0) {
+      return null;
+    }
+
+    const startIndex = this.executorRoundRobinIndex % this.executorWorkers.length;
+    for (let offset = 0; offset < this.executorWorkers.length; offset += 1) {
+      const idx = (startIndex + offset) % this.executorWorkers.length;
+      const worker = this.executorWorkers[idx];
+      const metadata = this.executorMetadata.get(worker);
+      if (metadata && metadata.status === 'ready') {
+        this.executorRoundRobinIndex = idx + 1;
+        return worker;
+      }
+    }
+
+    return null;
+  }
+
   async stopAll(): Promise<void> {
     // Stop periodic snapshot timer
     if (this.snapshotTimer) {
@@ -545,6 +638,26 @@ export class WorkerManager extends EventEmitter {
       this.canaryWorker = null;
       worker.dispose();
     }
+
+    if (this.executorWorkers.length > 0) {
+      for (const worker of this.executorWorkers.splice(0, this.executorWorkers.length)) {
+        this.executorMetadata.delete(worker);
+        worker.dispose();
+      }
+    }
+  }
+
+  private parseDesiredExecutorCount(raw: string | undefined): number {
+    const source = raw ?? process.env.WVO_CODEX_WORKERS;
+    if (!source) {
+      return 0;
+    }
+    const parsed = Number.parseInt(source, 10);
+    if (!Number.isFinite(parsed) || parsed <= 0) {
+      return 0;
+    }
+    // Cap to a sensible upper bound to avoid runaway spawning
+    return Math.min(parsed, 8);
   }
 
   async getSnapshot(): Promise<WorkerManagerSnapshot> {
@@ -553,6 +666,7 @@ export class WorkerManager extends EventEmitter {
       this.collectProcessSnapshot('active', now),
       this.collectProcessSnapshot('canary', now),
     ]);
+    const executors = await this.collectExecutorSnapshots(now);
 
     const notes: string[] = [];
     let status: 'healthy' | 'degraded' = 'healthy';
@@ -590,6 +704,18 @@ export class WorkerManager extends EventEmitter {
       notes.push('Worker exit recorded within last 10 minutes.');
     }
 
+    if (this.desiredExecutorCount > 0) {
+      if (executors.length < this.desiredExecutorCount) {
+        status = 'degraded';
+        notes.push(
+          `Executor pool undersized (have ${executors.length}, want ${this.desiredExecutorCount}).`,
+        );
+      } else if (executors.some((exec) => exec.status !== 'ready')) {
+        status = 'degraded';
+        notes.push('One or more executor workers not ready.');
+      }
+    }
+
     const snapshot: WorkerManagerSnapshot = {
       recorded_at: new Date(now).toISOString(),
       recorded_at_ms: now,
@@ -597,6 +723,7 @@ export class WorkerManager extends EventEmitter {
       notes,
       active: active ?? null,
       canary: canary ?? null,
+      executors,
       events: [...this.events],
       event_limit: this.eventLimit,
       persisted_path: this.telemetryPath,
@@ -612,6 +739,9 @@ export class WorkerManager extends EventEmitter {
     }
     if (worker === this.canaryWorker) {
       return 'canary';
+    }
+    if (this.executorWorkers.includes(worker)) {
+      return 'executor';
     }
     return this.workerRoles.get(worker) ?? 'unknown';
   }
@@ -644,13 +774,26 @@ export class WorkerManager extends EventEmitter {
       error: errorListener,
     });
 
-    this.metadata[role] = {
-      role,
-      label: worker.label,
-      status: 'starting',
-      spawnedAtMs: worker.startedAt,
-      lastExit: null,
-    };
+    if (role === 'executor') {
+      const metadata: WorkerProcessMetadata = {
+        role,
+        label: worker.label,
+        status: 'starting',
+        spawnedAtMs: worker.startedAt,
+        lastExit: null,
+      };
+      this.executorWorkers.push(worker);
+      this.executorMetadata.set(worker, metadata);
+    } else {
+      this.metadata[role] = {
+        role,
+        label: worker.label,
+        status: 'starting',
+        spawnedAtMs: worker.startedAt,
+        lastExit: null,
+      };
+    }
+
     this.recordEvent(role, 'spawn', {
       message: `Started ${role} worker`,
       details: {
@@ -670,6 +813,17 @@ export class WorkerManager extends EventEmitter {
       this.workerListeners.delete(worker);
     }
     this.workerRoles.delete(worker);
+
+    const executorIndex = this.executorWorkers.indexOf(worker);
+    if (executorIndex >= 0) {
+      this.executorWorkers.splice(executorIndex, 1);
+      this.executorMetadata.delete(worker);
+      if (this.executorWorkers.length === 0) {
+        this.executorRoundRobinIndex = 0;
+      } else {
+        this.executorRoundRobinIndex %= this.executorWorkers.length;
+      }
+    }
   }
 
   private handleWorkerReady(worker: ManagedWorker, payload: WorkerReadyMessage): void {
@@ -677,13 +831,24 @@ export class WorkerManager extends EventEmitter {
     if (role === 'unknown') {
       return;
     }
-    this.updateMetadata(role, {
-      status: 'ready',
-      readyAtMs: Date.now(),
-      startedAtIso: payload.startedAt,
-      version: payload.version ?? null,
-      flags: payload.flags ?? undefined,
-    });
+    if (role === 'executor') {
+      const metadata = this.executorMetadata.get(worker);
+      if (metadata) {
+        metadata.status = 'ready';
+        metadata.readyAtMs = Date.now();
+        metadata.startedAtIso = payload.startedAt;
+        metadata.version = payload.version ?? null;
+        metadata.flags = payload.flags ?? undefined;
+      }
+    } else {
+      this.updateMetadata(role, {
+        status: 'ready',
+        readyAtMs: Date.now(),
+        startedAtIso: payload.startedAt,
+        version: payload.version ?? null,
+        flags: payload.flags ?? undefined,
+      });
+    }
     this.recordEvent(role, 'ready', {
       message: `${role} worker signalled ready`,
       details: {
@@ -740,6 +905,12 @@ export class WorkerManager extends EventEmitter {
           lastExit: exitSnapshot,
         });
       }
+    } else if (role === 'executor') {
+      const metadata = this.executorMetadata.get(worker);
+      if (metadata) {
+        metadata.status = 'stopped';
+        metadata.lastExit = exitSnapshot;
+      }
     }
 
     this.recordEvent(role === 'unknown' ? 'unknown' : role, 'exit', {
@@ -752,10 +923,27 @@ export class WorkerManager extends EventEmitter {
     });
 
     this.detachWorker(worker);
+
+    if (role === 'executor') {
+      void this.reconcileExecutorPool();
+    }
   }
 
   private handleWorkerError(worker: ManagedWorker, error: Error): void {
     const role = this.resolveRole(worker);
+    if (role === 'executor') {
+      const metadata = this.executorMetadata.get(worker);
+      if (metadata) {
+        this.executorMetadata.set(worker, {
+          ...metadata,
+          status: 'failed',
+        });
+      }
+    } else if (role === 'active' || role === 'canary') {
+      this.updateMetadata(role, {
+        status: 'failed',
+      });
+    }
     this.recordEvent(role === 'unknown' ? 'unknown' : role, 'error', {
       level: 'error',
       message: error.message,
@@ -782,7 +970,7 @@ export class WorkerManager extends EventEmitter {
     }
   }
 
-  private updateMetadata(role: WorkerRole, updates: Partial<WorkerProcessMetadata>): void {
+  private updateMetadata(role: PrimaryWorkerRole, updates: Partial<WorkerProcessMetadata>): void {
     const existing = this.metadata[role];
     if (!existing) {
       this.metadata[role] = {
@@ -802,7 +990,7 @@ export class WorkerManager extends EventEmitter {
   }
 
   private async collectProcessSnapshot(
-    role: WorkerRole,
+    role: PrimaryWorkerRole,
     nowMs: number,
   ): Promise<WorkerProcessSnapshot | null> {
     const worker = role === 'active' ? this.activeWorker : this.canaryWorker;
@@ -859,6 +1047,56 @@ export class WorkerManager extends EventEmitter {
       last_health_at: meta.lastHealthAtMs ? new Date(meta.lastHealthAtMs).toISOString() : null,
       last_exit: meta.lastExit ?? null,
     };
+  }
+
+  private async collectExecutorSnapshots(nowMs: number): Promise<WorkerProcessSnapshot[]> {
+    const snapshots: WorkerProcessSnapshot[] = [];
+    for (const worker of this.executorWorkers) {
+      const metadata = this.executorMetadata.get(worker);
+      if (!metadata) {
+        continue;
+      }
+
+      try {
+        const health = await worker.call<WorkerHealthPayload>('health', undefined, { timeoutMs: 5_000 });
+        metadata.lastHealth = health ?? null;
+        metadata.lastHealthAtMs = nowMs;
+      } catch (error) {
+        metadata.lastHealth = null;
+        metadata.lastHealthAtMs = nowMs;
+        this.recordEvent('executor', 'error', {
+          level: 'error',
+          message: 'Health check failed for executor worker',
+          details: {
+            label: metadata.label,
+            error: error instanceof Error ? error.message : String(error),
+          },
+        });
+      }
+
+      const uptimeMs = Math.max(0, nowMs - worker.startedAt);
+      const uptimeSeconds = Number((uptimeMs / 1000).toFixed(3));
+
+      snapshots.push({
+        role: 'executor',
+        label: metadata.label,
+        status: metadata.status,
+        pid: worker.pid ?? null,
+        spawned_at: new Date(metadata.spawnedAtMs).toISOString(),
+        ready_at: metadata.readyAtMs ? new Date(metadata.readyAtMs).toISOString() : null,
+        started_at: metadata.startedAtIso ?? null,
+        uptime_ms: uptimeMs,
+        uptime_seconds: uptimeSeconds,
+        version: metadata.version ?? null,
+        flags: metadata.flags,
+        last_health: metadata.lastHealth ?? null,
+        last_health_at: metadata.lastHealthAtMs
+          ? new Date(metadata.lastHealthAtMs).toISOString()
+          : null,
+        last_exit: metadata.lastExit ?? null,
+      });
+    }
+    return snapshots;
   }
 
   private async persistSnapshot(snapshot: WorkerManagerSnapshot): Promise<void> {

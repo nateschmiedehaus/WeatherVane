@@ -1,9 +1,9 @@
 # World-Class ML Quality Standards
 
 **Status**: Active Quality Gate
-**Version**: 1.1
+**Version**: 1.2
 **Enforced By**: `ModelingReality_v2` Critic
-**Last Updated**: 2025-10-23
+**Last Updated**: 2025-10-24
 
 ---
 
@@ -19,6 +19,20 @@ WeatherVane's ML models must deliver **objective truth, not task completion**. E
 6. **End-to-end safeguards** spanning data quality, ethical use, and live operations
 
 This document codifies the standards that separate production-ready models from prototype code.
+
+---
+
+## Quality Pillars & KPIs
+
+| Pillar | Objective | KPI | Threshold | Evidence & Tooling |
+|---|---|---|---|---|
+| **Data Integrity** | Inputs are trustworthy and complete | Coverage ratio, null rate, leakage scan | ≥95% coverage, ≤0.5% nulls, 0 critical leakage findings | `dataset_card.md`, `data_quality_report.json`, `shared/data_context/validators.py` |
+| **Modeling Performance** | Model materially outperforms baselines | Out-of-sample R², MAPE, baseline lift | R² ≥0.50 (weather), MAPE ≤20%, ≥10% lift vs all baselines | `validation_report.json`, critic `modeling_reality_v2`, unit tests |
+| **Robustness & Stress** | Model holds under adverse scenarios | Robustness delta metrics | ΔR² ≤0.05 (missing data), ΔMAPE ≤2%, unseen tenant R² ≥0.45 | `robustness_suite.log`, pytest parameter sweeps |
+| **Observability & Ops** | Production behavior is monitored and safe | Drift metrics, alert MTTA, fallback drills | Drift K-S <0.15, alert MTTA <5 min, quarterly failover drill | `monitoring_config.yaml`, Grafana `ML/WeatherVane`, on-call drill log |
+| **Responsible AI & Compliance** | Model behavior is fair, auditable, and secure | Disparity gap, privacy audit, audit log completeness | Uplift gap ≤5pp, 0 PII findings, 100% experiment traceability | `fairness_report.json`, `privacy_sanitizer.log`, `experiments/metadata.json` |
+
+These pillars anchor every gate below; a task cannot advance if any KPI or evidence artifact is missing.
 
 ---
 
@@ -293,6 +307,31 @@ Models must handle real-world edge cases:
 
 ---
 
+### Uncertainty & Explainability (T-MLR-2.7)
+
+**Requirement**: Quantify uncertainty and expose feature drivers for every production-bound model.
+
+- **Elasticity Confidence Intervals**: Report 95% confidence intervals (or posterior credible intervals) for each weather elasticity coefficient. Store in `validation_report.json` under `elasticity_ci`.
+- **Prediction Intervals**: Provide 80% and 95% prediction intervals for forecasts; gap between forecast and actual must stay within the 95% band for ≥90% of holdout observations.
+- **Explainability Artifacts**: Generate SHAP global summary and per-tenant feature rankings. Persist plots under `artifacts/explainability/` and include top drivers in `feature_importance.json`.
+- **Review Hook**: Scientific reviewer must sign off that explainability narrative matches quantitative evidence.
+
+**Example Snippet**:
+```json
+"uncertainty": {
+  "temperature": {"coef": 0.024, "ci_95": [0.018, 0.030]},
+  "precipitation": {"coef": 0.041, "ci_95": [0.032, 0.051]}
+},
+"prediction_interval_coverage": {
+  "p80": 0.83,
+  "p95": 0.91
+}
+```
+
+Failure to include uncertainty and explainability artifacts blocks Scientific Review.
+
+---
+
 ## Critic Integration
 
 ### ModelingReality_v2 Critic
@@ -411,6 +450,28 @@ Gate reviews must be captured in `state/audits/` with timestamp, reviewer, and v
 
 ---
 
+### Gate Review Workflow
+
+1. **Prep & Self-Audit** – Task owner completes pillar scorecard (see below), attaches artifacts, and logs open risks.
+2. **Automated Critics** – Run `critic:data_quality`, `critic:modeling_reality_v2`, and any epic-specific critics; attach logs to the evidence bundle.
+3. **Asynchronous Review** – Reviewer has 24 hours to respond. SLA breaching >24h escalates to Atlas.
+4. **Decision Recording** – Record decision in `state/audits/<task_id>.json` with pass/fail, remediation actions, and due dates.
+5. **Quality Debt Tracking** – Any deferred item becomes a work item in the ML remediation backlog with owner and due date.
+
+#### Pillar Scorecard Template
+
+| Pillar | Metric | Status (`PASS`/`FAIL`/`RISK`) | Evidence Link | Owner | Date |
+|---|---|---|---|---|---|
+| Data Integrity | Coverage ≥95% |  |  |  |  |
+| Modeling Performance | R² ≥ threshold |  |  |  |  |
+| Robustness & Stress | ΔR² ≤0.05 |  |  |  |  |
+| Observability & Ops | Drift K-S <0.15 |  |  |  |  |
+| Responsible AI | Uplift gap ≤5pp |  |  |  |  |
+
+Store completed scorecards alongside validation artifacts (`experiments/<epic>/<task>/scorecard.md`).
+
+---
+
 ## Live Monitoring & Incident Response
 
 World-class quality extends into production. Every model must have:
@@ -437,6 +498,7 @@ WeatherVane models must be safe, fair, and auditable.
 - **Security**: Models and artifacts stored in encrypted S3 buckets with rotation every 90 days; hash artifacts before upload.
 - **Auditability**: Maintain immutable experiment log (`experiments/metadata.json`) with git commit hash, data snapshot ID, and hyperparameters. Required for SOX-style reviews.
 - **Regulatory Alignment**: Track compliance with upcoming EU AI Act high-risk provisions—risk assessment, human oversight plan, logging of automated decisions.
+- **Explainability**: Provide SHAP/feature attribution summary, decision rationale, and reviewer narrative in `docs/reviews/` linking back to uncertainty artifacts.
 
 Non-compliant models cannot progress past Scientific Review gate.
 
@@ -455,6 +517,7 @@ Before requesting sign-off, package the following artifacts:
 | `monitoring_config.yaml` | `deployments/monitoring/` | Alert configuration |
 | `dataset_card.md` | `docs/datasets/` | Data lineage, coverage, caveats |
 | `review_note.md` | `docs/reviews/` | Scientific reviewer verdict |
+| `scorecard.md` | `experiments/<epic>/<task>/` | Signed pillar status with owners and dates |
 
 Atlas will not approve completion without a fully populated bundle.
 
@@ -466,6 +529,7 @@ Atlas will not approve completion without a fully populated bundle.
 - **Owner**: ML Engineering (Atlas)
 - **Reviewer**: Modeling Reality Critic (automated)
 - **Timeline**: 1-2 days per task
+- **Submission Package**: Evidence bundle artifacts plus signed `scorecard.md` uploaded to `experiments/<epic>/<task>/`.
 
 ### External Peer Review
 - **Requirement for T-MLR-0.3**: External ML practitioner reviews entire standard
@@ -478,13 +542,14 @@ Atlas will not approve completion without a fully populated bundle.
 
 | Version | Date | Changes |
 |---|---|---|
+| 1.2 | 2025-10-24 | Added quality pillar KPIs, uncertainty/explainability requirements, and gate review workflow |
 | 1.1 | 2025-10-23 | Added lifecycle quality gates, monitoring, responsible AI, and evidence bundle requirements |
 | 1.0 | 2025-10-22 | Initial standards (R²≥0.50, baseline >1.10, elasticity signs, no overfitting, MAPE<20%) |
 
 **Future Improvements**:
-- Add confidence interval requirements for elasticity coefficients
-- Require model explainability metrics (SHAP, feature importance)
-- Add A/B test sample size requirements before production rollout
+- Codify causal validation standards (uplift modeling, geo experiments) before GA launches
+- Define minimum online experiment sample sizes and power calculations for champion/challenger swaps
+- Automate fairness and drift alert backtesting in CI to prevent config regressions
 
 ---
 

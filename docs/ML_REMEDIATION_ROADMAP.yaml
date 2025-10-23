@@ -1,0 +1,811 @@
+# ML Model Remediation & Validation Roadmap
+# Purpose: Bring ML models from prototype to production-ready with world-class quality
+# Timeline: 7-12 weeks
+# Priority: CRITICAL - Blocks all ML claims until complete
+
+epics:
+  - id: E-ML-REMEDIATION
+    title: "ML Model Remediation - From Prototype to Production"
+    status: pending
+    priority: critical
+    domain: modeling
+    description: |
+      The current ML models are prototypes with placeholder logic. This epic
+      brings them to production-ready status with rigorous validation, objective
+      quality thresholds, and world-class testing standards.
+
+    milestones:
+      - id: M-MLR-0
+        title: "Foundation: Truth & Accountability"
+        status: pending
+        description: |
+          Establish objective truth about current state, create critics that enforce
+          excellence, and set world-class quality standards.
+        tasks:
+          - id: T-MLR-0.1
+            title: Create ModelingReality critic with quantitative thresholds
+            status: pending
+            priority: critical
+            complexity: moderate
+            dependencies: []
+            exit_criteria:
+              - artifact:tools/wvo_mcp/src/critics/modeling_reality_v2.ts
+              - test:Critic FAILS when R² < 0.50
+              - test:Critic FAILS when no baseline comparison
+              - test:Critic FAILS when weather elasticity signs wrong
+              - test:Critic PASSES only when ALL thresholds met
+              - metric:critic_strictness = 1.0 (no false positives)
+            description: |
+              Create a critic that enforces quantitative thresholds on model quality.
+              This critic must FAIL any task that:
+              - Has out-of-sample R² < 0.50
+              - Lacks baseline comparison
+              - Has incorrect weather elasticity signs
+              - Missing validation on holdout data
+              - No evidence of beating baseline by >10%
+
+              The critic should parse model artifacts (JSON/pkl) and extract metrics.
+              No subjective judgment - only objective thresholds.
+
+          - id: T-MLR-0.2
+            title: Update all ML task exit criteria with objective metrics
+            status: pending
+            priority: critical
+            complexity: simple
+            dependencies: ['T-MLR-0.1']
+            exit_criteria:
+              - artifact:state/roadmap.yaml (updated T12.*, T13.* tasks)
+              - verification:Every ML task has "metric:r2 > 0.50" criterion
+              - verification:Every ML task has "metric:beats_baseline > 1.10" criterion
+              - verification:Every ML task has "critic:modeling_reality_v2" criterion
+              - review:Manual inspection confirms no loopholes
+            description: |
+              Update all ML modeling tasks (T12.*, T13.*) to include objective
+              exit criteria that cannot be gamed:
+
+              Example:
+              ```yaml
+              exit_criteria:
+                - artifact:experiments/mmm/model.pkl
+                - artifact:experiments/mmm/validation_report.json
+                - metric:out_of_sample_r2 > 0.50
+                - metric:weather_elasticity_sign_correct = true
+                - metric:beats_naive_baseline_mape > 1.10
+                - metric:beats_seasonal_baseline_mape > 1.10
+                - critic:modeling_reality_v2
+                - critic:academic_rigor
+              ```
+
+          - id: T-MLR-0.3
+            title: Document world-class quality standards for ML
+            status: pending
+            priority: high
+            complexity: simple
+            dependencies: []
+            exit_criteria:
+              - artifact:docs/ML_QUALITY_STANDARDS.md
+              - verification:Document specifies numeric thresholds for every metric
+              - verification:Document includes baseline comparison requirements
+              - verification:Document requires reproducible validation
+              - review:Peer review by external ML practitioner
+            description: |
+              Create comprehensive documentation of what "world-class" means for
+              WeatherVane ML models:
+
+              Sections:
+              1. Performance Thresholds (R², MAPE, elasticity bounds)
+              2. Testing Requirements (train/val/test, baselines, robustness)
+              3. Validation Evidence (reproducible notebooks, artifacts)
+              4. Documentation Standards (limitations, comparisons, evidence)
+              5. Deployment Gates (monitoring, rollback, A/B testing)
+
+      - id: M-MLR-1
+        title: "Phase 1: Fix Synthetic Data (2 weeks)"
+        status: pending
+        description: |
+          Current synthetic data has wrong weather correlations. Fix the generator
+          and create multi-year, realistic datasets.
+        tasks:
+          - id: T-MLR-1.1
+            title: Debug and fix weather multiplier logic in data generator
+            status: pending
+            priority: critical
+            complexity: moderate
+            dependencies: []
+            exit_criteria:
+              - artifact:scripts/weather/generate_synthetic_tenants_v2.py
+              - test:Extreme tenant correlation = 0.85 ± 0.05
+              - test:High tenant correlation = 0.70 ± 0.05
+              - test:Medium tenant correlation = 0.40 ± 0.05
+              - test:None tenant correlation < 0.10 (absolute value)
+              - verification:Visual inspection of timeseries shows clear patterns
+              - critic:data_quality (validates correlation ranges)
+            description: |
+              Fix the weather multiplier logic in generate_synthetic_tenants.py.
+
+              Current issue: All tenants except "none" have wrong correlations.
+
+              Root cause investigation:
+              1. Check get_weather_multiplier() seasonal logic
+              2. Verify date calculations (day_of_year)
+              3. Check if products with opposite sensitivities cancel out
+              4. Validate aggregation logic (daily rollups)
+
+              Solution requirements:
+              - Extreme tenant: Winter products dominate → strong negative correlation
+              - High tenant: Clear seasonal split → moderate correlation
+              - Medium tenant: Mixed products → weak correlation
+              - None tenant: No weather impact → near-zero correlation
+
+              Validation:
+              - Run correlation analysis on generated data
+              - Plot temperature vs. revenue to visually confirm
+              - Check product-level patterns (not just aggregates)
+
+          - id: T-MLR-1.2
+            title: Generate 3 years of synthetic data for 20 tenants
+            status: pending
+            priority: critical
+            complexity: complex
+            dependencies: ['T-MLR-1.1']
+            exit_criteria:
+              - artifact:storage/seeds/synthetic_v2/*.parquet (20 files)
+              - metric:total_rows = 219,000 (20 tenants × 1095 days × 10 products)
+              - metric:date_range = 2022-01-01 to 2024-12-31 (3 full years)
+              - metric:weather_correlations_within_target = 18/20 (90% success rate)
+              - artifact:state/analytics/synthetic_v2_validation.json
+              - test:pytest tests/data_gen/test_synthetic_v2_quality.py (all pass)
+              - critic:data_quality
+            description: |
+              Generate comprehensive synthetic dataset:
+
+              Tenants (20 total):
+              - 5 Extreme: Ski shops, heater dealers, AC stores, umbrella brands, ice cream shops
+              - 5 High: Winter apparel, sunglasses, raincoats, outdoor gear, seasonal flowers
+              - 5 Medium: General clothing, footwear, sporting goods, home goods, beauty
+              - 5 None: Office supplies, tech, furniture, automotive, financial services
+
+              Data structure (per tenant):
+              - 10 products per tenant (not 5)
+              - 1,095 days (3 full years: 2022-2024)
+              - Daily: date, product, revenue, units, COGS, meta_spend, google_spend,
+                email_metrics, temperature, precipitation, humidity, wind
+
+              Realistic patterns:
+              - Use actual historical weather from NOAA/Open-Meteo for 10 US cities
+              - Ad spend varies by day-of-week (weekends -30%)
+              - Seasonal campaigns (Black Friday spikes, summer sales)
+              - Inventory constraints (stockouts reduce revenue)
+              - Growth trends (5-10% YoY)
+
+              Validation:
+              - Correlation analysis per tenant
+              - Visual plots (temperature vs. revenue)
+              - Seasonality decomposition
+              - Data quality checks (nulls, outliers, duplicates)
+
+          - id: T-MLR-1.3
+            title: Create validation tests for synthetic data quality
+            status: pending
+            priority: high
+            complexity: moderate
+            dependencies: ['T-MLR-1.2']
+            exit_criteria:
+              - artifact:tests/data_gen/test_synthetic_v2_quality.py
+              - test:20/20 tests pass (one per tenant)
+              - verification:Tests check correlation ranges
+              - verification:Tests check seasonality presence
+              - verification:Tests check data completeness
+              - artifact:experiments/data_validation/correlation_plots.pdf
+              - critic:tests
+            description: |
+              Create comprehensive tests for synthetic data:
+
+              Test categories:
+              1. Correlation tests (weather vs. revenue in expected range)
+              2. Seasonality tests (Fourier analysis shows 365-day cycle)
+              3. Data quality (no nulls, outliers within 3σ, no duplicates)
+              4. Realism (ad spend patterns, day-of-week effects, growth trends)
+              5. Volume (correct row counts, date ranges)
+
+              For each tenant, assert:
+              - assert correlation_with_weather in expected_range
+              - assert has_clear_seasonality == True
+              - assert no_missing_dates == True
+              - assert no_outliers > 5sigma
+              - assert realistic_ad_spend_variance == True
+
+      - id: M-MLR-2
+        title: "Phase 2: Rigorous MMM Training (3 weeks)"
+        status: pending
+        description: |
+          Train models with proper methodology: LightweightMMM/Robyn, train/val/test
+          splits, baseline comparisons, and objective validation.
+        tasks:
+          - id: T-MLR-2.1
+            title: Implement proper train/val/test splitting with no leakage
+            status: pending
+            priority: critical
+            complexity: moderate
+            dependencies: ['T-MLR-1.3']
+            exit_criteria:
+              - artifact:shared/libs/modeling/time_series_split.py
+              - test:Validation set comes strictly after training
+              - test:Test set comes strictly after validation
+              - test:No date overlap between splits
+              - test:Split percentages correct (70/15/15)
+              - verification:pytest tests/modeling/test_time_series_split.py (all pass)
+              - critic:leakage (checks for future leakage)
+            description: |
+              Implement time-series aware splitting:
+
+              ```python
+              def time_series_split(data, train_pct=0.70, val_pct=0.15):
+                  \"\"\"
+                  Split time series data without future leakage.
+
+                  train: First 70% (e.g., 2022-01-01 to 2023-09-15)
+                  val:   Next 15% (e.g., 2023-09-16 to 2024-02-29)
+                  test:  Final 15% (e.g., 2024-03-01 to 2024-12-31)
+                  \"\"\"
+                  # Sort by date
+                  # Split by index (not random!)
+                  # Validate no overlap
+                  # Return train, val, test
+              ```
+
+              Tests must verify:
+              - No date appears in multiple splits
+              - Validation dates > all training dates
+              - Test dates > all validation dates
+              - No shuffling (time order preserved)
+
+          - id: T-MLR-2.2
+            title: Implement LightweightMMM with weather features
+            status: pending
+            priority: critical
+            complexity: complex
+            dependencies: ['T-MLR-2.1']
+            exit_criteria:
+              - artifact:apps/model/mmm_lightweight_weather.py
+              - test:Model trains without errors on synthetic data
+              - test:Adstock transformation applied correctly
+              - test:Saturation curves (Hill) applied correctly
+              - test:Weather interaction terms included
+              - test:Model saves and loads correctly
+              - verification:pytest tests/model/test_mmm_lightweight.py (12/12 pass)
+              - critic:academic_rigor (checks methodology)
+            description: |
+              Implement proper MMM using LightweightMMM library:
+
+              Features:
+              - Adstock transformation for carryover effects
+              - Hill saturation curves for diminishing returns
+              - Weather interaction terms (temp × product_category)
+              - Hierarchical priors (brand → product)
+
+              Model spec:
+              ```python
+              revenue ~ (
+                  adstock(meta_spend) +
+                  adstock(google_spend) +
+                  adstock(email_spend) +
+                  weather_features(temp, precip, humidity) +
+                  product_fixed_effects +
+                  time_trends
+              )
+              ```
+
+              Validation:
+              - Train on 5 tenants (1 per sensitivity level + 1 control)
+              - Check coefficients have correct signs
+              - Verify weather terms significant for weather-sensitive tenants
+              - Verify weather terms near-zero for non-sensitive tenants
+
+          - id: T-MLR-2.3
+            title: Train models on all 20 synthetic tenants with cross-validation
+            status: pending
+            priority: critical
+            complexity: complex
+            dependencies: ['T-MLR-2.2']
+            exit_criteria:
+              - artifact:experiments/mmm_v2/models/*.pkl (20 model files)
+              - artifact:experiments/mmm_v2/training_logs/*.json (20 log files)
+              - metric:training_success_rate = 20/20 (100%)
+              - metric:weather_sensitive_tenants_r2 > 0.50 (15/15 pass)
+              - metric:non_sensitive_tenants_r2 > 0.30 (5/5 pass)
+              - artifact:experiments/mmm_v2/training_summary.csv
+              - critic:modeling_reality_v2 (validates all metrics)
+            description: |
+              Train MMM models on all 20 synthetic tenants:
+
+              Process (per tenant):
+              1. Load data (3 years)
+              2. Split train/val/test (70/15/15)
+              3. Train LightweightMMM on training set
+              4. Tune hyperparameters on validation set
+              5. Evaluate on test set (final performance)
+              6. Save model + metrics
+
+              Metrics to track:
+              - Training R² (should be high, risk of overfit)
+              - Validation R² (model selection)
+              - Test R² (final performance, must exceed threshold)
+              - MAPE (mean absolute percentage error)
+              - Weather elasticity coefficients
+              - Convergence diagnostics
+
+              Success criteria:
+              - Weather-sensitive tenants: Test R² > 0.50
+              - Non-sensitive tenants: Test R² > 0.30 (less variance to explain)
+              - All weather coefficients have correct signs
+
+          - id: T-MLR-2.4
+            title: Validate model performance against objective thresholds
+            status: pending
+            priority: critical
+            complexity: moderate
+            dependencies: ['T-MLR-2.3']
+            exit_criteria:
+              - artifact:experiments/mmm_v2/validation_report.json
+              - metric:weather_sensitive_r2_pass_rate >= 0.80 (12/15 minimum)
+              - metric:weather_elasticity_sign_correct = 1.0 (100%)
+              - metric:no_overfitting_detected = true (test R² within 0.1 of val R²)
+              - test:pytest tests/model/test_mmm_validation_thresholds.py (all pass)
+              - critic:modeling_reality_v2
+              - critic:academic_rigor
+            description: |
+              Validate all trained models meet objective quality thresholds:
+
+              Threshold checks (per tenant):
+              1. **R² threshold**: Test R² > 0.50 (weather-sensitive) or > 0.30 (non-sensitive)
+              2. **Weather elasticity signs**:
+                 - Winter products: temp coef < 0 (cold → more sales)
+                 - Summer products: temp coef > 0 (hot → more sales)
+                 - Rain products: precip coef > 0 (rain → more sales)
+              3. **No overfitting**: |test R² - validation R²| < 0.10
+              4. **MAPE**: < 20% on test set
+              5. **Convergence**: R-hat < 1.1 (for Bayesian models)
+
+              Generate validation report:
+              ```json
+              {
+                "tenant_id": "extreme_ski_shop",
+                "test_r2": 0.67,
+                "test_mape": 14.2,
+                "weather_elasticity": {
+                  "temperature": -0.032,  // Correct sign ✓
+                  "precipitation": 0.018  // Correct sign ✓
+                },
+                "thresholds_passed": {
+                  "r2": true,
+                  "elasticity_signs": true,
+                  "no_overfitting": true,
+                  "mape": true
+                },
+                "overall_status": "PASS"
+              }
+              ```
+
+              Fail criteria:
+              - If >20% of weather-sensitive tenants fail R² threshold → FAIL entire task
+              - If ANY tenant has wrong elasticity signs → FAIL entire task
+              - If evidence of overfitting (test << val) → FAIL entire task
+
+          - id: T-MLR-2.5
+            title: Compare models to baseline (naive/seasonal/linear)
+            status: pending
+            priority: critical
+            complexity: moderate
+            dependencies: ['T-MLR-2.4']
+            exit_criteria:
+              - artifact:experiments/mmm_v2/baseline_comparison.json
+              - metric:weather_mmm_beats_naive_by >= 1.10 (10% improvement minimum)
+              - metric:weather_mmm_beats_seasonal_by >= 1.05 (5% improvement minimum)
+              - metric:weather_mmm_beats_linear_by >= 1.05 (5% improvement minimum)
+              - verification:All 20 tenants show improvement over ALL baselines
+              - artifact:experiments/mmm_v2/baseline_comparison_plots.pdf
+              - critic:modeling_reality_v2
+            description: |
+              Train baseline models and compare to weather MMM:
+
+              Baselines (per tenant):
+              1. **Naive**: Predict tomorrow = today
+              2. **Seasonal**: Predict today = same day last year
+              3. **Linear**: revenue ~ meta_spend + google_spend (no weather)
+
+              Comparison metrics:
+              - MAPE improvement: (baseline_MAPE - model_MAPE) / baseline_MAPE
+              - R² improvement: model_R² - baseline_R²
+
+              Success criteria (per tenant):
+              - Weather MMM MAPE must be ≥10% better than naive
+              - Weather MMM MAPE must be ≥5% better than seasonal
+              - Weather MMM MAPE must be ≥5% better than linear
+
+              Comparison table format:
+              ```
+              Tenant          Naive  Seasonal  Linear  Weather MMM  Best By
+              extreme_ski     28.3%  22.1%     18.4%   14.2%        +22%
+              high_coats      25.7%  19.3%     16.2%   13.1%        +19%
+              ...
+              ```
+
+              If weather MMM doesn't beat ALL baselines for ≥15/20 tenants → FAIL
+
+          - id: T-MLR-2.6
+            title: Run robustness tests (outliers, missing data, edge cases)
+            status: pending
+            priority: high
+            complexity: moderate
+            dependencies: ['T-MLR-2.5']
+            exit_criteria:
+              - artifact:experiments/mmm_v2/robustness_report.json
+              - test:Model handles heat wave (110°F) without crash
+              - test:Model handles extreme cold (-20°F) without crash
+              - test:Model handles missing weather (3 days) gracefully
+              - test:Model handles zero ad spend correctly (organic baseline)
+              - test:Model handles 10x ad spend with saturation (not 10x revenue)
+              - verification:pytest tests/model/test_mmm_robustness.py (15/15 pass)
+              - critic:modeling_reality_v2
+            description: |
+              Test model robustness to edge cases:
+
+              1. **Outlier weather**:
+                 - Test on 110°F heat wave → Should predict lower demand for winter products
+                 - Test on -20°F extreme cold → Should predict higher demand for heaters
+                 - Test on 10" rainfall day → Should predict higher umbrella sales
+                 - Models should NOT crash, return NaN, or predict negative revenue
+
+              2. **Missing data**:
+                 - Test with 3 consecutive days of missing weather → Should use last-known or impute
+                 - Test with missing ad spend → Should predict organic baseline
+                 - Models should degrade gracefully, not fail
+
+              3. **Edge cases**:
+                 - Zero ad spend → Predict organic demand (not zero revenue)
+                 - Extreme ad spend (10x normal) → Saturation should cap predicted revenue
+                 - New product (no history) → Use category average
+                 - Holiday (Christmas) → Model should capture spike
+
+              Success criteria:
+              - 0 crashes on any test case
+              - All predictions positive (no negative revenue)
+              - Extreme inputs produce reasonable outputs (not extrapolation explosion)
+
+      - id: M-MLR-3
+        title: "Phase 3: Reproducibility & Documentation (1 week)"
+        status: pending
+        description: |
+          Create reproducible validation notebooks, comprehensive documentation,
+          and objective evidence packages.
+        tasks:
+          - id: T-MLR-3.1
+            title: Create reproducible validation notebook
+            status: pending
+            priority: high
+            complexity: moderate
+            dependencies: ['T-MLR-2.6']
+            exit_criteria:
+              - artifact:experiments/mmm_v2/validation_notebook.ipynb
+              - test:Notebook runs end-to-end without errors
+              - test:Notebook output matches claimed metrics (R², MAPE, elasticity)
+              - verification:External reviewer can reproduce all results
+              - artifact:experiments/mmm_v2/validation_notebook.html (executed output)
+              - critic:academic_rigor
+            description: |
+              Create Jupyter notebook that reproduces all validation claims:
+
+              Sections:
+              1. Load Data (synthetic_v2)
+              2. Train/Val/Test Split
+              3. Train Models (1 per sensitivity level for demonstration)
+              4. Evaluate Performance (R², MAPE, elasticity)
+              5. Compare to Baselines
+              6. Robustness Tests
+              7. Summary Table
+
+              Every claimed metric must be calculated in the notebook:
+              - "Test R² = 0.67" → Show exact calculation
+              - "Beats baseline by 22%" → Show both baseline and model MAPE
+              - "Weather elasticity = -0.032" → Show coefficient extraction
+
+              Notebook must run in <10 minutes and produce identical results
+              every time (set random seeds).
+
+          - id: T-MLR-3.2
+            title: Write comprehensive ML validation documentation
+            status: pending
+            priority: high
+            complexity: simple
+            dependencies: ['T-MLR-3.1']
+            exit_criteria:
+              - artifact:docs/ML_VALIDATION_COMPLETE.md
+              - verification:Document links to reproducible notebook
+              - verification:Document includes limitations section
+              - verification:Document includes baseline comparisons
+              - verification:Document specifies exact thresholds used
+              - review:Peer review by external ML practitioner
+            description: |
+              Write documentation with objective evidence:
+
+              Required sections:
+              1. **Executive Summary** (1-2 paragraphs)
+              2. **Data** (synthetic_v2 specs, 3 years, 20 tenants)
+              3. **Methodology** (LightweightMMM, train/val/test, baselines)
+              4. **Results** (table of R², MAPE, elasticity per tenant)
+              5. **Baseline Comparison** (table showing improvement)
+              6. **Validation Evidence** (link to notebook)
+              7. **Limitations** (synthetic data, no A/B test, etc.)
+              8. **Next Steps** (real data, production deployment)
+
+              Example results table:
+              ```markdown
+              | Tenant | Test R² | MAPE | Beats Baseline | Weather Elasticity | Status |
+              |--------|---------|------|----------------|-------------------|--------|
+              | extreme_ski | 0.67 | 14.2% | +22% | ✓ Correct signs | ✅ PASS |
+              | high_coats | 0.61 | 15.8% | +19% | ✓ Correct signs | ✅ PASS |
+              | ... | ... | ... | ... | ... | ... |
+              ```
+
+              Limitations section must be prominent:
+              - Synthetic data (real world may differ)
+              - No A/B testing (theoretical improvement only)
+              - US only (international untested)
+              - 20 categories (may not generalize to all products)
+
+          - id: T-MLR-3.3
+            title: Package all evidence artifacts for review
+            status: pending
+            priority: high
+            complexity: simple
+            dependencies: ['T-MLR-3.2']
+            exit_criteria:
+              - artifact:experiments/mmm_v2/evidence_package.zip
+              - verification:Package contains all models (20 pkl files)
+              - verification:Package contains validation notebook (ipynb + html)
+              - verification:Package contains all metrics (JSON files)
+              - verification:Package contains documentation (MD files)
+              - verification:Package < 500MB (compressed)
+            description: |
+              Create evidence package for external review:
+
+              Contents:
+              ```
+              evidence_package/
+              ├── README.md (index of contents)
+              ├── models/ (20 trained models)
+              │   ├── extreme_ski_shop.pkl
+              │   ├── high_coats_nyc.pkl
+              │   └── ...
+              ├── validation/
+              │   ├── validation_notebook.ipynb
+              │   ├── validation_notebook.html
+              │   ├── validation_report.json
+              │   ├── baseline_comparison.json
+              │   └── robustness_report.json
+              ├── plots/
+              │   ├── correlation_plots.pdf
+              │   ├── baseline_comparison.pdf
+              │   └── residual_plots.pdf
+              └── docs/
+                  ├── ML_VALIDATION_COMPLETE.md
+                  ├── ML_QUALITY_STANDARDS.md
+                  └── ML_TESTING_AUDIT_2025-10-22.md
+              ```
+
+              README must include:
+              - How to reproduce validation (step-by-step)
+              - How to inspect models
+              - How to verify claims
+              - Contact for questions
+
+      - id: M-MLR-4
+        title: "Phase 4: Critic Integration & Policy Update (1 week)"
+        status: pending
+        description: |
+          Integrate ModelingReality critic, update autopilot policy, and ensure
+          no future task can be marked "done" without meeting world-class standards.
+        tasks:
+          - id: T-MLR-4.1
+            title: Deploy ModelingReality_v2 critic to production
+            status: pending
+            priority: critical
+            complexity: moderate
+            dependencies: ['T-MLR-0.1', 'T-MLR-3.3']
+            exit_criteria:
+              - artifact:tools/wvo_mcp/config/critic_identities.json (updated)
+              - artifact:state/critics/modelingreality_v2.json (initialized)
+              - test:Critic runs on test artifact (T-MLR-2.4 output)
+              - test:Critic FAILS when R² < 0.50
+              - test:Critic PASSES when all thresholds met
+              - verification:Critic integrated into autopilot flow
+              - critic:manager_self_check (validates critic works)
+            description: |
+              Deploy the ModelingReality_v2 critic:
+
+              Configuration:
+              ```json
+              {
+                "id": "modeling_reality_v2",
+                "identity": {
+                  "name": "ModelingReality Enforcer",
+                  "authority": "senior",
+                  "domain": "modeling",
+                  "mission": "Enforce world-class ML quality standards"
+                },
+                "thresholds": {
+                  "min_r2_weather_sensitive": 0.50,
+                  "min_r2_non_sensitive": 0.30,
+                  "min_baseline_improvement": 1.10,
+                  "weather_elasticity_sign_correct": true,
+                  "max_overfit_gap": 0.10
+                },
+                "mode": "strict"
+              }
+              ```
+
+              Test cases:
+              1. Test artifact with R² = 0.45 → Expect FAIL
+              2. Test artifact with R² = 0.55 but wrong signs → Expect FAIL
+              3. Test artifact with R² = 0.65 and correct signs → Expect PASS
+
+          - id: T-MLR-4.2
+            title: Update autopilot policy to require critic approval
+            status: pending
+            priority: critical
+            complexity: simple
+            dependencies: ['T-MLR-4.1']
+            exit_criteria:
+              - artifact:state/policy/autopilot_policy.json (updated)
+              - verification:Policy requires modeling_reality_v2 for all ML tasks
+              - verification:Policy blocks task completion if critic FAILS
+              - verification:Policy requires manual override for critic bypass
+              - test:Autopilot rejects task with failing critic
+            description: |
+              Update autopilot policy to enforce critic approval:
+
+              Policy updates:
+              1. **Mandatory critics for ML tasks**:
+                 - All tasks with epic_id="E12" or "E13" MUST have critic:modeling_reality_v2
+                 - Critic must PASS before task can be marked "done"
+
+              2. **No bypass without manual override**:
+                 - Agents cannot mark task "done" if critic FAILS
+                 - Only manual override by Director Dana or Atlas can bypass
+                 - Override requires written justification in task notes
+
+              3. **Evidence requirements**:
+                 - All ML tasks must produce validation_report.json
+                 - Report must include all required metrics
+                 - Missing metrics → Critic automatically FAILS
+
+              Test:
+              - Run autopilot on task with bad model (R² < 0.50)
+              - Verify task stays "in_progress" with critic feedback
+              - Verify agent cannot mark "done"
+
+          - id: T-MLR-4.3
+            title: Create meta-critic to review past completed ML tasks
+            status: pending
+            priority: high
+            complexity: moderate
+            dependencies: ['T-MLR-4.2']
+            exit_criteria:
+              - artifact:state/critics/meta_ml_review.json
+              - verification:Meta-critic reviews all T12.*, T13.* tasks
+              - verification:Meta-critic creates remediation tasks for failures
+              - artifact:state/roadmap.yaml (new tasks added if issues found)
+              - critic:manager_self_check
+            description: |
+              Create one-time meta-critic to review all previously "completed" ML tasks:
+
+              Process:
+              1. Load all tasks with epic_id IN ('E12', 'E13') and status='done'
+              2. For each task, load artifacts and run validation
+              3. Check if artifacts meet world-class standards
+              4. If NO → Create remediation task
+              5. Generate report of findings
+
+              Checks (per task):
+              - Does validation_report.json exist?
+              - If yes, does R² meet threshold?
+              - If yes, do elasticity signs match expectations?
+              - If yes, is there baseline comparison?
+              - If ANY check fails → Create remediation task
+
+              Output:
+              ```json
+              {
+                "tasks_reviewed": 14,
+                "tasks_passed": 2,
+                "tasks_failed": 12,
+                "remediation_tasks_created": [
+                  "T-MLR-FIX-12.PoC.1",
+                  "T-MLR-FIX-12.PoC.2",
+                  ...
+                ],
+                "summary": "12/14 tasks require remediation"
+              }
+              ```
+
+              New tasks added to roadmap with prefix "T-MLR-FIX-*"
+
+          - id: T-MLR-4.4
+            title: Document lessons learned and update contributor guide
+            status: pending
+            priority: medium
+            complexity: simple
+            dependencies: ['T-MLR-4.3']
+            exit_criteria:
+              - artifact:docs/LESSONS_LEARNED_ML_REMEDIATION.md
+              - artifact:docs/CONTRIBUTOR_GUIDE_ML.md (updated)
+              - verification:Guide includes "How to avoid false completion"
+              - verification:Guide includes quantitative threshold examples
+              - verification:Guide includes evidence package requirements
+            description: |
+              Document lessons learned from ML remediation:
+
+              Sections:
+              1. **What went wrong** (task completion without validation)
+              2. **Why it happened** (lenient exit criteria, no quantitative critics)
+              3. **How we fixed it** (objective thresholds, strict critics)
+              4. **How to avoid in future** (checklist for ML tasks)
+
+              Update contributor guide with:
+              - ML task template (with objective exit criteria)
+              - Critic integration guide
+              - Evidence package requirements
+              - Examples of good vs. bad validation
+
+              Checklist for future ML tasks:
+              ```markdown
+              Before marking ML task "done":
+              - [ ] Model artifact exists and loads
+              - [ ] Validation report exists with all metrics
+              - [ ] Out-of-sample R² > threshold (0.50 for weather-sensitive)
+              - [ ] Weather elasticity signs correct
+              - [ ] Baseline comparison shows improvement >10%
+              - [ ] Robustness tests pass
+              - [ ] Reproducible notebook runs end-to-end
+              - [ ] Documentation includes limitations
+              - [ ] Critic approval obtained
+              ```
+
+# Summary Statistics
+
+Total Tasks: 19
+Estimated Timeline: 7-12 weeks
+Critical Path: M-MLR-1 → M-MLR-2 → M-MLR-3 → M-MLR-4
+
+Priority Breakdown:
+- Critical: 11 tasks
+- High: 7 tasks
+- Medium: 1 task
+
+Complexity Breakdown:
+- Complex: 3 tasks
+- Moderate: 11 tasks
+- Simple: 5 tasks
+
+# Success Criteria for Entire Epic
+
+The E-ML-REMEDIATION epic is complete when:
+1. ✅ 15/15 weather-sensitive tenants have test R² > 0.50
+2. ✅ All weather elasticity signs correct (100%)
+3. ✅ Weather MMM beats all baselines by >10% (MAPE improvement)
+4. ✅ Reproducible notebook executes and validates all claims
+5. ✅ ModelingReality_v2 critic deployed and enforcing thresholds
+6. ✅ External peer review validates methodology and results
+7. ✅ All 19 tasks have objective evidence artifacts
+8. ✅ No tasks marked "done" without world-class quality
+
+# Exit Criteria for Epic
+
+- artifact:docs/ML_VALIDATION_COMPLETE.md
+- artifact:experiments/mmm_v2/evidence_package.zip
+- metric:weather_sensitive_tenants_passing >= 0.80 (12/15 minimum)
+- metric:all_tenants_beats_baseline = true
+- critic:modeling_reality_v2 (PASS on all tenants)
+- review:external_peer_review_complete = true
+- verification:autopilot_policy_enforces_standards = true

@@ -1,0 +1,354 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "DashboardResponse",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "tenant_id",
+    "generated_at",
+    "guardrails",
+    "spend_trackers",
+    "weather_events",
+    "automation",
+    "ingestion",
+    "alerts",
+    "weather_kpis",
+    "suggestion_telemetry",
+    "context_tags",
+    "context_warnings"
+  ],
+  "properties": {
+    "tenant_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "generated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "guardrails": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/GuardrailSegment"
+      }
+    },
+    "spend_trackers": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/SpendTracker"
+      }
+    },
+    "weather_events": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/WeatherRiskEvent"
+      }
+    },
+    "automation": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/AutomationLane"
+      }
+    },
+    "ingestion": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/IngestionConnector"
+      }
+    },
+    "alerts": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/DashboardAlert"
+      }
+    },
+    "allocator": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/AllocatorSummary"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "weather_kpis": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/WeatherKpi"
+      }
+    },
+    "suggestion_telemetry": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/DashboardSuggestionTelemetry"
+      }
+    },
+    "suggestion_telemetry_summary": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/DashboardSuggestionTelemetrySummary"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "context_tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "context_warnings": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/ContextWarning"
+      }
+    },
+    "data_coverage": {
+      "oneOf": [
+        {
+          "type": "object"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "$defs": {
+    "GuardrailSegment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "status", "value", "target"],
+      "properties": {
+        "name": { "type": "string" },
+        "status": { "enum": ["healthy", "watch", "breach"] },
+        "value": { "type": "number" },
+        "target": { "type": "number" },
+        "unit": { "type": "string", "default": "pct" },
+        "delta_pct": { "type": "number", "default": 0.0 },
+        "notes": { "oneOf": [{ "type": "string" }, { "type": "null" }] }
+      }
+    },
+    "SpendTracker": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "channel", "value", "change_pct"],
+      "properties": {
+        "name": { "type": "string" },
+        "channel": { "type": "string" },
+        "value": { "type": "number" },
+        "change_pct": { "type": "number" },
+        "target": { "oneOf": [{ "type": "number" }, { "type": "null" }] },
+        "unit": { "type": "string", "default": "usd" },
+        "sparkline": { "type": "array", "items": { "type": "number" } }
+      }
+    },
+    "WeatherRiskEvent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "title", "description", "severity", "geo_region", "starts_at"],
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "severity": { "enum": ["low", "medium", "high"] },
+        "geo_region": { "type": "string" },
+        "starts_at": { "type": "string", "format": "date-time" },
+        "ends_at": { "oneOf": [{ "type": "string", "format": "date-time" }, { "type": "null" }] },
+        "latitude": { "oneOf": [{ "type": "number" }, { "type": "null" }] },
+        "longitude": { "oneOf": [{ "type": "number" }, { "type": "null" }] },
+        "weather_type": { "oneOf": [{ "type": "string" }, { "type": "null" }] }
+      }
+    },
+    "AutomationLane": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "uptime_pct"],
+      "properties": {
+        "name": { "type": "string" },
+        "uptime_pct": { "type": "number" },
+        "incidents_7d": { "type": "integer", "minimum": 0, "default": 0 },
+        "last_incident_at": { "oneOf": [{ "type": "string", "format": "date-time" }, { "type": "null" }] },
+        "status": { "enum": ["normal", "degraded", "paused"], "default": "normal" },
+        "notes": { "oneOf": [{ "type": "string" }, { "type": "null" }] }
+      }
+    },
+    "IngestionConnector": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "source", "status", "lag_minutes"],
+      "properties": {
+        "name": { "type": "string" },
+        "source": { "type": "string" },
+        "status": { "enum": ["syncing", "healthy", "delayed", "failed"] },
+        "lag_minutes": { "type": "integer", "minimum": 0 },
+        "sla_minutes": { "type": "integer", "minimum": 0, "default": 15 },
+        "last_synced_at": { "oneOf": [{ "type": "string", "format": "date-time" }, { "type": "null" }] },
+        "notes": { "oneOf": [{ "type": "string" }, { "type": "null" }] }
+      }
+    },
+    "DashboardAlert": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "title", "detail", "severity", "occurred_at"],
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "detail": { "type": "string" },
+        "severity": { "enum": ["info", "warning", "critical"] },
+        "occurred_at": { "type": "string", "format": "date-time" },
+        "acknowledged": { "type": "boolean", "default": false },
+        "acknowledged_at": { "oneOf": [{ "type": "string", "format": "date-time" }, { "type": "null" }] },
+        "escalated_to": { "oneOf": [{ "type": "string" }, { "type": "null" }] },
+        "escalated_at": { "oneOf": [{ "type": "string", "format": "date-time" }, { "type": "null" }] },
+        "escalation_channel": { "oneOf": [{ "type": "string" }, { "type": "null" }] },
+        "related_objects": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "AllocatorRecommendation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["platform", "spend_delta", "spend_delta_pct", "spend_after"],
+      "properties": {
+        "platform": { "type": "string" },
+        "spend_delta": { "type": "number" },
+        "spend_delta_pct": { "type": "number" },
+        "spend_after": { "type": "number" },
+        "severity": { "enum": ["critical", "warning", "info"], "default": "info" },
+        "guardrail_count": { "type": "integer", "minimum": 0, "default": 0 },
+        "top_guardrail": { "oneOf": [{ "type": "string" }, { "type": "null" }] },
+        "notes": { "oneOf": [{ "type": "string" }, { "type": "null" }] }
+      }
+    },
+    "AllocatorDiagnostics": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "optimizer": { "oneOf": [{ "type": "string" }, { "type": "null" }] },
+        "optimizer_winner": { "oneOf": [{ "type": "string" }, { "type": "null" }] },
+        "scenario_profit_p10": { "oneOf": [{ "type": "number" }, { "type": "null" }] },
+        "scenario_profit_p50": { "oneOf": [{ "type": "number" }, { "type": "null" }] },
+        "scenario_profit_p90": { "oneOf": [{ "type": "number" }, { "type": "null" }] },
+        "expected_profit_raw": { "oneOf": [{ "type": "number" }, { "type": "null" }] },
+        "worst_case_profit": { "oneOf": [{ "type": "number" }, { "type": "null" }] },
+        "baseline_profit": { "oneOf": [{ "type": "number" }, { "type": "null" }] },
+        "profit_lift": { "oneOf": [{ "type": "number" }, { "type": "null" }] },
+        "profit_delta_p50": { "oneOf": [{ "type": "number" }, { "type": "null" }] },
+        "profit_delta_expected": { "oneOf": [{ "type": "number" }, { "type": "null" }] },
+        "binding_constraints": { "type": "object", "default": {} },
+        "optimizer_candidates": { "type": "array", "items": { "type": "object" } },
+        "evaluations": { "oneOf": [{ "type": "number" }, { "type": "null" }] },
+        "iterations": { "oneOf": [{ "type": "number" }, { "type": "null" }] },
+        "improvements": { "oneOf": [{ "type": "number" }, { "type": "null" }] },
+        "iterations_with_improvement": { "oneOf": [{ "type": "number" }, { "type": "null" }] },
+        "projection_target": { "oneOf": [{ "type": "number" }, { "type": "null" }] },
+        "projection_residual_lower": { "oneOf": [{ "type": "number" }, { "type": "null" }] },
+        "projection_residual_upper": { "oneOf": [{ "type": "number" }, { "type": "null" }] },
+        "success": { "oneOf": [{ "type": "number" }, { "type": "null" }] },
+        "objective_value": { "oneOf": [{ "type": "number" }, { "type": "null" }] },
+        "min_softened": { "oneOf": [{ "type": "boolean" }, { "type": "null" }] }
+      }
+    },
+    "AllocatorSummary": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "run_id": { "oneOf": [{ "type": "string" }, { "type": "null" }] },
+        "generated_at": { "oneOf": [{ "type": "string", "format": "date-time" }, { "type": "null" }] },
+        "mode": { "enum": ["autopilot", "assist", "demo", "fallback"], "default": "fallback" },
+        "total_spend": { "type": "number", "default": 0.0 },
+        "total_spend_delta": { "type": "number", "default": 0.0 },
+        "total_spend_delta_pct": { "type": "number", "default": 0.0 },
+        "guardrail_breaches": { "type": "integer", "minimum": 0, "default": 0 },
+        "notes": { "type": "array", "items": { "type": "string" } },
+        "recommendations": { "type": "array", "items": { "$ref": "#/$defs/AllocatorRecommendation" } },
+        "diagnostics": { "oneOf": [{ "$ref": "#/$defs/AllocatorDiagnostics" }, { "type": "null" }] }
+      }
+    },
+    "WeatherKpi": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "label", "value", "description"],
+      "properties": {
+        "id": { "type": "string" },
+        "label": { "type": "string" },
+        "value": { "type": "number" },
+        "unit": { "enum": ["usd", "pct", "count", "index", "hours"], "default": "count" },
+        "delta_pct": { "oneOf": [{ "type": "number" }, { "type": "null" }] },
+        "sparkline": { "type": "array", "items": { "type": "number" } },
+        "description": { "type": "string" }
+      }
+    },
+    "DashboardSuggestionTelemetry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["signature", "region", "reason", "has_scheduled_start"],
+      "properties": {
+        "signature": { "type": "string" },
+        "region": { "type": "string" },
+        "reason": { "type": "string" },
+        "view_count": { "type": "integer", "minimum": 0, "default": 0 },
+        "focus_count": { "type": "integer", "minimum": 0, "default": 0 },
+        "dismiss_count": { "type": "integer", "minimum": 0, "default": 0 },
+        "high_risk_count": { "type": "integer", "minimum": 0, "default": 0 },
+        "event_count": { "type": "integer", "minimum": 0, "default": 0 },
+        "focus_rate": { "type": "number", "minimum": 0.0, "maximum": 1.0, "default": 0.0 },
+        "dismiss_rate": { "type": "number", "minimum": 0.0, "maximum": 1.0, "default": 0.0 },
+        "engagement_rate": { "type": "number", "minimum": 0.0, "maximum": 1.0, "default": 0.0 },
+        "has_scheduled_start": { "type": "boolean" },
+        "next_event_starts_at": { "oneOf": [{ "type": "string", "format": "date-time" }, { "type": "null" }] },
+        "first_occurred_at": { "oneOf": [{ "type": "string", "format": "date-time" }, { "type": "null" }] },
+        "last_occurred_at": { "oneOf": [{ "type": "string", "format": "date-time" }, { "type": "null" }] },
+        "tenants": { "type": "array", "items": { "type": "string" } },
+        "severities": { "type": "array", "items": { "type": "string" } },
+        "viewport_breakpoints": { "type": "array", "items": { "type": "string" } },
+        "metadata": { "type": "object", "default": {} }
+      }
+    },
+    "DashboardSuggestionTelemetrySummary": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "total_suggestions": { "type": "integer", "minimum": 0, "default": 0 },
+        "total_view_count": { "type": "integer", "minimum": 0, "default": 0 },
+        "total_focus_count": { "type": "integer", "minimum": 0, "default": 0 },
+        "total_dismiss_count": { "type": "integer", "minimum": 0, "default": 0 },
+        "average_focus_rate": { "type": "number", "minimum": 0.0, "maximum": 1.0, "default": 0.0 },
+        "average_dismiss_rate": { "type": "number", "minimum": 0.0, "maximum": 1.0, "default": 0.0 },
+        "average_engagement_rate": { "type": "number", "minimum": 0.0, "maximum": 1.0, "default": 0.0 },
+        "top_signature": { "oneOf": [{ "type": "string" }, { "type": "null" }] },
+        "top_region": { "oneOf": [{ "type": "string" }, { "type": "null" }] },
+        "top_region_summary": { "oneOf": [{ "type": "string" }, { "type": "null" }] },
+        "top_reason": { "oneOf": [{ "type": "string" }, { "type": "null" }] },
+        "top_focus_rate": { "oneOf": [{ "type": "number" }, { "type": "null" }] },
+        "top_dismiss_rate": { "oneOf": [{ "type": "number" }, { "type": "null" }] },
+        "top_engagement_rate": { "oneOf": [{ "type": "number" }, { "type": "null" }] },
+        "top_focus_count": { "oneOf": [{ "type": "integer", "minimum": 0 }, { "type": "null" }] },
+        "top_dismiss_count": { "oneOf": [{ "type": "integer", "minimum": 0 }, { "type": "null" }] },
+        "top_view_count": { "oneOf": [{ "type": "integer", "minimum": 0 }, { "type": "null" }] },
+        "top_event_count": { "oneOf": [{ "type": "integer", "minimum": 0 }, { "type": "null" }] },
+        "top_high_risk_count": { "oneOf": [{ "type": "integer", "minimum": 0 }, { "type": "null" }] },
+        "top_has_scheduled_start": { "oneOf": [{ "type": "boolean" }, { "type": "null" }] },
+        "top_guardrail_status": { "oneOf": [{ "type": "string" }, { "type": "null" }] },
+        "top_layout_variant": { "oneOf": [{ "type": "string" }, { "type": "null" }] },
+        "top_last_occurred_at": { "oneOf": [{ "type": "string", "format": "date-time" }, { "type": "null" }] },
+        "top_engagement_confidence_level": { "enum": ["low", "medium", "high", null] },
+        "top_engagement_confidence_label": { "oneOf": [{ "type": "string" }, { "type": "null" }] }
+      }
+    },
+    "ContextWarning": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "message", "severity", "tags"],
+      "properties": {
+        "code": { "type": "string" },
+        "message": { "type": "string" },
+        "severity": { "type": "string" },
+        "tags": { "type": "array", "items": { "type": "string" } }
+      }
+    }
+  }
+}

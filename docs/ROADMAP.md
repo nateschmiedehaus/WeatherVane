@@ -4,6 +4,8 @@ Single source of truth for sequencing critical gaps and planned enhancements. St
 
 ---
 
+> **Directive:** “Automations” in WeatherVane refers to customer-facing UX and ad automation flows. The Autopilot orchestrator remains an internal build tool and must stay decoupled from Automations roadmap items unless a future exec decision re-aligns them.
+
 ## Phase 0 · Proof of Impact (Critical Path)
 Objective: Prove that weather-aware recommendations drive measurable lift so marketers trust the system.
 
@@ -25,11 +27,11 @@ Objective: Prove that weather-aware recommendations drive measurable lift so mar
    - Generate a realistic synthetic tenant (weather, Shopify, Meta, Google, Klaviyo) seeded from public schemas + Open-Meteo archives so the entire lake matches production column coverage.
    - Stand up an automated pipeline that ingests the dataset, trains the MMM/causal stack end-to-end, and publishes allocator outputs + diagnostics as a regression fixture.
    - Document dataset provenance, connector assumptions, and reset instructions in `docs/DEMO_BRAND_PLAYBOOK.md`; add smoke tests that fail if any connector payload shape or MMM outcome drifts.
-   - Feed three-year Open-Meteo daily history into `seed_synthetic_tenant`/`seed_synthetic_brand_portfolio`, enforce scenario guardrails via `tests/model/test_weather_brand_scenarios.py` + `tests/apps/model/test_train.py::test_weather_fit_flags_low_signal`, and wire Autopilot (task `T13.3.1`) to rerun those suites whenever modeling or geo reporting changes.
+   - Feed three-year Open-Meteo daily history into `seed_synthetic_tenant`/`seed_synthetic_brand_portfolio`, enforce scenario guardrails via `tests/model/test_weather_brand_scenarios.py` + `tests/apps/model/test_train.py::test_weather_fit_flags_low_signal`, and wire a CI regression job to rerun those suites whenever modeling or geo reporting changes.
    - Align synthetic + live geo coverage with platform limits: follow Meta Insights breakdown constraints (`country`, `region`, `dma` only; off-Meta actions omit `region`/`dma` per [Meta Marketing API – Insights Breakdowns](https://developers.facebook.com/docs/marketing-api/insights/breakdowns/)) and rely on first-party orders for city/ZIP lift; leverage Google Ads segments (`segments.geo_target_city`, `segments.geo_target_postal_code`, etc.) per [Google Ads API fields](https://developers.google.com/google-ads/api/fields/v22/segments) when campaigns export granular geo IDs.
    - Evaluate Meteostat as a supplemental historical feed (station-level accuracy, CC-BY licence) to decide whether we should pair it with Open-Meteo for dense urban tenants; document findings and integration requirements.
 
-Exit criteria: A/B experiment results available for at least one tenant; plan UI displays significance, confidence, lift benchmarks, and clear causal disclaimers; demo brand runs nightly on the full-fidelity synthetic dataset with green MMM/allocator diagnostics.
+Exit criteria: A/B experiment results available for at least one tenant; plan UI displays significance, confidence, lift benchmarks, and clear causal disclaimers; demo brand is ready for nightly end-to-end smoke once the modeling stack and data prerequisites land.
 
 ---
 
@@ -113,7 +115,7 @@ Objective: Upgrade models from placeholder heuristics to production-grade intell
    - Persist plan adoption vs executed spend to enable automation feedback loops and causal audits.
    - Automatically detect promotions, coupons, discounts, and lifecycle campaigns from Shopify, ad platforms, Klaviyo, and related connectors so they become first-class causal controls.
    - Ship causal validation playbooks (pre/post, holdouts, IVs) that make automation lift auditable for customers and internal reviewers.
-   - Automate brand demo planning (dataset sniffing → minimal scope recommendation) so Autopilot can deliver tenant-specific proofs with negligible manual setup.
+   - Automate brand demo planning (dataset sniffing → minimal scope recommendation) so sales engineers can deliver tenant-specific proofs with negligible manual setup.
    - Backtesting + odds ratios exposed in tracker UI with documented assumptions.
 3. 🛤️ Explainability Infrastructure
    - SHAP importances, counterfactual insights; surface explanations in plan UI.
@@ -121,6 +123,9 @@ Objective: Upgrade models from placeholder heuristics to production-grade intell
    - Cluster climates and train region-specific models; add spatial smoothing to respect geographic response differences.
 5. 🛤️ Automated retrain (future)
    - Promote manual playbook to scheduled automation once telemetry & guardrails mature.
+6. 🛤️ Demo-tenant nightly smoke (post-model)
+   - After the modeling stack, feature catalog, and calibration pipelines ship, stand up a nightly end-to-end run (`make demo-ml`, `make smoke-context`, target MMM/allocator tests).
+   - Persist results under `state/telemetry/` with retention and alerting so regressions surface automatically.
 
 Exit criteria: Model stack delivers validated lift, explanations, and robust feature coverage per tenant.
 
@@ -145,10 +150,10 @@ Objective: Move from recommendations to end-to-end campaign execution and collab
 6. 🛤️ Automation Feedback & Policy Learning
    - Collect plan adoption telemetry (recommended vs executed spend) and surface causal audit dashboards before enabling pushes.
    - Replace synthetic RL shocks with replay data from real tenants; calibrate policy variants against empirical guardrail breaches.
-   - Ship an automation audit log with pre/post metrics so Autopilot rollout has measurable lift evidence.
-   - Deliver Autopilot-operated demo flows (synthetic fallback + brand-connected proof) so prospects experience WeatherVane with minimal human facilitation.
+   - Ship an automation audit log with pre/post metrics so marketing ops can quantify lift for every activation.
+   - Deliver self-guided demo flows (synthetic fallback + brand-connected proof) so prospects experience WeatherVane with minimal human facilitation.
 7. 🛤️ Trust & Governance Experience
-   - Productise guardrail overrides, approval flows, and rollback UX so operators can supervise Autopilot actions with confidence.
+   - Productise guardrail overrides, approval flows, and rollback UX so operators can supervise automated ad actions with confidence.
    - Model operational constraints (inventory, fulfilment, promo conflicts) in recommendations and surface clashes proactively.
    - Map the customer lifecycle (onboarding → pilot → production) with executive-ready status, renewal metrics, and stakeholder comms.
 

@@ -1,6 +1,7 @@
 # WeatherVane Web Design System & Accessibility Notes
 
 ## Palette & Tokens
+- WeatherVane experiences must **never resemble generic AI-generated sites**. Every layout, interaction, and word choice needs to read as bespoke, editorial-quality product design. Copy must sound like a thoughtful product team speaking to operators—not placeholder lorem ipsum, not vague marketing fluff, and never the flattened tone typical of AI text. Patterns should feel crafted and opinionated (clear hierarchy, purposeful whitespace, distinctive motion), with visual decisions grounded in researched inspiration (see Web Inspiration workflow) and explicit rationale captured in docs/context. Any output that hints at AI sameness—overly glossy gradients, generic hero slogans, repetitive testimonial blocks, or filler case studies—fails design review and must be reworked before release. Autopilot uses Playwright-powered previews to iterate repeatedly until the composition feels handcrafted; expect multiple passes before a change is accepted.
 - Primary surfaces draw from `--color-surface-*` tokens defined in `apps/web/src/styles/globals.css` to keep contrast ≥4.5:1. Stories, Plan, and Automations modules layer their aurora gradients on top of these surfaces via local `--*backdrop` tokens that swap automatically with the calm theme.
 - Status palettes rely on semantic tokens:
   - `--status-info-*` for informational banners and loading states.
@@ -32,7 +33,7 @@
 
 ## Interaction Patterns
 - Buttons across landing, plan, catalog, and actions modules inherit the global focus outline and add local `:hover` motion that respects `prefers-reduced-motion`.
-- Error states on data-heavy pages (`plan`, `catalog`, `stories`) include retry buttons that reset the fetch loop while maintaining announcement semantics (`role="status"`/`role="alert"`).
+- Error states on data-heavy pages (`plan`, `catalog`, `stories`) include retry buttons that reset the fetch loop while maintaining announcement semantics (`role="status"`/`role="alert"`). The shared `RetryButton` now bakes in a loading spinner + busy state so repeated submissions are blocked while we surface progress feedback inline.
 
 ## Themes & Motion
 - Theme state is managed by `ThemeProvider` (`apps/web/src/lib/theme.tsx`) and persisted via `data-theme` on `<html>`. A new Theme Toggle in the layout header lets users switch between the default **Aero** look and a lower-contrast **Calm** palette. System `prefers-color-scheme` is honoured until a manual choice is made.
@@ -41,5 +42,5 @@
 
 ## Future Enhancements
 - Consolidate landing and marketing gradients into reusable token sets so launch pages inherit the same calm/aero variants without bespoke CSS.
-- Centralize retry button styles in a shared component once Next.js pages adopt App Router.
+- Extend the shared retry/async button pattern to other long-running actions once App Router surfaces migrate.
 - Formalise a shared panel mixin (border + shadow) to reduce per-module overrides as additional surfaces ship.

@@ -10,6 +10,8 @@ import jsonschema
 from shared.schemas.base import (
     ConfidenceLevel,
     ContextWarning,
+    ExperimentLift,
+    ExperimentPayload,
     PlanQuantiles,
     PlanRationale,
     PlanResponse,
@@ -25,7 +27,7 @@ from apps.api.db import models
 from .repositories import PlanRepository
 from shared.libs.storage.state import JsonStateStore
 from shared.schemas.incrementality import IncrementalityDesign, IncrementalitySummary
-from shared.validation.schemas import validate_plan_slices
+from shared.validation.schemas import validate_plan_slices, SchemaRegistry
 
 from apps.api.services.exceptions import SchemaValidationError
 
@@ -59,6 +61,7 @@ class PlanService:
         context_tags, data_context, warnings = self._context_payload(plan.tenant_id)
         metadata = plan.metadata_payload or {}
         incrementality_design, incrementality_summary = self._resolve_incrementality(plan.tenant_id, metadata)
+        experiments = self._resolve_experiments(plan.tenant_id)
 
         response = PlanResponse(
             tenant_id=plan.tenant_id,
@@ -70,6 +73,7 @@ class PlanService:
             context_warnings=warnings,
             incrementality_design=incrementality_design,
             incrementality_summary=incrementality_summary,
+            experiments=experiments,
         )
         self._validate_plan_contract(response)
         return response
@@ -109,6 +113,48 @@ class PlanService:
             return state or {}
         except Exception:
             return {}
+
+    def _resolve_experiments(self, tenant_id: str) -> list[ExperimentPayload]:
+        """Load and transform experiment data into ExperimentPayload format."""
+        try:
+            from apps.worker.validation import load_experiment_results
+
+            experiment_data = load_experiment_results(tenant_id)
+            if not experiment_data or experiment_data.get("status") == "missing":
+                return []
+
+            # Transform stored experiment design + summary into ExperimentPayload format
+            design = experiment_data.get("design", {})
+            summary = experiment_data.get("summary", {})
+
+            # Build experiment payload from design and summary
+            payload = ExperimentPayload(
+                experiment_id=f"geo-holdout-{tenant_id}",
+                status="completed" if summary else "pending",
+                treatment_geos=design.get("treatment_geos", []),
+                control_geos=design.get("control_geos", []),
+                metric_name="revenue",
+                start_date=design.get("start_date"),
+                end_date=design.get("end_date"),
+            )
+
+            # Add lift metrics if summary is available
+            if summary:
+                payload.lift = ExperimentLift(
+                    absolute_lift=summary.get("lift", 0.0),
+                    lift_pct=summary.get("lift", 0.0) * 100,
+                    confidence_low=summary.get("conf_low", 0.0),
+                    confidence_high=summary.get("conf_high", 0.0),
+                    p_value=summary.get("p_value", 1.0),
+                    sample_size=summary.get("sample_size_treatment", 0) + summary.get("sample_size_control", 0),
+                    is_significant=summary.get("p_value", 1.0) < 0.05,
+                    generated_at=experiment_data.get("generated_at"),
+                )
+
+            return [payload] if payload.treatment_geos or payload.control_geos else []
+        except Exception:
+            # Best-effort: return empty list if experiment data cannot be loaded
+            return []
 
     def _plan_slice_from_model(self, slice_: models.PlanSlice) -> PlanSlice:
         revenue_quantiles = PlanQuantiles(
@@ -315,6 +361,7 @@ class PlanService:
             )
         context_tags, data_context, warnings = self._context_payload(tenant_id)
         incrementality_design, incrementality_summary = self._resolve_incrementality(tenant_id, None)
+        experiments = self._resolve_experiments(tenant_id)
         response = PlanResponse(
             tenant_id=tenant_id,
             generated_at=now,
@@ -325,6 +372,7 @@ class PlanService:
             context_warnings=warnings,
             incrementality_design=incrementality_design,
             incrementality_summary=incrementality_summary,
+            experiments=experiments,
         )
         self._validate_plan_contract(response)
         return response
@@ -358,6 +406,8 @@ class PlanService:
     def _validate_plan_contract(self, plan: PlanResponse) -> None:
         try:
             validate_plan_slices(plan.slices)
+            # Also validate full response against plan_response schema
+            SchemaRegistry.validate_response("plan_response", plan)
         except (jsonschema.ValidationError, jsonschema.SchemaError) as error:
             if isinstance(error, jsonschema.ValidationError):
                 path = list(error.absolute_path)

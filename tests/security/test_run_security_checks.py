@@ -12,7 +12,10 @@ from tools.security.run_security_checks import (
 
 def test_scan_file_detects_github_token(tmp_path: Path) -> None:
     sample = tmp_path / "sample.txt"
-    sample.write_text("This is a token ghp_0123456789abcdef0123456789abcdef0123\n")
+    token_value = "".join(
+        ["gh", "p_", "0123456789", "abcdef0123", "456789abcdef0123"]
+    )
+    sample.write_text(f"This is a token {token_value}\n")
 
     findings = scan_file(sample, SECRET_PATTERNS)
 

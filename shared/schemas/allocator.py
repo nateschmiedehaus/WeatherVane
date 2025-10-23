@@ -68,7 +68,7 @@ class ShadowRunReport(BaseModel):
     generated_at: datetime = Field(default_factory=datetime.utcnow)
     average_reward: float
     guardrail_violations: int
-    q_values: Dict[str, float]
+    q_values: Dict[str, float | None]
     selection_counts: Dict[str, int]
     episodes: list[ShadowEpisode]
     guardrail_breach_counts: Dict[str, int]
@@ -92,6 +92,11 @@ class SaturationMarket(BaseModel):
     current_spend: float
     weather_multiplier: float
     guardrail_binding: bool
+    fairness_gap: float
+    fairness_ratio: float | None = None
+    target_spend: float
+    spend_delta_vs_target: float
+    floor_shortfall: float
 
 
 class SaturationSummary(BaseModel):
@@ -102,6 +107,10 @@ class SaturationSummary(BaseModel):
     max_fairness_gap: float
     total_revenue: float
     total_spend: float
+    normalized_fairness_gap: float
+    under_allocated_markets: int
+    total_floor_shortfall: float
+    max_floor_shortfall: float
 
 
 class SaturationReport(BaseModel):

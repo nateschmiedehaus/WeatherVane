@@ -1,4 +1,4 @@
-import type { ExecutionSummary } from "../orchestrator/claude_code_coordinator.js";
+import type { ExecutionSummary } from "../orchestrator/agent_coordinator.js";
 
 export interface ExecutionTelemetryRecord {
   type: "execution_summary";

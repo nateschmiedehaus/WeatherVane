@@ -6,7 +6,7 @@ import json
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Iterable, Mapping, Sequence, cast
+from typing import Any, Mapping, Sequence, cast
 
 from shared.services.dashboard_analytics import (
     DashboardSuggestionEvent,

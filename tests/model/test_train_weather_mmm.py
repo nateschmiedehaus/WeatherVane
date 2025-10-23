@@ -31,6 +31,8 @@ def test_train_weather_mmm_persists_artifacts(tmp_path: Path) -> None:
     """Test that weather-aware MMM training persists model and metadata artifacts."""
     lake_root = tmp_path / "lake"
     lake_root.mkdir()
+    model_dir = tmp_path / "models"
+    model_dir.mkdir()
     tenant = "tenant-weather-mmm"
     seed_synthetic_tenant(lake_root, tenant, days=90)
 
