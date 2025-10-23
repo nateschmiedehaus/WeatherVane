@@ -3,6 +3,7 @@ import type { StateMachine } from './state_machine.js';
 import type { FeatureGatesReader } from './feature_gates.js';
 import { readFileSync, existsSync } from 'node:fs';
 import path from 'node:path';
+import { logDebug } from '../telemetry/logger.js';
 
 interface PriorityScore {
   score: number;
@@ -187,9 +188,13 @@ function getActiveCommands(workspaceRoot?: string): any[] {
   }
   try {
     const commandData = JSON.parse(readFileSync(commandsPath, 'utf-8'));
-    return commandData.commands?.filter((c: any) => c.status === 'pending') || [];
+    const commands = commandData.commands?.filter((c: any) => c.status === 'pending') || [];
+    if (commands.length > 0) {
+      logDebug('Active commands loaded', { count: commands.length, commands });
+    }
+    return commands;
   } catch (error) {
-    console.error('[COMMAND] Error reading commands.json:', error);
+    logDebug('Error reading commands.json', { error });
     return [];
   }
 }
@@ -202,23 +207,40 @@ function filterTasksByCommands(tasks: Task[], commands: any[]): Task[] {
     return tasks;
   }
 
-  console.log('[COMMAND] Filtering tasks by commands:', commands);
-
   let filteredTasks = tasks;
   for (const command of commands) {
     if (command.task_filter) {
-      filteredTasks = filteredTasks.filter(task =>
-        task.id.includes(command.task_filter) ||
-        (task.title || '').toLowerCase().includes(command.task_filter.toLowerCase())
-      );
+      const filter = command.task_filter.toUpperCase();
+
+      filteredTasks = filteredTasks.filter(task => {
+        // Check task ID
+        if (task.id.toUpperCase().includes(filter)) return true;
+
+        // Check if task ID starts with "REM-" (short form of REMEDIATION)
+        if (filter === 'REMEDIATION' && task.id.startsWith('REM-')) return true;
+
+        // Check epic_id
+        if (filter === 'REMEDIATION' && task.epic_id === 'E-REMEDIATION') return true;
+
+        // Check title
+        if ((task.title || '').toUpperCase().includes(filter)) return true;
+
+        // Check description
+        if ((task.description || '').toUpperCase().includes(filter)) return true;
+
+        return false;
+      });
     }
   }
 
-  console.log('[COMMAND] Filtered tasks:', {
-    before: tasks.length,
-    after: filteredTasks.length,
-    matchedIds: filteredTasks.slice(0, 10).map(t => t.id)
-  });
+  if (filteredTasks.length > 0 && filteredTasks.length < tasks.length) {
+    logDebug('Command filtering applied', {
+      before: tasks.length,
+      after: filteredTasks.length,
+      command: commands[0]?.instruction,
+      sampleIds: filteredTasks.slice(0, 10).map(t => t.id)
+    });
+  }
 
   return filteredTasks.length > 0 ? filteredTasks : tasks;
 }
@@ -231,7 +253,6 @@ export function rankTasks(
 ): Task[] {
   // CRITICAL: Check for commands FIRST - they have HIGHEST priority
   const activeCommands = getActiveCommands(workspaceRoot);
-  console.log('[COMMAND] Active commands:', activeCommands);
 
   // Filter by commands before ranking
   const tasksToRank = filterTasksByCommands(tasks, activeCommands);

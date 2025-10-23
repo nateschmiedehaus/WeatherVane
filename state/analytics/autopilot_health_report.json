@@ -1,0 +1,132 @@
+{
+  "running": false,
+  "lastCycle": 5,
+  "metricsHistory": [
+    {
+      "timestamp": 1761262936192,
+      "pendingCount": 38,
+      "readyCount": 38,
+      "inProgressCount": 0,
+      "doneCount": 177,
+      "blockedCount": 8,
+      "queueDepth": 38,
+      "wipUtilization": 0,
+      "throughputLastHour": 0,
+      "throughputLast5Min": 0,
+      "staleTaskCount": 0,
+      "maxStaleAgeMs": 0,
+      "dependencySyncRatio": 1,
+      "busyAgents": 0,
+      "idleAgents": 4,
+      "totalAgents": 4
+    },
+    {
+      "timestamp": 1761262996193,
+      "pendingCount": 37,
+      "readyCount": 37,
+      "inProgressCount": 1,
+      "doneCount": 177,
+      "blockedCount": 8,
+      "queueDepth": 37,
+      "wipUtilization": 0.25,
+      "throughputLastHour": 0,
+      "throughputLast5Min": 0,
+      "staleTaskCount": 0,
+      "maxStaleAgeMs": 0,
+      "dependencySyncRatio": 1,
+      "busyAgents": 1,
+      "idleAgents": 3,
+      "totalAgents": 4
+    },
+    {
+      "timestamp": 1761263056192,
+      "pendingCount": 37,
+      "readyCount": 37,
+      "inProgressCount": 1,
+      "doneCount": 177,
+      "blockedCount": 8,
+      "queueDepth": 37,
+      "wipUtilization": 0.25,
+      "throughputLastHour": 0,
+      "throughputLast5Min": 0,
+      "staleTaskCount": 0,
+      "maxStaleAgeMs": 0,
+      "dependencySyncRatio": 1,
+      "busyAgents": 1,
+      "idleAgents": 3,
+      "totalAgents": 4
+    },
+    {
+      "timestamp": 1761263116192,
+      "pendingCount": 37,
+      "readyCount": 37,
+      "inProgressCount": 1,
+      "doneCount": 177,
+      "blockedCount": 8,
+      "queueDepth": 37,
+      "wipUtilization": 0.25,
+      "throughputLastHour": 0,
+      "throughputLast5Min": 0,
+      "staleTaskCount": 0,
+      "maxStaleAgeMs": 0,
+      "dependencySyncRatio": 1,
+      "busyAgents": 1,
+      "idleAgents": 3,
+      "totalAgents": 4
+    },
+    {
+      "timestamp": 1761263176192,
+      "pendingCount": 37,
+      "readyCount": 37,
+      "inProgressCount": 1,
+      "doneCount": 177,
+      "blockedCount": 8,
+      "queueDepth": 37,
+      "wipUtilization": 0.25,
+      "throughputLastHour": 0,
+      "throughputLast5Min": 0,
+      "staleTaskCount": 0,
+      "maxStaleAgeMs": 0,
+      "dependencySyncRatio": 1,
+      "busyAgents": 1,
+      "idleAgents": 3,
+      "totalAgents": 4
+    }
+  ],
+  "activeAnomalies": [
+    {
+      "type": "throughput_degradation",
+      "severity": "critical",
+      "description": "Throughput degraded to 0.0/hr (baseline: 10/hr)",
+      "metrics": {
+        "currentThroughput": 0,
+        "baselineThroughput": 10,
+        "degradationPercent": 100
+      },
+      "detectedAt": 1761263176192
+    }
+  ],
+  "recentRemediations": [
+    {
+      "plan": {
+        "anomaly": {
+          "type": "throughput_degradation",
+          "severity": "critical",
+          "description": "Throughput degraded to 0.0/hr (baseline: 10/hr)",
+          "metrics": {
+            "currentThroughput": 0,
+            "baselineThroughput": 10,
+            "degradationPercent": 100
+          },
+          "detectedAt": 1761263176192
+        },
+        "action": "alert_only",
+        "rationale": "Throughput degradation is often a symptom of other issues. Investigate manually.",
+        "estimatedImpact": "low",
+        "safe": true
+      },
+      "success": true,
+      "message": "Alert logged, no action taken"
+    }
+  ]
+}

@@ -3,7 +3,8 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import { DomainExpertReviewer, type TaskEvidence, type ModelRouter } from './domain_expert_reviewer.js';
+import { DomainExpertReviewer, type ModelRouter } from './domain_expert_reviewer.js';
+import type { TaskEvidence } from './adversarial_bullshit_detector.js';
 
 // Mock model router
 class MockModelRouter {
@@ -151,6 +152,152 @@ describe('DomainExpertReviewer', () => {
     it('should assess overall depth as minimum across experts', () => {
       // This is tested implicitly through multi-domain review
       // The synthesis logic takes the weakest link (minimum depth)
+    });
+  });
+
+  describe('Error Handling', () => {
+    it('should handle missing domain gracefully', async () => {
+      const evidence: TaskEvidence = {
+        taskId: 'T3',
+        title: 'Unknown task',
+        description: 'Some description',
+        buildOutput: 'OK',
+        testOutput: 'OK',
+        changedFiles: [],
+        testFiles: [],
+        documentation: [],
+      };
+
+      // Should not throw even with empty domain list
+      const review = await reviewer.reviewTaskWithMultipleDomains(evidence, []);
+      expect(review.reviews).toHaveLength(0);
+    });
+
+    it('should handle corrupted evidence gracefully', async () => {
+      const evidence: TaskEvidence = {
+        taskId: 'T4',
+        title: '',
+        description: '',
+        buildOutput: '',
+        testOutput: '',
+        changedFiles: [],
+        testFiles: [],
+        documentation: [],
+      };
+
+      const review = await reviewer.reviewTaskWithMultipleDomains(evidence);
+      expect(review).toBeDefined();
+      expect(review.taskId).toBe('T4');
+    });
+  });
+
+  describe('Edge Cases', () => {
+    it('should handle very long task titles', () => {
+      const longTitle = 'A'.repeat(1000);
+      const domains = reviewer.identifyRequiredDomains(
+        longTitle,
+        'forecasting task'
+      );
+
+      expect(domains).toBeDefined();
+      expect(domains.length).toBeGreaterThan(0);
+    });
+
+    it('should handle special characters in task description', () => {
+      const domains = reviewer.identifyRequiredDomains(
+        'Test task',
+        'Test with special chars: !@#$%^&*()_+-=[]{}|;:,.<>?'
+      );
+
+      expect(domains).toBeDefined();
+    });
+  });
+
+  describe('Resource Management', () => {
+    it('should cache loaded prompt templates', async () => {
+      const template1 = await reviewer.loadPromptTemplate('domain_expert');
+      const template2 = await reviewer.loadPromptTemplate('domain_expert');
+
+      // Should return same reference (cached)
+      expect(template1).toBe(template2);
+    });
+
+    it('should handle concurrent review requests', async () => {
+      const evidences: TaskEvidence[] = Array(5).fill(0).map((_, i) => ({
+        taskId: `T-concurrent-${i}`,
+        title: 'Test task',
+        description: 'Test description',
+        buildOutput: 'OK',
+        testOutput: 'OK',
+        changedFiles: [],
+        testFiles: [],
+        documentation: [],
+      }));
+
+      // Run multiple reviews in parallel
+      const reviews = await Promise.all(
+        evidences.map(e => reviewer.reviewTaskWithMultipleDomains(e))
+      );
+
+      expect(reviews).toHaveLength(5);
+      reviews.forEach(r => expect(r.taskId).toBeDefined());
+    });
+  });
+
+  describe('State Management', () => {
+    it('should maintain separate domain registries for different instances', async () => {
+      const mockRouter1 = new MockModelRouter() as any;
+      const mockRouter2 = new MockModelRouter() as any;
+
+      const reviewer1 = new DomainExpertReviewer(process.cwd(), mockRouter1);
+      const reviewer2 = new DomainExpertReviewer(process.cwd(), mockRouter2);
+
+      await reviewer1.loadDomainRegistry();
+      await reviewer2.loadDomainRegistry();
+
+      const domains1 = reviewer1.identifyRequiredDomains('forecasting', 'timeseries');
+      const domains2 = reviewer2.identifyRequiredDomains('forecasting', 'timeseries');
+
+      expect(domains1).toEqual(domains2);
+    });
+  });
+
+  describe('Integration', () => {
+    it('should produce complete multi-domain review with all fields', async () => {
+      const evidence: TaskEvidence = {
+        taskId: 'T-integration',
+        title: 'Implement GAM model',
+        description: 'Generalized additive model for forecast',
+        buildOutput: 'Build: success\nTime: 2.5s',
+        testOutput: '100 tests passed',
+        changedFiles: ['src/models/gam.ts', 'src/utils/math.ts'],
+        testFiles: ['src/models/gam.test.ts'],
+        documentation: ['docs/gam_model.md', 'docs/implementation.md'],
+      };
+
+      const review = await reviewer.reviewTaskWithMultipleDomains(evidence);
+
+      expect(review).toHaveProperty('taskId');
+      expect(review).toHaveProperty('reviews');
+      expect(review).toHaveProperty('consensusApproved');
+      expect(review).toHaveProperty('overallDepth');
+      expect(review).toHaveProperty('criticalConcerns');
+      expect(review).toHaveProperty('synthesis');
+      expect(review).toHaveProperty('timestamp');
+
+      // Verify structure of reviews
+      if (review.reviews.length > 0) {
+        const firstReview = review.reviews[0];
+        expect(firstReview).toHaveProperty('domainId');
+        expect(firstReview).toHaveProperty('domainName');
+        expect(firstReview).toHaveProperty('approved');
+        expect(firstReview).toHaveProperty('depth');
+        expect(firstReview).toHaveProperty('concerns');
+        expect(firstReview).toHaveProperty('recommendations');
+        expect(firstReview).toHaveProperty('reasoning');
+        expect(firstReview).toHaveProperty('modelUsed');
+        expect(firstReview).toHaveProperty('timestamp');
+      }
     });
   });
 });

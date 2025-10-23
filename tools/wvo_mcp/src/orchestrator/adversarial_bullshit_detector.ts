@@ -23,6 +23,8 @@ const execAsync = promisify(exec);
 
 export interface TaskEvidence {
   taskId: string;
+  title?: string;
+  description?: string;
   buildOutput: string;
   testOutput: string;
   runtimeEvidence?: {

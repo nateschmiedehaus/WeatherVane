@@ -17,14 +17,9 @@ export class PlannerEngine {
 
     // CHECK FOR COMMANDS FIRST (highest priority)
     const activeCommands = this.getActiveCommands();
-    console.log('[PLANNER DEBUG] workspaceRoot:', this.workspaceRoot);
-    console.log('[PLANNER DEBUG] activeCommands:', activeCommands);
-    console.log('[PLANNER DEBUG] tasks before filter:', tasks.length);
     if (activeCommands.length > 0) {
       // Filter tasks based on command instructions
       tasks = this.filterTasksByCommands(tasks, activeCommands);
-      console.log('[PLANNER DEBUG] tasks after filter:', tasks.length);
-      console.log('[PLANNER DEBUG] filtered task IDs:', tasks.slice(0, 10).map(t => t.id));
     }
 
     if (filters?.status?.length) {

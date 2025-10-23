@@ -10,6 +10,7 @@ import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import yaml from 'yaml';
 import { logInfo, logWarning, logError } from '../telemetry/logger.js';
+import type { TaskEvidence } from './adversarial_bullshit_detector.js';
 
 // Simple model router interface for dependency injection
 export interface ModelRouter {
@@ -56,18 +57,6 @@ export interface MultiDomainReview {
   timestamp: number;
 }
 
-export interface TaskEvidence {
-  taskId: string;
-  title: string;
-  description: string;
-  buildOutput: string;
-  testOutput: string;
-  changedFiles: string[];
-  testFiles: string[];
-  documentation: string[];
-  runtimeEvidence?: Array<{ type: string; path: string }>;
-}
-
 /**
  * Domain Expert Reviewer - Multi-perspective genius-level reviews
  */
@@ -110,7 +99,7 @@ export class DomainExpertReviewer {
 
     const templatePath = path.join(
       this.workspaceRoot,
-      'tools/wvo_mcp/prompts/genius_reviews',
+      'prompts/genius_reviews',
       `${templateName}.md`
     );
 
@@ -127,13 +116,13 @@ export class DomainExpertReviewer {
   /**
    * Identify required domains for a task based on title and description
    */
-  identifyRequiredDomains(taskTitle: string, taskDescription: string): string[] {
+  identifyRequiredDomains(taskTitle?: string, taskDescription?: string): string[] {
     if (!this.domainRegistry) {
       return [];
     }
 
     const requiredDomains = new Set<string>();
-    const combinedText = `${taskTitle} ${taskDescription}`.toLowerCase();
+    const combinedText = `${taskTitle || ''} ${taskDescription || ''}`.toLowerCase();
 
     // Check task type mappings
     for (const mapping of this.domainRegistry.taskTypeMappings) {
@@ -376,8 +365,8 @@ export class DomainExpertReviewer {
     evidence: TaskEvidence
   ): string {
     return template
-      .replace(/\{\{taskTitle\}\}/g, evidence.title)
-      .replace(/\{\{taskDescription\}\}/g, evidence.description)
+      .replace(/\{\{taskTitle\}\}/g, evidence.title || 'Untitled Task')
+      .replace(/\{\{taskDescription\}\}/g, evidence.description || 'No description provided')
       .replace(/\{\{buildOutput\}\}/g, evidence.buildOutput)
       .replace(/\{\{testOutput\}\}/g, evidence.testOutput)
       .replace(/\{\{changedFiles\}\}/g, JSON.stringify(evidence.changedFiles))
@@ -429,8 +418,65 @@ export class DomainExpertReviewer {
           expertModel: 'claude-opus-4',
           reasoningEffort: 'high',
         },
+        {
+          id: 'practitioner_production',
+          name: 'Production Practitioner',
+          description: 'Expert in production systems and operational excellence',
+          keyQuestions: ['Will this work in production?', 'What are the operational risks?'],
+          expertModel: 'claude-sonnet-4-5',
+          reasoningEffort: 'medium',
+        },
+        {
+          id: 'statistics_timeseries',
+          name: 'Time Series Statistician',
+          description: 'Expert in time series analysis and forecasting',
+          keyQuestions: ['Are the statistical assumptions valid?', 'Is this seasonally appropriate?'],
+          expertModel: 'claude-opus-4',
+          reasoningEffort: 'high',
+        },
+        {
+          id: 'statistics_generalized_additive_models',
+          name: 'GAM Specialist',
+          description: 'Expert in generalized additive models',
+          keyQuestions: ['Is the basis selection appropriate?', 'Are smoothness parameters well-tuned?'],
+          expertModel: 'claude-opus-4',
+          reasoningEffort: 'high',
+        },
+        {
+          id: 'domain_meteorology',
+          name: 'Meteorology Expert',
+          description: 'Expert in weather science and meteorological systems',
+          keyQuestions: ['Are the weather physics correctly modeled?', 'Is this meteorologically sound?'],
+          expertModel: 'claude-opus-4',
+          reasoningEffort: 'high',
+        },
+        {
+          id: 'software_distributed_systems',
+          name: 'Distributed Systems Expert',
+          description: 'Expert in distributed systems and concurrent programming',
+          keyQuestions: ['Will this scale to many nodes?', 'How are failures handled?'],
+          expertModel: 'claude-sonnet-4-5',
+          reasoningEffort: 'medium',
+        },
       ],
-      taskTypeMappings: [],
+      taskTypeMappings: [
+        {
+          pattern: '(gam|generalized additive)',
+          domains: ['statistics_generalized_additive_models', 'statistics_timeseries'],
+        },
+        {
+          pattern: '(forecast|timeseries|time series)',
+          domains: ['statistics_timeseries', 'domain_meteorology'],
+        },
+        {
+          pattern: '(weather|meteorolog)',
+          domains: ['domain_meteorology', 'statistics_timeseries'],
+        },
+        {
+          pattern: '(resource|lifecycle|pool|distributed)',
+          domains: ['software_distributed_systems', 'software_architecture'],
+        },
+      ],
     };
   }
 

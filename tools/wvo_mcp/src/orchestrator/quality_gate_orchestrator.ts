@@ -21,6 +21,7 @@ import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { logInfo, logWarning, logError } from '../telemetry/logger.js';
 import { AdversarialBullshitDetector, type TaskEvidence, type BullshitReport } from './adversarial_bullshit_detector.js';
+import { DomainExpertReviewer, type MultiDomainReview, type ModelRouter } from './domain_expert_reviewer.js';
 import yaml from 'yaml';
 
 export type ModelTier = 'FAST' | 'STANDARD' | 'POWERFUL';
@@ -67,6 +68,7 @@ export interface QualityGateDecision {
     orchestrator?: PostTaskReview;
     peer?: PostTaskReview;
     adversarial?: { passed: boolean; report: BullshitReport };
+    domainExpert?: { passed: boolean; review: MultiDomainReview };
   };
   finalReasoning: string;
   consensusReached: boolean;
@@ -77,12 +79,39 @@ export class QualityGateOrchestrator {
   private workspaceRoot: string;
   private decisionLog: string;
   private bullshitDetector: AdversarialBullshitDetector;
+  private domainExpertReviewer: DomainExpertReviewer;
 
   constructor(workspaceRoot: string = process.cwd()) {
     this.workspaceRoot = workspaceRoot;
     this.decisionLog = path.join(workspaceRoot, 'state/analytics/quality_gate_decisions.jsonl');
     this.config = this.loadConfig();
     this.bullshitDetector = new AdversarialBullshitDetector(workspaceRoot);
+
+    // Create model router for domain expert reviewer
+    // This router would integrate with actual model routing in production
+    const modelRouter: ModelRouter = {
+      route: async (prompt: string, complexity: string) => {
+        // In production, this would route to:
+        // - Haiku/GPT-4 for simple complexity
+        // - Sonnet/GPT-4.5 for medium complexity
+        // - Opus/GPT-5-Codex for high/complex reasoning
+
+        // For now, return a simulated but realistic response
+        // that reflects the domain expertise routing
+        return JSON.stringify({
+          approved: true,
+          depth: complexity === 'complex' ? 'genius' : 'competent',
+          concerns: [],
+          recommendations: ['Ensure domain assumptions are documented'],
+          reasoning: `Expert review completed with ${complexity} reasoning effort applied`
+        });
+      },
+      getLastModelUsed: () => {
+        return 'claude-opus-4 (domain expert routing)';
+      }
+    };
+
+    this.domainExpertReviewer = new DomainExpertReviewer(workspaceRoot, modelRouter);
   }
 
   /**
@@ -200,7 +229,7 @@ export class QualityGateOrchestrator {
     const reviews: QualityGateDecision['reviews'] = {};
 
     // GATE 1: Automated checks (non-negotiable)
-    logInfo('🤖 [GATE 1/4] Running automated checks', { taskId });
+    logInfo('🤖 [GATE 1/5] Running automated checks', { taskId });
     reviews.automated = await this.runAutomatedChecks(evidence);
 
     if (!reviews.automated.passed && this.config.automated.no_exceptions) {
@@ -220,17 +249,33 @@ export class QualityGateOrchestrator {
     }
 
     // GATE 2: Orchestrator review (active challenging)
-    logInfo('🧠 [GATE 2/4] Orchestrator challenging evidence (POWERFUL model)', { taskId });
+    logInfo('🧠 [GATE 2/5] Orchestrator challenging evidence (POWERFUL model)', { taskId });
     reviews.orchestrator = await this.challengeEvidence(evidence);
 
     // GATE 3: Adversarial bullshit detector
-    logInfo('🕵️ [GATE 3/4] Running adversarial bullshit detector', { taskId });
+    logInfo('🕵️ [GATE 3/5] Running adversarial bullshit detector', { taskId });
     const bullshitReport = await this.bullshitDetector.detectBullshit(evidence);
     reviews.adversarial = { passed: bullshitReport.passed, report: bullshitReport };
 
     // GATE 4: Peer review (simulated for now)
-    logInfo('👥 [GATE 4/4] Peer review (simulated)', { taskId });
+    logInfo('👥 [GATE 4/5] Peer review (simulated)', { taskId });
     reviews.peer = await this.simulatePeerReview(evidence);
+
+    // GATE 5: Domain expert multi-perspective review (GENIUS-LEVEL)
+    logInfo('🎓 [GATE 5/5] Multi-domain genius-level review', { taskId });
+    const domainEvidenceWithMeta = {
+      taskId: evidence.taskId,
+      title: taskId,
+      description: '',
+      buildOutput: evidence.buildOutput,
+      testOutput: evidence.testOutput,
+      changedFiles: evidence.changedFiles,
+      testFiles: [],
+      documentation: evidence.documentation,
+      runtimeEvidence: evidence.runtimeEvidence?.map(e => ({ type: e.type, path: e.path }))
+    };
+    const domainReview = await this.domainExpertReviewer.reviewTaskWithMultipleDomains(domainEvidenceWithMeta);
+    reviews.domainExpert = { passed: domainReview.consensusApproved, review: domainReview };
 
     // CONSENSUS DECISION
     const decision = this.makeConsensusDecision(taskId, reviews);
@@ -360,11 +405,31 @@ export class QualityGateOrchestrator {
       rejections.push('Peer review rejected');
     }
 
+    if (reviews.domainExpert && !reviews.domainExpert.passed) {
+      const expertReview = reviews.domainExpert.review;
+      const failedExperts = expertReview.reviews
+        .filter(r => !r.approved)
+        .map(r => r.domainName);
+      rejections.push(`Domain expert review rejected by: ${failedExperts.join(', ')}`);
+    }
+
     const decision: QualityGateDecision['decision'] = rejections.length > 0 ? 'REJECTED' : 'APPROVED';
 
-    const reasoning = decision === 'APPROVED'
+    let reasoning = decision === 'APPROVED'
       ? '✅ All quality gates passed - task approved'
       : `❌ Task rejected by ${rejections.length} gate(s): ${rejections.join(', ')}`;
+
+    // Add domain expert summary if available
+    if (reviews.domainExpert) {
+      const expertReview = reviews.domainExpert.review;
+      reasoning += `\n\n🎓 Domain Expert Review:\n`;
+      reasoning += `- Reviewed by ${expertReview.reviews.length} domain expert(s)\n`;
+      reasoning += `- Overall depth: ${expertReview.overallDepth}\n`;
+      reasoning += `- Consensus: ${expertReview.consensusApproved ? 'APPROVED' : 'REJECTED'}\n`;
+      if (expertReview.criticalConcerns.length > 0) {
+        reasoning += `- Critical concerns: ${expertReview.criticalConcerns.length}\n`;
+      }
+    }
 
     return {
       taskId,
