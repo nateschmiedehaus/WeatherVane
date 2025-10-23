@@ -1,0 +1,16 @@
+{
+  "timestamp": "2025-10-23T01:02:56.582428",
+  "tenant_id": "demo_brand",
+  "window_days": 90,
+  "start_date": "None",
+  "end_date": "None",
+  "metrics": {},
+  "defects": [],
+  "exit_criteria": {
+    "all_defects_are_info": true,
+    "shopify_90_days": false,
+    "ads_90_days": true,
+    "weather_coverage": false,
+    "no_leakage": true
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "critic": "weathercoverage",
+  "code": 0,
+  "stdout": "{\n  \"baseline\": {\n    \"metrics\": {\n      \"geocoded_order_ratio\": {\n        \"baseline\": 1.0,\n        \"current\": 1.0,\n        \"delta\": 0.0\n      },\n      \"leakage_rows\": {\n        \"baseline\": 0.0,\n        \"current\": 0.0,\n        \"delta\": 0.0\n      },\n      \"unique_geohash_count\": {\n        \"baseline\": 0.0,\n        \"current\": 0.0,\n        \"delta\": 0.0\n      },\n      \"weather_missing_rows\": {\n        \"baseline\": 0.0,\n        \"current\": 0.0,\n        \"delta\": 0.0\n      }\n    },\n    \"regressions\": [],\n    \"status\": \"ok\",\n    \"warnings\": []\n  },\n  \"evaluated_at\": \"2025-10-21T14:30:03.390861+00:00\",\n  \"issues\": [],\n  \"lookback_days\": 30,\n  \"metrics\": {\n    \"feature_rows\": 0,\n    \"forecast_leakage_rows\": 0,\n    \"forward_leakage_rows\": 0,\n    \"geocoded_order_ratio\": 1.0,\n    \"geography_fallback_reason\": null,\n    \"geography_level\": \"dma\",\n    \"guardrail_triggered\": false,\n    \"join_mode\": \"date_dma\",\n    \"leakage_rows\": 0,\n    \"observed_rows\": 0,\n    \"unique_geohash_count\": 0,\n    \"weather_coverage_ratio\": 1.0,\n    \"weather_coverage_threshold\": 0.85,\n    \"weather_missing_rows\": 0,\n    \"weather_rows\": 373\n  },\n  \"report_path\": \"experiments/features/weather_guardrail_report.json\",\n  \"status\": \"ok\",\n  \"tenant_id\": \"DEMO\",\n  \"warnings\": [],\n  \"window\": {\n    \"end\": \"2025-10-21T14:30:03.390861+00:00\",\n    \"start\": \"2025-09-21T14:30:03.390861+00:00\"\n  }\n}",
+  "stderr": "/Volumes/BigSSD4/nathanielschmiedehaus/miniforge3/lib/python3.10/runpy.py:126: RuntimeWarning: 'apps.worker.monitoring.weather_guardrail' found in sys.modules after import of package 'apps.worker.monitoring', but prior to execution of 'apps.worker.monitoring.weather_guardrail'; this may result in unpredictable behaviour\n  warn(RuntimeWarning(msg))",
+  "passed": true,
+  "analysis": null,
+  "git_sha": "62bc52f6e7a3a1b2c3a1bb03d6e3725519c7df4c",
+  "timestamp": "2025-10-21T14:30:03.764Z",
+  "identity": {
+    "title": "Weather Coverage",
+    "mission": "Safeguard weather_coverage discipline.",
+    "powers": [
+      "Reports on findings when configuration is missing."
+    ],
+    "authority": "advisory",
+    "domain": "weather_coverage"
+  }
+}

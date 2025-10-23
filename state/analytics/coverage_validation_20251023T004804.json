@@ -1,0 +1,65 @@
+{
+  "timestamp": "2025-10-23T00:48:04.801152",
+  "tenant_id": "brand-alpine-outfitters",
+  "window_days": 90,
+  "start_date": "2025-07-25",
+  "end_date": "2025-10-23",
+  "metrics": {
+    "shopify": {
+      "row_count": 360,
+      "date_range_days": 119,
+      "first_date": "2023-09-10",
+      "last_date": "2024-01-07",
+      "distinct_dates": 120,
+      "geocoded_column": "ship_geohash",
+      "geocoded_ratio": 1.0
+    },
+    "ads": {
+      "meta_rows": 120,
+      "google_rows": 120,
+      "meta_dates": 120,
+      "google_dates": 120,
+      "meta_total_spend": 19083.59,
+      "google_total_spend": 10307.120000000003
+    },
+    "weather": {
+      "row_count": 240,
+      "date_range_days": 119,
+      "first_date": "2023-09-10",
+      "last_date": "2024-01-07",
+      "distinct_dates": 120,
+      "distinct_geohashes": 2,
+      "mean_temp_c": 6.426666666666668,
+      "temp_range_c": -31.099999999999998
+    }
+  },
+  "defects": [
+    {
+      "severity": "warning",
+      "component": "weather",
+      "message": "Low geohash diversity: 2 unique geohashes",
+      "details": {
+        "distinct_geohashes": 2
+      },
+      "timestamp": "2025-10-23T00:48:04.663342"
+    },
+    {
+      "severity": "critical",
+      "component": "joins",
+      "message": "Feature matrix is empty after joins",
+      "details": {
+        "orders_rows": 360,
+        "ads_rows": 240,
+        "weather_rows": 240
+      },
+      "timestamp": "2025-10-23T00:48:04.799292"
+    }
+  ],
+  "exit_criteria": {
+    "all_defects_are_info": false,
+    "shopify_90_days": true,
+    "ads_90_days": true,
+    "weather_coverage": false,
+    "no_leakage": true
+  }
+}

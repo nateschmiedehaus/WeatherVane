@@ -1,12 +1,12 @@
 {
   "critic": "execreview",
   "code": 0,
-  "stdout": "skipped due to capability profile",
-  "stderr": "",
-  "passed": false,
+  "stdout": "\n> weathervane-web@0.1.0 test\n> vitest run --run tests/web/executive_review.spec.ts\n\n\n RUN  v2.1.1 /Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/apps/web\n\n ✓ ../../tests/web/executive_review.spec.ts  (2 tests) 2ms\n\n Test Files  1 passed (1)\n      Tests  2 passed (2)\n   Start at  09:32:37\n   Duration  840ms (transform 36ms, setup 0ms, collect 26ms, tests 2ms, environment 0ms, prepare 66ms)\n\n\n> weathervane-web@0.1.0 test\n> vitest run --run tests/web/automation_trust.spec.ts\n\n\n RUN  v2.1.1 /Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/apps/web\n\n ✓ ../../tests/web/automation_trust.spec.ts  (20 tests) 6ms\n\n Test Files  1 passed (1)\n      Tests  20 passed (20)\n   Start at  09:32:38\n   Duration  808ms (transform 52ms, setup 0ms, collect 61ms, tests 6ms, environment 0ms, prepare 37ms)\n",
+  "stderr": "\u001b[33mThe CJS build of Vite's Node API is deprecated. See https://vite.dev/guide/troubleshooting.html#vite-cjs-node-api-deprecated for more details.\u001b[39m\n\u001b[33mThe CJS build of Vite's Node API is deprecated. See https://vite.dev/guide/troubleshooting.html#vite-cjs-node-api-deprecated for more details.\u001b[39m",
+  "passed": true,
   "analysis": null,
-  "git_sha": "a9b2c543d3f630fb4a1c37dbcf74548b8853b762",
-  "timestamp": "2025-10-18T16:27:15.338Z",
+  "git_sha": "62bc52f6e7a3a1b2c3a1bb03d6e3725519c7df4c",
+  "timestamp": "2025-10-21T14:32:39.624Z",
   "identity": {
     "title": "Exec Review",
     "mission": "Safeguard exec_review discipline.",

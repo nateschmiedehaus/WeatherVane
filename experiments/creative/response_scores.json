@@ -1,4 +1,60 @@
 {
+  "channel_guardrails": [
+    {
+      "active_creatives": 3,
+      "active_spend_share": 0.1896608407701767,
+      "average_brand_safety": 0.5845166666666667,
+      "average_roas": 1.7567290328770342,
+      "blocked_creatives": 1,
+      "blocked_spend_share": 0.014977678977387986,
+      "channel": "meta",
+      "creative_count": 6,
+      "flagged_creatives": 3,
+      "flagged_spend_share": 0.23166367514133385,
+      "representative_creative": "cr_007",
+      "representative_status": "blocked",
+      "top_guardrail": "brand_safety_block",
+      "top_guardrail_count": 1,
+      "watchlist_creatives": 2,
+      "watchlist_spend_share": 0.21668599616394585
+    },
+    {
+      "active_creatives": 3,
+      "active_spend_share": 0.2761993964720053,
+      "average_brand_safety": 0.61795,
+      "average_roas": 2.421970362689178,
+      "blocked_creatives": 0,
+      "blocked_spend_share": 0.0,
+      "channel": "display",
+      "creative_count": 4,
+      "flagged_creatives": 1,
+      "flagged_spend_share": 0.15355898248034056,
+      "representative_creative": "cr_005",
+      "representative_status": "watchlist",
+      "top_guardrail": "brand_safety_watch",
+      "top_guardrail_count": 1,
+      "watchlist_creatives": 1,
+      "watchlist_spend_share": 0.15355898248034056
+    },
+    {
+      "active_creatives": 1,
+      "active_spend_share": 0.0705305142578942,
+      "average_brand_safety": 0.6019,
+      "average_roas": 1.784555947724888,
+      "blocked_creatives": 1,
+      "blocked_spend_share": 0.07838659087824934,
+      "channel": "search",
+      "creative_count": 2,
+      "flagged_creatives": 1,
+      "flagged_spend_share": 0.07838659087824934,
+      "representative_creative": "cr_000",
+      "representative_status": "blocked",
+      "top_guardrail": "brand_safety_block",
+      "top_guardrail_count": 1,
+      "watchlist_creatives": 0,
+      "watchlist_spend_share": 0.0
+    }
+  ],
   "creatives": [
     {
       "aov": 1247.1667,
@@ -277,7 +333,7 @@
       "status": "blocked"
     }
   ],
-  "generated_at": "2025-10-16T02:46:35.832803",
+  "generated_at": "2025-10-20T19:20:07.852659",
   "policy": {
     "block_threshold": 0.3,
     "min_impressions": 250,

@@ -1,0 +1,57 @@
+{
+  "critic": "modelingdatawatch",
+  "code": 1,
+  "stdout": "",
+  "stderr": "/Volumes/BigSSD4/nathanielschmiedehaus/miniforge3/lib/python3.10/runpy.py:126: RuntimeWarning: 'apps.worker.monitoring.modeling_watch' found in sys.modules after import of package 'apps.worker.monitoring', but prior to execution of 'apps.worker.monitoring.modeling_watch'; this may result in unpredictable behaviour\n  warn(RuntimeWarning(msg))\n{\n  \"age_hours\": 192.92950399361112,\n  \"datasets\": {\n    \"shopify_orders\": {\n      \"alerts\": [],\n      \"issues\": [],\n      \"metrics\": {\n        \"metadata\": {\n          \"geocoded_ratio\": 0.9,\n          \"new_rows\": 52,\n          \"updated_rows\": 15\n        },\n        \"row_count\": 250,\n        \"source\": \"shopify_api\",\n        \"status\": \"ok\"\n      },\n      \"severity\": \"ok\",\n      \"warnings\": []\n    }\n  },\n  \"evaluated_at\": \"2025-10-21T14:30:04.390139+00:00\",\n  \"issues\": [\n    \"Latest monitoring snapshot is 192.9h old (max 36h).\"\n  ],\n  \"monitoring_path\": \"state/dq_monitoring.json\",\n  \"overall_alerts\": [],\n  \"overall_severity\": \"ok\",\n  \"run_timestamp\": \"2025-10-13T13:34:18.175762+00:00\",\n  \"status\": \"critical\",\n  \"warnings\": []\n}",
+  "passed": false,
+  "analysis": {
+    "category": "unknown_failure",
+    "confidence": 0.4,
+    "rootCauses": [
+      "Critic command failed with unclassified error"
+    ],
+    "recommendations": [
+      "Review stderr output for additional clues.",
+      "Capture repro steps for diagnosis.",
+      "Review alternative implementation options supplied by the research layer."
+    ],
+    "history": {
+      "totalObservations": 19,
+      "similarFailures": 10
+    },
+    "researchFindings": [
+      {
+        "id": "stub-academic-1761032498679",
+        "title": "Research stub for modelingdatawatch critic unknown_failure failure",
+        "summary": "Academic research integration is not yet implemented. Enable the research_layer flag once ready.",
+        "source": "placeholder",
+        "confidence": 0.1
+      }
+    ],
+    "alternativeOptions": [
+      {
+        "id": "stub-alternative-1761032498681",
+        "title": "Alternative placeholder for modelingdatawatch critic remediation",
+        "summary": "Alternative generation is not yet implemented. This entry is returned to keep the pipeline stable.",
+        "pros": [
+          "Placeholder recommendation"
+        ],
+        "cons": [
+          "No real evaluation available"
+        ],
+        "confidence": 0.1
+      }
+    ]
+  },
+  "git_sha": "62bc52f6e7a3a1b2c3a1bb03d6e3725519c7df4c",
+  "timestamp": "2025-10-21T14:30:04.417Z",
+  "identity": {
+    "title": "Modeling Data Watch",
+    "mission": "Safeguard modeling_data_watch discipline.",
+    "powers": [
+      "Reports on findings when configuration is missing."
+    ],
+    "authority": "advisory",
+    "domain": "modeling_data_watch"
+  }
+}

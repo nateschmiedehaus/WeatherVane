@@ -11,7 +11,7 @@
 ### 1. Memory Leaks - Event Listener Cleanup (CRITICAL)
 
 **Files Modified**:
-- `src/orchestrator/claude_code_coordinator.ts`
+- `src/orchestrator/agent_coordinator.ts`
 - `src/orchestrator/task_scheduler.ts`
 - `src/orchestrator/operations_manager.ts`
 
@@ -137,7 +137,7 @@ CREATE INDEX idx_context_timestamp ON context_entries(timestamp);
 
 ### 7. Fix Wasteful Context Assembly
 
-**File**: `src/orchestrator/claude_code_coordinator.ts:173-489`
+**File**: `src/orchestrator/agent_coordinator.ts:173-489`
 
 **Problem**: Context created twice (initial + preparePrompt)
 **Solution**: Always reuse `initialContext` for first strategy (1 line fix)
@@ -158,7 +158,7 @@ CREATE INDEX idx_context_timestamp ON context_entries(timestamp);
 
 ### 10. Fix Race Condition in Dispatch
 
-**File**: `src/orchestrator/claude_code_coordinator.ts:154-166`
+**File**: `src/orchestrator/agent_coordinator.ts:154-166`
 
 **Problem**: Task could be dispatched twice if events fire mid-loop
 **Solution**: Track `dispatching` Set within dispatchWork

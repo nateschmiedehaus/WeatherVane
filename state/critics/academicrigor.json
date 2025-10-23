@@ -1,9 +1,19 @@
 {
   "critic": "academicrigor",
   "code": 0,
-  "stdout": "skipped due to capability profile",
+  "stdout": "{\n  \"epic\": \"E12\",\n  \"summary\": {\n    \"done\": 15,\n    \"in_progress\": 0,\n    \"pending\": 0,\n    \"blocked\": 0\n  },\n  \"critical_issues\": [],\n  \"high_issues\": [],\n  \"warnings\": [],\n  \"doc_path\": \"/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/docs/CRITIQUE_E12_20251022.md\"\n}",
   "stderr": "",
   "passed": true,
-  "git_sha": "35b9e5194726d4cca461ec2f0cc2ca484aab591a",
-  "timestamp": "2025-10-10T10:11:51.323Z"
+  "analysis": null,
+  "git_sha": "23a9316c2ed8234b99bbd82562f8fa11b78c7fb6",
+  "timestamp": "2025-10-22T16:18:21.271Z",
+  "identity": {
+    "title": "Academic Rigor",
+    "mission": "Safeguard academic_rigor discipline.",
+    "powers": [
+      "Reports on findings when configuration is missing."
+    ],
+    "authority": "advisory",
+    "domain": "academic_rigor"
+  }
 }

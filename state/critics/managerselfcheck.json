@@ -1,12 +1,12 @@
 {
   "critic": "managerselfcheck",
   "code": 0,
-  "stdout": "manager_self_check critic retired from active exit criteria on 2025-10-17; no action required.",
+  "stdout": "Manager self-check passed: context fresh, roadmap actionable.",
   "stderr": "",
   "passed": true,
   "analysis": null,
-  "git_sha": "a9b2c543d3f630fb4a1c37dbcf74548b8853b762",
-  "timestamp": "2025-10-17T17:16:12.380Z",
+  "git_sha": "62bc52f6e7a3a1b2c3a1bb03d6e3725519c7df4c",
+  "timestamp": "2025-10-21T14:32:40.132Z",
   "identity": {
     "title": "Manager Self Check",
     "mission": "Safeguard manager_self_check discipline.",

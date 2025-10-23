@@ -55,6 +55,14 @@
       "fallback_provider": "claude",
       "fallback_model": "claude-opus-4"
     },
+    "weather_coverage": {
+      "preferred_provider": "codex",
+      "preferred_model": "gpt-5-codex",
+      "reasoning_level": "high",
+      "rationale": "Analyzing weather coverage drift requires numerical comparison against baselines and guardrail thresholds",
+      "fallback_provider": "claude",
+      "fallback_model": "claude-opus-4"
+    },
     "forecast_stitch": {
       "preferred_provider": "codex",
       "preferred_model": "gpt-5-codex",
@@ -135,10 +143,26 @@
       "fallback_provider": "claude",
       "fallback_model": "claude-opus-4"
     },
+    "modeling_data_watch": {
+      "preferred_provider": "codex",
+      "preferred_model": "gpt-5-codex",
+      "reasoning_level": "high",
+      "rationale": "Modeling data watch depends on interpreting monitoring telemetry and threshold comparisons",
+      "fallback_provider": "claude",
+      "fallback_model": "claude-opus-4"
+    },
     "inspiration_coverage": {
       "preferred_provider": "claude",
       "preferred_model": "claude-sonnet-4.5",
       "rationale": "Design inspiration analysis benefits from creative and aesthetic understanding",
+      "fallback_provider": "claude",
+      "fallback_model": "claude-opus-4"
+    },
+    "modeling_reality": {
+      "preferred_provider": "codex",
+      "preferred_model": "gpt-5-codex",
+      "reasoning_level": "high",
+      "rationale": "ML quality validation requires complex numerical thresholds and statistical reasoning",
       "fallback_provider": "claude",
       "fallback_model": "claude-opus-4"
     }

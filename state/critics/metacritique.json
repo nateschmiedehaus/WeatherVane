@@ -1,0 +1,19 @@
+{
+  "critic": "metacritique",
+  "code": 0,
+  "stdout": "skipped due to capability profile",
+  "stderr": "",
+  "passed": false,
+  "analysis": null,
+  "git_sha": "62bc52f6e7a3a1b2c3a1bb03d6e3725519c7df4c",
+  "timestamp": "2025-10-21T14:32:42.307Z",
+  "identity": {
+    "title": "Meta Critique",
+    "mission": "Safeguard meta_critique discipline.",
+    "powers": [
+      "Reports on findings when configuration is missing."
+    ],
+    "authority": "advisory",
+    "domain": "meta_critique"
+  }
+}

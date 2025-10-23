@@ -1,13 +1,14 @@
 {
   "coverage": {
-    "geohashes": [
+    "geo_scopes": [
       {
         "as_of_utc": {
-          "max": "2025-10-19T18:08:11.710700+00:00",
-          "min": "2025-10-19T18:08:11.710700+00:00"
+          "max": "2025-10-23T02:17:01.746623+00:00",
+          "min": "2025-10-23T02:17:01.746623+00:00"
         },
         "forecast_rows": 0,
-        "geohash": "9q8yy",
+        "geo_scope": "DMA:807",
+        "geohash": "DMA:807",
         "missing_weather_dates": [],
         "observation_types": [
           "observed"
@@ -16,17 +17,39 @@
         "target_rows": 1
       }
     ],
+    "geohashes": [
+      {
+        "as_of_utc": {
+          "max": "2025-10-23T02:17:01.746623+00:00",
+          "min": "2025-10-23T02:17:01.746623+00:00"
+        },
+        "forecast_rows": 0,
+        "geo_scope": "DMA:807",
+        "geohash": "DMA:807",
+        "missing_weather_dates": [],
+        "observation_types": [
+          "observed"
+        ],
+        "row_count": 1,
+        "target_rows": 1
+      }
+    ],
+    "unique_geo_scope_count": 1,
     "unique_geohash_count": 1
   },
-  "generated_at": "2025-10-19T18:08:15.253898",
+  "generated_at": "2025-10-23T02:17:02.278077",
   "issues": [],
   "join": {
     "feature_rows": 1,
     "geocoded_order_ratio": 1.0,
-    "mode": "date_geohash",
+    "geography_fallback_reason": null,
+    "geography_level": "dma",
+    "mode": "date_dma",
     "observed_target_rows": 1,
     "orders_rows": 1,
-    "weather_rows": 10
+    "weather_coverage_ratio": 1.0,
+    "weather_coverage_threshold": 0.85,
+    "weather_rows": 14
   },
   "leakage": {
     "dates": [],
@@ -36,13 +59,13 @@
     "forward_rows": 0,
     "total_rows": 0
   },
-  "tenant_id": "test-tenant",
+  "tenant_id": "demo-tenant",
   "weather_gaps": {
     "dates": [],
     "rows": 0
   },
   "window": {
-    "end": "2024-01-03T00:00:00",
+    "end": "2024-01-07T00:00:00",
     "start": "2024-01-01T00:00:00"
   }
 }

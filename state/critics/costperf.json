@@ -1,11 +1,11 @@
 {
   "critic": "costperf",
   "code": 0,
-  "stdout": "window_observed: 139\nprompt_cache_eligible: 0\nprompt_cache_hits: 0\nprompt_cache_stores: 0\nprompt_cache_hit_rate: 0.0%",
-  "stderr": "",
+  "stdout": "window_observed: 0\nprompt_cache_eligible: 0\nprompt_cache_hits: 0\nprompt_cache_stores: 0\nprompt_cache_hit_rate: 0.0%",
+  "stderr": "executions telemetry not found; prompt cache stats unavailable",
   "passed": true,
-  "git_sha": "1d17f588246645a205796374eea45bea2b585126",
-  "timestamp": "2025-10-15T22:35:52.036Z",
+  "git_sha": "62bc52f6e7a3a1b2c3a1bb03d6e3725519c7df4c",
+  "timestamp": "2025-10-21T14:32:39.642Z",
   "identity": {
     "title": "Cost Perf",
     "mission": "Safeguard cost_perf discipline.",

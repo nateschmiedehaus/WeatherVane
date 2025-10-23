@@ -1,0 +1,86 @@
+{
+  "timestamp": "2025-10-23T00:48:44.325089",
+  "tenant_id": "DEMO",
+  "window_days": 90,
+  "start_date": "2024-10-20",
+  "end_date": "2024-10-20",
+  "metrics": {
+    "shopify": {
+      "row_count": 12,
+      "date_range_days": 1,
+      "first_date": "2024-10-20",
+      "last_date": "2024-10-21",
+      "distinct_dates": 2,
+      "geocoded_column": "ship_geohash",
+      "geocoded_ratio": 1.0
+    },
+    "ads": {
+      "meta_rows": 12,
+      "google_rows": 12,
+      "meta_dates": 2,
+      "google_dates": 2,
+      "meta_total_spend": 0.0,
+      "google_total_spend": 0.0
+    },
+    "weather": {
+      "row_count": 4476,
+      "date_range_days": 373,
+      "first_date": "2024-10-20",
+      "last_date": "2025-10-28",
+      "distinct_dates": 374,
+      "distinct_geohashes": 1,
+      "mean_temp_c": 15.0,
+      "temp_range_c": 0.0
+    }
+  },
+  "defects": [
+    {
+      "severity": "warning",
+      "component": "shopify",
+      "message": "Orders span only 1 days (need 90)",
+      "details": {
+        "first_date": "2024-10-20",
+        "last_date": "2024-10-21",
+        "range_days": 1
+      },
+      "timestamp": "2025-10-23T00:48:44.162929"
+    },
+    {
+      "severity": "warning",
+      "component": "ads",
+      "message": "Spend data spans only 1 days (need 90)",
+      "details": {
+        "date_range_days": 1,
+        "distinct_spend_dates": 2
+      },
+      "timestamp": "2025-10-23T00:48:44.170505"
+    },
+    {
+      "severity": "warning",
+      "component": "weather",
+      "message": "Low geohash diversity: 1 unique geohashes",
+      "details": {
+        "distinct_geohashes": 1
+      },
+      "timestamp": "2025-10-23T00:48:44.179275"
+    },
+    {
+      "severity": "critical",
+      "component": "joins",
+      "message": "Feature matrix is empty after joins",
+      "details": {
+        "orders_rows": 1,
+        "ads_rows": 2,
+        "weather_rows": 373
+      },
+      "timestamp": "2025-10-23T00:48:44.323424"
+    }
+  ],
+  "exit_criteria": {
+    "all_defects_are_info": false,
+    "shopify_90_days": false,
+    "ads_90_days": false,
+    "weather_coverage": false,
+    "no_leakage": true
+  }
+}

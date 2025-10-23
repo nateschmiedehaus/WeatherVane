@@ -3,7 +3,23 @@
   "code": 0,
   "stdout": "skipped due to capability profile",
   "stderr": "",
-  "passed": true,
-  "git_sha": "31548e1c9ba25b8b0f94df5d6f596ec1be26414a",
-  "timestamp": "2025-10-12T23:12:54.003Z"
+  "passed": false,
+  "analysis": null,
+  "git_sha": "62bc52f6e7a3a1b2c3a1bb03d6e3725519c7df4c",
+  "timestamp": "2025-10-21T14:30:02.031Z",
+  "identity": {
+    "title": "Leakage Watcher",
+    "mission": "Police feature leakage and ensure evaluation protocols remain clean.",
+    "powers": [
+      "Inspects feature pipelines for lookahead leakage.",
+      "Flags metric contamination risks."
+    ],
+    "authority": "critical",
+    "domain": "ml",
+    "autonomy_guidance": "Halt deployments when contamination is detected; request immediate Data Steward response.",
+    "preferred_delegates": [
+      "Data Steward",
+      "Autopilot"
+    ]
+  }
 }

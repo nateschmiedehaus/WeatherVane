@@ -295,7 +295,7 @@ export class OperationsManager extends EventEmitter implements ExecutionObserver
 
 ### 3. **Task Routing Adjustments**
 
-Update routing logic in `ClaudeCodeCoordinator`:
+Update routing logic in `AgentCoordinator`:
 
 ```typescript
 private recommendAgentType(task: Task, context: AssembledContext): AgentType {

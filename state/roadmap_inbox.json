@@ -1,1 +1,145 @@
-[]
+[
+  {
+    "id": "7227706627cb",
+    "created_at": "2025-10-22T18:00:15+00:00",
+    "title": "MCP: Restore policy controller parity",
+    "summary": "Port the legacy autopilot policy controller into UnifiedOrchestrator so policy state and escalations are recorded for every guardrail breach.",
+    "domain": "mcp",
+    "source": "codex",
+    "status": "accepted",
+    "notes": "Bring back autopilot.sh's policy controller hook (tools/wvo_mcp/scripts/autopilot_policy.py) so the TS orchestrator writes state/policy/autopilot_policy.json updates, appends to state/analytics/autopilot_policy_history.jsonl, and logs escalations in state/escalations.log whenever TaskVerifier or queue starvation triggers. Ensure Director Dana regains the rolling policy view before the next orchestration release.",
+    "blockers": "",
+    "signals": "Legacy bash autopilot provided visibility into guardrail bumps; the new orchestrator currently drops those events.",
+    "layers": [
+      "surface",
+      "adjacent",
+      "product"
+    ],
+    "integration": "Wire the policy controller into TaskVerifier and analytics so supervisors see escalations alongside queue health.",
+    "weights": {},
+    "task_id": "INBOX-7227706627CB",
+    "accepted_at": "2025-10-22T21:12:20.693Z"
+  },
+  {
+    "id": "63847e12dcb5",
+    "created_at": "2025-10-22T18:00:23+00:00",
+    "title": "MCP: Reinstate critic fatigue backoff",
+    "summary": "Load the critic backoff state in UnifiedOrchestrator to throttle critiquers that repeatedly fail instead of hammering them every cycle.",
+    "domain": "mcp",
+    "source": "codex",
+    "status": "accepted",
+    "notes": "Teach AgentHierarchy to read/write state/autopilot_critics_backoff.json, reuse CRITICS_BACKOFF_WINDOW semantics, and log restarts so critics that keep erroring get a cooldown before retry. Preserve the legacy fatigue protection autopilot.sh enforced.",
+    "blockers": "",
+    "signals": "Critics currently rerun every minute when they fail; the bash autopilot avoided this churn with a backoff map.",
+    "layers": [
+      "surface",
+      "adjacent"
+    ],
+    "integration": "Integrate cooldown decisions into the scheduler so critic assignments respect fatigue state without bypassing verification.",
+    "weights": {},
+    "task_id": "INBOX-63847E12DCB5",
+    "accepted_at": "2025-10-22T21:12:20.694Z"
+  },
+  {
+    "id": "ec8e25d074ed",
+    "created_at": "2025-10-22T18:00:29+00:00",
+    "title": "MCP: Add usage-limit cooldowns",
+    "summary": "Teach UnifiedOrchestrator to respect Codex/Claude rate ceilings with the same cooldown the bash autopilot used.",
+    "domain": "mcp",
+    "source": "codex",
+    "status": "accepted",
+    "notes": "Detect quota-exhaustion responses from Codex and Claude, sleep for USAGE_LIMIT_BACKOFF seconds (configurable), and emit telemetry so planners see why the queue paused. This restores autopilot.sh's guard against thrashing the CLI when usage caps hit.",
+    "blockers": "",
+    "signals": "Current orchestrator hammers Codex until it fails hard; legacy flows slept and logged the wait.",
+    "layers": [
+      "surface",
+      "adjacent"
+    ],
+    "integration": "Hook cooldown decisions into the executor/TaskVerifier combination so rate limit sleeps propagate to metrics and downstream agents.",
+    "weights": {},
+    "task_id": "INBOX-EC8E25D074ED",
+    "accepted_at": "2025-10-22T21:12:20.695Z"
+  },
+  {
+    "id": "d4f55ce76468",
+    "created_at": "2025-10-22T18:00:34+00:00",
+    "title": "MCP: Restore task memos trail",
+    "summary": "Persist short memos after every agent task under state/task_memos and surface the latest entry in downstream prompts.",
+    "domain": "mcp",
+    "source": "codex",
+    "status": "accepted",
+    "notes": "After executeTask completes (including blocked or deferred runs), emit a concise Markdown memo capturing decisions and next steps, mirroring autopilot.sh. Link the memo path into context assembly so successors inherit breadcrumbs when resuming work.",
+    "blockers": "",
+    "signals": "Operators lost the running diary that made the shell loop resumable.",
+    "layers": [
+      "surface",
+      "adjacent"
+    ],
+    "integration": "Extend context assembler to reference memo files while keeping cache size under control.",
+    "weights": {},
+    "task_id": "INBOX-D4F55CE76468",
+    "accepted_at": "2025-10-22T21:12:20.695Z"
+  },
+  {
+    "id": "9505bc43a4d5",
+    "created_at": "2025-10-22T18:00:38+00:00",
+    "title": "MCP: Enforce clean worktree gate",
+    "summary": "Block UnifiedOrchestrator startup when the git worktree is dirty unless an explicit override is provided.",
+    "domain": "mcp",
+    "source": "codex",
+    "status": "accepted",
+    "notes": "Reuse the guardrail from tools/wvo_mcp/scripts/autopilot.sh or scripts/restart_mcp.sh to abort startup (or require --allow-dirty) whenever tracked files have uncommitted changes. Surface the warning in logs so operators avoid stacking edits on unknown diffs.",
+    "blockers": "",
+    "signals": "Legacy autop refused to run on dirty trees; the new orchestrator will happily mutate messy repos.",
+    "layers": [
+      "surface",
+      "adjacent"
+    ],
+    "integration": "Tie the guard into orchestration bootstrap so build agents respect repo hygiene.",
+    "weights": {},
+    "task_id": "INBOX-9505BC43A4D5",
+    "accepted_at": "2025-10-22T21:12:20.697Z"
+  },
+  {
+    "id": "eaf78c8bee26",
+    "created_at": "2025-10-22T18:00:46+00:00",
+    "title": "MCP: Dual high-end architecture planners",
+    "summary": "Spin up a Sonnet 4.5 planning lane with a Codex 5-high review lane so UnifiedOrchestrator can co-design the website architecture with long-horizon reasoning.",
+    "domain": "mcp",
+    "source": "codex",
+    "status": "accepted",
+    "notes": "Configure the orchestrator to allocate a dedicated Sonnet 4.5 planner (long-form architecture exploration) that runs concurrently with a Codex 5-high reviewer, exchanging drafts through critics to keep the plan optimal. Ensure their artifacts (design memos, decision logs) feed into context assembly so downstream builders inherit the architecture narrative.",
+    "blockers": "",
+    "signals": "Leadership wants high-end models to own architecture design rather than ad-hoc prompts.",
+    "layers": [
+      "surface",
+      "adjacent",
+      "product"
+    ],
+    "integration": "Teach the scheduler to coordinate parallel planning/review tasks and publish outputs into the shared architecture docket for engineering teams.",
+    "weights": {},
+    "task_id": "INBOX-EAF78C8BEE26",
+    "accepted_at": "2025-10-22T21:12:20.697Z"
+  },
+  {
+    "id": "6029c8ccb1cf",
+    "created_at": "2025-10-22T18:00:52+00:00",
+    "title": "MCP: Surface historical build context",
+    "summary": "Expand the context assembler so architecture planners see prior experiments, docs, and early code attempts before proposing new directions.",
+    "domain": "mcp",
+    "source": "codex",
+    "status": "accepted",
+    "notes": "Index earlier demo builds, legacy orchestrator docs, and relevant repo history into a navigable cache (e.g., docs/UNIFIED_AUTOPILOT_IMPLEMENTATION.md, prior web spikes) and thread references into prompts for Sonnet/Codex planning sessions. Add critics to validate that new plans acknowledge or intentionally diverge from past work.",
+    "blockers": "",
+    "signals": "We are losing touch with earlier coding attempts and need historical awareness in planning.",
+    "layers": [
+      "surface",
+      "adjacent",
+      "product"
+    ],
+    "integration": "Extend cache-backed context assembler with a historical registry that agents can query without bloating every prompt.",
+    "weights": {},
+    "task_id": "INBOX-6029C8CCB1CF",
+    "accepted_at": "2025-10-22T21:12:20.698Z"
+  }
+]

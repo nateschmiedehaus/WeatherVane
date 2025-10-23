@@ -1,0 +1,58 @@
+{
+  "datasets": {
+    "shopify_orders": {
+      "geocoded_ratio": {
+        "count": 2,
+        "max": 0.92,
+        "mean": 0.91,
+        "min": 0.9,
+        "p05": 0.901,
+        "p50": 0.91,
+        "p95": 0.919
+      },
+      "new_rows": {
+        "count": 2,
+        "max": 52.0,
+        "mean": 50.0,
+        "min": 48.0,
+        "p05": 48.2,
+        "p50": 50.0,
+        "p95": 51.8
+      },
+      "recommended_guardrails": {
+        "geocoded_ratio": {
+          "critical": 0.75,
+          "warning": 0.88
+        },
+        "row_count_drop": {
+          "critical": 0.6,
+          "warning": 0.8
+        }
+      },
+      "row_count": {
+        "count": 2,
+        "max": 250.0,
+        "mean": 245.0,
+        "min": 240.0,
+        "p05": 240.5,
+        "p50": 245.0,
+        "p95": 249.5
+      },
+      "severity_distribution": {
+        "ok": 2
+      },
+      "updated_rows": {
+        "count": 2,
+        "max": 15.0,
+        "mean": 13.5,
+        "min": 12.0,
+        "p05": 12.15,
+        "p50": 13.5,
+        "p95": 14.85
+      }
+    }
+  },
+  "generated_at": "2025-10-20T13:25:27.752159+00:00",
+  "run_count": 2,
+  "source": "state/dq_monitoring.json"
+}

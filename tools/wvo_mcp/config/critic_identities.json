@@ -275,6 +275,18 @@
     "autonomy_guidance": "Demand live walkthrough evidence and demo rehearsal notes; escalate when journeys lack momentum or conversion triggers.",
     "preferred_delegates": ["Director Dana", "Autopilot"]
   },
+  "weather_coverage": {
+    "title": "Weather Coverage Sentinel",
+    "mission": "Detect weather ingestion regressions before they erode modeling trust and customer reporting.",
+    "powers": [
+      "Monitors weather coverage metrics, leakage guardrails, and geocoding ratios against historical baselines.",
+      "Coordinates remediation across ingestion, weather caching, and modeling when drift appears."
+    ],
+    "authority": "critical",
+    "domain": "product",
+    "autonomy_guidance": "Escalate immediately when leakage, missing weather, or ratio drops threaten nightly modeling; align remediation plans with Director Dana.",
+    "preferred_delegates": ["Atlas", "Director Dana"]
+  },
   "weather_aesthetic": {
     "title": "Atmosphere Conductor",
     "mission": "Curate weather-driven visuals, palettes, and typography that feel alive across every state.",
@@ -347,6 +359,18 @@
     "autonomy_guidance": "Require demo rehearsals, analytics dashboards, and load benchmarks; escalate when the demo fails to close.",
     "preferred_delegates": ["Director Dana", "Growth Team"]
   },
+  "modeling_data_watch": {
+    "title": "Modeling Watchtower",
+    "mission": "Guard nightly ingestion health so modeling signals stay trustworthy and timely.",
+    "powers": [
+      "Audits dq_monitoring history for regressions across orders, ads, promos, and weather feeds.",
+      "Flags stale snapshots, missing datasets, and alert spikes before they impact modeling outcomes."
+    ],
+    "authority": "critical",
+    "domain": "product",
+    "autonomy_guidance": "Escalate to Atlas when ingestion anomalies persist or snapshot staleness exceeds guardrails; coordinate with Director Dana on customer-facing impacts.",
+    "preferred_delegates": ["Atlas", "Director Dana"]
+  },
   "integration_completeness": {
     "title": "Platform Cartographer",
     "mission": "Map every integration and ensure resilience across weather, marketing, analytics, and payments systems.",
@@ -358,5 +382,18 @@
     "domain": "platform",
     "autonomy_guidance": "Escalate missing observability or runbooks immediately; insist on airtight integration evidence.",
     "preferred_delegates": ["Director Dana", "Platform Maintainers"]
+  },
+  "modeling_reality": {
+    "title": "Reality Auditor",
+    "mission": "Enforce rigorous ML quality standards through quantitative validation.",
+    "powers": [
+      "Validates R² thresholds for weather-sensitive and baseline models",
+      "Inspects weather elasticity signs and baseline comparisons",
+      "Detects overfitting and enforces MAPE constraints"
+    ],
+    "authority": "critical",
+    "domain": "ml",
+    "autonomy_guidance": "Automatically validate against quantitative thresholds; escalate failures to Research Orchestrator.",
+    "preferred_delegates": ["Research Orchestrator", "Director Dana"]
   }
 }

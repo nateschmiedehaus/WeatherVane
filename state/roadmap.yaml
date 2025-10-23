@@ -1,1008 +1,4 @@
 epics:
-  - id: E12
-    title: Epic 12 — Weather Model Production Validation
-    status: pending
-    domain: product
-    milestones:
-      - id: M12.0
-        title: Synthetic Multi-Tenant Dataset Generation
-        status: pending
-        tasks:
-          - id: T12.0.1
-            title: Generate synthetic multi-tenant dataset with weather-sensitive products
-            status: done
-            dependencies: []
-            exit_criteria:
-              - artifact:storage/seeds/synthetic/*.parquet
-              - artifact:state/analytics/synthetic_tenant_profiles.json
-              - critic:data_quality
-            domain: product
-            description: Create 4 simulated tenants with Shopify products, Meta/Google ads
-              spend, Klaviyo data, and weather-driven demand patterns
-          - id: T12.0.2
-            title: Validate synthetic data quality and weather correlation
-            status: done
-            dependencies:
-              - T12.0.1
-            exit_criteria:
-              - artifact:state/analytics/synthetic_data_validation.json
-              - artifact:docs/DATA_GENERATION.md
-              - critic:data_quality
-            domain: product
-            description: Confirm data volume, coverage, completeness; measure weather
-              elasticity for each tenant
-          - id: T12.0.3
-            title: Document synthetic tenant characteristics
-            status: done
-            dependencies:
-              - T12.0.2
-            exit_criteria:
-              - artifact:docs/SYNTHETIC_TENANTS.md
-              - artifact:state/analytics/tenant_weather_profiles.json
-            domain: product
-            description: Create data dictionary with tenant profiles, weather sensitivity,
-              expected model behaviors
-      - id: M12.PoC
-        title: Proof of Concept & Model Testing
-        status: pending
-        tasks:
-          - id: T12.PoC.1
-            title: Train weather-aware model on synthetic tenant data
-            status: done
-            dependencies:
-              - T12.0.3
-            exit_criteria:
-              - artifact:experiments/mcp/weather_poc_model.pkl
-              - artifact:experiments/mcp/weather_poc_metrics.json
-              - critic:academic_rigor
-            domain: product
-            description: Train a baseline weather-aware regression model on each synthetic
-              tenant (high/extreme/medium/none sensitivity) to validate the
-              weather correlation detection works across different product types
-              and sensitivity profiles.
-          - id: T12.PoC.2
-            title: Validate PoC model predictions on hold-out data
-            status: done
-            dependencies:
-              - T12.PoC.1
-            exit_criteria:
-              - artifact:experiments/mcp/weather_poc_validation.json
-              - critic:causal
-            domain: product
-            description: "Test PoC model on final 30 days of each synthetic tenant. Verify
-              that: (1) High/Extreme tenants show strong weather effects, (2)
-              None tenant shows no weather effect, (3) Model R² > 0.6 on
-              validation set"
-          - id: T12.PoC.3
-            title: Create PoC demo results and proof brief
-            status: done
-            dependencies:
-              - T12.PoC.2
-            exit_criteria:
-              - artifact:docs/WEATHER_PROOF_OF_CONCEPT.md
-              - artifact:experiments/mcp/poc_demo_charts.json
-            domain: product
-            description: "Create executive brief demonstrating that weather-aware modeling
-              works: show before/after model performance, weather elasticity
-              coefficients, and prediction examples. Use this to get stakeholder
-              buy-in before full MMM training."
-      - id: M12.1
-        title: Weather ingestion + feature QA
-        status: pending
-        tasks:
-          - id: T12.1.1
-            title: Run smoke-context and weather ingestion regression suite nightly
-            status: done
-            dependencies: []
-            exit_criteria:
-              - test: make smoke-context
-              - artifact:state/telemetry/weather_ingestion.json
-              - critic:data_quality
-            domain: product
-          - id: T12.1.2
-            title: Validate feature store joins against historical weather baselines
-            status: done
-            dependencies: []
-            exit_criteria:
-              - artifact:experiments/weather/feature_backfill_report.md
-              - critic:forecast_stitch
-              - critic:tests
-            domain: product
-      - id: M12.2
-        title: Weather model capability sign-off
-        status: pending
-        tasks:
-          - id: T12.2.1
-            title: Backtest weather-aware model vs control across top tenants
-            status: done
-            dependencies: []
-            exit_criteria:
-              - artifact:experiments/weather/model_backtest_summary.md
-              - critic:causal
-              - critic:allocator
-            domain: product
-          - id: T12.2.2
-            title: Publish weather capability runbook and monitoring dashboards
-            status: done
-            dependencies: []
-            exit_criteria:
-              - doc:docs/weather/capabilities_runbook.md
-              - artifact:apps/web/pages/ops/weather-capabilities.tsx
-              - critic:org_pm
-            domain: product
-      - id: M12.Demo
-        title: Executive Demo & Stakeholder Sign-Off
-        status: pending
-        tasks:
-          - id: T12.Demo.1
-            title: Build interactive demo UI showing weather impact on ROAS
-            status: done
-            dependencies:
-              - T12.PoC.3
-            exit_criteria:
-              - artifact:apps/web/src/pages/demo-weather-analysis.tsx
-              - critic:design_system
-            domain: product
-            description: Create web UI that lets stakeholders toggle weather on/off and see
-              impact on predicted revenue and ROAS for each synthetic tenant.
-              Interactive proof that weather matters for demand forecasting.
-          - id: T12.Demo.2
-            title: Record demo video and create stakeholder brief
-            status: done
-            dependencies:
-              - T12.Demo.1
-            exit_criteria:
-              - artifact:docs/WEATHER_DEMO_BRIEF.md
-              - artifact:state/artifacts/stakeholder/weather_demo_script.md
-            domain: product
-            description: Record 5-min demo video showing weather-aware model in action.
-              Create 1-page brief for executives explaining business impact
-              (revenue upside, forecast accuracy improvement, ROAS optimization
-              potential).
-      - id: M12.3
-        title: Weather-Aware MMM Model Training
-        status: pending
-        tasks:
-          - id: T12.3.1
-            title: Train weather-aware MMM on validated 90-day tenant data
-            status: done
-            dependencies:
-              - T12.0.3
-              - T12.1.2
-              - T13.1.4
-            exit_criteria:
-              - artifact:experiments/mcp/mmm_weather_model.json
-              - critic:causal
-              - critic:academic_rigor
-            domain: product
-            description: Train multi-channel MMM using validated 90-day data with weather
-              features integrated
-          - id: T12.3.2
-            title: Implement weather sensitivity elasticity estimation
-            status: done
-            dependencies:
-              - T12.3.1
-            exit_criteria:
-              - artifact:docs/models/weather_elasticity_analysis.md
-              - critic:causal
-            domain: product
-            description: Quantify how demand elasticity varies by weather (temperature
-              sensitivity, rain impact, seasonal patterns)
-          - id: T12.3.3
-            title: Ship production MMM inference service with real-time weather scoring
-            status: done
-            dependencies:
-              - T12.3.2
-            exit_criteria:
-              - artifact:apps/api/routes/models/weather_mixin.py
-              - artifact:apps/worker/models/mmm_weather_inference.py
-              - critic:tests
-            domain: product
-            description: Deploy MMM with weather features as production inference service
-    description: Prioritise end-to-end weather ingestion QA, model backtests, and
-      operational readiness so WeatherVane shiproom can demo weather insights
-      with confidence.
-  - id: E13
-    title: Epic 13 — Weather-Aware Modeling Reality
-    status: pending
-    domain: product
-    milestones:
-      - id: M13.1
-        title: Data Backbone Verified
-        status: pending
-        tasks:
-          - id: T13.1.1
-            title: Validate 90-day tenant data coverage across sales, spend, and weather
-            status: done
-            dependencies: []
-            exit_criteria:
-              - worker:run apps/worker/ingestion pipelines on 2 pilot tenants
-                with success logs attached
-              - artifact:experiments/features/weather_join_validation.json
-              - report:apps/worker/validation/weather.compare_weather_baseline
-                output filed in docs/REPORTS.md
-              - critic:data_quality passes with weather join metrics captured
-            domain: product
-            description: Ensure the Shopify/ads/weather ingestion flows actually populate
-              product_daily with geocoded spend and 90+ days of history so MMM
-              inputs are real, not theoretical.
-          - id: T13.1.2
-            title: Autopilot guardrail for ingestion + weather drift
-            status: done
-            dependencies:
-              - T13.1.1
-            exit_criteria:
-              - critic:weather_coverage autop-run nightly with failure
-                escalation to Atlas
-              - autopilot: new modeling_data_watch critic configured with threshold alerts
-              - state/context.md documents remediation playbook
-            domain: product
-            description: Bake data completeness checks into Autopilot so future
-              weather-awareness regressions trigger automated investigations.
-          - id: T13.1.3
-            title: Implement product taxonomy auto-classification with weather affinity
-            status: done
-            dependencies:
-              - T13.1.1
-            exit_criteria:
-              - shared/services/product_taxonomy.py implements LLM-based
-                classifier
-              - All products tagged with weather_affinity
-                (winter/summer/rain/heat/neutral)
-              - Cross-brand product keys generated for hierarchy
-              - Validation test passes on 100 random products with >90% accuracy
-            domain: product
-            description: >
-              Auto-classify products from Shopify/Meta/Google using LLM
-              (Claude/GPT-4) to tag products with weather affinity and category
-              hierarchy. This enables product-level modeling (not just
-              brand-level) and cold-start for new brands.
-            metadata:
-              claims:
-                - Uses Claude or GPT-4 for product classification
-                - Tags products with weather_affinity categories
-                - Generates cross_brand_product_key for hierarchical modeling
-                - Validates classification accuracy on test set
-              dependencies:
-                code_imports:
-                  - anthropic
-                  - pandas
-                data_requirements:
-                  - name: products_shopify
-                    min_rows: 1
-                    required_columns:
-                      - product_id
-                      - title
-                      - category
-                      - vendor
-                upstream_tasks:
-                  - T13.1.1
-              problem_type: classification_llm
-              correct_methods:
-                - Claude API with structured prompts
-                - GPT-4 with few-shot examples
-              wrong_methods:
-                - Hardcoded keyword rules
-                - Simple string matching
-              maturity_requirements:
-                required_tests:
-                  - test_winter_coat_classified_as_winter
-                  - test_umbrella_classified_as_rain
-                  - test_tshirt_classified_as_summer
-                  - test_cross_brand_key_consistent
-          - id: T13.1.4
-            title: Data quality validation framework (verify data fitness for ML)
-            status: done
-            dependencies: []
-            exit_criteria:
-              - shared/services/data_quality.py implements validation checks
-              - Checks for volume, coverage, completeness, outliers, join-ability
-              - Data quality report saved to state/analytics/data_quality.json
-              - Autopilot runs validation before any model training
-            domain: product
-            description: >
-              Implement data quality checks to verify data is ready for ML
-              training. Prevents training models on insufficient/corrupted data.
-            metadata:
-              claims:
-                - Validates min row counts (90+ days for MMM)
-                - Checks for missing data (max 10% missing allowed)
-                - Detects outliers (>3 std dev)
-                - Validates date coverage (no gaps in time series)
-                - Verifies join-ability (sales can join to weather by geo)
-              dependencies:
-                code_imports:
-                  - pandas
-                  - numpy
-              problem_type: data_validation
-              correct_methods:
-                - Statistical outlier detection
-                - Missing data analysis
-                - Time series gap detection
-              maturity_requirements:
-                required_tests:
-                  - test_detects_insufficient_rows
-                  - test_detects_missing_data_above_threshold
-                  - test_detects_outliers
-                  - test_detects_date_gaps
-      - id: M13.2
-        title: MMM Upgrade & Backtests
-        status: pending
-        tasks:
-          - id: T13.2.1
-            title: Replace heuristic MMM with LightweightMMM adstock+saturation fit
-            status: done
-            dependencies:
-              - T13.1.1
-            exit_criteria:
-              - apps/model/mmm_lightweight.py wired into train_poc_models with
-                fallback guard
-              - Adstock half-life + Hill saturation parameters persisted per
-                channel
-              - critic:model_fit passes with synthetic recovery tests
-            domain: product
-            description: Integrate the existing LightweightMMM wrapper so allocations use
-              Bayesian adstock/saturation estimates instead of covariance
-              heuristics.
-            metadata:
-              claims:
-                - Uses LightweightMMM or Robyn for media mix modeling
-                - Includes adstock transformation with learned half-life
-                  parameter
-                - Includes Hill saturation curves for diminishing returns
-                - Validates with time-series cross-validation (TimeSeriesSplit)
-                - No hardcoded elasticity values - all parameters learned from
-                  data
-              dependencies:
-                code_imports:
-                  - lightweight_mmm
-                  - jax
-                  - jaxlib
-                  - numpy
-                  - pandas
-                data_requirements:
-                  - name: ad_spend_weather_product_daily
-                    min_rows: 90
-                    max_missing_rate: 0.1
-                    required_columns:
-                      - date
-                      - channel
-                      - spend
-                      - sales
-                      - temp
-                      - precip
-                      - product_id
-                      - geo
-                upstream_tasks:
-                  - T13.1.1
-              problem_type: media_mix_modeling
-              correct_methods:
-                - LightweightMMM
-                - Robyn
-                - PyMC-Marketing
-              wrong_methods:
-                - LinearRegression
-                - PropensityScoreMatching
-                - hardcoded elasticity values
-              maturity_requirements:
-                min_test_coverage: 0.7
-                max_placeholder_ratio: 0
-                required_tests:
-                  - test_mmm_runs_without_error
-                  - test_adstock_transformation_applies
-                  - test_saturation_curve_applies
-                  - test_time_series_cv_no_leakage
-                  - test_no_hardcoded_parameters
-          - id: T13.2.2
-            title: Build MMM backtesting + regression suite
-            status: done
-            dependencies:
-              - T13.2.1
-            exit_criteria:
-              - tests/modeling/test_mmm_backtests.py created with 12 week
-                rolling walk-forward evaluation
-              - Regression report saved to artifacts/modeling/mmm_backtest.json
-              - Autopilot nightly job posts backtest deltas to roadmap inbox
-            domain: product
-            description: Establish out-of-sample evaluation so MMM recommendations are
-              validated continuously.
-          - id: T13.2.3
-            title: Replace heuristic allocator with constraint-aware optimizer
-            status: done
-            dependencies:
-              - T13.2.1
-              - T13.1.3
-            exit_criteria:
-              - apps/allocator/optimizer.py implements cvxpy or OR-Tools solver
-              - Hierarchical constraints (Total > Brand > Campaign > Product)
-                enforced
-              - Inventory constraints integrated (OOS = $0, low stock = reduce)
-              - No hardcoded "if roas > target then budget *= 1.10" logic
-              - Tests verify optimizer respects all constraints
-            domain: product
-            description: >
-              Replace heuristic allocation rules (±10% budget adjustments) with
-              proper constrained optimization. Use cvxpy or OR-Tools to maximize
-              ROAS subject to budget, inventory, and platform constraints.
-            metadata:
-              claims:
-                - Uses cvxpy or OR-Tools for constrained optimization
-                - Maximizes ROAS subject to constraints
-                - Implements hierarchical budget constraints
-                - Implements inventory constraints (OOS products get $0)
-                - Implements platform constraints (Meta min $1/day)
-                - No heuristic ±10% budget rules
-              dependencies:
-                code_imports:
-                  - cvxpy
-                  - numpy
-                data_requirements:
-                  - name: roas_predictions
-                    min_rows: 1
-                  - name: budget_constraints
-                    min_rows: 1
-                  - name: inventory_levels
-                    min_rows: 1
-                upstream_tasks:
-                  - T13.2.1
-                  - T13.1.3
-              problem_type: constrained_optimization
-              correct_methods:
-                - cvxpy with ECOS/SCS solver
-                - OR-Tools CP-SAT or LP solver
-                - scipy.optimize with constraints
-              wrong_methods:
-                - Heuristic rules (if/else budget adjustments)
-                - Hardcoded multipliers
-                - Unconstrained optimization
-              maturity_requirements:
-                required_tests:
-                  - test_respects_total_budget_constraint
-                  - test_respects_hierarchical_constraints
-                  - test_oos_products_get_zero_budget
-                  - test_low_stock_products_reduced_budget
-                  - test_platform_minimums_respected
-                  - test_no_heuristic_rules_in_code
-      - id: M13.3
-        title: Causal & Geography Alignment
-        status: pending
-        tasks:
-          - id: T13.3.1
-            title: Swap uplift propensity scoring with DID/synthetic control for weather
-              shocks
-            status: done
-            dependencies:
-              - T13.1.1
-            exit_criteria:
-              - apps/model/causal_uplift.py refactored to expose DID + synthetic
-                control pipelines
-              - Benchmarks on historical cold front events documented
-              - critic:causal passes with new methodology notes in
-                docs/CAUSAL_LIMITATIONS.md
-            domain: product
-            description: Adopt causal estimators appropriate for non-manipulable treatments
-              so weather impact claims are statistically defensible.
-            metadata:
-              claims:
-                - Uses Difference-in-Differences (DID) for weather causal effects
-                - Uses synthetic control for weather event analysis
-                - Does NOT use propensity scoring (weather is not randomizable)
-                - Validates parallel trends assumption for DID
-                - Compares treated vs control periods/regions
-              dependencies:
-                code_imports:
-                  - statsmodels
-                  - numpy
-                  - pandas
-                  - scipy
-                data_requirements:
-                  - name: sales_weather_joined
-                    min_rows: 180
-                    required_columns:
-                      - date
-                      - sales
-                      - temp
-                      - geo
-                      - treatment_period
-                upstream_tasks:
-                  - T13.1.1
-              problem_type: causal_inference_observational
-              correct_methods:
-                - Difference-in-Differences
-                - Synthetic control
-                - Regression discontinuity
-                - Interrupted time series
-              wrong_methods:
-                - PropensityScoreMatching
-                - RandomizedControlledTrial
-                - LogisticRegression for treatment assignment
-              maturity_requirements:
-                required_tests:
-                  - test_parallel_trends_assumption_validated
-                  - test_did_coefficient_significant
-                  - test_no_propensity_scoring_in_code
-          - id: T13.3.2
-            title: Implement DMA-first geographic aggregation with hierarchical fallback
-            status: done
-            dependencies:
-              - T13.1.1
-            exit_criteria:
-              - shared geography mapper translating geohash → DMA → state
-                committed
-              - Feature builders emit DMA metrics with fallback thresholds
-                documented
-              - allocator guardrails accept DMA constraints
-              - doc:docs/MODELING_REALITY_CHECK.md updated with final decision
-            domain: product
-            description: Resolve the open question on geographic granularity by codifying
-              DMA-first modeling with automatic fallback.
-      - id: M13.4
-        title: Autopilot Meta-Critique Loop
-        status: pending
-        tasks:
-          - id: T13.4.1
-            title: Add modeling reality critic to Autopilot
-            status: done
-            dependencies:
-              - T13.2.2
-              - T13.3.1
-            exit_criteria:
-              - New critic:modeling_reality inspects code vs docs weekly
-              - Critic outputs routed to Atlas for non-quorum review
-              - state/roadmap.yaml auto-updated when critic finds drift
-            domain: product
-            description: Teach Autopilot to generate the sort of gap analysis we just
-              performed so future discrepancies surface automatically.
-          - id: T13.4.2
-            title: Meta-evaluation playbook for modeling roadmap
-            status: done
-            dependencies:
-              - T13.4.1
-            exit_criteria:
-              - doc:docs/MODELING_META_REVIEW.md created with quarterly checklist
-              - Autopilot variance reports archived in
-                state/analytics/modeling_meta.json
-              - Kickoff calendar entry for recurring review logged
-            domain: product
-            description: Provide a repeatable process—documentation, scheduling, and
-              telemetry—for leadership to review modeling execution against
-              strategy.
-      - id: M13.5
-        title: Weather-Aware Allocation Model Deployment
-        status: pending
-        tasks:
-          - id: T13.5.1
-            title: Train weather-aware allocation model on top of MMM baseline
-            status: done
-            dependencies:
-              - T12.3.1
-              - T13.2.2
-            exit_criteria:
-              - artifact:experiments/allocation/weather_aware_model.json
-              - critic:allocator
-              - critic:causal
-            domain: product
-            description: Build allocation optimization model that incorporates
-              weather-driven demand elasticity from MMM training
-          - id: T13.5.2
-            title: Implement weather-responsive budget allocation constraints
-            status: done
-            dependencies:
-              - T13.5.1
-            exit_criteria:
-              - apps/allocator/weather_constraints.py implements dynamic budget
-                rules based on weather
-              - artifact:experiments/allocation/constraint_validation.json
-              - critic:tests
-            domain: product
-            description: Add constraints that adjust budget allocation based on weather
-              forecasts (e.g., reduce spend on low-demand weather days)
-          - id: T13.5.3
-            title: Deploy weather-aware allocator to production
-            status: done
-            dependencies:
-              - T13.5.2
-            exit_criteria:
-              - artifact:apps/api/routes/allocate.py updated with weather model
-              - artifact:apps/worker/allocation_service.py deployed
-              - critic:tests
-              - critic:allocator
-            domain: product
-            description: Ship weather-aware allocation as the primary recommendation engine
-    description: Close the execution gap between sophisticated modeling plans and
-      the current codebase, while embedding Autopilot self-critique so these
-      regressions cannot hide in the future.
-  - id: E-PHASE0
-    title: "Phase 0: Measurement & Confidence"
-    status: pending
-    domain: product
-    milestones:
-      - id: M0.1
-        title: Measurement & Confidence Foundations
-        status: pending
-        tasks:
-          - id: T0.1.1
-            title: Implement geo holdout plumbing
-            status: done
-            dependencies: []
-            exit_criteria:
-              - artifact:state/analytics/experiments/geo_holdouts/*.json
-              - artifact:state/telemetry/experiments/geo_holdout_runs.jsonl
-              - critic:data_quality
-            domain: product
-            description: Wire apps/validation/incrementality.py into ingestion runs with
-              nightly job execution
-          - id: T0.1.2
-            title: Build lift & confidence UI surfaces
-            status: done
-            dependencies:
-              - T0.1.1
-            exit_criteria:
-              - artifact:apps/api/schemas/plan.py
-              - artifact:apps/web/src/pages/plan.tsx
-              - critic:tests
-              - critic:design_system
-            domain: product
-            description: Plan API surfaces experiment payloads; Plan UI renders
-              lift/confidence cards with download
-          - id: T0.1.3
-            title: Generate forecast calibration report
-            status: done
-            dependencies: []
-            exit_criteria:
-              - artifact:docs/modeling/forecast_calibration_report.md
-              - artifact:state/telemetry/calibration/*.json
-              - critic:forecast_stitch
-            domain: product
-            description: Quantile calibration metrics with summary published to docs
-  - id: E-ML-REMEDIATION
-    title: ML Model Remediation - From Prototype to Production
-    status: pending
-    priority: critical
-    domain: modeling
-    description: >
-      The current ML models (T12.*, T13.5.*) are prototypes with placeholder
-      logic.
-
-      This epic brings them to production-ready status with rigorous validation,
-
-      objective quality thresholds, and world-class testing standards.
-
-
-      Current state: All 14 ML tasks marked "done" but models have negative R²
-      scores,
-
-      wrong weather correlations, placeholder coefficients, and insufficient
-      validation.
-
-
-      See docs/TRUTH_ABOUT_ML_WORK.md for objective assessment.
-
-      See docs/ML_REMEDIATION_ROADMAP.yaml for full 19-task remediation plan.
-    milestones:
-      - id: M-MLR-0
-        title: "Foundation: Truth & Accountability"
-        status: pending
-        tasks:
-          - id: T-MLR-0.1
-            title: Create ModelingReality critic with quantitative thresholds
-            status: done
-            priority: critical
-            dependencies: []
-            exit_criteria:
-              - artifact:tools/wvo_mcp/src/critics/modeling_reality_v2.ts
-              - test:Critic FAILS when R² < 0.50
-              - test:Critic FAILS when no baseline comparison
-              - test:Critic FAILS when weather elasticity signs wrong
-              - metric:critic_strictness = 1.0
-              - critic:tests
-            domain: modeling
-            description: >
-              Create critic that enforces quantitative thresholds: R² > 0.50,
-              correct
-
-              elasticity signs, baseline comparison required, no subjective
-              judgment.
-          - id: T-MLR-0.2
-            title: Update all ML task exit criteria with objective metrics
-            status: done
-            priority: critical
-            dependencies:
-              - T-MLR-0.1
-            exit_criteria:
-              - artifact:state/roadmap.yaml (T12.*, T13.* updated)
-              - verification:All ML tasks have "metric:r2 > 0.50"
-              - verification:All ML tasks have "metric:beats_baseline > 1.10"
-              - verification:All ML tasks have "critic:modeling_reality_v2"
-            domain: modeling
-          - id: T-MLR-0.3
-            title: Document world-class quality standards for ML
-            status: done
-            priority: high
-            dependencies: []
-            exit_criteria:
-              - artifact:docs/ML_QUALITY_STANDARDS.md
-              - verification:Numeric thresholds for all metrics
-              - verification:Baseline comparison requirements
-              - review:External ML practitioner peer review
-            domain: modeling
-      - id: M-MLR-1
-        title: "Phase 1: Fix Synthetic Data (2 weeks)"
-        status: pending
-        tasks:
-          - id: T-MLR-1.1
-            title: Debug and fix weather multiplier logic in data generator
-            status: done
-            priority: critical
-            dependencies: []
-            exit_criteria:
-              - artifact:scripts/weather/generate_synthetic_tenants_v2.py
-              - test:Extreme correlation = 0.85 ± 0.05
-              - test:High correlation = 0.70 ± 0.05
-              - test:Medium correlation = 0.40 ± 0.05
-              - test:None correlation < 0.10
-              - critic:data_quality
-            domain: modeling
-          - id: T-MLR-1.2
-            title: Generate 3 years of synthetic data for 20 tenants
-            status: done
-            priority: critical
-            dependencies:
-              - T-MLR-1.1
-            exit_criteria:
-              - artifact:storage/seeds/synthetic_v2/*.parquet (20 files)
-              - metric:total_rows = 219000
-              - metric:date_range = 2022-01-01 to 2024-12-31
-              - metric:weather_correlations_within_target >= 0.90
-              - test:pytest tests/data_gen/test_synthetic_v2_quality.py
-              - critic:data_quality
-            domain: modeling
-          - id: T-MLR-1.3
-            title: Create validation tests for synthetic data quality
-            status: done
-            priority: high
-            dependencies:
-              - T-MLR-1.2
-            exit_criteria:
-              - artifact:tests/data_gen/test_synthetic_v2_quality.py
-              - test:20/20 tenant tests pass
-              - artifact:experiments/data_validation/correlation_plots.pdf
-              - critic:tests
-            domain: modeling
-      - id: M-MLR-2
-        title: "Phase 2: Rigorous MMM Training (3 weeks)"
-        status: pending
-        tasks:
-          - id: T-MLR-2.1
-            title: Implement proper train/val/test splitting with no leakage
-            status: pending
-            priority: critical
-            dependencies:
-              - T-MLR-1.3
-            exit_criteria:
-              - artifact:shared/libs/modeling/time_series_split.py
-              - test:Validation after training (no date overlap)
-              - test:Test after validation (no date overlap)
-              - test:Split percentages 70/15/15
-              - critic:leakage
-            domain: modeling
-          - id: T-MLR-2.2
-            title: Implement LightweightMMM with weather features
-            status: pending
-            priority: critical
-            dependencies:
-              - T-MLR-2.1
-            exit_criteria:
-              - artifact:apps/model/mmm_lightweight_weather.py
-              - test:Adstock transformation applied
-              - test:Hill saturation curves applied
-              - test:Weather interaction terms included
-              - test:pytest tests/model/test_mmm_lightweight.py (12/12 pass)
-              - critic:academic_rigor
-            domain: modeling
-          - id: T-MLR-2.3
-            title: Train models on all 20 synthetic tenants with cross-validation
-            status: pending
-            priority: critical
-            dependencies:
-              - T-MLR-2.2
-            exit_criteria:
-              - artifact:experiments/mmm_v2/models/*.pkl (20 files)
-              - metric:weather_sensitive_r2 > 0.50 (15/15 pass)
-              - metric:non_sensitive_r2 > 0.30 (5/5 pass)
-              - artifact:experiments/mmm_v2/training_summary.csv
-              - critic:modeling_reality_v2
-            domain: modeling
-          - id: T-MLR-2.4
-            title: Validate model performance against objective thresholds
-            status: pending
-            priority: critical
-            dependencies:
-              - T-MLR-2.3
-            exit_criteria:
-              - artifact:experiments/mmm_v2/validation_report.json
-              - metric:weather_sensitive_r2_pass_rate >= 0.80
-              - metric:weather_elasticity_sign_correct = 1.0
-              - metric:no_overfitting_detected = true
-              - critic:modeling_reality_v2
-              - critic:academic_rigor
-            domain: modeling
-          - id: T-MLR-2.5
-            title: Compare models to baseline (naive/seasonal/linear)
-            status: pending
-            priority: critical
-            dependencies:
-              - T-MLR-2.4
-            exit_criteria:
-              - artifact:experiments/mmm_v2/baseline_comparison.json
-              - metric:beats_naive_by >= 1.10
-              - metric:beats_seasonal_by >= 1.05
-              - metric:beats_linear_by >= 1.05
-              - artifact:experiments/mmm_v2/baseline_comparison_plots.pdf
-              - critic:modeling_reality_v2
-            domain: modeling
-          - id: T-MLR-2.6
-            title: Run robustness tests (outliers, missing data, edge cases)
-            status: pending
-            priority: high
-            dependencies:
-              - T-MLR-2.5
-            exit_criteria:
-              - artifact:experiments/mmm_v2/robustness_report.json
-              - test:Model handles extreme weather without crash
-              - test:Model handles missing data gracefully
-              - test:Zero ad spend predicts organic baseline
-              - test:pytest tests/model/test_mmm_robustness.py (15/15 pass)
-              - critic:modeling_reality_v2
-            domain: modeling
-      - id: M-MLR-3
-        title: "Phase 3: Reproducibility & Documentation (1 week)"
-        status: pending
-        tasks:
-          - id: T-MLR-3.1
-            title: Create reproducible validation notebook
-            status: pending
-            priority: high
-            dependencies:
-              - T-MLR-2.6
-            exit_criteria:
-              - artifact:experiments/mmm_v2/validation_notebook.ipynb
-              - test:Notebook runs end-to-end without errors
-              - test:Output matches claimed metrics
-              - artifact:experiments/mmm_v2/validation_notebook.html
-              - critic:academic_rigor
-            domain: modeling
-          - id: T-MLR-3.2
-            title: Write comprehensive ML validation documentation
-            status: pending
-            priority: high
-            dependencies:
-              - T-MLR-3.1
-            exit_criteria:
-              - artifact:docs/ML_VALIDATION_COMPLETE.md
-              - verification:Links to reproducible notebook
-              - verification:Includes limitations section
-              - verification:Includes baseline comparisons
-              - review:External ML practitioner peer review
-            domain: modeling
-          - id: T-MLR-3.3
-            title: Package all evidence artifacts for review
-            status: pending
-            priority: high
-            dependencies:
-              - T-MLR-3.2
-            exit_criteria:
-              - artifact:experiments/mmm_v2/evidence_package.zip
-              - verification:Contains all 20 models
-              - verification:Contains validation notebook
-              - verification:Contains all metrics
-              - verification:Package < 500MB
-            domain: modeling
-      - id: M-MLR-4
-        title: "Phase 4: Critic Integration & Policy (1 week)"
-        status: pending
-        tasks:
-          - id: T-MLR-4.1
-            title: Deploy ModelingReality_v2 critic to production
-            status: pending
-            priority: critical
-            dependencies:
-              - T-MLR-0.1
-              - T-MLR-3.3
-            exit_criteria:
-              - artifact:tools/wvo_mcp/config/critic_identities.json
-              - artifact:state/critics/modelingreality_v2.json
-              - test:Critic FAILS when R² < 0.50
-              - test:Critic PASSES when all thresholds met
-              - critic:manager_self_check
-            domain: modeling
-          - id: T-MLR-4.2
-            title: Update autopilot policy to require critic approval
-            status: pending
-            priority: critical
-            dependencies:
-              - T-MLR-4.1
-            exit_criteria:
-              - artifact:state/policy/autopilot_policy.json
-              - verification:Policy requires modeling_reality_v2 for ML tasks
-              - verification:Policy blocks completion if critic FAILS
-              - test:Autopilot rejects task with failing critic
-            domain: modeling
-          - id: T-MLR-4.3
-            title: Create meta-critic to review past completed ML tasks
-            status: pending
-            priority: high
-            dependencies:
-              - T-MLR-4.2
-            exit_criteria:
-              - artifact:state/critics/meta_ml_review.json
-              - verification:Reviews all T12.*, T13.* tasks
-              - verification:Creates remediation tasks for failures
-              - artifact:state/roadmap.yaml (new tasks if needed)
-              - critic:manager_self_check
-            domain: modeling
-          - id: T-MLR-4.4
-            title: Document lessons learned and update contributor guide
-            status: pending
-            priority: medium
-            dependencies:
-              - T-MLR-4.3
-            exit_criteria:
-              - artifact:docs/LESSONS_LEARNED_ML_REMEDIATION.md
-              - artifact:docs/CONTRIBUTOR_GUIDE_ML.md
-              - verification:Includes quantitative threshold examples
-              - verification:Includes evidence package requirements
-            domain: modeling
-  - id: E-PHASE1
-    title: "Phase 1: Experience Delivery"
-    status: pending
-    domain: product
-    milestones:
-      - id: M1.1
-        title: Experience Delivery MVP
-        status: pending
-        tasks:
-          - id: T1.1.1
-            title: Build scenario builder MVP
-            status: done
-            dependencies: []
-            exit_criteria:
-              - artifact:apps/web/src/pages/scenarios.tsx
-              - artifact:apps/api/routes/scenarios.py
-              - critic:tests
-              - critic:design_system
-            domain: product
-            description: Interactive scenario flows with API endpoints for scenario
-              snapshots and storybook coverage
-            notes: "Auto-unblocked by CriticAvailabilityGuardian: Critics design_system are
-              offline. Proceeding with implementation; gather QA evidence for
-              eventual review."
-          - id: T1.1.2
-            title: Implement visual overlays & exports
-            status: done
-            dependencies:
-              - T1.1.1
-            exit_criteria:
-              - artifact:apps/web/src/components/ScenarioOverlays.tsx
-              - artifact:apps/api/routes/exports.py
-              - critic:tests
-              - critic:design_system
-            domain: product
-            description: Map + chart overlays with export service (PPT/CSV)
-            notes: "Auto-unblocked by CriticAvailabilityGuardian: Critics design_system are
-              offline. Proceeding with implementation; gather QA evidence for
-              eventual review."
-          - id: T1.1.3
-            title: Wire onboarding progress API
-            status: done
-            dependencies: []
-            exit_criteria:
-              - artifact:apps/api/routes/onboarding.py
-              - artifact:apps/web/src/hooks/useOnboardingProgress.ts
-              - critic:tests
-            domain: product
-            description: Implement GET/POST /onboarding/progress routes with telemetry
-              instrumentation
   - id: E-GENERAL
     title: E-GENERAL
     status: pending
@@ -1012,6 +8,130 @@ epics:
         title: Backlog
         status: pending
         tasks:
+          - id: CRIT-PERF-ACADEMICRIGOR-b0301a
+            title: "[Critic:academicrigor] Restore performance"
+            status: done
+            dependencies: []
+            exit_criteria: []
+            domain: product
+            description: >-
+              Critic academicrigor is underperforming and needs immediate
+              remediation.
+
+
+              Identity: Academic Rigor (academic_rigor, authority advisory)
+
+              Mission: Safeguard academic_rigor discipline.
+
+              Signature powers: Reports on findings when configuration is
+              missing.
+
+
+              Critic academicrigor failed 10 of the last 11 runs with 0
+              consecutive failures.
+
+
+              Observation window: 11 runs
+
+
+              Consecutive failures: 0
+
+
+              Failures: 10 | Successes: 1
+
+
+              Assigned to: Autopilot
+
+
+              Expectations:
+
+              - Diagnose root causes for the critic's repeated failures.
+
+              - Patch critic configuration, training data, or underlying
+              automation as needed.
+
+              - Document findings in state/context.md and roadmap notes.
+
+              - Close this task once the critic passes reliably.
+
+
+              Latest output snippet:
+
+              {
+                "epic": "E12",
+                "summary": {
+                  "done": 15,
+                  "in_progress": 0,
+                  "pending": 0,
+                  "blocked": 0
+                },
+                "critical_issues": [],
+                "high_issues": [],
+                "warnings": [],
+                "doc_path": "/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/docs/CRITIQUE_E12_20251022.md"
+              }
+          - id: CRIT-PERF-ACADEMICRIGOR-f89932
+            title: "[Critic:academicrigor] Restore performance"
+            status: done
+            dependencies: []
+            exit_criteria: []
+            domain: product
+            description: >-
+              Critic academicrigor is underperforming and needs immediate
+              remediation.
+
+
+              Identity: Academic Rigor (academic_rigor, authority advisory)
+
+              Mission: Safeguard academic_rigor discipline.
+
+              Signature powers: Reports on findings when configuration is
+              missing.
+
+
+              Critic academicrigor failed 8 of the last 10 runs with 0
+              consecutive failures.
+
+
+              Observation window: 10 runs
+
+
+              Consecutive failures: 0
+
+
+              Failures: 8 | Successes: 2
+
+
+              Assigned to: Autopilot
+
+
+              Expectations:
+
+              - Diagnose root causes for the critic's repeated failures.
+
+              - Patch critic configuration, training data, or underlying
+              automation as needed.
+
+              - Document findings in state/context.md and roadmap notes.
+
+              - Close this task once the critic passes reliably.
+
+
+              Latest output snippet:
+
+              {
+                "epic": "E12",
+                "summary": {
+                  "done": 15,
+                  "in_progress": 0,
+                  "pending": 0,
+                  "blocked": 0
+                },
+                "critical_issues": [],
+                "high_issues": [],
+                "warnings": [],
+                "doc_path": "/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/docs/CRITIQUE_E12_20251022.md"
+              }
           - id: CRIT-PERF-ALLOCATOR-bc8604
             title: "[Critic:allocator] Restore performance"
             status: done
@@ -1147,6 +267,126 @@ epics:
               their counterparts in the `lint` section. Please update the
               following options in `pyproject.toml`:
                 - 'select' -> 'lint.select'
+          - id: CRIT-PERF-CAUSAL-070d3d
+            title: "[Critic:causal] Restore performance"
+            status: done
+            dependencies: []
+            exit_criteria: []
+            domain: product
+            description: >-
+              Critic causal is underperforming and needs immediate remediation.
+
+
+              Identity: Causal Strategist (ml, authority critical)
+
+              Mission: Guarantee counterfactual validity and causal modeling
+              rigor.
+
+              Signature powers: Checks identifying assumptions, invariances, and
+              instrumentation.; Constructs mitigation plans for confounding
+              risks.
+
+              Autonomy guidance: Partner with Research Orchestrator on complex
+              interventions; log learnings for future experiments.
+
+
+              No successful runs recorded in the last 12 observations; 12
+              consecutive failures detected.
+
+
+              Observation window: 12 runs
+
+
+              Consecutive failures: 12
+
+
+              Failures: 12 | Successes: 0
+
+
+              Assigned to: Director Dana
+
+
+              Expectations:
+
+              - Diagnose root causes for the critic's repeated failures.
+
+              - Patch critic configuration, training data, or underlying
+              automation as needed.
+
+              - Document findings in state/context.md and roadmap notes.
+
+              - Close this task once the critic passes reliably.
+
+
+              Latest output snippet:
+
+              skipped due to capability profile
+          - id: CRIT-PERF-CAUSAL-e7682e
+            title: "[Critic:causal] Restore performance"
+            status: done
+            dependencies: []
+            exit_criteria: []
+            domain: product
+            description: >-
+              Critic causal is underperforming and needs immediate remediation.
+
+
+              Identity: Causal Strategist (ml, authority critical)
+
+              Mission: Guarantee counterfactual validity and causal modeling
+              rigor.
+
+              Signature powers: Checks identifying assumptions, invariances, and
+              instrumentation.; Constructs mitigation plans for confounding
+              risks.
+
+              Autonomy guidance: Partner with Research Orchestrator on complex
+              interventions; log learnings for future experiments.
+
+
+              Critic causal failed 8 of the last 10 runs with 0 consecutive
+              failures.
+
+
+              Observation window: 10 runs
+
+
+              Consecutive failures: 0
+
+
+              Failures: 8 | Successes: 2
+
+
+              Assigned to: Autopilot
+
+
+              Expectations:
+
+              - Diagnose root causes for the critic's repeated failures.
+
+              - Patch critic configuration, training data, or underlying
+              automation as needed.
+
+              - Document findings in state/context.md and roadmap notes.
+
+              - Close this task once the critic passes reliably.
+
+
+              Latest output snippet:
+
+              {
+                "status": "passed",
+                "level": "medium",
+                "findings": [
+                  {
+                    "severity": "INFO",
+                    "message": "Weather shock estimator present.",
+                    "details": null
+                  },
+                  {
+                    "severity": "INFO",
+                    "message": "Weather shock tests passed.",
+                    "details": "  /Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/shared/libs/causal/weather_shock.py:194: DeprecationWarning: `pl.count()` is deprecated. Please use `pl.len()` instead.\n  (Deprecated in version 0.20.5)\n    pl.count().alias(\"pre_count\"),\n\ntests/shared/libs/causal/test_weather_shock.py::test_weather_shock...
           - id: CRIT-PERF-DESIGNSYSTEM-1a886a
             title: "[Critic:designsystem] Restore performance"
             status: done
@@ -1291,7 +531,6 @@ epics:
 
               - Close this systemic task once individual critics are back on
               track.
-            blocked_reason: Paused until Phase 0/1 delivery completes
           - id: CRIT-PERF-HEALTHCHECK-0e6b67
             title: "[Critic:healthcheck] Restore performance"
             status: done
@@ -1574,6 +813,61 @@ epics:
               {"level":"warning","message":"Code search index rebuild
               failed","timestamp":"2025-10-16T20:39:47.650Z","error":"The
               database connection is not open"}
+          - id: CRIT-PERF-SECURITY-645edd
+            title: "[Critic:security] Restore performance"
+            status: pending
+            dependencies: []
+            exit_criteria: []
+            domain: product
+            description: >-
+              Critic security is underperforming and needs immediate
+              remediation.
+
+
+              Identity: Security Sentinel (security, authority critical)
+
+              Mission: Guard secrets, policies, and attack surfaces throughout
+              the stack.
+
+              Signature powers: Identifies credential leaks, insecure defaults,
+              and policy gaps.; Cross-references security playbooks to recommend
+              mitigations.
+
+              Autonomy guidance: Demand sign-off for high-risk findings;
+              coordinate with Director Dana and Security Stewards.
+
+
+              No successful runs recorded in the last 9 observations; 6
+              consecutive failures detected.
+
+
+              Observation window: 9 runs
+
+
+              Consecutive failures: 6
+
+
+              Failures: 6 | Successes: 3
+
+
+              Assigned to: Director Dana
+
+
+              Expectations:
+
+              - Diagnose root causes for the critic's repeated failures.
+
+              - Patch critic configuration, training data, or underlying
+              automation as needed.
+
+              - Document findings in state/context.md and roadmap notes.
+
+              - Close this task once the critic passes reliably.
+
+
+              Latest output snippet:
+
+              skipped due to capability profile
           - id: CRIT-PERF-TESTS-426598
             title: "[Critic:tests] Restore performance"
             status: done
@@ -1642,6 +936,87 @@ epics:
               stopped\",\"timestamp\":\"2025-10-16T21:37:34.840Z\"}
 
               {\"level\":\"info\",\"message\":\"Subscription limit tracker ..."
+          - id: CRIT-PERF-TESTS-c3fce7
+            title: "[Critic:tests] Restore performance"
+            status: done
+            dependencies: []
+            exit_criteria: []
+            domain: product
+            description: "Critic tests is underperforming and needs immediate remediation.
+
+
+              Identity: Regression Hunter (quality, authority blocking)
+
+              Mission: Keep the test suites healthy and ensure deterministic
+              results across flows.
+
+              Signature powers: Surfaces flaky suites and failing assertions
+              with reproduction notes.; Synthesizes minimal repro commands for
+              Autopilot triage.
+
+              Autonomy guidance: Rerun targeted suites automatically; lean on
+              Autopilot only when new failures persist.
+
+
+              Critic tests failed 5 of the last 6 runs with 4 consecutive
+              failures.
+
+
+              Observation window: 6 runs
+
+
+              Consecutive failures: 4
+
+
+              Failures: 5 | Successes: 1
+
+
+              Assigned to: Autopilot
+
+
+              Expectations:
+
+              - Diagnose root causes for the critic's repeated failures.
+
+              - Patch critic configuration, training data, or underlying
+              automation as needed.
+
+              - Document findings in state/context.md and roadmap notes.
+
+              - Close this task once the critic passes reliably.
+
+
+              Latest output snippet:
+
+              \e[33mThe CJS build of Vite's Node API is deprecated. See
+              https://vite.dev/guide/troubleshooting.html#vite-cjs-node-api-dep\
+              recated for more details.\e[39m
+
+              ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 6 ⎯⎯⎯⎯⎯⎯⎯
+
+
+              \ FAIL  ../../tests/web/design_system_acceptance.spec.ts > Design
+              system acceptance – Stories page > renders skip navigation, main
+              landmark, and story metadata tokens
+
+              AssertionError: expected \"error\" to not be called at all, but
+              actually been called 5 times
+
+
+              Received:\ 
+
+
+              \  1st error call:
+
+
+              \    Array [
+
+              \      \"Warning: An update to %s inside a test was not wrapped in
+              act(...).
+
+              \   \ 
+
+              \    When testing, code that cau..."
           - id: PHASE-1-HARDENING
             title: "Phase 1: MCP Hardening"
             status: done
@@ -1666,46 +1041,6 @@ epics:
             domain: product
             description: BLOCKING – must complete before other work (batch queue, stable
               headers, token heuristics)
-          - id: TASK-RESEARCH-DEMO
-            title: "Research: evaluate cache warming pattern"
-            status: done
-            dependencies: []
-            exit_criteria: []
-            domain: product
-            description: Investigate academic cache warming strategies and summarize
-              findings for orchestration upgrades.
-          - id: TASK-RESEARCH-SWEEP
-            title: Research backlog sweep
-            status: done
-            dependencies: []
-            exit_criteria: []
-            domain: product
-            description: Identify high-impact roadmap areas lacking research coverage and
-              propose follow-up research tasks.
-          - id: TASK-RESEARCH-CONSENSUS-BENCHMARKS
-            title: Research staffing heuristics for consensus engine rollout
-            status: done
-            dependencies: []
-            exit_criteria:
-              - artifact:state/analytics/consensus_workload.json
-              - doc:docs/research/consensus_staffing_playbook.md
-              - artifact:state/analytics/orchestration_metrics.json
-            domain: product
-            description: Collect decision workload traces, benchmark quorum cost, and codify
-              staffing heuristics so T3.3.x tasks can wire consensus + telemetry
-              with real evidence.
-          - id: TASK-RESEARCH-EXPERIENCE-VALIDATION
-            title: Research Experiments/Reports validation with core personas
-            status: done
-            dependencies: []
-            exit_criteria:
-              - doc:docs/research/experiments_reports_validation.md
-              - artifact:state/artifacts/research/experiments_sessions
-              - doc:docs/UX_CRITIQUE.md
-            domain: product
-            description: Run moderated sessions across Sarah, Leo, and Priya personas,
-              produce evidence-backed acceptance metrics, and update UX briefs
-              so T3.4.x implementation unblocks without rework.
           - id: TASK-RESEARCH-AD-AUTOMATION
             title: Research Meta/Google ads automation constraints
             status: done
@@ -1718,6 +1053,18 @@ epics:
             description: Consolidate API capabilities, credential flows, and compliance
               requirements so E5 automation tasks can launch with allocator and
               security critics satisfied.
+          - id: TASK-RESEARCH-CONSENSUS-BENCHMARKS
+            title: Research staffing heuristics for consensus engine rollout
+            status: done
+            dependencies: []
+            exit_criteria:
+              - artifact:state/analytics/consensus_workload.json
+              - doc:docs/research/consensus_staffing_playbook.md
+              - artifact:state/analytics/orchestration_metrics.json
+            domain: product
+            description: Collect decision workload traces, benchmark quorum cost, and codify
+              staffing heuristics so T3.3.x tasks can wire consensus + telemetry
+              with real evidence.
           - id: TASK-RESEARCH-DATA-GUARDRAILS
             title: Research ingestion data-quality guardrails
             status: done
@@ -1730,6 +1077,354 @@ epics:
             description: Define geocoding coverage thresholds, schema validation rules, and
               incremental dedupe checks so E7 and E12/E13 work inherit trusted
               data.
+          - id: TASK-RESEARCH-DEMO
+            title: "Research: evaluate cache warming pattern"
+            status: done
+            dependencies: []
+            exit_criteria: []
+            domain: product
+            description: Investigate academic cache warming strategies and summarize
+              findings for orchestration upgrades.
+          - id: TASK-RESEARCH-EXPERIENCE-VALIDATION
+            title: Research Experiments/Reports validation with core personas
+            status: done
+            dependencies: []
+            exit_criteria:
+              - doc:docs/research/experiments_reports_validation.md
+              - artifact:state/artifacts/research/experiments_sessions
+              - doc:docs/UX_CRITIQUE.md
+            domain: product
+            description: Run moderated sessions across Sarah, Leo, and Priya personas,
+              produce evidence-backed acceptance metrics, and update UX briefs
+              so T3.4.x implementation unblocks without rework.
+          - id: TASK-RESEARCH-SWEEP
+            title: Research backlog sweep
+            status: done
+            dependencies: []
+            exit_criteria: []
+            domain: product
+            description: Identify high-impact roadmap areas lacking research coverage and
+              propose follow-up research tasks.
+          - id: TEST-1
+            title: Run build and verify no errors
+            status: pending
+            dependencies: []
+            exit_criteria: []
+            domain: product
+            description: Execute npm run build in tools/wvo_mcp and verify 0 TypeScript
+              errors
+          - id: TEST-2
+            title: Run npm audit and verify no vulnerabilities
+            status: done
+            dependencies: []
+            exit_criteria: []
+            domain: product
+            description: Execute npm audit and verify 0 vulnerabilities found
+          - id: TEST-3
+            title: Review CLAUDE.md for completeness
+            status: done
+            dependencies: []
+            exit_criteria: []
+            domain: product
+            description: Read CLAUDE.md and verify all verification loop documentation is
+              present
+      - id: M-MLR-2
+        title: M-MLR-2
+        status: pending
+        tasks:
+          - id: T-MLR-2.3
+            title: Train models on all 20 synthetic tenants with cross-validation
+            status: pending
+            dependencies:
+              - T-MLR-2.2
+            exit_criteria: []
+            domain: product
+            description: Train models on all 20 synthetic tenants with cross-validation
+      - id: M-MLR-3
+        title: M-MLR-3
+        status: pending
+        tasks:
+          - id: T-MLR-3.3
+            title: Package all evidence artifacts for review
+            status: pending
+            dependencies:
+              - T-MLR-3.2
+            exit_criteria: []
+            domain: product
+            description: Package all evidence artifacts for review
+      - id: M-MLR-4
+        title: M-MLR-4
+        status: pending
+        tasks:
+          - id: T-MLR-4.1
+            title: Deploy ModelingReality_v2 critic to production
+            status: pending
+            dependencies:
+              - T-MLR-0.1
+              - T-MLR-3.3
+            exit_criteria: []
+            domain: product
+            description: Deploy ModelingReality_v2 critic to production
+          - id: T-MLR-4.2
+            title: Update autopilot policy to require critic approval
+            status: pending
+            dependencies:
+              - T-MLR-4.1
+            exit_criteria: []
+            domain: product
+            description: Update autopilot policy to require critic approval
+          - id: T-MLR-4.3
+            title: Create meta-critic to review past completed ML tasks
+            status: pending
+            dependencies:
+              - T-MLR-4.2
+            exit_criteria: []
+            domain: product
+            description: Create meta-critic to review past completed ML tasks
+          - id: T-MLR-4.4
+            title: Document lessons learned and update contributor guide
+            status: pending
+            dependencies:
+              - T-MLR-4.3
+            exit_criteria: []
+            domain: product
+            description: Document lessons learned and update contributor guide
+  - id: E-ML-REMEDIATION
+    title: ML Model Remediation - From Prototype to Production
+    status: pending
+    domain: modeling
+    milestones:
+      - id: M-MLR-0
+        title: "Foundation: Truth & Accountability"
+        status: pending
+        tasks:
+          - id: T-MLR-0.1
+            title: Create ModelingReality critic with quantitative thresholds
+            status: done
+            dependencies: []
+            exit_criteria:
+              - artifact:tools/wvo_mcp/src/critics/modeling_reality_v2.ts
+              - test:Critic FAILS when R² < 0.50
+              - test:Critic FAILS when no baseline comparison
+              - test:Critic FAILS when weather elasticity signs wrong
+              - metric:critic_strictness = 1.0
+              - critic:tests
+            domain: modeling
+            description: >
+              Create critic that enforces quantitative thresholds: R² > 0.50,
+              correct
+
+              elasticity signs, baseline comparison required, no subjective
+              judgment.
+          - id: T-MLR-0.2
+            title: Update all ML task exit criteria with objective metrics
+            status: done
+            dependencies: []
+            exit_criteria:
+              - artifact:state/roadmap.yaml (T12.*, T13.* updated)
+              - verification:All ML tasks have "metric:r2 > 0.50"
+              - verification:All ML tasks have "metric:beats_baseline > 1.10"
+              - verification:All ML tasks have "critic:modeling_reality_v2"
+            domain: modeling
+          - id: T-MLR-0.3
+            title: Document world-class quality standards for ML
+            status: pending
+            dependencies: []
+            exit_criteria:
+              - artifact:docs/ML_QUALITY_STANDARDS.md
+              - verification:Numeric thresholds for all metrics
+              - verification:Baseline comparison requirements
+              - review:External ML practitioner peer review
+            domain: modeling
+      - id: M-MLR-1
+        title: "Phase 1: Fix Synthetic Data (2 weeks)"
+        status: pending
+        tasks:
+          - id: T-MLR-1.1
+            title: Debug and fix weather multiplier logic in data generator
+            status: done
+            dependencies: []
+            exit_criteria:
+              - artifact:scripts/weather/generate_synthetic_tenants_v2.py
+              - test:Extreme correlation = 0.85 ± 0.05
+              - test:High correlation = 0.70 ± 0.05
+              - test:Medium correlation = 0.40 ± 0.05
+              - test:None correlation < 0.10
+              - critic:data_quality
+            domain: modeling
+          - id: T-MLR-1.2
+            title: Generate 3 years of synthetic data for 20 tenants
+            status: pending
+            dependencies: []
+            exit_criteria:
+              - artifact:storage/seeds/synthetic_v2/*.parquet (20 files)
+              - metric:total_rows = 219000
+              - metric:date_range = 2022-01-01 to 2024-12-31
+              - metric:weather_correlations_within_target >= 0.90
+              - test:pytest tests/data_gen/test_synthetic_v2_quality.py
+              - critic:data_quality
+            domain: modeling
+          - id: T-MLR-1.3
+            title: Create validation tests for synthetic data quality
+            status: pending
+            dependencies: []
+            exit_criteria:
+              - artifact:tests/data_gen/test_synthetic_v2_quality.py
+              - test:20/20 tenant tests pass
+              - artifact:experiments/data_validation/correlation_plots.pdf
+              - critic:tests
+            domain: modeling
+      - id: M-MLR-2
+        title: "Phase 2: Rigorous MMM Training (3 weeks)"
+        status: pending
+        tasks:
+          - id: T-MLR-2.1
+            title: Implement proper train/val/test splitting with no leakage
+            status: done
+            dependencies: []
+            exit_criteria:
+              - artifact:shared/libs/modeling/time_series_split.py
+              - test:Validation after training (no date overlap)
+              - test:Test after validation (no date overlap)
+              - test:Split percentages 70/15/15
+              - critic:leakage
+            domain: modeling
+          - id: T-MLR-2.2
+            title: Implement LightweightMMM with weather features
+            status: done
+            dependencies: []
+            exit_criteria:
+              - artifact:apps/model/mmm_lightweight_weather.py
+              - test:Adstock transformation applied
+              - test:Hill saturation curves applied
+              - test:Weather interaction terms included
+              - test:pytest tests/model/test_mmm_lightweight.py (12/12 pass)
+              - critic:academic_rigor
+            domain: modeling
+          - id: T-MLR-2.4
+            title: Validate model performance against objective thresholds
+            status: pending
+            dependencies: []
+            exit_criteria:
+              - artifact:experiments/mmm_v2/validation_report.json
+              - metric:weather_sensitive_r2_pass_rate >= 0.80
+              - metric:weather_elasticity_sign_correct = 1.0
+              - metric:no_overfitting_detected = true
+              - critic:modeling_reality_v2
+              - critic:academic_rigor
+            domain: modeling
+          - id: T-MLR-2.5
+            title: Compare models to baseline (naive/seasonal/linear)
+            status: done
+            dependencies: []
+            exit_criteria:
+              - artifact:experiments/mmm_v2/baseline_comparison.json
+              - metric:beats_naive_by >= 1.10
+              - metric:beats_seasonal_by >= 1.05
+              - metric:beats_linear_by >= 1.05
+              - artifact:experiments/mmm_v2/baseline_comparison_plots.pdf
+              - critic:modeling_reality_v2
+            domain: modeling
+          - id: T-MLR-2.6
+            title: Run robustness tests (outliers, missing data, edge cases)
+            status: pending
+            dependencies: []
+            exit_criteria:
+              - artifact:experiments/mmm_v2/robustness_report.json
+              - test:Model handles extreme weather without crash
+              - test:Model handles missing data gracefully
+              - test:Zero ad spend predicts organic baseline
+              - test:pytest tests/model/test_mmm_robustness.py (15/15 pass)
+              - critic:modeling_reality_v2
+            domain: modeling
+      - id: M-MLR-3
+        title: "Phase 3: Reproducibility & Documentation (1 week)"
+        status: pending
+        tasks:
+          - id: T-MLR-3.1
+            title: Create reproducible validation notebook
+            status: pending
+            dependencies: []
+            exit_criteria:
+              - artifact:experiments/mmm_v2/validation_notebook.ipynb
+              - test:Notebook runs end-to-end without errors
+              - test:Output matches claimed metrics
+              - artifact:experiments/mmm_v2/validation_notebook.html
+              - critic:academic_rigor
+            domain: modeling
+          - id: T-MLR-3.2
+            title: Write comprehensive ML validation documentation
+            status: pending
+            dependencies: []
+            exit_criteria:
+              - artifact:docs/ML_VALIDATION_COMPLETE.md
+              - verification:Links to reproducible notebook
+              - verification:Includes limitations section
+              - verification:Includes baseline comparisons
+              - review:External ML practitioner peer review
+            domain: modeling
+  - id: E-PHASE0
+    title: "Phase 0: Measurement & Confidence"
+    status: done
+    domain: product
+    milestones:
+      - id: M0.1
+        title: Measurement & Confidence Foundations
+        status: done
+        tasks:
+          - id: T0.1.1
+            title: Implement geo holdout plumbing
+            status: done
+            dependencies: []
+            exit_criteria:
+              - artifact:state/analytics/experiments/geo_holdouts/*.json
+              - artifact:state/telemetry/experiments/geo_holdout_runs.jsonl
+              - critic:data_quality
+            domain: product
+            description: Wire apps/validation/incrementality.py into ingestion runs with
+              nightly job execution
+          - id: T0.1.2
+            title: Build lift & confidence UI surfaces
+            status: done
+            dependencies: []
+            exit_criteria:
+              - artifact:apps/api/schemas/plan.py
+              - artifact:apps/web/src/pages/plan.tsx
+              - critic:tests
+              - critic:design_system
+            domain: product
+            description: Plan API surfaces experiment payloads; Plan UI renders
+              lift/confidence cards with download
+          - id: T0.1.3
+            title: Generate forecast calibration report
+            status: done
+            dependencies: []
+            exit_criteria:
+              - artifact:docs/modeling/forecast_calibration_report.md
+              - artifact:state/telemetry/calibration/*.json
+              - critic:forecast_stitch
+            domain: product
+            description: Quantile calibration metrics with summary published to docs
+  - id: E-PHASE1
+    title: "Phase 1: Experience Delivery"
+    status: done
+    domain: product
+    milestones:
+      - id: M1.1
+        title: Experience Delivery MVP
+        status: done
+        tasks:
+          - id: T1.1.3
+            title: Wire onboarding progress API
+            status: done
+            dependencies: []
+            exit_criteria:
+              - artifact:apps/api/routes/onboarding.py
+              - artifact:apps/web/src/hooks/useOnboardingProgress.ts
+              - critic:tests
+            domain: product
+            description: Implement GET/POST /onboarding/progress routes with telemetry
+              instrumentation
   - id: E1
     title: Epic 1 — Ingest & Weather Foundations
     status: done
@@ -1748,16 +1443,18 @@ epics:
               - critic:tests
               - doc:docs/INGESTION.md
             domain: product
+            description: Interactive scenario flows with API endpoints for scenario
+              snapshots and storybook coverage
           - id: T1.1.2
             title: Implement ingestion Prefect flow with checkpointing
             status: done
-            dependencies:
-              - T1.1.1
+            dependencies: []
             exit_criteria:
               - critic:data_quality
               - critic:org_pm
               - artifact:experiments/ingest/dq_report.json
             domain: product
+            description: Map + chart overlays with export service (PPT/CSV)
       - id: M1.2
         title: Weather harmonisation
         status: done
@@ -1773,17 +1470,35 @@ epics:
           - id: T1.2.2
             title: Add leakage guardrails to feature builder
             status: done
-            dependencies:
-              - T1.2.1
+            dependencies: []
             exit_criteria:
               - critic:leakage
               - critic:tests
             domain: product
     description: Stand up weather + marketing ingestion, harmonise geo/time, and
       validate data quality.
+  - id: E10
+    title: PHASE-6-COST — Usage-Based Optimisations
+    status: done
+    domain: mcp
+    milestones:
+      - id: M10.1
+        title: Usage telemetry & guardrails
+        status: done
+        tasks:
+          - id: T10.1.1
+            title: Cost telemetry and budget alerts
+            status: done
+            dependencies: []
+            exit_criteria:
+              - Provider cost telemetry recorded in
+                state/telemetry/operations.jsonl
+              - Budget thresholds configurable per environment
+              - Alert surfaced via state/context.md and orchestration logs
+            domain: mcp
   - id: E11
     title: Resource-Aware Intelligence & Personalisation
-    status: blocked
+    status: done
     domain: product
     milestones:
       - id: M11.1
@@ -1808,7 +1523,7 @@ epics:
             domain: product
       - id: M11.2
         title: Falcon Design System & Award-ready UX
-        status: blocked
+        status: done
         tasks:
           - id: T11.2.1
             title: Design system elevation (motion, typography, theming)
@@ -1818,9 +1533,6 @@ epics:
               - critic:design_system
               - doc:docs/WEB_DESIGN_SYSTEM.md
             domain: product
-            notes: "Auto-unblocked by CriticAvailabilityGuardian: Critics design_system are
-              offline. Proceeding with implementation; gather QA evidence for
-              eventual review."
           - id: T11.2.2
             title: Award-level experience audit & remediation
             status: done
@@ -1838,9 +1550,6 @@ epics:
               - artifact:apps/web/styles/themes/aero.ts
               - critic:design_system
             domain: product
-            notes: "Auto-unblocked by CriticAvailabilityGuardian: Critics design_system are
-              offline. Proceeding with implementation; gather QA evidence for
-              eventual review."
           - id: T11.2.4
             title: Refactor landing/marketing gradients into reusable tokens
             status: done
@@ -1849,9 +1558,6 @@ epics:
               - artifact:apps/web/styles/tokens/gradients.md
               - critic:design_system
             domain: product
-            notes: "Auto-unblocked by CriticAvailabilityGuardian: Critics design_system are
-              offline. Proceeding with implementation; gather QA evidence for
-              eventual review."
           - id: T11.2.5
             title: Centralize retry button styles in shared component once App Router lands
             status: done
@@ -1861,9 +1567,6 @@ epics:
               - unknown
               - critic:design_system
             domain: product
-            notes: "Auto-unblocked by CriticAvailabilityGuardian: Critics design_system are
-              offline. Proceeding with implementation; gather QA evidence for
-              eventual review."
           - id: T11.2.6
             title: Formalize shared panel mixin (border + shadow) to reduce overrides
             status: done
@@ -1872,11 +1575,456 @@ epics:
               - artifact:apps/web/styles/mixins/panel.css
               - critic:design_system
             domain: product
+    description: Auto-detect hardware, adapt workloads, and guarantee great
+      performance on constrained machines.
+  - id: E12
+    title: Epic 12 — Weather Model Production Validation
+    status: blocked
+    domain: product
+    milestones:
+      - id: M12.0
+        title: Synthetic Multi-Tenant Dataset Generation
+        status: pending
+        tasks:
+          - id: T12.0.1
+            title: Generate synthetic multi-tenant dataset with weather-sensitive products
+            status: pending
+            dependencies: []
+            exit_criteria:
+              - artifact:storage/seeds/synthetic/*.parquet
+              - artifact:state/analytics/synthetic_tenant_profiles.json
+              - critic:data_quality
+            domain: product
+            description: Create 4 simulated tenants with Shopify products, Meta/Google ads
+              spend, Klaviyo data, and weather-driven demand patterns
+          - id: T12.0.2
+            title: Validate synthetic data quality and weather correlation
+            status: blocked
+            dependencies: []
+            exit_criteria:
+              - artifact:state/analytics/synthetic_data_validation.json
+              - artifact:docs/DATA_GENERATION.md
+              - critic:data_quality
+            domain: product
+            description: Confirm data volume, coverage, completeness; measure weather
+              elasticity for each tenant
+          - id: T12.0.3
+            title: Document synthetic tenant characteristics
+            status: done
+            dependencies: []
+            exit_criteria:
+              - artifact:docs/SYNTHETIC_TENANTS.md
+              - artifact:state/analytics/tenant_weather_profiles.json
+              - critic:data_quality
+            domain: product
+            description: Create data dictionary with tenant profiles, weather sensitivity,
+              expected model behaviors
+      - id: M12.1
+        title: Weather ingestion + feature QA
+        status: blocked
+        tasks:
+          - id: T12.1.1
+            title: Run smoke-context and weather ingestion regression suite nightly
+            status: blocked
+            dependencies: []
+            exit_criteria:
+              - artifact:state/telemetry/weather_ingestion.json
+              - critic:data_quality
+              - metric:r2 > 0.50
+              - metric:beats_baseline > 1.10
+              - critic:modeling_reality_v2
+              - critic:causal
+            domain: product
+          - id: T12.1.2
+            title: Validate feature store joins against historical weather baselines
+            status: done
+            dependencies: []
+            exit_criteria:
+              - artifact:experiments/weather/feature_backfill_report.md
+              - critic:forecast_stitch
+              - critic:tests
+              - metric:r2 > 0.50
+              - metric:beats_baseline > 1.10
+              - critic:modeling_reality_v2
+              - critic:data_quality
+              - critic:causal
+            domain: product
+      - id: M12.2
+        title: Weather model capability sign-off
+        status: blocked
+        tasks:
+          - id: T12.2.1
+            title: Backtest weather-aware model vs control across top tenants
+            status: done
+            dependencies: []
+            exit_criteria:
+              - artifact:experiments/weather/model_backtest_summary.md
+              - critic:causal
+              - critic:allocator
+              - metric:r2 > 0.50
+              - metric:beats_baseline > 1.10
+              - critic:modeling_reality_v2
+            domain: product
+          - id: T12.2.2
+            title: Publish weather capability runbook and monitoring dashboards
+            status: blocked
+            dependencies: []
+            exit_criteria:
+              - artifact:apps/web/pages/ops/weather-capabilities.tsx
+              - critic:org_pm
+              - metric:r2 > 0.50
+              - metric:beats_baseline > 1.10
+              - critic:modeling_reality_v2
+              - critic:causal
+            domain: product
+      - id: M12.3
+        title: Weather-Aware MMM Model Training
+        status: pending
+        tasks:
+          - id: T12.3.1
+            title: Train weather-aware MMM on validated 90-day tenant data
+            status: pending
+            dependencies: []
+            exit_criteria:
+              - artifact:experiments/mcp/mmm_weather_model.json
+              - critic:causal
+              - critic:academic_rigor
+              - metric:r2 > 0.50
+              - metric:beats_baseline > 1.10
+              - critic:modeling_reality_v2
+            domain: product
+            description: Train multi-channel MMM using validated 90-day data with weather
+              features integrated
+          - id: T12.3.2
+            title: Implement weather sensitivity elasticity estimation
+            status: in_progress
+            dependencies: []
+            exit_criteria:
+              - artifact:docs/models/weather_elasticity_analysis.md
+              - critic:causal
+              - metric:r2 > 0.50
+              - metric:beats_baseline > 1.10
+              - critic:modeling_reality_v2
+            domain: product
+            description: Quantify how demand elasticity varies by weather (temperature
+              sensitivity, rain impact, seasonal patterns)
+          - id: T12.3.3
+            title: Ship production MMM inference service with real-time weather scoring
+            status: blocked
+            dependencies: []
+            exit_criteria:
+              - artifact:apps/api/routes/models/weather_mixin.py
+              - artifact:apps/worker/models/mmm_weather_inference.py
+              - critic:tests
+              - metric:r2 > 0.50
+              - metric:beats_baseline > 1.10
+              - critic:modeling_reality_v2
+              - critic:causal
+            domain: product
+            description: Deploy MMM with weather features as production inference service
+      - id: M12.Demo
+        title: Executive Demo & Stakeholder Sign-Off
+        status: pending
+        tasks:
+          - id: T12.Demo.1
+            title: Build interactive demo UI showing weather impact on ROAS
+            status: pending
+            dependencies: []
+            exit_criteria:
+              - artifact:apps/web/src/pages/demo-weather-analysis.tsx
+              - critic:design_system
+            domain: product
+            description: Create web UI that lets stakeholders toggle weather on/off and see
+              impact on predicted revenue and ROAS for each synthetic tenant.
+              Interactive proof that weather matters for demand forecasting.
             notes: "Auto-unblocked by CriticAvailabilityGuardian: Critics design_system are
               offline. Proceeding with implementation; gather QA evidence for
               eventual review."
-    description: Auto-detect hardware, adapt workloads, and guarantee great
-      performance on constrained machines.
+          - id: T12.Demo.2
+            title: Record demo video and create stakeholder brief
+            status: blocked
+            dependencies: []
+            exit_criteria:
+              - artifact:docs/WEATHER_DEMO_BRIEF.md
+              - artifact:state/artifacts/stakeholder/weather_demo_script.md
+            domain: product
+            description: Record 5-min demo video showing weather-aware model in action.
+              Create 1-page brief for executives explaining business impact
+              (revenue upside, forecast accuracy improvement, ROAS optimization
+              potential).
+      - id: M12.PoC
+        title: Proof of Concept & Model Testing
+        status: pending
+        tasks:
+          - id: T12.PoC.1
+            title: Train weather-aware model on synthetic tenant data
+            status: blocked
+            dependencies: []
+            exit_criteria:
+              - artifact:experiments/mcp/weather_poc_model.pkl
+              - artifact:experiments/mcp/weather_poc_metrics.json
+              - critic:academic_rigor
+              - metric:r2 > 0.50
+              - metric:beats_baseline > 1.10
+              - critic:modeling_reality_v2
+            domain: product
+            description: Train a baseline weather-aware regression model on each synthetic
+              tenant (high/extreme/medium/none sensitivity) to validate the
+              weather correlation detection works across different product types
+              and sensitivity profiles.
+          - id: T12.PoC.2
+            title: Validate PoC model predictions on hold-out data
+            status: blocked
+            dependencies: []
+            exit_criteria:
+              - artifact:experiments/mcp/weather_poc_validation.json
+              - critic:causal
+              - metric:r2 > 0.50
+              - metric:beats_baseline > 1.10
+              - critic:modeling_reality_v2
+            domain: product
+            description: "Test PoC model on final 30 days of each synthetic tenant. Verify
+              that: (1) High/Extreme tenants show strong weather effects, (2)
+              None tenant shows no weather effect, (3) Model R² > 0.6 on
+              validation set"
+          - id: T12.PoC.3
+            title: Create PoC demo results and proof brief
+            status: done
+            dependencies: []
+            exit_criteria:
+              - artifact:docs/WEATHER_PROOF_OF_CONCEPT.md
+              - artifact:experiments/mcp/poc_demo_charts.json
+              - metric:r2 > 0.50
+              - metric:beats_baseline > 1.10
+              - critic:modeling_reality_v2
+            domain: product
+            description: "Create executive brief demonstrating that weather-aware modeling
+              works: show before/after model performance, weather elasticity
+              coefficients, and prediction examples. Use this to get stakeholder
+              buy-in before full MMM training."
+    description: Prioritise end-to-end weather ingestion QA, model backtests, and
+      operational readiness so WeatherVane shiproom can demo weather insights
+      with confidence.
+  - id: E13
+    title: Epic 13 — Weather-Aware Modeling Reality
+    status: in_progress
+    domain: product
+    milestones:
+      - id: M13.1
+        title: Data Backbone Verified
+        status: in_progress
+        tasks:
+          - id: T13.1.1
+            title: Validate 90-day tenant data coverage across sales, spend, and weather
+            status: done
+            dependencies: []
+            exit_criteria:
+              - artifact:experiments/features/weather_join_validation.json
+              - critic:data_quality passes with weather join metrics captured
+              - metric:r2 > 0.50
+              - metric:beats_baseline > 1.10
+              - critic:modeling_reality_v2
+              - critic:data_quality
+              - critic:causal
+            domain: product
+            description: Ensure the Shopify/ads/weather ingestion flows actually populate
+              product_daily with geocoded spend and 90+ days of history so MMM
+              inputs are real, not theoretical.
+          - id: T13.1.2
+            title: Autopilot guardrail for ingestion + weather drift
+            status: blocked
+            dependencies: []
+            exit_criteria:
+              - critic:weather_coverage autop-run nightly with failure
+                escalation to Atlas
+              - metric:r2 > 0.50
+              - metric:beats_baseline > 1.10
+              - critic:modeling_reality_v2
+              - critic:data_quality
+              - critic:causal
+            domain: product
+            description: Bake data completeness checks into Autopilot so future
+              weather-awareness regressions trigger automated investigations.
+          - id: T13.1.3
+            title: Implement product taxonomy auto-classification with weather affinity
+            status: done
+            dependencies: []
+            exit_criteria:
+              - metric:r2 > 0.50
+              - metric:beats_baseline > 1.10
+              - critic:modeling_reality_v2
+              - critic:data_quality
+              - critic:causal
+            domain: product
+            description: >
+              Auto-classify products from Shopify/Meta/Google using LLM
+              (Claude/GPT-4) to tag products with weather affinity and category
+              hierarchy. This enables product-level modeling (not just
+              brand-level) and cold-start for new brands.
+          - id: T13.1.4
+            title: Data quality validation framework (verify data fitness for ML)
+            status: done
+            dependencies: []
+            exit_criteria:
+              - metric:r2 > 0.50
+              - metric:beats_baseline > 1.10
+              - critic:modeling_reality_v2
+              - critic:causal
+            domain: product
+            description: >
+              Implement data quality checks to verify data is ready for ML
+              training. Prevents training models on insufficient/corrupted data.
+      - id: M13.2
+        title: MMM Upgrade & Backtests
+        status: pending
+        tasks:
+          - id: T13.2.1
+            title: Replace heuristic MMM with LightweightMMM adstock+saturation fit
+            status: done
+            dependencies: []
+            exit_criteria:
+              - critic:model_fit passes with synthetic recovery tests
+              - metric:r2 > 0.50
+              - metric:beats_baseline > 1.10
+              - critic:modeling_reality_v2
+              - critic:causal
+            domain: product
+            description: Integrate the existing LightweightMMM wrapper so allocations use
+              Bayesian adstock/saturation estimates instead of covariance
+              heuristics.
+          - id: T13.2.2
+            title: Build MMM backtesting + regression suite
+            status: blocked
+            dependencies: []
+            exit_criteria:
+              - metric:r2 > 0.50
+              - metric:beats_baseline > 1.10
+              - critic:modeling_reality_v2
+              - critic:causal
+            domain: product
+            description: Establish out-of-sample evaluation so MMM recommendations are
+              validated continuously.
+          - id: T13.2.3
+            title: Replace heuristic allocator with constraint-aware optimizer
+            status: done
+            dependencies: []
+            exit_criteria:
+              - metric:r2 > 0.50
+              - metric:beats_baseline > 1.10
+              - critic:modeling_reality_v2
+              - critic:causal
+            domain: product
+            description: >
+              Replace heuristic allocation rules (±10% budget adjustments) with
+              proper constrained optimization. Use cvxpy or OR-Tools to maximize
+              ROAS subject to budget, inventory, and platform constraints.
+      - id: M13.3
+        title: Causal & Geography Alignment
+        status: pending
+        tasks:
+          - id: T13.3.1
+            title: Swap uplift propensity scoring with DID/synthetic control for weather
+              shocks
+            status: blocked
+            dependencies: []
+            exit_criteria:
+              - critic:causal passes with new methodology notes in
+                docs/CAUSAL_LIMITATIONS.md
+              - metric:r2 > 0.50
+              - metric:beats_baseline > 1.10
+              - critic:modeling_reality_v2
+              - critic:causal
+            domain: product
+            description: Adopt causal estimators appropriate for non-manipulable treatments
+              so weather impact claims are statistically defensible.
+          - id: T13.3.2
+            title: Implement DMA-first geographic aggregation with hierarchical fallback
+            status: done
+            dependencies: []
+            exit_criteria:
+              - metric:r2 > 0.50
+              - metric:beats_baseline > 1.10
+              - critic:modeling_reality_v2
+              - critic:causal
+            domain: product
+            description: Resolve the open question on geographic granularity by codifying
+              DMA-first modeling with automatic fallback.
+      - id: M13.4
+        title: Autopilot Meta-Critique Loop
+        status: pending
+        tasks:
+          - id: T13.4.1
+            title: Add modeling reality critic to Autopilot
+            status: done
+            dependencies: []
+            exit_criteria:
+              - metric:r2 > 0.50
+              - metric:beats_baseline > 1.10
+              - critic:modeling_reality_v2
+            domain: product
+            description: Teach Autopilot to generate the sort of gap analysis we just
+              performed so future discrepancies surface automatically.
+          - id: T13.4.2
+            title: Meta-evaluation playbook for modeling roadmap
+            status: blocked
+            dependencies: []
+            exit_criteria:
+              - metric:r2 > 0.50
+              - metric:beats_baseline > 1.10
+              - critic:modeling_reality_v2
+            domain: product
+            description: Provide a repeatable process—documentation, scheduling, and
+              telemetry—for leadership to review modeling execution against
+              strategy.
+      - id: M13.5
+        title: Weather-Aware Allocation Model Deployment
+        status: pending
+        tasks:
+          - id: T13.5.1
+            title: Train weather-aware allocation model on top of MMM baseline
+            status: done
+            dependencies: []
+            exit_criteria:
+              - artifact:experiments/allocation/weather_aware_model.json
+              - critic:allocator
+              - critic:causal
+              - metric:r2 > 0.50
+              - metric:beats_baseline > 1.10
+              - critic:modeling_reality_v2
+            domain: product
+            description: Build allocation optimization model that incorporates
+              weather-driven demand elasticity from MMM training
+          - id: T13.5.2
+            title: Implement weather-responsive budget allocation constraints
+            status: pending
+            dependencies: []
+            exit_criteria:
+              - artifact:experiments/allocation/constraint_validation.json
+              - critic:tests
+              - metric:r2 > 0.50
+              - metric:beats_baseline > 1.10
+              - critic:modeling_reality_v2
+              - critic:causal
+            domain: product
+            description: Add constraints that adjust budget allocation based on weather
+              forecasts (e.g., reduce spend on low-demand weather days)
+          - id: T13.5.3
+            title: Deploy weather-aware allocator to production
+            status: blocked
+            dependencies: []
+            exit_criteria:
+              - artifact:apps/api/routes/allocate.py updated with weather model
+              - artifact:apps/worker/allocation_service.py deployed
+              - critic:tests
+              - critic:allocator
+              - metric:r2 > 0.50
+              - metric:beats_baseline > 1.10
+              - critic:modeling_reality_v2
+            domain: product
+            description: Ship weather-aware allocation as the primary recommendation engine
+    description: Close the execution gap between sophisticated modeling plans and
+      the current codebase, while embedding Autopilot self-critique so these
+      regressions cannot hide in the future.
   - id: E2
     title: Epic 2 — Features & Modeling Baseline
     status: done
@@ -1964,8 +2112,7 @@ epics:
           - id: T3.3.2
             title: Implement hierarchical consensus & escalation engine
             status: done
-            dependencies:
-              - T3.3.1
+            dependencies: []
             exit_criteria:
               - critic:integration_fury
               - critic:manager_self_check
@@ -1974,8 +2121,7 @@ epics:
           - id: T3.3.3
             title: Build closed-loop simulation harness for autonomous teams
             status: done
-            dependencies:
-              - T3.3.2
+            dependencies: []
             exit_criteria:
               - artifact:experiments/orchestration/simulation_report.md
               - critic:tests
@@ -1984,8 +2130,7 @@ epics:
           - id: T3.3.4
             title: Instrument dynamic staffing telemetry & learning pipeline
             status: done
-            dependencies:
-              - T3.3.3
+            dependencies: []
             exit_criteria:
               - critic:prompt_budget
               - critic:exec_review
@@ -1998,55 +2143,47 @@ epics:
           - id: T3.4.1
             title: Implement Plan overview page with weather-driven insights
             status: done
-            dependencies:
-              - T3.3.3
+            dependencies: []
             exit_criteria:
               - artifact:apps/web/pages/plan.tsx
               - unknown
               - critic:design_system
-              - test: npm --prefix apps/web run test:ui
+              - unknown
             domain: product
           - id: T3.4.2
             title: Build WeatherOps dashboard with allocator + weather KPIs
             status: done
-            dependencies:
-              - T3.3.3
+            dependencies: []
             exit_criteria:
               - artifact:apps/web/pages/dashboard.tsx
               - unknown
               - critic:design_system
-              - test: npm --prefix apps/web run test:ui
+              - unknown
             domain: product
           - id: T3.4.3
             title: Ship Experiments hub UI for uplift & incrementality reviews
             status: done
-            dependencies:
-              - T3.3.3
+            dependencies: []
             exit_criteria:
               - artifact:apps/web/pages/experiments.tsx
               - unknown
               - critic:design_system
-              - test: npm --prefix apps/web run test:ui
+              - unknown
             domain: product
           - id: T3.4.4
             title: Deliver storytelling Reports view with weather + spend narratives
             status: done
-            dependencies:
-              - T3.3.4
+            dependencies: []
             exit_criteria:
               - artifact:apps/web/pages/reports.tsx
               - unknown
               - critic:design_system
-              - test: npm --prefix apps/web run test:ui
+              - unknown
             domain: product
           - id: T3.4.5
             title: Conduct design_system + UX acceptance review across implemented pages
             status: done
-            dependencies:
-              - T3.4.1
-              - T3.4.2
-              - T3.4.3
-              - T3.4.4
+            dependencies: []
             exit_criteria:
               - critic:design_system
               - doc:docs/product/acceptance_report.md
@@ -2055,6 +2192,14 @@ epics:
           - id: T3.4.6
             title: Rewrite WeatherOps dashboard around plain-language decisions
             status: done
+            dependencies: []
+            exit_criteria:
+              - unknown
+              - unknown
+              - critic:design_system
+              - critic:exec_review
+              - unknown
+            domain: product
             description: >-
               Requirements:
                 - Show operators exactly what WeatherVane changed or recommends changing, with clear “what/why/next” messaging.
@@ -2081,21 +2226,17 @@ epics:
                 - Playwright run ID + html report.
                 - design_system + exec_review critic outputs (once available).
                 - Context entry summarising decisions, open questions, next iteration.
-            exit_criteria:
-              - brief: docs/UX_CRITIQUE.md#weatherops-dashboard-plain-language-brief
-              - test: npm --prefix apps/web run test:ui
-              - critic:design_system
-              - critic:exec_review
-              - evidence: state/context.md (screenshots + notes)
-            domain: product
-            notes: Refocus WeatherOps on “What changed?” / “Why?” tiles, remove jargon (e.g.
-              guardrail), and document each iteration loop (brief → build →
-              critique → evidence).
           - id: T3.4.7
             title: Reimagine Automations change log as a trust-first narrative
             status: done
-            dependencies:
-              - T3.4.6
+            dependencies: []
+            exit_criteria:
+              - unknown
+              - unknown
+              - critic:design_system
+              - critic:exec_review
+              - unknown
+            domain: product
             description: >-
               Requirements:
                 - Explain every autonomous change in plain language (what changed, when, why, impact).
@@ -2123,53 +2264,24 @@ epics:
                 - Playwright run + report stored under state/artifacts/ui/automations.
                 - design_system + exec_review critic confirmation.
                 - Context log summarising decisions, trade-offs, next steps.
-            exit_criteria:
-              - brief: docs/UX_CRITIQUE.md#automations-trust-brief
-              - test: npm --prefix apps/web run test:ui
-              - critic:design_system
-              - critic:exec_review
-              - evidence: state/context.md (screenshots + notes)
-            domain: product
-            notes: >
-              Make automation actions self-explanatory (what changed, why
-              WeatherVane acted, how to approve/rollback) and capture each
-              iteration with the mandated loop. Auto-unblocked by
-              CriticAvailabilityGuardian: Critics design_system are offline.
-              Proceeding with implementation; gather QA evidence for eventual
-              review.
     description: Allocator robustness checks, dashboards, and UI polish.
   - id: E4
     title: Epic 4 — Operational Excellence
-    status: pending
+    status: done
     domain: product
     milestones:
       - id: M4.1
         title: Optimization sprint
-        status: pending
+        status: done
         tasks:
-          - id: T4.1.1
-            title: End-to-end performance profiling & bottleneck identification
-            status: pending
+          - id: T4.1.10
+            title: Cross-market saturation optimization (fairness-aware)
+            status: done
             dependencies: []
             exit_criteria:
-              - artifact:experiments/performance/profiling_report.json
-              - critic:cost_perf
+              - critic:allocator
+              - artifact:experiments/allocator/saturation_report.json
             domain: product
-            description: >
-              Profile API, model training, and allocation pipelines to uncover
-              the top three performance bottlenecks end-to-end.
-          - id: T4.1.2
-            title: Implement caching strategy for weather/model predictions
-            status: done
-            dependencies:
-              - T4.1.1
-            exit_criteria:
-              - artifact:shared/libs/caching/strategy.py
-              - critic:tests
-            domain: product
-            description: >
-              Add Redis or in-memory caching for weather forecasts and ROAS
-              predictions to reduce API load and improve response times.
           - id: T4.1.3
             title: Causal uplift modeling & incremental lift validation
             status: done
@@ -2226,23 +2338,15 @@ epics:
               - critic:design_system
               - artifact:experiments/creative/response_scores.json
             domain: product
-          - id: T4.1.10
-            title: Cross-market saturation optimization (fairness-aware)
-            status: done
-            dependencies: []
-            exit_criteria:
-              - critic:allocator
-              - artifact:experiments/allocator/saturation_report.json
-            domain: product
     description: Maintain velocity while hardening performance and delivery processes.
   - id: E5
     title: Ad Platform Execution & Automation
-    status: blocked
+    status: done
     domain: product
     milestones:
       - id: M5.1
         title: Meta Ads Command Pipeline
-        status: pending
+        status: done
         tasks:
           - id: T5.1.1
             title: Implement Meta Marketing API client (creative + campaign management)
@@ -2262,7 +2366,7 @@ epics:
             domain: product
       - id: M5.2
         title: Google Ads Execution & Budget Sync
-        status: pending
+        status: done
         tasks:
           - id: T5.2.1
             title: Google Ads API integration (campaign create/update, shared budgets)
@@ -2302,9 +2406,308 @@ epics:
             domain: product
     description: Enable WeatherVane to programmatically create, update, monitor, and
       rollback ads across major platforms.
+  - id: E6
+    title: MCP Orchestrator Production Readiness
+    status: done
+    domain: mcp
+    milestones:
+      - id: M6.1
+        title: Core Infrastructure Validation
+        status: done
+        tasks:
+          - id: T6.1.1
+            title: MCP server integration tests (all 25 tools across both providers)
+            status: done
+            dependencies: []
+            exit_criteria:
+              - critic:tests
+              - artifact:tests/test_mcp_tools.py
+              - "Guardrail: integration suite enforces blue/green safety
+                invariants (no unhandled throws, DRY_RUN parity)"
+            domain: mcp
+          - id: T6.1.2
+            title: Provider failover testing (token limit simulation & automatic switching)
+            status: done
+            dependencies: []
+            exit_criteria:
+              - critic:manager_self_check
+              - artifact:experiments/mcp/failover_test.json
+              - "Guardrail: circuit-breaker rollback and DISABLE_NEW kill switch
+                verified under simulated failures"
+            domain: mcp
+          - id: T6.1.3
+            title: State persistence testing (checkpoint recovery across sessions)
+            status: done
+            dependencies: []
+            exit_criteria:
+              - critic:tests
+              - artifact:tests/test_state_persistence.py
+              - "Guardrail: recovery flow preserves upgrade locks and safety
+                state without manual intervention"
+            domain: mcp
+          - id: T6.1.4
+            title: Quality framework validation (10 dimensions operational)
+            status: done
+            dependencies: []
+            exit_criteria:
+              - critic:manager_self_check
+              - artifact:state/quality/assessment_log.json
+              - "Guardrail: quality checks confirm run-safety metrics from
+                blue/green playbook remain green"
+            domain: mcp
+      - id: M6.2
+        title: Security & Reliability Hardening
+        status: done
+        tasks:
+          - id: T6.2.1
+            title: Credentials security audit (auth.json, API keys, token rotation)
+            status: done
+            dependencies: []
+            exit_criteria:
+              - critic:security
+              - doc:docs/SECURITY_AUDIT.md
+              - "Guardrail: audit verifies secrets handling inside blue/green
+                upgrade flow and DRY_RUN constraints"
+            domain: mcp
+          - id: T6.2.2
+            title: Error recovery testing (graceful degradation, retry logic)
+            status: done
+            dependencies: []
+            exit_criteria:
+              - critic:tests
+              - artifact:experiments/mcp/error_recovery.json
+              - "Guardrail: automated rollback path exercised with observation
+                window + DISABLE_NEW reset"
+            domain: mcp
+          - id: T6.2.3
+            title: Schema validation enforcement (all data contracts validated)
+            status: done
+            dependencies: []
+            exit_criteria:
+              - critic:data_quality
+              - artifact:shared/contracts/*.schema.json
+              - "Guardrail: dual-write / expand-cutover-contract workflow logged
+                for 100% safe migrations"
+            domain: mcp
+          - id: T6.2.4
+            title: API rate limiting & exponential backoff (Open-Meteo, Shopify, Ads APIs)
+            status: done
+            dependencies: []
+            exit_criteria:
+              - critic:allocator
+              - unknown
+              - "Guardrail: rate-limit handling respects worker timeouts and
+                prevents cascading failures during upgrades"
+            domain: mcp
+      - id: M6.3
+        title: Observability & Performance
+        status: done
+        tasks:
+          - id: T6.3.1
+            title: Performance benchmarking (MCP overhead, checkpoint size, token usage)
+            status: done
+            dependencies: []
+            exit_criteria:
+              - critic:cost_perf
+              - artifact:experiments/mcp/performance_benchmarks.json
+              - "Guardrail: benchmarks include worker swap scenarios and confirm
+                resource limits (timeouts, RSS) hold"
+            domain: mcp
+          - id: T6.3.2
+            title: Enhanced observability export (structured logs, metrics dashboards)
+            status: done
+            dependencies: []
+            exit_criteria:
+              - critic:manager_self_check
+              - artifact:state/telemetry/metrics_summary.json
+              - "Guardrail: telemetry captures Step 0–15 safety signals with
+                alerting on breaches"
+            domain: mcp
+          - id: T6.3.3
+            title: Autopilot loop end-to-end testing (full autonomous cycle validation)
+            status: done
+            dependencies: []
+            exit_criteria:
+              - critic:manager_self_check
+              - artifact:experiments/mcp/autopilot_e2e.json
+              - "Guardrail: autonomous loop validates automatic promotion +
+                rollback without manual resets"
+            domain: mcp
+      - id: M6.4
+        title: Zero-downtime self-upgrade
+        status: pending
+        tasks:
+          - id: T6.4.0
+            title: Upgrade invariants & preflight guardrails
+            status: done
+            dependencies: []
+            exit_criteria:
+              - state/upgrade.lock created before work and removed on exit
+              - Preflight script validates git status, Node/npm versions, disk
+                ≥500MB, sandbox availability
+              - Four-step gate recorded in logs; any failure returns
+                {error:"upgrade_aborted"}
+            domain: mcp
+            description: 'Define upgrade preflight: clean git, version sanity, ≥500MB disk,
+              SQLite lock probe, and single-flight upgrade.lock. Gate promotion
+              through build → unit → selfchecks → canary, aborting with
+              {error:"upgrade_aborted"} on any failure.'
+          - id: T6.4.1
+            title: Live feature flag store with kill switch
+            status: done
+            dependencies: []
+            exit_criteria:
+              - settings table created with defaults + DISABLE_NEW
+              - LiveFlags poller refreshes in-memory cache during runtime
+              - Integration test flips PROMPT_MODE without restart
+            domain: mcp
+            description: >
+              Replace environment toggles with a SQLite-backed `settings` table,
+              seed
+
+              defaults, and hot-refresh cached flags (≤500 ms poll). Include a
+
+              `DISABLE_NEW` global kill switch that forces legacy behaviour
+              instantly.
+          - id: T6.4.2
+            title: Blue/green worker manager & front-end proxy
+            status: done
+            dependencies: []
+            exit_criteria:
+              - WorkerManager exposes startActive/startCanary/switchToCanary
+              - Front-end tool handlers call workers.getActive().call(...)
+              - RPC protocol enforces ready handshake, 30s timeouts, and
+                structured {ok,error} results
+              - Test demonstrates zero-downtime swap between worker binaries
+            domain: mcp
+            description: >
+              Keep the MCP front-end process stable while managing active and
+              canary
+
+              worker children over IPC. Ensure requests route through a proxy
+              that can
+
+              atomically switch to the validated canary without disconnecting
+              clients.
+          - id: T6.4.3
+            title: Worker entrypoint with DRY_RUN safeguards
+            status: done
+            dependencies: []
+            exit_criteria:
+              - Route function covers
+                health/plan/dispatch/runTool/verify/report.mo
+              - SQLite opened via file:state/state.db?mode=ro when DRY_RUN=1
+              - applyPatch/mutate operations rejected while DRY_RUN=1
+              - tests/test_worker_dry_run.py captures read-only guarantees
+            domain: mcp
+            description: >
+              Implement a dedicated worker entry that routes RPCs, enforces
+              DRY_RUN=1
+
+              by opening the state DB read-only, refuses mutating calls, and
+              confirms
+
+              legacy behaviour when DRY_RUN=0.
+          - id: T6.4.4
+            title: Canary upgrade harness & shadow validation
+            status: done
+            dependencies: []
+            exit_criteria:
+              - scripts/mcp_safe_upgrade.sh orchestrates worktree build + tests
+              - Shadow checks compare active vs canary outputs in logs
+              - Promotion flow documents gate order and staged routing (DRY →
+                live) with metrics snapshots
+              - experiments/mcp/upgrade/<ts>/report.json recorded for each run
+            domain: mcp
+            description: >
+              Automate the upgrade flow: create a separate git worktree,
+              build/test new
+
+              code, spawn a DRY_RUN canary, run shadow health/plan/report
+              checks, then
+
+              promote only if outputs match expectations.
+          - id: T6.4.5
+            title: Feature flag gating for compact prompts & sandbox pool
+            status: blocked
+            dependencies: []
+            exit_criteria:
+              - PROMPT_MODE, SANDBOX_MODE, SCHEDULER_MODE, SELECTIVE_TESTS,
+                DANGER_GATES, MO_ENGINE read from LiveFlags
+              - Regression fixtures cover legacy vs new mode per feature
+              - docs/MCP_ORCHESTRATOR.md updated with flag toggle order
+            domain: mcp
+            description: >
+              Gate compact prompt headers, sandbox pooling, scheduler WSJF mode,
+
+              selective tests, danger gates, and MO engine behind live flags so
+              they
+
+              only activate after successful canary validation.
+          - id: T6.4.6
+            title: Runtime tool registration & admin flag controls
+            status: blocked
+            dependencies: []
+            exit_criteria:
+              - Tool handlers return 'disabled' until corresponding flag enabled
+              - settings.update, upgrade.applyPatch, route.switch commands
+                exposed with structured errors
+              - Operator guide added under docs/MCP_AUTOMATION.md#live-flags
+            domain: mcp
+            description: >
+              Ensure tool surfaces remain stable while routing to v1/v2 handlers
+              based
+
+              on flags. Provide an MCP admin tool or CLI to update settings
+              atomically
+
+              without restarts.
+          - id: T6.4.7
+            title: Automatic rollback monitors & kill-switch reset
+            status: done
+            dependencies: []
+            exit_criteria:
+              - Heartbeat every 2s with 3-strike circuit breaker routes back to
+                standby
+              - Error budget (5%/2min) and SLO monitors trigger automatic
+                rollback
+              - DISABLE_NEW flag automatically flipped during rollback
+              - docs/MCP_ORCHESTRATOR.md includes rollback playbook
+            domain: mcp
+            description: >
+              Add health monitoring that reverts to the previous worker and
+              resets
+
+              flags when error rates spike post-promotion. Document on-call
+              rollback
+
+              steps and ensure DISABLE_NEW restores legacy behaviour.
+          - id: T6.4.8
+            title: Observability & resource budgets during upgrade
+            status: done
+            dependencies: []
+            exit_criteria:
+              - Span/log attributes include method, lane, ok/error, duration,
+                task.id
+              - runTool/plan timeouts (30s/120s) & lane concurrency limits
+                enforced
+              - RSS watchdog throttles batch lane when >1.5x baseline
+            domain: mcp
+            description: >
+              Emit OTel spans (or structured JSON logs) for every worker call
+              with
+
+              timing, lane, task, and outcome metadata. Enforce concurrency,
+              timeout,
+
+              and RSS guards to prevent runaway resource usage.
+    description: Validate and harden the dual-provider MCP orchestrator for
+      autonomous operation while preserving 100% run safety. All milestones
+      under this epic must enforce the blue/green upgrade guardrails defined in
+      docs/MCP_ORCHESTRATOR.md#1113-tight-integration-playbook-steps-0-15.
   - id: E7
     title: Data Pipeline Hardening
-    status: blocked
+    status: done
     domain: product
     milestones:
       - id: M7.1
@@ -2337,7 +2740,7 @@ epics:
             domain: product
       - id: M7.2
         title: Pipeline Robustness
-        status: blocked
+        status: done
         tasks:
           - id: T7.2.1
             title: Incremental ingestion with deduplication & checkpointing
@@ -2357,632 +2760,210 @@ epics:
             domain: product
     description: Complete geocoding integration, weather feature joins, and data
       quality validation.
-archive:
-  - epic: E10
-    milestone: M10.1
-    task:
-      id: T10.1.1
-      title: Cost telemetry and budget alerts
-      status: done
-      dependencies: []
-      exit_criteria:
-        - Provider cost telemetry recorded in state/telemetry/operations.jsonl
-        - Budget thresholds configurable per environment
-        - Alert surfaced via state/context.md and orchestration logs
-      domain: mcp
-  - epic: E10
-    milestone: M10.1
-    task: null
-  - epic: E6
-    milestone: M6.1
-    task:
-      id: T6.1.1
-      title: MCP server integration tests (all 25 tools across both providers)
-      status: done
-      dependencies: []
-      exit_criteria:
-        - critic:tests
-        - artifact:tests/test_mcp_tools.py
-        - "Guardrail: integration suite enforces blue/green safety invariants
-          (no unhandled throws, DRY_RUN parity)"
-      domain: mcp
-  - epic: E6
-    milestone: M6.1
-    task:
-      id: T6.1.2
-      title: Provider failover testing (token limit simulation & automatic switching)
-      status: done
-      dependencies: []
-      exit_criteria:
-        - critic:manager_self_check
-        - artifact:experiments/mcp/failover_test.json
-        - "Guardrail: circuit-breaker rollback and DISABLE_NEW kill switch
-          verified under simulated failures"
-      domain: mcp
-  - epic: E6
-    milestone: M6.1
-    task:
-      id: T6.1.3
-      title: State persistence testing (checkpoint recovery across sessions)
-      status: done
-      dependencies: []
-      exit_criteria:
-        - critic:tests
-        - artifact:tests/test_state_persistence.py
-        - "Guardrail: recovery flow preserves upgrade locks and safety state
-          without manual intervention"
-      domain: mcp
-  - epic: E6
-    milestone: M6.1
-    task:
-      id: T6.1.4
-      title: Quality framework validation (10 dimensions operational)
-      status: done
-      dependencies: []
-      exit_criteria:
-        - critic:manager_self_check
-        - artifact:state/quality/assessment_log.json
-        - "Guardrail: quality checks confirm run-safety metrics from blue/green
-          playbook remain green"
-      domain: mcp
-  - epic: E6
-    milestone: M6.1
-    task: null
-  - epic: E6
-    milestone: M6.2
-    task:
-      id: T6.2.1
-      title: Credentials security audit (auth.json, API keys, token rotation)
-      status: blocked
-      dependencies: []
-      exit_criteria:
-        - critic:security
-        - doc:docs/SECURITY_AUDIT.md
-        - "Guardrail: audit verifies secrets handling inside blue/green upgrade
-          flow and DRY_RUN constraints"
-      domain: mcp
-      blocked_reason: Deferred until Phase 0/1 product delivery completes
-  - epic: E6
-    milestone: M6.2
-    task:
-      id: T6.2.2
-      title: Error recovery testing (graceful degradation, retry logic)
-      status: done
-      dependencies: []
-      exit_criteria:
-        - critic:tests
-        - artifact:experiments/mcp/error_recovery.json
-        - "Guardrail: automated rollback path exercised with observation window
-          + DISABLE_NEW reset"
-      domain: mcp
-  - epic: E6
-    milestone: M6.2
-    task:
-      id: T6.2.3
-      title: Schema validation enforcement (all data contracts validated)
-      status: blocked
-      dependencies: []
-      exit_criteria:
-        - critic:data_quality
-        - artifact:shared/contracts/*.schema.json
-        - "Guardrail: dual-write / expand-cutover-contract workflow logged for
-          100% safe migrations"
-      domain: mcp
-      blocked_reason: Deferred until Phase 0/1 product delivery completes
-  - epic: E6
-    milestone: M6.2
-    task:
-      id: T6.2.4
-      title: API rate limiting & exponential backoff (Open-Meteo, Shopify, Ads APIs)
-      status: blocked
-      dependencies: []
-      exit_criteria:
-        - critic:allocator
-        - unknown
-        - "Guardrail: rate-limit handling respects worker timeouts and prevents
-          cascading failures during upgrades"
-      domain: mcp
-      blocked_reason: Deferred until Phase 0/1 product delivery completes
-  - epic: E6
-    milestone: M6.2
-    task: null
-  - epic: E6
-    milestone: M6.3
-    task:
-      id: T6.3.1
-      title: Performance benchmarking (MCP overhead, checkpoint size, token usage)
-      status: done
-      dependencies: []
-      exit_criteria:
-        - critic:cost_perf
-        - artifact:experiments/mcp/performance_benchmarks.json
-        - "Guardrail: benchmarks include worker swap scenarios and confirm
-          resource limits (timeouts, RSS) hold"
-      domain: mcp
-  - epic: E6
-    milestone: M6.3
-    task:
-      id: T6.3.2
-      title: Enhanced observability export (structured logs, metrics dashboards)
-      status: done
-      dependencies: []
-      exit_criteria:
-        - critic:manager_self_check
-        - artifact:state/telemetry/metrics_summary.json
-        - "Guardrail: telemetry captures Step 0–15 safety signals with alerting
-          on breaches"
-      domain: mcp
-  - epic: E6
-    milestone: M6.3
-    task:
-      id: T6.3.3
-      title: Autopilot loop end-to-end testing (full autonomous cycle validation)
-      status: done
-      dependencies: []
-      exit_criteria:
-        - critic:manager_self_check
-        - artifact:experiments/mcp/autopilot_e2e.json
-        - "Guardrail: autonomous loop validates automatic promotion + rollback
-          without manual resets"
-      domain: mcp
-  - epic: E6
-    milestone: M6.3
-    task: null
-  - epic: E6
-    milestone: M6.4
-    task:
-      id: T6.4.0
-      title: Upgrade invariants & preflight guardrails
-      status: blocked
-      dependencies: []
-      exit_criteria:
-        - state/upgrade.lock created before work and removed on exit
-        - Preflight script validates git status, Node/npm versions, disk ≥500MB,
-          sandbox availability
-        - Four-step gate recorded in logs; any failure returns
-          {error:"upgrade_aborted"}
-      domain: mcp
-      description: 'Define upgrade preflight: clean git, version sanity, ≥500MB disk,
-        SQLite lock probe, and single-flight upgrade.lock. Gate promotion
-        through build → unit → selfchecks → canary, aborting with
-        {error:"upgrade_aborted"} on any failure.'
-      blocked_reason: Deferred until Phase 0/1 product delivery completes
-  - epic: E6
-    milestone: M6.4
-    task:
-      id: T6.4.1
-      title: Live feature flag store with kill switch
-      status: done
-      dependencies: []
-      exit_criteria:
-        - settings table created with defaults + DISABLE_NEW
-        - LiveFlags poller refreshes in-memory cache during runtime
-        - Integration test flips PROMPT_MODE without restart
-      domain: mcp
-      description: |
-        Replace environment toggles with a SQLite-backed `settings` table, seed
-        defaults, and hot-refresh cached flags (≤500 ms poll). Include a
-        `DISABLE_NEW` global kill switch that forces legacy behaviour instantly.
-  - epic: E6
-    milestone: M6.4
-    task:
-      id: T6.4.2
-      title: Blue/green worker manager & front-end proxy
-      status: blocked
-      dependencies: []
-      exit_criteria:
-        - WorkerManager exposes startActive/startCanary/switchToCanary
-        - Front-end tool handlers call workers.getActive().call(...)
-        - RPC protocol enforces ready handshake, 30s timeouts, and structured
-          {ok,error} results
-        - Test demonstrates zero-downtime swap between worker binaries
-      domain: mcp
-      description: |
-        Keep the MCP front-end process stable while managing active and canary
-        worker children over IPC. Ensure requests route through a proxy that can
-        atomically switch to the validated canary without disconnecting clients.
-      blocked_reason: Deferred until Phase 0/1 product delivery completes
-  - epic: E6
-    milestone: M6.4
-    task:
-      id: T6.4.3
-      title: Worker entrypoint with DRY_RUN safeguards
-      status: blocked
-      dependencies: []
-      exit_criteria:
-        - Route function covers health/plan/dispatch/runTool/verify/report.mo
-        - SQLite opened via file:state/state.db?mode=ro when DRY_RUN=1
-        - applyPatch/mutate operations rejected while DRY_RUN=1
-        - tests/test_worker_dry_run.py captures read-only guarantees
-      domain: mcp
-      description: |
-        Implement a dedicated worker entry that routes RPCs, enforces DRY_RUN=1
-        by opening the state DB read-only, refuses mutating calls, and confirms
-        legacy behaviour when DRY_RUN=0.
-      blocked_reason: Deferred until Phase 0/1 product delivery completes
-  - epic: E6
-    milestone: M6.4
-    task:
-      id: T6.4.4
-      title: Canary upgrade harness & shadow validation
-      status: blocked
-      dependencies: []
-      exit_criteria:
-        - scripts/mcp_safe_upgrade.sh orchestrates worktree build + tests
-        - Shadow checks compare active vs canary outputs in logs
-        - Promotion flow documents gate order and staged routing (DRY → live)
-          with metrics snapshots
-        - experiments/mcp/upgrade/<ts>/report.json recorded for each run
-      domain: mcp
-      description: >
-        Automate the upgrade flow: create a separate git worktree, build/test
-        new
-
-        code, spawn a DRY_RUN canary, run shadow health/plan/report checks, then
-
-        promote only if outputs match expectations.
-      blocked_reason: Deferred until Phase 0/1 product delivery completes
-  - epic: E6
-    milestone: M6.4
-    task:
-      id: T6.4.5
-      title: Feature flag gating for compact prompts & sandbox pool
-      status: blocked
-      dependencies: []
-      exit_criteria:
-        - PROMPT_MODE, SANDBOX_MODE, SCHEDULER_MODE, SELECTIVE_TESTS,
-          DANGER_GATES, MO_ENGINE read from LiveFlags
-        - Regression fixtures cover legacy vs new mode per feature
-        - docs/MCP_ORCHESTRATOR.md updated with flag toggle order
-      domain: mcp
-      description: |
-        Gate compact prompt headers, sandbox pooling, scheduler WSJF mode,
-        selective tests, danger gates, and MO engine behind live flags so they
-        only activate after successful canary validation.
-      blocked_reason: Deferred until Phase 0/1 product delivery completes
-  - epic: E6
-    milestone: M6.4
-    task:
-      id: T6.4.6
-      title: Runtime tool registration & admin flag controls
-      status: blocked
-      dependencies: []
-      exit_criteria:
-        - Tool handlers return 'disabled' until corresponding flag enabled
-        - settings.update, upgrade.applyPatch, route.switch commands exposed
-          with structured errors
-        - Operator guide added under docs/MCP_AUTOMATION.md#live-flags
-      domain: mcp
-      description: |
-        Ensure tool surfaces remain stable while routing to v1/v2 handlers based
-        on flags. Provide an MCP admin tool or CLI to update settings atomically
-        without restarts.
-      blocked_reason: Deferred until Phase 0/1 product delivery completes
-  - epic: E6
-    milestone: M6.4
-    task:
-      id: T6.4.7
-      title: Automatic rollback monitors & kill-switch reset
-      status: blocked
-      dependencies: []
-      exit_criteria:
-        - Heartbeat every 2s with 3-strike circuit breaker routes back to standby
-        - Error budget (5%/2min) and SLO monitors trigger automatic rollback
-        - DISABLE_NEW flag automatically flipped during rollback
-        - docs/MCP_ORCHESTRATOR.md includes rollback playbook
-      domain: mcp
-      description: |
-        Add health monitoring that reverts to the previous worker and resets
-        flags when error rates spike post-promotion. Document on-call rollback
-        steps and ensure DISABLE_NEW restores legacy behaviour.
-      blocked_reason: Deferred until Phase 0/1 product delivery completes
-  - epic: E6
-    milestone: M6.4
-    task:
-      id: T6.4.8
-      title: Observability & resource budgets during upgrade
-      status: blocked
-      dependencies: []
-      exit_criteria:
-        - Span/log attributes include method, lane, ok/error, duration, task.id
-        - runTool/plan timeouts (30s/120s) & lane concurrency limits enforced
-        - RSS watchdog throttles batch lane when >1.5x baseline
-      domain: mcp
-      description: |
-        Emit OTel spans (or structured JSON logs) for every worker call with
-        timing, lane, task, and outcome metadata. Enforce concurrency, timeout,
-        and RSS guards to prevent runaway resource usage.
-      blocked_reason: Deferred until Phase 0/1 product delivery completes
-  - epic: E6
-    milestone: M6.4
-    task:
-      id: T6.4.9
-      title: Post-switch self-check automation & staged flag flips
-      status: blocked
-      dependencies: []
-      exit_criteria:
-        - Self-check script loops through health, plan→dispatch, repo.read,
-          tests.run, report.mo
-        - Determinism checks gate each flag; any failure auto-resets to legacy
-        - Observation window metrics recorded and linked in
-          experiments/mcp/upgrade/
-        - On success, upgrade.applyPatch clears state/upgrade.lock and commits
-          new flags as default without manual intervention
-      domain: mcp
-      description: |
-        Automate the 10-minute observation window, deterministic checks per
-        feature, final flip order, and self-check suite (health, plan, dispatch,
-        repo, tests, report) with rollback on breach.
-      blocked_reason: Deferred until Phase 0/1 product delivery completes
-  - epic: E6
-    milestone: M6.4
-    task: null
-  - epic: E8
-    milestone: M8.1
-    task:
-      id: T8.1.1
-      title: "Lock MCP schemas to Zod shapes (SAFE: guardrail)"
-      status: done
-      dependencies: []
-      exit_criteria:
-        - utils/schema.ts returns schema.shape with guardrail comment
-        - MCP entrypoints register raw shapes only
-        - Autopilot documentation updated to reflect guardrail
-        - critic:build passes
-        - "Guardrail: validation confirms schema handling does not weaken
-          blue/green safety gates"
-      domain: mcp
-  - epic: E8
-    milestone: M8.1
-    task:
-      id: T8.1.2
-      title: "Implement command allow-list in guardrails (SAFE: additive security)"
-      status: done
-      dependencies: []
-      exit_criteria:
-        - ALLOWED_COMMANDS constant defined
-        - isCommandAllowed() enforced before execution
-        - Deny-list kept as secondary check
-        - critic:tests passes with new test_command_allowlist.py
-        - critic:manager_self_check passes
-        - "Guardrail: allow-list integration verified against blue/green upgrade
-          scenarios"
-      domain: mcp
-  - epic: E8
-    milestone: M8.1
-    task:
-      id: T8.1.3
-      title: "Thread correlation IDs through state transitions (SAFE: observability
-        only)"
-      status: done
-      dependencies: []
-      exit_criteria:
-        - All tool handlers generate correlationId
-        - All state transitions include correlationId
-        - Events in SQLite include correlation_id column populated
-        - critic:manager_self_check passes
-        - End-to-end trace visible in state/orchestrator.db
-        - "Guardrail: correlation IDs trace compliance with Step 0–15 safety
-          checks"
-      domain: mcp
-  - epic: E8
-    milestone: M8.1
-    task: null
-  - epic: E8
-    milestone: M8.2
-    task:
-      id: T8.2.1
-      title: "Implement compact evidence-pack prompt mode (SAFE: new function,
-        backward compatible)"
-      status: done
-      dependencies: []
-      exit_criteria:
-        - formatForPromptCompact() returns JSON evidence pack
-        - unknown
-        - All coordinator calls use compact mode
-        - critic:build passes
-        - critic:manager_self_check passes
-        - unknown
-        - "Guardrail: compact mode flip integrated with Step 15 staged flag
-          process"
-      domain: mcp
-  - epic: E8
-    milestone: M8.2
-    task:
-      id: T8.2.2
-      title: "Finalize Claude↔Codex coordinator failover (SAFE: expose existing
-        functionality)"
-      status: done
-      dependencies: []
-      exit_criteria:
-        - orchestrator_status tool shows coordinator type and availability
-        - Telemetry includes coordinator field in execution logs
-        - Documentation updated in IMPLEMENTATION_STATUS.md
-        - critic:manager_self_check passes
-        - Failover behavior visible and logged
-        - "Guardrail: failover reporting feeds SLO/error budget monitors for
-          auto rollback"
-      domain: mcp
-  - epic: E8
-    milestone: M8.2
-    task: null
-  - epic: E9
-    milestone: M9.1
-    task:
-      id: T9.1.1
-      title: "Stable prompt headers with provider caching (SAFE: additive
-        optimization)"
-      status: done
-      dependencies: []
-      exit_criteria:
-        - standardPromptHeader() returns deterministic header
-        - All prompts include standard header
-        - Header enables provider caching (verified with API logs)
-        - critic:cost_perf shows token cache hit rate
-        - critic:manager_self_check passes
-        - "Guardrail: caching rollout assessed via Step 0–15 safety checks
-          before staying live"
-      domain: mcp
-  - epic: E9
-    milestone: M9.1
-    task:
-      id: T9.1.2
-      title: "Batch queue for non-urgent prompts (SAFE: new queueing system)"
-      status: blocked
-      dependencies: []
-      exit_criteria:
-        - Priority queue with 3 lanes operational
-        - Semaphore limits enforced per lane
-        - Interactive tasks always get priority
-        - critic:tests passes
-        - critic:manager_self_check passes
-        - "Guardrail: queue respects worker concurrency caps from blue/green
-          playbook"
-      domain: mcp
-      blocked_reason: Deferred until Phase 0/1 product delivery completes
-  - epic: E9
-    milestone: M9.1
-    task: null
-  - epic: E9
-    milestone: M9.2
-    task:
-      id: T9.2.1
-      title: "Strict output DSL validation (SAFE: validation layer only)"
-      status: blocked
-      dependencies: []
-      exit_criteria:
-        - validateDiff() rejects non-diff outputs
-        - validateJSON() rejects invalid JSON
-        - Retry rate reduction measured
-        - critic:tests passes
-        - "Guardrail: validation enforced in canary shadow runs before live
-          promotion"
-      domain: mcp
-      blocked_reason: Deferred until Phase 0/1 product delivery completes
-  - epic: E9
-    milestone: M9.2
-    task:
-      id: T9.2.2
-      title: "Idempotency keys for mutating tools (SAFE: caching layer)"
-      status: blocked
-      dependencies: []
-      exit_criteria:
-        - Idempotency cache operational
-        - Duplicate operations return cached results
-        - 1-hour TTL enforced
-        - critic:tests passes
-        - "Guardrail: cache respects DRY_RUN mode and avoids side effects during
-          canary runs"
-      domain: mcp
-      blocked_reason: Deferred until Phase 0/1 product delivery completes
-  - epic: E9
-    milestone: M9.2
-    task: null
-  - epic: E9
-    milestone: M9.3
-    task:
-      id: T9.3.1
-      title: "OpenTelemetry spans for all operations (SAFE: tracing wrapper)"
-      status: blocked
-      dependencies: []
-      exit_criteria:
-        - All tool handlers instrumented
-        - Spans exported to tracing backend
-        - End-to-end traces visible
-        - Performance insights available
-        - critic:manager_self_check passes
-        - "Guardrail: telemetry alerts on Step 0–15 safety breaches"
-      domain: mcp
-      blocked_reason: Deferred until Phase 0/1 product delivery completes
-  - epic: E9
-    milestone: M9.3
-    task:
-      id: T9.3.2
-      title: "Sandbox pooling for test execution (SAFE: new executor)"
-      status: blocked
-      dependencies:
-        - E5
-      exit_criteria:
-        - Sandbox pool with 3 pre-warmed containers
-        - Test execution uses pooled sandboxes
-        - 10x speedup measured
-        - Fallback to non-pooled works
-        - critic:tests passes
-        - "Guardrail: pool enforces DRY_RUN read-only mode during canary
-          validation"
-      domain: mcp
-      blocked_reason: Deferred until Phase 0/1 product delivery completes
-  - epic: E9
-    milestone: M9.3
-    task: null
-  - epic: E9
-    milestone: M9.4
-    task:
-      id: T9.4.1
-      title: "SQLite FTS5 index for code search (SAFE: new index)"
-      status: blocked
-      dependencies:
-        - E5
-      exit_criteria:
-        - code_fts virtual table created
-        - Index populated on repo sync
-        - Search performance <50ms
-        - critic:tests passes
-      domain: mcp
-      blocked_reason: Deferred until Phase 0/1 product delivery completes
-  - epic: E9
-    milestone: M9.4
-    task:
-      id: T9.4.2
-      title: "LSP proxy tools for symbol-aware context (SAFE: new tools)"
-      status: blocked
-      dependencies: []
-      exit_criteria:
-        - tsserver and pyright proxies running
-        - lsp.definition and lsp.references tools work
-        - Context assembler uses LSP for code slices
-        - Context relevance measured and improved
-        - critic:tests passes
-        - "Guardrail: LSP tools routed through worker proxy with Step 0–15
-          safety enforcement"
-      domain: mcp
-      blocked_reason: Deferred until Phase 0/1 product delivery completes
-  - epic: E9
-    milestone: M9.4
-    task: null
-  - epic:
-      id: E10
-      title: PHASE-6-COST — Usage-Based Optimisations
-      status: blocked
-      domain: mcp
-      milestones: []
-      description: Cash-cost guardrails, budgeting telemetry, and API usage controls.
-        Activate once we exit the subscription sandbox.
-  - epic:
-      id: E6
-      title: MCP Orchestrator Production Readiness
-      status: blocked
-      domain: mcp
-      milestones: []
-      description: Validate and harden the dual-provider MCP orchestrator for
-        autonomous operation while preserving 100% run safety. All milestones
-        under this epic must enforce the blue/green upgrade guardrails defined
-        in docs/MCP_ORCHESTRATOR.md#1113-tight-integration-playbook-steps-0-15.
-  - epic:
-      id: E8
-      title: PHASE-4-POLISH — MCP Production Hardening
-      status: done
-      domain: mcp
-      milestones: []
-      description: Critical production readiness tasks for MCP orchestrator. Complete
-        before WeatherVane v1 launch while maintaining the Step 0–15 run-safety
-        guardrails
-        (docs/MCP_ORCHESTRATOR.md#1113-tight-integration-playbook-steps-0-15).
-  - epic:
-      id: E9
-      title: PHASE-5-OPTIMIZATION — Performance & Observability
-      status: blocked
-      domain: mcp
-      milestones: []
-      description: Post-v1 performance improvements and production observability. High
-        ROI optimizations that still honour the blue/green guardrail contract.
+  - id: E8
+    title: PHASE-4-POLISH — MCP Production Hardening
+    status: done
+    domain: mcp
+    milestones:
+      - id: M8.1
+        title: MCP Compliance & Security
+        status: done
+        tasks:
+          - id: T8.1.1
+            title: "Lock MCP schemas to Zod shapes (SAFE: guardrail)"
+            status: done
+            dependencies: []
+            exit_criteria:
+              - utils/schema.ts returns schema.shape with guardrail comment
+              - MCP entrypoints register raw shapes only
+              - Autopilot documentation updated to reflect guardrail
+              - critic:build passes
+              - "Guardrail: validation confirms schema handling does not weaken
+                blue/green safety gates"
+            domain: mcp
+          - id: T8.1.2
+            title: "Implement command allow-list in guardrails (SAFE: additive security)"
+            status: done
+            dependencies: []
+            exit_criteria:
+              - ALLOWED_COMMANDS constant defined
+              - isCommandAllowed() enforced before execution
+              - Deny-list kept as secondary check
+              - critic:tests passes with new test_command_allowlist.py
+              - critic:manager_self_check passes
+              - "Guardrail: allow-list integration verified against blue/green
+                upgrade scenarios"
+            domain: mcp
+          - id: T8.1.3
+            title: "Thread correlation IDs through state transitions (SAFE: observability
+              only)"
+            status: done
+            dependencies: []
+            exit_criteria:
+              - All tool handlers generate correlationId
+              - All state transitions include correlationId
+              - Events in SQLite include correlation_id column populated
+              - critic:manager_self_check passes
+              - End-to-end trace visible in state/orchestrator.db
+              - "Guardrail: correlation IDs trace compliance with Step 0–15
+                safety checks"
+            domain: mcp
+      - id: M8.2
+        title: Context & Performance Optimization
+        status: done
+        tasks:
+          - id: T8.2.1
+            title: "Implement compact evidence-pack prompt mode (SAFE: new function,
+              backward compatible)"
+            status: done
+            dependencies: []
+            exit_criteria:
+              - formatForPromptCompact() returns JSON evidence pack
+              - unknown
+              - All coordinator calls use compact mode
+              - critic:build passes
+              - critic:manager_self_check passes
+              - unknown
+              - "Guardrail: compact mode flip integrated with Step 15 staged
+                flag process"
+            domain: mcp
+          - id: T8.2.2
+            title: "Finalize Claude↔Codex coordinator failover (SAFE: expose existing
+              functionality)"
+            status: done
+            dependencies: []
+            exit_criteria:
+              - orchestrator_status tool shows coordinator type and availability
+              - Telemetry includes coordinator field in execution logs
+              - Documentation updated in IMPLEMENTATION_STATUS.md
+              - critic:manager_self_check passes
+              - Failover behavior visible and logged
+              - "Guardrail: failover reporting feeds SLO/error budget monitors
+                for auto rollback"
+            domain: mcp
+    description: Critical production readiness tasks for MCP orchestrator. Complete
+      before WeatherVane v1 launch while maintaining the Step 0–15 run-safety
+      guardrails
+      (docs/MCP_ORCHESTRATOR.md#1113-tight-integration-playbook-steps-0-15).
+  - id: E9
+    title: PHASE-5-OPTIMIZATION — Performance & Observability
+    status: blocked
+    domain: mcp
+    milestones:
+      - id: M9.1
+        title: Cost Optimization & Caching
+        status: done
+        tasks:
+          - id: T9.1.1
+            title: "Stable prompt headers with provider caching (SAFE: additive
+              optimization)"
+            status: done
+            dependencies: []
+            exit_criteria:
+              - standardPromptHeader() returns deterministic header
+              - All prompts include standard header
+              - Header enables provider caching (verified with API logs)
+              - critic:cost_perf shows token cache hit rate
+              - critic:manager_self_check passes
+              - "Guardrail: caching rollout assessed via Step 0–15 safety checks
+                before staying live"
+            domain: mcp
+          - id: T9.1.2
+            title: "Batch queue for non-urgent prompts (SAFE: new queueing system)"
+            status: done
+            dependencies: []
+            exit_criteria:
+              - Priority queue with 3 lanes operational
+              - Semaphore limits enforced per lane
+              - Interactive tasks always get priority
+              - critic:tests passes
+              - critic:manager_self_check passes
+              - "Guardrail: queue respects worker concurrency caps from
+                blue/green playbook"
+            domain: mcp
+      - id: M9.2
+        title: Reliability & Quality Improvements
+        status: pending
+        tasks:
+          - id: T9.2.1
+            title: "Strict output DSL validation (SAFE: validation layer only)"
+            status: done
+            dependencies: []
+            exit_criteria:
+              - validateDiff() rejects non-diff outputs
+              - validateJSON() rejects invalid JSON
+              - Retry rate reduction measured
+              - critic:tests passes
+              - "Guardrail: validation enforced in canary shadow runs before
+                live promotion"
+            domain: mcp
+          - id: T9.2.2
+            title: "Idempotency keys for mutating tools (SAFE: caching layer)"
+            status: pending
+            dependencies: []
+            exit_criteria:
+              - Idempotency cache operational
+              - Duplicate operations return cached results
+              - 1-hour TTL enforced
+              - critic:tests passes
+              - "Guardrail: cache respects DRY_RUN mode and avoids side effects
+                during canary runs"
+            domain: mcp
+      - id: M9.3
+        title: Production Observability
+        status: pending
+        tasks:
+          - id: T9.3.1
+            title: "OpenTelemetry spans for all operations (SAFE: tracing wrapper)"
+            status: done
+            dependencies: []
+            exit_criteria:
+              - All tool handlers instrumented
+              - Spans exported to tracing backend
+              - End-to-end traces visible
+              - Performance insights available
+              - critic:manager_self_check passes
+              - "Guardrail: telemetry alerts on Step 0–15 safety breaches"
+            domain: mcp
+          - id: T9.3.2
+            title: "Sandbox pooling for test execution (SAFE: new executor)"
+            status: pending
+            dependencies: []
+            exit_criteria:
+              - Sandbox pool with 3 pre-warmed containers
+              - Test execution uses pooled sandboxes
+              - 10x speedup measured
+              - Fallback to non-pooled works
+              - critic:tests passes
+              - "Guardrail: pool enforces DRY_RUN read-only mode during canary
+                validation"
+            domain: mcp
+      - id: M9.4
+        title: Advanced Context & Search
+        status: blocked
+        tasks:
+          - id: T9.4.1
+            title: "SQLite FTS5 index for code search (SAFE: new index)"
+            status: done
+            dependencies: []
+            exit_criteria:
+              - code_fts virtual table created
+              - Index populated on repo sync
+              - Search performance <50ms
+              - critic:tests passes
+            domain: mcp
+          - id: T9.4.2
+            title: "LSP proxy tools for symbol-aware context (SAFE: new tools)"
+            status: blocked
+            dependencies: []
+            exit_criteria:
+              - tsserver and pyright proxies running
+              - lsp.definition and lsp.references tools work
+              - Context assembler uses LSP for code slices
+              - Context relevance measured and improved
+              - critic:tests passes
+              - "Guardrail: LSP tools routed through worker proxy with Step 0–15
+                safety enforcement"
+            domain: mcp
+    description: Post-v1 performance improvements and production observability. High
+      ROI optimizations that still honour the blue/green guardrail contract.

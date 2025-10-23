@@ -1,0 +1,96 @@
+{
+  "cadence": "quarterly",
+  "kickoff_event": {
+    "calendar_id": "modeling-meta-review-q4-2025",
+    "created_at": "2025-10-20T23:55:00Z",
+    "title": "Modeling Meta-Review Kickoff",
+    "start": "2025-11-05T18:00:00Z",
+    "duration_minutes": 60,
+    "status": "scheduled",
+    "facilitator": "Atlas",
+    "participants": [
+      "Atlas",
+      "Director Dana",
+      "Modeling Lead",
+      "Design Systems Partner",
+      "Data Quality Steward",
+      "Product Ops"
+    ],
+    "notes": "Quarterly standing review to align modeling execution with roadmap commitments and critic outcomes."
+  },
+  "last_reviewed_at": null,
+  "next_review_at": "2025-11-05T18:00:00Z",
+  "variance_reports": [
+    {
+      "cycle": "2025-Q4",
+      "generated_at": "2025-10-20T23:55:00Z",
+      "source_commands": [
+        "node tools/wvo_mcp/scripts/run_modeling_reality_critic.py --profile high --json",
+        "node tools/wvo_mcp/scripts/run_allocator_checks.mjs high",
+        "bash tools/wvo_mcp/scripts/run_integrity_tests.sh"
+      ],
+      "git_revision": "62bc52f6e7a3a1b2c3a1bb03d6e3725519c7df4c",
+      "variance_summary": {
+        "modeling_reality_critic": {
+          "status": "attention",
+          "notes": "DMA-first geography enforcement landed; continue monitoring fallback coverage ratios for sparse DMAs."
+        },
+        "allocator_critic": {
+          "status": "degraded",
+          "notes": "High-profile run still blocked by security critic shell chaining; remediation tracked via CRIT-PERF-ALLOCATOR-bc8604."
+        },
+        "mmm_backtest": {
+          "status": "stable",
+          "weighted_mape": 0.123,
+          "notes": "LightweightMMM backtests within tolerance; watch uplift variance for holiday campaigns."
+        },
+        "data_quality": {
+          "status": "failed",
+          "issues": [
+            "volume:row_count_below_min:1",
+            "completeness:missing_ratio:temp_c_lag1:1.000"
+          ],
+          "notes": "Data-quality guardrail still red; block production escalations until new ingestion runs complete."
+        }
+      },
+      "risk_score": 0.62,
+      "recommended_actions": [
+        {
+          "summary": "Unblock security critic command chaining so allocator critic can rejoin high-profile suites.",
+          "owner": "Atlas",
+          "due_by": "2025-10-27",
+          "related_tasks": [
+            "CRIT-PERF-ALLOCATOR-bc8604"
+          ]
+        },
+        {
+          "summary": "Close data-quality completeness failures by backfilling lagged weather features.",
+          "owner": "Data Quality Steward",
+          "due_by": "2025-10-25",
+          "related_tasks": [
+            "T12.2.2"
+          ]
+        }
+      ]
+    }
+  ],
+  "telemetry_schema": {
+    "variance_reports[*].variance_summary.modeling_reality_critic.status": [
+      "pass",
+      "attention",
+      "degraded"
+    ],
+    "variance_reports[*].variance_summary.allocator_critic.status": [
+      "pass",
+      "attention",
+      "degraded"
+    ],
+    "variance_reports[*].variance_summary.data_quality.status": [
+      "pass",
+      "attention",
+      "failed"
+    ],
+    "variance_reports[*].risk_score": "0-1 risk index where ≥0.7 triggers Director Dana escalation"
+  },
+  "notes": "Initial baseline snapshot populated during playbook creation; update fields after each quarterly review."
+}

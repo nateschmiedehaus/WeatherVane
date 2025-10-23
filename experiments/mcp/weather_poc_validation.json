@@ -1,0 +1,75 @@
+{
+  "generated_at": "2025-10-22T12:36:22.581307",
+  "version": "1.0",
+  "validation_results": {
+    "high_weather_sensitivity": {
+      "tenant_id": "high_weather_sensitivity",
+      "tenant_name": "High Weather Sensitivity",
+      "location": "New York",
+      "val_r2": 0.0,
+      "val_rmse": 1137.4326551231597,
+      "val_mae": 902.3802104369043,
+      "num_holdout_rows": 30,
+      "weather_coefficient_magnitude": 0.2209009610485329,
+      "weather_signal_detected": true,
+      "expected_outcome": "HIGH: Strong weather signal expected",
+      "validation_passed": true,
+      "notes": "Holdout weather signal: 0.221, Expected: 0.400, Status: PASS"
+    },
+    "extreme_weather_sensitivity": {
+      "tenant_id": "extreme_weather_sensitivity",
+      "tenant_name": "Extreme Weather Sensitivity",
+      "location": "Denver",
+      "val_r2": 0.0,
+      "val_rmse": 1063.7338535930332,
+      "val_mae": 857.5378584741131,
+      "num_holdout_rows": 30,
+      "weather_coefficient_magnitude": 0.1396788569296402,
+      "weather_signal_detected": false,
+      "expected_outcome": "EXTREME: Strong weather signal expected",
+      "validation_passed": false,
+      "notes": "Holdout weather signal: 0.140, Expected: 0.500, Status: REVIEW"
+    },
+    "medium_weather_sensitivity": {
+      "tenant_id": "medium_weather_sensitivity",
+      "tenant_name": "Medium Weather Sensitivity",
+      "location": "Chicago",
+      "val_r2": 0.0,
+      "val_rmse": 887.347935705247,
+      "val_mae": 673.6523866484123,
+      "num_holdout_rows": 30,
+      "weather_coefficient_magnitude": 0.1416827806001186,
+      "weather_signal_detected": false,
+      "expected_outcome": "MEDIUM: Moderate weather signal expected",
+      "validation_passed": true,
+      "notes": "Holdout weather signal: 0.142, Expected: 0.250, Status: PASS"
+    },
+    "no_weather_sensitivity": {
+      "tenant_id": "no_weather_sensitivity",
+      "tenant_name": "No Weather Sensitivity",
+      "location": "Los Angeles",
+      "val_r2": 0.0,
+      "val_rmse": 1090.593154805637,
+      "val_mae": 879.2517304646384,
+      "num_holdout_rows": 30,
+      "weather_coefficient_magnitude": 0.05054607713227218,
+      "weather_signal_detected": false,
+      "expected_outcome": "NONE: Near-zero weather signal expected",
+      "validation_passed": true,
+      "notes": "Holdout weather signal: 0.051, Expected: 0.050, Status: PASS"
+    }
+  },
+  "summary": {
+    "total_tenants": 4,
+    "validation_passed_count": 3,
+    "validation_passed_rate": 0.75,
+    "overall_status": "REVIEW",
+    "key_findings": [
+      "Weather-aware PoC models trained and validated on synthetic tenants",
+      "Extreme sensitivity tenant should show strong weather correlation",
+      "High sensitivity tenant should show moderate-to-strong weather correlation",
+      "Medium sensitivity tenant should show weak-to-moderate weather correlation",
+      "No sensitivity tenant should show near-zero weather correlation"
+    ]
+  }
+}

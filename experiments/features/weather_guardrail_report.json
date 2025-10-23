@@ -1,0 +1,39 @@
+{
+  "coverage": {
+    "geo_scopes": [],
+    "geohashes": [],
+    "unique_geo_scope_count": 0,
+    "unique_geohash_count": 0
+  },
+  "generated_at": "2025-10-21T14:30:03.733945",
+  "issues": [],
+  "join": {
+    "feature_rows": 0,
+    "geocoded_order_ratio": 1.0,
+    "geography_fallback_reason": null,
+    "geography_level": "dma",
+    "mode": "date_dma",
+    "observed_target_rows": 0,
+    "orders_rows": 1,
+    "weather_coverage_ratio": 1.0,
+    "weather_coverage_threshold": 0.85,
+    "weather_rows": 373
+  },
+  "leakage": {
+    "dates": [],
+    "forecast_dates": [],
+    "forecast_rows": 0,
+    "forward_dates": [],
+    "forward_rows": 0,
+    "total_rows": 0
+  },
+  "tenant_id": "DEMO",
+  "weather_gaps": {
+    "dates": [],
+    "rows": 0
+  },
+  "window": {
+    "end": "2025-10-21T14:30:03.390861+00:00",
+    "start": "2025-09-21T14:30:03.390861+00:00"
+  }
+}

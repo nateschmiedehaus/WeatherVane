@@ -1,0 +1,1 @@
+{"type":"weather_validation","path":"state/analytics/weather_correlation_report.json","metadata":{"validation_type":"weather_correlation","total_tenants":4,"pass_rate":1,"correlations":{"extreme":-0.995,"high":-0.813,"medium":-0.547,"no":-0.095}},"timestamp":"2025-10-23T01:03:59.003Z"}

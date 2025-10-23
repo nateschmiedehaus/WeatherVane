@@ -27,7 +27,7 @@ OrchestratorRuntime
 ├─ TaskScheduler (dependency resolution)
 ├─ QualityMonitor (continuous validation)
 ├─ OperationsManager (intelligent supervision)
-└─ ClaudeCodeCoordinator (event-driven orchestration)
+└─ AgentCoordinator (event-driven orchestration)
 ```
 
 **The new system is built, compiled, and ready. It's just not plugged into the MCP server!**
@@ -44,7 +44,7 @@ Codex has successfully implemented:
 3. **AgentPool** - Claude + Codex routing with rate limit handling
 4. **TaskScheduler** - Priority queue with dependency resolution
 5. **QualityMonitor** - Quality metrics tracking
-6. **ClaudeCodeCoordinator** - Event-driven orchestration loop
+6. **AgentCoordinator** - Event-driven orchestration loop
 7. **OperationsManager** - Strategic oversight and policy tuning
 8. **OrchestratorRuntime** - Wires everything together
 
@@ -56,7 +56,7 @@ src/orchestrator/
 ├─ agent_pool.ts (20KB) ✅
 ├─ task_scheduler.ts (6KB) ✅
 ├─ quality_monitor.ts (2KB) ✅
-├─ claude_code_coordinator.ts (19KB) ✅
+├─ agent_coordinator.ts (19KB) ✅
 ├─ operations_manager.ts (12KB) ✅
 ├─ orchestrator_runtime.ts (3KB) ✅
 ├─ model_selector.ts (8KB) ✅

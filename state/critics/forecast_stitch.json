@@ -1,0 +1,11 @@
+{
+  "critic": "forecast_stitch",
+  "code": 0,
+  "stdout": "{\n  \"passed\": true,\n  \"timestamp\": \"2025-10-22T16:29:50.977163+00:00\",\n  \"metrics\": {\n    \"overall_coverage\": 0.82,\n    \"mae\": 12.4,\n    \"mape\": 0.087,\n    \"prediction_bias\": -0.003,\n    \"calibration_status\": \"well_calibrated\",\n    \"timestamp\": \"2025-10-22T16:29:50.977163+00:00\"\n  },\n  \"warnings\": [],\n  \"recommendations\": [],\n  \"divergence_detected\": false\n}",
+  "stderr": "",
+  "passed": true,
+  "analysis": null,
+  "git_sha": "188e1e6b7e77b9fc369c684e473e16afe2068564",
+  "timestamp": "2025-10-22T16:29:51.007Z",
+  "identity": null
+}

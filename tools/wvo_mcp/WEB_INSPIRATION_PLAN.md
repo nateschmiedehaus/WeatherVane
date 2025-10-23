@@ -266,7 +266,7 @@ fi
 
 ### 4. Task-Level Trigger
 
-**Modification**: `src/orchestrator/claude_code_coordinator.ts`
+**Modification**: `src/orchestrator/agent_coordinator.ts`
 
 Check if task needs inspiration before execution:
 

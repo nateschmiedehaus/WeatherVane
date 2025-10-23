@@ -4,6 +4,9 @@
     "npm": ">=10.0.0"
   },
   "devDependencies": {
-    "vitest": "^2.1.1"
+    "vitest": "^4.0.1"
+  },
+  "overrides": {
+    "esbuild": "0.25.11"
   }
 }

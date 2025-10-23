@@ -36,7 +36,7 @@ this.webInspirationManager = process.env.WVO_ENABLE_WEB_INSPIRATION === '1'
 
 ---
 
-### 2. Skip Function Call Overhead (claude_code_coordinator.ts)
+### 2. Skip Function Call Overhead (agent_coordinator.ts)
 
 **Before:**
 ```typescript

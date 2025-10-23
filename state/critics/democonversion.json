@@ -1,0 +1,19 @@
+{
+  "critic": "democonversion",
+  "code": 0,
+  "stdout": "Demo conversion assets look fantastic.",
+  "stderr": "",
+  "passed": true,
+  "analysis": null,
+  "git_sha": "62bc52f6e7a3a1b2c3a1bb03d6e3725519c7df4c",
+  "timestamp": "2025-10-21T14:30:03.775Z",
+  "identity": {
+    "title": "Demo Conversion",
+    "mission": "Safeguard demo_conversion discipline.",
+    "powers": [
+      "Reports on findings when configuration is missing."
+    ],
+    "authority": "advisory",
+    "domain": "demo_conversion"
+  }
+}

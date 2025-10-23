@@ -1,0 +1,19 @@
+{
+  "critic": "failoverguardrail",
+  "code": 0,
+  "stdout": "✅ Coordinator failover guardrail within SLO. Codex share 0.0%. Longest Codex run 0s. Claude unavailable 0s. Error budget remaining: 15.0 min.",
+  "stderr": "",
+  "passed": true,
+  "analysis": null,
+  "git_sha": "62bc52f6e7a3a1b2c3a1bb03d6e3725519c7df4c",
+  "timestamp": "2025-10-21T14:30:02.502Z",
+  "identity": {
+    "title": "Failover Guardrail",
+    "mission": "Safeguard failover_guardrail discipline.",
+    "powers": [
+      "Reports on findings when configuration is missing."
+    ],
+    "authority": "advisory",
+    "domain": "failover_guardrail"
+  }
+}

@@ -1,0 +1,81 @@
+{
+  "generated_at": "2025-10-21T21:28:50.738766",
+  "metrics": {
+    "overall_coverage": {
+      "coverage": 0.0,
+      "inside": 0,
+      "outside": 7,
+      "total": 7
+    },
+    "coverage_by_horizon": {
+      "1": {
+        "coverage": 0.0,
+        "inside": 0,
+        "outside": 1,
+        "total": 1
+      },
+      "2": {
+        "coverage": 0.0,
+        "inside": 0,
+        "outside": 1,
+        "total": 1
+      },
+      "3": {
+        "coverage": 0.0,
+        "inside": 0,
+        "outside": 1,
+        "total": 1
+      },
+      "4": {
+        "coverage": 0.0,
+        "inside": 0,
+        "outside": 1,
+        "total": 1
+      },
+      "5": {
+        "coverage": 0.0,
+        "inside": 0,
+        "outside": 1,
+        "total": 1
+      },
+      "6": {
+        "coverage": 0.0,
+        "inside": 0,
+        "outside": 1,
+        "total": 1
+      },
+      "7": {
+        "coverage": 0.0,
+        "inside": 0,
+        "outside": 1,
+        "total": 1
+      }
+    },
+    "interval_widths": {
+      "1": 0.0,
+      "2": 0.0,
+      "3": 0.0,
+      "4": 0.0,
+      "5": 0.0,
+      "6": 0.0,
+      "7": 0.0
+    },
+    "sharpness_score": 0.0,
+    "prediction_bias": 0.5200129614548058,
+    "mae": 0.6933142851244348,
+    "mape": 99.99970541237808,
+    "nominal_coverage": 0.8
+  },
+  "diagnostics": {
+    "num_forecasts": 7,
+    "num_horizons": 7,
+    "mean_prediction": 0.0,
+    "std_prediction": 0.0
+  },
+  "recommendations": [
+    "Coverage 0.0% is below nominal 80.0%. Prediction intervals are too narrow. Consider widening bands.",
+    "Median bias: 0.52. Predictions are systematically under/over-estimating. Retrain baseline.",
+    "Poor calibration at horizons 1, 2, 3, 4, 5, 6, 7. Consider horizon-specific residual scaling."
+  ],
+  "calibration_status": "undercautious"
+}

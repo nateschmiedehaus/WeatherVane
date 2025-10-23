@@ -37,6 +37,8 @@ dependencies = [
     "pyarrow>=15.0",
     "pgeocode>=1.4",
     "geohash2>=1.1",
+    "shapely>=2.0",
+    "requests>=2.32",
     "typing-extensions>=4.12"
 ]
 
@@ -54,10 +56,12 @@ target-version = ['py311']
 
 [tool.ruff]
 line-length = 100
-select = ["E", "F", "I", "B", "UP", "N"]
 exclude = [
     "build",
     "dist",
     ".venv",
     "node_modules"
 ]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "N"]

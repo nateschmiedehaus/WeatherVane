@@ -1,0 +1,138 @@
+{
+  "generated_at": "2025-10-20T21:42:59Z",
+  "window_count": 12,
+  "metrics": {
+    "mae_mmm": 17.520699516535803,
+    "mae_baseline": 20.833333333333332,
+    "relative_mae_improvement": 0.15900642320628142,
+    "rmse_mmm": 21.079691728385377,
+    "rmse_baseline": 24.50154119302158,
+    "bias_mmm": 3.210360396317595,
+    "bias_baseline": -0.16666666666666666
+  },
+  "windows": [
+    {
+      "train_start": "2024-01-01",
+      "train_end": "2024-03-18",
+      "holdout": "2024-03-25",
+      "actual": 246.0,
+      "mmm_prediction": 214.6870633962429,
+      "baseline_prediction": 284.625,
+      "mae_mmm": 31.312936603757095,
+      "mae_baseline": 38.625
+    },
+    {
+      "train_start": "2024-01-08",
+      "train_end": "2024-03-25",
+      "holdout": "2024-04-01",
+      "actual": 276.5,
+      "mmm_prediction": 266.7829743390307,
+      "baseline_prediction": 284.875,
+      "mae_mmm": 9.717025660969284,
+      "mae_baseline": 8.375
+    },
+    {
+      "train_start": "2024-01-15",
+      "train_end": "2024-04-01",
+      "holdout": "2024-04-08",
+      "actual": 307.0,
+      "mmm_prediction": 323.89440061149014,
+      "baseline_prediction": 285.125,
+      "mae_mmm": 16.89440061149014,
+      "mae_baseline": 21.875
+    },
+    {
+      "train_start": "2024-01-22",
+      "train_end": "2024-04-08",
+      "holdout": "2024-04-15",
+      "actual": 303.0,
+      "mmm_prediction": 327.60033200337193,
+      "baseline_prediction": 285.375,
+      "mae_mmm": 24.600332003371932,
+      "mae_baseline": 17.625
+    },
+    {
+      "train_start": "2024-01-29",
+      "train_end": "2024-04-15",
+      "holdout": "2024-04-22",
+      "actual": 253.5,
+      "mmm_prediction": 234.52092343419167,
+      "baseline_prediction": 285.0,
+      "mae_mmm": 18.979076565808327,
+      "mae_baseline": 31.5
+    },
+    {
+      "train_start": "2024-02-05",
+      "train_end": "2024-04-22",
+      "holdout": "2024-04-29",
+      "actual": 284.0,
+      "mmm_prediction": 287.1830334045918,
+      "baseline_prediction": 284.625,
+      "mae_mmm": 3.1830334045918107,
+      "mae_baseline": 0.625
+    },
+    {
+      "train_start": "2024-02-12",
+      "train_end": "2024-04-29",
+      "holdout": "2024-05-06",
+      "actual": 287.5,
+      "mmm_prediction": 284.57410452304305,
+      "baseline_prediction": 284.875,
+      "mae_mmm": 2.9258954769569527,
+      "mae_baseline": 2.625
+    },
+    {
+      "train_start": "2024-02-19",
+      "train_end": "2024-05-06",
+      "holdout": "2024-05-13",
+      "actual": 318.0,
+      "mmm_prediction": 345.9061420874051,
+      "baseline_prediction": 285.125,
+      "mae_mmm": 27.9061420874051,
+      "mae_baseline": 32.875
+    },
+    {
+      "train_start": "2024-02-26",
+      "train_end": "2024-05-13",
+      "holdout": "2024-05-20",
+      "actual": 261.0,
+      "mmm_prediction": 254.5878419819294,
+      "baseline_prediction": 285.375,
+      "mae_mmm": 6.412158018070613,
+      "mae_baseline": 24.375
+    },
+    {
+      "train_start": "2024-03-04",
+      "train_end": "2024-05-20",
+      "holdout": "2024-05-27",
+      "actual": 264.5,
+      "mmm_prediction": 247.98505760425303,
+      "baseline_prediction": 285.0,
+      "mae_mmm": 16.51494239574697,
+      "mae_baseline": 20.5
+    },
+    {
+      "train_start": "2024-03-11",
+      "train_end": "2024-05-27",
+      "holdout": "2024-06-03",
+      "actual": 295.0,
+      "mmm_prediction": 304.2659260039882,
+      "baseline_prediction": 284.625,
+      "mae_mmm": 9.265926003988227,
+      "mae_baseline": 10.375
+    },
+    {
+      "train_start": "2024-03-18",
+      "train_end": "2024-06-03",
+      "holdout": "2024-06-10",
+      "actual": 325.5,
+      "mmm_prediction": 368.03652536627317,
+      "baseline_prediction": 284.875,
+      "mae_mmm": 42.53652536627317,
+      "mae_baseline": 40.625
+    }
+  ],
+  "metadata": {
+    "dataset": "synthetic-demo"
+  }
+}

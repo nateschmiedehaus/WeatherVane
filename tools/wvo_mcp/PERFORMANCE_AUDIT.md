@@ -11,13 +11,13 @@
 ### 1. **Memory Leak - Event Listeners Never Cleaned Up**
 
 **Location**:
-- `claude_code_coordinator.ts:121-123`
+- `agent_coordinator.ts:121-123`
 - `task_scheduler.ts:66-68`
 - `operations_manager.ts:74-78`
 
 **Problem**:
 ```typescript
-// ClaudeCodeCoordinator constructor
+// AgentCoordinator constructor
 this.stateMachine.on('task:created', () => this.scheduleTick());
 this.stateMachine.on('task:transition', () => this.scheduleTick());
 this.scheduler.on('queue:updated', () => this.scheduleTick());
@@ -28,7 +28,7 @@ this.scheduler.on('queue:updated', () => this.scheduleTick());
 
 **Fix**: Add cleanup methods to all components
 ```typescript
-// In ClaudeCodeCoordinator
+// In AgentCoordinator
 private readonly listeners = {
   taskCreated: () => this.scheduleTick(),
   taskTransition: () => this.scheduleTick(),
@@ -261,7 +261,7 @@ private refreshQueue(): void {
 
 ### 5. **Wasteful Context Assembly (Double Work)**
 
-**Location**: `claude_code_coordinator.ts:173-175` + `claude_code_coordinator.ts:489`
+**Location**: `agent_coordinator.ts:173-175` + `agent_coordinator.ts:489`
 
 **Problem**:
 ```typescript
@@ -433,7 +433,7 @@ completeTask(taskId: string, success: boolean, durationSeconds: number, metadata
 
 ### 9. **Race Condition in Task Dispatch**
 
-**Location**: `claude_code_coordinator.ts:154-166`
+**Location**: `agent_coordinator.ts:154-166`
 
 **Problem**:
 ```typescript
@@ -784,7 +784,7 @@ stop(): void {
 ## 🟡 Medium Priority Issues
 
 ### 16. **Inefficient String Operations**
-**Location**: `claude_code_coordinator.ts:506-509`
+**Location**: `agent_coordinator.ts:506-509`
 
 **Fix**:
 ```typescript

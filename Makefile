@@ -1,11 +1,56 @@
-.PHONY: bootstrap api web worker model demo-ml simulator format lint test migrate smoke-context smoke-pipeline export-observability check-secrets clean-metrics mcp-build mcp-register mcp-run mcp-auto mcp-autopilot-feed mcp-autopilot-reservations mcp-autopilot-budget mcp-autopilot-summary
+.PHONY: bootstrap api web worker model demo-ml simulator format lint test migrate smoke-context smoke-pipeline export-observability check-secrets security clean-metrics mcp-build mcp-register mcp-run mcp-auto mcp-autopilot-feed mcp-autopilot-reservations mcp-autopilot-budget mcp-autopilot-summary autopilot
 
+NUMERIC_AGENT_GOALS := 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16
+
+CLI_AGENT_GOAL :=
+ifneq ($(filter mcp-autopilot,$(MAKECMDGOALS)),)
+CLI_AGENT_GOAL := $(firstword $(filter $(NUMERIC_AGENT_GOALS),$(MAKECMDGOALS)))
+endif
+ifneq ($(filter autopilot,$(MAKECMDGOALS)),)
+CLI_AGENT_GOAL := $(firstword $(filter $(NUMERIC_AGENT_GOALS),$(MAKECMDGOALS)))
+endif
+
+AGENT_OVERRIDE :=
 ifneq ($(strip $(mcp-autopilot)),)
-export MCP_AUTOPILOT_COUNT := $(strip $(mcp-autopilot))
+AGENT_OVERRIDE := $(strip $(mcp-autopilot))
+else ifneq ($(strip $(autopilot)),)
+AGENT_OVERRIDE := $(strip $(autopilot))
+else ifneq ($(strip ${make-autopilot}),)
+AGENT_OVERRIDE := $(strip ${make-autopilot})
+else ifneq ($(strip $(CLI_AGENT_GOAL)),)
+AGENT_OVERRIDE := $(strip $(CLI_AGENT_GOAL))
+endif
+
+ifneq ($(strip $(AGENT_OVERRIDE)),)
+export MCP_AUTOPILOT_COUNT := $(strip $(AGENT_OVERRIDE))
+export WVO_CODEX_WORKERS := $(strip $(AGENT_OVERRIDE))
+export WVO_WORKER_COUNT := $(strip $(AGENT_OVERRIDE))
+export WVO_AUTOPILOT_AGENTS := $(strip $(AGENT_OVERRIDE))
+export AGENTS := $(strip $(AGENT_OVERRIDE))
+endif
+
 ifeq ($(strip $(MAKECMDGOALS)),)
 .DEFAULT_GOAL := mcp-autopilot
 endif
+
+.PHONY: $(NUMERIC_AGENT_GOALS)
+$(NUMERIC_AGENT_GOALS):
+	@:
+
+ifneq ($(strip $(WORKERS)),)
+export WVO_CODEX_WORKERS := $(strip $(WORKERS))
+export MCP_AUTOPILOT_COUNT := $(strip $(WORKERS))
+export WVO_WORKER_COUNT := $(strip $(WORKERS))
 endif
+
+ifneq ($(strip $(ACCOUNT_SETUP)),)
+export WVO_AUTOPILOT_ACCOUNT_SETUP := 1
+endif
+
+export WVO_AUTOPILOT_ONCE ?= 0
+export WVO_AUTOPILOT_ALLOW_OFFLINE_FALLBACK ?= 0
+export STOP_ON_BLOCKER ?= 0
+export WVO_AUTOPILOT_STREAM ?= 0
 
 CODEX_HOME ?= $(shell pwd)/.codex
 CODEX_ORCHESTRATOR_PROFILE ?= weathervane_orchestrator
@@ -77,6 +122,13 @@ lint:
 	ruff check apps shared --select E,F --ignore E501
 	npm run lint --prefix apps/web || true
 
+typecheck:
+	npm --prefix apps/web run typecheck
+	npm --prefix tools/wvo_mcp run typecheck
+
+security:
+	python tools/security/run_security_checks.py
+
 test:
 	PYTHONPATH=.deps:. pytest apps tests
 	npm test --prefix apps/web || true
@@ -102,6 +154,14 @@ check-secrets:
 
 clean-metrics:
 	python -m shared.observability.metrics --base-dir tmp/metrics
+
+# Unified Multi-Provider Autopilot
+# Usage: make autopilot AGENTS=5
+autopilot: mcp-build
+	@echo "🚀 Starting Unified Multi-Provider Autopilot"
+	@echo "  Agents: $(AGENTS)"
+	@echo ""
+	@bash tools/wvo_mcp/scripts/autopilot_unified.sh --agents $(AGENTS)
 
 mcp-build:
 	npm install --prefix tools/wvo_mcp
@@ -134,17 +194,12 @@ mcp-autopilot-cleanup:
 	@echo "✅ Cleanup complete"
 
 .PHONY: mcp-autopilot
-mcp-autopilot: mcp-autopilot-cleanup mcp-register
-	@echo "🔁 Restarting MCP worker via scripts/restart_mcp.sh..."
-	@./scripts/restart_mcp.sh
-	@echo "⏳ Waiting for worker to warm up..."
-	@sleep 5
-	@echo "🚀 Starting WeatherVane Autopilot..."
-	@echo "📝 Log file: /tmp/wvo_autopilot.log"
-	@echo "🖥️  tmux multi-pane layout available (set WVO_AUTOPILOT_TMUX=0 to disable)."
-	@echo "👀 Streaming log (Ctrl+C to stop autopilot)..."
-	@echo "📡 Activity feed viewer attaches automatically (set WVO_AUTOPILOT_SHOW_FEED=0 to disable)."
+mcp-autopilot: mcp-build
+	@echo "🚀 Starting Unified Multi-Provider Autopilot"
+	@echo "  Agents: $(AGENTS)"
+	@echo "  Live telemetry: Enabled"
 	@echo ""
+	@bash tools/wvo_mcp/scripts/autopilot_unified.sh --agents $(AGENTS)
 	@( \
 		set -euo pipefail; \
 		LOG_PATH=/tmp/wvo_autopilot.log; \
@@ -168,6 +223,7 @@ mcp-autopilot: mcp-autopilot-cleanup mcp-register
 		export AGENTS="$$AGENTS_VALUE"; \
 		export WVO_AUTOPILOT_AGENTS="$$AGENTS_VALUE"; \
 		export WVO_CODEX_WORKERS="$$AGENTS_VALUE"; \
+		export WVO_WORKER_COUNT="$$AGENTS_VALUE"; \
 		export CODEX_HOME="$(CODEX_HOME)"; \
 		export CODEX_PROFILE_NAME="$(CODEX_ORCHESTRATOR_PROFILE)"; \
 		export WVO_CAPABILITY="$(WVO_CAPABILITY)"; \
@@ -176,41 +232,63 @@ mcp-autopilot: mcp-autopilot-cleanup mcp-register
 		export BASE_INSTRUCTIONS="$(BASE_INSTRUCTIONS)"; \
 		export WVO_DEFAULT_PROVIDER=codex; \
 		export WVO_AUTOPILOT_ENTRY="$(shell pwd)/$(WVO_MCP_ENTRY)"; \
-		export MCP_AUTOPILOT_COUNT="$(MCP_AUTOPILOT_COUNT)"; \
+		export MCP_AUTOPILOT_COUNT="$$AGENTS_VALUE"; \
 		export WVO_AUTOPILOT_INTERACTIVE="$$AUTOPILOT_INTERACTIVE"; \
 		export WVO_AUTOPILOT_SHOW_FEED="$${WVO_AUTOPILOT_SHOW_FEED:-1}"; \
 		export WVO_AUTOPILOT_TMUX_FEED="$${WVO_AUTOPILOT_TMUX_FEED:-1}"; \
 		export WVO_AUTOPILOT_FEED_TAIL="$${WVO_AUTOPILOT_FEED_TAIL:-25}"; \
+		export WVO_AUTOPILOT_AGENT_LOG="$${WVO_AUTOPILOT_AGENT_LOG:-1}"; \
 		export WVO_AUTOPILOT_AGENT_REFRESH="$${WVO_AUTOPILOT_AGENT_REFRESH:-2}"; \
 		export LOG_FILE="$$LOG_PATH"; \
-		export WVO_AUTOPILOT_STREAM=1; \
+		export WVO_AUTOPILOT_STREAM=0; \
 		if [ "$$USE_TMUX" -eq 1 ]; then \
 			tools/wvo_mcp/scripts/autopilot_tmux.sh; \
 			AUTOPILOT_EXIT=$$?; \
-		else \
-			tail -n +1 -f "$$LOG_PATH" & \
-			TAIL_PID=$$!; \
-			FEED_VIEWER_PID=""; \
-			cleanup_sidecars() { \
-				kill $$TAIL_PID 2>/dev/null || true; \
-				wait $$TAIL_PID 2>/dev/null || true; \
-				if [ -n "$$FEED_VIEWER_PID" ]; then \
-					kill $$FEED_VIEWER_PID 2>/dev/null || true; \
-					wait $$FEED_VIEWER_PID 2>/dev/null || true; \
-					FEED_VIEWER_PID=""; \
-				fi; \
-			}; \
-			trap cleanup_sidecars EXIT; \
-			if [ "$${WVO_AUTOPILOT_SHOW_FEED:-1}" = "1" ]; then \
-				if command -v python >/dev/null 2>&1; then \
-					PYTHONUNBUFFERED=1 python tools/wvo_mcp/scripts/activity_feed.py --mode feed --follow --tail "$${WVO_AUTOPILOT_FEED_TAIL:-25}" & \
-					FEED_VIEWER_PID=$$!; \
-					echo "📡 Activity feed streaming (PID=$$FEED_VIEWER_PID)"; \
-				else \
-					echo "ℹ️ Python not found; skipping activity feed viewer."; \
-				fi; \
+	else \
+		tail -n +1 -f "$$LOG_PATH" & \
+		TAIL_PID=$$!; \
+		FEED_VIEWER_PID=""; \
+		AGENT_LOG_PID=""; \
+		cleanup_sidecars() { \
+			kill $$TAIL_PID 2>/dev/null || true; \
+			wait $$TAIL_PID 2>/dev/null || true; \
+			if [ -n "$$FEED_VIEWER_PID" ]; then \
+				kill $$FEED_VIEWER_PID 2>/dev/null || true; \
+				wait $$FEED_VIEWER_PID 2>/dev/null || true; \
+				FEED_VIEWER_PID=""; \
 			fi; \
-			tools/wvo_mcp/scripts/autopilot.sh & \
+			if [ -n "$$AGENT_LOG_PID" ]; then \
+				kill $$AGENT_LOG_PID 2>/dev/null || true; \
+				wait $$AGENT_LOG_PID 2>/dev/null || true; \
+				AGENT_LOG_PID=""; \
+			fi; \
+		}; \
+		trap cleanup_sidecars EXIT; \
+		if [ "$${WVO_AUTOPILOT_SHOW_FEED:-1}" = "1" ]; then \
+			if command -v python >/dev/null 2>&1; then \
+				( \
+					PYTHONUNBUFFERED=1 python tools/wvo_mcp/scripts/activity_feed.py --mode feed --follow --tail "$${WVO_AUTOPILOT_FEED_TAIL:-25}" \
+					| while IFS= read -r line; do printf '[feed] %s\n' "$$line"; done \
+				) & \
+				FEED_VIEWER_PID=$$!; \
+				echo "📡 Activity feed streaming (PID=$$FEED_VIEWER_PID)"; \
+			else \
+				echo "ℹ️ Python not found; skipping activity feed viewer."; \
+			fi; \
+		fi; \
+		if [ "$${WVO_AUTOPILOT_AGENT_LOG:-1}" = "1" ]; then \
+			if command -v python >/dev/null 2>&1; then \
+				( \
+					PYTHONUNBUFFERED=1 python tools/wvo_mcp/scripts/activity_feed.py --mode agent-log --follow --interval "$${WVO_AUTOPILOT_AGENT_REFRESH:-2}" \
+					| while IFS= read -r line; do printf '[agents] %s\n' "$$line"; done \
+				) & \
+				AGENT_LOG_PID=$$!; \
+				echo "👥 Agent log streaming (PID=$$AGENT_LOG_PID)"; \
+			else \
+				echo "ℹ️ Python not found; skipping agent log viewer."; \
+			fi; \
+		fi; \
+		tools/wvo_mcp/scripts/autopilot.sh & \
 			AUTOPILOT_PID=$$!; \
 			interrupt_run() { \
 				echo ""; \

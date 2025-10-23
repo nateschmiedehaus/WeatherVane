@@ -1,0 +1,66 @@
+{
+  "timestamp": "2025-10-23T00:48:35.188574",
+  "tenant_id": "brand-alpine-outfitters",
+  "window_days": 90,
+  "start_date": "2023-09-10",
+  "end_date": "2024-01-07",
+  "metrics": {
+    "shopify": {
+      "row_count": 360,
+      "date_range_days": 119,
+      "first_date": "2023-09-10",
+      "last_date": "2024-01-07",
+      "distinct_dates": 120,
+      "geocoded_column": "ship_geohash",
+      "geocoded_ratio": 1.0
+    },
+    "ads": {
+      "meta_rows": 120,
+      "google_rows": 120,
+      "meta_dates": 120,
+      "google_dates": 120,
+      "meta_total_spend": 19083.59,
+      "google_total_spend": 10307.120000000003
+    },
+    "weather": {
+      "row_count": 240,
+      "date_range_days": 119,
+      "first_date": "2023-09-10",
+      "last_date": "2024-01-07",
+      "distinct_dates": 120,
+      "distinct_geohashes": 2,
+      "mean_temp_c": 6.426666666666668,
+      "temp_range_c": -31.099999999999998
+    },
+    "joins": {
+      "feature_matrix_rows": 120,
+      "orders_rows": 360,
+      "ads_rows": 240,
+      "weather_rows": 240,
+      "observed_rows": 120,
+      "geocoded_order_ratio": 1.0,
+      "weather_coverage_ratio": 1.0,
+      "geography_level": "dma",
+      "join_mode": "date_dma",
+      "leakage_risk_rows": 0
+    }
+  },
+  "defects": [
+    {
+      "severity": "warning",
+      "component": "weather",
+      "message": "Low geohash diversity: 2 unique geohashes",
+      "details": {
+        "distinct_geohashes": 2
+      },
+      "timestamp": "2025-10-23T00:48:35.037800"
+    }
+  ],
+  "exit_criteria": {
+    "all_defects_are_info": false,
+    "shopify_90_days": true,
+    "ads_90_days": true,
+    "weather_coverage": true,
+    "no_leakage": true
+  }
+}

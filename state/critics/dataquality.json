@@ -3,8 +3,17 @@
   "code": 0,
   "stdout": "skipped due to capability profile",
   "stderr": "",
-  "passed": true,
+  "passed": false,
   "analysis": null,
-  "git_sha": "31548e1c9ba25b8b0f94df5d6f596ec1be26414a",
-  "timestamp": "2025-10-14T00:39:12.131Z"
+  "git_sha": "de5243b7408de0f544d2e48c06ccae916cfb7872",
+  "timestamp": "2025-10-22T13:39:16.347Z",
+  "identity": {
+    "title": "Data Quality",
+    "mission": "Safeguard data_quality discipline.",
+    "powers": [
+      "Reports on findings when configuration is missing."
+    ],
+    "authority": "advisory",
+    "domain": "data_quality"
+  }
 }

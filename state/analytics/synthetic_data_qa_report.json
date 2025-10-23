@@ -1,0 +1,87 @@
+{
+  "task_id": "T12.0.1",
+  "title": "Generate synthetic multi-tenant dataset with weather-sensitive products",
+  "generated_at": "2025-10-22T07:42:34.038476",
+  "completion_status": "COMPLETE",
+  "deliverables": [
+    {
+      "tenant_id": "high_weather_sensitivity",
+      "tenant_name": "High Weather Sensitivity (New York)",
+      "file": "high_weather_sensitivity.parquet",
+      "file_size_kb": 38.9,
+      "records": 450,
+      "products": 5,
+      "days": 90,
+      "revenue_90d_usd": 1317966.67,
+      "spend_90d_usd": 100434.5,
+      "roas": 13.12,
+      "null_values": 0,
+      "quality_score": 0.98,
+      "status": "\u2705 VALID"
+    },
+    {
+      "tenant_id": "extreme_weather_sensitivity",
+      "tenant_name": "Extreme Weather Sensitivity (Denver)",
+      "file": "extreme_weather_sensitivity.parquet",
+      "file_size_kb": 39.0,
+      "records": 450,
+      "products": 5,
+      "days": 90,
+      "revenue_90d_usd": 1268173.94,
+      "spend_90d_usd": 98746.64,
+      "roas": 12.84,
+      "null_values": 0,
+      "quality_score": 0.98,
+      "status": "\u2705 VALID"
+    },
+    {
+      "tenant_id": "medium_weather_sensitivity",
+      "tenant_name": "Medium Weather Sensitivity (Chicago)",
+      "file": "medium_weather_sensitivity.parquet",
+      "file_size_kb": 38.9,
+      "records": 450,
+      "products": 5,
+      "days": 90,
+      "revenue_90d_usd": 1274210.24,
+      "spend_90d_usd": 98023.89,
+      "roas": 13.0,
+      "null_values": 0,
+      "quality_score": 0.98,
+      "status": "\u2705 VALID"
+    },
+    {
+      "tenant_id": "no_weather_sensitivity",
+      "tenant_name": "No Weather Sensitivity (Los Angeles)",
+      "file": "no_weather_sensitivity.parquet",
+      "file_size_kb": 38.7,
+      "records": 450,
+      "products": 5,
+      "days": 90,
+      "revenue_90d_usd": 1120402.85,
+      "spend_90d_usd": 98439.72,
+      "roas": 11.38,
+      "null_values": 0,
+      "quality_score": 0.98,
+      "status": "\u2705 VALID"
+    }
+  ],
+  "quality_metrics": {
+    "total_records_generated": 1800,
+    "expected_records": 1800,
+    "records_match": true,
+    "total_files": 4,
+    "all_files_valid": true,
+    "null_values_total": 0,
+    "quality_score": 0.985,
+    "data_completeness": "100%"
+  },
+  "validation_summary": {
+    "schema_validation": "\u2705 PASS - All required columns present",
+    "data_integrity": "\u2705 PASS - No null values, complete coverage",
+    "weather_correlation": "\u2705 PASS - All tenants match expected correlation patterns",
+    "record_counts": "\u2705 PASS - 450 records per tenant (90 days \u00d7 5 products)",
+    "revenue_statistics": "\u2705 PASS - Total 90-day revenue: $4,980,754",
+    "spend_statistics": "\u2705 PASS - Total 90-day spend: $395,645",
+    "cross_tenant_roas": "\u2705 PASS - Overall ROAS: 12.59x"
+  }
+}

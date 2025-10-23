@@ -1,9 +1,25 @@
 {
   "critic": "causal",
   "code": 0,
-  "stdout": "skipped due to capability profile",
+  "stdout": "{\n  \"status\": \"passed\",\n  \"level\": \"medium\",\n  \"findings\": [\n    {\n      \"severity\": \"INFO\",\n      \"message\": \"Weather shock estimator present.\",\n      \"details\": null\n    },\n    {\n      \"severity\": \"INFO\",\n      \"message\": \"Weather shock tests passed.\",\n      \"details\": \"...                                                                      [100%]\\n=============================== warnings summary ===============================\\n../../miniforge3/lib/python3.10/site-packages/starlette/formparsers.py:10\\n  /Volumes/BigSSD4/nathanielschmiedehaus/miniforge3/lib/python3.10/site-packages/starlette/formparsers.py:10: PendingDeprecationWarning: Please use `import python_multipart` instead.\\n    import multipart\\n\\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\\n3 passed, 1 warning in 0.07s\"\n    },\n    {\n      \"severity\": \"INFO\",\n      \"message\": \"Causal uplift tests passed.\",\n      \"details\": \"....                                                                     [100%]\\n=============================== warnings summary ===============================\\n../../miniforge3/lib/python3.10/site-packages/starlette/formparsers.py:10\\n  /Volumes/BigSSD4/nathanielschmiedehaus/miniforge3/lib/python3.10/site-packages/starlette/formparsers.py:10: PendingDeprecationWarning: Please use `import python_multipart` instead.\\n    import multipart\\n\\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\\n4 passed, 1 warning in 1.58s\"\n    },\n    {\n      \"severity\": \"INFO\",\n      \"message\": \"Uplift report structure looks healthy.\",\n      \"details\": \"10 deciles reported; p-value=0.0\"\n    }\n  ],\n  \"critical_count\": 0,\n  \"warning_count\": 0,\n  \"info_count\": 4\n}",
   "stderr": "",
   "passed": true,
-  "git_sha": "35b9e5194726d4cca461ec2f0cc2ca484aab591a",
-  "timestamp": "2025-10-10T12:03:50.323Z"
+  "analysis": null,
+  "git_sha": "23a9316c2ed8234b99bbd82562f8fa11b78c7fb6",
+  "timestamp": "2025-10-22T16:25:06.014Z",
+  "identity": {
+    "title": "Causal Strategist",
+    "mission": "Guarantee counterfactual validity and causal modeling rigor.",
+    "powers": [
+      "Checks identifying assumptions, invariances, and instrumentation.",
+      "Constructs mitigation plans for confounding risks."
+    ],
+    "authority": "critical",
+    "domain": "ml",
+    "autonomy_guidance": "Partner with Research Orchestrator on complex interventions; log learnings for future experiments.",
+    "preferred_delegates": [
+      "Research Orchestrator",
+      "Autopilot"
+    ]
+  }
 }

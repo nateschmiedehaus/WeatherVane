@@ -1,0 +1,214 @@
+{
+  "generated_at": "2025-10-22T20:53:16.667077",
+  "num_tenants": 4,
+  "days_per_tenant": 180,
+  "tenants": {
+    "high_weather_sensitivity": {
+      "location": "New York",
+      "latitude": 40.7128,
+      "longitude": -74.006,
+      "days_of_data": 180,
+      "num_products": 5,
+      "products": [
+        {
+          "id": "P001",
+          "name": "Winter Coat",
+          "category": "Clothing",
+          "weather_affinity": "winter"
+        },
+        {
+          "id": "P002",
+          "name": "Umbrella",
+          "category": "Accessories",
+          "weather_affinity": "rain"
+        },
+        {
+          "id": "P003",
+          "name": "Shorts",
+          "category": "Clothing",
+          "weather_affinity": "summer"
+        },
+        {
+          "id": "P004",
+          "name": "Long Sleeve Shirt",
+          "category": "Clothing",
+          "weather_affinity": "winter"
+        },
+        {
+          "id": "P005",
+          "name": "Sunglasses",
+          "category": "Accessories",
+          "weather_affinity": "summer"
+        }
+      ],
+      "channels": [
+        "Meta",
+        "Google",
+        "Email"
+      ],
+      "base_daily_revenue": 5000,
+      "total_revenue_90d": 2903430.078759193,
+      "total_spend_90d": 153060.86749810883,
+      "weather_correlation_revenue_temp": -0.8361284053900918
+    },
+    "no_weather_sensitivity": {
+      "location": "Los Angeles",
+      "latitude": 34.0522,
+      "longitude": -118.2437,
+      "days_of_data": 180,
+      "num_products": 5,
+      "products": [
+        {
+          "id": "P101",
+          "name": "Desk Lamp",
+          "category": "Office",
+          "weather_affinity": "neutral"
+        },
+        {
+          "id": "P102",
+          "name": "Keyboard",
+          "category": "Office",
+          "weather_affinity": "neutral"
+        },
+        {
+          "id": "P103",
+          "name": "Monitor Stand",
+          "category": "Office",
+          "weather_affinity": "neutral"
+        },
+        {
+          "id": "P104",
+          "name": "USB Hub",
+          "category": "Office",
+          "weather_affinity": "neutral"
+        },
+        {
+          "id": "P105",
+          "name": "Headphones",
+          "category": "Audio",
+          "weather_affinity": "neutral"
+        }
+      ],
+      "channels": [
+        "Meta",
+        "Google",
+        "Email"
+      ],
+      "base_daily_revenue": 4000,
+      "total_revenue_90d": 2145456.678266818,
+      "total_spend_90d": 81882.35105041915,
+      "weather_correlation_revenue_temp": -0.06981910064301798
+    },
+    "medium_weather_sensitivity": {
+      "location": "Chicago",
+      "latitude": 41.8781,
+      "longitude": -87.6298,
+      "days_of_data": 180,
+      "num_products": 5,
+      "products": [
+        {
+          "id": "P201",
+          "name": "Running Shoes",
+          "category": "Shoes",
+          "weather_affinity": "summer"
+        },
+        {
+          "id": "P202",
+          "name": "Sweater",
+          "category": "Clothing",
+          "weather_affinity": "winter"
+        },
+        {
+          "id": "P203",
+          "name": "Jeans",
+          "category": "Clothing",
+          "weather_affinity": "neutral"
+        },
+        {
+          "id": "P204",
+          "name": "Socks",
+          "category": "Accessories",
+          "weather_affinity": "neutral"
+        },
+        {
+          "id": "P205",
+          "name": "Baseball Cap",
+          "category": "Accessories",
+          "weather_affinity": "summer"
+        }
+      ],
+      "channels": [
+        "Meta",
+        "Google",
+        "Email"
+      ],
+      "base_daily_revenue": 4500,
+      "total_revenue_90d": 2682184.565401309,
+      "total_spend_90d": 106726.4333189707,
+      "weather_correlation_revenue_temp": 0.950239130143816
+    },
+    "extreme_weather_sensitivity": {
+      "location": "Denver",
+      "latitude": 39.7392,
+      "longitude": -104.9903,
+      "days_of_data": 180,
+      "num_products": 5,
+      "products": [
+        {
+          "id": "P301",
+          "name": "Snow Shovel",
+          "category": "Tools",
+          "weather_affinity": "winter"
+        },
+        {
+          "id": "P302",
+          "name": "Sunscreen SPF 50",
+          "category": "Beauty",
+          "weather_affinity": "summer"
+        },
+        {
+          "id": "P303",
+          "name": "Thermal Underwear",
+          "category": "Clothing",
+          "weather_affinity": "winter"
+        },
+        {
+          "id": "P304",
+          "name": "Beach Towel",
+          "category": "Home",
+          "weather_affinity": "summer"
+        },
+        {
+          "id": "P305",
+          "name": "Hot Chocolate Maker",
+          "category": "Kitchen",
+          "weather_affinity": "winter"
+        }
+      ],
+      "channels": [
+        "Meta",
+        "Google",
+        "Email"
+      ],
+      "base_daily_revenue": 3500,
+      "total_revenue_90d": 8189295.962653958,
+      "total_spend_90d": 418209.9566549178,
+      "weather_correlation_revenue_temp": -0.9954674047140082
+    }
+  },
+  "quality_checks": {
+    "all_files_exist": true,
+    "expected_record_counts": {
+      "high_weather_sensitivity": true,
+      "no_weather_sensitivity": true,
+      "medium_weather_sensitivity": true,
+      "extreme_weather_sensitivity": true
+    },
+    "weather_sensitivity_profiles": {
+      "high_weather_sensitivity": "Strong seasonal/weather correlation expected",
+      "medium_weather_sensitivity": "Moderate weather correlation expected",
+      "no_weather_sensitivity": "Minimal weather correlation expected",
+      "extreme_weather_sensitivity": "Very strong weather correlation expected"
+    }
+  }
+}

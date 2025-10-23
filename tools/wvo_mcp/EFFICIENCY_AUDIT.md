@@ -21,7 +21,7 @@ WVO_ENABLE_WEB_INSPIRATION=${WVO_ENABLE_WEB_INSPIRATION:-0}  # Defaults to OFF
 
 **Inefficiency Found:**
 - `WebInspirationManager` is **always instantiated** even when disabled (orchestrator_runtime.ts:48-52)
-- `ensureInspiration()` is **called for every task** (claude_code_coordinator.ts:192), though it exits early if disabled
+- `ensureInspiration()` is **called for every task** (agent_coordinator.ts:192), though it exits early if disabled
 
 **Impact:** Low (exits early), but wastes initialization cycles
 
@@ -31,7 +31,7 @@ WVO_ENABLE_WEB_INSPIRATION=${WVO_ENABLE_WEB_INSPIRATION:-0}  # Defaults to OFF
 
 ### 2. Token Efficiency (WELL-DESIGNED)
 
-**Context Assembly Strategy** (claude_code_coordinator.ts:499-544):
+**Context Assembly Strategy** (agent_coordinator.ts:499-544):
 ```typescript
 // Multi-tier fallback to maximize context while staying under token limits
 strategies = [
@@ -87,7 +87,7 @@ this.webInspirationManager = process.env.WVO_ENABLE_WEB_INSPIRATION === '1'
   : undefined;
 ```
 
-**2. Skip ensureInspiration call entirely when disabled** (claude_code_coordinator.ts:192)
+**2. Skip ensureInspiration call entirely when disabled** (agent_coordinator.ts:192)
 
 ```typescript
 // BEFORE (current)

@@ -1,0 +1,19 @@
+{
+  "critic": "integrationcompleteness",
+  "code": 0,
+  "stdout": "Integration matrix and resilience testing look excellent.",
+  "stderr": "",
+  "passed": true,
+  "analysis": null,
+  "git_sha": "62bc52f6e7a3a1b2c3a1bb03d6e3725519c7df4c",
+  "timestamp": "2025-10-21T14:32:33.938Z",
+  "identity": {
+    "title": "Integration Completeness",
+    "mission": "Safeguard integration_completeness discipline.",
+    "powers": [
+      "Reports on findings when configuration is missing."
+    ],
+    "authority": "advisory",
+    "domain": "integration_completeness"
+  }
+}

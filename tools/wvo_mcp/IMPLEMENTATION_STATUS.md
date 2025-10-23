@@ -9,7 +9,7 @@
 ## 🔄 Latest Updates (2025-10-11)
 
 - ✅ **Locked MCP input schemas** to use Zod raw shapes only (`utils/schema.ts`, MCP entrypoints). This prevents Autopilot or future tooling from reintroducing JSON Schema conversion that the MCP SDK cannot consume.
-- ✅ **Built guardrail logging** in `ClaudeCodeCoordinator` so “all agents busy” churn is throttled. Keeps logs readable while the scheduler ramps.
+- ✅ **Built guardrail logging** in `AgentCoordinator` so “all agents busy” churn is throttled. Keeps logs readable while the scheduler ramps.
 - ✅ **Shell init hardened** (`.bash_profile`) – Homebrew/Pyenv now gated behind existence checks to stop repeated `brew`/`pyenv` noise in every command.
 - ✅ **Failover telemetry exposed** – `orchestrator_status` now reports the active coordinator (`claude` or `codex`), availability, and the latest promotion reason so ops can confirm failovers without digging through logs.
 - ✅ **Execution telemetry augmented** – Every run in `state/telemetry/executions.jsonl` carries `coordinator_available` alongside the existing type/reason fields so SLO monitors can tell whether Claude was actually serving traffic.
@@ -117,7 +117,7 @@ Priority queue that keeps runnable work ready for assignment.
 
 ---
 
-### 5. **ClaudeCodeCoordinator** (`src/orchestrator/claude_code_coordinator.ts`)
+### 5. **AgentCoordinator** (`src/orchestrator/agent_coordinator.ts`)
 Brains of the operation—ties scheduler, agent pool, context, and quality together.
 
 **Features**:
@@ -307,7 +307,7 @@ state/orchestrator.db
 
 ### Phase 2: Orchestration (2-3 days)
 - [x] **TaskScheduler** - Dependency resolution, parallel scheduling (ready)
-- [x] **ClaudeCodeCoordinator** - High-level orchestration logic (event-driven loop in place)
+- [x] **AgentCoordinator** - High-level orchestration logic (event-driven loop in place)
 - [x] **QualityMonitor** - Continuous validation on state transitions (baseline metrics)
 - [x] **OperationsManager** - Dynamic policy & maintenance supervision
 - [x] **Resilience Controls** - Rate/context limit detection with automatic cooldowns

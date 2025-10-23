@@ -1,0 +1,19 @@
+{
+  "critic": "inspirationcoverage",
+  "code": 0,
+  "stdout": "Inspiration catalogue curated with actionable analysis.",
+  "stderr": "",
+  "passed": true,
+  "analysis": null,
+  "git_sha": "62bc52f6e7a3a1b2c3a1bb03d6e3725519c7df4c",
+  "timestamp": "2025-10-21T14:32:41.817Z",
+  "identity": {
+    "title": "Inspiration Coverage",
+    "mission": "Safeguard inspiration_coverage discipline.",
+    "powers": [
+      "Reports on findings when configuration is missing."
+    ],
+    "authority": "advisory",
+    "domain": "inspiration_coverage"
+  }
+}

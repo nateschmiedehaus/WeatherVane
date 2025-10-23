@@ -1,12 +1,50 @@
 {
   "critic": "promptbudget",
-  "code": 0,
-  "stdout": "✅ Prompt budget check passed. Context words: 172 Checkpoint size: 0.91KB Prompts checked: 5 Max prompt tokens: 414",
-  "stderr": "{\"level\":\"warning\",\"message\":\"Code search index rebuild failed\",\"timestamp\":\"2025-10-17T17:16:13.171Z\",\"error\":\"The database connection is not open\"}",
-  "passed": true,
-  "analysis": null,
-  "git_sha": "a9b2c543d3f630fb4a1c37dbcf74548b8853b762",
-  "timestamp": "2025-10-17T17:16:13.180Z",
+  "code": 1,
+  "stdout": "",
+  "stderr": "❌ Prompt budget check failed.\n- Prompt for task CRIT-PERF-GLOBAL-9882b7 estimated at 620 tokens (limit 600).\n- Prompt for task CRIT-PERF-SECURITY-799f0c estimated at 624 tokens (limit 600).",
+  "passed": false,
+  "analysis": {
+    "category": "test_failure",
+    "confidence": 0.8,
+    "rootCauses": [
+      "Test suite reported failing assertions"
+    ],
+    "recommendations": [
+      "Inspect failing test output and reproduce locally.",
+      "Confirm fixtures and data generators are stable.",
+      "Review alternative implementation options supplied by the research layer."
+    ],
+    "history": {
+      "totalObservations": 20,
+      "similarFailures": 9
+    },
+    "researchFindings": [
+      {
+        "id": "stub-academic-1760644879824",
+        "title": "Research stub for promptbudget critic test_failure failure",
+        "summary": "Academic research integration is not yet implemented. Enable the research_layer flag once ready.",
+        "source": "placeholder",
+        "confidence": 0.1
+      }
+    ],
+    "alternativeOptions": [
+      {
+        "id": "stub-alternative-1760644879825",
+        "title": "Alternative placeholder for promptbudget critic remediation",
+        "summary": "Alternative generation is not yet implemented. This entry is returned to keep the pipeline stable.",
+        "pros": [
+          "Placeholder recommendation"
+        ],
+        "cons": [
+          "No real evaluation available"
+        ],
+        "confidence": 0.1
+      }
+    ]
+  },
+  "git_sha": "62bc52f6e7a3a1b2c3a1bb03d6e3725519c7df4c",
+  "timestamp": "2025-10-21T14:32:40.737Z",
   "identity": {
     "title": "Prompt Budget",
     "mission": "Safeguard prompt_budget discipline.",

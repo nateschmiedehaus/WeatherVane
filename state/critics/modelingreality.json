@@ -1,0 +1,19 @@
+{
+  "critic": "modelingreality",
+  "code": 0,
+  "stdout": "✅ Modeling reality critic: implementation matches documented expectations.",
+  "stderr": "",
+  "passed": true,
+  "analysis": null,
+  "git_sha": "62bc52f6e7a3a1b2c3a1bb03d6e3725519c7df4c",
+  "timestamp": "2025-10-21T14:32:42.302Z",
+  "identity": {
+    "title": "Modeling Reality",
+    "mission": "Safeguard modeling_reality discipline.",
+    "powers": [
+      "Reports on findings when configuration is missing."
+    ],
+    "authority": "advisory",
+    "domain": "modeling_reality"
+  }
+}

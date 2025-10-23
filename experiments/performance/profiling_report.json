@@ -1,0 +1,177 @@
+{
+  "timestamp": "2025-10-22T18:25:09.912734",
+  "duration_seconds": 1761157509.912713,
+  "components_profiled": 7,
+  "total_samples": 273,
+  "profiles": [
+    {
+      "name": "API:predict",
+      "operation": "predict",
+      "component": "API",
+      "samples": 100,
+      "total_time_ms": 4520.0,
+      "min_time_ms": 31.64,
+      "max_time_ms": 58.760000000000005,
+      "throughput_qps": 0.0,
+      "metadata": {}
+    },
+    {
+      "name": "API:elasticity",
+      "operation": "elasticity",
+      "component": "API",
+      "samples": 80,
+      "total_time_ms": 4184.0,
+      "min_time_ms": 36.60999999999999,
+      "max_time_ms": 67.99,
+      "throughput_qps": 0.0,
+      "metadata": {}
+    },
+    {
+      "name": "API:allocate",
+      "operation": "allocate",
+      "component": "API",
+      "samples": 20,
+      "total_time_ms": 25010.0,
+      "min_time_ms": 875.3499999999999,
+      "max_time_ms": 1625.65,
+      "throughput_qps": 0.0,
+      "metadata": {}
+    },
+    {
+      "name": "API:load",
+      "operation": "load",
+      "component": "API",
+      "samples": 15,
+      "total_time_ms": 1875.0,
+      "min_time_ms": 87.5,
+      "max_time_ms": 162.5,
+      "throughput_qps": 0.0,
+      "metadata": {}
+    },
+    {
+      "name": "MODEL:train",
+      "operation": "train",
+      "component": "MODEL",
+      "samples": 5,
+      "total_time_ms": 6000.0,
+      "min_time_ms": 960.0,
+      "max_time_ms": 1440.0,
+      "throughput_qps": 0.0,
+      "metadata": {}
+    },
+    {
+      "name": "MODEL:validate",
+      "operation": "validate",
+      "component": "MODEL",
+      "samples": 3,
+      "total_time_ms": 6300.0,
+      "min_time_ms": 1680.0,
+      "max_time_ms": 2520.0,
+      "throughput_qps": 0.0,
+      "metadata": {}
+    },
+    {
+      "name": "MODEL:extract",
+      "operation": "extract",
+      "component": "MODEL",
+      "samples": 50,
+      "total_time_ms": 22500.0,
+      "min_time_ms": 360.0,
+      "max_time_ms": 540.0,
+      "throughput_qps": 0.0,
+      "metadata": {}
+    }
+  ],
+  "bottlenecks": [
+    {
+      "rank": 1,
+      "component": "API",
+      "operation": "allocate",
+      "metric": "mean_latency_ms",
+      "current_value": 1250.5,
+      "target_value": 625.25,
+      "improvement_potential": 50.0,
+      "recommendation": "Precompute constraints, use approximate algorithms, implement result caching",
+      "effort": "medium"
+    },
+    {
+      "rank": 2,
+      "component": "MODEL",
+      "operation": "extract",
+      "metric": "mean_latency_ms",
+      "current_value": 450.0,
+      "target_value": 225.0,
+      "improvement_potential": 50.0,
+      "recommendation": "Profile deeper to identify specific slow operations",
+      "effort": "low"
+    },
+    {
+      "rank": 3,
+      "component": "MODEL",
+      "operation": "validate",
+      "metric": "mean_latency_ms",
+      "current_value": 2100.0,
+      "target_value": 1050.0,
+      "improvement_potential": 50.0,
+      "recommendation": "Profile deeper to identify specific slow operations",
+      "effort": "medium"
+    }
+  ],
+  "recommendations": [
+    {
+      "priority": "P1",
+      "component": "API",
+      "operation": "allocate",
+      "current_latency_ms": 1250.5,
+      "target_latency_ms": 625.25,
+      "improvement_potential_percent": 50.0,
+      "recommended_fix": "Precompute constraints, use approximate algorithms, implement result caching",
+      "estimated_effort": "medium",
+      "suggested_next_steps": [
+        "1. Detailed profiling of this operation to find sub-components",
+        "2. Benchmark against industry standards",
+        "3. Implement optimization and measure improvement",
+        "4. Document any trade-offs (accuracy vs latency, etc)",
+        "5. Update performance targets in system design"
+      ]
+    },
+    {
+      "priority": "P2",
+      "component": "MODEL",
+      "operation": "extract",
+      "current_latency_ms": 450.0,
+      "target_latency_ms": 225.0,
+      "improvement_potential_percent": 50.0,
+      "recommended_fix": "Profile deeper to identify specific slow operations",
+      "estimated_effort": "low",
+      "suggested_next_steps": [
+        "1. Detailed profiling of this operation to find sub-components",
+        "2. Benchmark against industry standards",
+        "3. Implement optimization and measure improvement",
+        "4. Document any trade-offs (accuracy vs latency, etc)",
+        "5. Update performance targets in system design"
+      ]
+    },
+    {
+      "priority": "P3",
+      "component": "MODEL",
+      "operation": "validate",
+      "current_latency_ms": 2100.0,
+      "target_latency_ms": 1050.0,
+      "improvement_potential_percent": 50.0,
+      "recommended_fix": "Profile deeper to identify specific slow operations",
+      "estimated_effort": "medium",
+      "suggested_next_steps": [
+        "1. Detailed profiling of this operation to find sub-components",
+        "2. Benchmark against industry standards",
+        "3. Implement optimization and measure improvement",
+        "4. Document any trade-offs (accuracy vs latency, etc)",
+        "5. Update performance targets in system design"
+      ]
+    }
+  ],
+  "metadata": {
+    "profiler_version": "1.0",
+    "python_version": "3.10"
+  }
+}

@@ -2,7 +2,6 @@
   "diagnostics": {
     "baseline_has_gam": false,
     "feature_columns": [
-      "day_of_year",
       "temp_c",
       "temp_max_c",
       "temp_min_c",
@@ -23,10 +22,9 @@
       "high_wind_flag",
       "uv_alert_flag",
       "high_precip_prob_flag",
-      "meta_spend",
-      "meta_conversions",
-      "google_spend",
-      "google_conversions",
+      "day_of_year",
+      "ads_spend",
+      "ads_conversions",
       "promos_sent"
     ],
     "residual_mean": 0.0,

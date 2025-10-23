@@ -44,6 +44,27 @@
       }
     ]
   },
+  "weather_coverage": {
+    "reviewer": "Atlas",
+    "note": "Weather coverage guardrail detected ingestion or weather drift that jeopardises modeling readiness.",
+    "next": "Inspect state/analytics/weather_coverage_watch.json, review baseline comparison, and coordinate remediation or escalate to Director Dana if product scope changes are required.",
+    "delegates": [
+      {
+        "agent": "Atlas",
+        "scope": "product",
+        "createTask": true,
+        "taskTitle": "[Weather Coverage] Investigate ingestion drift",
+        "taskDescription": "Review guardrail summary, confirm scope of the regression, and drive remediation across ingestion + weather pipelines."
+      },
+      {
+        "agent": "Director Dana",
+        "scope": "product",
+        "createTask": true,
+        "taskTitle": "[Director Dana] Review weather coverage regression",
+        "taskDescription": "Provide product direction, approve remediation scope, and capture stakeholder messaging for the regression."
+      }
+    ]
+  },
   "org_pm": {
     "reviewer": "Director Dana",
     "note": "Escalated to Director Dana for product/PM review. Capture stakeholder sign-off before resuming automation.",
@@ -64,6 +85,27 @@
         "callAgents": ["product", "architecture"],
         "taskTitle": "[Autopilot] Coordinate product/PM remediation",
         "taskDescription": "Translate Director Dana's guidance into actionable roadmap updates and ensure execution teams are aligned."
+      }
+    ]
+  },
+  "modeling_data_watch": {
+    "reviewer": "Atlas",
+    "note": "Modeling data watch guardrail surfaced ingestion anomalies impacting modeling baselines.",
+    "next": "Audit the latest dq_monitoring snapshot, triage offending datasets, and align remediation tasks with Director Dana when customer impact is likely.",
+    "delegates": [
+      {
+        "agent": "Atlas",
+        "scope": "product",
+        "createTask": true,
+        "taskTitle": "[Modeling Data Watch] Resolve ingestion anomalies",
+        "taskDescription": "Investigate failing alerts, identify regression owners, and coordinate fixes so nightly modeling runs remain trustworthy."
+      },
+      {
+        "agent": "Director Dana",
+        "scope": "product",
+        "createTask": true,
+        "taskTitle": "[Director Dana] Align on modeling data remediation",
+        "taskDescription": "Review severity, set customer communication posture, and unblock resourcing for high-impact regressions."
       }
     ]
   },
@@ -248,6 +290,27 @@
         "callAgents": ["platform", "qa"],
         "taskTitle": "[Autopilot] Close integration gaps",
         "taskDescription": "Update the integration matrix, test reports, and resilience notes required by the critic."
+      }
+    ]
+  },
+  "modeling_reality": {
+    "reviewer": "Research Orchestrator",
+    "note": "Modeling reality critic detected quality issues in ML model performance or validation.",
+    "next": "Coordinate with the Research Orchestrator to debug model issues and strengthen validation reports.",
+    "delegates": [
+      {
+        "agent": "Research Orchestrator",
+        "scope": "systemic",
+        "createTask": true,
+        "taskTitle": "[Modeling] Debug ML validation failures",
+        "taskDescription": "Investigate model quality failures, identify root causes, and provide remediation guidance for the engineering team."
+      },
+      {
+        "agent": "Director Dana",
+        "scope": "ml",
+        "createTask": true,
+        "taskTitle": "[Director Dana] Review ML quality standards",
+        "taskDescription": "Review failing validations, approve remediation approach, and update thresholds if needed based on new learnings."
       }
     ]
   }

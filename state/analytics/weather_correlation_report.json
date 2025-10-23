@@ -1,0 +1,52 @@
+{
+  "total_tenants": 4,
+  "within_range": 4,
+  "accuracy": 1.0,
+  "passed": true,
+  "results": [
+    {
+      "tenant": "extreme_weather_sensitivity",
+      "type": "extreme",
+      "expected_range": [
+        -1.0,
+        -0.75
+      ],
+      "actual_correlation": -0.995,
+      "within_range": true,
+      "error": null
+    },
+    {
+      "tenant": "high_weather_sensitivity",
+      "type": "high",
+      "expected_range": [
+        -0.85,
+        -0.6
+      ],
+      "actual_correlation": -0.813,
+      "within_range": true,
+      "error": null
+    },
+    {
+      "tenant": "medium_weather_sensitivity",
+      "type": "medium",
+      "expected_range": [
+        -0.6,
+        -0.3
+      ],
+      "actual_correlation": -0.547,
+      "within_range": true,
+      "error": null
+    },
+    {
+      "tenant": "no_weather_sensitivity",
+      "type": "no",
+      "expected_range": [
+        -0.15,
+        0.15
+      ],
+      "actual_correlation": -0.095,
+      "within_range": true,
+      "error": null
+    }
+  ]
+}

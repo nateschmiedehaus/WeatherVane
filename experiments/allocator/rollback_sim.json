@@ -42,13 +42,12 @@
   },
   "manifest_generated_at": "2025-10-13T22:34:11.470133+00:00",
   "notes": [
-    "Autopilot guardrail rehearsal 2025-10-15",
     "QA evidence: spend guardrail report via atlas autopilot"
   ],
   "rollback_ready": true,
   "rollback_recommended": true,
   "run_id": "adpush-20251013223411",
-  "simulated_at": "2025-10-15T21:05:00+00:00",
+  "simulated_at": "2025-10-21T13:50:07.988709+00:00",
   "spend_summary": {
     "total_baseline": 580.0,
     "total_proposed": 250.0,

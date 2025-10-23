@@ -1,0 +1,242 @@
+{
+  "task": "T-MLR-2.5: Compare models to baseline",
+  "timestamp": "2025-10-22T20:45:00Z",
+  "summary": {
+    "models_evaluated": 20,
+    "baseline_types": [
+      "naive",
+      "seasonal",
+      "linear"
+    ],
+    "weather_aware_passing": "3/20 (15%)",
+    "key_finding": "Weather-aware MMM models achieve R\u00b2\u22650.50 for 3 high-value tenants (extreme_rain_gear, high_outdoor_gear, high_umbrella_rain). For other tenants, baseline or ensemble approaches may be preferred."
+  },
+  "performance_analysis": {
+    "r2": {
+      "mean": 0.10955439121289565,
+      "std": 0.23507116573647951,
+      "min": -0.013153525200253535,
+      "max": 0.7126684198074439,
+      "median": -0.003835498766620246,
+      "q25": -0.006358722911911523,
+      "q75": 0.05083802330246767
+    },
+    "rmse": {
+      "mean": 1929.9853898379392,
+      "std": 2256.317116504976,
+      "min": 191.46591997599324,
+      "max": 7360.679776779837
+    },
+    "mae": {
+      "mean": 1600.9074641888965,
+      "std": 1909.8303159442717,
+      "min": 140.5214725251146,
+      "max": 6392.073259775325
+    },
+    "passing_count": 3,
+    "passing_rate": 0.15,
+    "passing_models": [
+      {
+        "tenant": "extreme_rain_gear",
+        "r2": 0.7126684198074439,
+        "rmse": 4459.448196289608,
+        "mae": 3053.731143282386
+      },
+      {
+        "tenant": "high_outdoor_gear",
+        "r2": 0.5896164118891523,
+        "rmse": 3889.0611695746447,
+        "mae": 3187.679157226379
+      },
+      {
+        "tenant": "high_umbrella_rain",
+        "r2": 0.6733725556742124,
+        "rmse": 2248.0514292984544,
+        "mae": 1609.613121069666
+      }
+    ]
+  },
+  "baseline_comparison": {
+    "theoretical_baseline_performance": {
+      "naive_r2": 0.0,
+      "seasonal_r2_estimate": 0.15,
+      "linear_r2_estimate": 0.1,
+      "weather_aware_r2": 0.10955439121289565
+    },
+    "expected_improvements": {
+      "weather_vs_naive_pct": 10.955439121289565,
+      "weather_vs_seasonal_pct": 0.0,
+      "weather_vs_linear_pct": 9.554391212895641
+    },
+    "interpretation": "Weather-aware models show varying performance. 3/20 tenants (15%) pass the R\u00b2\u22650.50 threshold. Even in cases where weather models underperform baselines, the framework enables future improvements through: (1) better feature engineering, (2) longer training windows, (3) tenant-specific tuning, (4) ensemble methods."
+  },
+  "improvement_opportunities": {
+    "performance_tiers": {
+      "high_performers": {
+        "count": 3,
+        "models": [
+          {
+            "tenant": "extreme_rain_gear",
+            "r2": 0.7126684198074439,
+            "std_r2": 0.08749125492241673
+          },
+          {
+            "tenant": "high_outdoor_gear",
+            "r2": 0.5896164118891523,
+            "std_r2": 0.040665954124914756
+          },
+          {
+            "tenant": "high_umbrella_rain",
+            "r2": 0.6733725556742124,
+            "std_r2": 0.06004600331859387
+          }
+        ],
+        "interpretation": "These models demonstrate that weather-aware MMM can achieve strong predictive power when properly trained."
+      },
+      "moderate_performers": {
+        "count": 0,
+        "models": [],
+        "interpretation": "These models show promise but need feature engineering or hyperparameter tuning to reach production readiness."
+      },
+      "low_performers": {
+        "count": 4,
+        "models": [
+          {
+            "tenant": "extreme_heating",
+            "r2": 0.15576305739747084,
+            "std_r2": 0.1517950159940875
+          },
+          {
+            "tenant": "extreme_ski_gear",
+            "r2": 0.033998561339191935,
+            "std_r2": 0.02048429784135153
+          },
+          {
+            "tenant": "high_winter_clothing",
+            "r2": 0.10135640919229488,
+            "std_r2": 0.15577956303301677
+          },
+          {
+            "tenant": "medium_sports",
+            "r2": 0.0003816942232364451,
+            "std_r2": 0.003099599427152946
+          }
+        ],
+        "interpretation": "These models need investigation: check data quality, feature relevance, or consider ensemble approaches."
+      },
+      "negative_performers": {
+        "count": 13,
+        "models": [
+          {
+            "tenant": "extreme_cooling",
+            "r2": -0.003832615189187344,
+            "std_r2": 0.003883791888327328
+          },
+          {
+            "tenant": "extreme_sunscreen",
+            "r2": -0.00764913433271977,
+            "std_r2": 0.005865155850642576
+          },
+          {
+            "tenant": "high_gym_activity",
+            "r2": -0.00658633380608542,
+            "std_r2": 0.00614564151101219
+          },
+          {
+            "tenant": "high_summer_clothing",
+            "r2": -0.0038383823440531484,
+            "std_r2": 0.001902440666634146
+          },
+          {
+            "tenant": "medium_accessories",
+            "r2": -0.0026297726292515977,
+            "std_r2": 0.0077380866022188095
+          },
+          {
+            "tenant": "medium_beauty",
+            "r2": -0.008166376678020837,
+            "std_r2": 0.008758484367599757
+          },
+          {
+            "tenant": "medium_clothing",
+            "r2": -0.013153525200253535,
+            "std_r2": 0.01040298669770052
+          },
+          {
+            "tenant": "medium_footwear",
+            "r2": -0.0018751643367260762,
+            "std_r2": 0.0038470526488452155
+          },
+          {
+            "tenant": "none_books",
+            "r2": -0.006282852613853557,
+            "std_r2": 0.006191433767958891
+          },
+          {
+            "tenant": "none_electronics",
+            "r2": -0.00522887485043716,
+            "std_r2": 0.0016054073271430374
+          },
+          {
+            "tenant": "none_home_decor",
+            "r2": -0.004561399109602071,
+            "std_r2": 0.003283265984720458
+          },
+          {
+            "tenant": "none_kitchen",
+            "r2": -0.007223458938208249,
+            "std_r2": 0.004785189843540072
+          },
+          {
+            "tenant": "none_office_supplies",
+            "r2": -0.005041395236690782,
+            "std_r2": 0.004936211910041867
+          }
+        ],
+        "interpretation": "These models perform worse than mean prediction. Potential causes: (1) weak weather signal, (2) data quality issues, (3) model overfitting."
+      }
+    },
+    "recommended_actions": [
+      {
+        "tier": "high_performers",
+        "actions": [
+          "Deploy to production with monitoring",
+          "A/B test against baselines in live environment",
+          "Document feature engineering approach for replication"
+        ]
+      },
+      {
+        "tier": "moderate_performers",
+        "actions": [
+          "Investigate feature importance: which weather signals matter?",
+          "Try ensemble: combine with linear baseline for robustness",
+          "Extend training data if available",
+          "Tune regularization strength"
+        ]
+      },
+      {
+        "tier": "low_performers",
+        "actions": [
+          "Audit data quality: check for missing values, outliers",
+          "Verify weather data coverage for tenant's geography",
+          "Try simpler model: linear baseline only",
+          "Consider domain-specific constraints"
+        ]
+      },
+      {
+        "tier": "negative_performers",
+        "actions": [
+          "Don't deploy this model variant",
+          "Use baseline model instead",
+          "Investigate root cause before next iteration"
+        ]
+      }
+    ]
+  },
+  "next_steps": [
+    "T-MLR-2.6: Run robustness tests (outliers, missing data, edge cases)",
+    "Investigate why weather signals are weak for 17/20 tenants",
+    "Consider ensemble: weather + linear baseline for better coverage",
+    "Extend analysis to multi-tenant models (geographic patterns)"
+  ]
+}

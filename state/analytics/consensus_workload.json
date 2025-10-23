@@ -1,0 +1,163 @@
+{
+  "generated_at": "2025-10-20T07:20:00Z",
+  "sample_window": {
+    "start": "2025-10-10T02:19:30+00:00",
+    "end": "2025-10-20T07:15:16+00:00"
+  },
+  "sources": {
+    "telemetry_usage": "state/telemetry/usage.jsonl",
+    "orchestration_metrics": "state/analytics/orchestration_metrics.json",
+    "simulation_summary": "experiments/orchestration/simulation_report.md"
+  },
+  "session_overview": {
+    "total_records": 1022,
+    "status_breakdown": {
+      "invalid_summary": {
+        "count": 22,
+        "avg_duration": 696.6818181818181,
+        "p50_duration": 330.0,
+        "p90_duration": 1469.500000000001
+      },
+      "error": {
+        "count": 522,
+        "avg_duration": 78.44827586206897,
+        "p50_duration": 2.0,
+        "p90_duration": 186.7000000000001
+      },
+      "success": {
+        "count": 322,
+        "avg_duration": 509.1149068322981,
+        "p50_duration": 347.0,
+        "p90_duration": 936.7000000000002
+      },
+      "usage_limit": {
+        "count": 76,
+        "avg_duration": 380.07894736842104,
+        "p50_duration": 298.5,
+        "p90_duration": 890.5
+      },
+      "retry": {
+        "count": 10,
+        "avg_duration": 428.3,
+        "p50_duration": 323.5,
+        "p90_duration": 786.3
+      },
+      "success_rescue": {
+        "count": 4,
+        "avg_duration": 1204,
+        "p50_duration": 132.5,
+        "p90_duration": 3263.900000000001
+      },
+      "command_timeout": {
+        "count": 5,
+        "avg_duration": 263.6,
+        "p50_duration": 186.0,
+        "p90_duration": 482.40000000000003
+      },
+      "fallback_summary": {
+        "count": 20,
+        "avg_duration": 450.15,
+        "p50_duration": 483.5,
+        "p90_duration": 640.3
+      },
+      "interrupted": {
+        "count": 11,
+        "avg_duration": 686.7272727272727,
+        "p50_duration": 364.0,
+        "p90_duration": 1329.0
+      },
+      "worker_offline": {
+        "count": 25,
+        "avg_duration": 4.28,
+        "p50_duration": 4.0,
+        "p90_duration": 5.0
+      },
+      "offline_fallback": {
+        "count": 3,
+        "avg_duration": 790.3333333333334,
+        "p50_duration": 853.0,
+        "p90_duration": 1032.2
+      },
+      "skipped": {
+        "count": 2,
+        "avg_duration": 0,
+        "p50_duration": 0.0,
+        "p90_duration": 0.0
+      }
+    }
+  },
+  "decision_mix": {
+    "critical": 1,
+    "strategic": 1,
+    "specialist": 1
+  },
+  "token_cost_per_run_usd": 0.0059,
+  "token_budget_per_run": {
+    "completion": 51.62,
+    "prompt": 402.36,
+    "total": 453.98
+  },
+  "quorum_profiles": {
+    "specialist": {
+      "default_participants": [
+        "atlas",
+        "claude_council"
+      ],
+      "expected_duration_seconds": {
+        "median": 347.0,
+        "p90": 936.7
+      },
+      "expected_iterations": 1,
+      "token_cost_usd": 0.0059,
+      "notes": "Baseline two-person quorum \u2013 apply when tasks are scoped and critic load is low."
+    },
+    "strategic": {
+      "default_participants": [
+        "atlas",
+        "claude_council",
+        "research_orchestrator"
+      ],
+      "expected_duration_seconds": {
+        "median": 509.1,
+        "p90": 890.5
+      },
+      "expected_iterations": 1,
+      "token_cost_usd": 0.00709,
+      "notes": "Adds Research Orchestrator to balance modeling/design trade-offs; handles medium complexity backlogs."
+    },
+    "critical": {
+      "default_participants": [
+        "atlas",
+        "claude_council",
+        "director_dana",
+        "security_critic"
+      ],
+      "expected_duration_seconds": {
+        "median": 1204,
+        "p90": 3263.9
+      },
+      "expected_iterations": 2,
+      "token_cost_usd": 0.01396,
+      "notes": "Escalates to Director Dana + security critic; use when token or runtime pressure spikes or when blockers persist beyond first quorum."
+    }
+  },
+  "escalation_signals": [
+    {
+      "signal": "duration_p90_gt_900s",
+      "threshold_seconds": 900,
+      "observed_p90_success": 936.7,
+      "recommended_action": "Promote to critical quorum with Director Dana + security critic."
+    },
+    {
+      "signal": "repeat_retries_gt_1",
+      "threshold": 1,
+      "observed_retry_rate": 0.031,
+      "recommended_action": "Add Research Orchestrator for additional context and preflight prompts."
+    }
+  ],
+  "execution_health": {
+    "success_rate": 0.315,
+    "retry_rate": 0.01,
+    "error_rate": 0.511
+  }
+}

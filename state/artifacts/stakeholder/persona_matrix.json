@@ -1,5 +1,5 @@
 {
-  "updated": "2025-10-16T04:12:00Z",
+  "updated": "2025-10-21T10:35:00Z",
   "personas": [
     {
       "id": "cmo",
@@ -21,6 +21,13 @@
       "goals": ["Quantify lift from weather automations", "Identify next best experiment"],
       "needs": ["Experiment notebooks", "Motion performance captures"],
       "favoriteArtifacts": ["state/artifacts/motion/motion_specs.md", "state/artifacts/demo/performance_report.md"]
+    },
+    {
+      "id": "marketer",
+      "label": "Lifecycle Marketer",
+      "goals": ["Ship weather-aware journeys without breaking guardrails", "Translate lift metrics into campaign actions"],
+      "needs": ["Weather runbook playbooks", "Allocator lift + guardrail deltas"],
+      "favoriteArtifacts": ["state/artifacts/demo/performance_report.md", "state/artifacts/integration/integration_matrix.json"]
     }
   ],
   "enablement": {

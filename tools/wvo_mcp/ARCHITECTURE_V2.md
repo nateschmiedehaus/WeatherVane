@@ -360,7 +360,7 @@ CREATE INDEX idx_quality_timestamp ON quality_metrics(timestamp);
 - [ ] Migrate roadmap.yaml → tasks table
 
 ### Phase 2: Orchestration (Days 3-4)
-- [ ] Build ClaudeCodeCoordinator
+- [ ] Build AgentCoordinator
 - [ ] Build CodexWorkerPool (parallel execution)
 - [ ] Implement TaskScheduler (dependency resolution)
 - [ ] Build QualityMonitor (continuous validation)

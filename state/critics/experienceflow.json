@@ -1,0 +1,19 @@
+{
+  "critic": "experienceflow",
+  "code": 0,
+  "stdout": "Experience flow journey and demo script verified.",
+  "stderr": "",
+  "passed": true,
+  "analysis": null,
+  "git_sha": "62bc52f6e7a3a1b2c3a1bb03d6e3725519c7df4c",
+  "timestamp": "2025-10-21T14:32:33.919Z",
+  "identity": {
+    "title": "Experience Flow",
+    "mission": "Safeguard experience_flow discipline.",
+    "powers": [
+      "Reports on findings when configuration is missing."
+    ],
+    "authority": "advisory",
+    "domain": "experience_flow"
+  }
+}

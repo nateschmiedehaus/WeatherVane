@@ -1,0 +1,81 @@
+{
+  "generated_at": "2025-10-23T02:17:16.752777+00:00",
+  "status": "failed",
+  "summary": {
+    "total": 11,
+    "passed": 10,
+    "failed": 1,
+    "skipped": 0
+  },
+  "tests": [
+    "tests/test_weather_cache.py",
+    "tests/test_weather_coordinates.py",
+    "tests/test_weather_coverage.py",
+    "tests/test_ingestion_flow.py",
+    "tests/test_incremental_ingestion.py",
+    "tests/test_shopify_ingestion.py",
+    "tests/test_ads_ingestion.py",
+    "tests/test_promo_ingestion.py"
+  ],
+  "environment": {
+    "python": "3.10.12",
+    "platform": "macOS-15.6-arm64-arm-64bit"
+  },
+  "results": [
+    {
+      "nodeid": "tests/test_weather_cache.py::test_weather_cache_round_trips",
+      "outcome": "passed",
+      "duration_seconds": 0.08657754200066847
+    },
+    {
+      "nodeid": "tests/test_weather_cache.py::test_hydrate_weather_cells_uses_bounded_concurrency",
+      "outcome": "passed",
+      "duration_seconds": 0.02303454100001545
+    },
+    {
+      "nodeid": "tests/test_weather_coordinates.py::test_coordinates_from_orders_with_latlon",
+      "outcome": "passed",
+      "duration_seconds": 0.0031198329998005647
+    },
+    {
+      "nodeid": "tests/test_weather_coordinates.py::test_coordinates_from_orders_with_geohash_only",
+      "outcome": "passed",
+      "duration_seconds": 0.001180541999929119
+    },
+    {
+      "nodeid": "tests/test_weather_coverage.py::test_evaluate_weather_coverage_ok",
+      "outcome": "passed",
+      "duration_seconds": 0.2824726250000822
+    },
+    {
+      "nodeid": "tests/test_weather_coverage.py::test_evaluate_weather_coverage_guardrail_triggered",
+      "outcome": "failed",
+      "duration_seconds": 0.23296987499998068
+    },
+    {
+      "nodeid": "tests/test_ingestion_flow.py::test_ingestion_flow_persists_state_and_report",
+      "outcome": "passed",
+      "duration_seconds": 0.022289208000074723
+    },
+    {
+      "nodeid": "tests/test_incremental_ingestion.py::test_incremental_promo_dedup_and_updates",
+      "outcome": "passed",
+      "duration_seconds": 0.004302833000110695
+    },
+    {
+      "nodeid": "tests/test_shopify_ingestion.py::test_ingest_orders_and_products",
+      "outcome": "passed",
+      "duration_seconds": 0.005108458000904648
+    },
+    {
+      "nodeid": "tests/test_ads_ingestion.py::test_ads_ingestor_writes_parquet",
+      "outcome": "passed",
+      "duration_seconds": 0.00444716699894343
+    },
+    {
+      "nodeid": "tests/test_promo_ingestion.py::test_promo_ingestor",
+      "outcome": "passed",
+      "duration_seconds": 0.0024876250008674106
+    }
+  ]
+}

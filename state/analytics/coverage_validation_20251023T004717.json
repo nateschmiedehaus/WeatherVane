@@ -1,0 +1,71 @@
+{
+  "timestamp": "2025-10-23T00:47:17.814255",
+  "tenant_id": "demo_brand",
+  "window_days": 90,
+  "start_date": "2025-07-25",
+  "end_date": "2025-10-23",
+  "metrics": {},
+  "defects": [
+    {
+      "severity": "critical",
+      "component": "shopify",
+      "message": "Dataset demo_brand_shopify_orders not found in lake",
+      "details": {
+        "dataset": "demo_brand_shopify_orders",
+        "lake_root": "storage/lake/raw"
+      },
+      "timestamp": "2025-10-23T00:47:17.644933"
+    },
+    {
+      "severity": "warning",
+      "component": "ads",
+      "message": "Dataset demo_brand_meta_ads not found",
+      "details": {
+        "dataset": "demo_brand_meta_ads"
+      },
+      "timestamp": "2025-10-23T00:47:17.645035"
+    },
+    {
+      "severity": "warning",
+      "component": "ads",
+      "message": "Dataset demo_brand_google_ads not found",
+      "details": {
+        "dataset": "demo_brand_google_ads"
+      },
+      "timestamp": "2025-10-23T00:47:17.645077"
+    },
+    {
+      "severity": "critical",
+      "component": "ads",
+      "message": "No spend data found in Meta or Google ads datasets",
+      "details": {},
+      "timestamp": "2025-10-23T00:47:17.645082"
+    },
+    {
+      "severity": "warning",
+      "component": "weather",
+      "message": "Dataset demo_brand_weather_daily not found",
+      "details": {
+        "dataset": "demo_brand_weather_daily"
+      },
+      "timestamp": "2025-10-23T00:47:17.645118"
+    },
+    {
+      "severity": "critical",
+      "component": "joins",
+      "message": "Feature matrix build failed: datatypes of join keys don't match - `date`: str on left does not match `date`: null on right (and no other type was available to cast to)",
+      "details": {
+        "error": "datatypes of join keys don't match - `date`: str on left does not match `date`: null on right (and no other type was available to cast to)",
+        "tenant_id": "demo_brand"
+      },
+      "timestamp": "2025-10-23T00:47:17.812503"
+    }
+  ],
+  "exit_criteria": {
+    "all_defects_are_info": false,
+    "shopify_90_days": false,
+    "ads_90_days": true,
+    "weather_coverage": false,
+    "no_leakage": true
+  }
+}

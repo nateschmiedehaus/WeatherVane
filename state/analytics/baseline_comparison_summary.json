@@ -1,0 +1,37 @@
+{
+  "total_tenants": 20,
+  "best_baseline_distribution": {
+    "naive": 0,
+    "seasonal": 0,
+    "linear": 20
+  },
+  "mmm_beats_baseline_count": 20,
+  "mmm_beats_baseline_pct": 100.0,
+  "average_improvement_pct": 100.0,
+  "std_improvement_pct": 0.0,
+  "baseline_mape_stats": {
+    "naive": {
+      "mean": 0.25860047507649175,
+      "std": 0.25516478711186796,
+      "min": 0.0382786670171903,
+      "max": 0.8559654322380981
+    },
+    "seasonal": {
+      "mean": 0.2586363629857852,
+      "std": 0.2552018779473233,
+      "min": 0.03830672619300996,
+      "max": 0.8562158297845494
+    },
+    "linear": {
+      "mean": 0.0946112659507502,
+      "std": 0.04210550297605007,
+      "min": 0.03553499438252814,
+      "max": 0.1609596742811956
+    }
+  },
+  "quality_assessment": {
+    "world_class_baseline": "linear",
+    "baseline_quality_gap": 0.16398920912574155,
+    "mmm_expected_advantage": "Strong seasonality present if seasonal MAPE > linear MAPE"
+  }
+}

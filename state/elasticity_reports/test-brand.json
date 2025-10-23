@@ -1,0 +1,194 @@
+{
+  "base_elasticity": 0.17213067110870828,
+  "channel_sensitivities": {
+    "google_spend": {
+      "anomaly_sensitivity": 0.0,
+      "base_elasticity": -1.6557386577825834,
+      "channel": "google_spend",
+      "elasticity_std": 1.4032451683255243,
+      "mean_elasticity": -0.3942383214961422,
+      "precipitation_bands": [
+        {
+          "confidence": 0.25555555555555554,
+          "elasticity_multiplier": 0.9891992390615837,
+          "max_value": 0.5420598115453451,
+          "min_value": 0.021793613230350957,
+          "name": "Low",
+          "sample_size": 23
+        },
+        {
+          "confidence": 0.24444444444444444,
+          "elasticity_multiplier": 1.0304730614479098,
+          "max_value": 1.4905871835304343,
+          "min_value": 0.5420598115453451,
+          "name": "Moderate",
+          "sample_size": 22
+        },
+        {
+          "confidence": 0.24444444444444444,
+          "elasticity_multiplier": 0.916522328799246,
+          "max_value": 3.088867818000425,
+          "min_value": 1.4905871835304343,
+          "name": "High",
+          "sample_size": 22
+        },
+        {
+          "confidence": 0.25555555555555554,
+          "elasticity_multiplier": 1.061500822441136,
+          "max_value": 9.913657215852066,
+          "min_value": 3.088867818000425,
+          "name": "Very High",
+          "sample_size": 23
+        }
+      ],
+      "precipitation_sensitivity": 1.5632025339609263,
+      "temperature_bands": [
+        {
+          "confidence": 0.25555555555555554,
+          "elasticity_multiplier": 0.9810983681386523,
+          "max_value": 13.702716663674586,
+          "min_value": 7.796269485933724,
+          "name": "Low",
+          "sample_size": 23
+        },
+        {
+          "confidence": 0.24444444444444444,
+          "elasticity_multiplier": 1.040157690372034,
+          "max_value": 17.379113042703736,
+          "min_value": 13.702716663674586,
+          "name": "Moderate",
+          "sample_size": 22
+        },
+        {
+          "confidence": 0.24444444444444444,
+          "elasticity_multiplier": 0.9303299753518113,
+          "max_value": 21.485941082455685,
+          "min_value": 17.379113042703736,
+          "name": "High",
+          "sample_size": 22
+        },
+        {
+          "confidence": 0.25555555555555554,
+          "elasticity_multiplier": 1.0471308211689736,
+          "max_value": 30.008833767826296,
+          "min_value": 21.485941082455685,
+          "name": "Very High",
+          "sample_size": 23
+        }
+      ],
+      "temperature_sensitivity": -1.0901788406667694
+    },
+    "meta_spend": {
+      "anomaly_sensitivity": 0.0,
+      "base_elasticity": 2.0,
+      "channel": "meta_spend",
+      "elasticity_std": 1.0422733054888573,
+      "mean_elasticity": 1.0232525680791988,
+      "precipitation_bands": [
+        {
+          "confidence": 0.25555555555555554,
+          "elasticity_multiplier": 0.9891992390615837,
+          "max_value": 0.5420598115453451,
+          "min_value": 0.021793613230350957,
+          "name": "Low",
+          "sample_size": 23
+        },
+        {
+          "confidence": 0.24444444444444444,
+          "elasticity_multiplier": 1.0304730614479098,
+          "max_value": 1.4905871835304343,
+          "min_value": 0.5420598115453451,
+          "name": "Moderate",
+          "sample_size": 22
+        },
+        {
+          "confidence": 0.24444444444444444,
+          "elasticity_multiplier": 0.916522328799246,
+          "max_value": 3.088867818000425,
+          "min_value": 1.4905871835304343,
+          "name": "High",
+          "sample_size": 22
+        },
+        {
+          "confidence": 0.25555555555555554,
+          "elasticity_multiplier": 1.061500822441136,
+          "max_value": 9.913657215852066,
+          "min_value": 3.088867818000425,
+          "name": "Very High",
+          "sample_size": 23
+        }
+      ],
+      "precipitation_sensitivity": 1.4908986247590363,
+      "temperature_bands": [
+        {
+          "confidence": 0.25555555555555554,
+          "elasticity_multiplier": 0.9810983681386523,
+          "max_value": 13.702716663674586,
+          "min_value": 7.796269485933724,
+          "name": "Low",
+          "sample_size": 23
+        },
+        {
+          "confidence": 0.24444444444444444,
+          "elasticity_multiplier": 1.040157690372034,
+          "max_value": 17.379113042703736,
+          "min_value": 13.702716663674586,
+          "name": "Moderate",
+          "sample_size": 22
+        },
+        {
+          "confidence": 0.24444444444444444,
+          "elasticity_multiplier": 0.9303299753518113,
+          "max_value": 21.485941082455685,
+          "min_value": 17.379113042703736,
+          "name": "High",
+          "sample_size": 22
+        },
+        {
+          "confidence": 0.25555555555555554,
+          "elasticity_multiplier": 1.0471308211689736,
+          "max_value": 30.008833767826296,
+          "min_value": 21.485941082455685,
+          "name": "Very High",
+          "sample_size": 23
+        }
+      ],
+      "temperature_sensitivity": -0.42114092052144037
+    }
+  },
+  "cold_weather_multiplier": 0.7,
+  "data_rows": 90,
+  "day_of_week_elasticity": {
+    "Friday": 0.17213067110870828,
+    "Monday": 0.17213067110870828,
+    "Saturday": 0.17213067110870828,
+    "Sunday": 0.17213067110870828,
+    "Thursday": 0.17213067110870828,
+    "Tuesday": 0.17213067110870828,
+    "Wednesday": 0.17213067110870828
+  },
+  "heavy_rain_multiplier": 1.3,
+  "hot_weather_multiplier": 1.217603166732415,
+  "light_rain_multiplier": 1.3,
+  "observations_per_bin": 4,
+  "precipitation_correlation": 0.13411528538883274,
+  "precipitation_elasticity": 2.0,
+  "r_squared": 0.010981061242471394,
+  "run_id": "test-run-1",
+  "seasonal_elasticity": {
+    "Q1": 0.17213067110870828,
+    "Q2": 0.17213067110870828,
+    "Q3": 0.17213067110870828,
+    "Q4": 0.17213067110870828
+  },
+  "summary": "Weather Elasticity Analysis Summary\n==================================================\n\nBase Elasticity: 0.172\nWeather-Driven Elasticity: 0.633\nModel Quality (R\u00b2): 1.10%\n\nTemperature Impact: 0.531 per \u00b0C\nPrecipitation Impact: 2.000 per mm\n\nChannels Analyzed: 2\n\nKey Insight: Weather has SIGNIFICANT impact on demand\nRecommendation: Implement weather-responsive budget allocation",
+  "temperature_correlation": 0.0009329493501726017,
+  "temperature_elasticity": 0.5314990405183637,
+  "tenant_id": "test-brand",
+  "timestamp_utc": "2025-10-22T12:30:05Z",
+  "weather_elasticity_mean": 0.632874760129591,
+  "weather_elasticity_std": 1.634041720859323,
+  "weather_rows": 90,
+  "window_end": "2023-12-07",
+  "window_start": "2023-09-09"
+}

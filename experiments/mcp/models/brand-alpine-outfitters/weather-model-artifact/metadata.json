@@ -1,0 +1,78 @@
+{
+  "adstock_lags": {},
+  "artifacts": {
+    "metadata_path": "experiments/mcp/models/brand-alpine-outfitters/weather-model-artifact/metadata.json",
+    "model_path": "experiments/mcp/models/brand-alpine-outfitters/weather-model-artifact/weather_mmm_model.json"
+  },
+  "base_roas": 0.07100676314640987,
+  "data_rows": 90,
+  "elasticity": {
+    "google_spend": 3.6873203975167765,
+    "google_spend_lag1": 2.021955668024039,
+    "google_spend_lag7": 1.3002674522682596,
+    "google_spend_roll14": 0.14639604439552764,
+    "google_spend_roll7": 0.3455238211601249,
+    "meta_spend": 1.7825671613909937,
+    "meta_spend_lag1": 1.0078501636014003,
+    "meta_spend_lag7": 0.6943909771101975,
+    "meta_spend_roll14": 0.07695789105334404,
+    "meta_spend_roll7": 0.17451034551976458,
+    "precip_anomaly": 2.0,
+    "precip_mm": 2.0,
+    "precip_roll7": -2.0,
+    "temp_anomaly": -2.0,
+    "temp_c": -2.0,
+    "temp_roll7": -2.0
+  },
+  "mean_roas": {
+    "google_spend": 0.08772768838379134,
+    "google_spend_lag1": 0.07569771897183304,
+    "google_spend_lag7": 0.06697085762176463,
+    "google_spend_roll14": 0.06945134804696833,
+    "google_spend_roll7": 0.07276398470359866,
+    "meta_spend": 0.08691070034564141,
+    "meta_spend_lag1": 0.07449621360607371,
+    "meta_spend_lag7": 0.06631344981723837,
+    "meta_spend_roll14": 0.06881656551202703,
+    "meta_spend_roll7": 0.07196467035928845
+  },
+  "model_source": "heuristic",
+  "run_id": "weather-model-artifact",
+  "saturation_k": {},
+  "saturation_s": {},
+  "spend_channels": [
+    "google_spend",
+    "google_spend_lag1",
+    "google_spend_lag7",
+    "google_spend_roll14",
+    "google_spend_roll7",
+    "meta_spend",
+    "meta_spend_lag1",
+    "meta_spend_lag7",
+    "meta_spend_roll14",
+    "meta_spend_roll7"
+  ],
+  "tenant_id": "brand-alpine-outfitters",
+  "timestamp_utc": "2025-10-22T12:16:32Z",
+  "weather_coverage_ratio": 1.0,
+  "weather_coverage_status": "strong",
+  "weather_elasticity": {
+    "precip_anomaly": NaN,
+    "precip_mm": NaN,
+    "precip_roll7": NaN,
+    "temp_anomaly": NaN,
+    "temp_c": NaN,
+    "temp_roll7": NaN
+  },
+  "weather_features": [
+    "precip_anomaly",
+    "precip_mm",
+    "precip_roll7",
+    "temp_anomaly",
+    "temp_c",
+    "temp_roll7"
+  ],
+  "weather_rows": 240,
+  "window_end": "2023-12-08T00:00:00",
+  "window_start": "2023-09-09T00:00:00"
+}
