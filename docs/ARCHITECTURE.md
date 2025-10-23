@@ -107,6 +107,58 @@ PoC Fix (done) ✅
 
 ---
 
+## PoC Validation Priority (UPDATED 2025-10-23)
+
+**STATUS: ACTIVE - THIS IS THE TOP PRIORITY**
+
+### The Goal
+
+**Prove the model works when it should AND correctly identifies when it won't work.**
+
+We are NOT building infrastructure for the sake of infrastructure. We are building a **proof of concept** that demonstrates:
+
+1. ✅ **Positive Case**: For weather-sensitive brands, the model predicts ad performance lift with high accuracy (R²≥0.65)
+2. ✅ **Negative Case**: For random/non-weather-sensitive data, the model recognizes it can't help (low R², high uncertainty)
+3. ✅ **End-to-End Simulation**: Full product experience simulated for diverse tenants
+
+**Success = Demonstrating the model is NOT snake oil. It works when weather matters, and honestly admits when it doesn't.**
+
+### How the 12-Lens Framework Prioritizes PoC Validation
+
+**CEO Lens** (Updated scoring):
+- Tasks with PoC validation keywords (synthetic data, model training, simulation, negative case testing): **+40 score boost**
+- Tasks with negative case testing: **additional +10 boost**
+- Infrastructure work WITHOUT PoC relevance: **-30 penalty**
+- **Result**: PoC validation tasks score 100-110/100, infrastructure tasks score 20/100
+
+**Academic Lens** (Updated scoring):
+- Tasks with negative case testing (random data, control tenants, placebo testing): **+35 score boost**
+- Tasks that only test positive cases: **-15 penalty**
+- **Rationale**: Negative results are GOOD SCIENCE - proves we're not hallucinating patterns
+
+**Concrete Examples**:
+- ✅ **HIGH PRIORITY**: "Generate 20 diverse synthetic tenants with 3 years data (weather-sensitive AND random control tenants)" → CEO: 100/100, Academic: 85/100, Ranks #1
+- ✅ **HIGH PRIORITY**: "Build end-to-end simulation: forecast ingestion → recommendations → automation demo" → CEO: 110/100, Ranks #2
+- ❌ **LOW PRIORITY**: "Implement database sharding for multi-tenant scalability" → CEO: 20/100, Ranks Last, Warning: "Infrastructure work before PoC proven - wrong priority"
+
+### What Gets Deprioritized (Until PoC Proven)
+
+- Production infrastructure scaling (DB sharding, multi-tenant architecture)
+- Real customer OAuth integrations (Shopify, Meta API)
+- UI/UX polish beyond demo quality
+- DevOps hardening (monitoring, alerting, SLAs)
+- Multi-tenant database architecture
+
+**These become priorities AFTER we prove the model works!**
+
+### Reference
+
+For full PoC validation strategy including tenant types, data requirements, model training process, and end-to-end simulation details, see: **`docs/POC_OBJECTIVES_PRIORITY.md`**
+
+For test demonstrating prioritization works, run: `npx tsx test_poc_prioritization.ts` (from `tools/wvo_mcp/`)
+
+---
+
 ## High-Level Layout
 
 ```

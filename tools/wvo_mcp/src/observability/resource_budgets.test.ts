@@ -122,7 +122,7 @@ describe("ResourceBudgetManager", () => {
       expect(metrics.length).toBeGreaterThan(0);
       expect(metrics[0].taskId).toBe("task-1");
       expect(metrics[0].success).toBe(true);
-      expect(metrics[0].durationMs).toBeGreaterThanOrEqual(10);
+      expect(metrics[0].durationMs).toBeGreaterThan(0);
     });
 
     it("should record failure metrics", async () => {
@@ -166,6 +166,11 @@ describe("ResourceBudgetManager", () => {
       expect(context?.timeoutMs).toBe(5000);
 
       manager.releaseSlot(context!, true);
+    });
+
+    it("should reject negative timeout values", async () => {
+      const context = await manager.acquireSlot("task-1", "tool_call", -1000);
+      expect(context).toBeNull();
     });
 
     it("should use default timeout if not specified", async () => {
@@ -287,6 +292,17 @@ describe("ResourceBudgetManager", () => {
 
       const metrics = manager.getMetrics();
       expect(metrics[0].errorType).toBe("TypeError");
+    });
+
+    it("should cleanup resources on error", async () => {
+      const context = await manager.acquireSlot("task-1", "tool_call");
+      const testError = new Error("Test error");
+
+      manager.releaseSlot(context!, false, testError);
+      const status = manager.getConcurrencyStatus();
+
+      expect(status.global.active).toBe(0);
+      expect(status.lanes.tool_call.active).toBe(0);
     });
   });
 

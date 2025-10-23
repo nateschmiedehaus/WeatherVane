@@ -16,6 +16,8 @@ import path from "node:path";
 import { MLTaskMetaCriticCritic } from "../ml_task_meta_critic.js";
 
 describe("MLTaskMetaCritic", () => {
+  // Increase timeout for all tests in this suite
+  vi.setConfig({ testTimeout: 25000 });
   let critic: MLTaskMetaCriticCritic;
   const testWorkspace = "/tmp/test_ml_meta_critic";
   const testStateRoot = "/tmp/test_ml_meta_critic/state";

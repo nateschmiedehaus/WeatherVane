@@ -15,3 +15,6 @@ __all__ = [
     "tagging",
     "testing",
 ]
+
+import sys
+sys.stderr.write("shared.libs init loaded from %s\n" % __file__)

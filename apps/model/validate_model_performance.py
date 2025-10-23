@@ -34,10 +34,12 @@ from __future__ import annotations
 import argparse
 import json
 import logging
+import math
 from dataclasses import dataclass, field
 from datetime import datetime
+from os import PathLike
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Iterable, List, Optional, Union
 
 import numpy as np
 
@@ -124,6 +126,26 @@ class ExtendedValidationResult:
     """Per-fold details"""
 
 
+def _is_finite_number(value: Any) -> bool:
+    """Return True when the provided value is a finite numeric scalar."""
+    if value is None:
+        return False
+    try:
+        return bool(np.isfinite(value))
+    except (TypeError, ValueError):
+        return False
+
+
+def _has_invalid_numbers(values: Iterable[Any]) -> bool:
+    """Detect NaN/inf/None entries in a numeric collection."""
+    return any(not _is_finite_number(value) for value in values)
+
+
+def _filter_finite_numbers(values: Iterable[Any]) -> List[float]:
+    """Return only finite numeric values from an iterable."""
+    return [float(value) for value in values if _is_finite_number(value)]
+
+
 def validate_model_with_extended_checks(
     tenant_name: str,
     cv_metrics: CrossValidationMetrics,
@@ -141,51 +163,90 @@ def validate_model_with_extended_checks(
     Returns:
         ExtendedValidationResult with detailed validation status
     """
-    failure_reasons = []
+    failure_reasons: List[str] = []
+    fold_r2_scores = list(cv_metrics.fold_r2_scores or [])
+    fold_details = list(cv_metrics.fold_details or [])
 
-    # Check 1: R² threshold
-    passes_r2 = cv_metrics.mean_r2 >= thresholds.r2_min
-    if not passes_r2:
+    # Check 1: R² threshold (including input validity)
+    passes_r2 = False
+    r2_quality_issues: List[str] = []
+    if _has_invalid_numbers([cv_metrics.mean_r2]):
+        r2_quality_issues.append("mean R² is NaN or infinite")
+    if _has_invalid_numbers(fold_r2_scores):
+        r2_quality_issues.append("fold R² scores contain NaN or infinite values")
+
+    if r2_quality_issues:
         failure_reasons.append(
-            f"R² {cv_metrics.mean_r2:.3f} < threshold {thresholds.r2_min:.3f}"
+            "R² data quality issue: " + "; ".join(r2_quality_issues)
         )
+    else:
+        passes_r2 = cv_metrics.mean_r2 >= thresholds.r2_min
+        if not passes_r2:
+            failure_reasons.append(
+                f"R² ({cv_metrics.mean_r2:.3f}) below minimum threshold ({thresholds.r2_min:.3f})"
+            )
 
     # Check 2: Stability (R² standard deviation)
-    passes_stability = cv_metrics.std_r2 <= thresholds.r2_std_max
-    if not passes_stability:
+    passes_stability = False
+    if _has_invalid_numbers([cv_metrics.std_r2]):
         failure_reasons.append(
-            f"R² std {cv_metrics.std_r2:.3f} > max {thresholds.r2_std_max:.3f}"
+            "Stability check failed: Standard deviation of R² is NaN or infinite"
         )
+    else:
+        passes_stability = cv_metrics.std_r2 <= thresholds.r2_std_max
+        if not passes_stability:
+            failure_reasons.append(
+                f"Stability check failed: Standard deviation of R² ({cv_metrics.std_r2:.3f}) exceeds maximum ({thresholds.r2_std_max:.3f})"
+            )
 
     # Check 3: RMSE relative to revenue
     passes_rmse = True
-    if mean_revenue and mean_revenue > 0:
+    if _has_invalid_numbers([cv_metrics.mean_rmse]):
+        passes_rmse = False
+        failure_reasons.append(
+            "RMSE data quality issue: mean RMSE is NaN or infinite"
+        )
+    elif mean_revenue is not None and mean_revenue > 0:
         rmse_pct = cv_metrics.mean_rmse / mean_revenue
-        passes_rmse = rmse_pct <= thresholds.rmse_max_pct
-        if not passes_rmse:
+        if not math.isfinite(rmse_pct):
+            passes_rmse = False
             failure_reasons.append(
-                f"RMSE {rmse_pct:.1%} of revenue > max {thresholds.rmse_max_pct:.1%}"
+                "RMSE data quality issue: RMSE percentage is non-finite"
+            )
+        elif rmse_pct > thresholds.rmse_max_pct:
+            passes_rmse = False
+            failure_reasons.append(
+                f"RMSE percentage ({rmse_pct:.1%}) exceeds maximum ({thresholds.rmse_max_pct:.1%})"
             )
 
     # Check 4: Sufficient CV folds
-    if cv_metrics.num_folds < thresholds.min_folds:
-        passes_rmse = False
-        failure_reasons.append(
-            f"Only {cv_metrics.num_folds} folds < min {thresholds.min_folds}"
-        )
+    has_sufficient_folds = True
+    if not _is_finite_number(cv_metrics.num_folds):
+        has_sufficient_folds = False
+        failure_reasons.append("Insufficient folds (value missing or invalid)")
+        num_folds_value = cv_metrics.num_folds
+    else:
+        num_folds_value = int(cv_metrics.num_folds)
+        if num_folds_value < thresholds.min_folds:
+            has_sufficient_folds = False
+            failure_reasons.append(
+                f"Insufficient folds ({num_folds_value} < {thresholds.min_folds})"
+            )
 
-    passes_all = passes_r2 and passes_stability and passes_rmse
+    passes_all = passes_r2 and passes_stability and passes_rmse and has_sufficient_folds
 
     # Compute mean elasticity and ROAS
-    mean_elasticity = {}
-    for feature, values in cv_metrics.weather_elasticity.items():
-        if values:
-            mean_elasticity[feature] = float(np.mean(values))
+    mean_elasticity: Dict[str, float] = {}
+    for feature, values in (cv_metrics.weather_elasticity or {}).items():
+        finite_values = _filter_finite_numbers(values)
+        if finite_values:
+            mean_elasticity[feature] = float(np.mean(finite_values))
 
-    mean_roas = {}
-    for channel, values in cv_metrics.channel_roas.items():
-        if values:
-            mean_roas[channel] = float(np.mean(values))
+    mean_roas: Dict[str, float] = {}
+    for channel, values in (cv_metrics.channel_roas or {}).items():
+        finite_values = _filter_finite_numbers(values)
+        if finite_values:
+            mean_roas[channel] = float(np.mean(finite_values))
 
     return ExtendedValidationResult(
         tenant_name=tenant_name,
@@ -193,7 +254,7 @@ def validate_model_with_extended_checks(
         std_r2=cv_metrics.std_r2,
         mean_rmse=cv_metrics.mean_rmse,
         mean_mae=cv_metrics.mean_mae,
-        num_folds=cv_metrics.num_folds,
+        num_folds=num_folds_value,
         passes_r2_threshold=passes_r2,
         passes_stability_check=passes_stability,
         passes_rmse_check=passes_rmse,
@@ -201,7 +262,7 @@ def validate_model_with_extended_checks(
         failure_reasons=failure_reasons,
         weather_elasticity=mean_elasticity,
         channel_roas=mean_roas,
-        fold_details=cv_metrics.fold_details,
+        fold_details=fold_details,
     )
 
 
@@ -319,7 +380,7 @@ def generate_validation_report(
 def export_validation_report(
     validation_results: Dict[str, ExtendedValidationResult],
     report: Dict[str, Any],
-    output_path: Path,
+    output_path: Union[str, Path, PathLike[str]],
 ) -> None:
     """Export validation report to JSON.
 
@@ -328,6 +389,8 @@ def export_validation_report(
         report: Validation report summary
         output_path: Output file path
     """
+    output_path = Path(output_path)
+
     # Convert ExtendedValidationResult to dicts
     results_dict = {}
     for tenant_name, result in validation_results.items():

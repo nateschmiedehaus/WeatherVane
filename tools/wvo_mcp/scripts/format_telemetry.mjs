@@ -246,12 +246,24 @@ function handleAgentSnapshot(log) {
   sortedAgents.forEach(agent => {
     const rawId = typeof agent.id === 'string' ? agent.id : String(agent.id ?? '?');
     const statusRaw = typeof agent.status === 'string' ? agent.status.toLowerCase() : 'unknown';
-    const currentTask =
-      typeof agent.currentTask === 'string' && agent.currentTask.length > 0
-        ? truncate(agent.currentTask, 60)
-        : typeof agent.lastTask === 'string' && agent.lastTask.length > 0
-        ? `last: ${truncate(agent.lastTask, 40)}`
-        : '—';
+
+    // Build task display: Show full title/description from tracked state, or fall back to ID
+    let currentTask = '—';
+    if (typeof agent.currentTask === 'string' && agent.currentTask.length > 0) {
+      const taskId = agent.currentTask;
+      const trackedTask = state.currentTasks.get(taskId);
+
+      if (trackedTask?.title) {
+        // Show: "TaskID: Full task title"
+        currentTask = `${taskId}: ${truncate(trackedTask.title, 50)}`;
+      } else {
+        // Just show the ID for now, title will come in later updates
+        currentTask = taskId;
+      }
+    } else if (typeof agent.lastTask === 'string' && agent.lastTask.length > 0) {
+      currentTask = `last: ${truncate(agent.lastTask, 40)}`;
+    }
+
     const model = typeof agent.model === 'string' && agent.model.length > 0 ? agent.model : 'model?';
     const role = typeof agent.role === 'string' && agent.role.length > 0 ? agent.role : '';
 
@@ -358,6 +370,23 @@ function handleLogLine(line) {
       } else if (message === 'Agent status snapshot') {
         handleAgentSnapshot(log);
         return;
+      } else if (message === 'Alert logged, no action taken') {
+        // Extract and show actual alert details instead of generic message
+        const alertType = log.alertType || log.type || 'unknown';
+        const alertMessage = log.alertMessage || log.alert || log.reason || 'no details';
+        const taskId = log.taskId ? ` (task: ${log.taskId})` : '';
+        console.log(`${colors.yellow}🚨 Alert [${alertType}]${colors.reset}${taskId}: ${truncate(alertMessage, 100)}`);
+      } else if (message === 'Blocker escalated') {
+        // Show blocker details
+        const blockerId = log.blockerId || log.id || 'unknown';
+        const blockerReason = log.reason || log.message || 'no reason provided';
+        const taskId = log.taskId ? ` (task: ${log.taskId})` : '';
+        console.log(`${colors.red}🚧 Blocker [${blockerId}]${colors.reset}${taskId}: ${truncate(blockerReason, 100)}`);
+      } else if (message === 'Task failure recorded' || message === 'Execution failed') {
+        // Show failure details
+        const taskId = log.taskId || 'unknown';
+        const reason = log.error || log.reason || log.message || 'unknown error';
+        console.log(`${colors.red}💥 Failure [${taskId}]${colors.reset}: ${truncate(reason, 100)}`);
       } else {
         // Print other info messages as-is
         console.log(`${colors.blue}ℹ ${message}${colors.reset}`);

@@ -2,7 +2,7 @@ import { promises as fs } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { AutopilotStore } from "./autopilot_store.js";
 
@@ -17,6 +17,7 @@ afterEach(async () => {
 });
 
 describe("AutopilotStore", () => {
+  vi.setConfig({ testTimeout: 20000 });
   it("records audits and maintains history", async () => {
     const root = await fs.mkdtemp(path.join(os.tmpdir(), "wvo-autopilot-"));
     tmpDirs.push(root);

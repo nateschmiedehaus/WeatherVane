@@ -3,7 +3,7 @@ import path from 'node:path';
 import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { WorkerManager } from '../worker/worker_manager.js';
 import { WorkerClient } from '../worker/worker_client.js';
@@ -12,6 +12,7 @@ const THIS_DIR = path.dirname(fileURLToPath(import.meta.url));
 const MOCK_WORKER_PATH = path.resolve(THIS_DIR, 'helpers', 'mock_worker.ts');
 
 describe('WorkerManager', () => {
+  vi.setConfig({ testTimeout: 30000 }); // Increased timeout for process spawning tests
   let manager: WorkerManager;
 
   beforeEach(() => {

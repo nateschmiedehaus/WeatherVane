@@ -196,7 +196,7 @@ export class AgentPool extends EventEmitter {
       if (agent) {
         // Agent available - reserve immediately
         this.reserve(agent, task.id);
-        logDebug('Agent reserved', { agentId: agent.id, taskId: task.id });
+        logDebug('Agent reserved', { agentId: agent.id, taskId: task.id, taskTitle: task.title });
         resolve(agent);
       } else {
         // No agent available - queue the task

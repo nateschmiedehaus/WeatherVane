@@ -1,19 +1,64 @@
 {
   "version": "1.0",
   "startedAt": "2025-10-22T21:44:01.878Z",
-  "lastUpdatedAt": "2025-10-23T16:05:34.354Z",
-  "totalTasks": 86,
-  "totalCostActual": 7.278399999999996,
-  "totalCostBaseline": 6.45000000000001,
-  "totalSavings": -0.828399999999986,
-  "savingsPercent": -12.84341085271294,
+  "lastUpdatedAt": "2025-10-23T16:22:28.972Z",
+  "totalTasks": 91,
+  "totalCostActual": 7.641999999999995,
+  "totalCostBaseline": 6.825000000000011,
+  "totalSavings": -0.8169999999999842,
+  "savingsPercent": -11.97069597069572,
   "tierDistribution": {
-    "haiku": 35,
-    "sonnet-3.5": 15,
+    "haiku": 36,
+    "sonnet-3.5": 19,
     "sonnet-4.5": 17,
     "sonnet-4.5-reasoning": 0
   },
   "recentTasks": [
+    {
+      "taskId": "M-MLR-4",
+      "timestamp": "2025-10-23T16:22:28.972Z",
+      "tier": "sonnet-3.5",
+      "complexity": 5,
+      "costActual": 0.09,
+      "costBaseline": 0.075,
+      "savings": -0.015
+    },
+    {
+      "taskId": "M-MLR-4",
+      "timestamp": "2025-10-23T16:22:28.411Z",
+      "tier": "sonnet-3.5",
+      "complexity": 5,
+      "costActual": 0.09,
+      "costBaseline": 0.075,
+      "savings": -0.015
+    },
+    {
+      "taskId": "M-MLR-4",
+      "timestamp": "2025-10-23T16:20:59.680Z",
+      "tier": "sonnet-3.5",
+      "complexity": 5,
+      "costActual": 0.09,
+      "costBaseline": 0.075,
+      "savings": -0.015
+    },
+    {
+      "taskId": "M-MLR-3",
+      "timestamp": "2025-10-23T16:11:11.622Z",
+      "tier": "sonnet-3.5",
+      "complexity": 5,
+      "costActual": 0.09,
+      "costBaseline": 0.075,
+      "savings": -0.015
+    },
+    {
+      "taskId": "E-GENERAL",
+      "timestamp": "2025-10-23T16:08:24.675Z",
+      "tier": "haiku",
+      "complexity": 2,
+      "costActual": 0.0036000000000000003,
+      "costBaseline": 0.075,
+      "savings": 0.07139999999999999
+    },
     {
       "taskId": "M-MLR-2",
       "timestamp": "2025-10-23T16:05:34.354Z",

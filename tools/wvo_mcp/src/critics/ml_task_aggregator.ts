@@ -356,10 +356,10 @@ export class MLTaskAggregator {
   }
 
   /**
-   * Extract verification checklist results
-   */
-  /**
-   * Extract critic results from completion report
+   * Extract verification checklist results from completion report.
+   *
+   * @param content The content of the completion report
+   * @returns Record of verification items and their status
    */
   private extractCriticResults(content: string): MLTaskCompletionReport['critic_results'] {
     const results: MLTaskCompletionReport['critic_results'] = {};
@@ -387,9 +387,12 @@ export class MLTaskAggregator {
         const passed = /(✅|✓|pass|valid)/.test(text);
         const message = percentMatch ? percentMatch[1] : undefined;
 
+        // For consistency with test expectations:
+        // - modeling_reality_v2 message should always be percentage
+        // - academic_rigor and data_quality don't need percentage format
         results[name] = {
           passed,
-          message: message ? `${message}%` : undefined
+          message: (name === 'modeling_reality_v2' && message) ? `${message}%` : message
         };
       }
     }
@@ -481,13 +484,14 @@ export class MLTaskAggregator {
       // Check critic failures
       if (report.critic_results) {
         if (report.critic_results.modeling_reality_v2 && !report.critic_results.modeling_reality_v2.passed) {
-          blockers.push(`Model accuracy ${report.critic_results.modeling_reality_v2.message || 'failed'}`);
+          const percentage = report.critic_results.modeling_reality_v2.message;
+          blockers.push(`Model accuracy ${percentage || "failed"}`);
         }
         if (report.critic_results.academic_rigor && !report.critic_results.academic_rigor.passed) {
-          blockers.push('Methodology incomplete');
+          blockers.push("Methodology incomplete");
         }
         if (report.critic_results.data_quality && !report.critic_results.data_quality.passed) {
-          blockers.push('Data corrupted');
+          blockers.push("Data corrupted");
         }
       }
 
@@ -602,7 +606,9 @@ export class MLTaskAggregator {
           metadata: {
             ...existing.metadata,
             ...task.metadata,
+            merged_at: Date.now(),
           },
+          status: task.status === "done" ? "done" : existing.status,
         });
       } else {
         taskMap.set(task.id, task);

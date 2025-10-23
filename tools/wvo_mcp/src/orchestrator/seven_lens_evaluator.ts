@@ -98,43 +98,84 @@ export class SevenLensEvaluator {
 
   /**
    * CEO Lens: Does this unblock revenue? Highest ROI use of time?
+   *
+   * PRIORITY #1 (2025-10-23): PoC Validation
+   * - Proving model works (positive cases) → HIGHEST PRIORITY
+   * - Proving model correctly identifies when it won't work (negative cases) → HIGHEST PRIORITY
+   * - End-to-end simulation (forecast → recommendations → automation) → HIGH PRIORITY
+   * - Infrastructure work that doesn't unblock PoC → DEPRIORITIZE
    */
   private evaluateCEOLens(task: Task, context?: any): LensEvaluation {
     let score = 50; // Neutral baseline
     const concerns: string[] = [];
+    const text = `${task.title} ${task.description || ''}`.toLowerCase();
+
+    // HIGHEST PRIORITY: PoC Validation (Critical Path to Revenue)
+    const pocValidationKeywords = [
+      'poc', 'proof of concept', 'validate model', 'model validation',
+      'synthetic data', 'synthetic tenant', 'simulate', 'simulation',
+      'train model', 'mmm', 'weather-aware', 'roas prediction',
+      'negative case', 'random data', 'control tenant', 'placebo',
+      'forecast', 'recommendation', 'automation', 'demo dashboard'
+    ];
+    const isPoCValidation = pocValidationKeywords.some(kw => text.includes(kw));
+
+    if (isPoCValidation) {
+      score += 40; // MASSIVE boost - PoC is THE priority
+
+      // Extra boost for negative case testing (good science!)
+      const negativeCaseKeywords = ['negative', 'random', 'control', 'placebo', 'should fail', 'non-sensitive'];
+      const isNegativeCase = negativeCaseKeywords.some(kw => text.includes(kw));
+      if (isNegativeCase) {
+        score += 10; // Extra credit for good science
+      }
+
+      // Extra boost for end-to-end simulation
+      const e2eKeywords = ['end-to-end', 'e2e', 'full simulation', 'automation demo', 'forecast ingestion'];
+      const isE2E = e2eKeywords.some(kw => text.includes(kw));
+      if (isE2E) {
+        score += 10; // This is what we show prospects!
+      }
+    } else {
+      concerns.push('Task does not directly contribute to PoC validation (THE priority)');
+    }
 
     // Check if task is on critical path to revenue
-    const revenueKeywords = ['demo', 'customer', 'pilot', 'revenue', 'prospect', 'sales', 'payment', 'mrr', 'synthetic data', 'model validation'];
-    const isRevenueCritical = revenueKeywords.some(kw =>
-      task.title.toLowerCase().includes(kw) ||
-      (task.description?.toLowerCase().includes(kw) ?? false)
-    );
+    const revenueKeywords = ['demo', 'customer', 'pilot', 'revenue', 'prospect', 'sales', 'payment', 'mrr'];
+    const isRevenueCritical = revenueKeywords.some(kw => text.includes(kw));
 
-    if (isRevenueCritical) {
-      score += 30;
-    } else {
-      concerns.push('Task does not clearly articulate revenue impact');
+    if (isRevenueCritical && !isPoCValidation) {
+      score += 20; // Good, but not as critical as PoC validation
     }
 
     // Check if blocks other high-priority work
-    const blockingKeywords = ['blocker', 'blocks', 'prerequisite', 'foundation', 'infrastructure'];
-    const isBlocking = blockingKeywords.some(kw =>
-      task.description?.toLowerCase().includes(kw) ?? false
-    );
+    const blockingKeywords = ['blocker', 'blocks', 'prerequisite', 'critical path'];
+    const isBlocking = blockingKeywords.some(kw => text.includes(kw));
 
     if (isBlocking) {
       score += 15;
     }
 
+    // PENALIZE infrastructure work that doesn't unblock PoC
+    const infrastructureKeywords = [
+      'infrastructure', 'scalability', 'database sharding', 'multi-tenant architecture',
+      'production hardening', 'devops', 'monitoring', 'alerting', 'sla',
+      'oauth integration', 'real customer', 'api rate limit'
+    ];
+    const isInfrastructure = infrastructureKeywords.some(kw => text.includes(kw));
+
+    if (isInfrastructure && !isPoCValidation) {
+      score -= 30; // HEAVY penalty - wrong priority!
+      concerns.push('Infrastructure work before PoC proven - wrong priority (see POC_OBJECTIVES_PRIORITY.md)');
+    }
+
     // Penalize low-impact work (documentation, refactoring without clear business case)
-    const lowImpactKeywords = ['documentation', 'refactor', 'cleanup', 'style'];
-    const isLowImpact = lowImpactKeywords.some(kw =>
-      task.title.toLowerCase().includes(kw)
-    ) && !isRevenueCritical;
+    const lowImpactKeywords = ['documentation', 'refactor', 'cleanup', 'style', 'polish'];
+    const isLowImpact = lowImpactKeywords.some(kw => task.title.toLowerCase().includes(kw)) && !isPoCValidation;
 
     if (isLowImpact) {
       score -= 20;
-      concerns.push('Low immediate business impact (documentation/cleanup)');
+      concerns.push('Low immediate business impact (documentation/cleanup) - PoC validation is the priority');
     }
 
     const passed = score >= 70;
@@ -142,7 +183,9 @@ export class SevenLensEvaluator {
       lens: 'CEO',
       passed,
       score,
-      reasoning: `Revenue criticality: ${isRevenueCritical ? 'HIGH' : 'LOW'}. Blocking work: ${isBlocking ? 'YES' : 'NO'}.`,
+      reasoning: isPoCValidation
+        ? `✅ PoC VALIDATION - HIGHEST PRIORITY (proving model works + negative case testing)`
+        : `Revenue criticality: ${isRevenueCritical ? 'MEDIUM' : 'LOW'}. PoC validation should be priority.`,
       concerns
     };
   }
@@ -328,25 +371,38 @@ export class SevenLensEvaluator {
 
   /**
    * Academic Lens: Statistically valid? Reproducible?
+   *
+   * UPDATED (2025-10-23): Negative results are GOOD SCIENCE!
+   * - Testing that model fails on random data → HIGH SCORE
+   * - Only testing positive cases without negative controls → PENALTY
    */
   private evaluateAcademicLens(task: Task, context?: any): LensEvaluation {
     let score = 70; // Default pass for non-research work
     const concerns: string[] = [];
+    const text = `${task.title} ${task.description || ''}`.toLowerCase();
 
     // Check if this is modeling/research work
-    const researchKeywords = ['model', 'mmm', 'validation', 'experiment', 'causal', 'statistical'];
-    const isResearchWork = researchKeywords.some(kw =>
-      task.title.toLowerCase().includes(kw) ||
-      (task.description?.toLowerCase().includes(kw) ?? false)
-    );
+    const researchKeywords = ['model', 'mmm', 'validation', 'experiment', 'causal', 'statistical', 'train', 'predict'];
+    const isResearchWork = researchKeywords.some(kw => text.includes(kw));
 
     if (isResearchWork) {
       score = 40;
 
-      const rigorKeywords = ['r²', 'p-value', 'cross-validation', 'out-of-sample', 'reproducible'];
-      const mentionsRigor = rigorKeywords.some(kw =>
-        task.description?.toLowerCase().includes(kw) ?? false
-      );
+      // BOOST for negative case testing (this is GOOD science!)
+      const negativeCaseKeywords = [
+        'negative case', 'negative control', 'random data', 'placebo',
+        'should fail', 'should not work', 'zero sensitivity', 'non-sensitive',
+        'control tenant', 'baseline', 'false positive'
+      ];
+      const hasNegativeCase = negativeCaseKeywords.some(kw => text.includes(kw));
+
+      if (hasNegativeCase) {
+        score += 35; // MAJOR boost - this proves we're not snake oil!
+      }
+
+      // Check for statistical rigor
+      const rigorKeywords = ['r²', 'p-value', 'cross-validation', 'out-of-sample', 'reproducible', 'significance'];
+      const mentionsRigor = rigorKeywords.some(kw => text.includes(kw));
 
       if (mentionsRigor) {
         score += 30;
@@ -354,15 +410,31 @@ export class SevenLensEvaluator {
         concerns.push('Research work does not specify statistical validation criteria (R²≥0.65, p<0.05)');
       }
 
-      const methodologyKeywords = ['methodology', 'documented', 'reproducible'];
-      const mentionsMethodology = methodologyKeywords.some(kw =>
-        task.description?.toLowerCase().includes(kw) ?? false
-      );
+      // Check for diverse test cases
+      const diversityKeywords = ['diverse', 'multiple tenants', 'varied', 'range of', '20 tenants', 'different'];
+      const mentionsDiversity = diversityKeywords.some(kw => text.includes(kw));
+
+      if (mentionsDiversity) {
+        score += 10; // Good - testing on diverse data
+      }
+
+      // Check for methodology documentation
+      const methodologyKeywords = ['methodology', 'documented', 'reproducible', 'procedure'];
+      const mentionsMethodology = methodologyKeywords.some(kw => text.includes(kw));
 
       if (mentionsMethodology) {
-        score += 20;
+        score += 15;
       } else {
         concerns.push('No reproducibility/methodology documentation mentioned');
+      }
+
+      // PENALTY for only positive case testing (bad science!)
+      const onlyPositiveKeywords = ['only', 'just', 'perfect', 'ideal'];
+      const seemsOnlyPositive = onlyPositiveKeywords.some(kw => text.includes(kw)) && !hasNegativeCase;
+
+      if (seemsOnlyPositive && isResearchWork) {
+        score -= 15;
+        concerns.push('⚠️ Only testing positive cases without negative controls is bad science - need to prove model can identify when it WON\'T work');
       }
     }
 
@@ -371,7 +443,9 @@ export class SevenLensEvaluator {
       lens: 'Academic',
       passed,
       score,
-      reasoning: isResearchWork ? 'Research work requires statistical rigor (R²≥0.65, p<0.05) and reproducibility' : 'Non-research work, auto-pass',
+      reasoning: isResearchWork
+        ? `Research work requires statistical rigor (R²≥0.65, p<0.05) AND negative case testing to prove model isn't snake oil`
+        : 'Non-research work, auto-pass',
       concerns
     };
   }
@@ -703,30 +777,4 @@ export class SevenLensEvaluator {
 
     return reports;
   }
-}
-
-/**
- * Standalone execution for testing
- */
-if (require.main === module) {
-  const evaluator = new SevenLensEvaluator();
-
-  // Example: Evaluate a task
-  const exampleTask: Task = {
-    id: 'T-MLR-1.2',
-    title: 'Generate 3 years of synthetic data for 20 tenants',
-    description: 'Generate synthetic data with known weather elasticity for model training and validation. Target: 219,000 rows, weather correlations ≥0.90.',
-    status: 'in_progress',
-    dependencies: [],
-    exit_criteria: [
-      '3 years × 20 tenants = 219,000 rows',
-      'Weather correlations ≥0.90',
-      'Data stored in storage/seeds/synthetic_v2/'
-    ],
-    estimated_hours: 8,
-    domain: 'product'
-  };
-
-  const report = evaluator.evaluateTask(exampleTask);
-  console.log(JSON.stringify(report, null, 2));
 }
