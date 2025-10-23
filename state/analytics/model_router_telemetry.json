@@ -1,12 +1,12 @@
 {
   "version": "1.0",
   "startedAt": "2025-10-22T21:44:01.878Z",
-  "lastUpdatedAt": "2025-10-23T13:29:42.672Z",
-  "totalTasks": 61,
-  "totalCostActual": 3.4315999999999987,
-  "totalCostBaseline": 4.5750000000000055,
-  "totalSavings": 1.1434000000000069,
-  "savingsPercent": 24.992349726776077,
+  "lastUpdatedAt": "2025-10-23T13:30:28.351Z",
+  "totalTasks": 62,
+  "totalCostActual": 3.4915999999999987,
+  "totalCostBaseline": 4.650000000000006,
+  "totalSavings": 1.158400000000007,
+  "savingsPercent": 24.911827956989367,
   "tierDistribution": {
     "haiku": 30,
     "sonnet-3.5": 13,
@@ -14,6 +14,15 @@
     "sonnet-4.5-reasoning": 0
   },
   "recentTasks": [
+    {
+      "taskId": "CRIT-PERF-SECURITY-645edd",
+      "timestamp": "2025-10-23T13:30:28.351Z",
+      "tier": "codex-medium",
+      "complexity": 5,
+      "costActual": 0.06,
+      "costBaseline": 0.075,
+      "savings": 0.015
+    },
     {
       "taskId": "E7",
       "timestamp": "2025-10-23T13:29:42.672Z",
