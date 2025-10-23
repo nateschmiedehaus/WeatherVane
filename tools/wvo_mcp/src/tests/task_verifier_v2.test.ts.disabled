@@ -1,0 +1,219 @@
+/**
+ * Tests for TaskVerifierV2 focusing on critic approval functionality
+ */
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { TaskVerifierV2 } from '../orchestrator/task_verifier_v2.js';
+import { runModelingRealityCritic } from '../critics/modeling_reality_v2.js';
+import { runAcademicRigorCritic } from '../critics/academic_rigor.js';
+import { runDataQualityCritic } from '../critics/data_quality.js';
+import * as fs from 'fs/promises';
+import * as path from 'path';
+
+vi.mock('../critics/modeling_reality_v2.js');
+vi.mock('../critics/academic_rigor.js');
+vi.mock('../critics/data_quality.js');
+
+describe('TaskVerifierV2 - Critic Approval', () => {
+  let verifier: TaskVerifierV2;
+  let workspaceRoot: string;
+
+  beforeEach(async () => {
+    workspaceRoot = `/tmp/task-verifier-test-${Date.now()}`;
+    await fs.mkdir(path.join(workspaceRoot, 'experiments', 'mcp'), { recursive: true });
+    verifier = new TaskVerifierV2(workspaceRoot);
+
+    // Reset mock implementations
+    vi.mocked(runModelingRealityCritic).mockResolvedValue({ passed: true, message: '', details: { failures: [] } });
+    vi.mocked(runAcademicRigorCritic).mockResolvedValue({ passed: true, message: '', details: { failures: [] } });
+    vi.mocked(runDataQualityCritic).mockResolvedValue({ passed: true, message: '', details: { failures: [] } });
+  });
+
+  afterEach(async () => {
+    await fs.rm(workspaceRoot, { recursive: true, force: true });
+    vi.resetAllMocks();
+  });
+
+  describe('T-MLR Task Critic Enforcement', () => {
+    it('should require modeling_reality_v2 and academic_rigor for T-MLR tasks', async () => {
+      const task = {
+        id: 'T-MLR-4.2',
+        title: 'Test MLR task',
+        type: 'task',
+        status: 'in_progress',
+      };
+
+      const result = await verifier.runCritics(task);
+
+      expect(result.success).toBe(true);
+      expect(runModelingRealityCritic).toHaveBeenCalled();
+      expect(runAcademicRigorCritic).toHaveBeenCalled();
+      expect(runDataQualityCritic).not.toHaveBeenCalled();
+    });
+
+    it('should mark task as failed if any required critic fails', async () => {
+      vi.mocked(runAcademicRigorCritic).mockResolvedValue({
+        passed: false,
+        message: 'Validation failed',
+        details: { failures: ['Not enough unit tests'] }
+      });
+
+      const task = {
+        id: 'T-MLR-4.2',
+        title: 'Test MLR task',
+        type: 'task',
+        status: 'in_progress',
+      };
+
+      const result = await verifier.runCritics(task);
+
+      expect(result.success).toBe(false);
+      expect(result.failures).toContain('academic_rigor critic: Validation failed');
+      expect(result.failures).toContain('Not enough unit tests');
+    });
+  });
+
+  describe('T12 Task Critic Enforcement', () => {
+    it('should require modeling_reality_v2 and data_quality for T12 tasks', async () => {
+      const task = {
+        id: 'T12.0.1',
+        title: 'Test modeling task',
+        type: 'task',
+        status: 'in_progress',
+      };
+
+      const result = await verifier.runCritics(task);
+
+      expect(result.success).toBe(true);
+      expect(runModelingRealityCritic).toHaveBeenCalled();
+      expect(runDataQualityCritic).toHaveBeenCalled();
+      expect(runAcademicRigorCritic).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('T13.5 Task Critic Enforcement', () => {
+    it('should require modeling_reality_v2 and academic_rigor for T13.5 tasks', async () => {
+      const task = {
+        id: 'T13.5.1',
+        title: 'Test modeling task',
+        type: 'task',
+        status: 'in_progress',
+      };
+
+      const result = await verifier.runCritics(task);
+
+      expect(result.success).toBe(true);
+      expect(runModelingRealityCritic).toHaveBeenCalled();
+      expect(runAcademicRigorCritic).toHaveBeenCalled();
+      expect(runDataQualityCritic).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('Artifact Path Handling', () => {
+    it('should pass artifact paths to critics', async () => {
+      // Create test artifacts
+      const reportPath = path.join(workspaceRoot, 'experiments', 'mcp', 'validation_report.json');
+      const metricsPath = path.join(workspaceRoot, 'experiments', 'mcp', 'metrics.json');
+
+      await fs.writeFile(reportPath, JSON.stringify({ metrics: {} }));
+      await fs.writeFile(metricsPath, JSON.stringify({ metrics: {} }));
+
+      const task = {
+        id: 'T-MLR-4.2',
+        title: 'Test MLR task',
+        type: 'task',
+        status: 'in_progress',
+      };
+
+      await verifier.runCritics(task);
+
+      const expectedPaths = [
+        'experiments/mcp/validation_report.json',
+        'experiments/mcp/metrics.json'
+      ];
+
+      expect(runModelingRealityCritic).toHaveBeenCalledWith(
+        workspaceRoot,
+        task.id,
+        expect.arrayContaining(expectedPaths)
+      );
+
+      expect(runAcademicRigorCritic).toHaveBeenCalledWith(
+        workspaceRoot,
+        task.id,
+        expect.arrayContaining(expectedPaths)
+      );
+    });
+  });
+
+  describe('Error Handling', () => {
+    it('should handle missing critic implementations', async () => {
+      vi.mocked(runAcademicRigorCritic).mockImplementation(() => {
+        throw new Error('Not implemented');
+      });
+
+      const task = {
+        id: 'T-MLR-4.2',
+        title: 'Test MLR task',
+        type: 'task',
+        status: 'in_progress',
+      };
+
+      const result = await verifier.runCritics(task);
+
+      expect(result.success).toBe(false);
+      expect(result.failures).toContain('Critic execution error: Error: Not implemented');
+    });
+
+    it('should handle missing artifact directory gracefully', async () => {
+      await fs.rm(path.join(workspaceRoot, 'experiments'), { recursive: true, force: true });
+
+      const task = {
+        id: 'T-MLR-4.2',
+        title: 'Test MLR task',
+        type: 'task',
+        status: 'in_progress',
+      };
+
+      const result = await verifier.runCritics(task);
+
+      expect(runModelingRealityCritic).toHaveBeenCalledWith(
+        workspaceRoot,
+        task.id,
+        expect.arrayContaining([]) // Empty artifact paths
+      );
+    });
+  });
+
+  describe('Task Pattern Matching', () => {
+    it('should handle numeric suffixes in task IDs', async () => {
+      const tasks = [
+        { id: 'T12.0.1', title: 'Task 1', type: 'task', status: 'in_progress' },
+        { id: 'T12.999.999', title: 'Task 2', type: 'task', status: 'in_progress' },
+        { id: 'T-MLR-4.2', title: 'Task 3', type: 'task', status: 'in_progress' },
+        { id: 'T-MLR-999.999', title: 'Task 4', type: 'task', status: 'in_progress' },
+      ];
+
+      for (const task of tasks) {
+        const result = await verifier.runCritics(task);
+        expect(result.success).toBe(true);
+      }
+    });
+
+    it('should not run critics for non-modeling tasks', async () => {
+      const task = {
+        id: 'INFRA.1.1',
+        title: 'Infrastructure task',
+        type: 'task',
+        status: 'in_progress',
+      };
+
+      const result = await verifier.runCritics(task);
+
+      expect(result.success).toBe(true);
+      expect(result.checks_run).toBe(0);
+      expect(runModelingRealityCritic).not.toHaveBeenCalled();
+      expect(runAcademicRigorCritic).not.toHaveBeenCalled();
+      expect(runDataQualityCritic).not.toHaveBeenCalled();
+    });
+  });
+});

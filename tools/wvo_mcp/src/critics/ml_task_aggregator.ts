@@ -34,6 +34,11 @@ export interface MLTaskCompletionReport {
   coverage_dimensions?: number; // 0-7 dimensions covered
   artifacts_generated: string[];
   verification_checklist: Record<string, boolean>;
+  critic_results: {
+    modeling_reality_v2?: { passed: boolean; message?: string };
+    academic_rigor?: { passed: boolean; message?: string };
+    data_quality?: { passed: boolean; message?: string };
+  };
 }
 
 export interface AggregatedMLTasksReport {
@@ -130,6 +135,7 @@ export class MLTaskAggregator {
         coverage_dimensions: this.extractCoverageDimensions(content),
         artifacts_generated: this.extractArtifacts(content),
         verification_checklist: this.extractVerificationChecklist(content),
+        critic_results: this.extractCriticResults(content),
       };
     } catch (error) {
       logWarning("Failed to analyze completed task", {
@@ -352,6 +358,35 @@ export class MLTaskAggregator {
   /**
    * Extract verification checklist results
    */
+  /**
+   * Extract critic results from completion report
+   */
+  private extractCriticResults(content: string): MLTaskCompletionReport['critic_results'] {
+    const results: MLTaskCompletionReport['critic_results'] = {};
+
+    const criticSections = [
+      { name: 'modeling_reality_v2' as const, patterns: [/Modeling Reality.*?(?:✅|✓|pass|fail|✗|✘)/i, /Model Accuracy.*?(\d+)%/i] },
+      { name: 'academic_rigor' as const, patterns: [/Academic Rigor.*?(?:✅|✓|pass|fail|✗|✘)/i, /Methodology.*?(?:valid|invalid|incomplete)/i] },
+      { name: 'data_quality' as const, patterns: [/Data Quality.*?(?:✅|✓|pass|fail|✗|✘)/i, /Data.*?(?:validated|corrupted|incomplete)/i] }
+    ];
+
+    for (const { name, patterns } of criticSections) {
+      for (const pattern of patterns) {
+        const match = content.match(pattern);
+        if (match) {
+          const text = match[0].toLowerCase();
+          const passed = /(✅|✓|pass|valid)/.test(text);
+          const message = match[1] ? `${match[1]}%` : undefined;
+
+          results[name] = { passed, message };
+          break;
+        }
+      }
+    }
+
+    return results;
+  }
+
   private extractVerificationChecklist(
     content: string
   ): Record<string, boolean> {

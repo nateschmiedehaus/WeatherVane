@@ -1,13 +1,29 @@
 /**
- * Seven-Lens Task Evaluator
+ * Twelve-Lens Task Evaluator (Evolved from Seven-Lens)
  *
- * Evaluates tasks through 7 expert perspectives (CEO, Designer, UX, CMO, Ad Expert, Academic, PM)
- * to determine if a task is "ready to execute" (passes all 7 lenses).
+ * Evaluates tasks through 12 expert perspectives to determine if a task is "ready to execute".
+ *
+ * **Original 7 Lenses**:
+ * 1. CEO - Business strategy and revenue impact
+ * 2. Designer - Visual excellence and brand
+ * 3. UX - User experience and frictionless design
+ * 4. CMO - Go-to-market and positioning
+ * 5. Ad Expert - Platform integration feasibility
+ * 6. Academic - Statistical rigor and research validity
+ * 7. PM - Project management and execution clarity
+ *
+ * **Expanded 5 Lenses** (identified by Lens Gap Detector):
+ * 8. CFO - Unit economics and financial health
+ * 9. CTO - Technical scalability and architecture
+ * 10. Customer Success - Retention and customer health
+ * 11. DevOps/SRE - Operational reliability and deployment safety
+ * 12. Legal/Compliance - Risk management and regulatory compliance
  *
  * **Purpose**: Ensure orchestrator makes decisions with world-class multi-disciplinary understanding
- * **Decision Rule**: Task is "ready to execute" ONLY if it passes ALL 7 lenses
+ * **Decision Rule**: Task is "ready to execute" ONLY if it passes ALL 12 lenses
  *
- * See: docs/ARCHITECTURE.md - 7-Lens Decision Framework
+ * See: docs/ARCHITECTURE.md - 12-Lens Decision Framework
+ * See: docs/MISSING_OBJECTIVES_ANALYSIS.md - Rationale for lens expansion
  */
 
 import { logDebug, logInfo } from '../telemetry/logger.js';
@@ -31,28 +47,38 @@ interface LensEvaluation {
   concerns: string[];
 }
 
-interface SevenLensReport {
+interface TwelveLensReport {
   taskId: string;
-  overallPass: boolean; // True only if ALL 7 lenses pass
+  overallPass: boolean; // True only if ALL 12 lenses pass
   lenses: LensEvaluation[];
   readyToExecute: boolean;
   blockers: string[]; // Lenses that failed
   recommendation: string;
 }
 
+// Alias for backwards compatibility
+export type SevenLensReport = TwelveLensReport;
+
 export class SevenLensEvaluator {
   /**
-   * Evaluate a task through all 7 expert lenses
+   * Evaluate a task through all 12 expert lenses (evolved from 7)
    */
-  evaluateTask(task: Task, context?: { roadmap?: any; recentCommits?: string[] }): SevenLensReport {
+  evaluateTask(task: Task, context?: { roadmap?: any; recentCommits?: string[] }): TwelveLensReport {
     const lenses: LensEvaluation[] = [
+      // Original 7 lenses
       this.evaluateCEOLens(task, context),
       this.evaluateDesignerLens(task, context),
       this.evaluateUXLens(task, context),
       this.evaluateCMOLens(task, context),
       this.evaluateAdExpertLens(task, context),
       this.evaluateAcademicLens(task, context),
-      this.evaluatePMLens(task, context)
+      this.evaluatePMLens(task, context),
+      // Expanded 5 lenses (2025-10-23)
+      this.evaluateCFOLens(task, context),
+      this.evaluateCTOLens(task, context),
+      this.evaluateCustomerSuccessLens(task, context),
+      this.evaluateDevOpsLens(task, context),
+      this.evaluateLegalLens(task, context)
     ];
 
     const allPassed = lenses.every(l => l.passed);
@@ -400,11 +426,251 @@ export class SevenLensEvaluator {
   }
 
   /**
+   * CFO Lens: Unit economics healthy? Positive margins?
+   */
+  private evaluateCFOLens(task: Task, context?: any): LensEvaluation {
+    let score = 70; // Default pass for non-financial work
+    const concerns: string[] = [];
+
+    // Check if this is financial/pricing work
+    const financialKeywords = ['cost', 'pricing', 'margin', 'cac', 'ltv', 'unit economics', 'burn rate', 'revenue', 'profit'];
+    const isFinancialWork = financialKeywords.some(kw =>
+      task.title.toLowerCase().includes(kw) ||
+      (task.description?.toLowerCase().includes(kw) ?? false)
+    );
+
+    if (isFinancialWork) {
+      score = 40; // Start lower for financial work
+
+      const rigorKeywords = ['calculate', 'analysis', 'margin', 'target', 'threshold'];
+      const mentionsRigor = rigorKeywords.some(kw =>
+        task.description?.toLowerCase().includes(kw) ?? false
+      );
+
+      if (mentionsRigor) {
+        score += 30;
+      } else {
+        concerns.push('Financial work does not specify calculation methodology or success thresholds');
+      }
+
+      // Check for specific metrics
+      const metricsKeywords = ['70%', 'cac', 'ltv', '3:1'];
+      const mentionsMetrics = metricsKeywords.some(kw =>
+        task.description?.toLowerCase().includes(kw) ?? false
+      );
+
+      if (mentionsMetrics) {
+        score += 20;
+      } else {
+        concerns.push('No specific financial metrics or targets mentioned (e.g., gross margin ≥70%, LTV/CAC ≥3:1)');
+      }
+    }
+
+    const passed = score >= 70;
+    return {
+      lens: 'CFO',
+      passed,
+      score,
+      reasoning: isFinancialWork ? 'Financial work requires unit economics analysis and clear metrics' : 'Non-financial work, auto-pass',
+      concerns
+    };
+  }
+
+  /**
+   * CTO Lens: Scalable to 100/1000 tenants? Technical architecture sound?
+   */
+  private evaluateCTOLens(task: Task, context?: any): LensEvaluation {
+    let score = 70; // Default pass for non-scalability work
+    const concerns: string[] = [];
+
+    // Check if this is scalability/architecture work
+    const scalabilityKeywords = ['scale', 'scalability', 'database', 'infrastructure', 'multi-tenant', 'architecture', 'performance', 'sharding'];
+    const isScalabilityWork = scalabilityKeywords.some(kw =>
+      task.title.toLowerCase().includes(kw) ||
+      (task.description?.toLowerCase().includes(kw) ?? false)
+    );
+
+    if (isScalabilityWork) {
+      score = 40; // Start lower for scalability work
+
+      const planKeywords = ['10x', '100x', '1000', 'load test', 'benchmark', 'capacity'];
+      const mentionsPlan = planKeywords.some(kw =>
+        task.description?.toLowerCase().includes(kw) ?? false
+      );
+
+      if (mentionsPlan) {
+        score += 30;
+      } else {
+        concerns.push('Scalability work does not specify target scale (10x? 100x?) or performance benchmarks');
+      }
+
+      const constraintsKeywords = ['limit', 'bottleneck', 'connection', 'pooling'];
+      const mentionsConstraints = constraintsKeywords.some(kw =>
+        task.description?.toLowerCase().includes(kw) ?? false
+      );
+
+      if (mentionsConstraints) {
+        score += 20;
+      } else {
+        concerns.push('No technical constraints or bottlenecks identified');
+      }
+    }
+
+    const passed = score >= 70;
+    return {
+      lens: 'CTO',
+      passed,
+      score,
+      reasoning: isScalabilityWork ? 'Scalability work requires capacity planning and performance benchmarks' : 'Non-scalability work, auto-pass',
+      concerns
+    };
+  }
+
+  /**
+   * Customer Success Lens: Reduces churn? Improves retention?
+   */
+  private evaluateCustomerSuccessLens(task: Task, context?: any): LensEvaluation {
+    let score = 70; // Default pass for non-CS work
+    const concerns: string[] = [];
+
+    // Check if this affects customer retention/success
+    const csKeywords = ['churn', 'retention', 'onboard', 'customer success', 'health score', 'usage', 'adoption', 'customer'];
+    const isCSWork = csKeywords.some(kw =>
+      task.title.toLowerCase().includes(kw) ||
+      (task.description?.toLowerCase().includes(kw) ?? false)
+    );
+
+    if (isCSWork) {
+      score = 50; // Start lower for CS work
+
+      const metricsKeywords = ['metric', 'measure', 'track', 'rate', 'nps', 'score'];
+      const mentionsMetrics = metricsKeywords.some(kw =>
+        task.description?.toLowerCase().includes(kw) ?? false
+      );
+
+      if (mentionsMetrics) {
+        score += 25;
+      } else {
+        concerns.push('Customer success work does not specify metrics to track (churn rate, NPS, health score)');
+      }
+    }
+
+    const passed = score >= 70;
+    return {
+      lens: 'Customer Success',
+      passed,
+      score,
+      reasoning: isCSWork ? 'CS work requires retention metrics and customer health tracking' : 'Non-CS work, auto-pass',
+      concerns
+    };
+  }
+
+  /**
+   * DevOps/SRE Lens: Reliable? Monitored? Safe deployment?
+   */
+  private evaluateDevOpsLens(task: Task, context?: any): LensEvaluation {
+    let score = 70; // Default pass for non-ops work
+    const concerns: string[] = [];
+
+    // Check if this is ops/reliability work
+    const opsKeywords = ['monitoring', 'alert', 'incident', 'uptime', 'sla', 'deployment', 'rollback', 'observability', 'reliability'];
+    const isOpsWork = opsKeywords.some(kw =>
+      task.title.toLowerCase().includes(kw) ||
+      (task.description?.toLowerCase().includes(kw) ?? false)
+    );
+
+    if (isOpsWork) {
+      score = 40; // Start lower for ops work
+
+      const monitoringKeywords = ['monitor', 'alert', 'pagerduty', 'datadog', 'grafana'];
+      const mentionsMonitoring = monitoringKeywords.some(kw =>
+        task.description?.toLowerCase().includes(kw) ?? false
+      );
+
+      if (mentionsMonitoring) {
+        score += 30;
+      } else {
+        concerns.push('Ops work does not specify monitoring/alerting strategy');
+      }
+
+      const slaKeywords = ['sla', '99', 'uptime', 'target', 'mttr', 'mttd'];
+      const mentionsSLA = slaKeywords.some(kw =>
+        task.description?.toLowerCase().includes(kw) ?? false
+      );
+
+      if (mentionsSLA) {
+        score += 20;
+      } else {
+        concerns.push('No SLA targets or reliability metrics specified (e.g., 99.5% uptime, MTTR <1 hour)');
+      }
+    }
+
+    const passed = score >= 70;
+    return {
+      lens: 'DevOps/SRE',
+      passed,
+      score,
+      reasoning: isOpsWork ? 'Ops work requires monitoring, alerting, and SLA targets' : 'Non-ops work, auto-pass',
+      concerns
+    };
+  }
+
+  /**
+   * Legal/Compliance Lens: GDPR/CCPA compliant? SOC2 ready?
+   */
+  private evaluateLegalLens(task: Task, context?: any): LensEvaluation {
+    let score = 70; // Default pass for non-legal work
+    const concerns: string[] = [];
+
+    // Check if this is legal/compliance work
+    const legalKeywords = ['gdpr', 'ccpa', 'soc2', 'compliance', 'legal', 'privacy', 'terms', 'policy', 'audit', 'data protection'];
+    const isLegalWork = legalKeywords.some(kw =>
+      task.title.toLowerCase().includes(kw) ||
+      (task.description?.toLowerCase().includes(kw) ?? false)
+    );
+
+    if (isLegalWork) {
+      score = 40; // Start lower for legal work
+
+      const requirementsKeywords = ['requirement', 'must', 'shall', 'comply', 'regulation'];
+      const mentionsRequirements = requirementsKeywords.some(kw =>
+        task.description?.toLowerCase().includes(kw) ?? false
+      );
+
+      if (mentionsRequirements) {
+        score += 30;
+      } else {
+        concerns.push('Legal work does not specify regulatory requirements or compliance standards');
+      }
+
+      const documentationKeywords = ['document', 'policy', 'agreement', 'record'];
+      const mentionsDocumentation = documentationKeywords.some(kw =>
+        task.description?.toLowerCase().includes(kw) ?? false
+      );
+
+      if (mentionsDocumentation) {
+        score += 20;
+      } else {
+        concerns.push('No documentation or policy artifacts mentioned');
+      }
+    }
+
+    const passed = score >= 70;
+    return {
+      lens: 'Legal/Compliance',
+      passed,
+      score,
+      reasoning: isLegalWork ? 'Legal work requires clear regulatory requirements and documentation' : 'Non-legal work, auto-pass',
+      concerns
+    };
+  }
+
+  /**
    * Generate recommendation based on lens evaluations
    */
   private generateRecommendation(allPassed: boolean, lenses: LensEvaluation[]): string {
     if (allPassed) {
-      return '✅ READY TO EXECUTE - All 7 expert lenses pass. Orchestrator should begin execution immediately.';
+      return '✅ READY TO EXECUTE - All 12 expert lenses pass. Orchestrator should begin execution immediately.';
     }
 
     const failedLenses = lenses.filter(l => !l.passed);
@@ -418,7 +684,7 @@ export class SevenLensEvaluator {
   /**
    * Batch evaluate multiple tasks and rank by readiness
    */
-  evaluateBatch(tasks: Task[], context?: any): SevenLensReport[] {
+  evaluateBatch(tasks: Task[], context?: any): TwelveLensReport[] {
     const reports = tasks.map(task => this.evaluateTask(task, context));
 
     // Sort by: (1) All pass = top, (2) Most lenses passed, (3) Highest average score
