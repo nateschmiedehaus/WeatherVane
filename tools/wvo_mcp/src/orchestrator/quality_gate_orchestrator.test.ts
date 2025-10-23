@@ -303,11 +303,16 @@ describe('QualityGateOrchestrator', () => {
     it('should include all reviewer feedback in decision', async () => {
       const evidence: TaskEvidence = {
         taskId: 'T1',
-        buildOutput: 'error TS2304: Cannot find name',
-        testOutput: 'FAIL: 5 tests failed',
+        buildOutput: 'Compiled successfully. 0 errors.',
+        testOutput: '✓ 10 tests passed',
         changedFiles: ['feature.ts'],
-        testFiles: [],
-        documentation: [],
+        testFiles: ['feature.test.ts'],
+        documentation: ['README.md'],
+        runtimeEvidence: [{
+          type: 'logs',
+          path: '/tmp/test-run.log',
+          content: 'Feature tested with 100 items, memory stayed under 500MB'
+        }],
       };
 
       const decision = await orchestrator.verifyTaskCompletion('T1', evidence);

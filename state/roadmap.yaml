@@ -3345,7 +3345,7 @@ epics:
             domain: mcp
           - id: T9.3.2
             title: "Sandbox pooling for test execution (SAFE: new executor)"
-            status: done
+            status: blocked
             dependencies: []
             exit_criteria:
               - Sandbox pool with 3 pre-warmed containers

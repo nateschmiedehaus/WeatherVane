@@ -217,12 +217,12 @@ export class AdversarialBullshitDetector {
         const docContent = await fs.readFile(docPath, 'utf-8');
 
         // Extract code references from documentation (function names, file paths)
-        const functionRefs = docContent.match(/`([a-zA-Z_][a-zA-Z0-9_]+)\(`/g) || [];
+        const functionRefs = docContent.match(/`([a-zA-Z_][a-zA-Z0-9_]+)\(\)`/g) || [];
         const fileRefs = docContent.match(/`([a-z_/]+\.[a-z]+)`/g) || [];
 
         // Check if referenced functions exist in changed files
         for (const funcRef of functionRefs) {
-          const funcName = funcRef.replace(/`|[\(\)]/g, '');
+          const funcName = funcRef.replace(/`|\(\)/g, '');
 
           let found = false;
           for (const changedFile of evidence.changedFiles) {
