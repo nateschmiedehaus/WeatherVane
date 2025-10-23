@@ -21,6 +21,7 @@ import { TokenEfficiencyManager } from './token_efficiency_manager.js';
 import { ModelManager } from '../models/model_manager.js';
 import { CriticModelSelector } from '../utils/critic_model_selector.js';
 import { ActivityFeedWriter } from './activity_feed_writer.js';
+import { HolisticReviewManager, type HolisticReviewStatus } from './holistic_review_manager.js';
 import { browserManager } from '../utils/browser.js';
 
 export interface OrchestratorRuntimeOptions {
@@ -31,6 +32,13 @@ export interface OrchestratorRuntimeOptions {
   restartWindowMinutes?: number;
   heavyTaskLimit?: number;
   enableClaudeCoordinator?: boolean;
+  holisticReview?: {
+    minTasksPerGroup?: number;
+    maxGroupIntervalMinutes?: number;
+    maxTasksTracked?: number;
+    globalIntervalMinutes?: number;
+    globalMinTasks?: number;
+  };
 }
 
 export class OrchestratorRuntime {
@@ -59,6 +67,7 @@ export class OrchestratorRuntime {
   // Promise caches to prevent race conditions in lazy loading
   private criticReputationTrackerPromise?: Promise<import('./critic_reputation_tracker.js').CriticReputationTracker | null>;
   private decisionEvidenceLinkerPromise?: Promise<import('../telemetry/decision_evidence_linker.js').DecisionEvidenceLinker | null>;
+  private readonly holisticReviewManager: HolisticReviewManager;
   private started = false;
 
   constructor(
@@ -205,6 +214,20 @@ export class OrchestratorRuntime {
       coordinator: this.coordinator,
     });
 
+    const holisticOptions = options.holisticReview ?? {};
+    this.holisticReviewManager = new HolisticReviewManager(this.stateMachine, {
+      minTasksPerGroup: holisticOptions.minTasksPerGroup,
+      maxGroupIntervalMs: holisticOptions.maxGroupIntervalMinutes
+        ? holisticOptions.maxGroupIntervalMinutes * 60 * 1000
+        : undefined,
+      maxTasksTracked: holisticOptions.maxTasksTracked,
+      globalIntervalMs: holisticOptions.globalIntervalMinutes
+        ? holisticOptions.globalIntervalMinutes * 60 * 1000
+        : undefined,
+      globalMinTasks: holisticOptions.globalMinTasks,
+      dryRun,
+    });
+
     logInfo('Adaptive resource scheduling initialised', {
       codexWorkers,
       heavyTaskLimit,
@@ -221,6 +244,7 @@ export class OrchestratorRuntime {
     await this.modelManager.initialize();
     await this.criticModelSelector.load();
     this.coordinator.start();
+    this.holisticReviewManager.start();
     logInfo('Orchestrator runtime started');
   }
 
@@ -232,6 +256,7 @@ export class OrchestratorRuntime {
     this.tokenEfficiencyManager?.dispose();
     this.modelManager.stop();
     this.activityFeed?.stop();
+    this.holisticReviewManager.stop();
     this.scheduler.destroy();
     this.researchOrchestrator?.dispose();
     this.agentPool.removeAllListeners();
@@ -299,6 +324,10 @@ export class OrchestratorRuntime {
 
   getCriticModelSelector(): CriticModelSelector {
     return this.criticModelSelector;
+  }
+
+  getHolisticReviewStatus(): HolisticReviewStatus {
+    return this.holisticReviewManager.getStatus();
   }
 
   // NEW: Lazy-loaded enhanced orchestration features

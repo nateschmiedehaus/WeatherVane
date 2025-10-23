@@ -11,9 +11,10 @@
 #   bash tools/wvo_mcp/scripts/autopilot_git_handler.sh [--mode auto|stash|strict]
 #
 # Modes:
-#   auto   - Auto-commit operational files, warn about code changes (default)
-#   stash  - Stash all changes before autopilot
-#   strict - Require completely clean worktree (fail on any changes)
+#   auto     - Auto-commit ALL files (operational + code + docs + new files) (default)
+#   cautious - Auto-commit operational files only, warn about code changes
+#   stash    - Stash all changes before autopilot
+#   strict   - Require completely clean worktree (fail on any changes)
 
 set -euo pipefail
 
@@ -159,10 +160,107 @@ echo "  Code files:        ${#code_files[@]}"
 echo "  Unknown files:     ${#unknown_files[@]}"
 echo ""
 
+# Generate smart commit message based on file changes
+generate_commit_message() {
+  local code_count=$1
+  local doc_count=$2
+  local test_count=$3
+  local new_count=$4
+  local operational_count=$5
+
+  local primary_type=""
+  local summary=""
+
+  # Determine primary change type
+  if [ $code_count -gt 0 ] && [ $code_count -ge $doc_count ]; then
+    primary_type="feat"
+    summary="Update implementation"
+  elif [ $doc_count -gt 0 ]; then
+    primary_type="docs"
+    summary="Update documentation"
+  elif [ $test_count -gt 0 ]; then
+    primary_type="test"
+    summary="Update tests"
+  elif [ $operational_count -gt 0 ]; then
+    primary_type="chore"
+    summary="Update operational state"
+  else
+    primary_type="chore"
+    summary="Update project files"
+  fi
+
+  # Build detailed message
+  echo "${primary_type}(autopilot): ${summary}
+
+Changes made by autopilot:
+- Code files: ${code_count}
+- Documentation: ${doc_count}
+- Tests: ${test_count}
+- New files: ${new_count}
+- Operational: ${operational_count}
+
+Total: $((code_count + doc_count + test_count + new_count + operational_count)) files
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>"
+}
+
 # Handle based on mode
 case "$MODE" in
   auto)
-    echo -e "${BLUE}Auto-commit mode${NC}"
+    echo -e "${BLUE}Auto-commit mode (full auto)${NC}"
+    echo ""
+
+    if [ ${#operational_files[@]} -eq 0 ] && [ ${#code_files[@]} -eq 0 ] && [ ${#unknown_files[@]} -eq 0 ]; then
+      echo -e "${GREEN}✓ No changes to commit${NC}"
+      exit 0
+    fi
+
+    # Count file types for commit message
+    code_count=${#code_files[@]}
+    doc_count=$(echo "$status" | grep -c ' docs/' || echo 0)
+    test_count=$(echo "$status" | grep -c ' tests/' || echo 0)
+    new_count=$(echo "$status" | grep -c '^?? ' || echo 0)
+    operational_count=${#operational_files[@]}
+
+    echo -e "${YELLOW}Auto-committing ALL ${total_files} files...${NC}"
+    echo "  Code: $code_count"
+    echo "  Docs: $doc_count"
+    echo "  Tests: $test_count"
+    echo "  New: $new_count"
+    echo "  Operational: $operational_count"
+    echo ""
+
+    if [ "$DRY_RUN" = "0" ]; then
+      # Add ALL files (including untracked)
+      git add -A
+
+      # Generate smart commit message
+      commit_msg=$(generate_commit_message "$code_count" "$doc_count" "$test_count" "$new_count" "$operational_count")
+
+      # Create commit
+      if git commit -m "$commit_msg" >/dev/null 2>&1; then
+        echo -e "${GREEN}✓ All files committed successfully${NC}"
+      else
+        echo -e "${YELLOW}⚠️  No changes to commit (files may have been previously staged)${NC}"
+      fi
+    else
+      echo "  Would commit all $total_files files"
+    fi
+
+    # Verify clean worktree
+    remaining=$(git status --porcelain 2>/dev/null | wc -l | tr -d ' ')
+    if [ "$remaining" -eq 0 ]; then
+      echo -e "${GREEN}✓ Git worktree is now clean${NC}"
+    else
+      echo -e "${YELLOW}⚠️  $remaining files still uncommitted (may be gitignored)${NC}"
+    fi
+    exit 0
+    ;;
+
+  cautious)
+    echo -e "${BLUE}Cautious mode (operational files only)${NC}"
     echo ""
 
     # Auto-commit operational files
@@ -278,7 +376,13 @@ Co-Authored-By: Claude <noreply@anthropic.com>"
 
   *)
     echo -e "${RED}✗ Unknown mode: $MODE${NC}"
-    echo "Valid modes: auto, stash, strict"
+    echo "Valid modes: auto, cautious, stash, strict"
+    echo ""
+    echo "Modes:"
+    echo "  auto     - Auto-commit ALL files (default, fully autonomous)"
+    echo "  cautious - Auto-commit operational files only, warn about code"
+    echo "  stash    - Stash all changes"
+    echo "  strict   - Require clean worktree (fail on any changes)"
     exit 1
     ;;
 esac

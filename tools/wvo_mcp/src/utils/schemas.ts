@@ -22,7 +22,7 @@ export const dispatchInputSchema = z.object({
 
 export const verifyInputSchema = z.object({
   include: z
-    .array(z.enum(["operations", "resilience", "self_improvement", "autopilot"]))
+    .array(z.enum(["operations", "resilience", "self_improvement", "autopilot", "holistic_review"]))
     .optional(),
 });
 

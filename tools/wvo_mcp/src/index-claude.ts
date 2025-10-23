@@ -11,6 +11,8 @@ import { logError, logInfo, logWarning } from "./telemetry/logger.js";
 import { initTracing } from "./telemetry/tracing.js";
 import { AuthChecker } from "./utils/auth_checker.js";
 import { ProviderManager, type Provider } from "./utils/provider_manager.js";
+import { ProviderCapacityMonitor } from "./utils/provider_capacity_monitor.js";
+import { ProviderCapacityTelemetry } from "./telemetry/provider_capacity_telemetry.js";
 import { formatData, formatError, formatList, formatSuccess } from "./utils/response_formatter.js";
 import { ScreenshotCapture } from "./utils/screenshot.js";
 import { ScreenshotManager } from "./utils/screenshot_manager.js";
@@ -72,7 +74,52 @@ async function main() {
   const session = new SessionContext(runtime);
   const authChecker = new AuthChecker();
   const defaultProvider: Provider = process.env.WVO_DEFAULT_PROVIDER === "codex" ? "codex" : "claude_code";
-  const providerManager = new ProviderManager(defaultProvider);
+
+  // Initialize provider capacity monitoring
+  const capacityMonitor = new ProviderCapacityMonitor({
+    workspaceRoot,
+    probeIntervalSeconds: 30, // Probe every 30 seconds
+    maxProbeInterval: 300, // Max 5 minutes between probes
+  });
+  const capacityTelemetry = new ProviderCapacityTelemetry(workspaceRoot);
+
+  // Start capacity monitor
+  await capacityMonitor.start();
+  await capacityTelemetry.loadMetrics();
+
+  // Initialize provider manager with capacity monitor
+  const providerManager = new ProviderManager(defaultProvider, capacityMonitor);
+
+  // Wire up capacity events to telemetry
+  capacityMonitor.on("provider:limit", async (event) => {
+    await capacityTelemetry.recordEvent("limit_hit", event.provider, {
+      tokensRemaining: event.tokensRemaining,
+      estimatedRecoveryMinutes: event.estimatedRecoveryMinutes,
+    });
+    logWarning("Provider hit capacity limit", event);
+  });
+
+  capacityMonitor.on("provider:recovered", async (event) => {
+    await capacityTelemetry.recordEvent("recovered", event.provider, {
+      downDurationMs: event.wasDownForMs,
+    });
+    logInfo("Provider capacity recovered", event);
+  });
+
+  providerManager.on("provider:failover", async (event) => {
+    await capacityTelemetry.recordEvent("failover", event.to, {
+      fromProvider: event.from,
+      toProvider: event.to,
+      reason: event.reason,
+      taskName: event.taskName,
+    });
+    logInfo("Provider failover executed", event);
+  });
+
+  providerManager.on("all-providers-exhausted", (event) => {
+    logError("CRITICAL: All providers exhausted - workload throttled", event);
+  });
+
   const roadmapExtender = new RoadmapAutoExtender();
   const contextManager = new ContextManager(session.workspaceRoot);
   const qualityFramework = new QualityFramework();
@@ -82,6 +129,7 @@ async function main() {
 
   const shutdown = () => {
     logInfo("Shutting down MCP server gracefully");
+    capacityMonitor.stop();
     runtime.stop();
     activeRuntime = null;
     process.exit(0);
@@ -617,7 +665,7 @@ Model: Uses intelligent routing based on complexity and provider capacity`,
     },
     async (input: unknown) => {
       const startTime = Date.now();
-      const recommendation = providerManager.getProviderRecommendation("plan_next");
+      const recommendation = await providerManager.getProviderRecommendation("plan_next");
 
       try {
         const parsed = planNextInput.parse(input);
@@ -633,7 +681,7 @@ Model: Uses intelligent routing based on complexity and provider capacity`,
         const estimatedTokens = parsed.minimal
           ? 300 + (tasks.length * 30)  // Minimal mode uses ~70% fewer tokens
           : 500 + (tasks.length * 100);
-        providerManager.trackUsage(recommendation.provider, estimatedTokens);
+        await providerManager.trackUsage(recommendation.provider, estimatedTokens, true);
 
         const payload = {
           count: tasks.length,

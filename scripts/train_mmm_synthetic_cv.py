@@ -56,6 +56,7 @@ def serialize_cv_result(result: CrossValidationMetrics) -> Dict[str, Any]:
         "std_r2": convert_value(result.std_r2),
         "mean_rmse": convert_value(result.mean_rmse),
         "mean_mae": convert_value(result.mean_mae),
+        "mean_revenue": convert_value(result.mean_revenue),
         "fold_r2_scores": convert_value(result.fold_r2_scores),
         "fold_rmse_scores": convert_value(result.fold_rmse_scores),
         "fold_mae_scores": convert_value(result.fold_mae_scores),

@@ -4,10 +4,11 @@ import type { LiveFlagsReader } from '../state/live_flags.js';
 
 describe('FeatureGates', () => {
   let mockLiveFlags: LiveFlagsReader;
+  let flagValues: Map<string, string>;
 
   beforeEach(() => {
     // Create a mock that supports all flag types
-    const flagValues = new Map<string, string>();
+    flagValues = new Map<string, string>();
     mockLiveFlags = {
       get: () => ({
         PROMPT_MODE: 'compact',

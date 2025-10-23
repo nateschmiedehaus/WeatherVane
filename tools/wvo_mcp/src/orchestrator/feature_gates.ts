@@ -14,7 +14,7 @@
  * ```
  */
 
-import type { LiveFlagsReader } from '../state/live_flags.js';
+import type { LiveFlagKey, LiveFlagsReader } from '../state/live_flags.js';
 
 export interface FeatureGatesReader {
   isCompactPromptMode(): boolean;
@@ -85,6 +85,46 @@ export class FeatureGates implements FeatureGatesReader {
    */
   isRoutingToolsEnabled(): boolean {
     return this.liveFlags.getValue('ROUTING_TOOLS') === '1';
+  }
+
+  getHolisticReviewCadence(): {
+    enabled: boolean;
+    minTasksPerGroup: number;
+    maxTasksTracked: number;
+    groupIntervalMinutes: number;
+    globalIntervalMinutes: number;
+    globalMinTasks: number;
+  } {
+    return {
+      enabled: this.liveFlags.getValue('HOLISTIC_REVIEW_ENABLED') === '1',
+      minTasksPerGroup: this.parsePositiveIntFlag('HOLISTIC_REVIEW_MIN_TASKS', 3, { max: 50 }),
+      maxTasksTracked: this.parsePositiveIntFlag('HOLISTIC_REVIEW_MAX_TASKS_TRACKED', 6, { max: 20 }),
+      groupIntervalMinutes: this.parsePositiveIntFlag('HOLISTIC_REVIEW_GROUP_INTERVAL_MINUTES', 45, {
+        max: 1440,
+      }),
+      globalIntervalMinutes: this.parsePositiveIntFlag('HOLISTIC_REVIEW_GLOBAL_INTERVAL_MINUTES', 90, {
+        max: 1440,
+      }),
+      globalMinTasks: this.parsePositiveIntFlag('HOLISTIC_REVIEW_GLOBAL_MIN_TASKS', 6, { max: 100 }),
+    };
+  }
+
+  private parsePositiveIntFlag(
+    key: LiveFlagKey,
+    fallback: number,
+    bounds: { min?: number; max?: number } = {},
+  ): number {
+    const raw = this.liveFlags.getValue(key);
+    const parsed = Number.parseInt(String(raw), 10);
+    if (!Number.isFinite(parsed) || Number.isNaN(parsed)) {
+      return fallback;
+    }
+    const min = bounds.min ?? 1;
+    let result = Math.max(min, parsed);
+    if (typeof bounds.max === 'number') {
+      result = Math.min(bounds.max, result);
+    }
+    return result;
   }
 
   /**

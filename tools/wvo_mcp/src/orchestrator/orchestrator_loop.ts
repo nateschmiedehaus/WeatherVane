@@ -73,6 +73,21 @@ export interface OrchestratorLoopOptions {
   monitoringTickInterval?: number;
 
   /**
+   * Maximum interval (ms) between monitoring ticks once the system is considered stable.
+   */
+  monitoringMaxInterval?: number;
+
+  /**
+   * Number of consecutive healthy reviews required before using the maximum monitoring interval.
+   */
+  monitoringStabilityThreshold?: number;
+
+  /**
+   * Ratio (0-1) controlling random jitter added to monitoring intervals to avoid synchronization.
+   */
+  monitoringJitterRatio?: number;
+
+  /**
    * Maximum consecutive idle ticks (no pending tasks) before the orchestrator enters
    * background monitoring mode. Prevents loop churn while keeping periodic health checks alive.
    */
@@ -203,6 +218,9 @@ export class OrchestratorLoop extends EventEmitter {
   private lastActivityAt = Date.now();
   private lastImmediateSignal = 0;
   private lastHealthSummary?: HealthSummarySnapshot;
+  private monitoringStabilityScore = 0;
+  private currentMonitoringInterval!: number;
+  private healthReviewAlarm?: NodeJS.Timeout;
   private readonly boundTaskCreated = () => this.requestImmediateTick('task_created');
   private readonly boundTaskTransition = () => this.requestImmediateTick('task_transition');
   private readonly boundQueueUpdated = () => this.requestImmediateTick('queue_update');
@@ -222,6 +240,14 @@ export class OrchestratorLoop extends EventEmitter {
     const monitoringTickInterval =
       options.monitoringTickInterval ??
       Math.min(maxTickInterval, Math.max(baseTickInterval * 4, healthCheckInterval));
+    const monitoringMaxInterval =
+      options.monitoringMaxInterval ??
+      Math.min(maxTickInterval, Math.max(healthCheckInterval * 2, monitoringTickInterval * 3));
+    const monitoringStabilityThreshold = options.monitoringStabilityThreshold ?? 3;
+    const monitoringJitterRatio = Math.min(
+      Math.max(options.monitoringJitterRatio ?? 0.12, 0),
+      0.4,
+    );
     const immediateSignalDebounceMs = options.immediateSignalDebounceMs ?? 1500;
 
     this.policy = new PolicyEngine(stateMachine, {
@@ -240,6 +266,9 @@ export class OrchestratorLoop extends EventEmitter {
       minTickInterval,
       maxTickInterval,
       monitoringTickInterval,
+      monitoringMaxInterval,
+      monitoringStabilityThreshold,
+      monitoringJitterRatio,
       maxIdleTicksBeforeStop: options.maxIdleTicksBeforeStop ?? 8,
       maxErrors: options.maxErrors ?? 5,
       errorWindow: options.errorWindow ?? 300000,
@@ -248,6 +277,8 @@ export class OrchestratorLoop extends EventEmitter {
       immediateSignalDebounceMs,
     };
     this.currentTickInterval = this.clampInterval(this.options.tickInterval);
+    this.currentMonitoringInterval = this.clampInterval(this.options.monitoringTickInterval);
+    this.monitoringStabilityScore = 0;
     this.lastHealthReview = Date.now();
     this.lastActivityAt = Date.now();
 
@@ -285,6 +316,9 @@ export class OrchestratorLoop extends EventEmitter {
     this.lastActivityAt = Date.now();
     this.lastImmediateSignal = 0;
     this.lastHealthSummary = undefined;
+    this.monitoringStabilityScore = 0;
+    this.currentMonitoringInterval = this.clampInterval(this.options.monitoringTickInterval);
+    this.clearHealthReviewAlarm();
 
     if (this.tickTimer) {
       clearTimeout(this.tickTimer);
@@ -315,6 +349,7 @@ export class OrchestratorLoop extends EventEmitter {
       clearTimeout(this.tickTimer);
       this.tickTimer = undefined;
     }
+    this.clearHealthReviewAlarm();
 
     this.emitEvent({
       timestamp: Date.now(),
@@ -400,6 +435,7 @@ export class OrchestratorLoop extends EventEmitter {
         this.setCurrentTickInterval(this.options.tickInterval);
         this.lastIdleReason = null;
         this.lastActivityAt = Date.now();
+        this.clearHealthReviewAlarm();
       }
 
       return result;
@@ -680,7 +716,10 @@ export class OrchestratorLoop extends EventEmitter {
     }
 
     if (this.mode === 'monitoring') {
-      return this.clampInterval(this.options.monitoringTickInterval);
+      const base = this.currentMonitoringInterval;
+      const jitterRange = Math.round(base * this.options.monitoringJitterRatio);
+      const jitter = jitterRange > 0 ? Math.floor(Math.random() * jitterRange) : 0;
+      return this.clampInterval(base + jitter);
     }
 
     return this.clampInterval(this.currentTickInterval);
@@ -720,6 +759,55 @@ export class OrchestratorLoop extends EventEmitter {
     }
 
     this.scheduleTick();
+  }
+
+  private updateMonitoringCadence(issuesDetected: boolean): void {
+    if (this.mode !== 'monitoring') {
+      this.monitoringStabilityScore = 0;
+      this.currentMonitoringInterval = this.clampInterval(this.options.monitoringTickInterval);
+      return;
+    }
+
+    if (issuesDetected) {
+      this.monitoringStabilityScore = 0;
+      this.currentMonitoringInterval = this.clampInterval(this.options.monitoringTickInterval);
+      return;
+    }
+
+    const threshold = Math.max(0, this.options.monitoringStabilityThreshold);
+    if (threshold > 0 && this.monitoringStabilityScore < threshold) {
+      this.monitoringStabilityScore += 1;
+    }
+
+    const growthFactor = 1 + this.monitoringStabilityScore;
+    const candidate = this.options.monitoringTickInterval * growthFactor;
+    const bounded = Math.min(candidate, this.options.monitoringMaxInterval);
+    this.currentMonitoringInterval = this.clampInterval(
+      Math.max(this.options.monitoringTickInterval, bounded),
+    );
+  }
+
+  private armHealthReviewAlarm(): void {
+    if (this.options.healthCheckInterval <= 0 || !this.running) {
+      return;
+    }
+
+    this.clearHealthReviewAlarm();
+
+    this.healthReviewAlarm = setTimeout(() => {
+      this.healthReviewAlarm = undefined;
+      this.requestImmediateTick('health_review_alarm');
+    }, this.options.healthCheckInterval);
+
+    this.healthReviewAlarm.unref?.();
+  }
+
+  private clearHealthReviewAlarm(): void {
+    if (!this.healthReviewAlarm) {
+      return;
+    }
+    clearTimeout(this.healthReviewAlarm);
+    this.healthReviewAlarm = undefined;
   }
 
   /**
@@ -848,6 +936,13 @@ export class OrchestratorLoop extends EventEmitter {
       });
 
       await this.syncHealthIssueTasks(issues, health, queue, now);
+
+      this.updateMonitoringCadence(issues.length > 0);
+      if (this.mode === 'monitoring') {
+        this.armHealthReviewAlarm();
+      } else {
+        this.clearHealthReviewAlarm();
+      }
 
       if (issues.length > 0) {
         try {
@@ -1136,6 +1231,9 @@ export class OrchestratorLoop extends EventEmitter {
     lastHealthReview: number;
     lastActivityAt: number;
     lastHealthSummary?: HealthSummarySnapshot;
+    monitoringStabilityScore: number;
+    currentMonitoringInterval: number;
+    healthReviewAlarmArmed: boolean;
     config: Required<OrchestratorLoopOptions>;
   } {
     return {
@@ -1166,6 +1264,9 @@ export class OrchestratorLoop extends EventEmitter {
             },
           }
         : undefined,
+      monitoringStabilityScore: this.monitoringStabilityScore,
+      currentMonitoringInterval: this.currentMonitoringInterval,
+      healthReviewAlarmArmed: Boolean(this.healthReviewAlarm),
       config: this.options,
     };
   }
@@ -1208,8 +1309,11 @@ export class OrchestratorLoop extends EventEmitter {
     }
 
     this.mode = 'monitoring';
+    this.monitoringStabilityScore = 0;
+    this.currentMonitoringInterval = this.clampInterval(this.options.monitoringTickInterval);
     this.setCurrentTickInterval(this.options.monitoringTickInterval);
     this.nextTickOverride = this.options.monitoringTickInterval;
+    this.armHealthReviewAlarm();
 
     logInfo('No pending tasks detected; switching to monitoring cadence', {
       consecutiveIdleTicks: this.consecutiveIdleTicks,

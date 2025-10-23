@@ -67,6 +67,7 @@ def serialize_cv_result(cv_metrics: CrossValidationMetrics) -> Dict[str, Any]:
         "std_r2": convert_value(cv_metrics.std_r2),
         "mean_rmse": convert_value(cv_metrics.mean_rmse),
         "mean_mae": convert_value(cv_metrics.mean_mae),
+        "mean_revenue": convert_value(cv_metrics.mean_revenue),
         "fold_r2_scores": [float(x) for x in cv_metrics.fold_r2_scores],
         "fold_rmse_scores": [float(x) for x in cv_metrics.fold_rmse_scores],
         "fold_mae_scores": [float(x) for x in cv_metrics.fold_mae_scores],

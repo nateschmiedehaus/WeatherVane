@@ -187,16 +187,19 @@ class CrossValidationMetrics:
     mean_mae: float
     """Mean MAE across folds"""
 
-    weather_elasticity: Dict[str, List[float]]
+    mean_revenue: float = 0.0
+    """Mean revenue across the evaluation window (used for RMSE % checks)"""
+
+    weather_elasticity: Dict[str, List[float]] = field(default_factory=dict)
     """Weather elasticity per fold"""
 
-    channel_roas: Dict[str, List[float]]
+    channel_roas: Dict[str, List[float]] = field(default_factory=dict)
     """Channel ROAS per fold"""
 
-    num_folds: int
+    num_folds: int = 0
     """Number of folds used"""
 
-    feature_names: List[str]
+    feature_names: List[str] = field(default_factory=list)
     """Feature names used in model"""
 
     fold_details: List[Dict[str, Any]] = field(default_factory=list)
@@ -699,6 +702,7 @@ class WeatherAwareMMM:
             r2_fold = fold_model._compute_r2(y_test, y_pred_test)
             rmse_fold = fold_model._compute_rmse(y_test, y_pred_test)
             mae_fold = fold_model._compute_mae(y_test, y_pred_test)
+            mean_revenue_fold = float(np.mean(y_test)) if len(y_test) else 0.0
 
             fold_r2_scores.append(r2_fold)
             fold_rmse_scores.append(rmse_fold)
@@ -720,6 +724,7 @@ class WeatherAwareMMM:
                 "r2": r2_fold,
                 "rmse": rmse_fold,
                 "mae": mae_fold,
+                "mean_revenue": mean_revenue_fold,
             })
 
             _LOGGER.info(
@@ -731,6 +736,7 @@ class WeatherAwareMMM:
         std_r2 = float(np.std(fold_r2_scores))
         mean_rmse = float(np.mean(fold_rmse_scores))
         mean_mae = float(np.mean(fold_mae_scores))
+        overall_mean_revenue = float(np.mean(y)) if len(y) else 0.0
 
         _LOGGER.info(
             f"Cross-validation complete: "
@@ -747,6 +753,7 @@ class WeatherAwareMMM:
             std_r2=std_r2,
             mean_rmse=mean_rmse,
             mean_mae=mean_mae,
+            mean_revenue=overall_mean_revenue,
             weather_elasticity=fold_elasticity,
             channel_roas=fold_roas,
             num_folds=n_folds,

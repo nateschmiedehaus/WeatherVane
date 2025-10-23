@@ -297,7 +297,9 @@ export class WorkerToolRouter {
       "worker.verify",
       async (span) => {
         const parsed = verifyInputSchema.parse(params ?? {});
-        const include = new Set(parsed.include ?? ["operations", "resilience", "self_improvement"]);
+        const include = new Set(
+          parsed.include ?? ["operations", "resilience", "self_improvement", "holistic_review"],
+        );
         span?.setAttribute("verify.components", Array.from(include).join(","));
 
         const payload: Record<string, unknown> = {
@@ -320,6 +322,10 @@ export class WorkerToolRouter {
 
         if (include.has("autopilot")) {
           payload.autopilot = await this.session.getAutopilotState();
+        }
+
+        if (include.has("holistic_review")) {
+          payload.holistic_review = this.runtime.getHolisticReviewStatus();
         }
 
         return payload;

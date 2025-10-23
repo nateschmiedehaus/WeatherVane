@@ -1107,7 +1107,7 @@ epics:
               propose follow-up research tasks.
           - id: TEST-1
             title: Run build and verify no errors
-            status: pending
+            status: blocked
             dependencies: []
             exit_criteria: []
             domain: product

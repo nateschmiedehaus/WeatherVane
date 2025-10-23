@@ -27,6 +27,12 @@ export const LIVE_FLAG_KEYS = [
   'ADMIN_TOOLS',
   'UPGRADE_TOOLS',
   'ROUTING_TOOLS',
+  'HOLISTIC_REVIEW_ENABLED',
+  'HOLISTIC_REVIEW_MIN_TASKS',
+  'HOLISTIC_REVIEW_MAX_TASKS_TRACKED',
+  'HOLISTIC_REVIEW_GROUP_INTERVAL_MINUTES',
+  'HOLISTIC_REVIEW_GLOBAL_INTERVAL_MINUTES',
+  'HOLISTIC_REVIEW_GLOBAL_MIN_TASKS',
 ] as const;
 
 export type LiveFlagKey = (typeof LIVE_FLAG_KEYS)[number];
@@ -55,6 +61,12 @@ export const DEFAULT_LIVE_FLAGS: LiveFlagSnapshot = {
   ADMIN_TOOLS: '0',
   UPGRADE_TOOLS: '0',
   ROUTING_TOOLS: '0',
+  HOLISTIC_REVIEW_ENABLED: '1',
+  HOLISTIC_REVIEW_MIN_TASKS: '3',
+  HOLISTIC_REVIEW_MAX_TASKS_TRACKED: '6',
+  HOLISTIC_REVIEW_GROUP_INTERVAL_MINUTES: '45',
+  HOLISTIC_REVIEW_GLOBAL_INTERVAL_MINUTES: '90',
+  HOLISTIC_REVIEW_GLOBAL_MIN_TASKS: '6',
 };
 
 export function isLiveFlagKey(value: string): value is LiveFlagKey {
@@ -90,7 +102,27 @@ export function normalizeLiveFlagValue<K extends LiveFlagKey>(
     case 'ADMIN_TOOLS':
     case 'UPGRADE_TOOLS':
     case 'ROUTING_TOOLS':
+    case 'HOLISTIC_REVIEW_ENABLED':
       return (stringValue === '1' ? '1' : '0') as LiveFlagSnapshot[K];
+    case 'HOLISTIC_REVIEW_MIN_TASKS':
+    case 'HOLISTIC_REVIEW_MAX_TASKS_TRACKED':
+    case 'HOLISTIC_REVIEW_GLOBAL_MIN_TASKS': {
+      const numeric = Number.parseInt(stringValue, 10);
+      if (Number.isNaN(numeric) || numeric < 1) {
+        return DEFAULT_LIVE_FLAGS[key] as LiveFlagSnapshot[K];
+      }
+      const clamped = Math.min(50, numeric);
+      return clamped.toString() as LiveFlagSnapshot[K];
+    }
+    case 'HOLISTIC_REVIEW_GROUP_INTERVAL_MINUTES':
+    case 'HOLISTIC_REVIEW_GLOBAL_INTERVAL_MINUTES': {
+      const numeric = Number.parseInt(stringValue, 10);
+      if (Number.isNaN(numeric) || numeric < 1) {
+        return DEFAULT_LIVE_FLAGS[key] as LiveFlagSnapshot[K];
+      }
+      const clamped = Math.min(1440, numeric); // cap to 24 hours
+      return clamped.toString() as LiveFlagSnapshot[K];
+    }
     case 'RESEARCH_TRIGGER_SENSITIVITY': {
       const numeric = Number.parseFloat(stringValue);
       if (Number.isNaN(numeric)) {

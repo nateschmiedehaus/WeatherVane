@@ -132,6 +132,29 @@ if [ -f "$MAINTENANCE_SCRIPT" ] && [ "${WVO_SKIP_MAINTENANCE:-0}" != "1" ]; then
   bash "$MAINTENANCE_SCRIPT" || echo -e "${YELLOW}⚠️  Maintenance had issues, continuing...${NC}"
 fi
 
+# Check resource pressure and adjust agent count dynamically
+THROTTLE_SCRIPT="$SCRIPT_DIR/dynamic_throttle.sh"
+if [ -f "$THROTTLE_SCRIPT" ] && [ "${WVO_DISABLE_THROTTLE:-0}" != "1" ]; then
+  echo ""
+  echo "Checking system resources..."
+
+  if THROTTLE_JSON=$(bash "$THROTTLE_SCRIPT" 2>&1); then
+    RECOMMENDED_AGENTS=$(echo "$THROTTLE_JSON" | grep -o '"max_agents": [0-9]*' | awk '{print $2}')
+    THROTTLE_LEVEL=$(echo "$THROTTLE_JSON" | grep -o '"level": [0-9]*' | awk '{print $2}')
+    THROTTLE_NAME=$(echo "$THROTTLE_JSON" | grep -o '"name": "[^"]*"' | cut -d'"' -f4)
+
+    if [ -n "$RECOMMENDED_AGENTS" ] && [ "$RECOMMENDED_AGENTS" -lt "$AGENT_COUNT" ]; then
+      echo -e "${YELLOW}⚡ Resource pressure detected: $THROTTLE_NAME throttle (level $THROTTLE_LEVEL)${NC}"
+      echo "   Reducing agents from $AGENT_COUNT to $RECOMMENDED_AGENTS"
+      AGENT_COUNT=$RECOMMENDED_AGENTS
+    else
+      echo -e "${GREEN}✓ Resources normal, running with $AGENT_COUNT agents${NC}"
+    fi
+  else
+    echo -e "${YELLOW}⚠️  Resource check had issues, continuing with $AGENT_COUNT agents${NC}"
+  fi
+fi
+
 # Git handling mode (default: auto-commit operational files)
 GIT_HANDLER_MODE="${WVO_GIT_MODE:-auto}"
 
