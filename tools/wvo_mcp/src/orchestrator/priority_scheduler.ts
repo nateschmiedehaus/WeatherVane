@@ -1,6 +1,8 @@
 import type { Task } from './state_machine.js';
 import type { StateMachine } from './state_machine.js';
 import type { FeatureGatesReader } from './feature_gates.js';
+import { readFileSync, existsSync } from 'node:fs';
+import path from 'node:path';
 
 interface PriorityScore {
   score: number;
@@ -172,12 +174,69 @@ function applyWsjfWeighting(
   return Math.max(1, wsjfScore + jobsPerDay * 5);
 }
 
+/**
+ * Get active commands from commands.json
+ */
+function getActiveCommands(workspaceRoot?: string): any[] {
+  if (!workspaceRoot) {
+    return [];
+  }
+  const commandsPath = path.join(workspaceRoot, 'state', 'commands.json');
+  if (!existsSync(commandsPath)) {
+    return [];
+  }
+  try {
+    const commandData = JSON.parse(readFileSync(commandsPath, 'utf-8'));
+    return commandData.commands?.filter((c: any) => c.status === 'pending') || [];
+  } catch (error) {
+    console.error('[COMMAND] Error reading commands.json:', error);
+    return [];
+  }
+}
+
+/**
+ * Filter tasks based on active command instructions
+ */
+function filterTasksByCommands(tasks: Task[], commands: any[]): Task[] {
+  if (commands.length === 0) {
+    return tasks;
+  }
+
+  console.log('[COMMAND] Filtering tasks by commands:', commands);
+
+  let filteredTasks = tasks;
+  for (const command of commands) {
+    if (command.task_filter) {
+      filteredTasks = filteredTasks.filter(task =>
+        task.id.includes(command.task_filter) ||
+        (task.title || '').toLowerCase().includes(command.task_filter.toLowerCase())
+      );
+    }
+  }
+
+  console.log('[COMMAND] Filtered tasks:', {
+    before: tasks.length,
+    after: filteredTasks.length,
+    matchedIds: filteredTasks.slice(0, 10).map(t => t.id)
+  });
+
+  return filteredTasks.length > 0 ? filteredTasks : tasks;
+}
+
 export function rankTasks(
   tasks: Task[],
   stateMachine: StateMachine,
   featureGates?: FeatureGatesReader,
+  workspaceRoot?: string,
 ): Task[] {
-  return tasks
+  // CRITICAL: Check for commands FIRST - they have HIGHEST priority
+  const activeCommands = getActiveCommands(workspaceRoot);
+  console.log('[COMMAND] Active commands:', activeCommands);
+
+  // Filter by commands before ranking
+  const tasksToRank = filterTasksByCommands(tasks, activeCommands);
+
+  return tasksToRank
     .map(task => {
       const { score, reasons } = calculatePriority(task, stateMachine, featureGates);
       return { task, score, reasons };

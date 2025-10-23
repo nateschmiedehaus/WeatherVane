@@ -992,7 +992,7 @@ export class UnifiedOrchestrator extends EventEmitter {
       });
 
       // Add to queue (up to needed amount)
-      const prioritizedTasks = rankTasks(readyTasks, this.stateMachine, this.featureGates);
+      const prioritizedTasks = rankTasks(readyTasks, this.stateMachine, this.featureGates, this.config.workspaceRoot);
       const tasksToAdd = prioritizedTasks.slice(0, needed);
 
       logInfo('ADDING TASKS TO QUEUE', {
