@@ -19,7 +19,7 @@ function canonicalizeForHash(
     return null;
   }
   if (valueType === "bigint") {
-    return value.toString();
+    return (value as bigint).toString();
   }
   if (valueType === "number") {
     if (!Number.isFinite(value as number)) {

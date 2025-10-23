@@ -102,6 +102,26 @@ describe("IdempotencyStore", () => {
       expect(key1).not.toBe(key2);
     });
 
+    it("should be stable regardless of object property order", () => {
+      const input1 = { a: 1, b: 2, c: { x: true, y: false } };
+      const input2 = { c: { y: false, x: true }, b: 2, a: 1 };
+
+      const key1 = store.generateKey("fs_write", input1);
+      const key2 = store.generateKey("fs_write", input2);
+
+      expect(key1).toBe(key2);
+    });
+
+    it("should treat undefined object properties as absent", () => {
+      const withUndefined = { a: 1, b: undefined };
+      const withoutProperty = { a: 1 };
+
+      const keyWithUndefined = store.generateKey("context_write", withUndefined);
+      const keyWithoutProperty = store.generateKey("context_write", withoutProperty);
+
+      expect(keyWithUndefined).toBe(keyWithoutProperty);
+    });
+
     it("should generate different keys for different tool names", () => {
       const input = { path: "/test.txt", content: "hello" };
 

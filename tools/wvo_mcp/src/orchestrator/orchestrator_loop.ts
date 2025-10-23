@@ -16,10 +16,9 @@
  */
 
 import { PolicyEngine, type OrchestratorAction } from './policy_engine.js';
-import type { StateMachine } from './state_machine.js';
-import type { TaskScheduler } from './task_scheduler.js';
+import type { StateMachine, Task, RoadmapHealth } from './state_machine.js';
+import type { TaskScheduler, QueueMetrics } from './task_scheduler.js';
 import type { QualityMonitor } from './quality_monitor.js';
-import type { Task } from './state_machine.js';
 import { logInfo, logWarning, logError } from '../telemetry/logger.js';
 import { EventEmitter } from 'node:events';
 
@@ -58,8 +57,24 @@ export interface OrchestratorLoopOptions {
   tickInterval?: number;
 
   /**
-   * Maximum consecutive idle ticks (no pending tasks) before the orchestrator stops itself.
-   * Prevents looping forever when the roadmap has no runnable work.
+   * Minimum tick interval in milliseconds (clamped lower bound for adaptive scheduling)
+   */
+  minTickInterval?: number;
+
+  /**
+   * Maximum tick interval in milliseconds (upper bound for adaptive scheduling)
+   */
+  maxTickInterval?: number;
+
+  /**
+   * Interval to use when the orchestrator is in background monitoring mode.
+   * Defaults to the greater of tickInterval * 4 or healthCheckInterval, capped at maxTickInterval.
+   */
+  monitoringTickInterval?: number;
+
+  /**
+   * Maximum consecutive idle ticks (no pending tasks) before the orchestrator enters
+   * background monitoring mode. Prevents loop churn while keeping periodic health checks alive.
    */
   maxIdleTicksBeforeStop?: number;
 
@@ -77,6 +92,16 @@ export interface OrchestratorLoopOptions {
    * Enable telemetry events
    */
   enableTelemetry?: boolean;
+
+  /**
+   * Interval between mandatory health reviews (ms). Ensures periodic audits even when idle.
+   */
+  healthCheckInterval?: number;
+
+  /**
+   * Debounce window for external wake-up signals (ms). Prevents storm of nudges.
+   */
+  immediateSignalDebounceMs?: number;
 }
 
 /**
@@ -100,6 +125,22 @@ export class OrchestratorLoop extends EventEmitter {
   private consecutiveIdleTicks = 0;
   private currentTickInterval: number;
   private lastIdleReason: string | null = null;
+  private tickRunning = false;
+  private nextTickOverride?: number;
+  private mode: 'active' | 'monitoring' = 'active';
+  private lastHealthReview = 0;
+  private lastActivityAt = Date.now();
+  private lastImmediateSignal = 0;
+  private lastHealthSummary?: {
+    timestamp: number;
+    issues: string[];
+    health: RoadmapHealth;
+    queue: QueueMetrics;
+  };
+  private readonly boundTaskCreated = () => this.requestImmediateTick('task_created');
+  private readonly boundTaskTransition = () => this.requestImmediateTick('task_transition');
+  private readonly boundQueueUpdated = () => this.requestImmediateTick('queue_update');
+  private readonly boundQualityEvaluated = () => this.requestImmediateTick('quality_signal');
 
   constructor(
     private readonly stateMachine: StateMachine,
@@ -108,18 +149,39 @@ export class OrchestratorLoop extends EventEmitter {
     options: OrchestratorLoopOptions = {}
   ) {
     super();
+    const baseTickInterval = options.tickInterval ?? 30000; // 30 seconds
+    const minTickInterval = options.minTickInterval ?? Math.min(5000, baseTickInterval);
+    const maxTickInterval = options.maxTickInterval ?? 300000; // 5 minutes cap
+    const healthCheckInterval = options.healthCheckInterval ?? 300000; // 5 minutes
+    const monitoringTickInterval =
+      options.monitoringTickInterval ??
+      Math.min(maxTickInterval, Math.max(baseTickInterval * 4, healthCheckInterval));
+    const immediateSignalDebounceMs = options.immediateSignalDebounceMs ?? 1500;
+
     this.policy = new PolicyEngine(stateMachine, {
       dryRun: options.dryRun,
     });
     this.options = {
       dryRun: options.dryRun ?? false,
-      tickInterval: options.tickInterval ?? 30000, // 30 seconds
+      tickInterval: baseTickInterval,
+      minTickInterval,
+      maxTickInterval,
+      monitoringTickInterval,
       maxIdleTicksBeforeStop: options.maxIdleTicksBeforeStop ?? 8,
       maxErrors: options.maxErrors ?? 5,
-      errorWindow: options.errorWindow ?? 300000, // 5 minutes
+      errorWindow: options.errorWindow ?? 300000,
       enableTelemetry: options.enableTelemetry ?? true,
+      healthCheckInterval,
+      immediateSignalDebounceMs,
     };
-    this.currentTickInterval = this.options.tickInterval;
+    this.currentTickInterval = this.clampInterval(this.options.tickInterval);
+    this.lastHealthReview = Date.now();
+    this.lastActivityAt = Date.now();
+
+    this.stateMachine.on('task:created', this.boundTaskCreated);
+    this.stateMachine.on('task:transition', this.boundTaskTransition);
+    this.scheduler.on('queue:updated', this.boundQueueUpdated);
+    this.qualityMonitor.on('quality:evaluated', this.boundQualityEvaluated);
   }
 
   /**
@@ -141,8 +203,20 @@ export class OrchestratorLoop extends EventEmitter {
     this.errorCount = 0;
     this.lastErrors = [];
     this.consecutiveIdleTicks = 0;
-    this.currentTickInterval = this.options.tickInterval;
+    this.currentTickInterval = this.clampInterval(this.options.tickInterval);
     this.lastIdleReason = null;
+    this.tickRunning = false;
+    this.nextTickOverride = undefined;
+    this.mode = 'active';
+    this.lastHealthReview = Date.now();
+    this.lastActivityAt = Date.now();
+    this.lastImmediateSignal = 0;
+    this.lastHealthSummary = undefined;
+
+    if (this.tickTimer) {
+      clearTimeout(this.tickTimer);
+      this.tickTimer = undefined;
+    }
 
     // Start the main loop
     this.scheduleTick();
@@ -162,6 +236,8 @@ export class OrchestratorLoop extends EventEmitter {
     });
 
     this.running = false;
+    this.tickRunning = false;
+    this.nextTickOverride = undefined;
     if (this.tickTimer) {
       clearTimeout(this.tickTimer);
       this.tickTimer = undefined;
@@ -183,12 +259,15 @@ export class OrchestratorLoop extends EventEmitter {
   async tick(): Promise<ExecutionResult> {
     const startTime = Date.now();
     this.tickCount++;
+    this.tickRunning = true;
 
     this.emitEvent({
       timestamp: startTime,
       type: 'tick',
       data: { tickNumber: this.tickCount },
     });
+
+    await this.runHealthReviewIfDue(startTime);
 
     try {
       // 1. Get current system state
@@ -227,18 +306,27 @@ export class OrchestratorLoop extends EventEmitter {
         if (idleReason) {
           this.lastIdleReason = idleReason;
         }
+        if (this.consecutiveIdleTicks <= 1) {
+          this.setCurrentTickInterval(this.options.tickInterval);
+        } else {
+          const backoffMultiplier = Math.pow(2, this.consecutiveIdleTicks - 1);
+          const backoffInterval = this.options.tickInterval * backoffMultiplier;
+          this.setCurrentTickInterval(backoffInterval);
+        }
+
+        if (
+          this.lastIdleReason === 'no_pending_tasks' &&
+          this.consecutiveIdleTicks >= this.options.maxIdleTicksBeforeStop
+        ) {
+          this.enterMonitoringMode(this.lastIdleReason, decision);
+        }
       } else {
         // Active work - reset idle counter
         this.consecutiveIdleTicks = 0;
-        this.currentTickInterval = this.options.tickInterval;
+        this.mode = 'active';
+        this.setCurrentTickInterval(this.options.tickInterval);
         this.lastIdleReason = null;
-      }
-
-      if (
-        this.lastIdleReason === 'no_pending_tasks' &&
-        this.consecutiveIdleTicks >= this.options.maxIdleTicksBeforeStop
-      ) {
-        await this.enterSleepMode(this.lastIdleReason, decision);
+        this.lastActivityAt = Date.now();
       }
 
       return result;
@@ -257,6 +345,7 @@ export class OrchestratorLoop extends EventEmitter {
       if (this.running) {
         this.scheduleTick();
       }
+      this.tickRunning = false;
     }
   }
 
@@ -402,53 +491,34 @@ export class OrchestratorLoop extends EventEmitter {
     return new Promise(resolve => setTimeout(resolve, ms));
   }
 
-  /**
-   * Schedule the next tick with intelligent backoff
-   *
-   * Strategy:
-   * - Active work: Use base interval (30s)
-   * - 1 idle tick: 30s (give work a chance to arrive)
-   * - 2 idle ticks: 1 minute
-   * - 3 idle ticks: 2 minutes
-   * - 4+ idle ticks: 5 minutes (max backoff)
-   *
-   * This prevents burning CPU when no work is available while still
-   * being responsive when work appears.
-   */
   private scheduleTick(): void {
     if (!this.running) {
       return;
     }
 
-    if (
-      this.lastIdleReason === 'no_pending_tasks' &&
-      this.consecutiveIdleTicks >= this.options.maxIdleTicksBeforeStop
-    ) {
-      return;
+    const delay = this.determineNextTickDelay();
+    const modeSnapshot = this.mode;
+
+    if (this.tickTimer) {
+      clearTimeout(this.tickTimer);
     }
 
-    // Calculate backoff interval
-    if (this.consecutiveIdleTicks <= 1) {
-      // First idle tick - keep base interval
-      this.currentTickInterval = this.options.tickInterval;
-    } else {
-      // Exponential backoff: 30s → 1m → 2m → 5m (max)
-      const backoffMultiplier = Math.pow(2, this.consecutiveIdleTicks - 1);
-      const backoffInterval = this.options.tickInterval * backoffMultiplier;
-      const maxInterval = 300000; // 5 minutes cap
-      this.currentTickInterval = Math.min(backoffInterval, maxInterval);
-    }
-
-    if (this.consecutiveIdleTicks >= 2) {
-      logInfo(`Orchestrator idle (${this.consecutiveIdleTicks} ticks), backing off to ${Math.round(this.currentTickInterval / 1000)}s`, {
+    if (modeSnapshot === 'monitoring') {
+      logInfo('Orchestrator monitoring cadence', {
+        nextTickMs: delay,
+        lastIdleReason: this.lastIdleReason,
+      });
+    } else if (this.consecutiveIdleTicks >= 2 && delay > this.options.tickInterval) {
+      logInfo(`Orchestrator idle (${this.consecutiveIdleTicks} ticks), backing off to ${Math.round(delay / 1000)}s`, {
         consecutiveIdle: this.consecutiveIdleTicks,
-        nextTickMs: this.currentTickInterval,
+        nextTickMs: delay,
       });
     }
 
     this.tickTimer = setTimeout(() => {
+      this.tickTimer = undefined;
       void this.tick();
-    }, this.currentTickInterval);
+    }, delay);
   }
 
   /**

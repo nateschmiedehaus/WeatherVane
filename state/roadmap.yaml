@@ -2899,7 +2899,7 @@ epics:
             domain: mcp
           - id: T9.2.2
             title: "Idempotency keys for mutating tools (SAFE: caching layer)"
-            status: in_progress
+            status: blocked
             dependencies: []
             exit_criteria:
               - Idempotency cache operational
