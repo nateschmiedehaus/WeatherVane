@@ -824,6 +824,10 @@ export class OrchestratorLoop extends EventEmitter {
     consecutiveIdleTicks: number;
     currentTickInterval: number;
     lastIdleReason: string | null;
+    mode: 'active' | 'monitoring';
+    lastHealthReview: number;
+    lastActivityAt: number;
+    lastHealthSummary?: HealthSummarySnapshot;
     config: Required<OrchestratorLoopOptions>;
   } {
     return {
@@ -834,6 +838,26 @@ export class OrchestratorLoop extends EventEmitter {
       consecutiveIdleTicks: this.consecutiveIdleTicks,
       currentTickInterval: this.currentTickInterval,
       lastIdleReason: this.lastIdleReason,
+      mode: this.mode,
+      lastHealthReview: this.lastHealthReview,
+      lastActivityAt: this.lastActivityAt,
+      lastHealthSummary: this.lastHealthSummary
+        ? {
+            timestamp: this.lastHealthSummary.timestamp,
+            issues: [...this.lastHealthSummary.issues],
+            health: { ...this.lastHealthSummary.health },
+            queue: {
+              ...this.lastHealthSummary.queue,
+              reasonCounts: { ...this.lastHealthSummary.queue.reasonCounts },
+              heads: {
+                requires_review: [...this.lastHealthSummary.queue.heads.requires_review],
+                requires_follow_up: [...this.lastHealthSummary.queue.heads.requires_follow_up],
+                dependencies_cleared: [...this.lastHealthSummary.queue.heads.dependencies_cleared],
+              },
+              resource: { ...this.lastHealthSummary.queue.resource },
+            },
+          }
+        : undefined,
       config: this.options,
     };
   }

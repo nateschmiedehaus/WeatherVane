@@ -1,19 +1,28 @@
 {
   "version": "1.0",
   "startedAt": "2025-10-22T21:44:01.878Z",
-  "lastUpdatedAt": "2025-10-23T13:20:00.519Z",
-  "totalTasks": 52,
-  "totalCostActual": 3.1319999999999997,
-  "totalCostBaseline": 3.900000000000004,
-  "totalSavings": 0.7680000000000042,
-  "savingsPercent": 19.692307692307782,
+  "lastUpdatedAt": "2025-10-23T13:21:50.817Z",
+  "totalTasks": 53,
+  "totalCostActual": 3.1355999999999997,
+  "totalCostBaseline": 3.975000000000004,
+  "totalSavings": 0.8394000000000044,
+  "savingsPercent": 21.11698113207556,
   "tierDistribution": {
-    "haiku": 26,
+    "haiku": 27,
     "sonnet-3.5": 10,
     "sonnet-4.5": 9,
     "sonnet-4.5-reasoning": 0
   },
   "recentTasks": [
+    {
+      "taskId": "T9.2.2",
+      "timestamp": "2025-10-23T13:21:50.817Z",
+      "tier": "haiku",
+      "complexity": 2,
+      "costActual": 0.0036000000000000003,
+      "costBaseline": 0.075,
+      "savings": 0.07139999999999999
+    },
     {
       "taskId": "T9.2.2",
       "timestamp": "2025-10-23T13:20:00.519Z",
