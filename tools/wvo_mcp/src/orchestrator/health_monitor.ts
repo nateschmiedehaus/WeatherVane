@@ -9,7 +9,6 @@ import { exec } from 'child_process';
 import { promisify } from 'util';
 import { ErrorDetector, type ErrorSignal } from './error_detector.js';
 import { logInfo, logWarning, logError } from '../telemetry/logger.js';
-import type { WorkspaceSession } from '../worker/session.js';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 
@@ -53,10 +52,10 @@ export class HealthMonitor {
   private lastCheckResult: HealthCheckResult | null = null;
 
   constructor(
-    private readonly session: WorkspaceSession,
+    private readonly workspaceRoot: string,
     config: Partial<HealthMonitorConfig> = {}
   ) {
-    this.detector = new ErrorDetector(session);
+    this.detector = new ErrorDetector(workspaceRoot);
     this.config = { ...DEFAULT_CONFIG, ...config };
   }
 
@@ -179,7 +178,7 @@ export class HealthMonitor {
   private async checkBuild(): Promise<{ passed: boolean; errors?: ErrorSignal[] }> {
     try {
       const { stdout, stderr } = await execAsync('npm run build', {
-        cwd: this.session.workspaceRoot,
+        cwd: this.workspaceRoot,
         timeout: 120000, // 2 minute timeout
       });
 
@@ -209,7 +208,7 @@ export class HealthMonitor {
   }> {
     try {
       const { stdout, stderr } = await execAsync('npm test', {
-        cwd: this.session.workspaceRoot,
+        cwd: this.workspaceRoot,
         timeout: 300000, // 5 minute timeout
       });
 
@@ -240,7 +239,7 @@ export class HealthMonitor {
   }> {
     try {
       const { stdout } = await execAsync('npm audit --json', {
-        cwd: this.session.workspaceRoot,
+        cwd: this.workspaceRoot,
       });
 
       const auditData = JSON.parse(stdout);
@@ -274,13 +273,20 @@ export class HealthMonitor {
     const errors: ErrorSignal[] = [];
 
     // Check for crash logs in last 5 minutes
-    const logPath = path.join(this.session.workspaceRoot, 'state', 'telemetry');
+    const logPath = path.join(this.workspaceRoot, 'state', 'telemetry');
     try {
       const files = await fs.readdir(logPath);
-      const recentLogs = files.filter(f =>
-        f.endsWith('.log') &&
-        Date.now() - fs.stat(path.join(logPath, f)).then(s => s.mtimeMs) < 5 * 60 * 1000
-      );
+      const fiveMinutesAgo = Date.now() - 5 * 60 * 1000;
+
+      const recentLogPromises = files
+        .filter(f => f.endsWith('.log'))
+        .map(async f => {
+          const stats = await fs.stat(path.join(logPath, f));
+          return stats.mtimeMs > fiveMinutesAgo ? f : null;
+        });
+
+      const recentLogResults = await Promise.all(recentLogPromises);
+      const recentLogs = recentLogResults.filter((f): f is string => f !== null);
 
       for (const logFile of recentLogs) {
         const content = await fs.readFile(path.join(logPath, logFile), 'utf-8');
@@ -376,7 +382,7 @@ export class HealthMonitor {
 
     // Write escalation to state for human review
     const escalationPath = path.join(
-      this.session.workspaceRoot,
+      this.workspaceRoot,
       'state',
       'escalations',
       `health-escalation-${Date.now()}.json`
@@ -390,7 +396,7 @@ export class HealthMonitor {
 
   private async persistHealthCheck(result: HealthCheckResult): Promise<void> {
     const healthPath = path.join(
-      this.session.workspaceRoot,
+      this.workspaceRoot,
       'state',
       'analytics',
       'health_checks.jsonl'

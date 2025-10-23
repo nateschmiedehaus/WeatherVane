@@ -6,7 +6,6 @@
  */
 
 import { logError, logWarning, logInfo } from '../telemetry/logger.js';
-import type { WorkspaceSession } from '../worker/session.js';
 
 export interface ErrorSignal {
   type: 'build' | 'test' | 'runtime' | 'audit' | 'lint';
@@ -36,7 +35,7 @@ export class ErrorDetector {
   private errorHistory: ErrorSignal[] = [];
   private readonly MAX_HISTORY = 100;
 
-  constructor(private readonly session: WorkspaceSession) {}
+  constructor(private readonly workspaceRoot: string) {}
 
   /**
    * Analyze build output for errors
