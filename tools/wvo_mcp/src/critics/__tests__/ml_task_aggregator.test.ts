@@ -16,6 +16,7 @@ import { MLTaskAggregator } from "../ml_task_aggregator.js";
 import type {
   MLTaskCompletionReport,
   AggregatedMLTasksReport,
+  MLTaskSummary,
 } from "../ml_task_aggregator.js";
 
 describe("MLTaskAggregator", () => {
@@ -374,6 +375,74 @@ Only 2/7 dimensions covered
 
       // Should have analyzed tasks
       expect(report.total_tasks_analyzed).toBeGreaterThanOrEqual(0);
+    });
+
+    it("should classify tasks using status and report quality signals", async () => {
+      const docsDir = path.join(testWorkspace, "docs");
+      await fs.mkdir(docsDir, { recursive: true });
+
+      await fs.writeFile(
+        path.join(docsDir, "TASK_SUCCESS_COMPLETION_REPORT.md"),
+        `
+# Task TASK_SUCCESS Completion
+
+## Tests
+✅ All 42 tests passed
+        `,
+      );
+
+      await fs.writeFile(
+        path.join(docsDir, "TASK_FAIL_COMPLETION_REPORT.md"),
+        `
+# Task TASK_FAIL Completion
+
+## Tests
+❌ Tests failed - 5 failures
+        `,
+      );
+
+      const mockTasks: MLTaskSummary[] = [
+        {
+          id: "TASK_SUCCESS",
+          title: "Successful Task",
+          status: "done",
+          completion_path: "docs/TASK_SUCCESS_COMPLETION_REPORT.md",
+        },
+        {
+          id: "TASK_FAIL",
+          title: "Failed Task",
+          status: "done",
+          completion_path: "docs/TASK_FAIL_COMPLETION_REPORT.md",
+        },
+        {
+          id: "TASK_PROGRESS",
+          title: "In Progress Task",
+          status: "in_progress",
+          completion_path: "docs/TASK_PROGRESS_COMPLETION_REPORT.md",
+        },
+        {
+          id: "TASK_NO_REPORT",
+          title: "Legacy Task",
+          status: "done",
+          completion_path: "docs/TASK_NO_REPORT_COMPLETION_REPORT.md",
+        },
+      ];
+
+      const taskSpy = vi
+        .spyOn(aggregator, "getCompletedMLTasks")
+        .mockResolvedValue(mockTasks);
+
+      try {
+        const report = await aggregator.generateAggregatedReport();
+
+        expect(report.total_tasks_analyzed).toBe(4);
+        expect(report.completed_tasks).toBe(2);
+        expect(report.in_progress_tasks).toBe(1);
+        expect(report.failed_tasks).toBe(1);
+        expect(report.average_completion_rate).toBeCloseTo(50);
+      } finally {
+        taskSpy.mockRestore();
+      }
     });
   });
 

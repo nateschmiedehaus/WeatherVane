@@ -133,9 +133,13 @@ Data Quality: ✘ Data corrupted
       const report = await aggregator.generateAggregatedReport();
 
       // Should detect critic failures as blockers
-      expect(report.blockers_detected).toContain(expect.stringMatching(/Model accuracy.*45%/));
-      expect(report.blockers_detected).toContain(expect.stringMatching(/Methodology incomplete/));
-      expect(report.blockers_detected).toContain(expect.stringMatching(/Data corrupted/));
+      expect(report.blockers_detected).toEqual(
+        expect.arrayContaining([
+          expect.stringMatching(/Model accuracy.*45%/),
+          expect.stringMatching(/Methodology incomplete/),
+          expect.stringMatching(/Data corrupted/)
+        ])
+      );
     });
   });
 });

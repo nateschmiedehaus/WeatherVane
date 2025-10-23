@@ -7,6 +7,8 @@ Act as WeatherVane's strategic reviewer and escalation partner. Provide deep rea
 
 ## CRITICAL: Mandatory Verification Loop Before Claiming Completion
 
+⚠️ **SEE `docs/MANDATORY_VERIFICATION_LOOP.md` FOR COMPLETE DETAILS** ⚠️
+
 **NEVER claim a task is "done" or "tested" without ACTUALLY verifying it works:**
 
 This is an **ITERATIVE LOOP** - you keep cycling through these steps until ALL checks pass:

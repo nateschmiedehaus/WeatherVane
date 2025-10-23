@@ -194,7 +194,7 @@ export class MLTaskMetaCriticCritic extends Critic {
     const recommendations: string[] = [];
 
     // Low completion rate
-    if (report.average_completion_rate < 0.7) {
+    if (report.average_completion_rate < 70) {
       recommendations.push(
         "URGENT: Investigate root causes of low completion rate. Consider process changes or resource allocation."
       );
@@ -244,10 +244,7 @@ export class MLTaskMetaCriticCritic extends Critic {
     }
 
     // Training recommendations
-    if (
-      report.tasks.length > 5 &&
-      report.average_completion_rate < 0.8
-    ) {
+    if (report.tasks.length > 5 && report.average_completion_rate < 80) {
       recommendations.push(
         "Consider team training on task completion methodology and quality standards"
       );
@@ -264,7 +261,7 @@ export class MLTaskMetaCriticCritic extends Critic {
     insights: string[]
   ): boolean {
     // Escalate if completion rate is critical
-    if (report.average_completion_rate < 0.6) {
+    if (report.average_completion_rate < 60) {
       return true;
     }
 

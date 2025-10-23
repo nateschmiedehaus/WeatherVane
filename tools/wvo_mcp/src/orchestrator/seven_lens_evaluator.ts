@@ -148,6 +148,10 @@ export class SevenLensEvaluator {
       score += 20; // Good, but not as critical as PoC validation
     }
 
+    if (!isPoCValidation && !isRevenueCritical) {
+      concerns.push('Task does not clearly articulate revenue impact');
+    }
+
     // Check if blocks other high-priority work
     const blockingKeywords = ['blocker', 'blocks', 'prerequisite', 'critical path'];
     const isBlocking = blockingKeywords.some(kw => text.includes(kw));

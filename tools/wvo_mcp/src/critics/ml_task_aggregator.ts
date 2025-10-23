@@ -153,9 +153,10 @@ export class MLTaskAggregator {
     const tasks = await this.getCompletedMLTasks();
     const reports: MLTaskCompletionReport[] = [];
 
-    let completed = 0;
-    let inProgress = 0;
-    let failed = 0;
+    let completedCount = 0;
+    let inProgressCount = 0;
+    let failedCount = 0;
+    let successSignals = 0;
 
     for (const task of tasks) {
       const report = await this.analyzeCompletedTask(
@@ -165,34 +166,71 @@ export class MLTaskAggregator {
       if (report) {
         reports.push(report);
         if (report.tests_passed) {
-          completed++;
+          successSignals++;
         }
       }
 
-      // Track status for metrics
-      if (task.status === "done") {
-        completed++;
-      } else if (task.status === "in_progress") {
-        inProgress++;
+      const classification = this.classifyTaskStatus(task, report);
+      if (classification === "completed") {
+        completedCount++;
+        if (!report) {
+          successSignals++;
+        }
+      } else if (classification === "in_progress") {
+        inProgressCount++;
       } else {
-        failed++;
+        failedCount++;
       }
+
     }
 
     const completionRate =
-      tasks.length > 0 ? (completed / tasks.length) * 100 : 0;
+      tasks.length > 0 ? (successSignals / tasks.length) * 100 : 0;
 
     return {
       total_tasks_analyzed: tasks.length,
-      completed_tasks: completed,
-      in_progress_tasks: inProgress,
-      failed_tasks: failed,
+      completed_tasks: completedCount,
+      in_progress_tasks: inProgressCount,
+      failed_tasks: failedCount,
       average_completion_rate: completionRate,
       tasks: reports,
       analysis_timestamp: Date.now(),
       blockers_detected: this.detectBlockers(reports),
       patterns_observed: this.observePatterns(reports),
     };
+  }
+
+  /**
+   * Classify a task's status using both recorded status and report quality signals.
+   */
+  private classifyTaskStatus(
+    task: MLTaskSummary,
+    report?: MLTaskCompletionReport | null
+  ): "completed" | "in_progress" | "failed" {
+    if (report?.tests_passed === true) {
+      return "completed";
+    }
+
+    if (report?.tests_passed === false) {
+      return "failed";
+    }
+
+    const status = (task.status ?? "").toLowerCase();
+
+    if (/(in[\s_-]?progress|active|working|running|ongoing)/.test(status)) {
+      return "in_progress";
+    }
+
+    if (/(done|completed|complete|success|shipped|closed)/.test(status)) {
+      return "completed";
+    }
+
+    if (/(fail|blocked|error|abandon|cancel|halt|stuck|invalid)/.test(status)) {
+      return "failed";
+    }
+
+    // Default to failed when we lack sufficient signals to classify positively.
+    return "failed";
   }
 
   /**

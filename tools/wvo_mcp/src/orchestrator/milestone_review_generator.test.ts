@@ -6,7 +6,7 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { MilestoneReviewGenerator } from './milestone_review_generator.js';
-import { mkdtempSync, writeFileSync, rmSync } from 'fs';
+import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'fs';
 import { join } from 'path';
 import { tmpdir } from 'os';
 import * as yaml from 'js-yaml';
@@ -19,10 +19,9 @@ describe('MilestoneReviewGenerator', () => {
   beforeEach(() => {
     // Create temporary directory for testing
     tempDir = mkdtempSync(join(tmpdir(), 'milestone-test-'));
-    roadmapPath = join(tempDir, 'state', 'roadmap.yaml');
-
-    // Create state directory
-    mkdtempSync(join(tempDir, 'state'));
+    const stateDir = join(tempDir, 'state');
+    mkdirSync(stateDir, { recursive: true });
+    roadmapPath = join(stateDir, 'roadmap.yaml');
 
     generator = new MilestoneReviewGenerator(tempDir);
   });

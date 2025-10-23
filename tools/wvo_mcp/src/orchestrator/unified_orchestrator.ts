@@ -47,6 +47,12 @@ import {
   strictValidateOutput,
   type OutputValidationSettings,
 } from '../utils/output_validator.js';
+import {
+  getNextBackgroundTask,
+  executeBackgroundTask,
+  getBackgroundTaskAsTask,
+  type OrchestratorBackgroundContext,
+} from './orchestrator_background_tasks.js';
 
 export type Provider = 'codex' | 'claude';
 export type AgentRole = 'orchestrator' | 'worker' | 'critic' | 'architecture_planner' | 'architecture_reviewer';
@@ -1113,6 +1119,12 @@ export class UnifiedOrchestrator extends EventEmitter {
   }
 
   private async handleIdleWorkers(): Promise<void> {
+    // CRITICAL: Orchestrator should NEVER be idle
+    // When no high-priority tasks available, assign background work
+    if (this.orchestrator && this.orchestrator.status !== 'busy') {
+      await this.assignOrchestratorBackgroundTask();
+    }
+
     const idleWorkers = [
       ...this.workers.filter(worker => worker.status !== 'busy'),
       ...(this.architecturePlanner && this.architecturePlanner.status !== 'busy' ? [this.architecturePlanner] : []),
@@ -1132,6 +1144,73 @@ export class UnifiedOrchestrator extends EventEmitter {
 
     if (this.taskQueue.length === 0) {
       await this.prefetchTasks();
+    }
+  }
+
+  /**
+   * Assign orchestrator a background task
+   * Orchestrator should NEVER be idle - always doing valuable work
+   */
+  private async assignOrchestratorBackgroundTask(): Promise<void> {
+    if (!this.orchestrator) {
+      return;
+    }
+
+    // Get next background task based on priority and time since last run
+    const taskType = getNextBackgroundTask();
+    const syntheticTask = getBackgroundTaskAsTask(taskType);
+
+    logInfo('Assigning orchestrator background task', {
+      taskType,
+      taskId: syntheticTask.id,
+      taskTitle: syntheticTask.title,
+    });
+
+    // Update orchestrator status
+    this.orchestrator.status = 'busy';
+    this.orchestrator.currentTask = syntheticTask.id;
+    this.orchestrator.currentTaskTitle = syntheticTask.title;
+
+    // Execute background task
+    const context: OrchestratorBackgroundContext = {
+      stateMachine: this.stateMachine,
+      workspaceRoot: this.config.workspaceRoot,
+    };
+
+    try {
+      const result = await executeBackgroundTask(taskType, context);
+
+      // Log findings and actions for visibility
+      if (result.findings.length > 0) {
+        logInfo('Background task findings', {
+          taskType,
+          findings: result.findings,
+        });
+      }
+
+      if (result.actions.length > 0) {
+        logInfo('Background task recommendations', {
+          taskType,
+          actions: result.actions,
+        });
+      }
+
+      logDebug('Background task complete', {
+        taskType,
+        duration: result.duration,
+        findingsCount: result.findings.length,
+        actionsCount: result.actions.length,
+      });
+    } catch (error) {
+      logError('Background task execution failed', {
+        taskType,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    } finally {
+      // Clear orchestrator task
+      this.orchestrator.status = 'idle';
+      this.orchestrator.currentTask = undefined;
+      this.orchestrator.currentTaskTitle = undefined;
     }
   }
 

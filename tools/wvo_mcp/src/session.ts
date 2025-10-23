@@ -35,6 +35,7 @@ import { DemoConversionCritic } from "./critics/demo_conversion.js";
 import { IntegrationCompletenessCritic } from "./critics/integration_completeness.js";
 import { ModelingRealityCritic, ModelingRealityV2OrchestratorCritic } from "./critics/modeling_reality.js";
 import { MetaCritiqueCritic } from "./critics/meta_critique.js";
+import { MLTaskMetaCriticCritic } from "./critics/ml_task_meta_critic.js";
 import { ModelingDataWatchCritic } from "./critics/modeling_data_watch.js";
 import { runCommand } from "./executor/command_runner.js";
 import { readFile, writeFile } from "./executor/file_ops.js";
@@ -111,6 +112,7 @@ const CRITIC_REGISTRY = {
   modeling_reality_v2: ModelingRealityV2OrchestratorCritic,
   modeling_data_watch: ModelingDataWatchCritic,
   meta_critique: MetaCritiqueCritic,
+  ml_task_meta: MLTaskMetaCriticCritic,
 } as const;
 
 export type CriticKey = keyof typeof CRITIC_REGISTRY;
