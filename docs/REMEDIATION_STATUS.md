@@ -69,6 +69,7 @@
 3. Does decision log show REAL decisions (not demos)?
 4. Are they catching issues or passing everything?
 5. **Is post-task verification running?** (Only see pre-task in logs)
+6. **CRITICAL: Are quality gates using genius-level domain thinking or just checkboxes?**
 
 **Actions**:
 - Verify test coverage
@@ -76,6 +77,8 @@
 - Confirm post-task verification executes
 - Test with bad code (must REJECT)
 - Test with good code (must APPROVE)
+- **CRITICAL: Implement multi-domain genius-level reviews (see INTELLIGENCE_AUDIT_REQUIREMENTS.md)**
+- ✅ Fixed adversarial detector regex bug (documentation-code mismatch detection)
 
 #### Plus Existing Remediation Tasks
 - REMEDIATION-T2.2.1-GAM-BASELINE (missing implementation)
