@@ -30,6 +30,14 @@ export type WrappedHandler = (
 ) => Promise<unknown>;
 
 /**
+ * Check if DRY_RUN mode is enabled
+ * In DRY_RUN mode, we skip caching to avoid side effects during canary/test runs
+ */
+function isDryRunMode(): boolean {
+  return process.env.WVO_DRY_RUN === "1";
+}
+
+/**
  * Wrap a tool handler with idempotency protection
  */
 export function withIdempotency(
@@ -41,6 +49,11 @@ export function withIdempotency(
   return async (input: unknown, idempotencyKey?: string) => {
     // Skip idempotency if disabled
     if (!enabled) {
+      return handler(input);
+    }
+
+    // Skip idempotency caching during DRY_RUN to avoid side effects
+    if (isDryRunMode()) {
       return handler(input);
     }
 

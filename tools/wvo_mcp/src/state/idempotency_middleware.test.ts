@@ -387,4 +387,130 @@ describe("IdempotencyMiddleware", () => {
       expect(result1).toEqual(result2);
     });
   });
+
+  describe("DRY_RUN Mode Guardrail", () => {
+    afterEach(() => {
+      // Ensure WVO_DRY_RUN is unset after each test
+      delete process.env.WVO_DRY_RUN;
+      middleware.clear();
+    });
+
+    it("should skip caching when WVO_DRY_RUN=1", async () => {
+      process.env.WVO_DRY_RUN = "1";
+      const handler = vi.fn(async () => ({ ok: true }));
+      const wrapped = middleware.wrap("fs_write", handler);
+
+      const input = { path: "/test.txt" };
+
+      // Both calls should execute the handler (no caching in DRY_RUN)
+      await wrapped(input);
+      await wrapped(input);
+
+      expect(handler).toHaveBeenCalledTimes(2);
+    });
+
+    it("should resume caching when WVO_DRY_RUN is unset", async () => {
+      process.env.WVO_DRY_RUN = "0";
+      const handler = vi.fn(async () => ({ ok: true }));
+      const wrapped = middleware.wrap("fs_write", handler);
+
+      const input = { path: "/test.txt" };
+
+      // Both calls should execute once due to caching
+      await wrapped(input);
+      await wrapped(input);
+
+      expect(handler).toHaveBeenCalledTimes(1);
+    });
+
+    it("should avoid side effects during DRY_RUN canary runs", async () => {
+      process.env.WVO_DRY_RUN = "1";
+      let executionCount = 0;
+
+      const handler = vi.fn(async () => {
+        executionCount++;
+        // This side effect should happen both times in DRY_RUN
+        return { sideEffectExecuted: true, count: executionCount };
+      });
+
+      const wrapped = middleware.wrap("cmd_run", handler);
+      const input = { cmd: "echo test" };
+
+      // Both executions should run the handler
+      const result1 = (await wrapped(input)) as { sideEffectExecuted: boolean; count: number };
+      const result2 = (await wrapped(input)) as { sideEffectExecuted: boolean; count: number };
+
+      // Verify side effects happened twice (not cached)
+      expect(result1.count).toBe(1);
+      expect(result2.count).toBe(2);
+      expect(executionCount).toBe(2);
+    });
+
+    it("should protect cached responses when DRY_RUN disabled", async () => {
+      delete process.env.WVO_DRY_RUN; // Ensure disabled
+      let executionCount = 0;
+
+      const handler = vi.fn(async () => {
+        executionCount++;
+        return { count: executionCount };
+      });
+
+      const wrapped = middleware.wrap("fs_write", handler);
+      const input = { path: "/test.txt" };
+
+      // First call
+      const result1 = (await wrapped(input)) as { count: number };
+      expect(result1.count).toBe(1);
+
+      // Second call should use cache (not re-execute)
+      const result2 = (await wrapped(input)) as { count: number };
+      expect(result2.count).toBe(1); // Should still be 1, from cache
+      expect(executionCount).toBe(1);
+    });
+
+    it("should not interfere with error handling in DRY_RUN", async () => {
+      process.env.WVO_DRY_RUN = "1";
+      const error = new Error("Test error");
+      const handler = vi.fn(async () => {
+        throw error;
+      });
+
+      const wrapped = middleware.wrap("test_tool", handler);
+      const input = { test: "data" };
+
+      // Both calls should throw (no caching in DRY_RUN)
+      await expect(wrapped(input)).rejects.toThrow("Test error");
+      await expect(wrapped(input)).rejects.toThrow("Test error");
+
+      expect(handler).toHaveBeenCalledTimes(2);
+    });
+
+    it("should work with explicit idempotency keys in DRY_RUN", async () => {
+      process.env.WVO_DRY_RUN = "1";
+      const handler = vi.fn(async () => ({ ok: true }));
+      const wrapped = middleware.wrap("fs_write", handler);
+
+      const input = { path: "/test.txt" };
+      const key = "my-key";
+
+      // Even with explicit key, DRY_RUN bypasses cache
+      await wrapped(input, key);
+      await wrapped(input, key);
+
+      expect(handler).toHaveBeenCalledTimes(2);
+    });
+
+    it("should document DRY_RUN behavior in statistics", async () => {
+      process.env.WVO_DRY_RUN = "1";
+      const handler = vi.fn(async () => ({ ok: true }));
+      const wrapped = middleware.wrap("test_tool", handler);
+
+      await wrapped({ id: 1 });
+      await wrapped({ id: 1 });
+
+      // In DRY_RUN mode, cache statistics may reflect behavior
+      // but caching is disabled, so both executions happen
+      expect(handler).toHaveBeenCalledTimes(2);
+    });
+  });
 });

@@ -10,6 +10,12 @@ from typing import Dict, List, Optional
 
 import polars as pl
 
+
+class FeatureLeakageError(Exception):
+    """Raised when feature leakage is detected in the training data."""
+    pass
+
+
 # Constants
 TARGET_COLUMN = "net_revenue"
 

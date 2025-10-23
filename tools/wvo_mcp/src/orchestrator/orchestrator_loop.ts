@@ -104,6 +104,13 @@ export interface OrchestratorLoopOptions {
   immediateSignalDebounceMs?: number;
 }
 
+interface HealthSummarySnapshot {
+  timestamp: number;
+  issues: string[];
+  health: RoadmapHealth;
+  queue: QueueMetrics;
+}
+
 /**
  * OrchestratorLoop - Main coordination loop
  *
@@ -131,12 +138,7 @@ export class OrchestratorLoop extends EventEmitter {
   private lastHealthReview = 0;
   private lastActivityAt = Date.now();
   private lastImmediateSignal = 0;
-  private lastHealthSummary?: {
-    timestamp: number;
-    issues: string[];
-    health: RoadmapHealth;
-    queue: QueueMetrics;
-  };
+  private lastHealthSummary?: HealthSummarySnapshot;
   private readonly boundTaskCreated = () => this.requestImmediateTick('task_created');
   private readonly boundTaskTransition = () => this.requestImmediateTick('task_transition');
   private readonly boundQueueUpdated = () => this.requestImmediateTick('queue_update');
@@ -521,6 +523,56 @@ export class OrchestratorLoop extends EventEmitter {
     }, delay);
   }
 
+  private determineNextTickDelay(): number {
+    if (typeof this.nextTickOverride === 'number') {
+      const override = this.clampInterval(this.nextTickOverride);
+      this.nextTickOverride = undefined;
+      return override;
+    }
+
+    if (this.mode === 'monitoring') {
+      return this.clampInterval(this.options.monitoringTickInterval);
+    }
+
+    return this.clampInterval(this.currentTickInterval);
+  }
+
+  private clampInterval(value: number): number {
+    return Math.max(this.options.minTickInterval, Math.min(value, this.options.maxTickInterval));
+  }
+
+  private setCurrentTickInterval(value: number): void {
+    this.currentTickInterval = this.clampInterval(value);
+  }
+
+  private requestImmediateTick(reason: string): void {
+    if (!this.running) {
+      return;
+    }
+
+    const now = Date.now();
+    if (now - this.lastImmediateSignal < this.options.immediateSignalDebounceMs) {
+      return;
+    }
+    this.lastImmediateSignal = now;
+    this.mode = 'active';
+    this.lastIdleReason = null;
+    this.consecutiveIdleTicks = 0;
+    this.setCurrentTickInterval(this.options.minTickInterval);
+    this.nextTickOverride = this.options.minTickInterval;
+
+    if (this.tickTimer) {
+      clearTimeout(this.tickTimer);
+      this.tickTimer = undefined;
+    }
+
+    if (this.tickRunning) {
+      return;
+    }
+
+    this.scheduleTick();
+  }
+
   /**
    * Handle an error
    */
@@ -560,6 +612,169 @@ export class OrchestratorLoop extends EventEmitter {
         recentErrors: this.lastErrors.length,
       },
     });
+  }
+
+  private async runHealthReviewIfDue(now: number): Promise<void> {
+    if (!this.shouldRunHealthReview(now)) {
+      return;
+    }
+
+    try {
+      await this.performPeriodicReview(now);
+    } catch (error) {
+      logWarning('Orchestrator health review failed', {
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
+
+  private shouldRunHealthReview(now: number): boolean {
+    if (this.options.healthCheckInterval <= 0) {
+      return false;
+    }
+
+    if (now - this.lastHealthReview >= this.options.healthCheckInterval) {
+      return true;
+    }
+
+    const latestError = this.lastErrors[this.lastErrors.length - 1];
+    if (
+      typeof latestError === 'number' &&
+      now - latestError < this.options.errorWindow &&
+      now - this.lastHealthReview >= this.options.minTickInterval * 3
+    ) {
+      return true;
+    }
+
+    return false;
+  }
+
+  private async performPeriodicReview(now: number): Promise<void> {
+    this.lastHealthReview = now;
+
+    try {
+      const health = this.stateMachine.getRoadmapHealth();
+      const queue = this.scheduler.getQueueMetrics();
+      const modeSnapshot = this.mode;
+      const issues = this.evaluateHealthSignals(health, queue, now, modeSnapshot);
+
+      // If new work is detected while monitoring, resume active cadence promptly.
+      if (
+        modeSnapshot === 'monitoring' &&
+        (queue.size > 0 || health.pendingTasks > 0 || health.inProgressTasks > 0)
+      ) {
+        logInfo('Work detected during monitoring; resuming active cadence', {
+          queueSize: queue.size,
+          pendingTasks: health.pendingTasks,
+          inProgressTasks: health.inProgressTasks,
+        });
+        this.mode = 'active';
+        this.consecutiveIdleTicks = 0;
+        this.lastIdleReason = null;
+        this.setCurrentTickInterval(this.options.tickInterval);
+        this.nextTickOverride = this.options.minTickInterval;
+      }
+
+      logInfo('Orchestrator periodic review', {
+        mode: this.mode,
+        queueSize: queue.size,
+        pendingTasks: health.pendingTasks,
+        inProgressTasks: health.inProgressTasks,
+        blockedTasks: health.blockedTasks,
+        issues,
+      });
+
+      this.emitEvent({
+        timestamp: now,
+        type: issues.length > 0 ? 'error' : 'idle',
+        data: {
+          reason: 'health_review',
+          issues,
+          mode: this.mode,
+          queueSize: queue.size,
+          pendingTasks: health.pendingTasks,
+          inProgressTasks: health.inProgressTasks,
+          blockedTasks: health.blockedTasks,
+        },
+      });
+
+      if (issues.length > 0) {
+        try {
+          this.stateMachine.addContextEntry({
+            entry_type: 'decision',
+            topic: 'orchestrator_health_check',
+            content: `Periodic review detected: ${issues.join(', ')}`,
+            confidence: 0.6,
+            metadata: {
+              issues,
+              mode: this.mode,
+              queue,
+              health,
+            },
+          });
+        } catch (error) {
+          logWarning('Failed to record health review context entry', {
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+        // Schedule an immediate follow-up tick to address the issues.
+        this.requestImmediateTick('health_issue');
+      }
+
+      this.lastHealthSummary = {
+        timestamp: now,
+        issues,
+        health,
+        queue,
+      };
+    } catch (error) {
+      throw error instanceof Error ? error : new Error(String(error));
+    }
+  }
+
+  private evaluateHealthSignals(
+    health: RoadmapHealth,
+    queue: QueueMetrics,
+    now: number,
+    modeSnapshot: 'active' | 'monitoring',
+  ): string[] {
+    const issues: string[] = [];
+
+    if (health.blockedTasks > 0 && health.pendingTasks === 0) {
+      issues.push(`blocked_without_pending:${health.blockedTasks}`);
+    }
+
+    if (queue.size > 0 && modeSnapshot === 'monitoring') {
+      issues.push(`work_ready_during_monitoring:${queue.size}`);
+    }
+
+    if (health.pendingTasks > 0 && modeSnapshot === 'monitoring') {
+      issues.push(`pending_stalled:${health.pendingTasks}`);
+    }
+
+    if (health.inProgressTasks > 0 && now - this.lastActivityAt > this.options.healthCheckInterval) {
+      issues.push('in_progress_stalled');
+    }
+
+    if (queue.reasonCounts.requires_review > 0 && queue.reasonCounts.requires_review === queue.size) {
+      issues.push('review_queue_backlog');
+    }
+
+    if (
+      queue.resource.activeHeavyTasks >= queue.resource.heavyTaskLimit &&
+      queue.resource.queuedHeavyTasks > 0
+    ) {
+      issues.push('heavy_queue_saturated');
+    }
+
+    const recentErrors = this.lastErrors.filter(
+      (timestamp) => now - timestamp < this.options.errorWindow,
+    );
+    if (recentErrors.length > 0) {
+      issues.push(`recent_errors:${recentErrors.length}`);
+    }
+
+    return issues;
   }
 
   /**
@@ -630,17 +845,16 @@ export class OrchestratorLoop extends EventEmitter {
     return this.running;
   }
 
-  private async enterSleepMode(reason: string, decision: OrchestratorAction): Promise<void> {
-    logInfo('No pending tasks detected; entering sleep mode', {
-      consecutiveIdleTicks: this.consecutiveIdleTicks,
-      maxIdleTicksBeforeStop: this.options.maxIdleTicksBeforeStop,
-    });
+  private enterMonitoringMode(reason: string | null, decision: OrchestratorAction): void {
+    if (this.mode === 'monitoring') {
+      return;
+    }
 
     this.emitEvent({
       timestamp: Date.now(),
       type: 'idle',
       data: {
-        reason: `${reason}_sleep`,
+        reason: `${reason ?? 'idle'}_monitoring`,
         consecutiveIdle: this.consecutiveIdleTicks,
       },
     });
@@ -649,10 +863,10 @@ export class OrchestratorLoop extends EventEmitter {
       this.stateMachine.addContextEntry({
         entry_type: 'decision',
         topic: 'orchestrator_sleep',
-        content: `Stopped orchestrator after ${this.consecutiveIdleTicks} idle ticks (${reason})`,
+        content: `Switched orchestrator to monitoring after ${this.consecutiveIdleTicks} idle ticks (${reason ?? 'idle'})`,
         confidence: 1.0,
         metadata: {
-          reason,
+          reason: reason ?? 'idle',
           consecutiveIdleTicks: this.consecutiveIdleTicks,
           lastDecision: decision,
         },
@@ -661,6 +875,13 @@ export class OrchestratorLoop extends EventEmitter {
       logWarning('Telemetry recording failed for sleep entry', { error });
     }
 
-    await this.stop();
+    this.mode = 'monitoring';
+    this.setCurrentTickInterval(this.options.monitoringTickInterval);
+    this.nextTickOverride = this.options.monitoringTickInterval;
+
+    logInfo('No pending tasks detected; switching to monitoring cadence', {
+      consecutiveIdleTicks: this.consecutiveIdleTicks,
+      monitoringTickIntervalMs: this.options.monitoringTickInterval,
+    });
   }
 }

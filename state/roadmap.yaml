@@ -1146,7 +1146,7 @@ epics:
         tasks:
           - id: T-MLR-3.3
             title: Package all evidence artifacts for review
-            status: pending
+            status: in_progress
             dependencies:
               - T-MLR-3.2
             exit_criteria: []
@@ -2899,7 +2899,7 @@ epics:
             domain: mcp
           - id: T9.2.2
             title: "Idempotency keys for mutating tools (SAFE: caching layer)"
-            status: blocked
+            status: done
             dependencies: []
             exit_criteria:
               - Idempotency cache operational
