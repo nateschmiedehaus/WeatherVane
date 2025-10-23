@@ -1158,7 +1158,7 @@ epics:
         tasks:
           - id: T-MLR-4.1
             title: Deploy ModelingReality_v2 critic to production
-            status: done
+            status: blocked
             dependencies:
               - T-MLR-0.1
               - T-MLR-3.3
@@ -1175,7 +1175,7 @@ epics:
             description: Update autopilot policy to require critic approval
           - id: T-MLR-4.3
             title: Create meta-critic to review past completed ML tasks
-            status: pending
+            status: blocked
             dependencies:
               - T-MLR-4.2
             exit_criteria: []
@@ -1228,7 +1228,7 @@ epics:
             domain: modeling
           - id: T-MLR-0.3
             title: Document world-class quality standards for ML
-            status: blocked
+            status: done
             dependencies: []
             exit_criteria:
               - artifact:docs/ML_QUALITY_STANDARDS.md
@@ -1254,7 +1254,7 @@ epics:
             domain: modeling
           - id: T-MLR-1.2
             title: Generate 3 years of synthetic data for 20 tenants
-            status: pending
+            status: blocked
             dependencies: []
             exit_criteria:
               - artifact:storage/seeds/synthetic_v2/*.parquet (20 files)
@@ -1266,7 +1266,7 @@ epics:
             domain: modeling
           - id: T-MLR-1.3
             title: Create validation tests for synthetic data quality
-            status: pending
+            status: done
             dependencies: []
             exit_criteria:
               - artifact:tests/data_gen/test_synthetic_v2_quality.py
@@ -1303,7 +1303,7 @@ epics:
             domain: modeling
           - id: T-MLR-2.4
             title: Validate model performance against objective thresholds
-            status: pending
+            status: blocked
             dependencies: []
             exit_criteria:
               - artifact:experiments/mmm_v2/validation_report.json
@@ -1327,7 +1327,7 @@ epics:
             domain: modeling
           - id: T-MLR-2.6
             title: Run robustness tests (outliers, missing data, edge cases)
-            status: pending
+            status: blocked
             dependencies: []
             exit_criteria:
               - artifact:experiments/mmm_v2/robustness_report.json
@@ -1343,7 +1343,7 @@ epics:
         tasks:
           - id: T-MLR-3.1
             title: Create reproducible validation notebook
-            status: pending
+            status: blocked
             dependencies: []
             exit_criteria:
               - artifact:experiments/mmm_v2/validation_notebook.ipynb
@@ -1722,6 +1722,67 @@ epics:
               - critic:causal
             domain: product
             description: Deploy MMM with weather features as production inference service
+      - id: M12.UXExcellence
+        title: Design Excellence Infrastructure (Lower Priority - After Data Gen)
+        status: pending
+        tasks:
+          - id: T12.UX.1
+            title: Setup Playwright screenshot workflow for design iteration
+            status: pending
+            dependencies:
+              - T12.0.1
+            exit_criteria:
+              - artifact:state/screenshot_config.yaml
+              - artifact:docs/DESIGN_WORKFLOW.md
+              - critic:tests
+            domain: product
+            description: Configure screenshot_session, screenshot_capture_multiple tools for
+              visual design iteration. Document workflow for
+              Build→Screenshot→Critique→Refine loop. PRIORITY NOTE - Execute
+              only after T12.0.1 (data generation) completes.
+          - id: T12.UX.2
+            title: Create design research process and inspiration library
+            status: pending
+            dependencies:
+              - T12.0.1
+            exit_criteria:
+              - artifact:docs/DESIGN_INSPIRATION.md
+              - artifact:state/design_references.json
+            domain: product
+            description: Document process for researching award-winning UIs (Awwwards, FWA,
+              Stripe, Linear, Observable). Create reference library of
+              world-class design patterns to inform WeatherVane UI decisions.
+              Extract principles from Dieter Rams, Müller-Brockmann, Vignelli,
+              Paul Rand.
+          - id: T12.UX.3
+            title: Establish surprise & delight checklist and validation criteria
+            status: pending
+            dependencies:
+              - T12.0.1
+            exit_criteria:
+              - artifact:docs/SURPRISE_DELIGHT_CHECKLIST.md
+              - artifact:tools/wvo_mcp/src/critics/ux_delight_scorer.ts
+            domain: product
+            description: Create checklist for trivial delights (micro-interactions, loading
+              states, empty states, witty copy) and non-trivial delights
+              (anticipatory UX, intelligent recovery, time-saving magic).
+              Validation - Would user screenshot and share? Would Don
+              Norman/Kathy Sierra/Julie Zhuo approve?
+          - id: T12.UX.4
+            title: Configure design_system critic for zero-AI-aesthetic enforcement
+            status: pending
+            dependencies:
+              - T12.UX.1
+              - T12.UX.2
+              - T12.UX.3
+            exit_criteria:
+              - artifact:tools/wvo_mcp/src/critics/design_system_enhanced.ts
+              - critic:design_system
+            domain: product
+            description: Enhance design_system critic to detect generic gradients, stock
+              layouts, template components. Enforce heritage design principles.
+              Integrate with screenshot workflow to compare against world-class
+              references. Block merge if AI aesthetic detected.
       - id: M12.Demo
         title: Executive Demo & Stakeholder Sign-Off
         status: pending
@@ -1729,17 +1790,27 @@ epics:
           - id: T12.Demo.1
             title: Build interactive demo UI showing weather impact on ROAS
             status: pending
-            dependencies: []
+            dependencies:
+              - T12.UX.1
+              - T12.UX.2
+              - T12.UX.3
+              - T12.UX.4
             exit_criteria:
               - artifact:apps/web/src/pages/demo-weather-analysis.tsx
               - critic:design_system
+              - artifact:state/artifacts/screenshots/demo_ui_iteration/
             domain: product
             description: Create web UI that lets stakeholders toggle weather on/off and see
               impact on predicted revenue and ROAS for each synthetic tenant.
               Interactive proof that weather matters for demand forecasting.
+              DESIGN EXCELLENCE REQUIRED - Follow M12.UXExcellence standards
+              (Playwright iteration, world-class inspiration, surprise &
+              delight, zero AI aesthetic). Use screenshot_session for visual QA.
+              Validate with design_system critic.
             notes: "Auto-unblocked by CriticAvailabilityGuardian: Critics design_system are
               offline. Proceeding with implementation; gather QA evidence for
-              eventual review."
+              eventual review. UPDATED - Now depends on M12.UXExcellence
+              infrastructure."
           - id: T12.Demo.2
             title: Record demo video and create stakeholder brief
             status: blocked

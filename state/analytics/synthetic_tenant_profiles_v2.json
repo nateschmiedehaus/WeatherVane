@@ -5,8 +5,8 @@
     "longitude": -104.9903,
     "sensitivity_level": "extreme",
     "correlation_target": 0.85,
-    "actual_correlation_temp": -0.9990797182095775,
-    "actual_correlation_precip": 0.05620953307152467,
+    "actual_correlation_temp": -0.9989954532805704,
+    "actual_correlation_precip": -0.10344186426264565,
     "days_of_data": 1095,
     "num_products": 5,
     "products": [
@@ -47,9 +47,9 @@
       "Email"
     ],
     "base_daily_revenue": 2000,
-    "total_revenue": 9389500.0,
-    "total_spend": 517474.2372057269,
-    "avg_daily_revenue": 8574.885844748858
+    "total_revenue": 9400300.0,
+    "total_spend": 520452.1554830695,
+    "avg_daily_revenue": 8584.748858447489
   },
   "extreme_sunscreen": {
     "location": "Phoenix",
@@ -57,8 +57,8 @@
     "longitude": -112.0742,
     "sensitivity_level": "extreme",
     "correlation_target": 0.85,
-    "actual_correlation_temp": 0.9993673233823454,
-    "actual_correlation_precip": 0.03914923128636591,
+    "actual_correlation_temp": 0.9994363513839146,
+    "actual_correlation_precip": -0.04733865535940818,
     "days_of_data": 1095,
     "num_products": 5,
     "products": [
@@ -99,9 +99,9 @@
       "Email"
     ],
     "base_daily_revenue": 1800,
-    "total_revenue": 12019600.0,
-    "total_spend": 663995.9403722296,
-    "avg_daily_revenue": 10976.803652968036
+    "total_revenue": 12013600.0,
+    "total_spend": 662022.9682138134,
+    "avg_daily_revenue": 10971.324200913243
   },
   "extreme_rain_gear": {
     "location": "Seattle",
@@ -109,8 +109,8 @@
     "longitude": -122.3321,
     "sensitivity_level": "extreme",
     "correlation_target": 0.85,
-    "actual_correlation_temp": 0.11332521478836108,
-    "actual_correlation_precip": 0.9584219203514152,
+    "actual_correlation_temp": 0.06501707136660548,
+    "actual_correlation_precip": 0.9712912459853971,
     "days_of_data": 1095,
     "num_products": 5,
     "products": [
@@ -151,9 +151,9 @@
       "Email"
     ],
     "base_daily_revenue": 1600,
-    "total_revenue": 13529000.0,
-    "total_spend": 741979.3297596199,
-    "avg_daily_revenue": 12355.251141552511
+    "total_revenue": 13636100.0,
+    "total_spend": 748888.4209581158,
+    "avg_daily_revenue": 12453.059360730593
   },
   "extreme_heating": {
     "location": "Minneapolis",
@@ -161,8 +161,8 @@
     "longitude": -93.265,
     "sensitivity_level": "extreme",
     "correlation_target": 0.85,
-    "actual_correlation_temp": -0.9991665480737507,
-    "actual_correlation_precip": -0.0570659278230767,
+    "actual_correlation_temp": -0.9994233095590989,
+    "actual_correlation_precip": -0.08253366891427891,
     "days_of_data": 1095,
     "num_products": 5,
     "products": [
@@ -203,9 +203,9 @@
       "Email"
     ],
     "base_daily_revenue": 3000,
-    "total_revenue": 12981300.0,
-    "total_spend": 712994.906078352,
-    "avg_daily_revenue": 11855.068493150686
+    "total_revenue": 12935400.0,
+    "total_spend": 711477.4166401124,
+    "avg_daily_revenue": 11813.150684931506
   },
   "extreme_cooling": {
     "location": "Houston",
@@ -213,8 +213,8 @@
     "longitude": -95.3698,
     "sensitivity_level": "extreme",
     "correlation_target": 0.85,
-    "actual_correlation_temp": 0.999335749443987,
-    "actual_correlation_precip": 0.041507299948069905,
+    "actual_correlation_temp": 0.9993163662836121,
+    "actual_correlation_precip": 0.040167092907195584,
     "days_of_data": 1095,
     "num_products": 5,
     "products": [
@@ -255,9 +255,9 @@
       "Email"
     ],
     "base_daily_revenue": 4000,
-    "total_revenue": 12130700.0,
-    "total_spend": 667993.7921306611,
-    "avg_daily_revenue": 11078.264840182648
+    "total_revenue": 12050900.0,
+    "total_spend": 664975.0434560569,
+    "avg_daily_revenue": 11005.388127853881
   },
   "high_winter_clothing": {
     "location": "New York",
@@ -265,8 +265,8 @@
     "longitude": -74.006,
     "sensitivity_level": "high",
     "correlation_target": 0.7,
-    "actual_correlation_temp": -0.9991689331192216,
-    "actual_correlation_precip": -0.067737253554372,
+    "actual_correlation_temp": -0.9991583769129231,
+    "actual_correlation_precip": -0.05013305306909439,
     "days_of_data": 1095,
     "num_products": 5,
     "products": [
@@ -307,9 +307,9 @@
       "Email"
     ],
     "base_daily_revenue": 3500,
-    "total_revenue": 12562200.0,
-    "total_spend": 688841.534179938,
-    "avg_daily_revenue": 11472.328767123288
+    "total_revenue": 12515800.0,
+    "total_spend": 685997.1058846314,
+    "avg_daily_revenue": 11429.954337899544
   },
   "high_summer_clothing": {
     "location": "Miami",
@@ -317,8 +317,8 @@
     "longitude": -80.1918,
     "sensitivity_level": "high",
     "correlation_target": 0.7,
-    "actual_correlation_temp": 0.999476249322251,
-    "actual_correlation_precip": 0.045771102293847024,
+    "actual_correlation_temp": 0.9993790077564665,
+    "actual_correlation_precip": 0.04440595074621275,
     "days_of_data": 1095,
     "num_products": 5,
     "products": [
@@ -359,9 +359,9 @@
       "Email"
     ],
     "base_daily_revenue": 2800,
-    "total_revenue": 11836400.0,
-    "total_spend": 652989.1627436178,
-    "avg_daily_revenue": 10809.497716894977
+    "total_revenue": 11833900.0,
+    "total_spend": 650393.4227318115,
+    "avg_daily_revenue": 10807.214611872147
   },
   "high_umbrella_rain": {
     "location": "Portland",
@@ -369,8 +369,8 @@
     "longitude": -122.6784,
     "sensitivity_level": "high",
     "correlation_target": 0.7,
-    "actual_correlation_temp": -0.054762211750396105,
-    "actual_correlation_precip": 0.9520439034816133,
+    "actual_correlation_temp": 0.04782703914448021,
+    "actual_correlation_precip": 0.9638583183735444,
     "days_of_data": 1095,
     "num_products": 5,
     "products": [
@@ -411,9 +411,9 @@
       "Email"
     ],
     "base_daily_revenue": 2200,
-    "total_revenue": 13023000.0,
-    "total_spend": 716875.8993194007,
-    "avg_daily_revenue": 11893.150684931506
+    "total_revenue": 12979700.0,
+    "total_spend": 712293.5088565447,
+    "avg_daily_revenue": 11853.607305936073
   },
   "high_gym_activity": {
     "location": "Los Angeles",
@@ -421,8 +421,8 @@
     "longitude": -118.2437,
     "sensitivity_level": "high",
     "correlation_target": 0.7,
-    "actual_correlation_temp": 0.9993649718677747,
-    "actual_correlation_precip": -0.1258556796675072,
+    "actual_correlation_temp": 0.9992982188414784,
+    "actual_correlation_precip": 0.0612054293305165,
     "days_of_data": 1095,
     "num_products": 5,
     "products": [
@@ -463,9 +463,9 @@
       "Email"
     ],
     "base_daily_revenue": 2500,
-    "total_revenue": 11799400.0,
-    "total_spend": 650856.6848992144,
-    "avg_daily_revenue": 10775.707762557078
+    "total_revenue": 11785500.0,
+    "total_spend": 648133.4102698588,
+    "avg_daily_revenue": 10763.013698630137
   },
   "high_outdoor_gear": {
     "location": "Boulder",
@@ -473,8 +473,8 @@
     "longitude": -105.2705,
     "sensitivity_level": "high",
     "correlation_target": 0.7,
-    "actual_correlation_temp": 0.997601741244506,
-    "actual_correlation_precip": 0.09943825759673405,
+    "actual_correlation_temp": 0.9982266831877341,
+    "actual_correlation_precip": 0.006634321400747797,
     "days_of_data": 1095,
     "num_products": 5,
     "products": [
@@ -515,9 +515,9 @@
       "Email"
     ],
     "base_daily_revenue": 3200,
-    "total_revenue": 9546400.0,
-    "total_spend": 525267.6018456602,
-    "avg_daily_revenue": 8718.173515981734
+    "total_revenue": 9573700.0,
+    "total_spend": 526820.2141900032,
+    "avg_daily_revenue": 8743.10502283105
   },
   "medium_clothing": {
     "location": "Chicago",
@@ -525,8 +525,8 @@
     "longitude": -87.6298,
     "sensitivity_level": "medium",
     "correlation_target": 0.4,
-    "actual_correlation_temp": 0.08786465596379206,
-    "actual_correlation_precip": -0.13924555400839247,
+    "actual_correlation_temp": 0.07877138748816971,
+    "actual_correlation_precip": -0.040849948102995526,
     "days_of_data": 1095,
     "num_products": 5,
     "products": [
@@ -567,9 +567,9 @@
       "Email"
     ],
     "base_daily_revenue": 4500,
-    "total_revenue": 10674400.0,
-    "total_spend": 588229.6837141381,
-    "avg_daily_revenue": 9748.310502283104
+    "total_revenue": 10668300.0,
+    "total_spend": 587368.1253892188,
+    "avg_daily_revenue": 9742.739726027397
   },
   "medium_footwear": {
     "location": "Boston",
@@ -577,8 +577,8 @@
     "longitude": -71.0589,
     "sensitivity_level": "medium",
     "correlation_target": 0.4,
-    "actual_correlation_temp": 0.028651859703287916,
-    "actual_correlation_precip": -0.11779430006309251,
+    "actual_correlation_temp": 0.010814224690650713,
+    "actual_correlation_precip": -0.06599383335215779,
     "days_of_data": 1095,
     "num_products": 5,
     "products": [
@@ -619,9 +619,9 @@
       "Email"
     ],
     "base_daily_revenue": 3800,
-    "total_revenue": 10676600.0,
-    "total_spend": 585854.1782357075,
-    "avg_daily_revenue": 9750.319634703197
+    "total_revenue": 10677200.0,
+    "total_spend": 585630.7037580474,
+    "avg_daily_revenue": 9750.867579908676
   },
   "medium_accessories": {
     "location": "San Francisco",
@@ -629,8 +629,8 @@
     "longitude": -122.4194,
     "sensitivity_level": "medium",
     "correlation_target": 0.4,
-    "actual_correlation_temp": -0.0006576677756033909,
-    "actual_correlation_precip": -0.14545419787006447,
+    "actual_correlation_temp": 0.13454576692982506,
+    "actual_correlation_precip": 0.03629168983399386,
     "days_of_data": 1095,
     "num_products": 5,
     "products": [
@@ -671,9 +671,9 @@
       "Email"
     ],
     "base_daily_revenue": 3200,
-    "total_revenue": 10669300.0,
-    "total_spend": 585486.5460680046,
-    "avg_daily_revenue": 9743.65296803653
+    "total_revenue": 10676600.0,
+    "total_spend": 587807.7363303747,
+    "avg_daily_revenue": 9750.319634703197
   },
   "medium_beauty": {
     "location": "Las Vegas",
@@ -681,8 +681,8 @@
     "longitude": -115.1398,
     "sensitivity_level": "medium",
     "correlation_target": 0.4,
-    "actual_correlation_temp": 0.0170690880661402,
-    "actual_correlation_precip": -0.0694888228212138,
+    "actual_correlation_temp": 0.07432059515833135,
+    "actual_correlation_precip": 0.038588395100131706,
     "days_of_data": 1095,
     "num_products": 5,
     "products": [
@@ -723,9 +723,9 @@
       "Email"
     ],
     "base_daily_revenue": 2700,
-    "total_revenue": 10671900.0,
-    "total_spend": 587958.8840179434,
-    "avg_daily_revenue": 9746.027397260274
+    "total_revenue": 10689700.0,
+    "total_spend": 588304.1031859923,
+    "avg_daily_revenue": 9762.28310502283
   },
   "medium_sports": {
     "location": "Philadelphia",
@@ -733,8 +733,8 @@
     "longitude": -75.1652,
     "sensitivity_level": "medium",
     "correlation_target": 0.4,
-    "actual_correlation_temp": -0.05374200488876397,
-    "actual_correlation_precip": 0.06027991127655279,
+    "actual_correlation_temp": 0.002010158946030554,
+    "actual_correlation_precip": -0.06795705064753864,
     "days_of_data": 1095,
     "num_products": 5,
     "products": [
@@ -775,9 +775,9 @@
       "Email"
     ],
     "base_daily_revenue": 3000,
-    "total_revenue": 10672600.0,
-    "total_spend": 585611.6465288354,
-    "avg_daily_revenue": 9746.666666666666
+    "total_revenue": 10688100.0,
+    "total_spend": 587299.1460184206,
+    "avg_daily_revenue": 9760.82191780822
   },
   "none_office_supplies": {
     "location": "Dallas",
@@ -785,8 +785,8 @@
     "longitude": -96.797,
     "sensitivity_level": "none",
     "correlation_target": 0.05,
-    "actual_correlation_temp": 0.04140983512167996,
-    "actual_correlation_precip": -0.07535663407188464,
+    "actual_correlation_temp": 0.011779223353311191,
+    "actual_correlation_precip": 0.10206416764722234,
     "days_of_data": 1095,
     "num_products": 5,
     "products": [
@@ -827,9 +827,9 @@
       "Email"
     ],
     "base_daily_revenue": 4200,
-    "total_revenue": 10666000.0,
-    "total_spend": 586175.2227549318,
-    "avg_daily_revenue": 9740.639269406392
+    "total_revenue": 10694500.0,
+    "total_spend": 587907.0690310707,
+    "avg_daily_revenue": 9766.666666666666
   },
   "none_electronics": {
     "location": "Austin",
@@ -837,8 +837,8 @@
     "longitude": -97.7431,
     "sensitivity_level": "none",
     "correlation_target": 0.05,
-    "actual_correlation_temp": 0.05170206757758813,
-    "actual_correlation_precip": 0.10102845221756811,
+    "actual_correlation_temp": 2.346587318082453e-05,
+    "actual_correlation_precip": 0.017299181282274357,
     "days_of_data": 1095,
     "num_products": 5,
     "products": [
@@ -879,9 +879,9 @@
       "Email"
     ],
     "base_daily_revenue": 3600,
-    "total_revenue": 10690600.0,
-    "total_spend": 587583.9057416504,
-    "avg_daily_revenue": 9763.10502283105
+    "total_revenue": 10708900.0,
+    "total_spend": 589063.6194069064,
+    "avg_daily_revenue": 9779.817351598174
   },
   "none_home_decor": {
     "location": "San Diego",
@@ -889,8 +889,8 @@
     "longitude": -117.1611,
     "sensitivity_level": "none",
     "correlation_target": 0.05,
-    "actual_correlation_temp": -0.06194742496156192,
-    "actual_correlation_precip": -0.09099970506498452,
+    "actual_correlation_temp": 0.08220338553167585,
+    "actual_correlation_precip": -0.04511561771389742,
     "days_of_data": 1095,
     "num_products": 5,
     "products": [
@@ -931,9 +931,9 @@
       "Email"
     ],
     "base_daily_revenue": 3100,
-    "total_revenue": 10653100.0,
-    "total_spend": 586705.7664501689,
-    "avg_daily_revenue": 9728.858447488585
+    "total_revenue": 10669600.0,
+    "total_spend": 586528.0581378944,
+    "avg_daily_revenue": 9743.926940639269
   },
   "none_kitchen": {
     "location": "Phoenix",
@@ -941,8 +941,8 @@
     "longitude": -112.0742,
     "sensitivity_level": "none",
     "correlation_target": 0.05,
-    "actual_correlation_temp": 0.12497245392086577,
-    "actual_correlation_precip": 0.007180638249145869,
+    "actual_correlation_temp": -0.01762254401314109,
+    "actual_correlation_precip": -0.057797975516693266,
     "days_of_data": 1095,
     "num_products": 5,
     "products": [
@@ -983,9 +983,9 @@
       "Email"
     ],
     "base_daily_revenue": 2900,
-    "total_revenue": 10651400.0,
-    "total_spend": 584695.3446281245,
-    "avg_daily_revenue": 9727.305936073059
+    "total_revenue": 10671400.0,
+    "total_spend": 585491.5990232916,
+    "avg_daily_revenue": 9745.570776255709
   },
   "none_books": {
     "location": "San Jose",
@@ -993,8 +993,8 @@
     "longitude": -121.8863,
     "sensitivity_level": "none",
     "correlation_target": 0.05,
-    "actual_correlation_temp": 0.06924405273901786,
-    "actual_correlation_precip": -0.07235699488157882,
+    "actual_correlation_temp": 0.10926901796321158,
+    "actual_correlation_precip": 0.004024661802752739,
     "days_of_data": 1095,
     "num_products": 5,
     "products": [
@@ -1035,8 +1035,8 @@
       "Email"
     ],
     "base_daily_revenue": 2400,
-    "total_revenue": 10694700.0,
-    "total_spend": 587670.2103303275,
-    "avg_daily_revenue": 9766.849315068494
+    "total_revenue": 10637400.0,
+    "total_spend": 584748.5938056476,
+    "avg_daily_revenue": 9714.520547945205
   }
 }

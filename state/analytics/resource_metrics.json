@@ -1,0 +1,17 @@
+{
+  "timestamp": "2025-10-23T15:53:14Z",
+  "memory_used_pct": 99,
+  "cpu_used_pct": 100,
+  "claude_processes": 5,
+  "node_processes": 2,
+  "throttle_level": 3,
+  "throttle_params": {
+                "level": 3,
+                "name": "heavy",
+                "max_agents": 1,
+                "batch_size": 10,
+                "delay_ms": 2000,
+                "max_concurrent": 1,
+                "reasoning_effort": "low"
+            }
+}
