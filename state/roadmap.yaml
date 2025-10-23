@@ -1134,7 +1134,7 @@ epics:
         tasks:
           - id: T-MLR-2.3
             title: Train models on all 20 synthetic tenants with cross-validation
-            status: pending
+            status: blocked
             dependencies:
               - T-MLR-2.2
             exit_criteria: []

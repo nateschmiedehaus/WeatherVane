@@ -1,0 +1,1316 @@
+{
+  "validation_report": {
+    "timestamp": "2025-10-23T16:06:02Z",
+    "validation_summary": {
+      "total_models": 20,
+      "passing_models": 10,
+      "failing_models": 10,
+      "pass_rate": 0.5
+    },
+    "thresholds": {
+      "r2_min": 0.5,
+      "r2_std_max": 0.15,
+      "rmse_max_pct": 0.2,
+      "min_folds": 3
+    },
+    "performance_metrics": {
+      "r2_all_models": {
+        "mean": 0.5569104705067224,
+        "std": 0.3723091138092711,
+        "min": 0.04897010178628694,
+        "max": 0.9585101210280985,
+        "median": 0.5714291743804463
+      },
+      "r2_passing_models": {
+        "mean": 0.9121609706180251,
+        "std": 0.06757516272821582,
+        "min": 0.7853099401184935,
+        "max": 0.9585101210280985
+      }
+    },
+    "failure_analysis": {
+      "failure_patterns": {
+        "R\u00b2 0.057 < threshold 0.500": 1,
+        "R\u00b2 0.049 < threshold 0.500": 1,
+        "R\u00b2 0.071 < threshold 0.500": 1,
+        "R\u00b2 0.067 < threshold 0.500": 1,
+        "R\u00b2 0.055 < threshold 0.500": 1,
+        "R\u00b2 0.358 < threshold 0.500": 1,
+        "R\u00b2 0.345 < threshold 0.500": 1,
+        "R\u00b2 0.346 < threshold 0.500": 1,
+        "R\u00b2 0.350 < threshold 0.500": 1,
+        "R\u00b2 0.319 < threshold 0.500": 1
+      },
+      "failing_model_names": [
+        "medium_accessories",
+        "medium_beauty",
+        "medium_clothing",
+        "medium_footwear",
+        "medium_sports",
+        "none_books",
+        "none_electronics",
+        "none_home_decor",
+        "none_kitchen",
+        "none_office_supplies"
+      ]
+    },
+    "passing_models": {
+      "model_names": [
+        "extreme_cooling",
+        "extreme_heating",
+        "extreme_rain_gear",
+        "extreme_ski_gear",
+        "extreme_sunscreen",
+        "high_gym_activity",
+        "high_outdoor_gear",
+        "high_summer_clothing",
+        "high_umbrella_rain",
+        "high_winter_clothing"
+      ],
+      "top_performers": [
+        [
+          "extreme_cooling",
+          0.9585101210280985
+        ],
+        [
+          "high_summer_clothing",
+          0.957309760663698
+        ],
+        [
+          "extreme_sunscreen",
+          0.9563635477661222
+        ],
+        [
+          "high_gym_activity",
+          0.9562167256602051
+        ],
+        [
+          "extreme_ski_gear",
+          0.9555703805912636
+        ]
+      ]
+    }
+  },
+  "model_results": {
+    "extreme_cooling": {
+      "tenant_name": "extreme_cooling",
+      "mean_r2": 0.9585101210280985,
+      "std_r2": 0.013098847002533963,
+      "mean_rmse": 167.45590132674815,
+      "mean_mae": 133.0727806246081,
+      "num_folds": 5,
+      "passes_r2_threshold": true,
+      "passes_stability_check": true,
+      "passes_rmse_check": true,
+      "passes_all_checks": true,
+      "failure_reasons": [],
+      "weather_elasticity": {
+        "temperature": 78.72481163791664,
+        "humidity": -6.639446387811244,
+        "precipitation": 1.4114012698636134
+      },
+      "channel_roas": {
+        "meta_spend": 12.69355906659285,
+        "google_spend": 11.336841649416286
+      },
+      "fold_details": [
+        {
+          "fold": 1,
+          "train_size": 1095,
+          "test_size": 1095,
+          "r2": 0.9662773023178962,
+          "rmse": 165.81557519530978,
+          "mae": 130.78480758290567,
+          "mean_revenue": 1843.835616438356
+        },
+        {
+          "fold": 2,
+          "train_size": 2190,
+          "test_size": 1095,
+          "r2": 0.9692043636962615,
+          "rmse": 171.9820306014194,
+          "mae": 135.69821903161582,
+          "mean_revenue": 2172.6027397260273
+        },
+        {
+          "fold": 3,
+          "train_size": 3285,
+          "test_size": 1095,
+          "r2": 0.9623410160036863,
+          "rmse": 170.6031087065323,
+          "mae": 135.80294635612375,
+          "mean_revenue": 2565.0228310502284
+        },
+        {
+          "fold": 4,
+          "train_size": 4380,
+          "test_size": 1095,
+          "r2": 0.93621780209455,
+          "rmse": 161.4228908037311,
+          "mae": 130.00514952778718,
+          "mean_revenue": 1601.552511415525
+        }
+      ]
+    },
+    "extreme_heating": {
+      "tenant_name": "extreme_heating",
+      "mean_r2": 0.951596681104804,
+      "std_r2": 0.024188520142957408,
+      "mean_rmse": 171.32252851536867,
+      "mean_mae": 136.19876695877386,
+      "num_folds": 5,
+      "passes_r2_threshold": true,
+      "passes_stability_check": true,
+      "passes_rmse_check": true,
+      "passes_all_checks": true,
+      "failure_reasons": [],
+      "weather_elasticity": {
+        "temperature": -74.51383710906012,
+        "humidity": -5.394927155850989,
+        "precipitation": -2.71264931284754
+      },
+      "channel_roas": {
+        "meta_spend": -18.09092501574309,
+        "google_spend": -48.837167922249236
+      },
+      "fold_details": [
+        {
+          "fold": 1,
+          "train_size": 1095,
+          "test_size": 1095,
+          "r2": 0.9538790520724952,
+          "rmse": 187.21053145862,
+          "mae": 148.6219788923578,
+          "mean_revenue": 2720.4566210045664
+        },
+        {
+          "fold": 2,
+          "train_size": 2190,
+          "test_size": 1095,
+          "r2": 0.9730680496494696,
+          "rmse": 162.32859396895205,
+          "mae": 127.9980307360998,
+          "mean_revenue": 2364.018264840183
+        },
+        {
+          "fold": 3,
+          "train_size": 3285,
+          "test_size": 1095,
+          "r2": 0.9679331864746147,
+          "rmse": 157.66239936537337,
+          "mae": 125.84976237287559,
+          "mean_revenue": 1979.9086757990867
+        },
+        {
+          "fold": 4,
+          "train_size": 4380,
+          "test_size": 1095,
+          "r2": 0.9115064362226365,
+          "rmse": 178.08858926852923,
+          "mae": 142.32529583376228,
+          "mean_revenue": 2997.1689497716893
+        }
+      ]
+    },
+    "extreme_rain_gear": {
+      "tenant_name": "extreme_rain_gear",
+      "mean_r2": 0.8374431663278072,
+      "std_r2": 0.045389045341168166,
+      "mean_rmse": 227.4457408225937,
+      "mean_mae": 168.60454134807935,
+      "num_folds": 5,
+      "passes_r2_threshold": true,
+      "passes_stability_check": true,
+      "passes_rmse_check": true,
+      "passes_all_checks": true,
+      "failure_reasons": [],
+      "weather_elasticity": {
+        "temperature": 7.896136688378327,
+        "humidity": -15.210090038252975,
+        "precipitation": 157.23915853318198
+      },
+      "channel_roas": {
+        "meta_spend": 3.2563477085099577,
+        "google_spend": -3.748936279854337
+      },
+      "fold_details": [
+        {
+          "fold": 1,
+          "train_size": 1095,
+          "test_size": 1095,
+          "r2": 0.758954980867851,
+          "rmse": 272.19060405936483,
+          "mae": 192.36047432449675,
+          "mean_revenue": 2457.2602739726026
+        },
+        {
+          "fold": 2,
+          "train_size": 2190,
+          "test_size": 1095,
+          "r2": 0.8626823707001255,
+          "rmse": 220.04664526012075,
+          "mae": 163.0059580181774,
+          "mean_revenue": 2617.990867579909
+        },
+        {
+          "fold": 3,
+          "train_size": 3285,
+          "test_size": 1095,
+          "r2": 0.8676399152854677,
+          "rmse": 216.99437507317577,
+          "mae": 159.66254149932413,
+          "mean_revenue": 2513.7899543378994
+        },
+        {
+          "fold": 4,
+          "train_size": 4380,
+          "test_size": 1095,
+          "r2": 0.8604953984577848,
+          "rmse": 200.55133889771346,
+          "mae": 159.38919155031903,
+          "mean_revenue": 2440.6392694063925
+        }
+      ]
+    },
+    "extreme_ski_gear": {
+      "tenant_name": "extreme_ski_gear",
+      "mean_r2": 0.9555703805912636,
+      "std_r2": 0.018380814908719033,
+      "mean_rmse": 165.3472783789672,
+      "mean_mae": 129.31229378063625,
+      "num_folds": 5,
+      "passes_r2_threshold": true,
+      "passes_stability_check": true,
+      "passes_rmse_check": true,
+      "passes_all_checks": true,
+      "failure_reasons": [],
+      "weather_elasticity": {
+        "temperature": -69.03772282461964,
+        "humidity": -4.202035778209064,
+        "precipitation": 1.0036697770538676
+      },
+      "channel_roas": {
+        "meta_spend": -34.198787555665696,
+        "google_spend": -43.90507073103399
+      },
+      "fold_details": [
+        {
+          "fold": 1,
+          "train_size": 1095,
+          "test_size": 1095,
+          "r2": 0.9517411774423118,
+          "rmse": 191.68638136462116,
+          "mae": 145.6609335122195,
+          "mean_revenue": 2079.2694063926942
+        },
+        {
+          "fold": 2,
+          "train_size": 2190,
+          "test_size": 1095,
+          "r2": 0.9751185484211026,
+          "rmse": 151.5543125013436,
+          "mae": 119.91241042480908,
+          "mean_revenue": 1717.8082191780823
+        },
+        {
+          "fold": 3,
+          "train_size": 3285,
+          "test_size": 1095,
+          "r2": 0.9680957068010049,
+          "rmse": 151.42592983263788,
+          "mae": 119.62881696710662,
+          "mean_revenue": 1346.392694063927
+        },
+        {
+          "fold": 4,
+          "train_size": 4380,
+          "test_size": 1095,
+          "r2": 0.9273260897006353,
+          "rmse": 166.72248981726614,
+          "mae": 132.0470142184098,
+          "mean_revenue": 2330.867579908676
+        }
+      ]
+    },
+    "extreme_sunscreen": {
+      "tenant_name": "extreme_sunscreen",
+      "mean_r2": 0.9563635477661222,
+      "std_r2": 0.01614421036271554,
+      "mean_rmse": 170.2956882074152,
+      "mean_mae": 136.48287421458653,
+      "num_folds": 5,
+      "passes_r2_threshold": true,
+      "passes_stability_check": true,
+      "passes_rmse_check": true,
+      "passes_all_checks": true,
+      "failure_reasons": [],
+      "weather_elasticity": {
+        "temperature": 78.27527013663897,
+        "humidity": -6.404980684749479,
+        "precipitation": -0.6170792938757345
+      },
+      "channel_roas": {
+        "meta_spend": 13.994487512243467,
+        "google_spend": 4.0518056282178385
+      },
+      "fold_details": [
+        {
+          "fold": 1,
+          "train_size": 1095,
+          "test_size": 1095,
+          "r2": 0.9594711587716346,
+          "rmse": 180.22913557556154,
+          "mae": 145.27597221115818,
+          "mean_revenue": 1838.2648401826484
+        },
+        {
+          "fold": 2,
+          "train_size": 2190,
+          "test_size": 1095,
+          "r2": 0.971723989214632,
+          "rmse": 168.6216764358101,
+          "mae": 135.0738814458725,
+          "mean_revenue": 2199.72602739726
+        },
+        {
+          "fold": 3,
+          "train_size": 3285,
+          "test_size": 1095,
+          "r2": 0.9648270810398658,
+          "rmse": 165.57054417058197,
+          "mae": 132.74027151027167,
+          "mean_revenue": 2560.4566210045664
+        },
+        {
+          "fold": 4,
+          "train_size": 4380,
+          "test_size": 1095,
+          "r2": 0.9294319620383563,
+          "rmse": 166.76139664770724,
+          "mae": 132.8413716910438,
+          "mean_revenue": 1586.027397260274
+        }
+      ]
+    },
+    "high_gym_activity": {
+      "tenant_name": "high_gym_activity",
+      "mean_r2": 0.9562167256602051,
+      "std_r2": 0.014536655398259948,
+      "mean_rmse": 142.08699695902774,
+      "mean_mae": 113.13522379145861,
+      "num_folds": 5,
+      "passes_r2_threshold": true,
+      "passes_stability_check": true,
+      "passes_rmse_check": true,
+      "passes_all_checks": true,
+      "failure_reasons": [],
+      "weather_elasticity": {
+        "temperature": 66.72075731339955,
+        "humidity": -5.003114845157776,
+        "precipitation": -0.18666868741794057
+      },
+      "channel_roas": {
+        "meta_spend": 1.167535372344139,
+        "google_spend": 8.138894388423752
+      },
+      "fold_details": [
+        {
+          "fold": 1,
+          "train_size": 1095,
+          "test_size": 1095,
+          "r2": 0.9625204892180532,
+          "rmse": 143.1918341724043,
+          "mae": 113.35579292959724,
+          "mean_revenue": 1842.8310502283105
+        },
+        {
+          "fold": 2,
+          "train_size": 2190,
+          "test_size": 1095,
+          "r2": 0.970909662614425,
+          "rmse": 140.4590465968228,
+          "mae": 113.29312569120503,
+          "mean_revenue": 2150.7762557077626
+        },
+        {
+          "fold": 3,
+          "train_size": 3285,
+          "test_size": 1095,
+          "r2": 0.9593052597626321,
+          "rmse": 148.62820320358216,
+          "mae": 118.25965268381523,
+          "mean_revenue": 2464.7488584474886
+        },
+        {
+          "fold": 4,
+          "train_size": 4380,
+          "test_size": 1095,
+          "r2": 0.9321314910457105,
+          "rmse": 136.0689038633017,
+          "mae": 107.63232386121693,
+          "mean_revenue": 1644.109589041096
+        }
+      ]
+    },
+    "high_outdoor_gear": {
+      "tenant_name": "high_outdoor_gear",
+      "mean_r2": 0.8088208668130897,
+      "std_r2": 0.03154662213279731,
+      "mean_rmse": 360.4930655997676,
+      "mean_mae": 277.1191560280497,
+      "num_folds": 5,
+      "passes_r2_threshold": true,
+      "passes_stability_check": true,
+      "passes_rmse_check": true,
+      "passes_all_checks": true,
+      "failure_reasons": [],
+      "weather_elasticity": {
+        "temperature": 58.11056063208099,
+        "humidity": -32.550732843955856,
+        "precipitation": -8.899269814169674
+      },
+      "channel_roas": {
+        "meta_spend": -20.655864207130058,
+        "google_spend": 21.933028877161515
+      },
+      "fold_details": [
+        {
+          "fold": 1,
+          "train_size": 1095,
+          "test_size": 1095,
+          "r2": 0.767068794883319,
+          "rmse": 424.23315511384607,
+          "mae": 319.49848334640336,
+          "mean_revenue": 1571.9634703196348
+        },
+        {
+          "fold": 2,
+          "train_size": 2190,
+          "test_size": 1095,
+          "r2": 0.8345328722066208,
+          "rmse": 358.19665952877756,
+          "mae": 279.38280663640285,
+          "mean_revenue": 1735.7077625570776
+        },
+        {
+          "fold": 3,
+          "train_size": 3285,
+          "test_size": 1095,
+          "r2": 0.789935762347602,
+          "rmse": 326.872579891657,
+          "mae": 259.9737508686713,
+          "mean_revenue": 1939.3607305936073
+        },
+        {
+          "fold": 4,
+          "train_size": 4380,
+          "test_size": 1095,
+          "r2": 0.8437460378148169,
+          "rmse": 332.66986786478975,
+          "mae": 249.62158326072125,
+          "mean_revenue": 1445.0228310502282
+        }
+      ]
+    },
+    "high_summer_clothing": {
+      "tenant_name": "high_summer_clothing",
+      "mean_r2": 0.957309760663698,
+      "std_r2": 0.012673912801029088,
+      "mean_rmse": 140.6438256871176,
+      "mean_mae": 112.34898118106662,
+      "num_folds": 5,
+      "passes_r2_threshold": true,
+      "passes_stability_check": true,
+      "passes_rmse_check": true,
+      "passes_all_checks": true,
+      "failure_reasons": [],
+      "weather_elasticity": {
+        "temperature": 66.62282552017399,
+        "humidity": -4.127565593718851,
+        "precipitation": -3.6771168676559967
+      },
+      "channel_roas": {
+        "meta_spend": 5.4278083387585,
+        "google_spend": 9.579306645371116
+      },
+      "fold_details": [
+        {
+          "fold": 1,
+          "train_size": 1095,
+          "test_size": 1095,
+          "r2": 0.9639806539550494,
+          "rmse": 139.90169660687292,
+          "mae": 112.84253524008811,
+          "mean_revenue": 1866.75799086758
+        },
+        {
+          "fold": 2,
+          "train_size": 2190,
+          "test_size": 1095,
+          "r2": 0.9711961834340369,
+          "rmse": 138.94772375246285,
+          "mae": 109.59574137780064,
+          "mean_revenue": 2156.529680365297
+        },
+        {
+          "fold": 3,
+          "train_size": 3285,
+          "test_size": 1095,
+          "r2": 0.956876839940466,
+          "rmse": 145.8785584031815,
+          "mae": 115.64357187322898,
+          "mean_revenue": 2444.4748858447488
+        },
+        {
+          "fold": 4,
+          "train_size": 4380,
+          "test_size": 1095,
+          "r2": 0.9371853653252395,
+          "rmse": 137.8473239859531,
+          "mae": 111.31407623314877,
+          "mean_revenue": 1669.86301369863
+        }
+      ]
+    },
+    "high_umbrella_rain": {
+      "tenant_name": "high_umbrella_rain",
+      "mean_r2": 0.7853099401184935,
+      "std_r2": 0.07307563947528907,
+      "mean_rmse": 206.73962875805177,
+      "mean_mae": 150.22933460756386,
+      "num_folds": 5,
+      "passes_r2_threshold": true,
+      "passes_stability_check": true,
+      "passes_rmse_check": true,
+      "passes_all_checks": true,
+      "failure_reasons": [],
+      "weather_elasticity": {
+        "temperature": 9.97721807105869,
+        "humidity": -14.31205550520437,
+        "precipitation": 127.74820700580887
+      },
+      "channel_roas": {
+        "meta_spend": 0.8709305039827654,
+        "google_spend": -24.937384368596685
+      },
+      "fold_details": [
+        {
+          "fold": 1,
+          "train_size": 1095,
+          "test_size": 1095,
+          "r2": 0.6759954475744006,
+          "rmse": 250.4554557004168,
+          "mae": 178.57358063054727,
+          "mean_revenue": 2325.388127853881
+        },
+        {
+          "fold": 2,
+          "train_size": 2190,
+          "test_size": 1095,
+          "r2": 0.7627097941653105,
+          "rmse": 226.00558269562242,
+          "mae": 150.16356591653607,
+          "mean_revenue": 2427.5799086757993
+        },
+        {
+          "fold": 3,
+          "train_size": 3285,
+          "test_size": 1095,
+          "r2": 0.8612431186453697,
+          "rmse": 174.80436956325286,
+          "mae": 138.53811495477507,
+          "mean_revenue": 2404.566210045662
+        },
+        {
+          "fold": 4,
+          "train_size": 4380,
+          "test_size": 1095,
+          "r2": 0.8412914000888937,
+          "rmse": 175.69310707291487,
+          "mae": 133.64207692839702,
+          "mean_revenue": 2342.283105022831
+        }
+      ]
+    },
+    "high_winter_clothing": {
+      "tenant_name": "high_winter_clothing",
+      "mean_r2": 0.9544685161066684,
+      "std_r2": 0.02023008036430634,
+      "mean_rmse": 139.12381970317784,
+      "mean_mae": 110.73510248806836,
+      "num_folds": 5,
+      "passes_r2_threshold": true,
+      "passes_stability_check": true,
+      "passes_rmse_check": true,
+      "passes_all_checks": true,
+      "failure_reasons": [],
+      "weather_elasticity": {
+        "temperature": -63.644291099834184,
+        "humidity": -4.644808887413701,
+        "precipitation": 1.5480592716689914
+      },
+      "channel_roas": {
+        "meta_spend": -9.27298300348497,
+        "google_spend": -43.464374480839254
+      },
+      "fold_details": [
+        {
+          "fold": 1,
+          "train_size": 1095,
+          "test_size": 1095,
+          "r2": 0.9587578094001029,
+          "rmse": 144.29717017346675,
+          "mae": 114.24173915170152,
+          "mean_revenue": 2576.89497716895
+        },
+        {
+          "fold": 2,
+          "train_size": 2190,
+          "test_size": 1095,
+          "r2": 0.9718969366199987,
+          "rmse": 136.12230530645687,
+          "mae": 107.20511148276532,
+          "mean_revenue": 2282.3744292237443
+        },
+        {
+          "fold": 3,
+          "train_size": 3285,
+          "test_size": 1095,
+          "r2": 0.96683730631984,
+          "rmse": 132.25829854265518,
+          "mae": 105.94020341101084,
+          "mean_revenue": 1990.3196347031962
+        },
+        {
+          "fold": 4,
+          "train_size": 4380,
+          "test_size": 1095,
+          "r2": 0.9203820120867319,
+          "rmse": 143.8175047901326,
+          "mae": 115.5533559067958,
+          "mean_revenue": 2774.0639269406392
+        }
+      ]
+    },
+    "medium_accessories": {
+      "tenant_name": "medium_accessories",
+      "mean_r2": 0.05650748980111167,
+      "std_r2": 0.009242138924339652,
+      "mean_rmse": 86.45913714812824,
+      "mean_mae": 71.3751479092266,
+      "num_folds": 5,
+      "passes_r2_threshold": false,
+      "passes_stability_check": true,
+      "passes_rmse_check": true,
+      "passes_all_checks": false,
+      "failure_reasons": [
+        "R\u00b2 0.057 < threshold 0.500"
+      ],
+      "weather_elasticity": {
+        "temperature": 0.7369615937219584,
+        "humidity": -2.3952868018628166,
+        "precipitation": -1.950058496043793
+      },
+      "channel_roas": {
+        "meta_spend": -2.109081027019479,
+        "google_spend": -2.2196575258808857
+      },
+      "fold_details": [
+        {
+          "fold": 1,
+          "train_size": 1095,
+          "test_size": 1095,
+          "r2": 0.0472717272475065,
+          "rmse": 85.78216537900546,
+          "mae": 71.3462511554073,
+          "mean_revenue": 1949.7716894977168
+        },
+        {
+          "fold": 2,
+          "train_size": 2190,
+          "test_size": 1095,
+          "r2": 0.07174942254572869,
+          "rmse": 87.32105478207828,
+          "mae": 71.8783424145524,
+          "mean_revenue": 1951.5981735159817
+        },
+        {
+          "fold": 3,
+          "train_size": 3285,
+          "test_size": 1095,
+          "r2": 0.05523871489520171,
+          "rmse": 86.20203297335489,
+          "mae": 71.08763006721809,
+          "mean_revenue": 1952.146118721461
+        },
+        {
+          "fold": 4,
+          "train_size": 4380,
+          "test_size": 1095,
+          "r2": 0.05177009451600978,
+          "rmse": 86.5312954580743,
+          "mae": 71.18836799972857,
+          "mean_revenue": 1946.849315068493
+        }
+      ]
+    },
+    "medium_beauty": {
+      "tenant_name": "medium_beauty",
+      "mean_r2": 0.04897010178628694,
+      "std_r2": 0.003842566670319594,
+      "mean_rmse": 86.88121260549187,
+      "mean_mae": 71.52991348941109,
+      "num_folds": 5,
+      "passes_r2_threshold": false,
+      "passes_stability_check": true,
+      "passes_rmse_check": true,
+      "passes_all_checks": false,
+      "failure_reasons": [
+        "R\u00b2 0.049 < threshold 0.500"
+      ],
+      "weather_elasticity": {
+        "temperature": 2.9126287101660107,
+        "humidity": -3.8070694033499617,
+        "precipitation": 2.047470885521626
+      },
+      "channel_roas": {
+        "meta_spend": 3.2261231999012123,
+        "google_spend": 3.95794653544331
+      },
+      "fold_details": [
+        {
+          "fold": 1,
+          "train_size": 1095,
+          "test_size": 1095,
+          "r2": 0.04324337293149039,
+          "rmse": 86.35665092076604,
+          "mae": 70.89385977544977,
+          "mean_revenue": 1951.5068493150684
+        },
+        {
+          "fold": 2,
+          "train_size": 2190,
+          "test_size": 1095,
+          "r2": 0.05096827375738322,
+          "rmse": 84.8921733898257,
+          "mae": 70.12034207822619,
+          "mean_revenue": 1954.5205479452054
+        },
+        {
+          "fold": 3,
+          "train_size": 3285,
+          "test_size": 1095,
+          "r2": 0.05360223965768507,
+          "rmse": 87.83620481238341,
+          "mae": 72.24366107388902,
+          "mean_revenue": 1953.150684931507
+        },
+        {
+          "fold": 4,
+          "train_size": 4380,
+          "test_size": 1095,
+          "r2": 0.048066520798589085,
+          "rmse": 88.43982129899234,
+          "mae": 72.86179103007936,
+          "mean_revenue": 1950.593607305936
+        }
+      ]
+    },
+    "medium_clothing": {
+      "tenant_name": "medium_clothing",
+      "mean_r2": 0.07111515000450211,
+      "std_r2": 0.019830802481802697,
+      "mean_rmse": 85.71247929750525,
+      "mean_mae": 70.93143697101107,
+      "num_folds": 5,
+      "passes_r2_threshold": false,
+      "passes_stability_check": true,
+      "passes_rmse_check": true,
+      "passes_all_checks": false,
+      "failure_reasons": [
+        "R\u00b2 0.071 < threshold 0.500"
+      ],
+      "weather_elasticity": {
+        "temperature": 1.4035861251697521,
+        "humidity": -2.6122152223639574,
+        "precipitation": 0.09487851837597194
+      },
+      "channel_roas": {
+        "meta_spend": -1.2531502342557859,
+        "google_spend": -4.369815432102784
+      },
+      "fold_details": [
+        {
+          "fold": 1,
+          "train_size": 1095,
+          "test_size": 1095,
+          "r2": 0.04952365015438431,
+          "rmse": 84.55411898238398,
+          "mae": 69.5584426214461,
+          "mean_revenue": 1950.958904109589
+        },
+        {
+          "fold": 2,
+          "train_size": 2190,
+          "test_size": 1095,
+          "r2": 0.07860866403808076,
+          "rmse": 85.24880723487288,
+          "mae": 70.83113396030966,
+          "mean_revenue": 1949.132420091324
+        },
+        {
+          "fold": 3,
+          "train_size": 3285,
+          "test_size": 1095,
+          "r2": 0.05635450412738208,
+          "rmse": 88.9274314456218,
+          "mae": 73.60404875019151,
+          "mean_revenue": 1949.041095890411
+        },
+        {
+          "fold": 4,
+          "train_size": 4380,
+          "test_size": 1095,
+          "r2": 0.09997378169816129,
+          "rmse": 84.11955952714236,
+          "mae": 69.732122552097,
+          "mean_revenue": 1947.2146118721462
+        }
+      ]
+    },
+    "medium_footwear": {
+      "tenant_name": "medium_footwear",
+      "mean_r2": 0.06740229761261066,
+      "std_r2": 0.018922993129670877,
+      "mean_rmse": 84.16823787550283,
+      "mean_mae": 69.58492061616627,
+      "num_folds": 5,
+      "passes_r2_threshold": false,
+      "passes_stability_check": true,
+      "passes_rmse_check": true,
+      "passes_all_checks": false,
+      "failure_reasons": [
+        "R\u00b2 0.067 < threshold 0.500"
+      ],
+      "weather_elasticity": {
+        "temperature": 3.188915415552055,
+        "humidity": -3.235043885784082,
+        "precipitation": 0.12453457426995368
+      },
+      "channel_roas": {
+        "meta_spend": 1.7783235879582853,
+        "google_spend": -3.2270542595329657
+      },
+      "fold_details": [
+        {
+          "fold": 1,
+          "train_size": 1095,
+          "test_size": 1095,
+          "r2": 0.045525957709525056,
+          "rmse": 81.58611843595783,
+          "mae": 67.09352109932894,
+          "mean_revenue": 1951.0502283105022
+        },
+        {
+          "fold": 2,
+          "train_size": 2190,
+          "test_size": 1095,
+          "r2": 0.0965418991608703,
+          "rmse": 85.46516917965653,
+          "mae": 70.4520854512066,
+          "mean_revenue": 1952.054794520548
+        },
+        {
+          "fold": 3,
+          "train_size": 3285,
+          "test_size": 1095,
+          "r2": 0.07002568737881809,
+          "rmse": 85.21706054914652,
+          "mae": 70.64848716184976,
+          "mean_revenue": 1952.5114155251142
+        },
+        {
+          "fold": 4,
+          "train_size": 4380,
+          "test_size": 1095,
+          "r2": 0.057515646201229176,
+          "rmse": 84.40460333725044,
+          "mae": 70.14558875227985,
+          "mean_revenue": 1949.3150684931506
+        }
+      ]
+    },
+    "medium_sports": {
+      "tenant_name": "medium_sports",
+      "mean_r2": 0.054749416670958784,
+      "std_r2": 0.010264289599296204,
+      "mean_rmse": 84.47127414510618,
+      "mean_mae": 70.18500197189277,
+      "num_folds": 5,
+      "passes_r2_threshold": false,
+      "passes_stability_check": true,
+      "passes_rmse_check": true,
+      "passes_all_checks": false,
+      "failure_reasons": [
+        "R\u00b2 0.055 < threshold 0.500"
+      ],
+      "weather_elasticity": {
+        "temperature": 1.9315781880240013,
+        "humidity": -2.854134326865225,
+        "precipitation": -0.5236516276496959
+      },
+      "channel_roas": {
+        "meta_spend": -2.218530594283094,
+        "google_spend": 2.908896918598823
+      },
+      "fold_details": [
+        {
+          "fold": 1,
+          "train_size": 1095,
+          "test_size": 1095,
+          "r2": 0.038622909140828554,
+          "rmse": 83.6812043734457,
+          "mae": 70.33524775636678,
+          "mean_revenue": 1951.2328767123288
+        },
+        {
+          "fold": 2,
+          "train_size": 2190,
+          "test_size": 1095,
+          "r2": 0.05433731996012303,
+          "rmse": 85.5370970693194,
+          "mae": 70.42043300408452,
+          "mean_revenue": 1952.2374429223744
+        },
+        {
+          "fold": 3,
+          "train_size": 3285,
+          "test_size": 1095,
+          "r2": 0.06651341333995409,
+          "rmse": 83.68241959515824,
+          "mae": 69.26668842117434,
+          "mean_revenue": 1948.310502283105
+        },
+        {
+          "fold": 4,
+          "train_size": 4380,
+          "test_size": 1095,
+          "r2": 0.05952402424292946,
+          "rmse": 84.9843755425014,
+          "mae": 70.71763870594545,
+          "mean_revenue": 1952.7853881278538
+        }
+      ]
+    },
+    "none_books": {
+      "tenant_name": "none_books",
+      "mean_r2": 0.357548408642399,
+      "std_r2": 0.04293638108107538,
+      "mean_rmse": 202.64852767403957,
+      "mean_mae": 162.43851429309217,
+      "num_folds": 5,
+      "passes_r2_threshold": false,
+      "passes_stability_check": true,
+      "passes_rmse_check": true,
+      "passes_all_checks": false,
+      "failure_reasons": [
+        "R\u00b2 0.358 < threshold 0.500"
+      ],
+      "weather_elasticity": {
+        "temperature": 6.187649603504704,
+        "humidity": -15.026072855195812,
+        "precipitation": -2.571410895764302
+      },
+      "channel_roas": {
+        "meta_spend": -5.106218140815052,
+        "google_spend": -18.65652727407164
+      },
+      "fold_details": [
+        {
+          "fold": 1,
+          "train_size": 1095,
+          "test_size": 1095,
+          "r2": 0.28481105794322714,
+          "rmse": 217.7973783823858,
+          "mae": 174.32966777528412,
+          "mean_revenue": 1939.0867579908677
+        },
+        {
+          "fold": 2,
+          "train_size": 2190,
+          "test_size": 1095,
+          "r2": 0.38678337267687724,
+          "rmse": 197.81840726229552,
+          "mae": 158.4118606090014,
+          "mean_revenue": 1945.662100456621
+        },
+        {
+          "fold": 3,
+          "train_size": 3285,
+          "test_size": 1095,
+          "r2": 0.3674147976060679,
+          "rmse": 192.5513756157722,
+          "mae": 154.5226207157112,
+          "mean_revenue": 1942.648401826484
+        },
+        {
+          "fold": 4,
+          "train_size": 4380,
+          "test_size": 1095,
+          "r2": 0.3911844063434239,
+          "rmse": 202.42694943570487,
+          "mae": 162.48990807237192,
+          "mean_revenue": 1937.9908675799086
+        }
+      ]
+    },
+    "none_electronics": {
+      "tenant_name": "none_electronics",
+      "mean_r2": 0.3446375122594144,
+      "std_r2": 0.027428849653864957,
+      "mean_rmse": 208.16459517919813,
+      "mean_mae": 165.9593007674153,
+      "num_folds": 5,
+      "passes_r2_threshold": false,
+      "passes_stability_check": true,
+      "passes_rmse_check": true,
+      "passes_all_checks": false,
+      "failure_reasons": [
+        "R\u00b2 0.345 < threshold 0.500"
+      ],
+      "weather_elasticity": {
+        "temperature": 8.125093034778015,
+        "humidity": -15.401458569136825,
+        "precipitation": -10.338460626879277
+      },
+      "channel_roas": {
+        "meta_spend": -1.648247941322354,
+        "google_spend": 9.018585012105973
+      },
+      "fold_details": [
+        {
+          "fold": 1,
+          "train_size": 1095,
+          "test_size": 1095,
+          "r2": 0.2973986303599465,
+          "rmse": 217.42362967065242,
+          "mae": 171.78116154550537,
+          "mean_revenue": 1962.1917808219177
+        },
+        {
+          "fold": 2,
+          "train_size": 2190,
+          "test_size": 1095,
+          "r2": 0.36417802063486193,
+          "rmse": 210.45091385781242,
+          "mae": 169.53430334689818,
+          "mean_revenue": 1962.9223744292237
+        },
+        {
+          "fold": 3,
+          "train_size": 3285,
+          "test_size": 1095,
+          "r2": 0.3609790668430374,
+          "rmse": 203.6032766868221,
+          "mae": 162.48434263049842,
+          "mean_revenue": 1951.689497716895
+        },
+        {
+          "fold": 4,
+          "train_size": 4380,
+          "test_size": 1095,
+          "r2": 0.35599433119981194,
+          "rmse": 201.18056050150548,
+          "mae": 160.03739554675917,
+          "mean_revenue": 1956.0730593607307
+        }
+      ]
+    },
+    "none_home_decor": {
+      "tenant_name": "none_home_decor",
+      "mean_r2": 0.34606873018251616,
+      "std_r2": 0.04048085558050176,
+      "mean_rmse": 208.19211480034653,
+      "mean_mae": 167.11673269508242,
+      "num_folds": 5,
+      "passes_r2_threshold": false,
+      "passes_stability_check": true,
+      "passes_rmse_check": true,
+      "passes_all_checks": false,
+      "failure_reasons": [
+        "R\u00b2 0.346 < threshold 0.500"
+      ],
+      "weather_elasticity": {
+        "temperature": 2.5949261112782622,
+        "humidity": -14.241824401056366,
+        "precipitation": -0.3489389746829513
+      },
+      "channel_roas": {
+        "meta_spend": -6.364401264215557,
+        "google_spend": -7.705333365758348
+      },
+      "fold_details": [
+        {
+          "fold": 1,
+          "train_size": 1095,
+          "test_size": 1095,
+          "r2": 0.28715421662060936,
+          "rmse": 218.67986547986547,
+          "mae": 174.3494773570172,
+          "mean_revenue": 1949.9543378995434
+        },
+        {
+          "fold": 2,
+          "train_size": 2190,
+          "test_size": 1095,
+          "r2": 0.39783987372969,
+          "rmse": 202.322722513049,
+          "mae": 164.0628090949044,
+          "mean_revenue": 1950.2283105022832
+        },
+        {
+          "fold": 3,
+          "train_size": 3285,
+          "test_size": 1095,
+          "r2": 0.33589062257115754,
+          "rmse": 208.50187962501943,
+          "mae": 167.60903064319317,
+          "mean_revenue": 1954.0639269406392
+        },
+        {
+          "fold": 4,
+          "train_size": 4380,
+          "test_size": 1095,
+          "r2": 0.36339020780860765,
+          "rmse": 203.26399158345222,
+          "mae": 162.44561368521494,
+          "mean_revenue": 1941.9178082191781
+        }
+      ]
+    },
+    "none_kitchen": {
+      "tenant_name": "none_kitchen",
+      "mean_r2": 0.35022030214180755,
+      "std_r2": 0.03274208589321893,
+      "mean_rmse": 204.87888730567593,
+      "mean_mae": 163.917631770268,
+      "num_folds": 5,
+      "passes_r2_threshold": false,
+      "passes_stability_check": true,
+      "passes_rmse_check": true,
+      "passes_all_checks": false,
+      "failure_reasons": [
+        "R\u00b2 0.350 < threshold 0.500"
+      ],
+      "weather_elasticity": {
+        "temperature": 4.787463503045295,
+        "humidity": -13.767905400110799,
+        "precipitation": -8.638555343793952
+      },
+      "channel_roas": {
+        "meta_spend": 8.147212383825618,
+        "google_spend": -16.887735783264837
+      },
+      "fold_details": [
+        {
+          "fold": 1,
+          "train_size": 1095,
+          "test_size": 1095,
+          "r2": 0.3028634974086185,
+          "rmse": 208.1193937725838,
+          "mae": 166.3804738561106,
+          "mean_revenue": 1945.296803652968
+        },
+        {
+          "fold": 2,
+          "train_size": 2190,
+          "test_size": 1095,
+          "r2": 0.3820673946221902,
+          "rmse": 205.88364827359504,
+          "mae": 163.3519515578947,
+          "mean_revenue": 1945.296803652968
+        },
+        {
+          "fold": 3,
+          "train_size": 3285,
+          "test_size": 1095,
+          "r2": 0.37931756808390205,
+          "rmse": 200.74502145869633,
+          "mae": 160.540470813719,
+          "mean_revenue": 1941.2785388127854
+        },
+        {
+          "fold": 4,
+          "train_size": 4380,
+          "test_size": 1095,
+          "r2": 0.33663274845251934,
+          "rmse": 204.76748571782855,
+          "mae": 165.3976308533477,
+          "mean_revenue": 1956.4383561643835
+        }
+      ]
+    },
+    "none_office_supplies": {
+      "tenant_name": "none_office_supplies",
+      "mean_r2": 0.3193802948525911,
+      "std_r2": 0.018959009473280573,
+      "mean_rmse": 208.94345820278716,
+      "mean_mae": 167.0358281733387,
+      "num_folds": 5,
+      "passes_r2_threshold": false,
+      "passes_stability_check": true,
+      "passes_rmse_check": true,
+      "passes_all_checks": false,
+      "failure_reasons": [
+        "R\u00b2 0.319 < threshold 0.500"
+      ],
+      "weather_elasticity": {
+        "temperature": 6.690634162992268,
+        "humidity": -15.240956981911884,
+        "precipitation": -2.355920925851563
+      },
+      "channel_roas": {
+        "meta_spend": 1.3911375018450678,
+        "google_spend": 6.675629922450647
+      },
+      "fold_details": [
+        {
+          "fold": 1,
+          "train_size": 1095,
+          "test_size": 1095,
+          "r2": 0.33033784203408534,
+          "rmse": 203.68632298115614,
+          "mae": 163.71873034093488,
+          "mean_revenue": 1954.0639269406392
+        },
+        {
+          "fold": 2,
+          "train_size": 2190,
+          "test_size": 1095,
+          "r2": 0.33290539411662423,
+          "rmse": 207.87468630963332,
+          "mae": 166.24182082905602,
+          "mean_revenue": 1940.0913242009133
+        },
+        {
+          "fold": 3,
+          "train_size": 3285,
+          "test_size": 1095,
+          "r2": 0.28670517582475485,
+          "rmse": 212.88477697062794,
+          "mae": 169.96009107799918,
+          "mean_revenue": 1959.8173515981734
+        },
+        {
+          "fold": 4,
+          "train_size": 4380,
+          "test_size": 1095,
+          "r2": 0.32757276743489994,
+          "rmse": 211.3280465497312,
+          "mae": 168.2226704453647,
+          "mean_revenue": 1961.0045662100456
+        }
+      ]
+    }
+  }
+}
