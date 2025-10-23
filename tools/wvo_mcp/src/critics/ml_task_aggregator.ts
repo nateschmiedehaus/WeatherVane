@@ -365,22 +365,32 @@ export class MLTaskAggregator {
     const results: MLTaskCompletionReport['critic_results'] = {};
 
     const criticSections = [
-      { name: 'modeling_reality_v2' as const, patterns: [/Modeling Reality.*?(?:✅|✓|pass|fail|✗|✘)/i, /Model Accuracy.*?(\d+)%/i] },
+      { name: 'modeling_reality_v2' as const, patterns: [/Modeling Reality.*?(?:✅|✓|pass|fail|✗|✘)/i, /Model accuracy.*?(\d+)%/i] },
       { name: 'academic_rigor' as const, patterns: [/Academic Rigor.*?(?:✅|✓|pass|fail|✗|✘)/i, /Methodology.*?(?:valid|invalid|incomplete)/i] },
-      { name: 'data_quality' as const, patterns: [/Data Quality.*?(?:✅|✓|pass|fail|✗|✘)/i, /Data.*?(?:validated|corrupted|incomplete)/i] }
+      { name: 'data_quality' as const, patterns: [/Data Quality.*?(?:✅|✓|pass|fail|✗|✘)/i, /Data.*?(?:valid|corrupt|incomplet)/i] }
     ];
 
     for (const { name, patterns } of criticSections) {
-      for (const pattern of patterns) {
-        const match = content.match(pattern);
-        if (match) {
-          const text = match[0].toLowerCase();
-          const passed = /(✅|✓|pass|valid)/.test(text);
-          const message = match[1] ? `${match[1]}%` : undefined;
+      let criticMatch = null;
+      let percentMatch = null;
 
-          results[name] = { passed, message };
-          break;
-        }
+      // First check for critic pass/fail
+      const statusPattern = patterns[0];
+      criticMatch = content.match(statusPattern);
+
+      // Then look for percentage/detail
+      const detailPattern = patterns[1];
+      percentMatch = content.match(detailPattern);
+
+      if (criticMatch || percentMatch) {
+        const text = criticMatch ? criticMatch[0].toLowerCase() : '';
+        const passed = /(✅|✓|pass|valid)/.test(text);
+        const message = percentMatch ? percentMatch[1] : undefined;
+
+        results[name] = {
+          passed,
+          message: message ? `${message}%` : undefined
+        };
       }
     }
 
@@ -468,6 +478,19 @@ export class MLTaskAggregator {
     ];
 
     for (const report of reports) {
+      // Check critic failures
+      if (report.critic_results) {
+        if (report.critic_results.modeling_reality_v2 && !report.critic_results.modeling_reality_v2.passed) {
+          blockers.push(`Model accuracy ${report.critic_results.modeling_reality_v2.message || 'failed'}`);
+        }
+        if (report.critic_results.academic_rigor && !report.critic_results.academic_rigor.passed) {
+          blockers.push('Methodology incomplete');
+        }
+        if (report.critic_results.data_quality && !report.critic_results.data_quality.passed) {
+          blockers.push('Data corrupted');
+        }
+      }
+
       // Check verification checklist for failures
       const failedChecks = Object.entries(report.verification_checklist)
         .filter(([, passed]) => !passed)
