@@ -17,6 +17,8 @@ from typing import Any, Callable, Dict, Iterable, List, Sequence, Optional
 import numpy as np
 import polars as pl
 
+from shared.feature_store.feature_builder import TARGET_COLUMN
+
 LinearGAM: Any | None = None
 s: Any | None = None
 te: Any | None = None

@@ -26,7 +26,7 @@ REQUIRED_WEATHER_COLS = {
     "precip_anomaly",
     "temp_roll7",
     "precip_roll7",
-    "weather_elasticity",  # Added for elasticity estimation
+    # NOTE: weather_elasticity is computed by feature_builder, not required in raw data
 }
 
 WEATHER_COVERAGE_COLS = {
@@ -34,7 +34,7 @@ WEATHER_COVERAGE_COLS = {
     "precip_mm",
     "temp_anomaly",
     "precip_anomaly",
-    "weather_elasticity",  # Added for elasticity estimation
+    # NOTE: weather_elasticity is computed, not a raw input column
 }
 
 
@@ -176,19 +176,42 @@ class FeatureBuilder:
         )
 
     def _load_latest(self, tenant_id: str, dataset: str, drop_null_revenue: bool = False) -> pl.DataFrame:
-        """Load latest version of a dataset."""
+        """Load latest version of a dataset.
+
+        Tries two path structures:
+        1. New structure: lake_root/{tenant_id}_{dataset}/timestamp.parquet
+        2. Legacy structure: lake_root/{tenant_id}/{tenant_id}_{dataset}/features/{tenant_id}_{dataset}_latest.parquet
+        """
+        # Try new structure (from LakeWriter)
+        dataset_dir = self.lake_root / f"{tenant_id}_{dataset}"
+        if dataset_dir.exists():
+            latest_file = None
+            latest_mtime = float("-inf")
+            for candidate in dataset_dir.glob("*.parquet"):
+                try:
+                    mtime = candidate.stat().st_mtime
+                    if mtime > latest_mtime:
+                        latest_mtime = mtime
+                        latest_file = candidate
+                except FileNotFoundError:
+                    continue
+            if latest_file is not None:
+                frame = pl.read_parquet(latest_file)
+                if drop_null_revenue and TARGET_COLUMN in frame.columns:
+                    frame = frame.filter(pl.col(TARGET_COLUMN).is_not_null())
+                return frame
+
+        # Try legacy structure (pre-LakeWriter)
         dataset_dir = self.lake_root / tenant_id / f"{tenant_id}_{dataset}" / "features"
-        if not dataset_dir.exists():
-            return pl.DataFrame([])
+        if dataset_dir.exists():
+            latest_file = dataset_dir / f"{tenant_id}_{dataset}_latest.parquet"
+            if latest_file.exists():
+                frame = pl.read_parquet(latest_file)
+                if drop_null_revenue and TARGET_COLUMN in frame.columns:
+                    frame = frame.filter(pl.col(TARGET_COLUMN).is_not_null())
+                return frame
 
-        latest_file = dataset_dir / f"{tenant_id}_{dataset}_latest.parquet"
-        if not latest_file.exists():
-            return pl.DataFrame([])
-
-        frame = pl.read_parquet(latest_file)
-        if drop_null_revenue and TARGET_COLUMN in frame.columns:
-            frame = frame.filter(pl.col(TARGET_COLUMN).is_not_null())
-        return frame
+        return pl.DataFrame([])
 
     def _orders_daily(self, orders: pl.DataFrame) -> pl.DataFrame:
         """Aggregate orders to daily level."""
@@ -211,18 +234,20 @@ class FeatureBuilder:
 
         frames = []
         if not meta.is_empty():
+            # Select only common columns needed for aggregation
             frames.append(
-                meta.with_columns(
+                meta.select(["date", "spend", "conversions"]).with_columns(
                     pl.col("spend").alias("ads_spend"),
                     pl.col("conversions").alias("ads_conversions"),
-                )
+                ).drop(["spend", "conversions"])
             )
         if not google.is_empty():
+            # Select only common columns needed for aggregation
             frames.append(
-                google.with_columns(
+                google.select(["date", "spend", "conversions"]).with_columns(
                     pl.col("spend").alias("ads_spend"),
                     pl.col("conversions").alias("ads_conversions"),
-                )
+                ).drop(["spend", "conversions"])
             )
 
         combined = pl.concat(frames) if frames else pl.DataFrame([])
