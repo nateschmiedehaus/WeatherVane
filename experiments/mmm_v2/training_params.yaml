@@ -1,0 +1,13 @@
+# Placeholder training configuration for MMM v2 remediation cycle
+model_name: weather_mmm_v2
+commit: TBD-after-retraining
+seed: null
+features:
+  - spend_channel_a
+  - spend_channel_b
+  - temperature
+  - precipitation
+  - seasonal_index
+notes:
+  - "Populate with actual hyperparameters after rerunning training pipeline."
+  - "Ensure deterministic seed and dataset hash recorded."

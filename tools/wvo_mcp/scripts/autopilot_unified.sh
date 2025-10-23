@@ -125,6 +125,13 @@ if [ ! -f "$MCP_DIST" ]; then
 fi
 echo -e "${GREEN}✓ UnifiedOrchestrator built${NC}"
 
+# Run maintenance (log rotation, DB cleanup, etc.)
+MAINTENANCE_SCRIPT="$SCRIPT_DIR/maintenance.sh"
+if [ -f "$MAINTENANCE_SCRIPT" ] && [ "${WVO_SKIP_MAINTENANCE:-0}" != "1" ]; then
+  echo ""
+  bash "$MAINTENANCE_SCRIPT" || echo -e "${YELLOW}⚠️  Maintenance had issues, continuing...${NC}"
+fi
+
 # Git handling mode (default: auto-commit operational files)
 GIT_HANDLER_MODE="${WVO_GIT_MODE:-auto}"
 

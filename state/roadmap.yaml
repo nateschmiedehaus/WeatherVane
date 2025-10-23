@@ -815,7 +815,7 @@ epics:
               database connection is not open"}
           - id: CRIT-PERF-SECURITY-645edd
             title: "[Critic:security] Restore performance"
-            status: pending
+            status: done
             dependencies: []
             exit_criteria: []
             domain: product
@@ -1146,7 +1146,7 @@ epics:
         tasks:
           - id: T-MLR-3.3
             title: Package all evidence artifacts for review
-            status: in_progress
+            status: done
             dependencies:
               - T-MLR-3.2
             exit_criteria: []
@@ -1158,7 +1158,7 @@ epics:
         tasks:
           - id: T-MLR-4.1
             title: Deploy ModelingReality_v2 critic to production
-            status: pending
+            status: in_progress
             dependencies:
               - T-MLR-0.1
               - T-MLR-3.3

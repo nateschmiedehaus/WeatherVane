@@ -1,0 +1,13 @@
+{
+  "status": "NOT_AVAILABLE",
+  "generated_at": null,
+  "notes": [
+    "Baseline models (naive, seasonal, linear) have not been executed for this run.",
+    "Populate this file after running baseline comparisons per docs/ML_VALIDATION_RUNBOOK.md#step-3."],
+  "actions_required": [
+    "Run python apps/model/train.py --baseline naive",
+    "Run python apps/model/train.py --baseline seasonal",
+    "Run python apps/model/train.py --baseline linear",
+    "Record metrics (R², MAPE, RMSE) and update modeling_reality_v2 inputs"
+  ]
+}

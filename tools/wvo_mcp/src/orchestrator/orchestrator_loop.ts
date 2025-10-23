@@ -708,7 +708,11 @@ export class OrchestratorLoop extends EventEmitter {
             metadata: {
               issues,
               mode: this.mode,
-              queue,
+              queue: {
+                size: queue.size,
+                reasonCounts: { ...queue.reasonCounts },
+                resource: { ...queue.resource },
+              },
               health,
             },
           });

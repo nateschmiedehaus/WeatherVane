@@ -1,0 +1,54 @@
+{
+  "status": "FAIL",
+  "objective_threshold": 0.5,
+  "tenants_trained": 4,
+  "tenants_passing": 0,
+  "pass_rate": 0.0,
+  "mean_r2": 0.07535380605802633,
+  "best_r2": 0.1094616544847657,
+  "worst_r2": 0.04899305962079106,
+  "tenants": [
+    {
+      "tenant_id": "demo_tenant_1",
+      "r_squared": 0.05728088701237153,
+      "status": "FAIL",
+      "temperature_elasticity_error": 1233.3333333333335,
+      "precipitation_elasticity_error": 2400.0
+    },
+    {
+      "tenant_id": "demo_tenant_2",
+      "r_squared": 0.1094616544847657,
+      "status": "FAIL",
+      "temperature_elasticity_error": 1566.6666666666667,
+      "precipitation_elasticity_error": 1011.1111111111112
+    },
+    {
+      "tenant_id": "demo_tenant_3",
+      "r_squared": 0.04899305962079106,
+      "status": "FAIL",
+      "temperature_elasticity_error": 1900.0,
+      "precipitation_elasticity_error": 3233.3333333333335
+    },
+    {
+      "tenant_id": "demo_tenant_4",
+      "r_squared": 0.08567962311417701,
+      "status": "FAIL",
+      "temperature_elasticity_error": 900.0,
+      "precipitation_elasticity_error": 2122.222222222222
+    }
+  ],
+  "notes": [
+    "Aggregated from storage/artifacts/validation_report.json",
+    "All tenants currently fail the 0.50 R\u00b2 production threshold."
+  ],
+  "claims_verified": {
+    "ready_for_production": false,
+    "weather_signal_detected": false,
+    "baseline_comparison_available": false
+  },
+  "limitation_summary": [
+    "R\u00b2 remains below the 0.50 target for every tenant.",
+    "Elasticity sign and magnitude errors exceed 900% across tenants.",
+    "Baseline comparison metrics are not yet computed; include in next validation iteration."
+  ]
+}

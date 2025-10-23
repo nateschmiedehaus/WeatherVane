@@ -82,6 +82,11 @@ state/autopilot_events.jsonl
 state/autopilot_loop_history.json
 tools/wvo_mcp/state/
 
+# Rotated/archived logs (auto-managed by autopilot maintenance)
+state/analytics/**/*.jsonl.gz
+state/analytics/archives/
+state/backups/db/
+
 # Next.js build output
 apps/web/out/
 apps/web/.next/

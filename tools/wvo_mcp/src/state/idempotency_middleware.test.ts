@@ -15,8 +15,8 @@ describe("IdempotencyMiddleware", () => {
     middleware = new IdempotencyMiddleware(store, true);
   });
 
-  afterEach(() => {
-    middleware.destroy();
+  afterEach(async () => {
+    await middleware.destroy();
   });
 
   describe("Handler Wrapping", () => {
@@ -205,7 +205,7 @@ describe("IdempotencyMiddleware", () => {
 
       expect(handler).toHaveBeenCalledTimes(2);
 
-      disabled.destroy();
+      await disabled.destroy();
     });
 
     it("should execute handler normally when idempotency disabled", async () => {
@@ -221,7 +221,7 @@ describe("IdempotencyMiddleware", () => {
 
       expect(result).toEqual({ test: "data", processed: true });
 
-      disabled.destroy();
+      await disabled.destroy();
     });
   });
 
@@ -243,7 +243,7 @@ describe("IdempotencyMiddleware", () => {
       // Failed
       await wrapped2({ id: 2 }).catch(() => {});
 
-      const stats = middleware.getStats();
+      const stats = await middleware.getStats();
       expect(stats.completedCount).toBe(1);
       expect(stats.failedCount).toBe(1);
       expect(stats.size).toBe(2);
@@ -333,7 +333,7 @@ describe("IdempotencyMiddleware", () => {
         await wrapped({ id: i }); // 3 duplicate requests
       }
 
-      const stats = middleware.getStats();
+      const stats = await middleware.getStats();
       expect(stats.completedCount).toBe(5);
       expect(stats.size).toBe(5);
     });
@@ -389,10 +389,10 @@ describe("IdempotencyMiddleware", () => {
   });
 
   describe("DRY_RUN Mode Guardrail", () => {
-    afterEach(() => {
+    afterEach(async () => {
       // Ensure WVO_DRY_RUN is unset after each test
       delete process.env.WVO_DRY_RUN;
-      middleware.clear();
+      await middleware.clear();
     });
 
     it("should skip caching when WVO_DRY_RUN=1", async () => {

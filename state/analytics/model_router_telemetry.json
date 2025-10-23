@@ -1,19 +1,91 @@
 {
   "version": "1.0",
   "startedAt": "2025-10-22T21:44:01.878Z",
-  "lastUpdatedAt": "2025-10-23T13:21:50.817Z",
-  "totalTasks": 53,
-  "totalCostActual": 3.1355999999999997,
-  "totalCostBaseline": 3.975000000000004,
-  "totalSavings": 0.8394000000000044,
-  "savingsPercent": 21.11698113207556,
+  "lastUpdatedAt": "2025-10-23T13:29:42.672Z",
+  "totalTasks": 61,
+  "totalCostActual": 3.4315999999999987,
+  "totalCostBaseline": 4.5750000000000055,
+  "totalSavings": 1.1434000000000069,
+  "savingsPercent": 24.992349726776077,
   "tierDistribution": {
-    "haiku": 27,
-    "sonnet-3.5": 10,
+    "haiku": 30,
+    "sonnet-3.5": 13,
     "sonnet-4.5": 9,
     "sonnet-4.5-reasoning": 0
   },
   "recentTasks": [
+    {
+      "taskId": "E7",
+      "timestamp": "2025-10-23T13:29:42.672Z",
+      "tier": "haiku",
+      "complexity": 0,
+      "costActual": 0.002,
+      "costBaseline": 0.075,
+      "savings": 0.073
+    },
+    {
+      "taskId": "T-MLR-4.1",
+      "timestamp": "2025-10-23T13:28:16.718Z",
+      "tier": "codex-low",
+      "complexity": 3,
+      "costActual": 0.0088,
+      "costBaseline": 0.075,
+      "savings": 0.0662
+    },
+    {
+      "taskId": "T-MLR-3.3",
+      "timestamp": "2025-10-23T13:27:56.345Z",
+      "tier": "codex-low",
+      "complexity": 3,
+      "costActual": 0.0088,
+      "costBaseline": 0.075,
+      "savings": 0.0662
+    },
+    {
+      "taskId": "CRIT-PERF-SECURITY-645edd",
+      "timestamp": "2025-10-23T13:27:44.322Z",
+      "tier": "sonnet-3.5",
+      "complexity": 5,
+      "costActual": 0.09,
+      "costBaseline": 0.075,
+      "savings": -0.015
+    },
+    {
+      "taskId": "CRIT-PERF-SECURITY-645edd",
+      "timestamp": "2025-10-23T13:26:56.770Z",
+      "tier": "sonnet-3.5",
+      "complexity": 5,
+      "costActual": 0.09,
+      "costBaseline": 0.075,
+      "savings": -0.015
+    },
+    {
+      "taskId": "CRIT-PERF-SECURITY-645edd",
+      "timestamp": "2025-10-23T13:25:51.254Z",
+      "tier": "sonnet-3.5",
+      "complexity": 5,
+      "costActual": 0.09,
+      "costBaseline": 0.075,
+      "savings": -0.015
+    },
+    {
+      "taskId": "T-MLR-3.3",
+      "timestamp": "2025-10-23T13:25:02.032Z",
+      "tier": "haiku",
+      "complexity": 3,
+      "costActual": 0.0044,
+      "costBaseline": 0.075,
+      "savings": 0.0706
+    },
+    {
+      "taskId": "E7",
+      "timestamp": "2025-10-23T13:23:07.922Z",
+      "tier": "haiku",
+      "complexity": 0,
+      "costActual": 0.002,
+      "costBaseline": 0.075,
+      "savings": 0.073
+    },
     {
       "taskId": "T9.2.2",
       "timestamp": "2025-10-23T13:21:50.817Z",

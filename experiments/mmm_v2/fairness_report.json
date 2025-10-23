@@ -1,0 +1,9 @@
+{
+  "status": "NOT_RUN",
+  "generated_at": null,
+  "notes": [
+    "Responsible AI notebook not executed for this validation cycle.",
+    "Execute notebooks/fairness/weather_fairness.ipynb and update this file with uplift_gap_pp and mitigation notes."
+  ],
+  "required_for_signoff": true
+}

@@ -1,0 +1,7 @@
+{
+  "status": "NOT_ASSESSED",
+  "notes": [
+    "Data quality audit pending synthetic data regeneration (T-MLR-1.*).",
+    "Run python shared/data_context/build_dataset_card.py and attach output."
+  ]
+}

@@ -1,26 +1,5 @@
 import { IdempotencyStore } from "./idempotency_cache.js";
-
-/**
- * Idempotency Middleware
- *
- * Wraps mutating tool handlers to provide request deduplication.
- * - Intercepts requests before processing
- * - Returns cached response for duplicate requests
- * - Records outcomes for future deduplication
- *
- * Usage:
- *   const wrapped = withIdempotency(
- *     'fs_write',
- *     (input) => handler(input),
- *     store
- *   );
- *   const result = await wrapped(input, idempotencyKey);
- */
-
-export interface IdempotencyOptions {
-  toolName: string;
-  enabled?: boolean;
-}
+import type { IdempotencyCacheV2 } from "./idempotency_cache_v2.js";
 
 export type ToolHandler = (input: unknown) => Promise<unknown>;
 
@@ -29,42 +8,106 @@ export type WrappedHandler = (
   idempotencyKey?: string,
 ) => Promise<unknown>;
 
-/**
- * Check if DRY_RUN mode is enabled
- * In DRY_RUN mode, we skip caching to avoid side effects during canary/test runs
- */
+type MaybePromise<T> = T | Promise<T>;
+
+export interface IdempotencyLayer {
+  startRequest(
+    toolName: string,
+    input: unknown,
+    idempotencyKey?: string,
+  ): MaybePromise<{
+    isNewRequest: boolean;
+    existingResponse?: unknown;
+    existingError?: string;
+  }>;
+  recordSuccess(
+    toolName: string,
+    input: unknown,
+    response: unknown,
+    idempotencyKey?: string,
+  ): MaybePromise<void>;
+  recordFailure(
+    toolName: string,
+    input: unknown,
+    error: string | Error,
+    idempotencyKey?: string,
+  ): MaybePromise<void>;
+  clear(): MaybePromise<void>;
+  destroy(): MaybePromise<void>;
+  getStats(): MaybePromise<{
+    size: number;
+    processingCount: number;
+    completedCount: number;
+    failedCount: number;
+    maxEntries?: number;
+  }>;
+}
+
 function isDryRunMode(): boolean {
   return process.env.WVO_DRY_RUN === "1";
 }
 
-/**
- * Wrap a tool handler with idempotency protection
- */
+function normalizeError(error: string | Error): string {
+  if (error instanceof Error) {
+    return error.message;
+  }
+  return error;
+}
+
+function isLayerCandidate(store: unknown): store is IdempotencyLayer {
+  return (
+    !!store &&
+    typeof (store as IdempotencyLayer).startRequest === "function" &&
+    typeof (store as IdempotencyLayer).recordSuccess === "function" &&
+    typeof (store as IdempotencyLayer).recordFailure === "function"
+  );
+}
+
+export type IdempotencyStoreLike =
+  | IdempotencyStore
+  | IdempotencyCacheV2
+  | IdempotencyLayer;
+
+export function createIdempotencyLayer(
+  store: IdempotencyStoreLike,
+): IdempotencyLayer {
+  if (store instanceof IdempotencyStore) {
+    return {
+      startRequest: (toolName, input, idempotencyKey) =>
+        store.startRequest(toolName, input, idempotencyKey),
+      recordSuccess: (toolName, input, response, idempotencyKey) =>
+        store.recordSuccess(toolName, input, response, idempotencyKey),
+      recordFailure: (toolName, input, error, idempotencyKey) =>
+        store.recordFailure(toolName, input, error, idempotencyKey),
+      clear: () => store.clear(),
+      destroy: () => store.destroy(),
+      getStats: () => store.getStats(),
+    };
+  }
+
+  if (isLayerCandidate(store)) {
+    return store;
+  }
+
+  throw new Error("Unsupported idempotency store provided");
+}
+
 export function withIdempotency(
   toolName: string,
   handler: ToolHandler,
-  store: IdempotencyStore,
+  store: IdempotencyStoreLike,
   enabled = true,
 ): WrappedHandler {
+  const layer = createIdempotencyLayer(store);
+
   return async (input: unknown, idempotencyKey?: string) => {
-    // Skip idempotency if disabled
-    if (!enabled) {
+    if (!enabled || isDryRunMode()) {
       return handler(input);
     }
 
-    // Skip idempotency caching during DRY_RUN to avoid side effects
-    if (isDryRunMode()) {
-      return handler(input);
-    }
+    const { isNewRequest, existingResponse, existingError } =
+      await layer.startRequest(toolName, input, idempotencyKey);
 
-    // Check if we've already processed this request
-    const { isNewRequest, existingResponse, existingError } = store.startRequest(
-      toolName,
-      input,
-      idempotencyKey,
-    );
-
-    // Return cached response for duplicate requests
     if (!isNewRequest) {
       if (existingError) {
         const error = new Error(existingError);
@@ -74,38 +117,38 @@ export function withIdempotency(
       return existingResponse;
     }
 
-    // Process new request
     try {
       const result = await handler(input);
-      store.recordSuccess(toolName, input, result, idempotencyKey);
+      await layer.recordSuccess(toolName, input, result, idempotencyKey);
       return result;
     } catch (error) {
-      const errorMsg = error instanceof Error ? error.message : String(error);
-      store.recordFailure(toolName, input, errorMsg, idempotencyKey);
+      await layer.recordFailure(
+        toolName,
+        input,
+        normalizeError(
+          error instanceof Error ? error : new Error(String(error)),
+        ),
+        idempotencyKey,
+      );
       throw error;
     }
   };
 }
 
-/**
- * Create a wrapper that applies idempotency to multiple tools
- */
 export class IdempotencyMiddleware {
-  constructor(
-    private readonly store: IdempotencyStore,
-    private readonly enabled = true,
-  ) {}
+  private readonly layer: IdempotencyLayer;
 
-  /**
-   * Wrap a single tool handler
-   */
-  wrap(toolName: string, handler: ToolHandler): WrappedHandler {
-    return withIdempotency(toolName, handler, this.store, this.enabled);
+  constructor(
+    store: IdempotencyStoreLike = new IdempotencyStore(),
+    private enabled = true,
+  ) {
+    this.layer = createIdempotencyLayer(store);
   }
 
-  /**
-   * Create wrapped handlers for multiple tools
-   */
+  wrap(toolName: string, handler: ToolHandler): WrappedHandler {
+    return withIdempotency(toolName, handler, this.layer, this.enabled);
+  }
+
   wrapHandlers(
     toolHandlers: Map<string, ToolHandler>,
   ): Map<string, WrappedHandler> {
@@ -118,34 +161,19 @@ export class IdempotencyMiddleware {
     return wrapped;
   }
 
-  /**
-   * Enable/disable idempotency
-   */
   setEnabled(enabled: boolean): void {
-    Object.defineProperty(this, "enabled", {
-      value: enabled,
-      writable: true,
-    });
+    this.enabled = enabled;
   }
 
-  /**
-   * Get cache statistics
-   */
-  getStats() {
-    return this.store.getStats();
+  async getStats() {
+    return this.layer.getStats();
   }
 
-  /**
-   * Clear all cached entries
-   */
-  clear(): void {
-    this.store.clear();
+  async clear(): Promise<void> {
+    await this.layer.clear();
   }
 
-  /**
-   * Cleanup resources
-   */
-  destroy(): void {
-    this.store.destroy();
+  async destroy(): Promise<void> {
+    await this.layer.destroy();
   }
 }
