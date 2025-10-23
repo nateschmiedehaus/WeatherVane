@@ -1,9 +1,9 @@
 {
-  "timestamp": "2025-10-23T16:59:29Z",
-  "memory_used_pct": 93,
+  "timestamp": "2025-10-23T21:36:40Z",
+  "memory_used_pct": 98,
   "cpu_used_pct": 100,
-  "claude_processes": 4,
-  "node_processes": 2,
+  "claude_processes": 2,
+  "node_processes": 1,
   "throttle_level": 3,
   "throttle_params": {
                 "level": 3,
