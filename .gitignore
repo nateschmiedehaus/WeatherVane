@@ -54,6 +54,9 @@ localstack-data/
 .LSOverride
 Icon?
 
+# Worktree artifacts
+.clean_worktree/
+
 # WeatherVane MCP Runtime
 .accounts/
 .codex/
