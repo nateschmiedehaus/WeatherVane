@@ -53,76 +53,76 @@ describe('LensGapDetector', () => {
       expect(opsTask?.suggestedNewLens).toMatch(/DevOps/i);
     });
 
-    it('should detect CFO lens missing for unit economics tasks', async () => {
+    it('should detect Security lens missing for security tasks', async () => {
       const tasks = [
         {
-          id: 'T-FIN-1',
-          title: 'Calculate unit economics per tenant',
-          description: 'Compute COGS (compute + storage + API costs) per tenant, compare to MRR to validate gross margin ≥70%, CAC payback analysis',
+          id: 'T-SEC-1',
+          title: 'Implement OAuth2 with secret rotation',
+          description: 'Add OAuth2 authentication, implement automatic secret rotation every 90 days, encrypt all API keys in vault, penetration testing required',
           status: 'pending'
         }
       ];
 
       const report = await detector.detectGaps(tasks);
 
-      const finTask = report.misfitTasks.find(m => m.taskId === 'T-FIN-1');
-      expect(finTask).toBeDefined();
-      expect(finTask?.reason).toContain('CFO');
-      expect(finTask?.suggestedNewLens).toMatch(/CFO|Unit Economics/i);
+      const secTask = report.misfitTasks.find(m => m.taskId === 'T-SEC-1');
+      expect(secTask).toBeDefined();
+      expect(secTask?.reason).toContain('Security');
+      expect(secTask?.suggestedNewLens).toMatch(/Security/i);
     });
 
-    it('should detect CTO lens missing for scalability tasks', async () => {
+    it('should detect MLOps lens missing for ML pipeline tasks', async () => {
       const tasks = [
         {
-          id: 'T-SCALE-1',
-          title: 'Database sharding strategy for 1000+ tenants',
-          description: 'Postgres single instance won\'t scale beyond 100 tenants. Design sharding strategy, implement connection pooling, plan for multi-tenant isolation.',
+          id: 'T-ML-1',
+          title: 'Set up model drift detection pipeline',
+          description: 'Monitor model performance degradation, track data quality metrics, implement automatic retraining pipeline when drift detected, set up feature store for training data',
           status: 'pending'
         }
       ];
 
       const report = await detector.detectGaps(tasks);
 
-      const scaleTask = report.misfitTasks.find(m => m.taskId === 'T-SCALE-1');
-      expect(scaleTask).toBeDefined();
-      expect(scaleTask?.reason).toContain('CTO');
-      expect(scaleTask?.suggestedNewLens).toMatch(/CTO|Scalability/i);
+      const mlTask = report.misfitTasks.find(m => m.taskId === 'T-ML-1');
+      expect(mlTask).toBeDefined();
+      expect(mlTask?.reason).toContain('MLOps');
+      expect(mlTask?.suggestedNewLens).toMatch(/MLOps/i);
     });
 
-    it('should detect Customer Success lens missing for retention tasks', async () => {
+    it('should detect Sales Ops lens missing for sales pipeline tasks', async () => {
       const tasks = [
         {
-          id: 'T-CS-1',
-          title: 'Build customer health score dashboard',
-          description: 'Track usage patterns, value realization metrics, churn risk indicators. Alert CSM if customer status is red/yellow. Monitor onboarding completion rate.',
+          id: 'T-SALES-1',
+          title: 'Implement lead scoring and pipeline tracking',
+          description: 'Build lead scoring model based on engagement metrics, track sales pipeline velocity, forecast quota attainment, integrate with CRM for contract management',
           status: 'pending'
         }
       ];
 
       const report = await detector.detectGaps(tasks);
 
-      const csTask = report.misfitTasks.find(m => m.taskId === 'T-CS-1');
-      expect(csTask).toBeDefined();
-      expect(csTask?.reason).toContain('Customer Success');
-      expect(csTask?.suggestedNewLens).toMatch(/Customer Success/i);
+      const salesTask = report.misfitTasks.find(m => m.taskId === 'T-SALES-1');
+      expect(salesTask).toBeDefined();
+      expect(salesTask?.reason).toContain('Sales');
+      expect(salesTask?.suggestedNewLens).toMatch(/Sales/i);
     });
 
-    it('should detect Legal lens missing for compliance tasks', async () => {
+    it('should detect multiple gap scenarios in comprehensive security review', async () => {
       const tasks = [
         {
-          id: 'T-LEGAL-1',
-          title: 'Implement GDPR data deletion workflow',
-          description: 'User requests right to deletion per GDPR requirements, must delete within 30 days, update privacy policy, document subprocessors',
+          id: 'T-SEC-2',
+          title: 'Conduct quarterly security audit and vulnerability assessment',
+          description: 'Perform penetration testing, review access control policies, scan for vulnerabilities, assess encryption standards, update security documentation',
           status: 'pending'
         }
       ];
 
       const report = await detector.detectGaps(tasks);
 
-      const legalTask = report.misfitTasks.find(m => m.taskId === 'T-LEGAL-1');
-      expect(legalTask).toBeDefined();
-      expect(legalTask?.reason).toContain('Legal');
-      expect(legalTask?.suggestedNewLens).toMatch(/Legal|Compliance/i);
+      const secTask = report.misfitTasks.find(m => m.taskId === 'T-SEC-2');
+      expect(secTask).toBeDefined();
+      expect(secTask?.reason).toContain('Security');
+      expect(secTask?.suggestedNewLens).toMatch(/Security/i);
     });
 
     it('should not flag tasks that fit existing lenses well', async () => {
@@ -287,9 +287,9 @@ describe('LensGapDetector', () => {
     it('should provide actionable recommendation when gaps detected', async () => {
       const tasks = [
         {
-          id: 'T-OPS-1',
-          title: 'Set up monitoring',
-          description: 'Production monitoring and alerts',
+          id: 'T-SEC-3',
+          title: 'Implement security audit program',
+          description: 'Set up quarterly penetration testing, vulnerability scanning, security incident response',
           status: 'pending'
         }
       ];
@@ -394,12 +394,12 @@ describe('LensGapDetector', () => {
   });
 
   describe('Lens Inference', () => {
-    it('should infer CFO lens from financial keywords', async () => {
+    it('should infer Security lens from security keywords', async () => {
       const tasks = [
         {
           id: 'T1',
-          title: 'Calculate CAC and LTV',
-          description: 'Analyze customer acquisition cost vs lifetime value, compute gross margin',
+          title: 'Implement penetration testing and vulnerability scanning',
+          description: 'Conduct security audit, test for vulnerabilities, implement access control encryption',
           status: 'pending'
         }
       ];
@@ -407,16 +407,16 @@ describe('LensGapDetector', () => {
       const report = await detector.detectGaps(tasks);
       const misfit = report.misfitTasks.find(m => m.taskId === 'T1');
 
-      expect(misfit?.suggestedNewLens).toMatch(/CFO|Unit Economics/i);
+      expect(misfit?.suggestedNewLens).toMatch(/Security/i);
       expect(misfit?.confidence).toBeGreaterThan(0);
     });
 
-    it('should infer CTO lens from scalability keywords', async () => {
+    it('should infer MLOps lens from ML pipeline keywords', async () => {
       const tasks = [
         {
           id: 'T1',
-          title: 'Optimize database performance at scale',
-          description: 'Database sharding for multi-tenant architecture',
+          title: 'Implement model drift detection',
+          description: 'Monitor data quality and model performance, set up training pipeline and feature store',
           status: 'pending'
         }
       ];
@@ -424,15 +424,15 @@ describe('LensGapDetector', () => {
       const report = await detector.detectGaps(tasks);
       const misfit = report.misfitTasks.find(m => m.taskId === 'T1');
 
-      expect(misfit?.suggestedNewLens).toMatch(/CTO|Scalability/i);
+      expect(misfit?.suggestedNewLens).toMatch(/MLOps/i);
     });
 
     it('should have high confidence for strong keyword matches', async () => {
       const tasks = [
         {
           id: 'T1',
-          title: 'GDPR compliance audit',
-          description: 'Ensure GDPR compliance, update privacy policy, implement data deletion',
+          title: 'Enterprise security program',
+          description: 'Implement security controls, penetration testing, vulnerability assessment, access control',
           status: 'pending'
         }
       ];
