@@ -124,9 +124,9 @@ def _fit_lightweight_mmm(frame: pl.DataFrame, spend_cols: List[str], revenue_col
             target=target,
             media_matrix=media_matrix,
             spend_cols=spend_cols,
-            adstock_lags=adstock_lags,
-            saturation_k=saturation_k,
-            saturation_s=saturation_s,
+            adstock_lags=result.adstock_lags,
+            saturation_k=result.saturation_k,
+            saturation_s=result.saturation_s,
         )
     except np.linalg.LinAlgError:
         _LOGGER.warning("LightweightMMM summary failed due to singular matrix; falling back to heuristic.")

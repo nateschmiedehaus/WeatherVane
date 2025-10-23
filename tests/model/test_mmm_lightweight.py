@@ -73,6 +73,8 @@ def _seed_lightweight(monkeypatch: pytest.MonkeyPatch) -> None:
         adstock_lags: Dict[str, int] | None = None,
         saturation_k: Dict[str, float] | None = None,
         saturation_s: Dict[str, float] | None = None,
+        estimate_adstock: bool = True,
+        estimate_saturation: bool = True,
     ) -> mmm_lightweight.LightweightMMMResult:
         adstock_map = adstock_lags or {name: 1 for name in media_cols}
         k_map = saturation_k or {name: 1.0 for name in media_cols}
