@@ -226,6 +226,13 @@ export class OrchestratorLoop extends EventEmitter {
 
     this.policy = new PolicyEngine(stateMachine, {
       dryRun: options.dryRun,
+      criticApprovalRequired: true,
+      criticApprovalPatterns: {
+        'T12.*': ['modeling_reality_v2', 'data_quality'],
+        'T13.*': ['modeling_reality_v2', 'academic_rigor', 'causal'],
+        'T-MLR-*': ['modeling_reality_v2', 'academic_rigor'],
+        '*': []
+      }
     });
     this.options = {
       dryRun: options.dryRun ?? false,
@@ -496,6 +503,12 @@ export class OrchestratorLoop extends EventEmitter {
 
   /**
    * Execute a task
+   *
+   * This method now integrates with the critic approval policy:
+   * - Tasks matching critic patterns (T12.*, T13.*, T-MLR-*) require all critics to pass
+   * - If critics are required but not yet evaluated, task remains in in_progress state
+   * - Once all required critics pass, task transitions to done
+   * - If any required critic fails, task transitions to needs_improvement
    */
   private async executeTask(task: Task): Promise<void> {
     logInfo(`Executing task: ${task.id}`, { task });
@@ -507,7 +520,79 @@ export class OrchestratorLoop extends EventEmitter {
     // For now, this is a placeholder
     await this.sleep(100);
 
-    // Mark as completed (placeholder)
+    // Check critic approval policy before allowing completion
+    const requiredCritics = this.policy.getRequiredCritics(task.id);
+
+    if (requiredCritics.length > 0) {
+      // Task requires critic approval
+      const canComplete = this.policy.canCompleteTask(task.id);
+
+      if (!canComplete) {
+        // Check if critics have been evaluated
+        const approvalStatus = this.policy.getCriticApprovalStatus(task.id);
+
+        if (!approvalStatus) {
+          // Critics haven't been evaluated yet - keep task in progress and escalate for critic run
+          logInfo(`Task ${task.id} awaiting critic evaluation`, {
+            requiredCritics,
+            taskId: task.id,
+          });
+
+          this.stateMachine.addContextEntry({
+            entry_type: 'decision',
+            topic: 'task_pending_critic_approval',
+            content: `Task ${task.id} is awaiting evaluation from required critics: ${requiredCritics.join(', ')}`,
+            confidence: 0.95,
+            metadata: {
+              taskId: task.id,
+              requiredCritics,
+              taskTitle: task.title,
+            },
+          });
+
+          // Task stays in in_progress state, waiting for critic results
+          return;
+        } else {
+          // Critic evaluation has started but not all critics passed
+          const passedCount = approvalStatus.passedCritics.size;
+          const failedCritics = Array.from(approvalStatus.failedCritics.entries()).map(
+            ([critic, reason]) => `${critic}: ${reason}`
+          );
+
+          logInfo(`Task ${task.id} critic approval incomplete`, {
+            passedCritics: Array.from(approvalStatus.passedCritics),
+            failedCritics,
+            requiredCritics,
+          });
+
+          // Transition to needs_improvement state to trigger remediation
+          await this.stateMachine.transition(
+            task.id,
+            'needs_improvement',
+            {
+              critic_approval_status: {
+                requiredCritics,
+                passedCritics: Array.from(approvalStatus.passedCritics),
+                failedCritics: Object.fromEntries(approvalStatus.failedCritics),
+              },
+            }
+          );
+
+          return;
+        }
+      }
+
+      // All critics have passed - proceed with completion
+      logInfo(`Task ${task.id} has passed all required critic approvals`, {
+        requiredCritics,
+        approvalStatus: this.policy.getCriticApprovalStatus(task.id),
+      });
+    } else {
+      // No critic approval required for this task
+      logInfo(`Task ${task.id} has no required critics`, { taskId: task.id });
+    }
+
+    // Mark task as completed
     await this.stateMachine.transition(task.id, 'done');
   }
 
