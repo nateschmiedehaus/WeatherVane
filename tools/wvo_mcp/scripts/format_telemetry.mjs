@@ -247,18 +247,24 @@ function handleAgentSnapshot(log) {
     const rawId = typeof agent.id === 'string' ? agent.id : String(agent.id ?? '?');
     const statusRaw = typeof agent.status === 'string' ? agent.status.toLowerCase() : 'unknown';
 
-    // Build task display: Show full title/description from tracked state, or fall back to ID
+    // Build task display: Show full title/description from agent or tracked state
     let currentTask = '—';
     if (typeof agent.currentTask === 'string' && agent.currentTask.length > 0) {
       const taskId = agent.currentTask;
-      const trackedTask = state.currentTasks.get(taskId);
 
-      if (trackedTask?.title) {
-        // Show: "TaskID: Full task title"
-        currentTask = `${taskId}: ${truncate(trackedTask.title, 50)}`;
+      // Prefer agent.currentTaskTitle if available (set during reserve)
+      if (typeof agent.currentTaskTitle === 'string' && agent.currentTaskTitle.length > 0 && agent.currentTaskTitle !== taskId) {
+        // Agent has full title - show it!
+        currentTask = `${taskId}: ${truncate(agent.currentTaskTitle, 60)}`;
       } else {
-        // Just show the ID for now, title will come in later updates
-        currentTask = taskId;
+        // Fall back to looking up in tracked tasks
+        const trackedTask = state.currentTasks.get(taskId);
+        if (trackedTask?.title) {
+          currentTask = `${taskId}: ${truncate(trackedTask.title, 60)}`;
+        } else {
+          // Just show the ID
+          currentTask = taskId;
+        }
       }
     } else if (typeof agent.lastTask === 'string' && agent.lastTask.length > 0) {
       currentTask = `last: ${truncate(agent.lastTask, 40)}`;
@@ -376,6 +382,13 @@ function handleLogLine(line) {
         const alertMessage = log.alertMessage || log.alert || log.reason || 'no details';
         const taskId = log.taskId ? ` (task: ${log.taskId})` : '';
         console.log(`${colors.yellow}🚨 Alert [${alertType}]${colors.reset}${taskId}: ${truncate(alertMessage, 100)}`);
+      } else if (message === 'Agent progress note' || log.agentNote || log.note) {
+        // Show agent notes/progress during task execution
+        const agentId = log.agentId || log.agent || 'unknown';
+        const taskId = log.taskId || log.task || '';
+        const note = log.agentNote || log.note || log.progress || message;
+        const taskLabel = taskId ? ` [${taskId}]` : '';
+        console.log(`${colors.cyan}📝 ${agentId}${taskLabel}${colors.reset}: ${truncate(note, 120)}`);
       } else if (message === 'Blocker escalated') {
         // Show blocker details
         const blockerId = log.blockerId || log.id || 'unknown';

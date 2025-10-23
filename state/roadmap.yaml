@@ -1183,7 +1183,7 @@ epics:
             description: Create meta-critic to review past completed ML tasks
           - id: T-MLR-4.4
             title: Document lessons learned and update contributor guide
-            status: in_progress
+            status: blocked
             dependencies:
               - T-MLR-4.3
             exit_criteria: []
@@ -1228,7 +1228,7 @@ epics:
             domain: modeling
           - id: T-MLR-0.3
             title: Document world-class quality standards for ML
-            status: done
+            status: blocked
             dependencies: []
             exit_criteria:
               - artifact:docs/ML_QUALITY_STANDARDS.md

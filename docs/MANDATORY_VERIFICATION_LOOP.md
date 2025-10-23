@@ -388,6 +388,182 @@ Verification:
 
 ---
 
+## Revisiting Completed Work - Architectural Evolution
+
+### When to Revisit "Done" Tasks
+
+Agents (Claude, Codex, Autopilot) are **EMPOWERED** to propose revisions to completed work when they discover:
+
+**1. Superior Architecture:**
+- "I see a better way to structure this module that reduces complexity"
+- "This pattern is cleaner and more maintainable"
+- "Refactoring to use X would eliminate 3 other modules"
+
+**2. More Intelligent Approach:**
+- "New context shows we can simplify this significantly"
+- "This library we added last week makes our custom solution obsolete"
+- "Recent learnings suggest a different design pattern"
+
+**3. Technical Debt:**
+- "This works but has accumulated debt - time to refactor"
+- "Performance bottleneck identified - needs redesign"
+- "Security vulnerability discovered - requires architectural change"
+
+### How to Propose Revisions
+
+**Step 1: Document the Improvement**
+```markdown
+## Proposed Revision: [Task ID]
+
+**Current State:** [Describe existing implementation]
+
+**Why Revise:** [Explain superior approach]
+- More elegant: [how]
+- Better performance: [metrics]
+- Easier to maintain: [why]
+- Reduces complexity: [how]
+
+**Proposed Approach:** [Describe new design]
+
+**Migration Path:** [How to transition from old to new]
+
+**Risks:** [What could go wrong]
+```
+
+**Step 2: Create Revision Task**
+
+Agents can create revision tasks in the roadmap:
+
+```yaml
+- id: T-REVISION-[original-task-id]
+  title: "Revise [original-task]: [reason]"
+  description: |
+    Revisiting completed task [original-id] due to superior approach discovered.
+
+    **Original Approach:** [summary]
+    **New Approach:** [summary]
+    **Benefits:** [list]
+
+    See docs/revisions/[task-id].md for full analysis.
+  status: pending
+  dependencies: []
+  exit_criteria:
+    - "New approach implemented"
+    - "Tests updated and passing"
+    - "Migration complete"
+    - "Original approach deprecated/removed"
+    - "Documentation updated"
+  metadata:
+    revision_of: "[original-task-id]"
+    reason: "superior_architecture | more_intelligent | technical_debt"
+    proposed_by: "[agent-name]"
+```
+
+**Step 3: Get Approval (if major)**
+
+For major architectural changes:
+- Tag decision-makers (CEO, CTO lens holders)
+- Show cost/benefit analysis
+- Propose gradual migration if risky
+
+For minor improvements:
+- Document the change
+- Update roadmap
+- Proceed with implementation
+
+### Agent Authority to Reassign/Update Roadmap
+
+**Agents CAN (no approval needed):**
+- ✅ Mark completed tasks for revision when better approach found
+- ✅ Update task descriptions to reflect new understanding
+- ✅ Add follow-up tasks to improve existing work
+- ✅ Refactor code that meets quality standards but can be improved
+- ✅ Update roadmap positions when priorities shift
+
+**Agents SHOULD (get approval first):**
+- ⚠️ Completely rewrite major system components
+- ⚠️ Change core architectural patterns used project-wide
+- ⚠️ Remove functionality that users depend on
+- ⚠️ Make breaking changes to public APIs
+
+**The Rule:**
+> **If the improvement is local (one module/component) and maintains contracts, proceed.**
+> **If the change is global (affects multiple modules) or breaks contracts, propose first.**
+
+### Examples of Good Revisions
+
+**Example 1: Local Improvement**
+```
+Task T1.2.3 is marked "done" (build passes, tests pass).
+
+Agent discovers: "We can use lodash.memoize instead of our custom cache implementation.
+Simpler, better tested, same performance."
+
+Agent action:
+1. Create T-REVISION-1.2.3: "Refactor to use lodash.memoize"
+2. Implement change
+3. Verify (build + test + audit)
+4. Update docs
+5. Mark original T1.2.3 as "revised" in metadata
+
+Result: ✅ Codebase improved, no approval needed (local change)
+```
+
+**Example 2: Architectural Improvement**
+```
+Tasks T2.1 through T2.5 are marked "done" (auth system complete).
+
+Agent discovers: "We're reinventing OAuth - Passport.js would be better.
+Reduces code by 80%, better security, active maintenance."
+
+Agent action:
+1. Document analysis in docs/revisions/auth-system.md
+2. Create proposal with migration path
+3. Tag @user (CTO lens): "Major refactor proposed - please review"
+4. Wait for approval
+5. If approved, create T-REVISION-2.x tasks for migration
+
+Result: ⚠️ Major change proposed, awaiting approval
+```
+
+**Example 3: Technical Debt**
+```
+Task T3.4 is marked "done" (feature works, verified).
+
+Agent detects: "This implementation has O(n²) complexity, causing slowdowns at scale.
+Can be O(n log n) with better algorithm."
+
+Agent action:
+1. Create T-REVISION-3.4: "Optimize algorithm complexity"
+2. Add to roadmap with priority: high (performance issue)
+3. Implement better algorithm
+4. Verify (build + test + benchmark)
+5. Deploy
+
+Result: ✅ Performance improved, technical debt addressed
+```
+
+### Balancing Stability and Evolution
+
+**Stability (don't break things):**
+- ✅ Always verify revisions (same loop: build + test + audit)
+- ✅ Maintain backward compatibility when possible
+- ✅ Test migration paths thoroughly
+- ✅ Document what changed and why
+
+**Evolution (keep improving):**
+- ✅ Don't let "done" become "frozen"
+- ✅ Refactor when you see better patterns
+- ✅ Address technical debt proactively
+- ✅ Keep codebase modern and maintainable
+
+**The Balance:**
+> **"Done" means "meets current standards," not "perfect forever."**
+> **Continuous improvement requires revisiting completed work.**
+> **But every revision must pass the same verification loop.**
+
+---
+
 ## Summary
 
 **The verification loop is simple:**

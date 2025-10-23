@@ -195,7 +195,7 @@ export class AgentPool extends EventEmitter {
 
       if (agent) {
         // Agent available - reserve immediately
-        this.reserve(agent, task.id);
+        this.reserve(agent, task.id, task.title);
         logDebug('Agent reserved', { agentId: agent.id, taskId: task.id, taskTitle: task.title });
         resolve(agent);
       } else {
@@ -278,7 +278,7 @@ export class AgentPool extends EventEmitter {
     if (agent) {
       // Remove from queue and assign
       this.taskQueue.shift();
-      this.reserve(agent, next.task.id);
+      this.reserve(agent, next.task.id, next.task.title);
 
       const waitTime = Date.now() - next.queuedAt;
       logInfo('Task dequeued and assigned', {
@@ -298,10 +298,11 @@ export class AgentPool extends EventEmitter {
   /**
    * Reserve an agent (mark as busy)
    */
-  private reserve(agent: Agent, taskId: string): void {
+  private reserve(agent: Agent, taskId: string, taskTitle?: string): void {
     this.reservations.set(agent.id, taskId);
     agent.status = 'busy';
     agent.currentTask = taskId;
+    agent.currentTaskTitle = taskTitle || taskId;
   }
 
   /**
