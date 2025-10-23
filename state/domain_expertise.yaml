@@ -1,0 +1,268 @@
+# Domain Expertise Registry
+# Defines expert perspectives for quality gate reviews
+
+domains:
+  # Statistics & Mathematics
+  - id: statistics_timeseries
+    name: "Time Series Statistics Expert"
+    description: "Expert in time series analysis, forecasting, and statistical modeling"
+    keyQuestions:
+      - "Are the distributional assumptions tested and valid?"
+      - "Is stationarity verified? How is non-stationarity handled?"
+      - "Are residuals checked for autocorrelation, heteroskedasticity, normality?"
+      - "What about model identifiability and parameter estimation?"
+      - "Is the model complexity justified by the data?"
+      - "Are confidence intervals properly constructed?"
+    expertModel: "claude-opus-4"
+    reasoningEffort: "high"
+
+  - id: statistics_generalized_additive_models
+    name: "GAM Specialist"
+    description: "Expert in Generalized Additive Models, spline theory, and interpretable ML"
+    keyQuestions:
+      - "What spline basis is used? Thin-plate, cubic, P-splines?"
+      - "Are identifiability constraints properly applied?"
+      - "How are smoothness parameters estimated? GCV, REML, ML?"
+      - "Are interaction effects considered? Is additivity assumption valid?"
+      - "What about shape constraints (monotonicity, convexity)?"
+      - "Is the computational complexity acceptable for the data size?"
+    expertModel: "claude-opus-4"
+    reasoningEffort: "high"
+
+  - id: statistics_causal_inference
+    name: "Causal Inference Expert"
+    description: "Expert in causal modeling, DAGs, and counterfactual reasoning"
+    keyQuestions:
+      - "What's the causal graph? Are all confounders identified?"
+      - "Is this correlation or causation? What's the identification strategy?"
+      - "Are there unmeasured confounders? Collider bias?"
+      - "What counterfactual assumptions are being made?"
+      - "Is the treatment assignment ignorable?"
+    expertModel: "gpt-5-codex"
+    reasoningEffort: "high"
+
+  # Machine Learning & AI
+  - id: ml_deep_learning
+    name: "Deep Learning Researcher"
+    description: "Expert in neural networks, optimization, and modern ML architectures"
+    keyQuestions:
+      - "What's the architecture justification? Why this design?"
+      - "Is this state-of-the-art? What about recent papers (arXiv)?"
+      - "Are gradients stable? Vanishing/exploding gradients addressed?"
+      - "What about overfitting? Regularization strategy?"
+      - "Is the optimization landscape well-understood?"
+      - "How does this compare to transformer-based approaches?"
+    expertModel: "claude-opus-4"
+    reasoningEffort: "high"
+
+  - id: ml_interpretability
+    name: "ML Interpretability Expert"
+    description: "Expert in explainable AI, model transparency, and trustworthy ML"
+    keyQuestions:
+      - "Can stakeholders understand this model's decisions?"
+      - "What's the tradeoff between accuracy and interpretability?"
+      - "Are feature importances meaningful or spurious?"
+      - "Can this model be audited for bias?"
+      - "What are the failure modes users should know about?"
+    expertModel: "claude-opus-4"
+    reasoningEffort: "medium"
+
+  # Domain Expertise
+  - id: domain_meteorology
+    name: "Meteorology Expert"
+    description: "Expert in atmospheric science, weather forecasting, and climate systems"
+    keyQuestions:
+      - "Does this make meteorological sense?"
+      - "Are physical laws (thermodynamics, fluid dynamics) respected?"
+      - "What about boundary layer effects? Orography?"
+      - "Is the temporal resolution appropriate for the phenomena?"
+      - "How does this handle regime shifts (fronts, convection)?"
+      - "Would an operational forecaster trust this?"
+    expertModel: "claude-opus-4"
+    reasoningEffort: "high"
+
+  - id: domain_energy_markets
+    name: "Energy Markets Expert"
+    description: "Expert in energy trading, market design, and forecasting"
+    keyQuestions:
+      - "Does this capture market microstructure effects?"
+      - "Are regulatory constraints considered?"
+      - "What about price spikes and regime changes?"
+      - "Is this tradeable? What's the economic value?"
+      - "How does this handle real-time vs. day-ahead markets?"
+    expertModel: "gpt-5-codex"
+    reasoningEffort: "medium"
+
+  # Software Engineering
+  - id: software_architecture
+    name: "Software Architect"
+    description: "Expert in system design, scalability, and production engineering"
+    keyQuestions:
+      - "Is this architecture scalable? What are the bottlenecks?"
+      - "How does this handle failure? Circuit breakers? Retries?"
+      - "What about observability? Logging, metrics, tracing?"
+      - "Is this maintainable? Technical debt?"
+      - "What happens under load? Resource exhaustion?"
+      - "Is the abstraction appropriate? SOLID principles?"
+    expertModel: "claude-sonnet-4-5"
+    reasoningEffort: "medium"
+
+  - id: software_distributed_systems
+    name: "Distributed Systems Expert"
+    description: "Expert in consensus, consistency, and distributed computing"
+    keyQuestions:
+      - "What are the consistency guarantees? CAP tradeoffs?"
+      - "How are race conditions prevented? Deadlocks?"
+      - "What happens during network partitions?"
+      - "Is this coordination-free? What's the latency?"
+      - "Are there single points of failure?"
+      - "What's the formal model? TLA+? Linearizability?"
+    expertModel: "claude-opus-4"
+    reasoningEffort: "high"
+
+  - id: software_performance
+    name: "Performance Engineer"
+    description: "Expert in optimization, profiling, and low-level systems"
+    keyQuestions:
+      - "What's the time complexity? Space complexity?"
+      - "Are there unnecessary allocations? Cache misses?"
+      - "Is this I/O bound? CPU bound? What's the bottleneck?"
+      - "Did you profile this? Where's the hot path?"
+      - "What about SIMD? Parallelization opportunities?"
+      - "Is this the right data structure for the access pattern?"
+    expertModel: "gpt-5-codex"
+    reasoningEffort: "medium"
+
+  # Design & UX
+  - id: design_user_experience
+    name: "UX Designer"
+    description: "Expert in user-centered design, usability, and human factors"
+    keyQuestions:
+      - "Is this intuitive for end users?"
+      - "What's the cognitive load? Can users understand it quickly?"
+      - "Are error messages helpful? Recovery paths clear?"
+      - "Does this respect user mental models?"
+      - "What about accessibility? Edge cases?"
+      - "Would this pass a usability test?"
+    expertModel: "claude-sonnet-4-5"
+    reasoningEffort: "medium"
+
+  - id: design_aesthetics
+    name: "Design Aesthetics Expert"
+    description: "Expert in code elegance, API design, and beautiful abstractions"
+    keyQuestions:
+      - "Is this code beautiful or ugly? Why?"
+      - "Does the API feel natural? Principle of least surprise?"
+      - "Is this the right abstraction level?"
+      - "Would this win a design award?"
+      - "Is there a simpler, more elegant solution?"
+      - "Does this 'spark joy' for developers?"
+    expertModel: "claude-opus-4"
+    reasoningEffort: "medium"
+
+  # Philosophy & Theory
+  - id: philosophy_epistemology
+    name: "Epistemology Expert"
+    description: "Expert in theory of knowledge, justification, and belief"
+    keyQuestions:
+      - "What's the epistemic status of these predictions?"
+      - "How do we justify belief in this model?"
+      - "What are the implicit assumptions? Ontological commitments?"
+      - "Is this knowledge or mere data?"
+      - "What's the theory of truth here? Correspondence? Coherence?"
+    expertModel: "claude-opus-4"
+    reasoningEffort: "high"
+
+  - id: philosophy_systems_thinking
+    name: "Systems Thinker"
+    description: "Expert in holistic analysis, emergence, and complex systems"
+    keyQuestions:
+      - "What are the feedback loops? Reinforcing? Balancing?"
+      - "Does this exhibit emergent behavior?"
+      - "What are the leverage points for intervention?"
+      - "Is this reductionist or holistic?"
+      - "What about unintended consequences?"
+      - "How does this fit the larger system?"
+    expertModel: "gpt-5-codex"
+    reasoningEffort: "high"
+
+  # Research & Academia
+  - id: research_cutting_edge
+    name: "Cutting-Edge Researcher"
+    description: "Expert tracking latest academic research and state-of-the-art methods"
+    keyQuestions:
+      - "Is there newer research (2024-2025) that supersedes this?"
+      - "What does the latest literature say?"
+      - "Are we using SOTA methods or outdated approaches?"
+      - "What are the open problems in this area?"
+      - "Has this been benchmarked against recent baselines?"
+    expertModel: "claude-opus-4"
+    reasoningEffort: "high"
+
+  # Practitioner Experience
+  - id: practitioner_production
+    name: "Production Systems Veteran"
+    description: "Expert with 20+ years running systems in production"
+    keyQuestions:
+      - "I've seen this fail in production. What about edge case X?"
+      - "What happens at 3am when this breaks?"
+      - "Is there an operations runbook? Incident response?"
+      - "What are the unknown unknowns?"
+      - "Have you talked to someone who's run this at scale?"
+      - "What lessons from production deployments apply here?"
+    expertModel: "claude-opus-4"
+    reasoningEffort: "medium"
+
+# Task type to domain mappings (suggestions)
+taskTypeMappings:
+  - pattern: "gam|generalized additive"
+    domains:
+      - statistics_generalized_additive_models
+      - statistics_timeseries
+      - ml_interpretability
+      - software_architecture
+
+  - pattern: "forecast|prediction|timeseries"
+    domains:
+      - statistics_timeseries
+      - domain_meteorology
+      - ml_deep_learning
+      - research_cutting_edge
+
+  - pattern: "causal|intervention|treatment"
+    domains:
+      - statistics_causal_inference
+      - philosophy_epistemology
+      - research_cutting_edge
+
+  - pattern: "resource|lifecycle|manager"
+    domains:
+      - software_distributed_systems
+      - software_architecture
+      - software_performance
+      - practitioner_production
+
+  - pattern: "quality gate|review|audit"
+    domains:
+      - philosophy_systems_thinking
+      - software_architecture
+      - design_aesthetics
+      - practitioner_production
+
+  - pattern: "ui|dashboard|visualization"
+    domains:
+      - design_user_experience
+      - design_aesthetics
+      - domain_meteorology
+
+  - pattern: "api|interface|endpoint"
+    domains:
+      - software_architecture
+      - design_aesthetics
+      - software_performance
+
+  - pattern: "test|testing|coverage"
+    domains:
+      - software_architecture
+      - philosophy_epistemology
+      - practitioner_production
