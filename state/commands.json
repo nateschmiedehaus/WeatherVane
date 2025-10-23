@@ -1,0 +1,12 @@
+{
+  "commands": [
+    {
+      "id": "CMD-1729726800000",
+      "instruction": "Focus exclusively on REMEDIATION tasks until all are complete. These are critical quality audits of previously completed work.",
+      "task_filter": "REMEDIATION",
+      "created_at": "2025-10-23T23:20:00.000Z",
+      "status": "pending"
+    }
+  ],
+  "last_updated": "2025-10-23T23:20:00.000Z"
+}

@@ -1,6 +1,8 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
+import path from "node:path";
+import { readFileSync, writeFileSync, existsSync } from "node:fs";
 
 import { describeClaudeCodeCommands } from "./executor/claude_code_commands.js";
 import { RoadmapAutoExtender } from "./planner/roadmap_auto_extend.js";
@@ -735,6 +737,100 @@ Perfect for: Tracking progress, maintaining roadmap state`,
         });
       } catch (error) {
         return formatError("Failed to update task status", error instanceof Error ? error.message : String(error));
+      }
+    },
+  );
+
+  // Command autopilot tool - for direct instructions from chat
+  const commandAutopilotInput = z.object({
+    action: z.enum(["add", "list", "clear"]),
+    instruction: z.string().optional(),
+    task_filter: z.string().optional(),
+  });
+  const commandAutopilotSchema = toJsonSchema(commandAutopilotInput, "CommandAutopilotInput");
+
+  server.registerTool(
+    "command_autopilot",
+    {
+      description: `🎯 Give direct instructions to autopilot from this chat.
+
+Commands have HIGHEST priority - they override all other tasks until completed.
+Commands are automatically cleared once the instruction is acted upon.
+
+**Actions:**
+- add: Add a new command/instruction
+- list: Show current pending commands
+- clear: Clear all commands (use when instructions are complete)
+
+**Parameters:**
+- instruction (required for 'add'): What autopilot should do
+- task_filter (optional for 'add'): Filter to specific task IDs/patterns
+
+**Examples:**
+- Add command: { "action": "add", "instruction": "Focus on all REMEDIATION tasks until complete" }
+- Add filter: { "action": "add", "instruction": "Fix all test failures", "task_filter": "REMEDIATION" }
+- List commands: { "action": "list" }
+- Clear when done: { "action": "clear" }
+
+**Use cases:**
+- Override priority to work on specific tasks
+- Direct autopilot to focus on critical issues
+- Pause non-critical work during emergencies
+
+**Note:** Commands persist until cleared, so autopilot won't get stuck repeating them.`,
+      inputSchema: commandAutopilotSchema,
+    },
+    async (input: unknown) => {
+      try {
+        const parsed = commandAutopilotInput.parse(input);
+        const commandsPath = path.join(session.workspaceRoot, 'state', 'commands.json');
+
+        let commandData: any = { commands: [], last_updated: null };
+        if (existsSync(commandsPath)) {
+          commandData = JSON.parse(readFileSync(commandsPath, 'utf-8'));
+        }
+
+        if (parsed.action === 'add') {
+          if (!parsed.instruction) {
+            return formatError("Instruction is required for 'add' action", "");
+          }
+          const command = {
+            id: `CMD-${Date.now()}`,
+            instruction: parsed.instruction,
+            task_filter: parsed.task_filter || null,
+            created_at: new Date().toISOString(),
+            status: 'pending'
+          };
+          commandData.commands.push(command);
+          commandData.last_updated = new Date().toISOString();
+          writeFileSync(commandsPath, JSON.stringify(commandData, null, 2));
+
+          return formatSuccess(`Command added: ${parsed.instruction}`, {
+            command_id: command.id,
+            instruction: parsed.instruction,
+            filter: parsed.task_filter,
+            note: "Autopilot will pick this up immediately (higher priority than all tasks)"
+          });
+        } else if (parsed.action === 'list') {
+          const pending = commandData.commands.filter((c: any) => c.status === 'pending');
+          return formatData({
+            total_commands: commandData.commands.length,
+            pending_commands: pending.length,
+            commands: pending
+          }, "📋 Autopilot Commands");
+        } else if (parsed.action === 'clear') {
+          commandData.commands = commandData.commands.filter((c: any) => c.status !== 'pending');
+          commandData.last_updated = new Date().toISOString();
+          writeFileSync(commandsPath, JSON.stringify(commandData, null, 2));
+
+          return formatSuccess("All pending commands cleared", {
+            note: "Autopilot will resume normal task priority"
+          });
+        }
+
+        return formatError("Invalid action", `Action must be 'add', 'list', or 'clear'`);
+      } catch (error) {
+        return formatError("Failed to process command", error instanceof Error ? error.message : String(error));
       }
     },
   );

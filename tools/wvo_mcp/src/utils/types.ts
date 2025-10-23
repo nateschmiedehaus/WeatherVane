@@ -18,6 +18,7 @@ export interface RoadmapTask {
   status: TaskStatus;
   description?: string;
   dependencies?: string[];
+  priority?: 'critical' | 'high' | 'medium' | 'low';
   exit_criteria?: Array<
     | { critic: string }
     | { doc: string }
@@ -33,6 +34,8 @@ export interface RoadmapMilestone {
   id: string;
   title: string;
   description?: string;
+  status?: string;
+  priority?: 'critical' | 'high' | 'medium' | 'low';
   tasks: RoadmapTask[];
 }
 
@@ -69,6 +72,7 @@ export interface PlanTaskSummary {
   milestone_id: string;
   exit_criteria: Array<string>;
   estimate_hours?: number;
+  priority?: 'critical' | 'high' | 'medium' | 'low';
   domain?: "product" | "mcp";
   cluster?: TaskClusterSpec;
 }

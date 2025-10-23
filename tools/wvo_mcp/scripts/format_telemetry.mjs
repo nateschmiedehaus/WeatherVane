@@ -247,6 +247,19 @@ function handleAgentSnapshot(log) {
     const rawId = typeof agent.id === 'string' ? agent.id : String(agent.id ?? '?');
     const statusRaw = typeof agent.status === 'string' ? agent.status.toLowerCase() : 'unknown';
 
+    // Extract stage/progress (make it prominent)
+    let stage = '—';
+    if (typeof agent.currentTaskProgress === 'string' && agent.currentTaskProgress.length > 0) {
+      // Shorten common stage names for better display
+      stage = agent.currentTaskProgress
+        .replace('Assembling context and building prompt', 'Building Prompt')
+        .replace('Executing task with AI model', 'AI Executing')
+        .replace('Processing execution results', 'Processing')
+        .replace('Running pre-flight checks', 'Pre-flight')
+        .replace('Running pre-task quality review', 'Quality Review')
+        .replace('Classifying task requirements', 'Classifying');
+    }
+
     // Build task display: Show full title/description from agent or tracked state
     let currentTask = '—';
     if (typeof agent.currentTask === 'string' && agent.currentTask.length > 0) {
@@ -261,23 +274,18 @@ function handleAgentSnapshot(log) {
       // Prefer agent.currentTaskTitle if available (set during reserve)
       if (typeof agent.currentTaskTitle === 'string' && agent.currentTaskTitle.length > 0 && agent.currentTaskTitle !== taskId) {
         // Agent has full title - show it!
-        parts.push(truncate(agent.currentTaskTitle, 50));
+        parts.push(truncate(agent.currentTaskTitle, 45));
       } else {
         // Fall back to looking up in tracked tasks
         const trackedTask = state.currentTasks.get(taskId);
         if (trackedTask?.title) {
-          parts.push(truncate(trackedTask.title, 50));
+          parts.push(truncate(trackedTask.title, 45));
         }
       }
 
-      // Add description if available and different from title
+      // Add description if available and different from title (shortened since we have stage column)
       if (typeof agent.currentTaskDescription === 'string' && agent.currentTaskDescription.length > 0 && agent.currentTaskDescription !== agent.currentTaskTitle) {
-        parts.push(`· ${truncate(agent.currentTaskDescription, 40)}`);
-      }
-
-      // Add progress indicator if available
-      if (typeof agent.currentTaskProgress === 'string' && agent.currentTaskProgress.length > 0) {
-        parts.push(`⟨${agent.currentTaskProgress}⟩`);
+        parts.push(`· ${truncate(agent.currentTaskDescription, 30)}`);
       }
 
       currentTask = parts.join(' ');
@@ -297,11 +305,18 @@ function handleAgentSnapshot(log) {
     else if (statusRaw === 'idle') statusColor = colors.gray;
     else if (statusRaw === 'failed' || statusRaw === 'error') statusColor = colors.red;
 
+    // Color code the stage
+    let stageColor = colors.cyan;
+    if (stage.includes('Error') || stage.includes('Fail')) stageColor = colors.red;
+    else if (stage.includes('Fix') || stage.includes('Audit')) stageColor = colors.yellow;
+    else if (stage.includes('AI Executing') || stage.includes('Build')) stageColor = colors.green;
+
     const idDisplay = rawId.padEnd(14, ' ');
     const roleDisplay = role ? `${role.padEnd(18, ' ')}` : ''.padEnd(18, ' ');
+    const stageDisplay = stage.padEnd(16, ' ');
 
     console.log(
-      `${colors.gray}   ${idDisplay}${colors.reset} ${roleDisplay}${statusColor}${statusRaw.toUpperCase().padEnd(9, ' ')}${colors.reset} ${model} ${colors.dim}${currentTask}${colors.reset}`,
+      `${colors.gray}   ${idDisplay}${colors.reset} ${roleDisplay}${statusColor}${statusRaw.toUpperCase().padEnd(9, ' ')}${colors.reset} ${stageColor}${stageDisplay}${colors.reset} ${colors.dim}${model}${colors.reset} ${colors.dim}${currentTask}${colors.reset}`,
     );
   });
 }

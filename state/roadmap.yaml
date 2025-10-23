@@ -1493,7 +1493,7 @@ epics:
         tasks:
           - id: T-MLR-3.3
             title: Package all evidence artifacts for review
-            status: done
+            status: in_progress
             dependencies:
               - T-MLR-3.2
             exit_criteria: []

@@ -291,7 +291,7 @@ export class SessionContext {
     // Save roadmap if any tasks were unblocked
     await this.roadmapStore.write(roadmap);
 
-    const planner = new PlannerEngine(roadmap);
+    const planner = new PlannerEngine(roadmap, this.workspaceRoot);
     return planner.next(input);
   }
 

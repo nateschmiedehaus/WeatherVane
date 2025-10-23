@@ -19,6 +19,9 @@ export function flattenTasks(document: RoadmapDocument): PlanTaskSummary[] {
         const epicDomain = (epic as unknown as { domain?: "product" | "mcp" }).domain;
         const resolvedDomain = taskDomain ?? milestoneDomain ?? epicDomain;
 
+        // Priority resolution: task → milestone (task priority wins if set)
+        const resolvedPriority = task.priority ?? milestone.priority;
+
         summaries.push({
           id: task.id,
           title: task.title,
@@ -27,6 +30,7 @@ export function flattenTasks(document: RoadmapDocument): PlanTaskSummary[] {
           epic_id: epic.id,
           milestone_id: milestone.id,
           estimate_hours: task.estimate_hours,
+          priority: resolvedPriority,
           exit_criteria:
             task.exit_criteria?.map((criteria) => {
               if (typeof criteria === "string") return criteria;
