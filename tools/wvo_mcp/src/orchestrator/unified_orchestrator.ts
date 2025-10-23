@@ -53,6 +53,8 @@ import {
   getBackgroundTaskAsTask,
   type OrchestratorBackgroundContext,
 } from './orchestrator_background_tasks.js';
+import { QualityGateOrchestrator, type QualityGateDecision } from './quality_gate_orchestrator.js';
+import type { TaskEvidence } from './adversarial_bullshit_detector.js';
 
 export type Provider = 'codex' | 'claude';
 export type AgentRole = 'orchestrator' | 'worker' | 'critic' | 'architecture_planner' | 'architecture_reviewer';
@@ -288,6 +290,7 @@ export class UnifiedOrchestrator extends EventEmitter {
   private blockerEscalationManager: BlockerEscalationManager;
   private failureResponseManager: FailureResponseManager;
   private peerReviewManager: PeerReviewManager;
+  private qualityGateOrchestrator: QualityGateOrchestrator;
   private taskMemoDir: string;
   private usageLimitBackoffMs: number;
   private architecturePlanner?: Agent;
@@ -409,6 +412,10 @@ export class UnifiedOrchestrator extends EventEmitter {
       this.roadmapTracker,
       config.workspaceRoot
     );
+
+    // Initialize quality gate orchestrator for mandatory verification loop
+    logInfo('🛡️ Initializing QualityGateOrchestrator - MANDATORY verification enforced');
+    this.qualityGateOrchestrator = new QualityGateOrchestrator(config.workspaceRoot);
 
     this.historicalRegistry = new HistoricalContextRegistry();
     const skipPattern = process.env.WVO_AUTOPILOT_GIT_SKIP_PATTERN ?? '.clean_worktree';
@@ -745,7 +752,12 @@ export class UnifiedOrchestrator extends EventEmitter {
     model: string;
     status: string;
     currentTask?: string | null;
+    currentTaskTitle?: string | null;
+    currentTaskDescription?: string | null;
+    currentTaskType?: string | null;
+    currentTaskProgress?: string | null;
     lastTask?: string | null;
+    lastTaskTitle?: string | null;
     tasksCompleted: number;
     totalTasks: number;
     successfulTasks: number;
@@ -764,13 +776,42 @@ export class UnifiedOrchestrator extends EventEmitter {
       provider: agent.config.provider,
       model: agent.config.model,
       status: agent.status,
-      currentTask: agent.currentTask ?? agent.currentTaskTitle ?? null,
-      lastTask: agent.lastTaskTitle ?? agent.lastTask ?? null,
+      currentTask: agent.currentTask ?? null,
+      currentTaskTitle: agent.currentTaskTitle ?? null,
+      currentTaskDescription: agent.currentTaskDescription ?? null,
+      currentTaskType: agent.currentTaskType ?? null,
+      currentTaskProgress: agent.currentTaskProgress ?? null,
+      lastTask: agent.lastTask ?? null,
+      lastTaskTitle: agent.lastTaskTitle ?? null,
       tasksCompleted: agent.tasksCompleted,
       totalTasks: agent.telemetry.totalTasks,
       successfulTasks: agent.telemetry.successfulTasks,
       failedTasks: agent.telemetry.failedTasks,
     }));
+  }
+
+  /**
+   * Update agent progress during task execution
+   */
+  private updateAgentProgress(agentId: string, progress: string): void {
+    const allAgents = [
+      this.orchestrator,
+      this.architecturePlanner,
+      this.architectureReviewer,
+      ...this.workers,
+      ...this.critics
+    ].filter(Boolean) as Agent[];
+
+    const agent = allAgents.find(a => a.id === agentId);
+    if (agent) {
+      agent.currentTaskProgress = progress;
+      logInfo('Agent progress update', {
+        agentId,
+        taskId: agent.currentTask,
+        progress,
+        timestamp: new Date().toISOString(),
+      });
+    }
   }
 
   private logAgentSnapshot(
@@ -1259,9 +1300,52 @@ export class UnifiedOrchestrator extends EventEmitter {
         agentRole: agent.config.role,
       });
 
+      this.updateAgentProgress(agent.id, 'Classifying task requirements');
       const classification = this.agentHierarchy.classifyTask(task);
+
+      // 🛡️ QUALITY GATE: Pre-task review
+      this.updateAgentProgress(agent.id, 'Running pre-task quality review');
+      logInfo('🛡️ [QUALITY GATE] Running pre-task review', { taskId: task.id });
+      const preTaskReview = await this.qualityGateOrchestrator.reviewTaskPlan(task.id, {
+        title: task.title || 'Untitled task',
+        description: task.description || '',
+        filesAffected: [], // TODO: Extract from task metadata if available
+        estimatedComplexity: complexity === 'complex' ? 'complex' : (complexity === 'simple' ? 'simple' : 'medium'),
+        answers: {
+          // Minimal answers for now - workers should provide these
+          verification_plan: 'npm run build && npm test',
+          rollback_plan: 'git revert',
+        },
+      });
+
+      if (!preTaskReview.approved) {
+        logError('🛡️ [QUALITY GATE] Pre-task review REJECTED', {
+          taskId: task.id,
+          concerns: preTaskReview.concerns,
+          recommendations: preTaskReview.recommendations,
+        });
+
+        agent.status = 'failed';
+        agent.telemetry.failedTasks++;
+
+        await this.roadmapTracker.updateTaskStatus(task.id, 'blocked', {
+          agent: agent.id,
+          duration: 0,
+          output: `Pre-task quality review rejected:\n${preTaskReview.concerns.join('\n')}\n\nRecommendations:\n${preTaskReview.recommendations.join('\n')}`,
+        });
+
+        return {
+          success: false,
+          error: `Quality gate rejection: ${preTaskReview.concerns.join('; ')}`,
+          duration: Date.now() - startTime,
+        };
+      }
+
+      logInfo('🛡️ [QUALITY GATE] Pre-task review APPROVED', { taskId: task.id });
+
       const preflightSnapshot = await this.gitMonitor.check(`preflight-before:${task.id}`);
       if (this.preflightRunner.shouldRun(task, classification, preflightSnapshot)) {
+        this.updateAgentProgress(agent.id, 'Running pre-flight checks');
         logInfo('Running pre-flight quality checks', { taskId: task.id });
         const preflightResult = await this.preflightRunner.run(preflightSnapshot);
         if (!preflightResult.success) {
@@ -1314,6 +1398,7 @@ export class UnifiedOrchestrator extends EventEmitter {
 
       const executor = this.getExecutor(agent.config.provider);
 
+      this.updateAgentProgress(agent.id, 'Assembling context and building prompt');
       logDebug('Building sophisticated prompt with context assembly', {
         taskId: task.id,
         agent: agent.id,
@@ -1328,7 +1413,9 @@ export class UnifiedOrchestrator extends EventEmitter {
         model: modelSelection.model,
       });
 
+      this.updateAgentProgress(agent.id, 'Executing task with AI model');
       const result = await executor.exec(modelSelection.model, prompt, this.config.mcpServerPath);
+      this.updateAgentProgress(agent.id, 'Processing execution results');
 
       const duration = Date.now() - startTime;
 
@@ -1411,6 +1498,54 @@ export class UnifiedOrchestrator extends EventEmitter {
         }
 
         if (verificationSucceeded) {
+          // 🛡️ QUALITY GATE: Post-task verification (MANDATORY)
+          logInfo('🛡️ [QUALITY GATE] Running post-task verification', { taskId: task.id });
+          this.updateAgentProgress(agent.id, 'Running quality gate verification');
+
+          // Collect evidence for quality gates
+          const evidence: TaskEvidence = {
+            taskId: task.id,
+            buildOutput: result.output || '', // TODO: Capture actual build output
+            testOutput: result.output || '', // TODO: Capture actual test output
+            changedFiles: [], // TODO: Get from git status
+            testFiles: [], // TODO: Extract test files
+            documentation: [], // TODO: Extract docs updated
+            runtimeEvidence: [], // TODO: Collect runtime evidence
+          };
+
+          const qualityDecision = await this.qualityGateOrchestrator.verifyTaskCompletion(task.id, evidence);
+
+          if (qualityDecision.decision === 'REJECTED') {
+            logError('🛡️ [QUALITY GATE] Task REJECTED by quality gates', {
+              taskId: task.id,
+              reasoning: qualityDecision.finalReasoning,
+              reviews: Object.keys(qualityDecision.reviews),
+            });
+
+            agent.status = 'failed';
+            agent.telemetry.failedTasks++;
+
+            await this.roadmapTracker.updateTaskStatus(task.id, 'blocked', {
+              agent: agent.id,
+              duration,
+              output: `Quality gate rejection:\n\n${qualityDecision.finalReasoning}\n\nReviews:\n${JSON.stringify(qualityDecision.reviews, null, 2)}`,
+            });
+
+            // Record blocker for escalation
+            this.blockerEscalationManager.recordBlockedTask(task.id);
+
+            return {
+              success: false,
+              error: qualityDecision.finalReasoning,
+              duration: Date.now() - startTime,
+            };
+          }
+
+          logInfo('🛡️ [QUALITY GATE] Task APPROVED by all quality gates', {
+            taskId: task.id,
+            consensusReached: qualityDecision.consensusReached,
+          });
+
           agent.status = 'idle';
           agent.tasksCompleted++;
           agent.telemetry.successfulTasks++;

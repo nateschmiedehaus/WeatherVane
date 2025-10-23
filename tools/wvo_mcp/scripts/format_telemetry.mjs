@@ -251,22 +251,41 @@ function handleAgentSnapshot(log) {
     let currentTask = '—';
     if (typeof agent.currentTask === 'string' && agent.currentTask.length > 0) {
       const taskId = agent.currentTask;
+      const parts = [taskId];
+
+      // Add task type badge if available
+      if (typeof agent.currentTaskType === 'string' && agent.currentTaskType.length > 0) {
+        parts.push(`[${agent.currentTaskType}]`);
+      }
 
       // Prefer agent.currentTaskTitle if available (set during reserve)
       if (typeof agent.currentTaskTitle === 'string' && agent.currentTaskTitle.length > 0 && agent.currentTaskTitle !== taskId) {
         // Agent has full title - show it!
-        currentTask = `${taskId}: ${truncate(agent.currentTaskTitle, 60)}`;
+        parts.push(truncate(agent.currentTaskTitle, 50));
       } else {
         // Fall back to looking up in tracked tasks
         const trackedTask = state.currentTasks.get(taskId);
         if (trackedTask?.title) {
-          currentTask = `${taskId}: ${truncate(trackedTask.title, 60)}`;
-        } else {
-          // Just show the ID
-          currentTask = taskId;
+          parts.push(truncate(trackedTask.title, 50));
         }
       }
+
+      // Add description if available and different from title
+      if (typeof agent.currentTaskDescription === 'string' && agent.currentTaskDescription.length > 0 && agent.currentTaskDescription !== agent.currentTaskTitle) {
+        parts.push(`· ${truncate(agent.currentTaskDescription, 40)}`);
+      }
+
+      // Add progress indicator if available
+      if (typeof agent.currentTaskProgress === 'string' && agent.currentTaskProgress.length > 0) {
+        parts.push(`⟨${agent.currentTaskProgress}⟩`);
+      }
+
+      currentTask = parts.join(' ');
+    } else if (typeof agent.lastTaskTitle === 'string' && agent.lastTaskTitle.length > 0) {
+      // Show last task title (description) for idle agents
+      currentTask = `last: ${truncate(agent.lastTaskTitle, 40)}`;
     } else if (typeof agent.lastTask === 'string' && agent.lastTask.length > 0) {
+      // Fallback to last task ID if no title available
       currentTask = `last: ${truncate(agent.lastTask, 40)}`;
     }
 
@@ -382,6 +401,21 @@ function handleLogLine(line) {
         const alertMessage = log.alertMessage || log.alert || log.reason || 'no details';
         const taskId = log.taskId ? ` (task: ${log.taskId})` : '';
         console.log(`${colors.yellow}🚨 Alert [${alertType}]${colors.reset}${taskId}: ${truncate(alertMessage, 100)}`);
+      } else if (message === 'Agent progress update') {
+        // Show real-time progress updates during task execution
+        const agentId = log.agentId || log.agent || 'unknown';
+        const taskId = log.taskId || log.task || '';
+        const progress = log.progress || '';
+        const taskLabel = taskId ? ` [${taskId}]` : '';
+        console.log(`${colors.cyan}⚙️  ${agentId}${taskLabel}${colors.reset}: ${colors.dim}${truncate(progress, 100)}${colors.reset}`);
+
+        // Update tracked task progress if we have it
+        if (taskId && state.currentTasks.has(taskId)) {
+          const tracked = state.currentTasks.get(taskId);
+          if (tracked) {
+            tracked.progress = progress;
+          }
+        }
       } else if (message === 'Agent progress note' || log.agentNote || log.note) {
         // Show agent notes/progress during task execution
         const agentId = log.agentId || log.agent || 'unknown';

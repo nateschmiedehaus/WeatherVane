@@ -29,6 +29,9 @@ export interface Agent {
   status: 'idle' | 'busy' | 'error' | 'failed';
   currentTask?: string;
   currentTaskTitle?: string;
+  currentTaskDescription?: string;
+  currentTaskType?: string;
+  currentTaskProgress?: string;
   lastTask?: string;
   lastTaskTitle?: string;
   tasksCompleted: number;
@@ -195,7 +198,7 @@ export class AgentPool extends EventEmitter {
 
       if (agent) {
         // Agent available - reserve immediately
-        this.reserve(agent, task.id, task.title);
+        this.reserve(agent, task);
         logDebug('Agent reserved', { agentId: agent.id, taskId: task.id, taskTitle: task.title });
         resolve(agent);
       } else {
@@ -230,9 +233,14 @@ export class AgentPool extends EventEmitter {
     if (agent) {
       agent.status = 'idle';
       const previousTask = agent.currentTask;
+      const previousTaskTitle = agent.currentTaskTitle;
       agent.lastTask = previousTask;
+      agent.lastTaskTitle = previousTaskTitle;
       agent.currentTask = undefined;
       agent.currentTaskTitle = undefined;
+      agent.currentTaskDescription = undefined;
+      agent.currentTaskType = undefined;
+      agent.currentTaskProgress = undefined;
 
       logDebug('Agent released', {
         agentId,
@@ -278,7 +286,7 @@ export class AgentPool extends EventEmitter {
     if (agent) {
       // Remove from queue and assign
       this.taskQueue.shift();
-      this.reserve(agent, next.task.id, next.task.title);
+      this.reserve(agent, next.task);
 
       const waitTime = Date.now() - next.queuedAt;
       logInfo('Task dequeued and assigned', {
@@ -298,11 +306,14 @@ export class AgentPool extends EventEmitter {
   /**
    * Reserve an agent (mark as busy)
    */
-  private reserve(agent: Agent, taskId: string, taskTitle?: string): void {
-    this.reservations.set(agent.id, taskId);
+  private reserve(agent: Agent, task: { id: string; title?: string; description?: string; type?: string }): void {
+    this.reservations.set(agent.id, task.id);
     agent.status = 'busy';
-    agent.currentTask = taskId;
-    agent.currentTaskTitle = taskTitle || taskId;
+    agent.currentTask = task.id;
+    agent.currentTaskTitle = task.title || task.id;
+    agent.currentTaskDescription = task.description;
+    agent.currentTaskType = task.type;
+    agent.currentTaskProgress = 'Starting...';
   }
 
   /**

@@ -1,19 +1,46 @@
 {
   "version": "1.0",
   "startedAt": "2025-10-22T21:44:01.878Z",
-  "lastUpdatedAt": "2025-10-23T18:09:15.370Z",
-  "totalTasks": 107,
-  "totalCostActual": 8.09319999999999,
-  "totalCostBaseline": 8.025000000000013,
-  "totalSavings": -0.06819999999997783,
-  "savingsPercent": -0.8498442367598471,
+  "lastUpdatedAt": "2025-10-23T21:38:16.514Z",
+  "totalTasks": 110,
+  "totalCostActual": 8.10759999999999,
+  "totalCostBaseline": 8.25000000000001,
+  "totalSavings": 0.14240000000001984,
+  "savingsPercent": 1.7260606060608443,
   "tierDistribution": {
-    "haiku": 41,
+    "haiku": 43,
     "sonnet-3.5": 22,
     "sonnet-4.5": 17,
     "sonnet-4.5-reasoning": 0
   },
   "recentTasks": [
+    {
+      "taskId": "M13.4",
+      "timestamp": "2025-10-23T21:38:16.514Z",
+      "tier": "haiku",
+      "complexity": 2,
+      "costActual": 0.0036000000000000003,
+      "costBaseline": 0.075,
+      "savings": 0.07139999999999999
+    },
+    {
+      "taskId": "M13.2",
+      "timestamp": "2025-10-23T21:37:54.616Z",
+      "tier": "codex-low",
+      "complexity": 2,
+      "costActual": 0.007200000000000001,
+      "costBaseline": 0.075,
+      "savings": 0.0678
+    },
+    {
+      "taskId": "M13.5",
+      "timestamp": "2025-10-23T21:36:54.233Z",
+      "tier": "haiku",
+      "complexity": 2,
+      "costActual": 0.0036000000000000003,
+      "costBaseline": 0.075,
+      "savings": 0.07139999999999999
+    },
     {
       "taskId": "M13.2",
       "timestamp": "2025-10-23T18:09:15.370Z",
@@ -886,33 +913,6 @@
       "costActual": 0.004,
       "costBaseline": 0.075,
       "savings": 0.071
-    },
-    {
-      "taskId": "TEST-3",
-      "timestamp": "2025-10-23T00:22:20.469Z",
-      "tier": "haiku",
-      "complexity": 0,
-      "costActual": 0.002,
-      "costBaseline": 0.075,
-      "savings": 0.073
-    },
-    {
-      "taskId": "TEST-2",
-      "timestamp": "2025-10-23T00:22:13.699Z",
-      "tier": "codex-low",
-      "complexity": 0,
-      "costActual": 0.004,
-      "costBaseline": 0.075,
-      "savings": 0.071
-    },
-    {
-      "taskId": "TEST-3",
-      "timestamp": "2025-10-23T00:22:00.263Z",
-      "tier": "haiku",
-      "complexity": 0,
-      "costActual": 0.002,
-      "costBaseline": 0.075,
-      "savings": 0.073
     }
   ]
 }

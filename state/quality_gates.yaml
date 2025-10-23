@@ -1,0 +1,381 @@
+# Quality Gate System Configuration
+# Enforces mandatory verification loop and prevents technical debt
+
+quality_gates:
+  # ========================================
+  # AUTOMATED CHECKS (NON-NEGOTIABLE)
+  # ========================================
+  # These checks are BLOCKING - no human override allowed
+  # If any fail, task is INSTANTLY REJECTED
+  automated:
+    build_required: true
+    tests_required: true
+    audit_required: true
+    no_exceptions: true  # CRITICAL: Never allow bypass
+
+    # Commands to run
+    commands:
+      build: "npm run build"
+      test: "npm test"
+      audit: "npm audit"
+
+    # Success criteria (all must be true)
+    success_criteria:
+      build_exit_code: 0
+      test_exit_code: 0
+      audit_vulnerabilities: 0
+
+  # ========================================
+  # PRE-TASK QUESTIONNAIRE
+  # ========================================
+  # Questions asked before task starts (complexity-differentiated)
+  pre_task:
+    simple_threshold_hours: 1
+    medium_threshold_hours: 4
+    required_approval: ["orchestrator"]
+
+    questions:
+      simple:  # < 1 hour, < 3 files
+        - id: files_modified
+          question: "What files will I modify?"
+          required: true
+          validation: "List must include actual file paths"
+
+        - id: tests_exist
+          question: "Do tests exist for these files? Where?"
+          required: true
+          validation: "YES → provide test file paths | NO → explain why no tests needed"
+
+        - id: verification_plan
+          question: "How will I verify this works?"
+          required: true
+          validation: "Must include at least: build + test command"
+
+        - id: rollback_plan
+          question: "What's the rollback plan if this breaks?"
+          required: true
+          validation: "git revert | file restore | explain"
+
+      medium:  # 1-4 hours, integration work
+        - id: integration_surface
+          question: "What's the integration surface?"
+          required: true
+          validation: "List APIs, interfaces, dependencies affected"
+
+        - id: affected_tests
+          question: "What existing tests will this change affect?"
+          required: true
+          validation: "Grep results or 'none' with justification"
+
+        - id: new_tests
+          question: "What NEW tests do I need to write?"
+          required: true
+          validation: "Test file names + coverage dimensions (7/7)"
+
+        - id: epic_alignment
+          question: "How does this align with Epic objectives?"
+          required: true
+          validation: "Quote epic exit criteria this satisfies"
+
+        - id: downstream_impact
+          question: "What could break OUTSIDE my changes?"
+          required: true
+          validation: "Downstream consumers, dependent modules"
+
+        - id: quality_dimensions
+          question: "What quality dimensions are critical?"
+          required: true
+          validation: "Select: Security | Performance | UX | Reliability | Maintainability"
+
+      complex:  # > 4 hours, architectural
+        - id: architectural_implications
+          question: "What are the architectural implications?"
+          required: true
+          validation: "New abstractions, changed patterns, coupling introduced"
+
+        - id: dependencies_created
+          question: "What dependencies does this CREATE?"
+          required: true
+          validation: "New packages, services, data flows"
+
+        - id: program_alignment
+          question: "How does this fit the program roadmap?"
+          required: true
+          validation: "Quote milestone goals this advances"
+
+        - id: deployment_strategy
+          question: "What's the production deployment strategy?"
+          required: true
+          validation: "Feature flags, phased rollout, blue-green, etc."
+
+        - id: observability
+          question: "What monitoring/observability do I need?"
+          required: true
+          validation: "Logs, metrics, alerts to add"
+
+        - id: documentation_updates
+          question: "What documentation MUST be updated?"
+          required: true
+          validation: "List: README, API docs, architecture docs, runbooks"
+
+        - id: worst_case_failure
+          question: "What's the WORST case failure mode?"
+          required: true
+          validation: "Data loss? Downtime? Security breach? Mitigation plan?"
+
+  # ========================================
+  # POST-TASK VERIFICATION
+  # ========================================
+  # Evidence requirements before task can be marked "done"
+  post_task:
+    required_reviewers: ["automated", "orchestrator", "peer", "adversarial"]
+    consensus_rule: "unanimous"  # ALL must approve
+    escalation_on_tie: true
+    escalation_target: "claude_council"
+
+    # Universal exit verification (ALL tasks)
+    universal_checks:
+      - id: build_passes
+        question: "Does `npm run build` complete with 0 errors?"
+        required: true
+        blocking: true
+        evidence_required: "Paste last 10 lines of build output"
+
+      - id: tests_pass
+        question: "Do ALL tests pass (`npm test`)?"
+        required: true
+        blocking: true
+        evidence_required: "Test summary: X passed | Y failed"
+
+      - id: audit_clean
+        question: "Does `npm audit` show 0 vulnerabilities?"
+        required: true
+        blocking: true
+
+      - id: runtime_verification
+        question: "Did I actually RUN this feature end-to-end?"
+        required: true
+        validation: "YES | NO | N/A (non-runtime change)"
+        evidence_required: "Screenshot, output, or CLI session showing it works"
+
+      - id: evidence_proof
+        question: "What EVIDENCE proves this works?"
+        required: true
+        validation: "File paths, test output, runtime logs, screenshots"
+
+      - id: documentation_updated
+        question: "What documentation did I update?"
+        required: true
+        validation: "List files OR 'none needed' with justification"
+
+      - id: technical_debt
+        question: "What technical debt did I create?"
+        required: false  # Debt is acceptable if documented
+        validation: "Describe shortcuts taken, TODOs added"
+
+      - id: fragility_analysis
+        question: "What BREAKS if someone changes my code?"
+        required: true
+        validation: "List fragile assumptions, tight couplings"
+
+      - id: intelligence_check
+        question: "Could this be done MORE INTELLIGENTLY?"
+        required: true
+        validation: "Consider: simpler approach, better algorithm, more elegant design, less code"
+        prompt: |
+          Challenge yourself:
+          - Is there a simpler way to solve this?
+          - Am I over-engineering or under-engineering?
+          - What would a senior engineer do differently?
+          - Is this the most maintainable approach?
+          - Did I consider alternative designs?
+
+      - id: long_term_thinking
+        question: "What are the long-term implications?"
+        required: true
+        validation: "Consider: scalability, tech debt, future changes, team knowledge"
+        prompt: |
+          Think 6-12 months ahead:
+          - Will this scale to 10x load?
+          - Will this create tech debt?
+          - Can new team members understand this?
+          - What breaks when requirements change?
+          - Is this architecture sustainable?
+
+      - id: missed_opportunities
+        question: "What opportunities am I missing?"
+        required: true
+        validation: "Consider: code reuse, abstraction, performance, DRY violations"
+        prompt: |
+          Look for missed wins:
+          - Can I reuse existing code instead?
+          - Should this be abstracted/generalized?
+          - Are there obvious performance improvements?
+          - Am I repeating patterns that should be unified?
+          - Could this enable future features?
+
+      - id: blind_spots
+        question: "What are my blind spots on this task?"
+        required: true
+        validation: "Consider: edge cases, security, race conditions, error handling"
+        prompt: |
+          What did I NOT think about?
+          - Edge cases I might have missed
+          - Security vulnerabilities
+          - Race conditions / concurrency issues
+          - Error handling gaps
+          - Assumptions that could be wrong
+
+    # Additional checks for medium/complex tasks
+    integration_checks:
+      - id: integration_tests_updated
+        question: "Did I update integration tests?"
+        required: true
+        validation: "YES (list files) | NO (why not?)"
+
+      - id: backward_compatibility
+        question: "Did I verify backward compatibility?"
+        required: true
+        validation: "YES (how?) | N/A (breaking change documented)"
+
+      - id: monitoring_added
+        question: "What monitoring did I add?"
+        required: true
+        validation: "Logs, metrics, alerts added OR why not needed"
+
+      - id: safe_rollback
+        question: "Can this be rolled back safely?"
+        required: true
+        validation: "YES (explain how) | NO (explain mitigation)"
+
+  # ========================================
+  # ADVERSARIAL BULLSHIT DETECTOR
+  # ========================================
+  # Final gate that actively tries to detect gaming of the system
+  # This runs MULTIPLE ITERATIONS until all issues fixed
+  adversarial_detector:
+    enabled: true
+    max_iterations: 5  # Keep challenging until issues resolved or max reached
+    require_all_pass: true  # ALL checks must pass before approval
+
+    checks:
+      - id: test_integrity
+        name: "Test Integrity Check"
+        description: "Detect if tests were changed to pass without fixing underlying issue"
+        checks:
+          - "Git diff shows test expectations changed without implementation changes"
+          - "Tests use mocks/stubs that hide real problems"
+          - "Test names claim functionality not actually tested"
+          - "Tests pass but feature doesn't work when run manually"
+
+      - id: evidence_validity
+        name: "Evidence Validity Check"
+        description: "Detect fabricated or misleading evidence"
+        checks:
+          - "Screenshots are actually from the claimed feature (not similar feature)"
+          - "Log output contains expected markers (timestamps, UUIDs, etc.)"
+          - "File paths in evidence actually exist in codebase"
+          - "Evidence timestamp matches task completion time"
+
+      - id: documentation_code_match
+        name: "Documentation-Code Consistency"
+        description: "Detect documentation that exists but code doesn't"
+        checks:
+          - "Documented functions/classes actually exist in code"
+          - "Documented APIs have corresponding implementations"
+          - "Documented features have test coverage"
+          - "Code examples in docs actually run"
+
+      - id: implementation_validity
+        name: "Implementation Validity Check"
+        description: "Detect code that exists but doesn't actually work"
+        checks:
+          - "Imports resolve (no missing dependencies)"
+          - "Functions called actually exist"
+          - "Configuration files referenced actually exist"
+          - "Data flows make sense (input → process → output)"
+
+      - id: integration_reality
+        name: "Integration Reality Check"
+        description: "Detect claimed integrations that don't actually integrate"
+        checks:
+          - "Required decorators/annotations present (@flow, @task, etc.)"
+          - "Framework imports used throughout code (not just at top)"
+          - "Framework-specific features actually utilized"
+          - "Integration tests call real integration points"
+
+      - id: superficial_completion
+        name: "Superficial Completion Detector"
+        description: "Detect infrastructure built but never used"
+        checks:
+          - "Data files not empty (> 0 bytes)"
+          - "Metrics actually collected (not just schema defined)"
+          - "APIs actually called (not just defined)"
+          - "Features accessible via UI or CLI (not just code)"
+
+      - id: intelligence_audit
+        name: "Intelligence Quality Check"
+        description: "Detect solutions that could be done better/smarter"
+        checks:
+          - "Unnecessary complexity (could be simpler)"
+          - "Missed obvious optimizations"
+          - "Reinventing wheel instead of using existing solutions"
+          - "Over-engineering simple problems"
+          - "Under-engineering complex problems"
+
+      - id: long_term_viability
+        name: "Long-term Viability Check"
+        description: "Detect solutions that will cause problems later"
+        checks:
+          - "Hardcoded values that should be configurable"
+          - "Non-scalable patterns (N+1 queries, memory leaks)"
+          - "Technical debt without plan to address"
+          - "Knowledge silos (only one person understands)"
+          - "Tight coupling that prevents future changes"
+
+      - id: completeness_check
+        name: "Completeness Audit"
+        description: "Detect partially-finished work claimed as complete"
+        checks:
+          - "Error handling present for all failure modes"
+          - "Edge cases covered (empty lists, null values, boundaries)"
+          - "Logging/monitoring present for debugging"
+          - "Rollback/recovery procedures defined"
+          - "Performance acceptable under realistic load"
+
+      - id: claim_verification
+        name: "Claim Verification"
+        description: "Actually verify every claim made about the work"
+        checks:
+          - "If claimed 'tested' → tests exist and pass"
+          - "If claimed 'integrated' → imports/calls verified"
+          - "If claimed 'documented' → docs exist and accurate"
+          - "If claimed 'performant' → benchmarks provided"
+          - "If claimed 'secure' → security review done"
+
+# ========================================
+# COMPLEXITY SCORING
+# ========================================
+# Used to determine which questionnaire to use
+complexity:
+  factors:
+    files_touched: 0.2
+    integration_points: 0.3
+    architectural_change: 0.5
+
+  thresholds:
+    simple: 0.3
+    medium: 0.6
+    complex: 1.0
+
+# ========================================
+# QUALITY DIMENSIONS (must cover 7/7 for complex tasks)
+# ========================================
+quality_dimensions:
+  - correctness      # Does it do what it's supposed to?
+  - reliability      # Does it fail gracefully?
+  - performance      # Is it fast enough?
+  - security         # Is it safe?
+  - maintainability  # Can others understand/modify it?
+  - usability        # Is it intuitive?
+  - testability      # Can it be tested?

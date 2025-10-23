@@ -311,6 +311,12 @@ export class ResourceBudgetManager {
     timeoutMs?: number,
     metadata?: Record<string, unknown>,
   ): Promise<WorkerCallContext | null> {
+    // Validate timeout
+    if (timeoutMs !== undefined && timeoutMs < 0) {
+      logWarning("Negative timeout rejected", { taskId, timeoutMs });
+      return null;
+    }
+
     // Check global concurrency
     if (this.globalActive.size >= this.config.globalConcurrencyLimit) {
       logWarning("Global concurrency limit reached", {
