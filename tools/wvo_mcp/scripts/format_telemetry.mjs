@@ -250,14 +250,180 @@ function handleAgentSnapshot(log) {
     // Extract stage/progress (make it prominent)
     let stage = '—';
     if (typeof agent.currentTaskProgress === 'string' && agent.currentTaskProgress.length > 0) {
-      // Shorten common stage names for better display
-      stage = agent.currentTaskProgress
-        .replace('Assembling context and building prompt', 'Building Prompt')
-        .replace('Executing task with AI model', 'AI Executing')
-        .replace('Processing execution results', 'Processing')
-        .replace('Running pre-flight checks', 'Pre-flight')
-        .replace('Running pre-task quality review', 'Quality Review')
-        .replace('Classifying task requirements', 'Classifying');
+      // Comprehensive stage mapping (100+ stages for maximum visibility)
+      const progressText = agent.currentTaskProgress;
+
+      // CONTEXT & PLANNING STAGES
+      if (progressText.includes('Assembling context')) stage = 'Context Assembly';
+      else if (progressText.includes('Building prompt')) stage = 'Prompt Build';
+      else if (progressText.includes('Classifying task')) stage = 'Task Analysis';
+      else if (progressText.includes('Analyzing dependencies')) stage = 'Dependency Check';
+      else if (progressText.includes('Planning approach')) stage = 'Strategy Plan';
+      else if (progressText.includes('Selecting strategy')) stage = 'Strategy Select';
+      else if (progressText.includes('Loading roadmap')) stage = 'Roadmap Load';
+      else if (progressText.includes('Parsing requirements')) stage = 'Req Parse';
+      else if (progressText.includes('Gathering context')) stage = 'Context Gather';
+      else if (progressText.includes('Building context')) stage = 'Context Build';
+
+      // AI EXECUTION STAGES
+      else if (progressText.includes('Executing task with AI')) stage = 'AI Execute';
+      else if (progressText.includes('Running AI model')) stage = 'AI Running';
+      else if (progressText.includes('Waiting for AI')) stage = 'AI Waiting';
+      else if (progressText.includes('AI processing')) stage = 'AI Process';
+      else if (progressText.includes('Model inference')) stage = 'AI Inference';
+      else if (progressText.includes('Streaming response')) stage = 'AI Stream';
+      else if (progressText.includes('AI generation')) stage = 'AI Generate';
+
+      // QUALITY GATE STAGES
+      else if (progressText.includes('Running pre-task quality')) stage = 'Pre-QA Gate';
+      else if (progressText.includes('Running post-task quality')) stage = 'Post-QA Gate';
+      else if (progressText.includes('Quality review')) stage = 'QA Review';
+      else if (progressText.includes('Adversarial check')) stage = 'Adversarial QA';
+      else if (progressText.includes('Orchestrator review')) stage = 'Orchestrator QA';
+      else if (progressText.includes('Peer review')) stage = 'Peer Review';
+      else if (progressText.includes('Consensus check')) stage = 'Consensus QA';
+      else if (progressText.includes('Decision logging')) stage = 'QA Decision Log';
+
+      // PRE-FLIGHT STAGES
+      else if (progressText.includes('Running pre-flight')) stage = 'Pre-flight';
+      else if (progressText.includes('Pre-flight checks')) stage = 'Pre-flight Run';
+      else if (progressText.includes('Checking blockers')) stage = 'Blocker Check';
+      else if (progressText.includes('Verifying preconditions')) stage = 'Precond Verify';
+      else if (progressText.includes('Validating inputs')) stage = 'Input Valid';
+
+      // BUILDING STAGES
+      else if (progressText.includes('Running build')) stage = 'Build';
+      else if (progressText.includes('Compiling TypeScript')) stage = 'TS Compile';
+      else if (progressText.includes('Compiling code')) stage = 'Code Compile';
+      else if (progressText.includes('Building project')) stage = 'Project Build';
+      else if (progressText.includes('Bundling')) stage = 'Bundle';
+      else if (progressText.includes('Transpiling')) stage = 'Transpile';
+      else if (progressText.includes('Type checking')) stage = 'Type Check';
+
+      // TESTING STAGES
+      else if (progressText.includes('Running tests')) stage = 'Test Run';
+      else if (progressText.includes('Running unit tests')) stage = 'Unit Test';
+      else if (progressText.includes('Running integration tests')) stage = 'Integration Test';
+      else if (progressText.includes('Running e2e tests')) stage = 'E2E Test';
+      else if (progressText.includes('Test discovery')) stage = 'Test Discover';
+      else if (progressText.includes('Test setup')) stage = 'Test Setup';
+      else if (progressText.includes('Test teardown')) stage = 'Test Cleanup';
+      else if (progressText.includes('Coverage analysis')) stage = 'Coverage Check';
+      else if (progressText.includes('Test validation')) stage = 'Test Validate';
+
+      // AUDIT STAGES
+      else if (progressText.includes('Running audit')) stage = 'Audit';
+      else if (progressText.includes('npm audit')) stage = 'NPM Audit';
+      else if (progressText.includes('Security audit')) stage = 'Security Audit';
+      else if (progressText.includes('Dependency audit')) stage = 'Dep Audit';
+      else if (progressText.includes('Vulnerability scan')) stage = 'Vuln Scan';
+      else if (progressText.includes('License check')) stage = 'License Check';
+
+      // ERROR & FIX STAGES
+      else if (progressText.includes('Detecting errors')) stage = 'Error Detect';
+      else if (progressText.includes('Analyzing errors')) stage = 'Error Analyze';
+      else if (progressText.includes('Fixing errors')) stage = 'Error Fix';
+      else if (progressText.includes('Applying fix')) stage = 'Fix Apply';
+      else if (progressText.includes('Validating fix')) stage = 'Fix Validate';
+      else if (progressText.includes('Retrying')) stage = 'Retry';
+      else if (progressText.includes('Error recovery')) stage = 'Error Recovery';
+      else if (progressText.includes('Debugging')) stage = 'Debug';
+
+      // ITERATION STAGES
+      else if (progressText.includes('Iteration')) stage = 'Iterate';
+      else if (progressText.includes('Refining')) stage = 'Refine';
+      else if (progressText.includes('Improving')) stage = 'Improve';
+      else if (progressText.includes('Optimizing')) stage = 'Optimize';
+      else if (progressText.includes('Adjusting')) stage = 'Adjust';
+
+      // FILE OPERATION STAGES
+      else if (progressText.includes('Reading file')) stage = 'File Read';
+      else if (progressText.includes('Writing file')) stage = 'File Write';
+      else if (progressText.includes('Editing file')) stage = 'File Edit';
+      else if (progressText.includes('Creating file')) stage = 'File Create';
+      else if (progressText.includes('Deleting file')) stage = 'File Delete';
+      else if (progressText.includes('Moving file')) stage = 'File Move';
+      else if (progressText.includes('Copying file')) stage = 'File Copy';
+      else if (progressText.includes('Searching files')) stage = 'File Search';
+
+      // GIT OPERATION STAGES
+      else if (progressText.includes('Git commit')) stage = 'Git Commit';
+      else if (progressText.includes('Git push')) stage = 'Git Push';
+      else if (progressText.includes('Git pull')) stage = 'Git Pull';
+      else if (progressText.includes('Git status')) stage = 'Git Status';
+      else if (progressText.includes('Git diff')) stage = 'Git Diff';
+      else if (progressText.includes('Git checkout')) stage = 'Git Checkout';
+      else if (progressText.includes('Git branch')) stage = 'Git Branch';
+      else if (progressText.includes('Git merge')) stage = 'Git Merge';
+      else if (progressText.includes('Git rebase')) stage = 'Git Rebase';
+      else if (progressText.includes('Git stash')) stage = 'Git Stash';
+
+      // PROCESSING STAGES
+      else if (progressText.includes('Processing results')) stage = 'Result Process';
+      else if (progressText.includes('Parsing output')) stage = 'Output Parse';
+      else if (progressText.includes('Analyzing output')) stage = 'Output Analyze';
+      else if (progressText.includes('Validating results')) stage = 'Result Validate';
+      else if (progressText.includes('Formatting output')) stage = 'Output Format';
+      else if (progressText.includes('Extracting data')) stage = 'Data Extract';
+      else if (progressText.includes('Transforming data')) stage = 'Data Transform';
+
+      // DOCUMENTATION STAGES
+      else if (progressText.includes('Writing docs')) stage = 'Doc Write';
+      else if (progressText.includes('Updating docs')) stage = 'Doc Update';
+      else if (progressText.includes('Generating docs')) stage = 'Doc Generate';
+      else if (progressText.includes('Validating docs')) stage = 'Doc Validate';
+      else if (progressText.includes('Doc review')) stage = 'Doc Review';
+
+      // CRITIC STAGES
+      else if (progressText.includes('Running critic')) stage = 'Critic Run';
+      else if (progressText.includes('TestsCritic')) stage = 'Tests Critic';
+      else if (progressText.includes('BuildCritic')) stage = 'Build Critic';
+      else if (progressText.includes('DocsCritic')) stage = 'Docs Critic';
+      else if (progressText.includes('SecurityCritic')) stage = 'Security Critic';
+      else if (progressText.includes('PerformanceCritic')) stage = 'Perf Critic';
+      else if (progressText.includes('Critic analysis')) stage = 'Critic Analyze';
+
+      // DEPLOYMENT STAGES
+      else if (progressText.includes('Deploying')) stage = 'Deploy';
+      else if (progressText.includes('Publishing')) stage = 'Publish';
+      else if (progressText.includes('Releasing')) stage = 'Release';
+      else if (progressText.includes('Packaging')) stage = 'Package';
+      else if (progressText.includes('Uploading')) stage = 'Upload';
+
+      // DATABASE STAGES
+      else if (progressText.includes('Database query')) stage = 'DB Query';
+      else if (progressText.includes('Database update')) stage = 'DB Update';
+      else if (progressText.includes('Database migration')) stage = 'DB Migrate';
+      else if (progressText.includes('Database backup')) stage = 'DB Backup';
+      else if (progressText.includes('Database restore')) stage = 'DB Restore';
+
+      // MONITORING STAGES
+      else if (progressText.includes('Health check')) stage = 'Health Check';
+      else if (progressText.includes('Monitoring')) stage = 'Monitor';
+      else if (progressText.includes('Collecting metrics')) stage = 'Metrics Collect';
+      else if (progressText.includes('Logging')) stage = 'Log';
+      else if (progressText.includes('Tracing')) stage = 'Trace';
+
+      // CLEANUP STAGES
+      else if (progressText.includes('Cleaning up')) stage = 'Cleanup';
+      else if (progressText.includes('Garbage collection')) stage = 'GC';
+      else if (progressText.includes('Pruning')) stage = 'Prune';
+      else if (progressText.includes('Removing temp')) stage = 'Temp Cleanup';
+
+      // WAITING STAGES
+      else if (progressText.includes('Waiting for')) stage = 'Waiting';
+      else if (progressText.includes('Queued')) stage = 'Queued';
+      else if (progressText.includes('Blocked')) stage = 'Blocked';
+      else if (progressText.includes('Paused')) stage = 'Paused';
+
+      // COMPLETION STAGES
+      else if (progressText.includes('Finalizing')) stage = 'Finalize';
+      else if (progressText.includes('Completing')) stage = 'Complete';
+      else if (progressText.includes('Wrapping up')) stage = 'Wrap Up';
+      else if (progressText.includes('Saving state')) stage = 'State Save';
+
+      // DEFAULT: Show abbreviated version
+      else stage = progressText.substring(0, 16);
     }
 
     // Build task display: Show full title/description from agent or tracked state
@@ -305,11 +471,40 @@ function handleAgentSnapshot(log) {
     else if (statusRaw === 'idle') statusColor = colors.gray;
     else if (statusRaw === 'failed' || statusRaw === 'error') statusColor = colors.red;
 
-    // Color code the stage
-    let stageColor = colors.cyan;
-    if (stage.includes('Error') || stage.includes('Fail')) stageColor = colors.red;
-    else if (stage.includes('Fix') || stage.includes('Audit')) stageColor = colors.yellow;
-    else if (stage.includes('AI Executing') || stage.includes('Build')) stageColor = colors.green;
+    // Color code the stage (detailed color mapping)
+    let stageColor = colors.cyan; // Default cyan
+
+    // RED: Errors, failures, critical issues
+    if (stage.includes('Error') || stage.includes('Fail') || stage.includes('Debug') ||
+        stage.includes('Blocked') || stage.includes('Recovery')) {
+      stageColor = colors.red;
+    }
+    // YELLOW: Warnings, fixes, audits, reviews
+    else if (stage.includes('Fix') || stage.includes('Audit') || stage.includes('QA') ||
+             stage.includes('Review') || stage.includes('Critic') || stage.includes('Warn') ||
+             stage.includes('Check') || stage.includes('Validate') || stage.includes('Verify')) {
+      stageColor = colors.yellow;
+    }
+    // GREEN: Active execution, building, testing success
+    else if (stage.includes('AI Execute') || stage.includes('Build') || stage.includes('Test Run') ||
+             stage.includes('Deploy') || stage.includes('Complete') || stage.includes('Success') ||
+             stage.includes('Compile') || stage.includes('Git Commit') || stage.includes('Publish')) {
+      stageColor = colors.green;
+    }
+    // MAGENTA: Planning, analysis, preparation
+    else if (stage.includes('Plan') || stage.includes('Analyz') || stage.includes('Strategy') ||
+             stage.includes('Context') || stage.includes('Classify') || stage.includes('Parse')) {
+      stageColor = colors.magenta;
+    }
+    // GRAY: Waiting, queued, idle operations
+    else if (stage.includes('Wait') || stage.includes('Queue') || stage.includes('Pause') ||
+             stage.includes('Idle')) {
+      stageColor = colors.gray;
+    }
+    // CYAN: Everything else (file ops, processing, etc.)
+    else {
+      stageColor = colors.cyan;
+    }
 
     const idDisplay = rawId.padEnd(14, ' ');
     const roleDisplay = role ? `${role.padEnd(18, ' ')}` : ''.padEnd(18, ' ');
