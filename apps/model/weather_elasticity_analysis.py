@@ -544,7 +544,7 @@ def _analyze_channel_sensitivities(
     frame: pl.DataFrame, spend_cols: List[str], weather_cols: List[str], revenue_col: str
 ) -> Dict[str, ChannelWeatherSensitivity]:
     """Analyze weather sensitivity for each spend channel."""
-    sensitivities = {}
+    sensitivities: Dict[str, ChannelWeatherSensitivity] = {}
     revenue_all = _series_to_numpy(frame[revenue_col])
     if np.var(revenue_all) == 0:
         return sensitivities
@@ -631,7 +631,7 @@ def _create_weather_bands(
     weather_type: str, frame: pl.DataFrame, weather_cols: List[str], revenue_col: str
 ) -> List[WeatherBand]:
     """Create weather bands for elasticity analysis."""
-    bands = []
+    bands: List[WeatherBand] = []
 
     # Filter relevant columns
     if weather_type == "temperature":

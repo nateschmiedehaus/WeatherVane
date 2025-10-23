@@ -1588,7 +1588,7 @@ epics:
         tasks:
           - id: T12.0.1
             title: Generate synthetic multi-tenant dataset with weather-sensitive products
-            status: pending
+            status: in_progress
             dependencies: []
             exit_criteria:
               - artifact:storage/seeds/synthetic/*.parquet
@@ -1683,7 +1683,7 @@ epics:
         tasks:
           - id: T12.3.1
             title: Train weather-aware MMM on validated 90-day tenant data
-            status: pending
+            status: blocked
             dependencies: []
             exit_criteria:
               - artifact:experiments/mcp/mmm_weather_model.json
@@ -1697,7 +1697,7 @@ epics:
               features integrated
           - id: T12.3.2
             title: Implement weather sensitivity elasticity estimation
-            status: in_progress
+            status: blocked
             dependencies: []
             exit_criteria:
               - artifact:docs/models/weather_elasticity_analysis.md

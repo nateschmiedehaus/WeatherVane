@@ -20,6 +20,7 @@ REQUIRED_WEATHER_COLS = {
     "precip_anomaly",
     "temp_roll7",
     "precip_roll7",
+    "weather_elasticity",  # Added for elasticity estimation
 }
 
 WEATHER_COVERAGE_COLS = {
@@ -27,6 +28,7 @@ WEATHER_COVERAGE_COLS = {
     "precip_mm",
     "temp_anomaly",
     "precip_anomaly",
+    "weather_elasticity",  # Added for elasticity estimation
 }
 
 
@@ -253,11 +255,31 @@ class FeatureBuilder:
                 "precip_anomaly": [],
                 "temp_roll7": [],
                 "precip_roll7": [],
+                "weather_elasticity": [],
             })
-        missing = REQUIRED_WEATHER_COLS - set(weather.columns)
+
+        if "orders_frame" not in self.__dict__:
+            self.orders_frame = None
+
+        frame = weather.clone()
+        if self.orders_frame is not None and not self.orders_frame.is_empty():
+            # Calculate elasticity if we have revenue data
+            from apps.model.weather_elasticity_analysis import estimate_weather_elasticity
+            report = estimate_weather_elasticity(
+                self.orders_frame,
+                spend_cols=[],  # We'll add spend channels later
+                weather_cols=["temp_c", "precip_mm"],
+                revenue_col=TARGET_COLUMN
+            )
+            frame = frame.with_columns(pl.lit(report.weather_elasticity_mean).alias("weather_elasticity"))
+        else:
+            # No revenue data yet, use default elasticity of 0
+            frame = frame.with_columns(pl.lit(0.0).alias("weather_elasticity"))
+
+        missing = REQUIRED_WEATHER_COLS - set(frame.columns)
         if missing:
             raise ValueError(f"Weather dataset missing columns: {missing}")
-        return weather
+        return frame
 
     def _weather_coverage_ratio(self, frame: pl.DataFrame) -> float:
         """Calculate weather data coverage ratio."""
