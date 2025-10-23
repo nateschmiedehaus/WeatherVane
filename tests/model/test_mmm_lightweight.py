@@ -76,9 +76,9 @@ def _seed_lightweight(monkeypatch: pytest.MonkeyPatch) -> None:
         estimate_adstock: bool = True,
         estimate_saturation: bool = True,
     ) -> mmm_lightweight.LightweightMMMResult:
-        adstock_map = adstock_lags or {name: 1 for name in media_cols}
-        k_map = saturation_k or {name: 1.0 for name in media_cols}
-        s_map = saturation_s or {name: 1.0 for name in media_cols}
+        adstock_map = adstock_lags or {name: idx + 2 for idx, name in enumerate(media_cols)}
+        k_map = saturation_k or {name: float(idx + 3) for idx, name in enumerate(media_cols)}
+        s_map = saturation_s or {name: 1.0 + 0.25 * idx for idx, name in enumerate(media_cols)}
 
         adstock_vector = [adstock_map[name] for name in media_cols]
         gamma_vector = [s_map[name] for name in media_cols]
@@ -117,12 +117,18 @@ def test_fit_mmm_model_prefers_lightweight(monkeypatch: pytest.MonkeyPatch) -> N
         }
     )
     spend_cols = ["channel_a_spend", "channel_b_spend"]
+    expected_adstock = {name: idx + 2 for idx, name in enumerate(spend_cols)}
+    expected_k = {name: float(idx + 3) for idx, name in enumerate(spend_cols)}
+    expected_s = {name: 1.0 + 0.25 * idx for idx, name in enumerate(spend_cols)}
     model = mmm.fit_mmm_model(frame, spend_cols, "net_revenue")
 
     assert model.source == "lightweight"
     assert model.adstock_lags is not None
     assert model.saturation_k is not None
     assert model.saturation_s is not None
+    assert model.adstock_lags == expected_adstock
+    assert model.saturation_k == expected_k
+    assert model.saturation_s == expected_s
 
     media_matrix = frame.select(spend_cols).to_numpy()
     target = frame["net_revenue"].to_numpy()

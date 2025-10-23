@@ -23,6 +23,7 @@ from typing import Any, Dict, List, Optional, Tuple
 import numpy as np
 import pandas as pd
 from sklearn.linear_model import Ridge
+from sklearn.model_selection import GridSearchCV
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -385,8 +386,23 @@ class WeatherAwareMMM:
         self.available_weather_features = selected_weather
         self.channel_names = channels
 
-        model = Ridge(alpha=self.regularization_strength)
-        model.fit(X_train, y)
+        # Tune Ridge regularization strength via GridSearchCV
+        # Use 3-fold CV on training data to find best alpha
+        param_grid = {"alpha": [0.001, 0.01, 0.1, 1.0, 10.0, 100.0, 1000.0]}
+        grid_search = GridSearchCV(
+            Ridge(),
+            param_grid,
+            cv=3,
+            scoring="r2",
+            n_jobs=-1,
+        )
+        grid_search.fit(X_train, y)
+
+        # Extract best model
+        model = grid_search.best_estimator_
+        best_alpha = grid_search.best_params_["alpha"]
+        _LOGGER.debug(f"Best Ridge alpha: {best_alpha} (R²={grid_search.best_score_:.4f})")
+
         self.model = model
 
         self.coefficients = {
@@ -482,6 +498,13 @@ class WeatherAwareMMM:
                 interaction = weather_vals * spend
                 features.append(interaction)
                 feature_names.append(f"weather_{wf}_x_{channel}")
+
+        # Polynomial weather features (squared terms capture non-linear effects)
+        for wf in selected_weather:
+            weather_vals = weather_df[wf].to_numpy(dtype=float)
+            poly_term = weather_vals ** 2
+            features.append(poly_term)
+            feature_names.append(f"{wf}_squared")
 
         feature_matrix = np.column_stack(features) if features else np.empty((len(spend_df), 0))
         if return_feature_names:
