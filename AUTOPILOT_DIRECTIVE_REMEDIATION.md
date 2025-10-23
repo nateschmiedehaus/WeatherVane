@@ -12,11 +12,21 @@ Autopilot MUST work on remediation tasks NOW. All other work is BLOCKED.
 
 ---
 
-## ONLY 3 TASKS AVAILABLE
+## 107 REMEDIATION TASKS AVAILABLE
 
-You can ONLY work on these 3 CRITICAL tasks (in any order):
+**Total Work Queue**: 107 pending remediation tasks
 
-### 1. REMEDIATION-ALL-MCP-SERVER
+**Priority Tiers**:
+- 3 CRITICAL tasks (work on first)
+- 104 HIGH priority tasks (individual task verifications)
+
+**With 5 agents**: ~21 tasks per agent
+
+You can work on ANY remediation task. They are ordered by logical sequence (foundation → features → operations).
+
+### CRITICAL Priority Tasks (Work on These First)
+
+#### 1. REMEDIATION-ALL-MCP-SERVER
 **Priority**: CRITICAL
 **Status**: Pending (ready to start)
 **Dependencies**: NONE
@@ -88,6 +98,32 @@ You can ONLY work on these 3 CRITICAL tasks (in any order):
 - Decision log shows REAL autopilot decisions
 - Genius-level reviews integrated and working
 - Quality gates catch domain-specific issues (not just checkboxes)
+
+### HIGH Priority Tasks (104 Individual Verifications)
+
+After CRITICAL tasks, work on these in order:
+
+**Format**: `REM-{original-task-id}`
+
+Each task verifies one completed task:
+- REM-T0.1.1: Verify Phase 0 task 0.1.1
+- REM-T0.1.2: Verify Phase 0 task 0.1.2
+- REM-T1.1.1: Verify Epic 1 ingest task
+- ... 101 more individual verifications
+
+**What Each Remediation Task Does**:
+1. Check implementation exists (not stub/scaffold)
+2. Verify tests are meaningful (not superficial)
+3. Run quality gate review (adversarial detector)
+4. Runtime verification (actually works)
+5. Fix all critical issues found
+6. Log evidence
+
+**Logical Order** (foundation → features):
+- Phase 0 → Epic 1 (ingest) → Phase 1 → Epic 2 (features) →
+  Epic 7 (data) → Epic 3 (UX) → Epic 5 (ads) → Epic 11 (intelligence) →
+  Epic 4 (ops) → Epic 6 (MCP) → Epic 8 (hardening) → Epic 9 (performance) →
+  Epic 10 (cost) → Epic 12-13 (weather models) → ML remediation
 
 ---
 
