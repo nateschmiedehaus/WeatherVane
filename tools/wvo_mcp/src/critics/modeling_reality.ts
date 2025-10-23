@@ -25,6 +25,10 @@ export class ModelingRealityCritic extends Critic {
     this.v2Critic = new ModelingRealityV2Critic(workspaceRoot);
   }
 
+  protected getCriticKey(): string {
+    return 'modeling_reality';
+  }
+
   protected command(_profile: string): string | null {
     // Legacy fallback for direct execution mode
     // In modern orchestration, run() method is used instead
@@ -112,5 +116,15 @@ export class ModelingRealityCritic extends Critic {
     }
 
     return lines.join('\n');
+  }
+}
+
+/**
+ * Production alias that publishes results under `critic:modeling_reality_v2`.
+ * Keeps legacy `modeling_reality` key available while rolling out the v2 critic.
+ */
+export class ModelingRealityV2OrchestratorCritic extends ModelingRealityCritic {
+  protected getCriticKey(): string {
+    return 'modeling_reality_v2';
   }
 }

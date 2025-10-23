@@ -1,7 +1,7 @@
 # World-Class ML Quality Standards
 
 **Status**: Active Quality Gate
-**Version**: 1.2
+**Version**: 1.3
 **Enforced By**: `ModelingReality_v2` Critic
 **Last Updated**: 2025-10-24
 
@@ -22,6 +22,17 @@ This document codifies the standards that separate production-ready models from 
 
 ---
 
+### Quality Tenets
+
+1. **Truth Over Throughput** – Ship only models that withstand scientific scrutiny; partial evidence is treated as failure.
+2. **Evidence or Escalate** – Every claim is backed by artifacts; missing evidence escalates to Atlas within 24 hours.
+3. **Baselines as Guardrails** – Naive, seasonal, and linear baselines accompany every experiment and stay in production as safe fallbacks.
+4. **Observability in Spec** – Monitoring, alerting, and rollback mechanisms are defined before code is merged.
+5. **Responsible by Default** – Fairness, privacy, and compliance controls are opt-out only with Director approval.
+6. **Automation with Accountability** – Critics, scorecards, and pipelines run automatically, but named owners sign every gate.
+
+---
+
 ## Quality Pillars & KPIs
 
 | Pillar | Objective | KPI | Threshold | Evidence & Tooling |
@@ -36,6 +47,38 @@ These pillars anchor every gate below; a task cannot advance if any KPI or evide
 
 ---
 
+## Quality Operating Model
+
+### Roles & Responsibilities
+
+| Role | Core Accountability | Gates Owned | Escalation Path |
+|---|---|---|---|
+| ModelingReality_v2 Critic | Enforce quantitative thresholds, fail fast when evidence missing | Offline Modeling | Auto-blocks CI → Atlas if unresolved in 24h |
+| Data Engineering Lead | Guarantee data integrity, lineage, and leakage prevention | Data Readiness | Escalate to Director Dana for systemic data issues |
+| Atlas (Scientific Reviewer) | Validate methodology, assumptions, and limitations narrative | Scientific Review | Escalate to Consensus Council if reviewer bandwidth constrained |
+| Platform Engineering | Certify deployment safety, rollback, and runtime SLAs | Deployment Readiness | Escalate to Engineering Director for infra gaps |
+| Observability Lead | Maintain monitoring coverage, drill cadence, and on-call runbooks | Monitoring Live | Escalate to Incident Commander when alerts fail |
+| Product (WeatherOps PM) | Ensure customer impact, align standards with roadmap priorities | Lifecycle Alignment | Escalate to Strategy Council for scope or prioritization conflicts |
+
+Named owners must be present in documentation (`scorecard.md`) for every gate; anonymous contributions are rejected.
+
+### Operating Rhythm
+
+- **Pre-Work (Day 0)** – Task owner completes quality checklist, reserves reviewer slots, and links baseline artifacts.
+- **Build Window (Days 1-3)** – Owners generate evidence; critics run nightly; blockers surfaced in daily quality stand-up.
+- **Review Window (≤24h)** – Automated critics first, then human review; reviewer must record verdict within SLA or auto-escalate.
+- **Launch Prep (Day 4)** – Deployment simulation, rollback rehearsal, and observability sign-off occur before production change.
+- **Post-Launch (Day 5+)** – Monitoring dashboards watched daily for first week; incident drills logged in `docs/runbooks/`.
+
+### Review SLAs & Escalation Logic
+
+1. **Automated Critics** – Must complete within 30 minutes of artifacts landing in CI; failures notify owner and Atlas.
+2. **Scientific Review** – 24-hour SLA; missed SLA pages Atlas and schedules live review.
+3. **Monitoring Readiness** – 48-hour SLA prior to go-live; missing alerts stop deploy pipeline automatically.
+4. **Quality Debt** – Any deferred item requires ticket in ML remediation backlog with owner, due date, and mitigation plan.
+
+---
+
 ## Core Quality Thresholds
 
 ### 1. Out-of-Sample Performance (R²)
@@ -44,7 +87,16 @@ These pillars anchor every gate below; a task cannot advance if any KPI or evide
 |---|---|---|---|
 | Weather-Sensitive (weather elasticity models, MMM with weather) | 0.50 | 0.60+ | Must explain ≥50% of variance; weather impact must be significant |
 | Non-Weather-Sensitive (baseline models, allocation without weather) | 0.30 | 0.50+ | Lower bar but still must beat naive baselines |
+| Multivariate Models (multi-feature interactions) | 0.55 | 0.65+ | Higher bar due to richer feature set; must capture interaction effects |
+| Multi-Output Models (joint predictions) | 0.45 | 0.55+ | Slightly lower due to prediction complexity |
 | Negative R² | FAIL ❌ | — | Model is worse than predicting the mean; fundamental error |
+
+**Multivariate Model Requirements**:
+- Feature interaction terms must have VIF (Variance Inflation Factor) < 5
+- Condition number of feature matrix must be < 30
+- Joint prediction accuracy must be within 15% of single-target models
+- Cross-validated R² stability (std dev) must be < 0.08
+- Feature importance ranks must be stable across folds (rank correlation > 0.8)
 
 **Measurement**:
 - Use **test set R²** (never training R²)
@@ -202,6 +254,19 @@ Every ML task MUST produce a `validation_report.json` artifact with this structu
 
 ---
 
+## Automation & Evidence Workflow
+
+1. **Artifact Generation** – Training notebooks and pipelines write metrics to `experiments/<epic>/<task>/validation_report.json` and baseline comparisons in a single run; failing to persist artifacts aborts the workflow.
+2. **Critic Orchestration** – CI triggers `critic:data_quality`, `critic:modeling_reality_v2`, and `critic:causal` sequentially; each critic posts structured verdicts to `state/audits/<task_id>.json`.
+3. **Scorecard Sync** – `tools/wvo_mcp/scripts/sync_quality_scorecard.py` ingests critic outputs and updates `scorecard.md` statuses to `PASS`/`FAIL`/`RISK` automatically.
+4. **Reviewer Package** – `tools/wvo_mcp/scripts/package_evidence.sh` bundles validation artifacts, robustness logs, fairness reports, and monitoring configs into `/tmp/<task_id>_evidence.tar.gz` for reviewer download.
+5. **Decision Logging** – Reviewers append verdicts and remediation notes to `state/audits/<task_id>.json`; Atlas signs off using `atlas:record_decision` CLI command.
+6. **Post-Approval Publishing** – Successful runs publish dashboards to Grafana via `tools/observability/publish_dashboard.py` and register models in the feature store registry.
+
+**Non-Negotiable**: Manual uploads or ad-hoc evidence are rejected; every artifact must be reproducible by rerunning the pipeline with the same commit hash.
+
+---
+
 ## Data Quality Requirements
 
 ### Synthetic Data (T-MLR-1.2)
@@ -311,24 +376,93 @@ Models must handle real-world edge cases:
 
 **Requirement**: Quantify uncertainty and expose feature drivers for every production-bound model.
 
-- **Elasticity Confidence Intervals**: Report 95% confidence intervals (or posterior credible intervals) for each weather elasticity coefficient. Store in `validation_report.json` under `elasticity_ci`.
-- **Prediction Intervals**: Provide 80% and 95% prediction intervals for forecasts; gap between forecast and actual must stay within the 95% band for ≥90% of holdout observations.
-- **Explainability Artifacts**: Generate SHAP global summary and per-tenant feature rankings. Persist plots under `artifacts/explainability/` and include top drivers in `feature_importance.json`.
+- **Elasticity Confidence Intervals**:
+  - Report 95% confidence intervals (or posterior credible intervals) for each weather elasticity coefficient
+  - For multivariate models, provide full covariance matrix for interaction terms
+  - Store in `validation_report.json` under `elasticity_ci`
+  - Log bootstrapped CIs in `uncertainty_log.json`
+  - Must validate CI coverage on holdout data
+  - Alert if CI width expands >20% vs baseline
+
+- **Prediction Intervals**:
+  - Provide 80%, 95%, and 99% prediction intervals
+  - Gap between forecast and actual must stay within:
+    - 95% band for ≥90% of holdout observations
+    - 99% band for ≥98% of holdout observations
+  - For high-stakes predictions (budget >$10k), require 99% intervals
+  - Validate calibration using proper scoring rules (log score, CRPS)
+  - Monitor calibration drift in production
+
+- **Explainability Requirements**:
+  - Generate SHAP global summary and per-tenant feature rankings
+  - Compute feature attribution stability scores across CV folds (must be >0.85)
+  - Include counterfactual examples for key decision boundaries
+  - Feature importance must be consistent across model versions (≤20% variance)
+  - Archive SHAP values for production audits
+  - Plot partial dependence curves for top 5 features
+  - Generate interaction strength matrix
+
 - **Review Hook**: Scientific reviewer must sign off that explainability narrative matches quantitative evidence.
 
-**Example Snippet**:
+**Example Artifact Structure**:
 ```json
 "uncertainty": {
-  "temperature": {"coef": 0.024, "ci_95": [0.018, 0.030]},
-  "precipitation": {"coef": 0.041, "ci_95": [0.032, 0.051]}
+  "temperature": {
+    "coef": 0.024,
+    "ci_95": [0.018, 0.030],
+    "ci_99": [0.015, 0.033],
+    "stability_score": 0.92,
+    "cross_val_variance": 0.002,
+    "calibration_score": 0.89
+  },
+  "precipitation": {
+    "coef": 0.041,
+    "ci_95": [0.032, 0.051],
+    "ci_99": [0.028, 0.055],
+    "stability_score": 0.88,
+    "cross_val_variance": 0.004,
+    "calibration_score": 0.91
+  },
+  "interaction_covariance": [[0.001, 0.0003], [0.0003, 0.002]]
 },
 "prediction_interval_coverage": {
   "p80": 0.83,
-  "p95": 0.91
+  "p95": 0.91,
+  "p99": 0.989,
+  "calibration_metrics": {
+    "log_score": -1.24,
+    "crps": 0.18,
+    "pit_histogram_uniformity": 0.92
+  }
+},
+"feature_importance_stability": {
+  "temperature": {
+    "mean_importance": 0.35,
+    "std_importance": 0.03,
+    "stability_score": 0.92,
+    "rank_consistency": 0.95
+  }
+},
+"partial_dependence": {
+  "temperature": [[20, 0.2], [25, 0.4], [30, 0.6]],
+  "precipitation": [[0, 0.1], [10, 0.3], [20, 0.5]]
 }
 ```
 
+**Production Monitoring Requirements**:
+- Track CI coverage in production vs development
+- Alert if coverage drops below 85% for 95% CIs
+- Monitor stability of feature importance rankings
+- Record calibration drift over time
+- Archive uncertainty metrics for auditing
+
 Failure to include uncertainty and explainability artifacts blocks Scientific Review.
+
+**Regular Uncertainty Assessment**:
+- Weekly validation of uncertainty estimates
+- Monthly review of feature stability
+- Quarterly audit of prediction intervals
+- Immediate alert for systematic uncertainty violations
 
 ---
 
@@ -402,6 +536,23 @@ Every model MUST document:
 
 ---
 
+## Quality Risk Management
+
+| Risk Level | Trigger | Immediate Response | Owner |
+|---|---|---|---|
+| **SEV1** | Production drift beyond thresholds or fairness violation | Freeze model, switch to baseline fallback, assemble incident bridge within 15 minutes | Observability Lead + Atlas |
+| **SEV2** | Threshold miss in validation or robustness suite | Block deployment, open remediation ticket, schedule fix within 48 hours | Modeling Team |
+| **SEV3** | Missing artifact or stale evidence (>7 days) | Regenerate evidence, re-run critics, update scorecard in 24 hours | Task Owner |
+| **SEV4** | Documentation gap or minor monitoring issue | Log quality debt, assign due date within sprint, track in remediation backlog | Product PM |
+
+### Quality Debt Handling
+
+1. Log debt in `state/quality_debt/<YYYY-MM>/<task_id>.json` with severity, owner, due date, and mitigation plan.
+2. Review debt items in weekly Quality Council; overdue items escalate to Atlas and Director Dana.
+3. No new modeling work may begin while SEV1/SEV2 debt remains open unless Atlas grants written exception.
+
+---
+
 ## Common Failures & Fixes
 
 | Failure | Cause | Fix |
@@ -412,6 +563,18 @@ Every model MUST document:
 | High overfitting gap | Too many features | Use L1 regularization (Lasso) to drop weak features |
 | MAPE > 20% | Forecast instability | Check for outliers; use robust loss function; ensemble with baseline |
 | Missing elasticity report | Incomplete validation | Extract coefficients from model; store in validation_report.json |
+
+---
+
+## Maturity Ladder & Exceptions
+
+| Stage | Purpose | Minimum Requirements | Exception Policy |
+|---|---|---|---|
+| Prototype (sandbox) | Explore feasibility | Basic data sanity checks, documented hypothesis, manual baseline comparison | Exceptions approved by Atlas only; cannot ship to customers |
+| Beta (limited launch) | Validate impact with pilot tenants | All core thresholds met, monitoring in place, reviewer sign-off, fallback plan verified | ≤1 metric may be marked `RISK` with remediation plan due <14 days |
+| Production (GA) | Serve all tenants | 100% thresholds PASS, robustness suite green, fairness & privacy verified, incident runbook rehearsed | No exceptions. Any miss triggers rollback |
+
+**Note**: Thresholds never degrade over time. Raising the bar requires consensus review; lowering requires Director Dana approval and written justification in `docs/reviews/`.
 
 ---
 
@@ -440,7 +603,25 @@ Every modeling effort must pass staged gates before it can ship. Failing any gat
 | Stage | Gate | Required Evidence | Accountable Owner |
 |---|---|---|---|
 | Data Readiness | Source coverage ≥95%, leakage scan = 0 critical issues | `dataset_card.md`, `data_quality_report.json`, lineage in `shared/data_context/` | Data Engineering |
-| Feature Engineering | Feature drift <5% vs. prior release, PII scrub report ✅ | `feature_audit.json`, signed-off privacy checklist | ML Engineer |
+| Feature Engineering | Feature quality metrics all PASS, drift <5%, PII ✅ | `feature_audit.json`, `quality_metrics.json`, privacy checklist | ML Engineer |
+
+**Feature Quality Standards**:
+| Metric | Threshold | Tool | Rationale |
+|---|---|---|---|
+| Missing Value Rate | ≤0.5% per feature | `data_quality` critic | Ensure reliable predictions |
+| Cardinality (categorical) | ≤100 unique values | `feature_validator` | Prevent sparse encoding |
+| Signal-to-Noise Ratio | ≥3.0 | `signal_analyzer` | Filter meaningless features |
+| Correlation Matrix | No correlation >0.85 | `correlation_check` | Avoid multicollinearity |
+| Feature Stability | Drift ≤5% vs prior | `drift_monitor` | Detect distribution shifts |
+| Memory Usage | ≤100MB per 10k rows | `resource_check` | Control compute costs |
+
+**Feature Engineering Requirements**:
+- Generate feature importance report before training
+- Document feature transformations in feature_spec.md
+- Version control feature engineering code
+- Create unit tests for transformations
+- Log all feature statistics to monitoring
+- Alert on drift violations
 | Offline Modeling | Core thresholds (R², MAPE, baselines, elasticity) satisfied | `validation_report.json`, cross-fold metrics, robustness suite log | Modeling Reality Critic |
 | Scientific Review | External ML reviewer confirms claims + methodology | Review note in `docs/reviews/` with pass/fail + remediation plan | Atlas (or delegate) |
 | Deployment Readiness | Champion/challenger plan, rollback path, SLO definition | `deployment_plan.md`, `rollback_playbook.md`, API contract diff | Platform Engineering |
@@ -542,6 +723,7 @@ Atlas will not approve completion without a fully populated bundle.
 
 | Version | Date | Changes |
 |---|---|---|
+| 1.3 | 2025-10-24 | Added operating model, automation workflow, risk governance, and maturity ladder |
 | 1.2 | 2025-10-24 | Added quality pillar KPIs, uncertainty/explainability requirements, and gate review workflow |
 | 1.1 | 2025-10-23 | Added lifecycle quality gates, monitoring, responsible AI, and evidence bundle requirements |
 | 1.0 | 2025-10-22 | Initial standards (R²≥0.50, baseline >1.10, elasticity signs, no overfitting, MAPE<20%) |

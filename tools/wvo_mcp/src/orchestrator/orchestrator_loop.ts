@@ -16,7 +16,7 @@
  */
 
 import { PolicyEngine, type OrchestratorAction } from './policy_engine.js';
-import type { StateMachine, Task, RoadmapHealth } from './state_machine.js';
+import type { StateMachine, Task, RoadmapHealth, TaskStatus } from './state_machine.js';
 import type { TaskScheduler, QueueMetrics } from './task_scheduler.js';
 import type { QualityMonitor } from './quality_monitor.js';
 import { logInfo, logWarning, logError } from '../telemetry/logger.js';
@@ -109,6 +109,70 @@ interface HealthSummarySnapshot {
   issues: string[];
   health: RoadmapHealth;
   queue: QueueMetrics;
+}
+
+const HEALTH_ISSUE_DEFINITIONS: Record<
+  string,
+  { title: string; description: string; complexity: number }
+> = {
+  blocked_without_pending: {
+    title: 'Unblock roadmap tasks',
+    description:
+      'Several tasks remain blocked while no fresh work is entering the queue. Investigate dependencies and clear blockers so new execution can begin.',
+    complexity: 3,
+  },
+  work_ready_during_monitoring: {
+    title: 'Resume orchestrator dispatch',
+    description:
+      'Runnable work appeared while the orchestrator was in monitoring mode. Verify scheduling signals, restart the loop if required, and confirm dispatch resumes.',
+    complexity: 2,
+  },
+  pending_stalled: {
+    title: 'Pending work stalled',
+    description:
+      'Pending items are waiting without progress. Validate prioritisation, ensure prerequisites are complete, and kick off execution.',
+    complexity: 2,
+  },
+  in_progress_stalled: {
+    title: 'In-progress tasks stalled',
+    description:
+      'In-progress items have not advanced within the expected window. Review assignments, collect diagnostics, and reassign or restart agents as needed.',
+    complexity: 3,
+  },
+  review_queue_backlog: {
+    title: 'Clear review backlog',
+    description:
+      'The review queue is saturated. Schedule review passes or auto-review flows to keep the roadmap flowing.',
+    complexity: 2,
+  },
+  heavy_queue_saturated: {
+    title: 'Relieve heavy task pressure',
+    description:
+      'All heavy slots are occupied while additional heavy tasks queue up. Consider reprioritising work or temporarily increasing heavy-task capacity.',
+    complexity: 3,
+  },
+  recent_errors: {
+    title: 'Stabilise orchestrator errors',
+    description:
+      'The orchestrator has encountered repeated errors recently. Collect the failing traces, restart components if necessary, and confirm healthy execution.',
+    complexity: 3,
+  },
+};
+
+const HEALTH_TASK_STATUSES_FOR_RESOLUTION: TaskStatus[] = [
+  'pending',
+  'needs_review',
+  'needs_improvement',
+  'blocked',
+];
+
+function sanitizeIssueKey(value: string): string {
+  return value.replace(/[^a-z0-9:_-]/gi, '_').toLowerCase();
+}
+
+function extractIssueKey(issue: string): { key: string; detail?: string } {
+  const [rawKey, detail] = issue.split(':', 2);
+  return { key: sanitizeIssueKey(rawKey), detail: detail?.trim() || undefined };
 }
 
 /**
@@ -698,6 +762,8 @@ export class OrchestratorLoop extends EventEmitter {
         },
       });
 
+      await this.syncHealthIssueTasks(issues, health, queue, now);
+
       if (issues.length > 0) {
         try {
           this.stateMachine.addContextEntry({
@@ -779,6 +845,159 @@ export class OrchestratorLoop extends EventEmitter {
     }
 
     return issues;
+  }
+
+  private buildHealthSnapshot(health: RoadmapHealth, queue: QueueMetrics): {
+    health: {
+      total: number;
+      pending: number;
+      inProgress: number;
+      blocked: number;
+      completionRate: number;
+    };
+    queue: {
+      size: number;
+      reasonCounts: QueueMetrics['reasonCounts'];
+      resource: QueueMetrics['resource'];
+    };
+  } {
+    return {
+      health: {
+        total: health.totalTasks,
+        pending: health.pendingTasks,
+        inProgress: health.inProgressTasks,
+        blocked: health.blockedTasks,
+        completionRate: Number(health.completionRate.toFixed(3)),
+      },
+      queue: {
+        size: queue.size,
+        reasonCounts: { ...queue.reasonCounts },
+        resource: { ...queue.resource },
+      },
+    };
+  }
+
+  private async syncHealthIssueTasks(
+    issues: string[],
+    health: RoadmapHealth,
+    queue: QueueMetrics,
+    timestamp: number,
+  ): Promise<void> {
+    if (this.options.dryRun) {
+      return;
+    }
+
+    try {
+      const snapshot = this.buildHealthSnapshot(health, queue);
+      const activeKeys = new Set<string>();
+
+      for (const issue of issues) {
+        const { key, detail } = extractIssueKey(issue);
+        if (!key) {
+          continue;
+        }
+        activeKeys.add(key);
+        await this.ensureHealthTask(key, detail, snapshot, timestamp);
+      }
+
+      await this.resolveClearedHealthTasks(activeKeys, snapshot, timestamp);
+    } catch (error) {
+      logWarning('Failed to synchronise orchestrator health tasks', {
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
+
+  private async ensureHealthTask(
+    key: string,
+    detail: string | undefined,
+    snapshot: ReturnType<typeof this.buildHealthSnapshot>,
+    timestamp: number,
+  ): Promise<void> {
+    const taskId = `orchestrator:health:${key}`;
+    const template =
+      HEALTH_ISSUE_DEFINITIONS[key] ??
+      ({
+        title: `Investigate orchestrator issue (${key})`,
+        description:
+          'Automatically generated follow-up task to investigate an orchestrator health issue. Review logs, confirm routing, and close out once stability is restored.',
+        complexity: 2,
+      } as const);
+
+    const existing = this.stateMachine.getTask(taskId);
+    const existingIssueMeta =
+      (existing?.metadata as Record<string, unknown> | undefined)?.orchestrator_health_issue as
+        | Record<string, unknown>
+        | undefined;
+    const firstSeen =
+      typeof existingIssueMeta?.first_seen === 'number' ? existingIssueMeta.first_seen : timestamp;
+
+    const baseMetadata = {
+      orchestrator_generated: true,
+      orchestrator_health_issue: {
+        key,
+        detail: detail ?? null,
+        first_seen: firstSeen,
+        last_seen: timestamp,
+        snapshot,
+      },
+    };
+
+    if (!existing) {
+      this.stateMachine.createTask({
+        id: taskId,
+        title: template.title,
+        description:
+          detail && detail.length > 0
+            ? `${template.description}\n\nDetail: ${detail}`
+            : template.description,
+        type: 'task',
+        status: 'pending',
+        estimated_complexity: template.complexity,
+        metadata: baseMetadata,
+      });
+      return;
+    }
+
+    const nextStatus: TaskStatus = existing.status === 'done' ? 'pending' : existing.status;
+    await this.stateMachine.transition(taskId, nextStatus, baseMetadata);
+  }
+
+  private async resolveClearedHealthTasks(
+    activeKeys: Set<string>,
+    snapshot: ReturnType<typeof this.buildHealthSnapshot>,
+    timestamp: number,
+  ): Promise<void> {
+    const candidates = this.stateMachine.getTasks({
+      status: HEALTH_TASK_STATUSES_FOR_RESOLUTION,
+    });
+
+    for (const task of candidates) {
+      if (!task.id.startsWith('orchestrator:health:')) {
+        continue;
+      }
+
+      const metadata = task.metadata as Record<string, unknown> | undefined;
+      const issueMeta = metadata?.orchestrator_health_issue as Record<string, unknown> | undefined;
+      if (!issueMeta) {
+        continue;
+      }
+
+      const keyRaw = issueMeta.key;
+      const key = typeof keyRaw === 'string' ? sanitizeIssueKey(keyRaw) : '';
+      if (!key || activeKeys.has(key)) {
+        continue;
+      }
+
+      await this.stateMachine.transition(task.id, 'done', {
+        orchestrator_generated: true,
+        orchestrator_health_issue: {
+          ...issueMeta,
+          resolved_at: timestamp,
+          snapshot,
+        },
+      });
+    }
   }
 
   /**

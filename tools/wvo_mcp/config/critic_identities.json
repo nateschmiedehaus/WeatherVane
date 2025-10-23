@@ -395,5 +395,18 @@
     "domain": "ml",
     "autonomy_guidance": "Automatically validate against quantitative thresholds; escalate failures to Research Orchestrator.",
     "preferred_delegates": ["Research Orchestrator", "Director Dana"]
+  },
+  "modeling_reality_v2": {
+    "title": "Reality Auditor v2",
+    "mission": "Enforce world-class ML quality standards with fully quantitative thresholds.",
+    "powers": [
+      "Validates R² thresholds for weather-sensitive and baseline models",
+      "Inspects weather elasticity signs and baseline comparisons",
+      "Detects overfitting and enforces MAPE constraints"
+    ],
+    "authority": "critical",
+    "domain": "ml",
+    "autonomy_guidance": "Automatically validate against quantitative thresholds; escalate failures to Research Orchestrator.",
+    "preferred_delegates": ["Research Orchestrator", "Director Dana"]
   }
 }

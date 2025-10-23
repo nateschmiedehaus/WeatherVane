@@ -1158,7 +1158,7 @@ epics:
         tasks:
           - id: T-MLR-4.1
             title: Deploy ModelingReality_v2 critic to production
-            status: blocked
+            status: done
             dependencies:
               - T-MLR-0.1
               - T-MLR-3.3
@@ -1167,7 +1167,7 @@ epics:
             description: Deploy ModelingReality_v2 critic to production
           - id: T-MLR-4.2
             title: Update autopilot policy to require critic approval
-            status: pending
+            status: done
             dependencies:
               - T-MLR-4.1
             exit_criteria: []
@@ -1228,7 +1228,7 @@ epics:
             domain: modeling
           - id: T-MLR-0.3
             title: Document world-class quality standards for ML
-            status: in_progress
+            status: blocked
             dependencies: []
             exit_criteria:
               - artifact:docs/ML_QUALITY_STANDARDS.md

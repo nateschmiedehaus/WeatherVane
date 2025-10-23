@@ -289,11 +289,11 @@ def check_geo_hierarchy(root: Path, ctx: CriticContext) -> Iterable[Finding]:
 def check_meta_critic_presence(root: Path, _ctx: CriticContext) -> Iterable[Finding]:
     roadmap = root / "state" / "roadmap.yaml"
     text = read_text(roadmap)
-    if "modeling_reality" not in text:
+    if "modeling_reality" not in text and "modeling_reality_v2" not in text:
         yield Finding(
             severity="WARNING",
             message="Roadmap lacks explicit Autopilot tasking for modeling reality checks.",
-            evidence=f"{roadmap} has no modeling_reality critic entry.",
+            evidence=f"{roadmap} has neither modeling_reality nor modeling_reality_v2 critic entry.",
             remediation="Ensure roadmap includes Autopilot ownership for ongoing modeling vs execution reviews.",
             roadmap_ref="T13.4.1",
         )
@@ -302,14 +302,14 @@ def check_meta_critic_presence(root: Path, _ctx: CriticContext) -> Iterable[Find
 def check_autopilot_integration(root: Path, _ctx: CriticContext) -> Iterable[Finding]:
     session = root / "tools" / "wvo_mcp" / "src" / "session.ts"
     text = read_text(session)
-    critic_key_present = "modeling_reality" in text
+    critic_key_present = "modeling_reality" in text or "modeling_reality_v2" in text
     class_present = "ModelingRealityCritic" in text
     if not critic_key_present or not class_present:
         yield Finding(
             severity="CRITICAL",
             message="Modeling reality critic is not wired into Autopilot runtime.",
-            evidence=f"{session} does not reference ModelingRealityCritic / modeling_reality key.",
-            remediation="Register ModelingRealityCritic in the CRITIC_REGISTRY so Autopilot can schedule this analysis automatically.",
+            evidence=f"{session} does not reference ModelingRealityCritic / modeling_reality(_v2) key.",
+            remediation="Register ModelingRealityCritic (modeling_reality) or ModelingRealityV2OrchestratorCritic (modeling_reality_v2) in the CRITIC_REGISTRY so Autopilot can schedule this analysis automatically.",
             roadmap_ref="T13.4.1",
         )
 

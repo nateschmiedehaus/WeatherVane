@@ -313,5 +313,26 @@
         "taskDescription": "Review failing validations, approve remediation approach, and update thresholds if needed based on new learnings."
       }
     ]
+  },
+  "modeling_reality_v2": {
+    "reviewer": "Research Orchestrator",
+    "note": "Modeling reality v2 critic detected quality issues in ML model performance or validation.",
+    "next": "Coordinate with the Research Orchestrator to debug model issues and strengthen validation reports.",
+    "delegates": [
+      {
+        "agent": "Research Orchestrator",
+        "scope": "systemic",
+        "createTask": true,
+        "taskTitle": "[Modeling] Debug ML validation failures",
+        "taskDescription": "Investigate model quality failures, identify root causes, and provide remediation guidance for the engineering team."
+      },
+      {
+        "agent": "Director Dana",
+        "scope": "ml",
+        "createTask": true,
+        "taskTitle": "[Director Dana] Review ML quality standards",
+        "taskDescription": "Review failing validations, approve remediation approach, and update thresholds if needed based on new learnings."
+      }
+    ]
   }
 }

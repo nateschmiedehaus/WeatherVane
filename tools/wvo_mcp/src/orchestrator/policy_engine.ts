@@ -40,6 +40,18 @@ export interface SystemState {
 }
 
 /**
+ * CriticApprovalStatus - Track which critics have passed for a task
+ */
+export interface CriticApprovalStatus {
+  taskId: string;
+  requiredCritics: string[];
+  passedCritics: Set<string>;
+  failedCritics: Map<string, string>; // critic -> failure reason
+  allApproved: boolean;
+  lastUpdated: number;
+}
+
+/**
  * PolicyConfig - Configuration for policy engine
  */
 export interface PolicyConfig {
@@ -67,6 +79,12 @@ export interface PolicyConfig {
    * Enable dry-run mode (no actual execution)
    */
   dryRun?: boolean;
+
+  /**
+   * Critic approval configuration
+   */
+  criticApprovalRequired?: boolean;
+  criticApprovalPatterns?: Record<string, string[]>;
 }
 
 /**
@@ -74,6 +92,7 @@ export interface PolicyConfig {
  */
 export class PolicyEngine {
   private readonly config: Required<PolicyConfig>;
+  private criticApprovalCache: Map<string, CriticApprovalStatus> = new Map();
 
   constructor(
     private readonly stateMachine: StateMachine,
@@ -85,7 +104,107 @@ export class PolicyEngine {
       idleWaitDuration: config.idleWaitDuration ?? 5000, // 5 seconds
       maxConcurrentTasks: config.maxConcurrentTasks ?? 3,
       dryRun: config.dryRun ?? false,
+      criticApprovalRequired: config.criticApprovalRequired ?? true,
+      criticApprovalPatterns: config.criticApprovalPatterns ?? {
+        'T12.*': ['modeling_reality_v2', 'data_quality'],
+        'T13.*': ['modeling_reality_v2', 'academic_rigor', 'causal'],
+        'T-MLR-*': ['modeling_reality_v2', 'academic_rigor'],
+        '*': []
+      }
     };
+  }
+
+  /**
+   * Get required critics for a task based on its ID and patterns
+   */
+  getRequiredCritics(taskId: string): string[] {
+    if (!this.config.criticApprovalRequired) {
+      return [];
+    }
+
+    const patterns = this.config.criticApprovalPatterns;
+    if (!patterns) {
+      return [];
+    }
+
+    // Check exact patterns first, then wildcards
+    for (const [pattern, critics] of Object.entries(patterns)) {
+      if (pattern === '*') continue; // Check wildcard last
+
+      // Convert glob pattern to regex: . matches literal dot, * matches any characters
+      const escapedPattern = pattern.replace(/[.]/g, '\\.');
+      const regexPattern = escapedPattern.replace(/\*/g, '.*');
+      const regex = new RegExp(`^${regexPattern}$`);
+
+      if (regex.test(taskId)) {
+        return critics;
+      }
+    }
+
+    // Fallback to wildcard pattern
+    return patterns['*'] ?? [];
+  }
+
+  /**
+   * Check if all required critics have approved a task
+   */
+  canCompleteTask(taskId: string): boolean {
+    if (!this.config.criticApprovalRequired) {
+      return true;
+    }
+
+    const requiredCritics = this.getRequiredCritics(taskId);
+    if (requiredCritics.length === 0) {
+      return true; // No critics required
+    }
+
+    const status = this.criticApprovalCache.get(taskId);
+    if (!status) {
+      return false; // Critics not yet evaluated
+    }
+
+    // All required critics must be in passed set
+    return requiredCritics.every(critic => status.passedCritics.has(critic));
+  }
+
+  /**
+   * Record a critic approval result
+   */
+  recordCriticResult(taskId: string, criticName: string, passed: boolean, failureReason?: string): void {
+    let status = this.criticApprovalCache.get(taskId);
+    if (!status) {
+      const requiredCritics = this.getRequiredCritics(taskId);
+      status = {
+        taskId,
+        requiredCritics,
+        passedCritics: new Set(),
+        failedCritics: new Map(),
+        allApproved: false,
+        lastUpdated: Date.now()
+      };
+      this.criticApprovalCache.set(taskId, status);
+    }
+
+    if (passed) {
+      status.passedCritics.add(criticName);
+      status.failedCritics.delete(criticName);
+    } else {
+      status.failedCritics.set(criticName, failureReason ?? 'unknown failure');
+      status.passedCritics.delete(criticName);
+    }
+
+    // Update allApproved flag
+    status.allApproved = status.requiredCritics.every(
+      critic => status!.passedCritics.has(critic)
+    );
+    status.lastUpdated = Date.now();
+  }
+
+  /**
+   * Get critic approval status for a task
+   */
+  getCriticApprovalStatus(taskId: string): CriticApprovalStatus | null {
+    return this.criticApprovalCache.get(taskId) ?? null;
   }
 
   /**

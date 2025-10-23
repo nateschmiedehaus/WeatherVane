@@ -33,7 +33,7 @@ import { InspirationCoverageCritic } from "./critics/inspiration_coverage.js";
 import { StakeholderNarrativeCritic } from "./critics/stakeholder_narrative.js";
 import { DemoConversionCritic } from "./critics/demo_conversion.js";
 import { IntegrationCompletenessCritic } from "./critics/integration_completeness.js";
-import { ModelingRealityCritic } from "./critics/modeling_reality.js";
+import { ModelingRealityCritic, ModelingRealityV2OrchestratorCritic } from "./critics/modeling_reality.js";
 import { MetaCritiqueCritic } from "./critics/meta_critique.js";
 import { ModelingDataWatchCritic } from "./critics/modeling_data_watch.js";
 import { runCommand } from "./executor/command_runner.js";
@@ -108,6 +108,7 @@ const CRITIC_REGISTRY = {
   demo_conversion: DemoConversionCritic,
   integration_completeness: IntegrationCompletenessCritic,
   modeling_reality: ModelingRealityCritic,
+  modeling_reality_v2: ModelingRealityV2OrchestratorCritic,
   modeling_data_watch: ModelingDataWatchCritic,
   meta_critique: MetaCritiqueCritic,
 } as const;

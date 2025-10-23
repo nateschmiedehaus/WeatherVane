@@ -165,6 +165,14 @@
       "rationale": "ML quality validation requires complex numerical thresholds and statistical reasoning",
       "fallback_provider": "claude",
       "fallback_model": "claude-opus-4"
+    },
+    "modeling_reality_v2": {
+      "preferred_provider": "codex",
+      "preferred_model": "gpt-5-codex",
+      "reasoning_level": "high",
+      "rationale": "ModelingReality_v2 enforces quantitative validation and benefits from Codex's statistical tooling",
+      "fallback_provider": "claude",
+      "fallback_model": "claude-opus-4"
     }
   },
   "default": {
