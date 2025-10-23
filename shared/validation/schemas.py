@@ -723,6 +723,24 @@ SchemaRegistry.register_response_validator("alert_escalate_request", validate_al
 SchemaRegistry.register_response_validator("analytics_event_request", validate_analytics_event_request)
 
 
+def load_schema(schema_name: str) -> dict[str, Any]:
+    """Load a schema from the contracts directory.
+
+    Args:
+        schema_name: Name of the schema (without .schema.json extension)
+
+    Returns:
+        Dictionary containing the JSON schema
+
+    Raises:
+        FileNotFoundError: If the schema file doesn't exist
+    """
+    schema_path = SCHEMA_DIR / f"{schema_name}.schema.json"
+    if not schema_path.exists():
+        raise FileNotFoundError(f"Schema not found: {schema_path}")
+    return json.loads(schema_path.read_text())
+
+
 def enforce_schema(validator_name: str) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
     """Decorator to enforce schema validation on function results.
 

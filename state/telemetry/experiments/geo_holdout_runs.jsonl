@@ -116,3 +116,5 @@
 {"tenant_id": "tenant-123", "timestamp": "2025-10-23T00:37:50.056245", "event": "holdout_insufficient_geo", "geo_count": 0}
 {"tenant_id": "tenant-123", "timestamp": "2025-10-23T02:17:16.524453", "event": "holdout_insufficient_geo", "geo_count": 0}
 {"tenant_id": "tenant-123", "timestamp": "2025-10-23T02:17:16.536884", "event": "holdout_insufficient_geo", "geo_count": 0}
+{"tenant_id": "tenant-123", "timestamp": "2025-10-23T23:52:49.214978", "event": "holdout_insufficient_geo", "geo_count": 0}
+{"tenant_id": "tenant-123", "timestamp": "2025-10-23T23:52:49.223603", "event": "holdout_insufficient_geo", "geo_count": 0}

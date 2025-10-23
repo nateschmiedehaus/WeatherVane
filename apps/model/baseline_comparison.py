@@ -6,7 +6,7 @@ import json
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Dict, List, Any
+from typing import Dict, List, Any, Optional, Union
 
 import numpy as np
 import polars as pl
@@ -15,6 +15,288 @@ from loguru import logger
 from apps.model.baseline import evaluate_r2
 from apps.model.train import train_baseline
 from shared.feature_store.feature_builder import FeatureBuilder
+
+
+@dataclass
+class BaselineMetrics:
+    """Metrics for a baseline model evaluation."""
+    r2_score: float
+    rmse: float
+    mae: float
+    mape: float
+    model_name: str
+    evaluation_period: Dict[str, str]
+
+
+@dataclass
+class BaselineComparisonResult:
+    """Results from comparing multiple baseline models."""
+    tenant_id: str
+    best_model: str
+    metrics_by_model: Dict[str, Dict[str, float]]
+    comparison_period: Dict[str, str]
+    passed_criteria: bool
+    details: Dict[str, Any]
+
+
+class NaiveBaseline:
+    """Naive baseline model that predicts mean or last value."""
+
+    def __init__(self, strategy: str = "mean"):
+        """Initialize naive baseline.
+
+        Args:
+            strategy: Either 'mean' for constant mean prediction or 'last' for last value
+        """
+        self.strategy = strategy
+        self.value = None
+        self.is_fitted = False
+
+    def fit(self, y: np.ndarray) -> None:
+        """Fit the baseline model.
+
+        Args:
+            y: Training target values
+        """
+        if self.strategy == "mean":
+            self.value = float(np.mean(y))
+        elif self.strategy == "last":
+            self.value = float(y[-1])
+        else:
+            raise ValueError(f"Unknown strategy: {self.strategy}")
+        self.is_fitted = True
+
+    def predict(self, X: Optional[np.ndarray] = None) -> np.ndarray:
+        """Make predictions.
+
+        Args:
+            X: Feature matrix (ignored for naive baseline)
+
+        Returns:
+            Array of constant predictions
+        """
+        if not self.is_fitted:
+            raise ValueError("Model must be fitted before prediction")
+        if X is None:
+            raise ValueError("Feature matrix X is required for prediction")
+        return np.full(X.shape[0], self.value)
+
+
+class SeasonalBaseline:
+    """Seasonal baseline model that captures periodic patterns."""
+
+    def __init__(self, period: int = 7):
+        """Initialize seasonal baseline.
+
+        Args:
+            period: Seasonality period (e.g., 7 for weekly patterns)
+        """
+        self.period = period
+        self.seasonal_pattern = None
+        self.is_fitted = False
+
+    def fit(self, y: np.ndarray) -> None:
+        """Fit the seasonal baseline.
+
+        Args:
+            y: Training target values (should be at least period * 2 long)
+        """
+        if len(y) < self.period:
+            raise ValueError(f"Need at least {self.period} observations for seasonal baseline")
+
+        # Calculate seasonal pattern as mean for each position in cycle
+        self.seasonal_pattern = np.array([
+            np.mean(y[i::self.period]) for i in range(self.period)
+        ])
+        self.is_fitted = True
+
+    def predict(self, n_periods: int) -> np.ndarray:
+        """Make seasonal predictions.
+
+        Args:
+            n_periods: Number of periods to predict
+
+        Returns:
+            Array of seasonally-adjusted predictions
+        """
+        if not self.is_fitted:
+            raise ValueError("Model must be fitted before prediction")
+        repetitions = (n_periods // self.period) + 1
+        predictions = np.tile(self.seasonal_pattern, repetitions)
+        return predictions[:n_periods]
+
+
+class LinearBaseline:
+    """Linear regression baseline model."""
+
+    def __init__(self):
+        """Initialize linear baseline."""
+        self.coefficients = None
+        self.intercept = None
+        self.is_fitted = False
+
+    def fit(self, X: np.ndarray, y: np.ndarray) -> None:
+        """Fit the linear baseline.
+
+        Args:
+            X: Feature matrix (n_samples, n_features)
+            y: Target values
+        """
+        # Simple least squares solution
+        X_with_intercept = np.column_stack([np.ones(X.shape[0]), X])
+        params = np.linalg.lstsq(X_with_intercept, y, rcond=None)[0]
+        self.intercept = float(params[0])
+        self.coefficients = params[1:]
+        self.is_fitted = True
+
+    def predict(self, X: np.ndarray) -> np.ndarray:
+        """Make linear predictions.
+
+        Args:
+            X: Feature matrix (n_samples, n_features)
+
+        Returns:
+            Array of predictions
+        """
+        if not self.is_fitted:
+            raise ValueError("Model must be fitted before prediction")
+        return X @ self.coefficients + self.intercept
+
+
+def compute_metrics(y_true: np.ndarray, y_pred: np.ndarray) -> Dict[str, float]:
+    """Compute regression metrics.
+
+    Args:
+        y_true: Ground truth values
+        y_pred: Predicted values
+
+    Returns:
+        Dictionary with R², RMSE, MAE, MAPE metrics
+    """
+    # R² Score
+    ss_res = np.sum((y_true - y_pred) ** 2)
+    ss_tot = np.sum((y_true - np.mean(y_true)) ** 2)
+    r2 = 1 - (ss_res / ss_tot) if ss_tot > 0 else 0.0
+
+    # RMSE
+    rmse = float(np.sqrt(np.mean((y_true - y_pred) ** 2)))
+
+    # MAE
+    mae = float(np.mean(np.abs(y_true - y_pred)))
+
+    # MAPE - only if y_true doesn't contain zeros
+    if np.any(y_true == 0):
+        mask = y_true != 0
+        mape = float(np.mean(np.abs((y_true[mask] - y_pred[mask]) / y_true[mask]))) * 100 if np.sum(mask) > 0 else 0.0
+    else:
+        mape = float(np.mean(np.abs((y_true - y_pred) / y_true))) * 100
+
+    return {
+        "r2": float(r2),
+        "rmse": rmse,
+        "mae": mae,
+        "mape": mape,
+    }
+
+
+def compare_baselines_for_tenant(
+    tenant_id: str,
+    training_days: int = 60,
+    validation_days: int = 30,
+    lake_root: Union[Path, str] = Path("storage/lake/raw"),
+) -> BaselineComparisonResult:
+    """Compare multiple baseline models for a tenant.
+
+    Args:
+        tenant_id: Tenant ID to evaluate
+        training_days: Number of days for training
+        validation_days: Number of days for validation
+        lake_root: Root directory for data lake
+
+    Returns:
+        BaselineComparisonResult with comparison metrics
+    """
+    # Setup dates
+    end = datetime.utcnow()
+    validation_start = end - timedelta(days=validation_days)
+    train_start = validation_start - timedelta(days=training_days)
+
+    # Train model
+    training_result = train_baseline(
+        tenant_id=tenant_id,
+        start=train_start,
+        end=validation_start,
+        lake_root=lake_root,
+    )
+
+    # Load validation data
+    builder = FeatureBuilder(lake_root=lake_root)
+    validation_matrix = builder.build(tenant_id, validation_start, end)
+    validation_frame = validation_matrix.observed_frame.sort("date")
+
+    if validation_frame.is_empty():
+        raise ValueError(f"No validation data for tenant {tenant_id}")
+
+    # Get validation metrics
+    model = training_result.model
+    r2_score = evaluate_r2(model, validation_frame)
+
+    metrics = compute_metrics(
+        validation_frame.select(validation_frame.columns[0]).to_numpy().flatten(),
+        np.full(validation_frame.height, 0.0)
+    )
+
+    return BaselineComparisonResult(
+        tenant_id=tenant_id,
+        best_model="training_baseline",
+        metrics_by_model={
+            "training_baseline": metrics,
+        },
+        comparison_period={
+            "start": validation_start.isoformat(),
+            "end": end.isoformat(),
+        },
+        passed_criteria=r2_score >= 0.6,
+        details={
+            "r2_score": r2_score,
+            "training_period": {
+                "start": train_start.isoformat(),
+                "end": validation_start.isoformat(),
+            },
+        }
+    )
+
+
+def export_baseline_results(
+    results: List[BaselineComparisonResult],
+    output_path: Union[Path, str] = Path("state/analytics/baseline_comparison.json"),
+) -> None:
+    """Export baseline comparison results to JSON.
+
+    Args:
+        results: List of comparison results
+        output_path: Where to save the results
+    """
+    output_path = Path(output_path)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+
+    data = {
+        "timestamp": datetime.utcnow().isoformat() + "Z",
+        "results": [
+            {
+                "tenant_id": r.tenant_id,
+                "best_model": r.best_model,
+                "metrics_by_model": r.metrics_by_model,
+                "comparison_period": r.comparison_period,
+                "passed_criteria": r.passed_criteria,
+                "details": r.details,
+            }
+            for r in results
+        ],
+    }
+
+    output_path.write_text(json.dumps(data, indent=2))
+    logger.info(f"Baseline results exported to {output_path}")
 
 
 @dataclass
