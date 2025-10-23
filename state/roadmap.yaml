@@ -1175,7 +1175,7 @@ epics:
             description: Update autopilot policy to require critic approval
           - id: T-MLR-4.3
             title: Create meta-critic to review past completed ML tasks
-            status: blocked
+            status: in_progress
             dependencies:
               - T-MLR-4.2
             exit_criteria: []

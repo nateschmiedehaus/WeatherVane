@@ -219,10 +219,15 @@ case "$MODE" in
 
     # Count file types for commit message
     code_count=${#code_files[@]}
-    doc_count=$(echo "$status" | grep -c ' docs/' || echo 0)
-    test_count=$(echo "$status" | grep -c ' tests/' || echo 0)
-    new_count=$(echo "$status" | grep -c '^?? ' || echo 0)
+    doc_count=$(echo "$status" | grep -c ' docs/' || true)
+    test_count=$(echo "$status" | grep -c ' tests/' || true)
+    new_count=$(echo "$status" | grep -c '^?? ' || true)
     operational_count=${#operational_files[@]}
+
+    # Ensure counts are numbers (grep -c can return empty string)
+    doc_count=${doc_count:-0}
+    test_count=${test_count:-0}
+    new_count=${new_count:-0}
 
     echo -e "${YELLOW}Auto-committing ALL ${total_files} files...${NC}"
     echo "  Code: $code_count"
