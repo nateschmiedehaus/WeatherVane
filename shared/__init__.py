@@ -1,1 +1,1 @@
-"""Shared functionality for WeatherVane."""
+"""Shared libraries and utilities for WeatherVane."""

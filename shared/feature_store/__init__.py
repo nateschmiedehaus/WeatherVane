@@ -1,1 +1,1 @@
-# Package initialization
+"""Feature store for generating and caching features for predictive models."""

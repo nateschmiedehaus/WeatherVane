@@ -1,6 +1,117 @@
 import { createHash } from "crypto";
 
 /**
+ * Create a deterministic JSON representation of the provided value.
+ * Ensures object keys are sorted and non-JSON values are normalised so the
+ * resulting hash is stable regardless of input construction details.
+ */
+function canonicalizeForHash(
+  value: unknown,
+  seen: WeakSet<object> = new WeakSet(),
+): unknown {
+  if (value === null) {
+    return null;
+  }
+
+  const valueType = typeof value;
+
+  if (valueType === "undefined") {
+    return null;
+  }
+  if (valueType === "bigint") {
+    return value.toString();
+  }
+  if (valueType === "number") {
+    if (!Number.isFinite(value as number)) {
+      return String(value);
+    }
+    return value;
+  }
+  if (valueType === "string" || valueType === "boolean") {
+    return value;
+  }
+  if (valueType === "symbol") {
+    return (value as symbol).toString();
+  }
+  if (valueType === "function") {
+    const fn = value as () => unknown;
+    return `[Function:${fn.name || "anonymous"}]`;
+  }
+
+  if (Array.isArray(value)) {
+    if (seen.has(value)) {
+      return "[Circular:Array]";
+    }
+    seen.add(value);
+    const normalisedArray = value.map((item) => canonicalizeForHash(item, seen));
+    seen.delete(value);
+    return normalisedArray;
+  }
+
+  if (value instanceof Date) {
+    return value.toJSON();
+  }
+
+  if (value instanceof Set) {
+    if (seen.has(value)) {
+      return "[Circular:Set]";
+    }
+    seen.add(value);
+    const normalisedSet = Array.from(value.values())
+      .map((item) => canonicalizeForHash(item, seen))
+      .sort();
+    seen.delete(value);
+    return normalisedSet;
+  }
+
+  if (value instanceof Map) {
+    if (seen.has(value)) {
+      return "[Circular:Map]";
+    }
+    seen.add(value);
+    const normalisedMap = Array.from(value.entries())
+      .map(([key, val]) => [
+        canonicalizeForHash(key, seen),
+        canonicalizeForHash(val, seen),
+      ])
+      .sort(([a], [b]) => {
+        const left = typeof a === "string" ? a : JSON.stringify(a);
+        const right = typeof b === "string" ? b : JSON.stringify(b);
+        return left < right ? -1 : left > right ? 1 : 0;
+      });
+    seen.delete(value);
+    return normalisedMap;
+  }
+
+  if (value && typeof value === "object") {
+    if (seen.has(value as object)) {
+      return "[Circular:Object]";
+    }
+    seen.add(value as object);
+    const entries = Object.entries(value as Record<string, unknown>)
+      .filter(([, val]) => typeof val !== "undefined")
+      .map(([key, val]) => [key, canonicalizeForHash(val, seen)] as const)
+      .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
+
+    const normalised: Record<string, unknown> = {};
+    for (let i = 0; i < entries.length; i++) {
+      const [key, val] = entries[i];
+      normalised[key] = val;
+    }
+    seen.delete(value as object);
+    return normalised;
+  }
+
+  return value;
+}
+
+function stableStringify(input: unknown): string {
+  const normalised = canonicalizeForHash(input);
+  const json = JSON.stringify(normalised);
+  return typeof json === "string" ? json : String(normalised);
+}
+
+/**
  * Idempotency Cache Store
  *
  * Implements request deduplication for mutating tools using idempotency keys.
@@ -47,7 +158,7 @@ export class IdempotencyStore {
    */
   generateKey(toolName: string, input: unknown): string {
     const contentHash = createHash("sha256")
-      .update(JSON.stringify(input))
+      .update(stableStringify(input))
       .digest("hex");
     return `${toolName}:content:${contentHash}`;
   }

@@ -1354,7 +1354,7 @@ epics:
             domain: modeling
           - id: T-MLR-3.2
             title: Write comprehensive ML validation documentation
-            status: pending
+            status: done
             dependencies: []
             exit_criteria:
               - artifact:docs/ML_VALIDATION_COMPLETE.md
@@ -1588,7 +1588,7 @@ epics:
         tasks:
           - id: T12.0.1
             title: Generate synthetic multi-tenant dataset with weather-sensitive products
-            status: done
+            status: blocked
             dependencies: []
             exit_criteria:
               - artifact:storage/seeds/synthetic/*.parquet
@@ -1996,7 +1996,7 @@ epics:
               weather-driven demand elasticity from MMM training
           - id: T13.5.2
             title: Implement weather-responsive budget allocation constraints
-            status: pending
+            status: blocked
             dependencies: []
             exit_criteria:
               - artifact:experiments/allocation/constraint_validation.json
@@ -2899,7 +2899,7 @@ epics:
             domain: mcp
           - id: T9.2.2
             title: "Idempotency keys for mutating tools (SAFE: caching layer)"
-            status: pending
+            status: in_progress
             dependencies: []
             exit_criteria:
               - Idempotency cache operational
