@@ -42,6 +42,45 @@ jupyter lab model_validation_comprehensive.ipynb
 6. **Diagnostics**: Checks for NaN/Inf values, negative R², insufficient folds
 7. **Recommendations**: Provides actionable improvement strategies
 
+### `model_validation_reproducible.ipynb`
+
+**Purpose**: Deterministic runbook for executing the standard validation pipeline and capturing audit-ready artifacts.
+
+**Use Cases**:
+- Generate validation evidence for release reviews
+- Produce JSON artifacts for auditors and stakeholders
+- Quickly inspect failing tenants and their failure reasons
+- Verify pass-rate exit criteria prior to packaging remediation work
+
+**Requirements**:
+- Python 3.11+
+- Dependencies: `numpy`, `pandas`, project-local modules
+- Inputs: `state/analytics/mmm_training_results_cv.json` (override with `CV_RESULTS_PATH` if needed)
+
+**Usage**:
+```bash
+# From project root
+jupyter lab notebooks/model_validation_reproducible.ipynb
+```
+
+Optionally override the artifact folder name:
+```bash
+export VALIDATION_RUN_ID=demo_run
+jupyter lab notebooks/model_validation_reproducible.ipynb
+```
+
+**Outputs** (stored under `artifacts/validation_runs/<run_id>/`):
+- `validation_report.json`: Full validation report plus per-tenant metrics
+- `validation_summary.json`: Pass-rate summary and thresholds used
+- Notebook tables highlighting failing tenants (display only)
+
+**Key Features**:
+1. **Environment Guardrails**: Adds project root to `sys.path` and enforces deterministic seed settings.
+2. **Configurable Inputs**: Accepts alternate CV result paths via `CV_RESULTS_PATH`.
+3. **Automated Artifact Export**: Persists validation report and summary JSON with timestamped (or user-supplied) run IDs.
+4. **Failure Spotlight**: Highlights failing tenants and their failure reasons for rapid triage.
+5. **Exit Criteria Check**: Flags whether pass-rate meets the 80% deployment threshold.
+
 ## Running Notebooks
 
 ### Prerequisites

@@ -1,99 +1,56 @@
 {
-  "timestamp": "2025-10-22T18:39:17.589828Z",
-  "total_tenants": 20,
-  "total_thresholds": 7,
-  "thresholds": [
-    {
-      "threshold_name": "min_r2_for_production",
-      "level": "critical",
-      "metric": "holdout_r2",
-      "threshold": 0.3,
-      "operator": ">=",
-      "passed": false,
-      "actual_value": 0.10955439121289565,
-      "passing_count": 3,
-      "total_count": 20,
-      "pass_rate": 0.15,
-      "description": "Holdout R\u00b2 >= 0.30 (explains 30% of variance)"
-    },
-    {
-      "threshold_name": "r2_consistency",
-      "level": "critical",
-      "metric": "train_holdout_r2_ratio",
-      "threshold": 0.75,
-      "operator": ">=",
-      "passed": false,
-      "actual_value": 0.35,
-      "passing_count": 7,
-      "total_count": 20,
-      "pass_rate": 0.35,
-      "description": "Train/Holdout R\u00b2 ratio >= 0.75 (no severe overfitting)"
-    },
-    {
-      "threshold_name": "positive_weather_signal",
-      "level": "critical",
-      "metric": "weather_fit_score",
-      "threshold": 0.15,
-      "operator": ">=",
-      "passed": false,
-      "actual_value": 0.0,
-      "passing_count": 0,
-      "total_count": 20,
-      "pass_rate": 0.0,
-      "description": "Weather features >= 15% of total influence"
-    },
-    {
-      "threshold_name": "strong_r2_threshold",
-      "level": "strong",
-      "metric": "holdout_r2",
-      "threshold": 0.5,
-      "operator": ">=",
-      "passed": false,
-      "actual_value": 0.10955439121289565,
-      "passing_count": 3,
-      "total_count": 20,
-      "pass_rate": 0.15,
-      "description": "Holdout R\u00b2 >= 0.50 (strong predictive power)"
-    },
-    {
-      "threshold_name": "low_mae_relative",
-      "level": "strong",
-      "metric": "mae_pct_of_mean",
-      "threshold": 0.35,
-      "operator": "<=",
-      "passed": false,
-      "actual_value": 0.38109886928792447,
-      "passing_count": 3,
-      "total_count": 20,
-      "pass_rate": 0.15,
-      "description": "MAE <= 35% of mean target value"
-    },
-    {
-      "threshold_name": "acceptable_r2",
-      "level": "acceptable",
-      "metric": "holdout_r2",
-      "threshold": 0.1,
-      "operator": ">=",
-      "passed": false,
-      "actual_value": 0.10955439121289565,
-      "passing_count": 5,
-      "total_count": 20,
-      "pass_rate": 0.25,
-      "description": "Holdout R\u00b2 >= 0.10 (minimal signal detection)"
-    },
-    {
-      "threshold_name": "stable_predictions",
-      "level": "acceptable",
-      "metric": "std_prediction",
-      "threshold": 0.0,
-      "operator": ">",
-      "passed": true,
-      "actual_value": 44.467491314458776,
-      "passing_count": 20,
-      "total_count": 20,
-      "pass_rate": 1.0,
-      "description": "Predictions vary (not constant)"
-    }
-  ],
-  "critical_pass_rate": 0.0
+  "validation_summary": {
+    "total_models": 20,
+    "passing_models": 10,
+    "failing_models": 10,
+    "pass_rate": 0.5,
+    "target_rate": 0.8,
+    "criteria_met": false
+  },
+  "thresholds": {
+    "r2_min": 0.5,
+    "r2_std_max": 0.15
+  },
+  "failing_details": [
+    [
+      "medium_accessories",
+      "R\u00b2 0.0565 < 0.5"
+    ],
+    [
+      "medium_beauty",
+      "R\u00b2 0.0490 < 0.5"
+    ],
+    [
+      "medium_clothing",
+      "R\u00b2 0.0711 < 0.5"
+    ],
+    [
+      "medium_footwear",
+      "R\u00b2 0.0674 < 0.5"
+    ],
+    [
+      "medium_sports",
+      "R\u00b2 0.0547 < 0.5"
+    ],
+    [
+      "none_books",
+      "R\u00b2 0.3575 < 0.5"
+    ],
+    [
+      "none_electronics",
+      "R\u00b2 0.3446 < 0.5"
+    ],
+    [
+      "none_home_decor",
+      "R\u00b2 0.3461 < 0.5"
+    ],
+    [
+      "none_kitchen",
+      "R\u00b2 0.3502 < 0.5"
+    ],
+    [
+      "none_office_supplies",
+      "R\u00b2 0.3194 < 0.5"
+    ]
+  ]
 }

@@ -35,4 +35,9 @@ PY
 # Run the targeted pytest that persists MMM artifacts. This is the minimal contract
 # the modeling tasks promise to uphold; any failure here means the autopilot must treat
 # the work as incomplete.
+#
+# NOTE: We use PYTHONPATH to ensure .deps is available during test collection.
+# This is necessary because conftest.py runs AFTER imports during collection phase.
+cd "${ROOT_DIR}"
+export PYTHONPATH="${ROOT_DIR}/.deps:${ROOT_DIR}:${PYTHONPATH:-}"
 python -m pytest tests/model/test_train_weather_mmm.py::test_train_weather_mmm_persists_artifacts -q

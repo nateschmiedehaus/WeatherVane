@@ -1,9 +1,8 @@
 const { defineConfig, devices } = require('playwright/test');
 const path = require('node:path');
-const { pathToFileURL } = require('node:url');
 
 const exportDir = path.join(__dirname, 'playwright-export');
-const defaultBaseUrl = (process.env.PLAYWRIGHT_BASE_URL ?? pathToFileURL(exportDir).href).replace(/\/?$/, '/');
+const defaultBaseUrl = process.env.PLAYWRIGHT_BASE_URL ?? 'http://localhost:3000/';
 
 module.exports = defineConfig({
   testDir: './playwright',

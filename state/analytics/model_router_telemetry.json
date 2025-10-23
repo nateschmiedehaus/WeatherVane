@@ -1,19 +1,82 @@
 {
   "version": "1.0",
   "startedAt": "2025-10-22T21:44:01.878Z",
-  "lastUpdatedAt": "2025-10-23T16:57:54.294Z",
-  "totalTasks": 94,
-  "totalCostActual": 7.881999999999994,
-  "totalCostBaseline": 7.050000000000011,
-  "totalSavings": -0.831999999999983,
-  "savingsPercent": -11.801418439716052,
+  "lastUpdatedAt": "2025-10-23T17:57:51.195Z",
+  "totalTasks": 101,
+  "totalCostActual": 8.057199999999993,
+  "totalCostBaseline": 7.575000000000013,
+  "totalSavings": -0.4821999999999802,
+  "savingsPercent": -6.365676567656493,
   "tierDistribution": {
-    "haiku": 36,
-    "sonnet-3.5": 21,
+    "haiku": 39,
+    "sonnet-3.5": 22,
     "sonnet-4.5": 17,
     "sonnet-4.5-reasoning": 0
   },
   "recentTasks": [
+    {
+      "taskId": "M12.Demo",
+      "timestamp": "2025-10-23T17:57:51.195Z",
+      "tier": "codex-low",
+      "complexity": 2,
+      "costActual": 0.007200000000000001,
+      "costBaseline": 0.075,
+      "savings": 0.0678
+    },
+    {
+      "taskId": "M12.Demo",
+      "timestamp": "2025-10-23T17:55:31.455Z",
+      "tier": "haiku",
+      "complexity": 2,
+      "costActual": 0.0036000000000000003,
+      "costBaseline": 0.075,
+      "savings": 0.07139999999999999
+    },
+    {
+      "taskId": "M12.Demo",
+      "timestamp": "2025-10-23T17:52:58.504Z",
+      "tier": "haiku",
+      "complexity": 2,
+      "costActual": 0.0036000000000000003,
+      "costBaseline": 0.075,
+      "savings": 0.07139999999999999
+    },
+    {
+      "taskId": "M12.3",
+      "timestamp": "2025-10-23T17:32:54.647Z",
+      "tier": "codex-low",
+      "complexity": 2,
+      "costActual": 0.007200000000000001,
+      "costBaseline": 0.075,
+      "savings": 0.0678
+    },
+    {
+      "taskId": "T-MLR-3.1",
+      "timestamp": "2025-10-23T17:07:28.347Z",
+      "tier": "codex-medium",
+      "complexity": 5,
+      "costActual": 0.06,
+      "costBaseline": 0.075,
+      "savings": 0.015
+    },
+    {
+      "taskId": "M12.0",
+      "timestamp": "2025-10-23T17:06:02.066Z",
+      "tier": "haiku",
+      "complexity": 2,
+      "costActual": 0.0036000000000000003,
+      "costBaseline": 0.075,
+      "savings": 0.07139999999999999
+    },
+    {
+      "taskId": "M-MLR-1",
+      "timestamp": "2025-10-23T17:05:23.228Z",
+      "tier": "sonnet-3.5",
+      "complexity": 5,
+      "costActual": 0.09,
+      "costBaseline": 0.075,
+      "savings": -0.015
+    },
     {
       "taskId": "T-MLR-0.3",
       "timestamp": "2025-10-23T16:57:54.294Z",
@@ -850,15 +913,6 @@
       "costActual": 0.002,
       "costBaseline": 0.075,
       "savings": 0.073
-    },
-    {
-      "taskId": "T6.4.8",
-      "timestamp": "2025-10-22T21:44:01.878Z",
-      "tier": "haiku",
-      "complexity": 2,
-      "costActual": 0.0036000000000000003,
-      "costBaseline": 0.075,
-      "savings": 0.07139999999999999
     }
   ]
 }

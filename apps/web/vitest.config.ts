@@ -4,6 +4,7 @@ import { defineConfig } from "vitest/config";
 const testsRoot = path.resolve(__dirname, "..", "..", "tests", "web").replace(/\\/g, "/");
 const libTestsRoot = path.resolve(__dirname, "src", "lib", "__tests__").replace(/\\/g, "/");
 const componentTestsRoot = path.resolve(__dirname, "src", "components", "__tests__").replace(/\\/g, "/");
+const pageTestsRoot = path.resolve(__dirname, "src", "pages", "__tests__").replace(/\\/g, "/");
 
 export default defineConfig({
   root: __dirname,
@@ -13,8 +14,9 @@ export default defineConfig({
       `${testsRoot}/**/*.spec.ts`,
       `${libTestsRoot}/**/*.test.ts`,
       `${componentTestsRoot}/**/*.test.tsx`,
+      `${pageTestsRoot}/**/*.test.tsx`,
     ],
-    environmentMatchGlobs: [["src/components/**/__tests__/**", "jsdom"]],
+    environmentMatchGlobs: [["src/components/**/__tests__/**", "jsdom"], ["src/pages/**/__tests__/**", "jsdom"]],
     globals: true,
     setupFiles: ["./vitest.setup.ts"],
   },

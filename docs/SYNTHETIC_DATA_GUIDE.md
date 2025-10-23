@@ -95,16 +95,19 @@ python scripts/generate_synthetic_datasets.py \
 ### Key Features
 
 1. **Realistic Weather Patterns**
-   - Seasonal temperature variation
-   - Random precipitation events
-   - 7-day rolling averages
-   - Anomaly calculations
+   - Seasonal temperature variation with sigmoid-scaled impact
+   - Smart weather signal scaling (-3.5 to 3.5 range)
+   - Random precipitation events with realistic distribution
+   - 7-day rolling averages and trend analysis
+   - Anomaly calculations with seasonal adjustment
 
 2. **Weather-Driven Revenue**
-   - Base revenue per tenant
-   - Weather sensitivity multipliers
+   - Base revenue per tenant with continuous weather influence
+   - Dynamic weather sensitivity multipliers (0.6-0.9 range)
+   - Smart noise scaling based on weather signal
    - Day-of-week effects (weekends 10% higher)
-   - Random noise for realism
+   - Seasonal trend components
+   - Weather-aware variance modeling
 
 3. **Shopify Orders**
    - Daily order counts proportional to revenue
@@ -113,10 +116,13 @@ python scripts/generate_synthetic_datasets.py \
    - Net revenue (85% of order value)
 
 4. **Ads Spend Data**
-   - Meta Ads: $300-800/day, 0.8-2.5% CTR
-   - Google Ads: $200-600/day, 1.5-4.5% CTR
-   - Daily impressions, clicks, conversions
-   - Realistic ROAS (1.5-4.0 range)
+   - Meta Ads: $300-800/day, weather-adjusted CTR (0.8-2.5%)
+   - Google Ads: $200-600/day, weather-adjusted CTR (1.5-4.5%)
+   - Seasonal conversion rate patterns (±20% variation)
+   - Weather-sensitive ad performance scaling
+   - Daily impressions with weather multipliers
+   - Clicks and conversions with seasonal effects
+   - Realistic ROAS (1.5-4.0 range) with weather impact
 
 5. **Klaviyo Email Events**
    - Daily sends (3-5 average)
@@ -320,15 +326,35 @@ python -m pytest apps/model/tests/test_synthetic_data_generator.py -v
 - Follows PEP 8 style guide
 - Clean error handling
 
+## Recent Improvements (October 2025)
+
+1. **Enhanced Weather Signal Scaling**
+   - Smoother sigmoid-based scaling for extreme weather events
+   - Wider range (-3.5 to 3.5) to better capture extreme sensitivity
+   - More nuanced handling of weather anomalies
+
+2. **Dynamic Revenue Generation**
+   - Weather-sensitive noise scaling
+   - Improved seasonal trend components
+   - More realistic revenue distributions
+
+3. **Marketing Channel Improvements**
+   - Seasonal conversion rate variations
+   - Weather-sensitive ad performance
+   - Improved click-through rate modeling
+
+4. **Geographic Coverage**
+   - Extended to 6 major US cities (SF, NYC, LA, Chicago, Houston, Seattle)
+   - Better regional market differentiation
+   - More diverse weather patterns
+
 ## Future Enhancements
 
 1. **Multi-Year Datasets**: Extend generation for 2-3 year periods with trend
-2. **Seasonal Patterns**: Enhance with holiday effects, seasonal sales
-3. **Promotion Patterns**: Add promotional calendar with discount impacts
-4. **Competitive Data**: Simulate competitive pricing and market share effects
-5. **Geographic Variation**: Generate datasets for multiple locations per tenant
-6. **Batch Processing**: Support generation of large multi-tenant sets
-7. **Export Formats**: Support CSV, Parquet, and database ingestion
+2. **Holiday Effects**: Add holiday-specific demand patterns
+3. **Competitive Data**: Simulate competitive pricing and market share effects
+4. **Advanced Weather Patterns**: Include extreme weather events and climate trends
+5. **Export Formats**: Support CSV, Parquet, and database ingestion
 
 ## Related Documentation
 

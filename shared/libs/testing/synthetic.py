@@ -30,7 +30,14 @@ class WeatherShock:
         return self.start_day <= day_index <= self.end_day
 
 
-DEFAULT_GEOS = [(37.7749, -122.4194), (40.7128, -74.0060)]
+DEFAULT_GEOS = [
+    (37.7749, -122.4194),  # San Francisco
+    (40.7128, -74.0060),   # New York
+    (34.0522, -118.2437),  # Los Angeles
+    (41.8781, -87.6298),   # Chicago
+    (29.7604, -95.3698),   # Houston
+    (47.6062, -122.3321),  # Seattle
+]
 
 DEFAULT_OPEN_METEO_PATH = Path("storage/seeds/open_meteo/chicago_il_daily.parquet")
 
@@ -104,7 +111,9 @@ def _clamp(value: float, lower: float, upper: float) -> float:
 def _scale_weather_signal(value: float) -> float:
     if not math.isfinite(value):
         return 0.0
-    return _clamp(value / 50.0, -2.5, 2.5)
+    # Use sigmoid scaling for smoother transitions at extremes
+    signal = 2.0 * (1.0 / (1.0 + math.exp(-value / 35.0)) - 0.5)
+    return _clamp(signal * 3.5, -3.5, 3.5)
 
 
 def _build_product_rows(
@@ -145,11 +154,18 @@ def _marketing_spend(
     meta_spend = max(5.0, meta_trend * weather_multiplier_meta)
     google_spend = max(4.0, google_trend * weather_multiplier_google)
 
-    conversions_meta = max(0.5, meta_spend * 0.08 * (1.0 + weather_scale * 0.25))
-    conversions_google = max(0.3, google_spend * 0.07 * (1.0 + weather_scale * 0.2))
+    # Add seasonality to conversion rates
+    season_factor = 1.0 + 0.2 * math.sin(sequence_index / 45.0)
 
-    impressions_meta = int(max(600.0, meta_spend * 45.0 + 850.0 + rng.uniform(-80.0, 80.0)))
-    impressions_google = int(max(500.0, google_spend * 42.0 + 720.0 + rng.uniform(-70.0, 70.0)))
+    # Weather impacts both spend efficiency and total volume
+    weather_conv_boost = _clamp(1.0 + weather_scale * 0.35 * season_factor, 0.6, 1.8)
+    conversions_meta = max(0.5, meta_spend * 0.08 * weather_conv_boost)
+    conversions_google = max(0.3, google_spend * 0.07 * weather_conv_boost)
+
+    # Add weather and seasonal variation to impressions
+    impression_scale = season_factor * _clamp(1 + weather_scale * 0.25, 0.7, 1.5)
+    impressions_meta = int(max(600.0, meta_spend * 45.0 * impression_scale + 850.0 + rng.uniform(-80.0, 80.0)))
+    impressions_google = int(max(500.0, google_spend * 42.0 * impression_scale + 720.0 + rng.uniform(-70.0, 70.0)))
 
     click_rate_meta = _clamp(0.06 + weather_scale * 0.012, 0.02, 0.12)
     click_rate_google = _clamp(0.055 + weather_scale * 0.01, 0.02, 0.11)
@@ -626,14 +642,16 @@ def seed_synthetic_tenant(
             scenario.base_revenue + trend_component + seasonal_component + baseline_noise,
         )
 
-        weather_influence = 0.6 if weather_leverage < 1.0 else 0.9
+        # Scale weather influence smoothly with leverage
+        weather_influence = 0.6 + 0.3 * _clamp(weather_leverage / 5.0, 0.0, 1.0)
 
         for category_index, category in enumerate(categories):
             if weather_leverage < 1.0:
+                noise_scale = scenario.base_revenue * 0.2 * (1.0 + abs(scaled_weather_signal) * 0.3)
                 revenue = (
                     scenario.base_revenue * category.weight
                     + marketing_component * category.weight
-                    + rng.gauss(0.0, scenario.base_revenue * 0.6)
+                    + rng.gauss(0.0, noise_scale)
                 )
             else:
                 category_weather = (

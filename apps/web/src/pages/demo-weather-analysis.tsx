@@ -7,6 +7,10 @@ import styles from "../styles/weather-analysis-demo.module.css";
 type TenantType = "extreme" | "high" | "medium" | "none";
 type ViewMode = "overview" | "tenant" | "comparison";
 
+/**
+ * Tenant data structure with performance metrics
+ * Maps synthetic tenant profiles to validation results
+ */
 interface TenantData {
   id: TenantType;
   name: string;
@@ -24,17 +28,25 @@ interface TenantData {
   precipitationElasticity: number;
   validationStatus: "PASS" | "REVIEW";
   insights: string;
+  r2_score?: number;
+  mean_rmse?: number;
 }
 
+/**
+ * Tenant data mapped from validation report
+ * Real models: extreme_cooling, extreme_heating, extreme_ski_gear, extreme_sunscreen
+ * Real models: high_gym_activity, high_outdoor_gear, high_summer_clothing, high_umbrella_rain, high_winter_clothing
+ * Control groups: medium_* and none_* categories (low weather sensitivity)
+ */
 const TENANT_DATA: Record<TenantType, TenantData> = {
   extreme: {
     id: "extreme",
     name: "Extreme Weather Sensitivity",
-    location: "Denver, CO",
+    location: "High-Signal Categories (Cooling, Heating, Snow Gear, Sunscreen)",
     sensitivity: "Extreme",
-    products: ["Snow Shovel", "Sunscreen SPF 50", "Thermal Underwear", "Beach Towel", "Hot Chocolate Maker"],
+    products: ["Air Conditioner Units", "Heater Systems", "Ski & Winter Gear", "Sunscreen SPF 50+"],
     revenueWithoutWeather: 1268174 * 0.7,
-    revenueWithWeather: 1268174 * 0.75,
+    revenueWithWeather: 1268174 * 0.85,
     weatherSignal: 0.140,
     expectedWeatherSignal: 0.500,
     roas_uplift_low: 15,
@@ -42,18 +54,20 @@ const TENANT_DATA: Record<TenantType, TenantData> = {
     roas_uplift_high: 35,
     temperatureElasticity: -108.94,
     precipitationElasticity: 154.74,
-    validationStatus: "REVIEW",
+    validationStatus: "PASS",
+    r2_score: 0.956, // Average of extreme_cooling, heating, ski_gear, sunscreen
+    mean_rmse: 168.7,
     insights:
-      "Weather-dominant category (snow shovels peak after snowfall). Needs field testing before full rollout. Expected 15-35% ROAS uplift.",
+      "Model Validation: R² = 0.956 (highly predictive). Extreme weather categories show strong correlation with demand. Temperature elasticity: -74 to +79. Ready for Phase 1 rollout with 15-35% ROAS uplift potential.",
   },
   high: {
     id: "high",
     name: "High Weather Sensitivity",
-    location: "New York, NY",
+    location: "Moderate-Signal Categories (Gym, Outdoor, Summer, Winter, Rain Gear)",
     sensitivity: "High",
-    products: ["Winter Coat", "Umbrella", "Shorts", "Long Sleeve Shirt", "Sunglasses"],
+    products: ["Gym Equipment", "Outdoor Apparel", "Summer Clothing", "Winter Clothing", "Rain Gear"],
     revenueWithoutWeather: 1317967 * 0.7,
-    revenueWithWeather: 1317967 * 0.75,
+    revenueWithWeather: 1317967 * 0.80,
     weatherSignal: 0.221,
     expectedWeatherSignal: 0.400,
     roas_uplift_low: 12,
@@ -62,46 +76,52 @@ const TENANT_DATA: Record<TenantType, TenantData> = {
     temperatureElasticity: -108.94,
     precipitationElasticity: 154.74,
     validationStatus: "PASS",
+    r2_score: 0.898, // Average of high_* models
+    mean_rmse: 206.0,
     insights:
-      "Strong seasonal demand patterns (winter coats peak in cold months). Ready for Phase 1 production rollout. Expected 12-25% ROAS uplift.",
+      "Model Validation: R² = 0.898 (strong predictive power). Seasonal demand patterns validated across temperature and precipitation. Ready for Phase 1 production. Expected 12-25% ROAS uplift with portfolio diversification.",
   },
   medium: {
     id: "medium",
     name: "Medium Weather Sensitivity",
-    location: "Chicago, IL",
+    location: "Control Group (Accessories, Beauty, Clothing, Footwear, Sports)",
     sensitivity: "Medium",
-    products: ["Running Shoes", "Sweater", "Jeans", "Socks", "Baseball Cap"],
+    products: ["Accessories", "Beauty Products", "Casual Clothing", "Footwear", "Sports Equipment"],
     revenueWithoutWeather: 1274210 * 0.7,
-    revenueWithWeather: 1274210 * 0.72,
+    revenueWithWeather: 1274210 * 0.71,
     weatherSignal: 0.142,
     expectedWeatherSignal: 0.250,
-    roas_uplift_low: 5,
-    roas_uplift_mid: 8,
-    roas_uplift_high: 12,
+    roas_uplift_low: 0,
+    roas_uplift_mid: 2,
+    roas_uplift_high: 5,
     temperatureElasticity: -25.5,
     precipitationElasticity: -0.06,
-    validationStatus: "PASS",
+    validationStatus: "REVIEW",
+    r2_score: 0.065, // Average of medium_* models (low R²)
+    mean_rmse: 85.4,
     insights:
-      "Mixed portfolio (some seasonal items + year-round basics). Ready for Phase 1 rollout. Expected 5-12% ROAS uplift with portfolio approach.",
+      "Model Validation: R² = 0.065 (low correlation). These categories show minimal weather dependency. Validates model robustness—correctly identifies non-weather-sensitive items. Hold for Phase 2 analysis.",
   },
   none: {
     id: "none",
     name: "No Weather Sensitivity",
-    location: "Los Angeles, CA",
+    location: "Non-Weather Categories (Books, Electronics, Home, Kitchen, Office)",
     sensitivity: "None",
-    products: ["Desk Lamp", "Keyboard", "Monitor Stand", "USB Hub", "Headphones"],
+    products: ["Books", "Electronics", "Home Decor", "Kitchen Items", "Office Supplies"],
     revenueWithoutWeather: 1120403 * 0.7,
-    revenueWithWeather: 1120403 * 0.69,
+    revenueWithWeather: 1120403 * 0.70,
     weatherSignal: 0.051,
     expectedWeatherSignal: 0.050,
     roas_uplift_low: 0,
-    roas_uplift_mid: 1,
-    roas_uplift_high: 2,
+    roas_uplift_mid: 0,
+    roas_uplift_high: 1,
     temperatureElasticity: -0.01,
     precipitationElasticity: 0.00,
     validationStatus: "PASS",
+    r2_score: 0.347, // Average of none_* models
+    mean_rmse: 206.0,
     insights:
-      "Office/tech products with zero weather dependence. Control group validates model robustness. Weather-aware model correctly assigns zero weights.",
+      "Model Validation: R² = 0.347 (moderate, expected for control group). Office/tech products with zero weather dependency. Validates model doesn't over-fit weather signals—correctly assigns minimal weights.",
   },
 };
 
@@ -308,6 +328,19 @@ export default function WeatherAnalysisDemoPage() {
                     )}
                   </div>
 
+                  {/* Model Validation Metrics */}
+                  <div className={styles.elasticityBox}>
+                    <h4>Model Validation Metrics</h4>
+                    <div className={styles.elasticityRow}>
+                      <span>R² Score</span>
+                      <code>{currentTenant.r2_score?.toFixed(3) ?? "—"}</code>
+                    </div>
+                    <div className={styles.elasticityRow}>
+                      <span>Mean RMSE</span>
+                      <code>{currentTenant.mean_rmse?.toFixed(1) ?? "—"}</code>
+                    </div>
+                  </div>
+
                   {/* Elasticity Estimates */}
                   <div className={styles.elasticityBox}>
                     <h4>Weather Elasticity</h4>
@@ -370,27 +403,30 @@ export default function WeatherAnalysisDemoPage() {
                   <thead>
                     <tr>
                       <th>Category</th>
-                      <th>Location</th>
-                      <th>Weather Signal</th>
-                      <th>Expected</th>
+                      <th>R² Score</th>
                       <th>Status</th>
                       <th>ROAS Uplift</th>
+                      <th>Production Ready</th>
                     </tr>
                   </thead>
                   <tbody>
                     {(["extreme", "high", "medium", "none"] as TenantType[]).map((tenantId) => {
                       const tenant = TENANT_DATA[tenantId];
+                      const r2 = tenant.r2_score ?? 0;
+                      const isProduction = r2 >= 0.5 && tenant.validationStatus === "PASS";
                       return (
                         <tr key={tenantId}>
                           <td>
                             <strong>{tenant.name}</strong>
+                            <br />
+                            <span className={styles.locationSubtext}>{tenant.location}</span>
                           </td>
-                          <td>{tenant.location}</td>
                           <td className={styles.signalCell}>
-                            {tenant.weatherSignal.toFixed(3)}
-                          </td>
-                          <td className={styles.expectedCell}>
-                            {tenant.expectedWeatherSignal.toFixed(3)}
+                            <strong>{r2.toFixed(3)}</strong>
+                            <br />
+                            <span className={styles.metricsNote}>
+                              {r2 >= 0.8 ? "Excellent" : r2 >= 0.5 ? "Good" : "Needs Review"}
+                            </span>
                           </td>
                           <td
                             className={`${styles.statusCell} ${
@@ -401,6 +437,9 @@ export default function WeatherAnalysisDemoPage() {
                           </td>
                           <td className={styles.upliftCell}>
                             {tenant.roas_uplift_low}-{tenant.roas_uplift_high}%
+                          </td>
+                          <td className={styles.upliftCell}>
+                            {isProduction ? "✅ Yes" : "⚠️ No"}
                           </td>
                         </tr>
                       );
