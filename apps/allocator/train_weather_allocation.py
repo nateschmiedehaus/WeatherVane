@@ -15,13 +15,12 @@ from __future__ import annotations
 import argparse
 import json
 import logging
-from dataclasses import dataclass, field
-from datetime import date, datetime, timedelta
+from dataclasses import dataclass
+from datetime import date, datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
 import numpy as np
-import pandas as pd
 
 from apps.allocator.optimizer import (
     BudgetItem,
@@ -30,13 +29,10 @@ from apps.allocator.optimizer import (
     optimize_allocation,
 )
 from apps.model.mmm_lightweight_weather import (
-    CrossValidationMetrics,
     TenantModelTrainer,
-    WeatherAwareMMM,
     load_cv_results_from_json,
     load_synthetic_tenant_data,
     normalize_column_names,
-    get_weather_columns,
     get_spend_columns,
 )
 

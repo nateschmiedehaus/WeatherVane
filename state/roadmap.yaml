@@ -77,7 +77,7 @@ epics:
               - Decision log shows APPROVED status
             id: REMEDIATION-ALL-MCP-SERVER
             priority: critical
-            status: pending
+            status: blocked
             title: "[CRITICAL] Audit ALL MCP server implementation for quality issues"
           - dependencies: []
             description: >
@@ -128,7 +128,7 @@ epics:
               - Edge case coverage verified
             id: REMEDIATION-ALL-TESTING-INFRASTRUCTURE
             priority: critical
-            status: pending
+            status: blocked
             title: "[CRITICAL] Verify testing infrastructure actually works"
           - dependencies: []
             description: >
@@ -181,7 +181,7 @@ epics:
               - Test with good code: gates correctly APPROVE
             id: REMEDIATION-ALL-QUALITY-GATES-DOGFOOD
             priority: critical
-            status: pending
+            status: in_progress
             title: "[CRITICAL] Run quality gates on quality gate system itself"
           - dependencies: []
             description: >-
@@ -9603,7 +9603,7 @@ epics:
             domain: product
             exit_criteria: []
             id: T-MLR-3.3
-            status: in_progress
+            status: blocked
             title: Package all evidence artifacts for review
         title: M-MLR-3
       - id: M-MLR-4
@@ -9632,7 +9632,7 @@ epics:
             domain: product
             exit_criteria: []
             id: T-MLR-4.3
-            status: pending
+            status: blocked
             title: Create meta-critic to review past completed ML tasks
           - dependencies:
               - T-MLR-4.3
@@ -10049,7 +10049,7 @@ epics:
               - artifact:state/analytics/synthetic_tenant_profiles.json
               - critic:data_quality
             id: T12.0.1
-            status: pending
+            status: done
             title: Generate synthetic multi-tenant dataset with weather-sensitive products
           - dependencies: []
             description: Confirm data volume, coverage, completeness; measure weather

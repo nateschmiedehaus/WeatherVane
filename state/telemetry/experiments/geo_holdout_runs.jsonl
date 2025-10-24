@@ -126,3 +126,7 @@
 {"tenant_id": "tenant-123", "timestamp": "2025-10-24T00:30:09.385359", "event": "holdout_insufficient_geo", "geo_count": 0}
 {"tenant_id": "tenant-123", "timestamp": "2025-10-24T00:38:53.162033", "event": "holdout_insufficient_geo", "geo_count": 0}
 {"tenant_id": "tenant-123", "timestamp": "2025-10-24T00:38:53.170187", "event": "holdout_insufficient_geo", "geo_count": 0}
+{"tenant_id": "tenant-123", "timestamp": "2025-10-24T00:42:38.490037", "event": "holdout_insufficient_geo", "geo_count": 0}
+{"tenant_id": "tenant-123", "timestamp": "2025-10-24T00:42:38.505424", "event": "holdout_insufficient_geo", "geo_count": 0}
+{"tenant_id": "tenant-123", "timestamp": "2025-10-24T00:42:38.620722", "event": "holdout_insufficient_geo", "geo_count": 0}
+{"tenant_id": "tenant-123", "timestamp": "2025-10-24T00:42:38.640309", "event": "holdout_insufficient_geo", "geo_count": 0}
