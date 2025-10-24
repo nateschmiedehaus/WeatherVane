@@ -1,0 +1,299 @@
+/**
+ * Work In Progress (WIP) Limits
+ *
+ * Enforces constraints on concurrent work to maintain flow and prevent thrashing.
+ *
+ * Based on Kanban principles and Little's Law:
+ *   Cycle Time = WIP / Throughput
+ *
+ * Lower WIP = Faster completion. Focus on FINISHING tasks, not STARTING them.
+ *
+ * Default limits:
+ * - Global: 5 concurrent tasks (system-wide)
+ * - Per Agent: 1 task (agents don't multitask)
+ * - Per Epic: 3 tasks (prevent one epic from monopolizing resources)
+ * - Per Domain: No limit (allow cross-domain parallelism)
+ *
+ * These limits prevent the thrashing pattern where 50+ tasks start simultaneously
+ * and compete for resources without any completing.
+ */
+
+import type { Task, StateMachine } from './state_machine.js';
+import type { Agent } from './agent_pool.js';
+import { logDebug, logWarning, logInfo } from '../telemetry/logger.js';
+
+export interface WIPLimitsConfig {
+  maxGlobal: number; // Max concurrent tasks across all agents
+  maxPerAgent: number; // Max concurrent tasks per agent
+  maxPerEpic: number; // Max concurrent tasks per epic
+  maxPerDomain?: number; // Optional: max concurrent tasks per domain
+  strictMode: boolean; // If true, throw error on limit violation; if false, just warn
+}
+
+export interface WIPStatus {
+  currentGlobal: number;
+  currentPerAgent: Record<string, number>;
+  currentPerEpic: Record<string, number>;
+  currentPerDomain: Record<string, number>;
+  atLimitGlobal: boolean;
+  atLimitEpics: string[];
+  atLimitDomains: string[];
+}
+
+export class WIPLimitEnforcer {
+  private config: WIPLimitsConfig;
+
+  constructor(
+    private readonly stateMachine: StateMachine,
+    config?: Partial<WIPLimitsConfig>,
+  ) {
+    this.config = {
+      maxGlobal: config?.maxGlobal ?? 5,
+      maxPerAgent: config?.maxPerAgent ?? 1,
+      maxPerEpic: config?.maxPerEpic ?? 3,
+      maxPerDomain: config?.maxPerDomain,
+      strictMode: config?.strictMode ?? false,
+    };
+
+    logInfo('WIP Limits initialized', this.config);
+  }
+
+  /**
+   * Check if we can start a new task without violating WIP limits
+   */
+  canStartTask(agent: Agent, task: Task): { allowed: boolean; reason?: string; status: WIPStatus } {
+    const status = this.getWIPStatus();
+
+    // Check 1: Agent already working?
+    if (agent.currentTask && this.config.maxPerAgent === 1) {
+      return {
+        allowed: false,
+        reason: `Agent ${agent.id} already working on task ${agent.currentTask}`,
+        status,
+      };
+    }
+
+    const agentTaskCount = status.currentPerAgent[agent.id] || 0;
+    if (agentTaskCount >= this.config.maxPerAgent) {
+      return {
+        allowed: false,
+        reason: `Agent ${agent.id} at WIP limit (${agentTaskCount}/${this.config.maxPerAgent})`,
+        status,
+      };
+    }
+
+    // Check 2: Global WIP limit
+    if (status.currentGlobal >= this.config.maxGlobal) {
+      return {
+        allowed: false,
+        reason: `Global WIP limit reached (${status.currentGlobal}/${this.config.maxGlobal})`,
+        status,
+      };
+    }
+
+    // Check 3: Epic-level WIP limit
+    if (task.epic_id) {
+      const epicTaskCount = status.currentPerEpic[task.epic_id] || 0;
+      if (epicTaskCount >= this.config.maxPerEpic) {
+        return {
+          allowed: false,
+          reason: `Epic ${task.epic_id} at WIP limit (${epicTaskCount}/${this.config.maxPerEpic})`,
+          status,
+        };
+      }
+    }
+
+    // Check 4: Domain-level WIP limit (if configured)
+    if (this.config.maxPerDomain && task.metadata?.domain) {
+      const domain = task.metadata.domain as string;
+      const domainTaskCount = status.currentPerDomain[domain] || 0;
+      if (domainTaskCount >= this.config.maxPerDomain) {
+        return {
+          allowed: false,
+          reason: `Domain ${domain} at WIP limit (${domainTaskCount}/${this.config.maxPerDomain})`,
+          status,
+        };
+      }
+    }
+
+    // All checks passed
+    return { allowed: true, status };
+  }
+
+  /**
+   * Get current WIP status across all dimensions
+   */
+  getWIPStatus(): WIPStatus {
+    const inProgressTasks = this.stateMachine.getTasks({ status: ['in_progress'] });
+
+    const currentPerAgent: Record<string, number> = {};
+    const currentPerEpic: Record<string, number> = {};
+    const currentPerDomain: Record<string, number> = {};
+
+    for (const task of inProgressTasks) {
+      // Count by agent
+      const assignedAgent = task.metadata?.assigned_agent as string | undefined;
+      if (assignedAgent) {
+        currentPerAgent[assignedAgent] = (currentPerAgent[assignedAgent] || 0) + 1;
+      }
+
+      // Count by epic
+      if (task.epic_id) {
+        currentPerEpic[task.epic_id] = (currentPerEpic[task.epic_id] || 0) + 1;
+      }
+
+      // Count by domain
+      const domain = task.metadata?.domain as string | undefined;
+      if (domain) {
+        currentPerDomain[domain] = (currentPerDomain[domain] || 0) + 1;
+      }
+    }
+
+    const atLimitEpics = Object.entries(currentPerEpic)
+      .filter(([_, count]) => count >= this.config.maxPerEpic)
+      .map(([epicId]) => epicId);
+
+    const atLimitDomains = this.config.maxPerDomain
+      ? Object.entries(currentPerDomain)
+          .filter(([_, count]) => count >= this.config.maxPerDomain!)
+          .map(([domain]) => domain)
+      : [];
+
+    return {
+      currentGlobal: inProgressTasks.length,
+      currentPerAgent,
+      currentPerEpic,
+      currentPerDomain,
+      atLimitGlobal: inProgressTasks.length >= this.config.maxGlobal,
+      atLimitEpics,
+      atLimitDomains,
+    };
+  }
+
+  /**
+   * Get recommended tasks to start based on WIP constraints
+   *
+   * This implements intelligent task selection that respects WIP limits
+   * and optimizes for unblocking downstream work.
+   */
+  getRecommendedTasks(availableTasks: Task[], maxRecommendations = 5): Task[] {
+    const status = this.getWIPStatus();
+    const remaining = this.config.maxGlobal - status.currentGlobal;
+
+    if (remaining <= 0) {
+      logDebug('At global WIP limit, no tasks recommended', {
+        current: status.currentGlobal,
+        max: this.config.maxGlobal,
+      });
+      return [];
+    }
+
+    const recommended: Task[] = [];
+
+    // Prioritize tasks from epics that are NOT at limit
+    const tasksFromUnconstrainedEpics = availableTasks.filter(task => {
+      if (!task.epic_id) return true; // No epic constraint
+      return !status.atLimitEpics.includes(task.epic_id);
+    });
+
+    // Further prioritize tasks that unblock the most downstream work
+    const tasksWithImpact = tasksFromUnconstrainedEpics.map(task => {
+      const dependents = this.stateMachine.getDependents(task.id);
+      return { task, impact: dependents.length };
+    });
+
+    // Sort by impact (most dependents first)
+    tasksWithImpact.sort((a, b) => b.impact - a.impact);
+
+    // Take up to maxRecommendations or remaining WIP capacity, whichever is smaller
+    const limit = Math.min(maxRecommendations, remaining);
+    for (let i = 0; i < limit && i < tasksWithImpact.length; i++) {
+      recommended.push(tasksWithImpact[i].task);
+    }
+
+    if (recommended.length > 0) {
+      logDebug('Recommended tasks within WIP limits', {
+        count: recommended.length,
+        remaining,
+        tasks: recommended.map(t => t.id),
+      });
+    }
+
+    return recommended;
+  }
+
+  /**
+   * Update WIP limits dynamically based on system performance
+   *
+   * Auto-tune limits based on:
+   * - Completion rate
+   * - Failure rate
+   * - Average cycle time
+   */
+  async autoTuneLimits(
+    metrics: {
+      avgCycleTimeHours: number;
+      completionRate: number; // 0-1
+      failureRate: number; // 0-1
+    },
+  ): Promise<WIPLimitsConfig> {
+    const currentConfig = { ...this.config };
+
+    // If cycle time is high and failure rate is high, DECREASE WIP
+    // (too much parallelism, tasks are competing)
+    if (metrics.avgCycleTimeHours > 4 && metrics.failureRate > 0.3) {
+      this.config.maxGlobal = Math.max(3, this.config.maxGlobal - 1);
+      logInfo('Decreasing global WIP limit (high cycle time + high failure rate)', {
+        oldLimit: currentConfig.maxGlobal,
+        newLimit: this.config.maxGlobal,
+        metrics,
+      });
+    }
+
+    // If cycle time is low and completion rate is high, INCREASE WIP
+    // (system has capacity, can handle more parallelism)
+    else if (metrics.avgCycleTimeHours < 2 && metrics.completionRate > 0.8) {
+      this.config.maxGlobal = Math.min(10, this.config.maxGlobal + 1);
+      logInfo('Increasing global WIP limit (low cycle time + high completion rate)', {
+        oldLimit: currentConfig.maxGlobal,
+        newLimit: this.config.maxGlobal,
+        metrics,
+      });
+    }
+
+    return this.config;
+  }
+
+  /**
+   * Reset WIP limits to defaults
+   */
+  resetToDefaults(): void {
+    this.config = {
+      maxGlobal: 5,
+      maxPerAgent: 1,
+      maxPerEpic: 3,
+      maxPerDomain: undefined,
+      strictMode: false,
+    };
+    logInfo('WIP limits reset to defaults', this.config);
+  }
+
+  /**
+   * Get current configuration
+   */
+  getConfig(): WIPLimitsConfig {
+    return { ...this.config };
+  }
+
+  /**
+   * Update configuration
+   */
+  updateConfig(updates: Partial<WIPLimitsConfig>): void {
+    const oldConfig = { ...this.config };
+    this.config = { ...this.config, ...updates };
+    logInfo('WIP limits updated', {
+      old: oldConfig,
+      new: this.config,
+    });
+  }
+}

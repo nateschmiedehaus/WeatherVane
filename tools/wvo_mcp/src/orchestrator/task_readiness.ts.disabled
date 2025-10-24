@@ -1,0 +1,301 @@
+/**
+ * Task Readiness System
+ *
+ * Prevents agents from starting tasks that aren't ready to execute.
+ * This is THE solution to the thrashing problem where 50+ tasks start
+ * and immediately fail due to missing dependencies, files, or backoff periods.
+ *
+ * A task is "ready" when:
+ * 1. All dependencies are complete
+ * 2. Required files exist
+ * 3. Not in exponential backoff period
+ * 4. External services are healthy (if required)
+ * 5. No blockers marked on the task
+ */
+
+import { existsSync } from 'node:fs';
+import type { Task, StateMachine } from './state_machine.js';
+import { logDebug, logWarning } from '../telemetry/logger.js';
+
+export interface TaskBlocker {
+  type: 'dependency' | 'file_missing' | 'backoff' | 'api_unavailable' | 'manual_block' | 'verification';
+  description: string;
+  estimatedReadyTime?: Date;
+  blockedTaskId?: string; // ID of the blocking task
+}
+
+export interface TaskReadiness {
+  isReady: boolean;
+  readinessScore: number; // 0-100
+  blockers: TaskBlocker[];
+  nextCheckTime?: Date; // When to check again
+}
+
+export class TaskReadinessChecker {
+  constructor(
+    private readonly stateMachine: StateMachine,
+    private readonly workspaceRoot: string,
+  ) {}
+
+  /**
+   * Check if a task is ready to execute
+   */
+  async checkReadiness(task: Task): Promise<TaskReadiness> {
+    const blockers: TaskBlocker[] = [];
+
+    // Check 1: Dependencies complete?
+    const depBlockers = await this.checkDependencies(task);
+    blockers.push(...depBlockers);
+
+    // Check 2: Required files exist?
+    const fileBlockers = this.checkRequiredFiles(task);
+    blockers.push(...fileBlockers);
+
+    // Check 3: In exponential backoff?
+    const backoffBlocker = this.checkBackoff(task);
+    if (backoffBlocker) {
+      blockers.push(backoffBlocker);
+    }
+
+    // Check 4: Manual blockers set?
+    const manualBlockers = this.checkManualBlockers(task);
+    blockers.push(...manualBlockers);
+
+    // Check 5: Verification task but no work to verify?
+    const verificationBlocker = await this.checkVerificationReadiness(task);
+    if (verificationBlocker) {
+      blockers.push(verificationBlocker);
+    }
+
+    // Calculate readiness score
+    const readinessScore = blockers.length === 0 ? 100 : 0;
+
+    // Calculate next check time (earliest blocker resolution)
+    const nextCheckTime = this.calculateNextCheckTime(blockers);
+
+    const isReady = blockers.length === 0;
+
+    if (!isReady) {
+      logDebug('Task not ready', {
+        taskId: task.id,
+        blockerCount: blockers.length,
+        blockers: blockers.map(b => ({ type: b.type, desc: b.description })),
+        nextCheckTime,
+      });
+    }
+
+    return {
+      isReady,
+      readinessScore,
+      blockers,
+      nextCheckTime,
+    };
+  }
+
+  /**
+   * Check if all task dependencies are complete
+   */
+  private async checkDependencies(task: Task): Promise<TaskBlocker[]> {
+    const blockers: TaskBlocker[] = [];
+
+    if (!task.dependencies || task.dependencies.length === 0) {
+      return blockers;
+    }
+
+    for (const depId of task.dependencies) {
+      const dep = this.stateMachine.getTask(depId);
+
+      if (!dep) {
+        blockers.push({
+          type: 'dependency',
+          description: `Dependency ${depId} not found in state machine`,
+          blockedTaskId: depId,
+        });
+        continue;
+      }
+
+      if (dep.status !== 'done') {
+        const estimatedCompletion = dep.metadata?.estimated_completion as string | undefined;
+        blockers.push({
+          type: 'dependency',
+          description: `Waiting for ${depId} (status: ${dep.status})`,
+          estimatedReadyTime: estimatedCompletion ? new Date(estimatedCompletion) : undefined,
+          blockedTaskId: depId,
+        });
+      }
+    }
+
+    return blockers;
+  }
+
+  /**
+   * Check if required files exist
+   */
+  private checkRequiredFiles(task: Task): TaskBlocker[] {
+    const blockers: TaskBlocker[] = [];
+    const requiredFiles = task.metadata?.required_files as string[] | undefined;
+
+    if (!requiredFiles || requiredFiles.length === 0) {
+      return blockers;
+    }
+
+    for (const file of requiredFiles) {
+      const fullPath = file.startsWith('/') ? file : `${this.workspaceRoot}/${file}`;
+      if (!existsSync(fullPath)) {
+        blockers.push({
+          type: 'file_missing',
+          description: `Required file missing: ${file}`,
+        });
+      }
+    }
+
+    return blockers;
+  }
+
+  /**
+   * Check if task is in exponential backoff period
+   */
+  private checkBackoff(task: Task): TaskBlocker | null {
+    const metadata = task.metadata as Record<string, unknown> | undefined;
+    if (!metadata) return null;
+
+    const lastAttemptTime = metadata.last_attempt_time as number | undefined;
+    const failureCount = (metadata.failure_count as number | undefined) || 0;
+
+    if (!lastAttemptTime || failureCount === 0) {
+      return null;
+    }
+
+    // Exponential backoff: 2^n seconds (max 1 hour)
+    const backoffSeconds = Math.min(Math.pow(2, failureCount), 3600);
+    const backoffMs = backoffSeconds * 1000;
+    const timeSinceLastAttempt = Date.now() - lastAttemptTime;
+
+    if (timeSinceLastAttempt < backoffMs) {
+      const remainingMs = backoffMs - timeSinceLastAttempt;
+      const estimatedReadyTime = new Date(Date.now() + remainingMs);
+
+      return {
+        type: 'backoff',
+        description: `Exponential backoff: ${failureCount} failures, wait ${Math.ceil(remainingMs / 1000)}s`,
+        estimatedReadyTime,
+      };
+    }
+
+    return null;
+  }
+
+  /**
+   * Check for manual blockers set on the task
+   */
+  private checkManualBlockers(task: Task): TaskBlocker[] {
+    const blockers: TaskBlocker[] = [];
+    const metadata = task.metadata as Record<string, unknown> | undefined;
+
+    if (metadata?.blocked === true) {
+      const blockerReason = (metadata.blocker_reason as string) || 'Task manually blocked';
+      blockers.push({
+        type: 'manual_block',
+        description: blockerReason,
+      });
+    }
+
+    return blockers;
+  }
+
+  /**
+   * Check if verification task has work to verify
+   *
+   * Verification tasks (title contains "[REM] Verify" or "Verify:") should not
+   * start until the work they're verifying actually exists.
+   */
+  private async checkVerificationReadiness(task: Task): Promise<TaskBlocker | null> {
+    const title = (task.title || '').toLowerCase();
+    const isVerificationTask = title.includes('verify') || title.includes('[rem]');
+
+    if (!isVerificationTask) {
+      return null;
+    }
+
+    // Check if there's a corresponding implementation task
+    // Convention: "REM-T1.1.1" verifies "T1.1.1"
+    const implementationTaskId = task.id.replace(/^REM-/, '').replace(/^REMEDIATION-/, '');
+    const implementationTask = this.stateMachine.getTask(implementationTaskId);
+
+    if (implementationTask && implementationTask.status !== 'done') {
+      return {
+        type: 'verification',
+        description: `Waiting for implementation task ${implementationTaskId} to complete`,
+        blockedTaskId: implementationTaskId,
+      };
+    }
+
+    // If no implementation task found, check dependencies instead
+    // (verification tasks should have dependencies on what they verify)
+    if (!implementationTask && task.dependencies?.length === 0) {
+      logWarning('Verification task has no dependencies or implementation task', {
+        taskId: task.id,
+        title: task.title,
+      });
+    }
+
+    return null;
+  }
+
+  /**
+   * Calculate the next time we should check this task's readiness
+   */
+  private calculateNextCheckTime(blockers: TaskBlocker[]): Date | undefined {
+    const estimatedTimes = blockers
+      .map(b => b.estimatedReadyTime)
+      .filter((t): t is Date => t !== undefined);
+
+    if (estimatedTimes.length === 0) {
+      // No estimated times, check again in 1 minute
+      return new Date(Date.now() + 60_000);
+    }
+
+    // Return earliest estimated ready time
+    return new Date(Math.min(...estimatedTimes.map(t => t.getTime())));
+  }
+
+  /**
+   * Get all ready tasks from a list
+   */
+  async filterReadyTasks(tasks: Task[]): Promise<Task[]> {
+    const ready: Task[] = [];
+
+    for (const task of tasks) {
+      const readiness = await this.checkReadiness(task);
+      if (readiness.isReady) {
+        ready.push(task);
+      }
+    }
+
+    return ready;
+  }
+
+  /**
+   * Get tasks that will become ready soon (within next 5 minutes)
+   */
+  async getUpcomingReadyTasks(tasks: Task[]): Promise<Array<{ task: Task; readyAt: Date }>> {
+    const upcoming: Array<{ task: Task; readyAt: Date }> = [];
+    const now = Date.now();
+    const fiveMinutesFromNow = now + 5 * 60 * 1000;
+
+    for (const task of tasks) {
+      const readiness = await this.checkReadiness(task);
+      if (!readiness.isReady && readiness.nextCheckTime) {
+        const readyTime = readiness.nextCheckTime.getTime();
+        if (readyTime >= now && readyTime <= fiveMinutesFromNow) {
+          upcoming.push({ task, readyAt: readiness.nextCheckTime });
+        }
+      }
+    }
+
+    // Sort by ready time (soonest first)
+    upcoming.sort((a, b) => a.readyAt.getTime() - b.readyAt.getTime());
+
+    return upcoming;
+  }
+}
