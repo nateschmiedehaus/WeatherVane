@@ -1,0 +1,25 @@
+{
+  "passed": false,
+  "timestamp": "2025-10-24T01:19:56.194947+00:00",
+  "metrics": {
+    "overall_coverage": 0.0,
+    "mae": 0.6933142851244348,
+    "mape": 99.99970541237808,
+    "prediction_bias": 0.5200129614548058,
+    "calibration_status": "undercautious",
+    "timestamp": "2025-10-21T21:28:50.738766"
+  },
+  "warnings": [
+    "Coverage 0.0% below minimum threshold (75%)",
+    "MAPE 10000.0% exceeds target (10%)",
+    "Prediction bias 0.520 suggests systematic error",
+    "Calibration status: undercautious"
+  ],
+  "recommendations": [
+    "Review prediction interval calibration assumptions",
+    "Investigate forecast model feature importance",
+    "Check for data drift or seasonal pattern shifts",
+    "Run recalibration analysis"
+  ],
+  "divergence_detected": true
+}

@@ -56,6 +56,7 @@ import {
 import { QualityGateOrchestrator, type QualityGateDecision } from './quality_gate_orchestrator.js';
 import type { TaskEvidence } from './adversarial_bullshit_detector.js';
 import { TaskProgressTracker } from './task_progress_tracker.js';
+import { ProcessManager, type ProcessHandle } from './process_manager.js';
 
 export type Provider = 'codex' | 'claude';
 export type AgentRole = 'orchestrator' | 'worker' | 'critic' | 'architecture_planner' | 'architecture_reviewer';
@@ -120,21 +121,45 @@ type PolicyEventType = 'task_completed' | 'task_failed' | 'verification_failed' 
  * CLI executor abstraction for multi-provider support
  */
 export interface CLIExecutor {
-  exec(model: string, prompt: string, mcpServer?: string): Promise<ExecutionResult>;
+  exec(model: string, prompt: string, mcpServer?: string, taskId?: string): Promise<ExecutionResult>;
   checkAuth(): Promise<boolean>;
+  setProcessManager(manager: ProcessManager): void;
 }
 
 /**
  * Codex CLI executor
  */
 export class CodexExecutor implements CLIExecutor {
+  private processManager?: ProcessManager;
+
   constructor(
     private readonly codexHome: string,
     private readonly profile: string = 'weathervane_orchestrator'
   ) {}
 
-  async exec(model: string, prompt: string, mcpServer?: string): Promise<ExecutionResult> {
+  setProcessManager(manager: ProcessManager): void {
+    this.processManager = manager;
+  }
+
+  async exec(model: string, prompt: string, mcpServer?: string, taskId: string = 'unknown'): Promise<ExecutionResult> {
     const startTime = Date.now();
+
+    // Check if we can spawn a new process
+    if (this.processManager && !this.processManager.canSpawnProcess()) {
+      logWarning('Cannot spawn codex process - resource limits exceeded', {
+        taskId,
+        model,
+        status: this.processManager.getStatus(),
+      });
+
+      return {
+        success: false,
+        error: 'Resource limits exceeded - too many concurrent processes or insufficient memory',
+        duration: 0,
+      };
+    }
+
+    let processHandle: ProcessHandle | undefined;
 
     try {
       const args = [
@@ -159,10 +184,38 @@ export class CodexExecutor implements CLIExecutor {
         CODEX_HOME: this.codexHome,
       };
 
-      const result = await execa('codex', args, {
+      const subprocess = execa('codex', args, {
         env,
         timeout: 600_000, // 10 minutes
       });
+
+      // Track the process
+      if (this.processManager && subprocess.pid) {
+        processHandle = {
+          pid: subprocess.pid,
+          taskId,
+          provider: 'codex',
+          model,
+          startTime: Date.now(),
+          kill: () => {
+            subprocess.kill('SIGTERM');
+            // Force kill after 5 seconds if still alive
+            setTimeout(() => {
+              try {
+                subprocess.kill('SIGKILL');
+              } catch {}
+            }, 5000);
+          },
+        };
+        this.processManager.registerProcess(processHandle);
+      }
+
+      const result = await subprocess;
+
+      // Unregister process on success
+      if (this.processManager && processHandle) {
+        this.processManager.unregisterProcess(processHandle.pid);
+      }
 
       return {
         success: result.exitCode === 0,
@@ -171,6 +224,11 @@ export class CodexExecutor implements CLIExecutor {
         duration: Date.now() - startTime,
       };
     } catch (error: any) {
+      // Unregister process on error
+      if (this.processManager && processHandle) {
+        this.processManager.unregisterProcess(processHandle.pid);
+      }
+
       return {
         success: false,
         error: error.message,
@@ -202,13 +260,36 @@ export class CodexExecutor implements CLIExecutor {
  * Claude CLI executor
  */
 export class ClaudeExecutor implements CLIExecutor {
+  private processManager?: ProcessManager;
+
   constructor(
     private readonly configDir: string,
     private readonly bin: string = 'claude'
   ) {}
 
-  async exec(model: string, prompt: string, mcpServer?: string): Promise<ExecutionResult> {
+  setProcessManager(manager: ProcessManager): void {
+    this.processManager = manager;
+  }
+
+  async exec(model: string, prompt: string, mcpServer?: string, taskId: string = 'unknown'): Promise<ExecutionResult> {
     const startTime = Date.now();
+
+    // Check if we can spawn a new process
+    if (this.processManager && !this.processManager.canSpawnProcess()) {
+      logWarning('Cannot spawn claude process - resource limits exceeded', {
+        taskId,
+        model,
+        status: this.processManager.getStatus(),
+      });
+
+      return {
+        success: false,
+        error: 'Resource limits exceeded - too many concurrent processes or insufficient memory',
+        duration: 0,
+      };
+    }
+
+    let processHandle: ProcessHandle | undefined;
 
     try {
       const args = [
@@ -227,11 +308,39 @@ export class ClaudeExecutor implements CLIExecutor {
       };
 
       // Pass prompt via stdin instead of command-line arg to avoid CLI argument length limits
-      const result = await execa(this.bin, args, {
+      const subprocess = execa(this.bin, args, {
         env,
         input: prompt,  // Pass prompt via stdin
         timeout: 600_000, // 10 minutes
       });
+
+      // Track the process
+      if (this.processManager && subprocess.pid) {
+        processHandle = {
+          pid: subprocess.pid,
+          taskId,
+          provider: 'claude',
+          model,
+          startTime: Date.now(),
+          kill: () => {
+            subprocess.kill('SIGTERM');
+            // Force kill after 5 seconds if still alive
+            setTimeout(() => {
+              try {
+                subprocess.kill('SIGKILL');
+              } catch {}
+            }, 5000);
+          },
+        };
+        this.processManager.registerProcess(processHandle);
+      }
+
+      const result = await subprocess;
+
+      // Unregister process on success
+      if (this.processManager && processHandle) {
+        this.processManager.unregisterProcess(processHandle.pid);
+      }
 
       return {
         success: result.exitCode === 0,
@@ -240,6 +349,11 @@ export class ClaudeExecutor implements CLIExecutor {
         duration: Date.now() - startTime,
       };
     } catch (error: any) {
+      // Unregister process on error
+      if (this.processManager && processHandle) {
+        this.processManager.unregisterProcess(processHandle.pid);
+      }
+
       return {
         success: false,
         error: error.message,
@@ -306,6 +420,7 @@ export class UnifiedOrchestrator extends EventEmitter {
   private staleTaskThresholdMs: number;
   private staleRecoveryTimer?: NodeJS.Timeout;
   private healthMonitor: AutopilotHealthMonitor;
+  private processManager: ProcessManager;
 
   // Continuous pipeline for zero worker idle time
   private taskQueue: Task[] = [];
@@ -338,13 +453,32 @@ export class UnifiedOrchestrator extends EventEmitter {
   ) {
     super();
 
+    // Initialize process manager for resource control
+    // Max 3 concurrent CLI processes by default (conservative to prevent system crashes)
+    const maxProcesses = Number(process.env.WVO_MAX_CONCURRENT_PROCESSES ?? '3');
+    const maxMemoryPercent = Number(process.env.WVO_MAX_MEMORY_PERCENT ?? '80');
+
+    logInfo('Initializing ProcessManager for resource control', {
+      maxConcurrentProcesses: maxProcesses,
+      maxMemoryUsagePercent: maxMemoryPercent,
+    });
+
+    this.processManager = new ProcessManager({
+      maxConcurrentProcesses: maxProcesses,
+      maxMemoryUsagePercent: maxMemoryPercent,
+      processTimeoutMs: 15 * 60 * 1000, // 15 minutes max (safety backstop)
+      checkIntervalMs: 30 * 1000, // Check every 30 seconds
+    });
+
     // Initialize executors
     if (config.codexHome) {
       this.codexExecutor = new CodexExecutor(config.codexHome);
+      this.codexExecutor.setProcessManager(this.processManager);
     }
 
     if (config.claudeConfigDir) {
       this.claudeExecutor = new ClaudeExecutor(config.claudeConfigDir);
+      this.claudeExecutor.setProcessManager(this.processManager);
     }
 
     // Initialize sophisticated context assembly with code search
@@ -654,6 +788,10 @@ export class UnifiedOrchestrator extends EventEmitter {
     });
     this.roadmapPoller.start();
 
+    // Start process manager for zombie detection and resource monitoring
+    logInfo('Starting ProcessManager for process lifecycle management');
+    this.processManager.start();
+
     // Start health monitor (OODA loop for real-time anomaly detection and remediation)
     logInfo('Starting AutopilotHealthMonitor for real-time anomaly detection');
     this.healthMonitor.start();
@@ -718,6 +856,10 @@ export class UnifiedOrchestrator extends EventEmitter {
     // Stop blocker escalation monitoring
     logDebug('Stopping blocker escalation monitoring');
     await this.blockerEscalationManager.stop();
+
+    // Stop process manager and kill any remaining CLI processes
+    logInfo('Stopping ProcessManager and killing remaining CLI processes');
+    await this.processManager.stop();
 
     // Clean up agents (kill processes if needed)
     this.orchestrator = undefined;
@@ -1655,7 +1797,7 @@ export class UnifiedOrchestrator extends EventEmitter {
 
       this.updateAgentProgress(agent.id, 'Executing task with AI model');
       this.taskProgressTracker.updateStep(task.id, 'Executing with AI');
-      const result = await executor.exec(modelSelection.model, prompt, this.config.mcpServerPath);
+      const result = await executor.exec(modelSelection.model, prompt, this.config.mcpServerPath, task.id);
       this.updateAgentProgress(agent.id, 'Processing execution results');
       this.taskProgressTracker.updateStep(task.id, 'Processing results');
 
