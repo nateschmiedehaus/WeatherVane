@@ -118,10 +118,36 @@ export interface ExecutionResult {
 type PolicyEventType = 'task_completed' | 'task_failed' | 'verification_failed' | 'usage_limit' | 'git_status' | 'preflight_failed';
 
 /**
+ * Calculate execution timeout based on task complexity (1-10 scale)
+ *
+ * Scale:
+ * - Complexity 1-3: 10 minutes (simple tasks)
+ * - Complexity 4-6: 20 minutes (moderate tasks)
+ * - Complexity 7-8: 30 minutes (complex tasks)
+ * - Complexity 9-10: 45 minutes (very complex tasks)
+ * - No complexity: 20 minutes (safe default)
+ */
+function calculateExecutionTimeout(complexity?: number): number {
+  if (!complexity) {
+    return 1_200_000; // 20 minutes - safer default than 10
+  }
+
+  if (complexity <= 3) {
+    return 600_000; // 10 minutes for simple tasks
+  } else if (complexity <= 6) {
+    return 1_200_000; // 20 minutes for moderate tasks
+  } else if (complexity <= 8) {
+    return 1_800_000; // 30 minutes for complex tasks
+  } else {
+    return 2_700_000; // 45 minutes for very complex tasks
+  }
+}
+
+/**
  * CLI executor abstraction for multi-provider support
  */
 export interface CLIExecutor {
-  exec(model: string, prompt: string, mcpServer?: string, taskId?: string): Promise<ExecutionResult>;
+  exec(model: string, prompt: string, mcpServer?: string, taskId?: string, complexity?: number): Promise<ExecutionResult>;
   checkAuth(): Promise<boolean>;
   setProcessManager(manager: ProcessManager): void;
 }
@@ -141,14 +167,17 @@ export class CodexExecutor implements CLIExecutor {
     this.processManager = manager;
   }
 
-  async exec(model: string, prompt: string, mcpServer?: string, taskId: string = 'unknown'): Promise<ExecutionResult> {
+  async exec(model: string, prompt: string, mcpServer?: string, taskId: string = 'unknown', complexity?: number): Promise<ExecutionResult> {
     const startTime = Date.now();
+    const timeout = calculateExecutionTimeout(complexity);
 
     // Check if we can spawn a new process
     if (this.processManager && !this.processManager.canSpawnProcess()) {
       logWarning('Cannot spawn codex process - resource limits exceeded', {
         taskId,
         model,
+        complexity,
+        timeout,
         status: this.processManager.getStatus(),
       });
 
@@ -184,12 +213,20 @@ export class CodexExecutor implements CLIExecutor {
         CODEX_HOME: this.codexHome,
       };
 
+      logDebug('Spawning codex process with dynamic timeout', {
+        taskId,
+        complexity,
+        timeoutMs: timeout,
+        timeoutMinutes: Math.round(timeout / 60000),
+      });
+
       const subprocess = execa('codex', args, {
         env,
-        timeout: 600_000, // 10 minutes
+        timeout, // Dynamic timeout based on complexity
       });
 
       // Track the process
+      let killTimer: NodeJS.Timeout | null = null;
       if (this.processManager && subprocess.pid) {
         processHandle = {
           pid: subprocess.pid,
@@ -200,10 +237,11 @@ export class CodexExecutor implements CLIExecutor {
           kill: () => {
             subprocess.kill('SIGTERM');
             // Force kill after 5 seconds if still alive
-            setTimeout(() => {
+            killTimer = setTimeout(() => {
               try {
                 subprocess.kill('SIGKILL');
               } catch {}
+              killTimer = null;
             }, 5000);
           },
         };
@@ -211,6 +249,12 @@ export class CodexExecutor implements CLIExecutor {
       }
 
       const result = await subprocess;
+
+      // Clear kill timer if process exited normally
+      if (killTimer) {
+        clearTimeout(killTimer);
+        killTimer = null;
+      }
 
       // Unregister process on success
       if (this.processManager && processHandle) {
@@ -271,14 +315,17 @@ export class ClaudeExecutor implements CLIExecutor {
     this.processManager = manager;
   }
 
-  async exec(model: string, prompt: string, mcpServer?: string, taskId: string = 'unknown'): Promise<ExecutionResult> {
+  async exec(model: string, prompt: string, mcpServer?: string, taskId: string = 'unknown', complexity?: number): Promise<ExecutionResult> {
     const startTime = Date.now();
+    const timeout = calculateExecutionTimeout(complexity);
 
     // Check if we can spawn a new process
     if (this.processManager && !this.processManager.canSpawnProcess()) {
       logWarning('Cannot spawn claude process - resource limits exceeded', {
         taskId,
         model,
+        complexity,
+        timeout,
         status: this.processManager.getStatus(),
       });
 
@@ -307,14 +354,22 @@ export class ClaudeExecutor implements CLIExecutor {
         CLAUDE_CONFIG_DIR: this.configDir,
       };
 
+      logDebug('Spawning claude process with dynamic timeout', {
+        taskId,
+        complexity,
+        timeoutMs: timeout,
+        timeoutMinutes: Math.round(timeout / 60000),
+      });
+
       // Pass prompt via stdin instead of command-line arg to avoid CLI argument length limits
       const subprocess = execa(this.bin, args, {
         env,
         input: prompt,  // Pass prompt via stdin
-        timeout: 600_000, // 10 minutes
+        timeout, // Dynamic timeout based on complexity
       });
 
       // Track the process
+      let killTimer: NodeJS.Timeout | null = null;
       if (this.processManager && subprocess.pid) {
         processHandle = {
           pid: subprocess.pid,
@@ -325,10 +380,11 @@ export class ClaudeExecutor implements CLIExecutor {
           kill: () => {
             subprocess.kill('SIGTERM');
             // Force kill after 5 seconds if still alive
-            setTimeout(() => {
+            killTimer = setTimeout(() => {
               try {
                 subprocess.kill('SIGKILL');
               } catch {}
+              killTimer = null;
             }, 5000);
           },
         };
@@ -336,6 +392,12 @@ export class ClaudeExecutor implements CLIExecutor {
       }
 
       const result = await subprocess;
+
+      // Clear kill timer if process exited normally
+      if (killTimer) {
+        clearTimeout(killTimer);
+        killTimer = null;
+      }
 
       // Unregister process on success
       if (this.processManager && processHandle) {
@@ -452,6 +514,9 @@ export class UnifiedOrchestrator extends EventEmitter {
     private readonly config: UnifiedOrchestratorConfig
   ) {
     super();
+
+    // Prevent EventEmitter max listener warnings (orchestrator uses many listeners)
+    this.setMaxListeners(100);
 
     // Initialize process manager for resource control
     // Max 3 concurrent CLI processes by default (conservative to prevent system crashes)
@@ -1068,8 +1133,6 @@ export class UnifiedOrchestrator extends EventEmitter {
         return; // WIP limit prevents new tasks
       }
 
-      const allReadyTasks = this.stateMachine.getReadyTasks();
-
       // CIRCUIT BREAKER: Reset counter every minute
       const now = Date.now();
       if (now - this.lastDecompositionReset > 60_000) {
@@ -1078,13 +1141,21 @@ export class UnifiedOrchestrator extends EventEmitter {
       }
 
       // Step 1: Decompose large tasks into subtasks (enables parallelism)
-      // TEMPORARILY DISABLED: Decomposition is creating runaway nested tasks
-      // TODO: Fix decomposition logic before re-enabling
-      const DECOMPOSITION_DISABLED = true;
+      // Re-enabled after fixing timeout and escalation bugs
+      const DECOMPOSITION_DISABLED = false;
 
       if (!DECOMPOSITION_DISABLED) {
+        // FIX BUG #1: Fetch pending epics AND ready tasks for decomposition
+        // getReadyTasks() excludes epics, so we need to fetch them separately
+        const pendingEpics = this.stateMachine.getTasks({
+          status: ['pending'],
+          type: ['epic']
+        });
+        const allReadyTasks = this.stateMachine.getReadyTasks();
+        const tasksToConsiderForDecomposition = [...pendingEpics, ...allReadyTasks];
+
         // CRITICAL: Limit decomposition attempts to prevent runaway loops
-        for (const task of allReadyTasks) {
+        for (const task of tasksToConsiderForDecomposition) {
           // Circuit breaker check
           if (this.decompositionAttempts >= this.MAX_DECOMPOSITION_ATTEMPTS_PER_MINUTE) {
             logError('Decomposition circuit breaker triggered - too many decomposition attempts', {
@@ -1204,7 +1275,8 @@ export class UnifiedOrchestrator extends EventEmitter {
     const task = this.stateMachine.getTask(taskId);
     if (!task) return;
 
-    const parentTaskId = task.metadata?.parent_task_id as string | undefined;
+    // Check both parent_id (preferred) and metadata.parent_task_id (fallback for backward compatibility)
+    const parentTaskId = task.parent_id || (task.metadata?.parent_task_id as string | undefined);
     if (!parentTaskId) return;
 
     // Check if all sibling subtasks are complete
@@ -1514,7 +1586,7 @@ export class UnifiedOrchestrator extends EventEmitter {
         await this.roadmapTracker.updateTaskStatus(task.id, 'blocked', {
           agent: agent.id,
           duration: 0,
-          output: `🚨 HUMAN ESCALATION REQUIRED after ${state.attemptCount} attempts\n\nLast error:\n${state.lastError}\n\nPlease manually fix and unblock this task.`,
+          output: `🚨 HUMAN ESCALATION REQUIRED after ${state.attemptCount} attempts\n\nEscalation Level: ${state.escalationLevel}\n\nLast error:\n${state.lastError}\n\nPlease manually fix and change task status from 'blocked' to 'pending' to retry.`,
         });
 
         // Record critical blocker
@@ -1527,13 +1599,33 @@ export class UnifiedOrchestrator extends EventEmitter {
           attempts: state.attemptCount,
         });
 
-        // Agent stays locked - wait for human to fix
-        // Check every 30 seconds if task is unblocked
-        setTimeout(() => {
-          this.checkIfTaskUnblocked(task, agent, state).catch(err => {
-            logError('Error checking task unblock status', { error: err.message });
-          });
-        }, 30000);
+        // CRITICAL FIX: Release agent immediately instead of locking it
+        // Task remains blocked until human manually changes status to 'pending'
+        // When status changes, normal task assignment will pick it up
+        agent.currentTask = undefined;
+        agent.currentTaskTitle = undefined;
+
+        this.agentPool.releaseAgent(agent.id);
+        this.logAgentSnapshot('released_after_human_escalation', {
+          agentId: agent.id,
+          taskId: task.id,
+          note: `escalation_level_${state.escalationLevel}`,
+          metrics: {
+            queueSize: this.taskQueue.length,
+          },
+        });
+
+        logInfo('✅ Agent released - available for other tasks while waiting for human intervention', {
+          agentId: agent.id,
+          taskId: task.id,
+        });
+
+        // Assign next task to the released agent
+        this.assignNextTaskIfAvailable().catch(err => {
+          logError('Error assigning next task after human escalation', { error: err.message });
+        });
+
+        return; // Exit remediation - don't keep polling
       }
 
     } catch (error) {
@@ -1554,41 +1646,6 @@ export class UnifiedOrchestrator extends EventEmitter {
           logError('Nested remediation failed', { error: err.message });
         });
       }, 5000);
-    }
-  }
-
-  /**
-   * Check if a task has been manually unblocked and retry if so
-   */
-  private async checkIfTaskUnblocked(
-    task: Task,
-    agent: Agent,
-    state: { escalationLevel: number; attemptCount: number; lastError: string; lastAttemptTime: number; originalAgent: string }
-  ): Promise<void> {
-    const currentTask = this.stateMachine.getTask(task.id);
-
-    if (currentTask && currentTask.status !== 'blocked') {
-      logInfo('✅ Task manually unblocked - retrying', { taskId: task.id });
-
-      // Reset escalation level since human fixed it
-      state.escalationLevel = 0;
-      state.attemptCount++;
-      this.remediationState.set(task.id, state);
-
-      // Retry execution
-      const result = await this.executeTask(task);
-
-      if (result.success) {
-        logInfo('✅ Task succeeded after human intervention!', { taskId: task.id });
-        return;
-      }
-    } else {
-      // Still blocked - check again later
-      setTimeout(() => {
-        this.checkIfTaskUnblocked(task, agent, state).catch(err => {
-          logError('Error checking task unblock status', { error: err.message });
-        });
-      }, 30000);
     }
   }
 
@@ -1799,7 +1856,13 @@ export class UnifiedOrchestrator extends EventEmitter {
 
       this.updateAgentProgress(agent.id, 'Executing task with AI model');
       this.taskProgressTracker.updateStep(task.id, 'Executing with AI');
-      const result = await executor.exec(modelSelection.model, prompt, this.config.mcpServerPath, task.id);
+      const result = await executor.exec(
+        modelSelection.model,
+        prompt,
+        this.config.mcpServerPath,
+        task.id,
+        task.estimated_complexity // Pass complexity for dynamic timeout
+      );
       this.updateAgentProgress(agent.id, 'Processing execution results');
       this.taskProgressTracker.updateStep(task.id, 'Processing results');
 
@@ -2690,6 +2753,12 @@ export class UnifiedOrchestrator extends EventEmitter {
       sections.push(directivesSection);
     }
 
+    // Add plan mode section for complex tasks
+    const planModeSection = this.buildPlanModeSection(task, complexity);
+    if (planModeSection) {
+      sections.push(planModeSection);
+    }
+
     const dependenciesSection = this.buildDependenciesSection(assembledContext);
     if (dependenciesSection) {
       sections.push(dependenciesSection);
@@ -2908,6 +2977,61 @@ export class UnifiedOrchestrator extends EventEmitter {
 
     const ordered = this.formatOrderedList([...directives]);
     return ordered ? `## Directives\n${ordered}` : '';
+  }
+
+  /**
+   * Build plan mode section for complex tasks
+   * Instructs the agent to create a plan before executing
+   */
+  private buildPlanModeSection(
+    task: Task,
+    complexity: TaskComplexity
+  ): string {
+    // Only enable plan mode for complex tasks (complexity >= 7)
+    const isComplexEnoughForPlanning = task.estimated_complexity && task.estimated_complexity >= 7;
+
+    if (!isComplexEnoughForPlanning && complexity !== 'complex') {
+      return '';
+    }
+
+    return `## Plan Mode: Strategic Approach Required
+
+**This is a complex task. Before jumping into implementation, you must:**
+
+1. **Analyze the Requirements**
+   - What are the key deliverables and exit criteria?
+   - What are the dependencies and constraints?
+   - What are the potential risks and edge cases?
+
+2. **Create a Step-by-Step Plan**
+   - Break down the work into discrete, testable phases
+   - Identify files/systems that need to be modified
+   - Plan the verification strategy (how will you know it works?)
+
+3. **Execute the Plan Methodically**
+   - Complete each phase before moving to the next
+   - Document progress and blockers as you go
+   - Adjust the plan if you discover new information
+
+4. **Verify Thoroughly**
+   - Test each phase independently
+   - Run end-to-end integration tests
+   - Confirm all exit criteria are met before claiming completion
+
+**IMPORTANT**:
+- Use the TodoWrite tool to track your plan and progress
+- Mark phases as in_progress/completed as you work
+- If you discover the task is larger than expected, create subtasks
+- Don't claim completion until ALL phases pass verification
+
+**Planning Template**:
+\`\`\`
+Phase 1: [Name] - [What you'll do]
+Phase 2: [Name] - [What you'll do]
+Phase 3: [Name] - [What you'll do]
+...
+Verification: [How you'll confirm it works]
+\`\`\``;
   }
 
   private buildDependenciesSection(context: AssembledContext): string {

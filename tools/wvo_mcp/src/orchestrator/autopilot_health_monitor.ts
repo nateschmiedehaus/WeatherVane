@@ -106,6 +106,8 @@ export class AutopilotHealthMonitor {
   private anomalies: AnomalyDetection[] = [];
   private remediations: RemediationResult[] = [];
   private lastOodaCycle = 0;
+  private lastHealthExport = 0;
+  private readonly HEALTH_EXPORT_INTERVAL = 5 * 60 * 1000; // Export every 5 minutes
 
   constructor(
     private readonly stateMachine: StateMachine,
@@ -195,6 +197,17 @@ export class AutopilotHealthMonitor {
           count: criticalAnomalies.length,
           types: criticalAnomalies.map(a => a.type)
         });
+      }
+
+      // Periodic health report export (every 5 minutes)
+      const now = Date.now();
+      if (now - this.lastHealthExport >= this.HEALTH_EXPORT_INTERVAL) {
+        await this.exportHealthReport().catch(error => {
+          logWarning('Failed to export periodic health report', {
+            error: error instanceof Error ? error.message : String(error)
+          });
+        });
+        this.lastHealthExport = now;
       }
 
     } catch (error) {
@@ -532,11 +545,20 @@ export class AutopilotHealthMonitor {
 
       // Log result
       if (result.success) {
-        logInfo('Remediation executed successfully', {
+        const logPayload: Record<string, any> = {
           anomaly: plan.anomaly.type,
           action: plan.action,
           message: result.message
-        });
+        };
+
+        // Include alert details for 'alert_only' action so formatter can display them meaningfully
+        if (plan.action === 'alert_only') {
+          logPayload.alertType = plan.anomaly.type;
+          logPayload.alertMessage = plan.anomaly.description;
+          logPayload.severity = plan.anomaly.severity;
+        }
+
+        logInfo('Remediation executed successfully', logPayload);
       } else {
         logError('Remediation failed', {
           anomaly: plan.anomaly.type,

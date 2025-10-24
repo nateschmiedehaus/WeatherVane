@@ -52,6 +52,7 @@ export class ProcessManager extends EventEmitter {
 
   constructor(config: Partial<ProcessManagerConfig> = {}) {
     super();
+    this.setMaxListeners(50); // Prevent max listener warnings
     this.config = { ...DEFAULT_CONFIG, ...config };
     logInfo('ProcessManager initialized', {
       maxConcurrentProcesses: this.config.maxConcurrentProcesses,

@@ -400,11 +400,29 @@ export class TaskDecomposer {
     }
 
     for (const subtask of subtasks) {
-      this.stateMachine.createTask(subtask);
-      logDebug('Registered subtask', {
+      // FIX BUG #3: Convert parent_task_id to parent_id for Task interface compatibility
+      // Store in both places for backward compatibility
+      const taskToCreate = {
+        ...subtask,
+        parent_id: subtask.parent_task_id,  // Database column
+        metadata: {
+          ...subtask.metadata,
+          parent_task_id: subtask.parent_task_id,  // Also in metadata for queries
+        },
+      };
+
+      this.stateMachine.createTask(taskToCreate);
+
+      // FIX BUG #2: Store dependencies in task_dependencies table
+      for (const dependsOnTaskId of subtask.dependencies) {
+        this.stateMachine.addDependency(subtask.id, dependsOnTaskId, 'blocks');
+      }
+
+      logDebug('Registered subtask with dependencies', {
         subtaskId: subtask.id,
         parentId: task.id,
         dependencies: subtask.dependencies,
+        dependenciesStoredInDb: subtask.dependencies.length,
       });
     }
 
@@ -427,10 +445,10 @@ export class TaskDecomposer {
    * Check if all subtasks of a parent task are complete
    */
   isParentTaskComplete(parentTaskId: string): boolean {
-    // Get all tasks and filter by parent_task_id in metadata
+    // Get all tasks and filter by parent_id (preferred) or parent_task_id in metadata (fallback)
     const allTasks = this.stateMachine.getTasks();
     const subtasks = allTasks.filter(t =>
-      t.metadata?.parent_task_id === parentTaskId
+      t.parent_id === parentTaskId || t.metadata?.parent_task_id === parentTaskId
     );
 
     if (subtasks.length === 0) {

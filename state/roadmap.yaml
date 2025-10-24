@@ -7565,7 +7565,7 @@ epics:
               pass without proof.
           - id: REM-T2.2.1
             title: "[REM] Verify: Train weather-aware GAM baseline and document methodology"
-            status: pending
+            status: needs_improvement
             dependencies: []
             exit_criteria:
               - Implementation verified
@@ -15019,7 +15019,7 @@ epics:
           - id: REM-T7.1.1
             title: "[REM] Verify: Complete geocoding integration (city->lat/lon, cache
               strateg"
-            status: pending
+            status: needs_improvement
             dependencies: []
             exit_criteria:
               - Implementation verified

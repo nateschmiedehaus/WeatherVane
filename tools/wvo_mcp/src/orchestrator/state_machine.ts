@@ -17,7 +17,7 @@ import fs from 'node:fs';
 
 import { seedLiveFlagDefaults } from '../state/live_flags.js';
 import { createDryRunError } from '../utils/dry_run.js';
-import { logWarning } from '../telemetry/logger.js';
+import { logWarning, logDebug } from '../telemetry/logger.js';
 
 // ============================================================================
 // Types
@@ -197,6 +197,12 @@ export class StateMachine extends EventEmitter {
   private cachedHealth: RoadmapHealth | null = null;
   private healthCacheValid = false;
 
+  // WAL checkpointing management
+  private writeCount = 0;
+  private checkpointTimer: NodeJS.Timeout | null = null;
+  private readonly CHECKPOINT_WRITE_INTERVAL = 1000; // Checkpoint every 1000 writes
+  private readonly CHECKPOINT_TIME_INTERVAL = 5 * 60 * 1000; // Checkpoint every 5 minutes
+
   constructor(workspaceRoot: string, options: StateMachineOptions = {}) {
     super();
     this.workspaceRoot = workspaceRoot;
@@ -234,7 +240,17 @@ export class StateMachine extends EventEmitter {
       this.db.pragma('journal_mode = WAL');  // Better concurrency
       this.db.pragma('foreign_keys = ON');   // Enforce referential integrity
       this.initializeSchema();
+
+      // Start periodic WAL checkpoint timer
+      this.checkpointTimer = setInterval(() => {
+        this.checkpointWAL('periodic');
+      }, this.CHECKPOINT_TIME_INTERVAL);
+      // Prevent timer from keeping process alive
+      this.checkpointTimer.unref();
     }
+
+    // Set max listeners to prevent warnings (orchestrator creates many listeners)
+    this.setMaxListeners(100);
   }
 
   /**
@@ -472,6 +488,8 @@ export class StateMachine extends EventEmitter {
       fullTask.metadata ? JSON.stringify(fullTask.metadata) : null
     );
 
+    this.trackWrite();
+
     this.logEvent({
       timestamp: now,
       event_type: 'task_created',
@@ -519,6 +537,8 @@ export class StateMachine extends EventEmitter {
     values.push(taskId);
     const statement = `UPDATE tasks SET ${setFragments.join(', ')} WHERE id = ?`;
     this.db.prepare(statement).run(...values);
+
+    this.trackWrite();
 
     const updatedTask = this.getTask(taskId);
     if (!updatedTask) {
@@ -613,6 +633,8 @@ export class StateMachine extends EventEmitter {
     const values = Object.values(updates);
     this.db.prepare(`UPDATE tasks SET ${setClauses} WHERE id = ?`).run(...values, taskId);
 
+    this.trackWrite();
+
     this.logEvent({
       timestamp: now,
       event_type: 'task_transition',
@@ -647,6 +669,8 @@ export class StateMachine extends EventEmitter {
 
     this.db.prepare('UPDATE tasks SET assigned_to = ? WHERE id = ?').run(agent, taskId);
 
+    this.trackWrite();
+
     this.logEvent({
       timestamp: Date.now(),
       event_type: 'task_assigned',
@@ -676,6 +700,8 @@ export class StateMachine extends EventEmitter {
       INSERT OR IGNORE INTO task_dependencies (task_id, depends_on_task_id, dependency_type)
       VALUES (?, ?, ?)
     `).run(taskId, dependsOnTaskId, type);
+
+    this.trackWrite();
   }
 
   getDependencies(taskId: string): TaskDependency[] {
@@ -1403,7 +1429,65 @@ export class StateMachine extends EventEmitter {
     return this.db;
   }
 
+  /**
+   * Checkpoint WAL file to reclaim space and improve performance
+   *
+   * Modes:
+   * - PASSIVE: Checkpoint some frames if not busy
+   * - FULL: Checkpoint all frames, wait for readers
+   * - RESTART: Checkpoint all frames, reset WAL
+   * - TRUNCATE: Checkpoint all frames, shrink WAL file to 0 bytes
+   */
+  private checkpointWAL(trigger: 'periodic' | 'write_threshold' | 'shutdown'): void {
+    if (this.readOnly) {
+      return;
+    }
+
+    try {
+      // Use TRUNCATE mode to actually shrink the WAL file
+      // This is the most aggressive but safest during low activity periods
+      const mode = trigger === 'shutdown' ? 'TRUNCATE' : 'RESTART';
+      this.db.pragma(`wal_checkpoint(${mode})`);
+
+      if (trigger === 'write_threshold' || trigger === 'periodic') {
+        logDebug('WAL checkpoint completed', { trigger, writeCount: this.writeCount });
+      }
+
+      // Reset write counter after checkpoint
+      this.writeCount = 0;
+    } catch (error) {
+      logWarning('WAL checkpoint failed', {
+        trigger,
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  }
+
+  /**
+   * Track database writes and trigger checkpoint if threshold exceeded
+   */
+  private trackWrite(): void {
+    if (this.readOnly) {
+      return;
+    }
+
+    this.writeCount++;
+
+    if (this.writeCount >= this.CHECKPOINT_WRITE_INTERVAL) {
+      this.checkpointWAL('write_threshold');
+    }
+  }
+
   close(): void {
+    // Stop checkpoint timer
+    if (this.checkpointTimer) {
+      clearInterval(this.checkpointTimer);
+      this.checkpointTimer = null;
+    }
+
+    // Final WAL checkpoint before closing
+    this.checkpointWAL('shutdown');
+
     this.db.close();
   }
 }

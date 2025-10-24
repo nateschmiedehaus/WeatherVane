@@ -78,6 +78,56 @@ function unwrapWorkerResult(tool: string, result: unknown): McpToolResponse {
 async function main() {
   const workspaceRoot = resolveWorkspaceRoot();
 
+  // PID lock file to prevent duplicate servers
+  const pidLockPath = `${workspaceRoot}/state/.mcp.pid`;
+  const currentPid = process.pid;
+
+  // Check for existing lock
+  try {
+    const fs = await import('node:fs/promises');
+    const existingPid = await fs.readFile(pidLockPath, 'utf-8').then(pid => parseInt(pid.trim(), 10)).catch(() => null);
+
+    if (existingPid) {
+      // Check if process is still running
+      try {
+        process.kill(existingPid, 0); // Signal 0 just checks if process exists
+        console.error(`ERROR: Another MCP server is already running (PID ${existingPid})`);
+        console.error(`If this is a stale lock, remove ${pidLockPath} and try again.`);
+        process.exit(1);
+      } catch {
+        // Process doesn't exist - remove stale lock
+        console.log(`Removing stale PID lock file (PID ${existingPid} not running)`);
+        await fs.unlink(pidLockPath).catch(() => {});
+      }
+    }
+
+    // Write our PID
+    await fs.writeFile(pidLockPath, `${currentPid}\n`, 'utf-8');
+
+    // Clean up PID file on exit
+    const cleanupPidFile = async () => {
+      try {
+        const currentLock = await fs.readFile(pidLockPath, 'utf-8').then(pid => parseInt(pid.trim(), 10)).catch(() => null);
+        if (currentLock === currentPid) {
+          await fs.unlink(pidLockPath);
+        }
+      } catch {}
+    };
+
+    process.on('exit', () => void cleanupPidFile());
+    process.on('SIGINT', async () => {
+      await cleanupPidFile();
+      process.exit(0);
+    });
+    process.on('SIGTERM', async () => {
+      await cleanupPidFile();
+      process.exit(0);
+    });
+  } catch (error) {
+    console.error('Failed to manage PID lock file:', error);
+    // Continue anyway - this is not critical
+  }
+
   const liveFlags = new LiveFlags({ workspaceRoot });
   const otelFlag = liveFlags.getValue("OTEL_ENABLED");
 

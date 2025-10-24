@@ -170,6 +170,7 @@ export class AgentPool extends EventEmitter {
     legacyOptions?: AgentPoolInitOptions
   ) {
     super();
+    this.setMaxListeners(50); // Prevent max listener warnings
     const normalized = this.normalizeOptions(optionsOrWorkspace, legacyOptions);
     this.workspaceRoot = normalized.workspaceRoot ?? resolveWorkspaceRoot();
     this.limitTracker = new SubscriptionLimitTracker(this.workspaceRoot);

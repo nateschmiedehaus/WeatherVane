@@ -40,14 +40,39 @@ type RunToolMessage = {
   idempotencyKey?: string;
 };
 
-process.on("uncaughtException", (error) => {
-  console.error("Worker uncaught exception", error);
+// Store runtime reference for cleanup
+let runtimeInstance: OrchestratorRuntime | null = null;
+
+/**
+ * Cleanup handler for graceful shutdown
+ * Called on errors, signals, and normal exit
+ */
+async function cleanup(): Promise<void> {
+  try {
+    if (runtimeInstance) {
+      runtimeInstance.stop();
+      runtimeInstance = null;
+    }
+  } catch (error) {
+    console.error("Cleanup failed", error);
+  }
+}
+
+process.on("uncaughtException", async (error) => {
+  console.error("Worker uncaught exception - attempting cleanup", error);
+  await cleanup();
   process.exit(1);
 });
 
-process.on("unhandledRejection", (reason) => {
-  console.error("Worker unhandled rejection", reason);
+process.on("unhandledRejection", async (reason) => {
+  console.error("Worker unhandled rejection - attempting cleanup", reason);
+  await cleanup();
   process.exit(1);
+});
+
+// Cleanup on normal process exit
+process.on("beforeExit", () => {
+  void cleanup();
 });
 
 const workerRole = (process.env.WVO_WORKER_ROLE as WorkerRole | undefined) ?? "orchestrator";
@@ -68,6 +93,9 @@ function startOrchestratorWorker(): void {
   const runtime = new OrchestratorRuntime(workspaceRoot, {
     targetCodexRatio: 5,
   });
+
+  // Store runtime for cleanup on crash
+  runtimeInstance = runtime;
 
   const session = new SessionContext(runtime);
   const authChecker = new AuthChecker();
