@@ -64,6 +64,7 @@ CLAUDE_TOOLS = frozenset(
         "critics_run",
         "autopilot_record_audit",
         "autopilot_status",
+        "command_autopilot",
         "heavy_queue_enqueue",
         "heavy_queue_update",
         "heavy_queue_list",

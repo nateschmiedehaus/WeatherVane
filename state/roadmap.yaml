@@ -10,7 +10,7 @@ epics:
         tasks:
           - id: CRIT-PERF-BUILD-4254a2
             title: "[Critic:build] Restore performance"
-            status: needs_improvement
+            status: blocked
             dependencies: []
             exit_criteria: []
             domain: product
@@ -90,7 +90,7 @@ epics:
               performance"
           - id: CRIT-PERF-GLOBAL-9dfa06
             title: "[Critics] Systemic performance remediation"
-            status: pending
+            status: blocked
             dependencies: []
             exit_criteria: []
             domain: product
@@ -154,7 +154,7 @@ epics:
               remediation"
           - id: CRIT-PERF-TESTS-fcee61
             title: "[Critic:tests] Restore performance"
-            status: pending
+            status: in_progress
             dependencies: []
             exit_criteria: []
             domain: product
@@ -1145,7 +1145,7 @@ epics:
         tasks:
           - id: T-MLR-2.3
             title: Train models on all 20 synthetic tenants with cross-validation
-            status: needs_improvement
+            status: blocked
             dependencies:
               - T-MLR-2.2
             exit_criteria: []

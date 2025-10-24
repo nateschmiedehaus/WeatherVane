@@ -70,5 +70,3 @@ select = ["E", "F", "I", "B", "UP", "N"]
 pythonpath = [".deps", "."]
 testpaths = ["tests"]
 asyncio_mode = "auto"
-# Use importlib for module imports to properly handle PYTHONPATH with vendored packages
-addopts = "--import-mode=importlib"
