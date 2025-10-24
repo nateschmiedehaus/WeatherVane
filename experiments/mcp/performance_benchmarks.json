@@ -1,39 +1,59 @@
 {
   "checkpoint_state": {
-    "checkpoint_json_bytes": 107,
-    "latest_checkpoint_timestamp": "2025-10-24T00:50:32.813Z",
-    "orchestrator_db_bytes": 1253376
+    "checkpoint_json_bytes": 140,
+    "latest_checkpoint_timestamp": "2025-10-24T00:52:57.711Z",
+    "orchestrator_db_bytes": 1298432
   },
   "execution_metrics": {
-    "agent_breakdown": {},
-    "avg_completion_tokens": 0.0,
-    "avg_duration_seconds": 0.0,
-    "avg_prompt_tokens": 0.0,
-    "avg_total_tokens": 0.0,
-    "max_duration_seconds": 0.0,
-    "max_total_tokens": 0,
-    "p95_duration_seconds": 0.0,
-    "success_rate": 0.0,
-    "total_runs": 0
+    "agent_breakdown": {
+      "claude_code": {
+        "avg_duration_seconds": 5.0,
+        "avg_total_tokens": 10.0,
+        "max_duration_seconds": 5.0,
+        "max_total_tokens": 10,
+        "runs": 4,
+        "success_rate": 1.0
+      },
+      "codex": {
+        "avg_duration_seconds": 10.889,
+        "avg_total_tokens": 17.222,
+        "max_duration_seconds": 12.0,
+        "max_total_tokens": 20,
+        "runs": 9,
+        "success_rate": 1.0
+      }
+    },
+    "avg_completion_tokens": 5.615,
+    "avg_duration_seconds": 9.077,
+    "avg_prompt_tokens": 9.385,
+    "avg_total_tokens": 15.0,
+    "max_duration_seconds": 12.0,
+    "max_total_tokens": 20,
+    "p95_duration_seconds": 12.0,
+    "success_rate": 1.0,
+    "total_runs": 13
   },
-  "generated_at": "2025-10-24T00:52:48.952888+00:00",
+  "generated_at": "2025-10-24T00:57:31.551815+00:00",
   "queue_metrics": {
     "avg_queue_length": 0.0,
-    "heavy_concurrency_limit": 0,
+    "heavy_concurrency_limit": 1,
     "max_active_heavy": 0,
     "max_blocked_tasks": 0,
     "max_queue_length": 0,
     "max_queued_heavy": 0,
-    "modes_observed": {},
-    "snapshots": 0
+    "modes_observed": {
+      "balance": 9,
+      "stabilize": 3
+    },
+    "snapshots": 12
   },
   "resource_limits": {
     "estimated_max_observed_rss_mb": 0.0,
     "estimated_rss_per_worker_mb": 2048.0,
-    "heavy_concurrency_limit": 0,
+    "heavy_concurrency_limit": 1,
     "heavy_concurrency_within_limit": true,
     "max_observed_active_heavy": 0,
-    "max_observed_duration_seconds": 0.0,
+    "max_observed_duration_seconds": 12.0,
     "recommended_concurrency": 8.0,
     "rss_budget_mb": 16384.0,
     "rss_within_budget": true,
@@ -41,16 +61,41 @@
     "timeouts_within_budget": true
   },
   "sources": {
-    "executions_jsonl": "tools/wvo_mcp/state/telemetry/executions.jsonl",
+    "executions_jsonl": "state/telemetry/archives/executions_2025-10-22T13-28-21.jsonl",
+    "executions_jsonl_additional": [
+      "state/telemetry/archives/executions_2025-10-22T13-28-25.jsonl",
+      "tools/wvo_mcp/state/telemetry/archives/executions_2025-10-21T22-29-38.jsonl",
+      "tools/wvo_mcp/state/telemetry/archives/executions_2025-10-21T15-52-24.jsonl",
+      "tools/wvo_mcp/state/telemetry/archives/executions_2025-10-21T15-49-25.jsonl"
+    ],
     "failover_summary": "experiments/mcp/failover_test.json",
-    "operations_jsonl": "tools/wvo_mcp/state/telemetry/operations.jsonl"
+    "operations_jsonl": "state/telemetry/archives/operations_2025-10-22T13-28-21.jsonl",
+    "operations_jsonl_additional": [
+      "state/telemetry/archives/operations_2025-10-22T13-28-25.jsonl",
+      "tools/wvo_mcp/state/telemetry/archives/operations_2025-10-23T00-29-27.jsonl",
+      "tools/wvo_mcp/state/telemetry/archives/operations_2025-10-21T22-29-38.jsonl",
+      "tools/wvo_mcp/state/telemetry/archives/operations_2025-10-21T22-29-36.jsonl"
+    ]
   },
   "token_usage": {
-    "per_agent": {},
-    "total_completion_tokens": 0,
-    "total_prompt_tokens": 0,
-    "total_token_cost_usd": 0.0,
-    "total_tokens": 0
+    "per_agent": {
+      "claude_code": {
+        "completion_tokens": 16,
+        "prompt_tokens": 24,
+        "token_cost_usd": 0.0,
+        "total_tokens": 40
+      },
+      "codex": {
+        "completion_tokens": 57,
+        "prompt_tokens": 98,
+        "token_cost_usd": 3.9,
+        "total_tokens": 155
+      }
+    },
+    "total_completion_tokens": 73,
+    "total_prompt_tokens": 122,
+    "total_token_cost_usd": 3.9,
+    "total_tokens": 195
   },
   "worker_swap": {
     "generated_at": "2025-10-12T21:34:48.705Z",

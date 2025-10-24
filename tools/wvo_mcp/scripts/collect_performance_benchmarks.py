@@ -12,6 +12,10 @@ from typing import Any, Dict, Iterable, List, Tuple
 
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
+TELEMETRY_LOCATIONS = [
+    REPO_ROOT / "tools" / "wvo_mcp" / "state" / "telemetry",
+    REPO_ROOT / "state" / "telemetry",
+]
 
 
 def load_jsonl(path: Path) -> List[Dict[str, Any]]:
@@ -28,6 +32,61 @@ def load_jsonl(path: Path) -> List[Dict[str, Any]]:
             except json.JSONDecodeError:
                 continue
     return records
+
+
+def load_telemetry_records(
+    primary_path: Path, prefix: str, max_archives: int = 5
+) -> Tuple[List[Dict[str, Any]], List[Path]]:
+    filename = primary_path.name
+    records: List[Dict[str, Any]] = []
+    sources: List[Path] = []
+    seen: set[Path] = set()
+
+    def add_source(path: Path) -> bool:
+        resolved = path.resolve()
+        if resolved in seen:
+            return False
+        data = load_jsonl(path)
+        if not data:
+            return False
+        records.extend(data)
+        sources.append(resolved)
+        seen.add(resolved)
+        return True
+
+    search_roots: List[Path] = []
+    seen_roots: set[Path] = set()
+    for root in [primary_path.parent, *TELEMETRY_LOCATIONS]:
+        resolved_root = root.resolve()
+        if resolved_root in seen_roots:
+            continue
+        seen_roots.add(resolved_root)
+        search_roots.append(resolved_root)
+
+    for root in search_roots:
+        candidate = root / filename
+        if candidate.exists():
+            add_source(candidate)
+
+    archive_candidates: List[Path] = []
+    for root in search_roots:
+        archive_dir = root / "archives"
+        if not archive_dir.exists():
+            continue
+        for candidate in archive_dir.glob(f"{prefix}_*.jsonl"):
+            if candidate.is_file():
+                archive_candidates.append(candidate)
+
+    archive_candidates.sort(key=lambda path: path.stat().st_mtime, reverse=True)
+
+    archives_used = 0
+    for candidate in archive_candidates:
+        if archives_used >= max_archives:
+            break
+        if add_source(candidate):
+            archives_used += 1
+
+    return records, sources
 
 
 def quantile(values: Iterable[float], q: float) -> float:
@@ -300,8 +359,8 @@ def build_report() -> Dict[str, Any]:
     failover_path = REPO_ROOT / "experiments" / "mcp" / "failover_test.json"
     profile_path = REPO_ROOT / "state" / "device_profiles.json"
 
-    executions = load_jsonl(executions_path)
-    operations = load_jsonl(operations_path)
+    executions, execution_sources = load_telemetry_records(executions_path, "executions")
+    operations, operation_sources = load_telemetry_records(operations_path, "operations")
     execution_metrics = compute_execution_metrics(executions)
     token_usage = compute_token_usage(executions)
     queue_metrics = compute_queue_metrics(operations)
@@ -309,11 +368,35 @@ def build_report() -> Dict[str, Any]:
     failover_summary = load_failover_summary(failover_path)
     checkpoints = compute_checkpoint_metrics()
 
+    def relative_sources(paths: List[Path]) -> List[str]:
+        results: List[str] = []
+        for path in paths:
+            try:
+                results.append(str(path.relative_to(REPO_ROOT)))
+            except ValueError:
+                results.append(str(path))
+        return results
+
+    execution_source_list = relative_sources(execution_sources)
+    operation_source_list = relative_sources(operation_sources)
+    default_execution_source = str(executions_path.relative_to(REPO_ROOT))
+    default_operation_source = str(operations_path.relative_to(REPO_ROOT))
+
     return {
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "sources": {
-            "executions_jsonl": str(executions_path.relative_to(REPO_ROOT)),
-            "operations_jsonl": str(operations_path.relative_to(REPO_ROOT)),
+            "executions_jsonl": execution_source_list[0]
+            if execution_source_list
+            else default_execution_source,
+            "operations_jsonl": operation_source_list[0]
+            if operation_source_list
+            else default_operation_source,
+            "executions_jsonl_additional": execution_source_list[1:]
+            if len(execution_source_list) > 1
+            else [],
+            "operations_jsonl_additional": operation_source_list[1:]
+            if len(operation_source_list) > 1
+            else [],
             "failover_summary": str(failover_path.relative_to(REPO_ROOT))
             if failover_summary
             else None,

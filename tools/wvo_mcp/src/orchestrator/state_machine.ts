@@ -712,7 +712,9 @@ export class StateMachine extends EventEmitter {
 
   getReadyTasks(): Task[] {
     const pending = this.getTasks({ status: ['pending'] });
-    return pending.filter(task => this.isTaskReady(task.id));
+    return pending.filter(task =>
+      task.type !== 'epic' && this.isTaskReady(task.id)
+    );
   }
 
   /**
@@ -730,6 +732,11 @@ export class StateMachine extends EventEmitter {
     const ready: Task[] = [];
 
     for (const task of allTasks) {
+      // Skip epics - they are containers, not executable tasks
+      if (task.type === 'epic') {
+        continue;
+      }
+
       if (task.status === 'needs_review') {
         review.push(task);
       } else if (task.status === 'needs_improvement') {

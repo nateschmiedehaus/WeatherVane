@@ -12,6 +12,7 @@ from functools import lru_cache
 from typing import Dict, Iterable, Mapping, Optional, Tuple
 
 import geohash2  # type: ignore
+from prefect import get_run_logger, task
 
 from shared.libs.storage.state import JsonStateStore
 
@@ -63,18 +64,33 @@ class Geocoder:
         self.state_store = state_store
         self._memory_cache: Dict[str, GeoResult] = {}
 
+    @task(name="lookup_postal_code", retries=2)
     def lookup(self, postal_code: Optional[str], country: Optional[str] = None) -> GeoResult:
+        """Lookup coordinates by postal code."""
+        logger = get_run_logger()
         if not postal_code:
+            logger.debug("No postal code provided")
             return GeoResult(latitude=None, longitude=None, geohash=None)
+
         country_code = (country or self.country).upper()
         normalized_postal = str(postal_code).strip()
+        logger.info(f"Looking up coordinates for postal code {normalized_postal} in {country_code}")
+
         cache_key = self._cache_key("postal", (country or self.country), normalized_postal)
         cached = self._load_from_cache(cache_key)
         if cached:
+            logger.debug(f"Found cached result for {normalized_postal}")
             return cached
+
+        logger.debug(f"Performing postal code lookup for {normalized_postal}")
         result = _lookup_postal(country_code, normalized_postal, self.precision)
+        if result.geohash:
+            logger.info(f"Found coordinates for {normalized_postal}: {result.latitude}, {result.longitude}")
+        else:
+            logger.warning(f"No coordinates found for postal code {normalized_postal}")
         return self._store_in_cache(cache_key, result)
 
+    @task(name="lookup_city", retries=2)
     def lookup_city(
         self,
         city: Optional[str],
@@ -82,12 +98,20 @@ class Geocoder:
         country: Optional[str] = None,
         region: Optional[str] = None,
     ) -> GeoResult:
+        """Lookup coordinates by city and region."""
+        logger = get_run_logger()
         if not city:
+            logger.debug("No city provided")
             return GeoResult(latitude=None, longitude=None, geohash=None)
+
         country_code = (country or self.country).upper()
         normalized_city = _normalize(city)
+        logger.info(f"Looking up coordinates for city {normalized_city} in {country_code}")
+
         region_options = tuple(self._region_fallbacks(region))
         region_key = "-".join(opt for opt in region_options if opt) or "none"
+        logger.debug(f"Using region options: {region_options}")
+
         cache_key = self._cache_key(
             "city",
             country_code,
@@ -96,8 +120,15 @@ class Geocoder:
         )
         cached = self._load_from_cache(cache_key)
         if cached:
+            logger.debug(f"Found cached result for {normalized_city}, {region_key}")
             return cached
+
+        logger.debug(f"Performing city lookup for {normalized_city}")
         result = _lookup_city(country_code, normalized_city, region_options, self.precision)
+        if result.geohash:
+            logger.info(f"Found coordinates for {normalized_city}: {result.latitude}, {result.longitude}")
+        else:
+            logger.warning(f"No coordinates found for city {normalized_city}")
         return self._store_in_cache(cache_key, result)
 
     def _cache_key(self, kind: str, country: str, *parts: str) -> str:
@@ -139,9 +170,16 @@ class Geocoder:
         return tuple(dict.fromkeys(candidates))
 
 
+@task(name="enrich_order_with_geo", retries=2)
 def enrich_order_with_geo(order: dict, geocoder: Geocoder) -> dict:
+    """Enrich an order with geocoding data."""
+    logger = get_run_logger()
+    order_id = str(order.get("id", "unknown"))
+    logger.info(f"Enriching order {order_id} with geocoding data")
+
     shipping = order.get("shipping_address") or {}
     precision = getattr(geocoder, "precision", DEFAULT_PRECISION)
+    logger.debug(f"Using precision {precision} for geohash encoding")
 
     def _apply(result: GeoResult) -> dict:
         order["ship_latitude"] = result.latitude

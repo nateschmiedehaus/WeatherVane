@@ -30,15 +30,22 @@ def get_run_logger() -> logging.Logger:
     return logger
 
 
-def flow(func: FuncT | None = None, *, name: str | None = None) -> FuncT | Callable[[FuncT], FuncT]:
+def flow(
+    func: FuncT | None = None,
+    *,
+    name: str | None = None,
+    **options: Any,
+) -> FuncT | Callable[[FuncT], FuncT]:
     """Drop-in replacement for `prefect.flow` decorator."""
 
     if func is None:
-        return functools.partial(flow, name=name)
+        return functools.partial(flow, name=name, **options)
 
     setattr(func, "__prefect_flow__", True)
     if name:
         setattr(func, "__prefect_name__", name)
+    if options:
+        setattr(func, "__prefect_options__", dict(options))
     # Mirror Prefect 2 API surface so call sites can use `.fn` or `.with_options`.
     setattr(func, "fn", func)
 
@@ -49,15 +56,22 @@ def flow(func: FuncT | None = None, *, name: str | None = None) -> FuncT | Calla
     return func
 
 
-def task(func: FuncT | None = None, *, name: str | None = None) -> FuncT | Callable[[FuncT], FuncT]:
+def task(
+    func: FuncT | None = None,
+    *,
+    name: str | None = None,
+    **options: Any,
+) -> FuncT | Callable[[FuncT], FuncT]:
     """Drop-in replacement for `prefect.task` decorator."""
 
     if func is None:
-        return functools.partial(task, name=name)
+        return functools.partial(task, name=name, **options)
 
     setattr(func, "__prefect_task__", True)
     if name:
         setattr(func, "__prefect_name__", name)
+    if options:
+        setattr(func, "__prefect_options__", dict(options))
     setattr(func, "fn", func)
 
     def _with_options(**_: Any) -> FuncT:

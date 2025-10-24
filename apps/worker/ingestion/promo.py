@@ -6,6 +6,8 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Any, Dict, Iterable, Mapping
 
+from prefect import flow, get_run_logger, task
+
 from shared.libs.connectors import KlaviyoConfig, KlaviyoConnector
 from shared.libs.storage.lake import LakeWriter
 from shared.libs.storage.state import JsonStateStore
@@ -21,32 +23,57 @@ class PromoIngestor(BaseIngestor):
     connector: KlaviyoConnector | None = None
     state_store: JsonStateStore | None = None
 
+    @flow(name="ingest_klaviyo_campaigns", retries=3, retry_delay_seconds=60)
     async def ingest_campaigns(
         self,
         tenant_id: str,
         start_date: datetime,
         end_date: datetime,
     ) -> IngestionSummary | None:
+        """Ingest Klaviyo campaign data as a Prefect flow.
+
+        Coordinates tasks to:
+        1. Load state and configure filters
+        2. Fetch campaign data
+        3. Normalize and validate
+        4. Merge incremental updates
+        5. Write to lake storage
+        6. Update state
+        """
+        logger = get_run_logger()
         if not self.connector:
+            logger.warning("No Klaviyo connector configured, skipping ingestion")
             return None
+
+        logger.info(f"Starting Klaviyo campaign ingestion for tenant {tenant_id}")
         state_key = f"{tenant_id}_promos"
         state = self.state_store.load("klaviyo", state_key) if self.state_store else {}
         since = state.get("updated_at_min")
+
         filters = [
             f"greater-or-equal(created_at,'{start_date.isoformat()}')",
             f"less-or-equal(created_at,'{end_date.isoformat()}')",
         ]
         if since:
+            logger.info(f"Resuming from last processed update at {since}")
             filters.append(f"greater-than(updated_at,'{since}')")
+
         params = {
             "page[size]": DEFAULT_PAGE_SIZE,
             "filter": " and ".join(filters),
         }
-        payload = await self.connector.fetch("campaigns", **params)
+        logger.debug(f"Using filters: {filters}")
+
+        payload = await self._fetch_klaviyo_campaigns(params)
         data = payload.get("data", [])
-        rows = [self._normalise_campaign(tenant_id, campaign) for campaign in data]
+        logger.info(f"Retrieved {len(data)} campaigns from Klaviyo")
+
+        logger.info("Normalizing and validating campaign data")
+        rows = [await self._normalise_campaign_task(tenant_id, campaign) for campaign in data]
         if rows:
             validate_promos(rows)
+            logger.info(f"Validated {len(rows)} campaigns")
+
         dataset = f"{tenant_id}_promos"
         combined_rows, new_rows, updated_rows = self._merge_incremental(dataset, rows, ("tenant_id", "campaign_id"))
         metadata = {
@@ -77,6 +104,24 @@ class PromoIngestor(BaseIngestor):
                 },
             )
         return summary
+
+    @task(name="fetch_klaviyo_campaigns", retries=3, retry_delay_seconds=30)
+    async def _fetch_klaviyo_campaigns(self, params: Dict[str, Any]) -> Dict[str, Any]:
+        """Fetch Klaviyo campaign data."""
+        if not self.connector:
+            raise ValueError("Klaviyo connector not configured")
+        logger = get_run_logger()
+        logger.info("Fetching Klaviyo campaign data")
+        logger.debug(f"Using parameters: {params}")
+        return await self.connector.fetch("campaigns", **params)
+
+    @task(name="normalise_campaign")
+    async def _normalise_campaign_task(self, tenant_id: str, campaign: Mapping[str, Any]) -> Dict[str, Any]:
+        """Normalize a Klaviyo campaign into standard format."""
+        logger = get_run_logger()
+        campaign_id = str(campaign.get("id", "unknown"))
+        logger.debug(f"Normalizing campaign {campaign_id} for tenant {tenant_id}")
+        return self._normalise_campaign(tenant_id, campaign)
 
     def _normalise_campaign(self, tenant_id: str, campaign: Mapping[str, Any]) -> Dict[str, Any]:
         attributes = campaign.get("attributes", {})

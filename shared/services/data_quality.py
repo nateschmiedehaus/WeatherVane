@@ -526,4 +526,39 @@ class DataQualityService:
         }
 
 
-__all__ = ["DataQualityConfig", "DataQualityService", "run_data_quality_validation"]
+def validate_data_quality(
+    df: pd.DataFrame,
+    target_column: Optional[str] = None,
+    config: Optional[DataQualityConfig] = None,
+) -> Dict[str, Any]:
+    """Simple data quality validation for a single DataFrame.
+
+    This is a convenience wrapper for quick validation during model training.
+
+    Args:
+        df: Input DataFrame to validate
+        target_column: Optional name of target column for ML-specific checks
+        config: Optional DataQualityConfig with validation thresholds
+
+    Returns:
+        Dictionary containing validation results with status and issues
+    """
+    config = config or DataQualityConfig()
+
+    checks = {
+        "volume": _check_volume(df, config),
+        "completeness": _check_completeness(df, config),
+        "coverage": _check_coverage(df),
+        "outliers": _check_outliers(df, config),
+        "target_variance": _check_target_variance(df, target_column, config),
+    }
+
+    status, issues = _aggregate_status(checks)
+    return {
+        "status": status,
+        "issues": issues,
+        "checks": checks,
+        "ml_ready": status == "pass",
+    }
+
+__all__ = ["DataQualityConfig", "DataQualityService", "run_data_quality_validation", "validate_data_quality"]

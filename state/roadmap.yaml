@@ -373,7 +373,7 @@ epics:
               - "Runtime evidence: metrics collection in action"
             id: REMEDIATION-T6.3.1-PERF-BENCHMARKING
             priority: high
-            status: in_progress
+            status: blocked
             title: "[URGENT] Fix empty performance benchmarking system"
           - dependencies: []
             description: >-
@@ -429,7 +429,7 @@ epics:
               - Tests validate Prefect integration
             id: REMEDIATION-T1.1.2-PREFECT-FLOW
             priority: high
-            status: pending
+            status: blocked
             title: "[URGENT] Convert ingestion to actual Prefect flow"
           - dependencies: []
             description: >-
@@ -1534,7 +1534,7 @@ epics:
             domain: product
             exit_criteria: []
             id: TEST-1
-            status: pending
+            status: blocked
             title: Run build and verify no errors
           - dependencies: []
             description: Execute npm audit and verify 0 vulnerabilities found
@@ -1652,7 +1652,7 @@ epics:
             original_epic: E-PHASE0
             original_task_id: T0.1.1
             priority: high
-            status: pending
+            status: in_progress
             title: "[REM] Verify: Implement geo holdout plumbing"
           - dependencies: []
             description: >-

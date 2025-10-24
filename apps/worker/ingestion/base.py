@@ -9,6 +9,8 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any, Iterable, Mapping, Protocol, Sequence, Tuple
 
+from prefect import get_run_logger, task
+
 from shared.libs.storage.lake import LakeWriter, read_parquet
 
 
@@ -35,6 +37,7 @@ class BaseIngestor:
 
     writer: LakeWriter
 
+    @task(name="write_records", retries=3, retry_delay_seconds=30)
     def _write_records(
         self,
         dataset: str,
@@ -42,8 +45,11 @@ class BaseIngestor:
         source: str = "stub",
         metadata: Mapping[str, Any] | None = None,
     ) -> IngestionSummary:
+        logger = get_run_logger()
         materialised = list(rows)
+        logger.info(f"Writing {len(materialised)} records to dataset {dataset}")
         path = self.writer.write_records(dataset, materialised)
+        logger.debug(f"Records written to {path}")
         return IngestionSummary(
             path=str(path),
             row_count=len(materialised),
@@ -51,6 +57,7 @@ class BaseIngestor:
             metadata=dict(metadata or {}),
         )
 
+    @task(name="write_incremental", retries=3, retry_delay_seconds=30)
     def _write_incremental(
         self,
         dataset: str,
@@ -80,19 +87,23 @@ class BaseIngestor:
             metadata=final_metadata,
         )
 
+    @task(name="merge_incremental")
     def _merge_incremental(
         self,
         dataset: str,
         rows: Iterable[Mapping[str, Any]],
         unique_keys: Sequence[str],
     ) -> Tuple[list[dict[str, Any]], int, int]:
+        logger = get_run_logger()
         latest = self.writer.latest(dataset)
         existing: dict[Tuple[Any, ...], dict[str, Any]] = {}
         if latest:
+            logger.info(f"Reading existing records from {latest}")
             frame = read_parquet(latest)
             for record in frame.to_dicts():
                 key = self._build_key(record, unique_keys)
                 existing[key] = record
+            logger.debug(f"Loaded {len(existing)} existing records")
 
         new_map: dict[Tuple[Any, ...], dict[str, Any]] = {}
         for row in rows:
@@ -111,10 +122,17 @@ class BaseIngestor:
                 existing[key] = record
 
         combined_rows = list(existing.values())
+        logger.info(
+            f"Merge complete: {new_rows} new records, {updated_rows} updated records, "
+            f"{len(combined_rows)} total records"
+        )
         return combined_rows, new_rows, updated_rows
 
     @staticmethod
+    @task(name="build_key")
     def _build_key(row: Mapping[str, Any], unique_keys: Sequence[str]) -> Tuple[Any, ...]:
+        logger = get_run_logger()
+        logger.debug(f"Building key for row using keys: {unique_keys}")
         if not unique_keys:
             return tuple(sorted(row.items()))
         return tuple(row.get(key) for key in unique_keys)

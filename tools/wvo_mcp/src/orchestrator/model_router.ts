@@ -32,8 +32,8 @@ export const MODEL_TIERS: ModelTier[] = [
     maxComplexity: 3,
   },
   {
-    name: 'sonnet-3.5',
-    model: 'claude-3-5-sonnet-20241022',
+    name: 'sonnet-4.5',
+    model: 'claude-sonnet-4-5',
     costPer1K: 0.015,
     minComplexity: 4,
     maxComplexity: 6,

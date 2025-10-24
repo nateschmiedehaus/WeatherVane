@@ -88,7 +88,7 @@ export class AgentHierarchy {
     this.agentProfiles.set('atlas', {
       role: 'atlas',
       provider: 'claude',
-      model: 'claude-3-5-sonnet-20241022',
+      model: 'claude-sonnet-4-5',
       capabilities: [
         'strategic_planning',
         'complex_architecture',
@@ -104,7 +104,7 @@ export class AgentHierarchy {
     this.agentProfiles.set('director_dana', {
       role: 'director_dana',
       provider: 'claude',
-      model: 'claude-3-5-sonnet-20241022',
+      model: 'claude-sonnet-4-5',
       capabilities: [
         'infrastructure_management',
         'automation_coordination',

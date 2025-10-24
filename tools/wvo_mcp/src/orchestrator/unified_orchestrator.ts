@@ -55,6 +55,7 @@ import {
 } from './orchestrator_background_tasks.js';
 import { QualityGateOrchestrator, type QualityGateDecision } from './quality_gate_orchestrator.js';
 import type { TaskEvidence } from './adversarial_bullshit_detector.js';
+import { TaskProgressTracker } from './task_progress_tracker.js';
 
 export type Provider = 'codex' | 'claude';
 export type AgentRole = 'orchestrator' | 'worker' | 'critic' | 'architecture_planner' | 'architecture_reviewer';
@@ -291,6 +292,7 @@ export class UnifiedOrchestrator extends EventEmitter {
   private failureResponseManager: FailureResponseManager;
   private peerReviewManager: PeerReviewManager;
   private qualityGateOrchestrator: QualityGateOrchestrator;
+  private taskProgressTracker: TaskProgressTracker;
   private taskMemoDir: string;
   private usageLimitBackoffMs: number;
   private architecturePlanner?: Agent;
@@ -319,6 +321,16 @@ export class UnifiedOrchestrator extends EventEmitter {
   private decompositionAttempts = 0;
   private lastDecompositionReset = Date.now();
   private readonly MAX_DECOMPOSITION_ATTEMPTS_PER_MINUTE = 100;
+
+  // Escalating remediation pipeline (no max attempts - task MUST finish)
+  private remediationState = new Map<string, {
+    escalationLevel: number;
+    attemptCount: number;
+    lastError: string;
+    lastAttemptTime: number;
+    originalAgent: string;
+    escalatedAgent?: string;
+  }>();
 
   constructor(
     private readonly stateMachine: StateMachine,
@@ -416,6 +428,7 @@ export class UnifiedOrchestrator extends EventEmitter {
     // Initialize quality gate orchestrator for mandatory verification loop
     logInfo('🛡️ Initializing QualityGateOrchestrator - MANDATORY verification enforced');
     this.qualityGateOrchestrator = new QualityGateOrchestrator(config.workspaceRoot);
+    this.taskProgressTracker = new TaskProgressTracker();
 
     this.historicalRegistry = new HistoricalContextRegistry();
     const skipPattern = process.env.WVO_AUTOPILOT_GIT_SKIP_PATTERN ?? '.clean_worktree';
@@ -1256,6 +1269,221 @@ export class UnifiedOrchestrator extends EventEmitter {
   }
 
   /**
+   * Escalating remediation pipeline - task MUST finish!
+   *
+   * Escalation levels:
+   * - Level 0-1: Auto-fix with same agent
+   * - Level 2-3: Upgrade to higher-tier model
+   * - Level 4-5: Escalate to orchestrator for strategic analysis
+   * - Level 6+: Human escalation (Atlas/Dana intervention)
+   */
+  private async performEscalatingRemediation(
+    task: Task,
+    agent: Agent,
+    state: { escalationLevel: number; attemptCount: number; lastError: string; lastAttemptTime: number; originalAgent: string }
+  ): Promise<void> {
+    logInfo('🔺 Performing escalating remediation', {
+      taskId: task.id,
+      level: state.escalationLevel,
+      attempts: state.attemptCount,
+    });
+
+    try {
+      if (state.escalationLevel === 0 || state.escalationLevel === 1) {
+        // Level 0-1: Auto-fix with same agent
+        logInfo('📋 Level 0-1: Attempting auto-fix with same agent', {
+          taskId: task.id,
+          agentId: agent.id,
+        });
+
+        // Use FailureResponseManager to analyze and suggest fix
+        await this.failureResponseManager.handleFailure(task.id);
+
+        // Retry with same agent
+        const result = await this.executeTask(task);
+
+        if (result.success) {
+          logInfo('✅ Auto-fix succeeded!', { taskId: task.id });
+          return;
+        }
+
+      } else if (state.escalationLevel === 2 || state.escalationLevel === 3) {
+        // Level 2-3: Upgrade to higher-tier model
+        logInfo('⬆️ Level 2-3: Escalating to higher-tier model', {
+          taskId: task.id,
+          currentModel: agent.config.model,
+        });
+
+        // Upgrade agent to more powerful model
+        const upgradedAgent = await this.upgradeAgentModel(agent);
+
+        if (upgradedAgent) {
+          // Retry with upgraded agent
+          agent.config.model = upgradedAgent.model;
+          agent.config.provider = upgradedAgent.provider;
+
+          logInfo('🚀 Retrying with upgraded model', {
+            taskId: task.id,
+            newModel: upgradedAgent.model,
+          });
+
+          const result = await this.executeTask(task);
+
+          if (result.success) {
+            logInfo('✅ Upgraded model succeeded!', { taskId: task.id });
+            return;
+          }
+        }
+
+      } else if (state.escalationLevel === 4 || state.escalationLevel === 5) {
+        // Level 4-5: Escalate to orchestrator for strategic analysis
+        logWarning('🎯 Level 4-5: Escalating to orchestrator for strategic intervention', {
+          taskId: task.id,
+          error: state.lastError.substring(0, 200),
+        });
+
+        // Record as high-priority escalation
+        this.blockerEscalationManager.recordBlockedTask(task.id);
+
+        // Create orchestrator task to analyze and fix
+        const orchestratorTask = {
+          ...task,
+          description: `STRATEGIC INTERVENTION REQUIRED:\n\nOriginal task failed ${state.attemptCount} times.\n\nLast error:\n${state.lastError}\n\nOriginal task: ${task.description}`,
+        };
+
+        // Retry after orchestrator intervention
+        const result = await this.executeTask(task);
+
+        if (result.success) {
+          logInfo('✅ Orchestrator intervention succeeded!', { taskId: task.id });
+          return;
+        }
+
+      } else {
+        // Level 6+: Human escalation (Atlas/Dana)
+        logError('🚨 Level 6+: Human escalation required', {
+          taskId: task.id,
+          escalationLevel: state.escalationLevel,
+          attempts: state.attemptCount,
+          error: state.lastError.substring(0, 500),
+        });
+
+        // Mark task as requiring human intervention
+        await this.roadmapTracker.updateTaskStatus(task.id, 'blocked', {
+          agent: agent.id,
+          duration: 0,
+          output: `🚨 HUMAN ESCALATION REQUIRED after ${state.attemptCount} attempts\n\nLast error:\n${state.lastError}\n\nPlease manually fix and unblock this task.`,
+        });
+
+        // Record critical blocker
+        this.blockerEscalationManager.recordBlockedTask(task.id);
+
+        // Alert via telemetry
+        logError('🚨 Critical task blocker - human intervention required', {
+          taskId: task.id,
+          title: task.title,
+          attempts: state.attemptCount,
+        });
+
+        // Agent stays locked - wait for human to fix
+        // Check every 30 seconds if task is unblocked
+        setTimeout(() => {
+          this.checkIfTaskUnblocked(task, agent, state).catch(err => {
+            logError('Error checking task unblock status', { error: err.message });
+          });
+        }, 30000);
+      }
+
+    } catch (error) {
+      logError('Remediation attempt failed', {
+        taskId: task.id,
+        escalationLevel: state.escalationLevel,
+        error: error instanceof Error ? error.message : String(error),
+      });
+
+      // Increment and retry
+      state.escalationLevel++;
+      state.attemptCount++;
+      this.remediationState.set(task.id, state);
+
+      // Retry after brief delay
+      setTimeout(() => {
+        this.performEscalatingRemediation(task, agent, state).catch(err => {
+          logError('Nested remediation failed', { error: err.message });
+        });
+      }, 5000);
+    }
+  }
+
+  /**
+   * Check if a task has been manually unblocked and retry if so
+   */
+  private async checkIfTaskUnblocked(
+    task: Task,
+    agent: Agent,
+    state: { escalationLevel: number; attemptCount: number; lastError: string; lastAttemptTime: number; originalAgent: string }
+  ): Promise<void> {
+    const currentTask = this.stateMachine.getTask(task.id);
+
+    if (currentTask && currentTask.status !== 'blocked') {
+      logInfo('✅ Task manually unblocked - retrying', { taskId: task.id });
+
+      // Reset escalation level since human fixed it
+      state.escalationLevel = 0;
+      state.attemptCount++;
+      this.remediationState.set(task.id, state);
+
+      // Retry execution
+      const result = await this.executeTask(task);
+
+      if (result.success) {
+        logInfo('✅ Task succeeded after human intervention!', { taskId: task.id });
+        return;
+      }
+    } else {
+      // Still blocked - check again later
+      setTimeout(() => {
+        this.checkIfTaskUnblocked(task, agent, state).catch(err => {
+          logError('Error checking task unblock status', { error: err.message });
+        });
+      }, 30000);
+    }
+  }
+
+  /**
+   * Upgrade agent to a more powerful model
+   */
+  private async upgradeAgentModel(agent: Agent): Promise<{ model: string; provider: Provider } | null> {
+    const currentModel = agent.config.model;
+
+    // Upgrade path: haiku-4-5 → sonnet-4-5 → opus-4
+    if (currentModel.includes('haiku')) {
+      return {
+        model: 'claude-sonnet-4-5',
+        provider: 'claude',
+      };
+    } else if (currentModel.includes('sonnet')) {
+      return {
+        model: 'claude-opus-4',
+        provider: 'claude',
+      };
+    } else if (currentModel.includes('codex-low')) {
+      return {
+        model: 'gpt-5-codex-medium',
+        provider: 'codex',
+      };
+    } else if (currentModel.includes('codex-medium')) {
+      return {
+        model: 'gpt-5-codex-high',
+        provider: 'codex',
+      };
+    }
+
+    // Already at highest tier
+    return null;
+  }
+
+  /**
    * Execute a task using the appropriate agent
    * Uses AgentPool to properly queue tasks when no agents are available
    */
@@ -1266,6 +1494,11 @@ export class UnifiedOrchestrator extends EventEmitter {
 
     const startTime = Date.now();
     const complexity = this.assessComplexity(task);
+
+    // Variables for finally block access
+    let finalSuccess = false;
+    let finalOutput: string | undefined;
+    let finalError: string | undefined;
 
     // Reserve an agent (this will queue the task if none are available)
     const agent = await this.agentPool.reserveAgent(task, complexity);
@@ -1300,11 +1533,16 @@ export class UnifiedOrchestrator extends EventEmitter {
         agentRole: agent.config.role,
       });
 
+      // 📊 START PROGRESS TRACKING
+      this.taskProgressTracker.startTask(task.id, task.title || task.id, agent.id);
+
       this.updateAgentProgress(agent.id, 'Classifying task requirements');
+      this.taskProgressTracker.updateStep(task.id, 'Classifying requirements');
       const classification = this.agentHierarchy.classifyTask(task);
 
       // 🛡️ QUALITY GATE: Pre-task review
       this.updateAgentProgress(agent.id, 'Running pre-task quality review');
+      this.taskProgressTracker.updateStep(task.id, 'Pre-task quality review');
       logInfo('🛡️ [QUALITY GATE] Running pre-task review', { taskId: task.id });
       const preTaskReview = await this.qualityGateOrchestrator.reviewTaskPlan(task.id, {
         title: task.title || 'Untitled task',
@@ -1346,6 +1584,7 @@ export class UnifiedOrchestrator extends EventEmitter {
       const preflightSnapshot = await this.gitMonitor.check(`preflight-before:${task.id}`);
       if (this.preflightRunner.shouldRun(task, classification, preflightSnapshot)) {
         this.updateAgentProgress(agent.id, 'Running pre-flight checks');
+        this.taskProgressTracker.updateStep(task.id, 'Pre-flight checks');
         logInfo('Running pre-flight quality checks', { taskId: task.id });
         const preflightResult = await this.preflightRunner.run(preflightSnapshot);
         if (!preflightResult.success) {
@@ -1399,6 +1638,7 @@ export class UnifiedOrchestrator extends EventEmitter {
       const executor = this.getExecutor(agent.config.provider);
 
       this.updateAgentProgress(agent.id, 'Assembling context and building prompt');
+      this.taskProgressTracker.updateStep(task.id, 'Assembling context');
       logDebug('Building sophisticated prompt with context assembly', {
         taskId: task.id,
         agent: agent.id,
@@ -1414,8 +1654,10 @@ export class UnifiedOrchestrator extends EventEmitter {
       });
 
       this.updateAgentProgress(agent.id, 'Executing task with AI model');
+      this.taskProgressTracker.updateStep(task.id, 'Executing with AI');
       const result = await executor.exec(modelSelection.model, prompt, this.config.mcpServerPath);
       this.updateAgentProgress(agent.id, 'Processing execution results');
+      this.taskProgressTracker.updateStep(task.id, 'Processing results');
 
       const duration = Date.now() - startTime;
 
@@ -1430,9 +1672,9 @@ export class UnifiedOrchestrator extends EventEmitter {
       agent.telemetry.lastExecutionTime = Date.now();
 
       agent.lastTaskTitle = task.title || task.id;
-      let finalSuccess = result.success;
-      let finalOutput = result.output;
-      let finalError = result.error;
+      finalSuccess = result.success;
+      finalOutput = result.output;
+      finalError = result.error;
 
       // STRICT OUTPUT DSL VALIDATION (canary shadow mode)
       // Validates agent output format and semantic constraints
@@ -1501,6 +1743,7 @@ export class UnifiedOrchestrator extends EventEmitter {
           // 🛡️ QUALITY GATE: Post-task verification (MANDATORY)
           logInfo('🛡️ [QUALITY GATE] Running post-task verification', { taskId: task.id });
           this.updateAgentProgress(agent.id, 'Running quality gate verification');
+          this.taskProgressTracker.updateStep(task.id, 'Quality gate verification');
 
           // Collect evidence for quality gates
           const evidence: TaskEvidence = {
@@ -1521,6 +1764,9 @@ export class UnifiedOrchestrator extends EventEmitter {
               reasoning: qualityDecision.finalReasoning,
               reviews: Object.keys(qualityDecision.reviews),
             });
+
+            // 📊 MARK AS FAILED
+            this.taskProgressTracker.failTask(task.id, qualityDecision.finalReasoning);
 
             agent.status = 'failed';
             agent.telemetry.failedTasks++;
@@ -1582,6 +1828,9 @@ export class UnifiedOrchestrator extends EventEmitter {
                 duration,
                 output: result.output,
               });
+
+              // 📊 MARK AS COMPLETED
+              this.taskProgressTracker.completeTask(task.id, result.output);
             }
           } else {
             // No review required, mark as done immediately
@@ -1590,6 +1839,9 @@ export class UnifiedOrchestrator extends EventEmitter {
               duration,
               output: result.output,
             });
+
+            // 📊 MARK AS COMPLETED
+            this.taskProgressTracker.completeTask(task.id, result.output);
           }
 
           // Clear blocker record when task completes successfully
@@ -1614,7 +1866,8 @@ export class UnifiedOrchestrator extends EventEmitter {
             verificationDetails.output ??
             `Verification failed with exit code ${verificationDetails.exitCode ?? 'unknown'}`;
 
-          await this.roadmapTracker.updateTaskStatus(task.id, 'blocked', {
+          // Mark as needs_improvement (not blocked) so it auto-retries with highest priority
+          await this.roadmapTracker.updateTaskStatus(task.id, 'needs_improvement', {
             agent: agent.id,
             duration,
             output: `Verification failure: ${verificationMessage}`,
@@ -1626,7 +1879,7 @@ export class UnifiedOrchestrator extends EventEmitter {
           // Intelligently respond to failure: validate, auto-fix if possible, or escalate
           await this.failureResponseManager.handleFailure(task.id);
 
-          logWarning('Task verification failed; marking task as blocked', {
+          logWarning('Task verification failed; marking as needs_improvement for retry', {
             taskId: task.id,
             agent: agent.id,
             verification: verificationDetails,
@@ -1646,8 +1899,8 @@ export class UnifiedOrchestrator extends EventEmitter {
         agent.status = 'failed';
         agent.telemetry.failedTasks++;
 
-        // Update roadmap: in_progress → blocked
-        await this.roadmapTracker.updateTaskStatus(task.id, 'blocked', {
+        // Mark as needs_improvement (not blocked) so it auto-retries with highest priority
+        await this.roadmapTracker.updateTaskStatus(task.id, 'needs_improvement', {
           agent: agent.id,
           duration,
           output: result.error,
@@ -1760,23 +2013,86 @@ export class UnifiedOrchestrator extends EventEmitter {
         duration,
       };
     } finally {
-      agent.currentTask = undefined;
-      agent.currentTaskTitle = undefined;
+      // ⚠️ CRITICAL: Task MUST finish - never give up!
+      // Implement escalating remediation pipeline instead of releasing agent
 
-      // ALWAYS release the agent, even if an error occurred
-      this.agentPool.releaseAgent(agent.id);
-      this.logAgentSnapshot('released', {
-        agentId: agent.id,
-        taskId: task.id,
-        metrics: {
-          queueSize: this.taskQueue.length,
-        },
-      });
+      if (!finalSuccess && finalError) {
+        // Task failed - escalate and retry (agent stays locked)
+        logWarning('🔄 Task failed - initiating escalating remediation', {
+          taskId: task.id,
+          agentId: agent.id,
+          error: finalError.substring(0, 200),
+        });
 
-      // ✅ CONTINUOUS PIPELINE: Immediately assign next task to keep workers busy
-      this.assignNextTaskIfAvailable().catch(err => {
-        logError('Error assigning next task after completion', { error: err.message });
-      });
+        // Track or update remediation state
+        const state = this.remediationState.get(task.id) || {
+          escalationLevel: 0,
+          attemptCount: 0,
+          lastError: '',
+          lastAttemptTime: Date.now(),
+          originalAgent: agent.id,
+        };
+
+        state.attemptCount++;
+        state.lastError = finalError;
+        state.lastAttemptTime = Date.now();
+
+        // Escalate if same error keeps happening
+        if (state.lastError === finalError && state.attemptCount > 2) {
+          state.escalationLevel++;
+        }
+
+        this.remediationState.set(task.id, state);
+
+        // Log escalation level
+        logInfo('🔺 Escalation level', {
+          taskId: task.id,
+          level: state.escalationLevel,
+          attempts: state.attemptCount,
+        });
+
+        // 📊 UPDATE PROGRESS BAR TO SHOW ESCALATION
+        this.taskProgressTracker.escalateTask(task.id, state.escalationLevel, finalError);
+
+        // Schedule escalating remediation (async - don't block)
+        setTimeout(() => {
+          this.performEscalatingRemediation(task, agent, state).catch(err => {
+            logError('Remediation pipeline failed', {
+              taskId: task.id,
+              error: err.message,
+            });
+          });
+        }, 2000); // 2 second delay before retry
+
+        // Agent stays locked - DO NOT RELEASE
+        logInfo('🔒 Agent locked for remediation', {
+          agentId: agent.id,
+          taskId: task.id,
+          escalationLevel: state.escalationLevel,
+        });
+
+      } else {
+        // Task succeeded - release agent normally
+        agent.currentTask = undefined;
+        agent.currentTaskTitle = undefined;
+
+        // Clear remediation state
+        this.remediationState.delete(task.id);
+
+        this.agentPool.releaseAgent(agent.id);
+        this.logAgentSnapshot('released', {
+          agentId: agent.id,
+          taskId: task.id,
+          metrics: {
+            queueSize: this.taskQueue.length,
+          },
+        });
+
+        // Assign next task
+        this.assignNextTaskIfAvailable().catch(err => {
+          logError('Error assigning next task after completion', { error: err.message });
+        });
+      }
     }
   }
 

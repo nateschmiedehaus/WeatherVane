@@ -9,6 +9,8 @@ from typing import Any, Dict, Mapping
 
 import json
 
+from prefect import flow, get_run_logger, task
+
 from shared.libs.connectors import GoogleAdsConfig, GoogleAdsConnector, MetaAdsConnector, MetaAdsConfig
 from shared.libs.storage.lake import LakeWriter
 
@@ -26,6 +28,7 @@ class AdsIngestor(BaseIngestor):
     meta_connector: MetaAdsConnector | None = None
     google_connector: GoogleAdsConnector | None = None
 
+    @flow(name="ingest_meta_ads", retries=3, retry_delay_seconds=60)
     async def ingest_meta(
         self,
         tenant_id: str,
@@ -33,33 +36,80 @@ class AdsIngestor(BaseIngestor):
         end_date: datetime,
         level: str = "adset",
     ) -> IngestionSummary | None:
+        """Ingest Meta Ads data as a Prefect flow.
+
+        Coordinates tasks to:
+        1. Fetch Meta Ads insights data
+        2. Normalize and validate
+        3. Write to lake storage
+        """
+        logger = get_run_logger()
         if not self.meta_connector:
+            logger.warning("No Meta Ads connector configured, skipping ingestion")
             return None
+
+        logger.info(f"Starting Meta Ads ingestion for tenant {tenant_id}")
         params = {
             "time_range": {"since": iso(start_date), "until": iso(end_date)},
             "level": level,
             "time_increment": 1,
         }
-        response = await self.meta_connector.fetch("insights", **params)
+
+        response = await self._fetch_meta_insights(params)
         data = response.get("data", [])
-        rows = [self._normalise_meta_row(tenant_id, row) for row in data]
+        logger.info(f"Retrieved {len(data)} Meta Ads records")
+
+        logger.info("Normalizing and validating Meta Ads data")
+        rows = [await self._normalise_meta_row_task(tenant_id, row) for row in data]
         if rows:
             validate_meta_ads(rows)
-        return self._write_incremental(
+            logger.info(f"Validated {len(rows)} Meta Ads records")
+
+        return await self._write_incremental(
             dataset=f"{tenant_id}_meta_ads",
             rows=rows,
             unique_keys=("tenant_id", "date", "campaign_id", "adset_id"),
             source="meta_api",
         )
 
+    @task(name="fetch_meta_insights", retries=3, retry_delay_seconds=30)
+    async def _fetch_meta_insights(self, params: Dict[str, Any]) -> Dict[str, Any]:
+        """Fetch Meta Ads insights data."""
+        if not self.meta_connector:
+            raise ValueError("Meta Ads connector not configured")
+        logger = get_run_logger()
+        logger.info("Fetching Meta Ads insights data")
+        logger.debug(f"Using parameters: {params}")
+        return await self.meta_connector.fetch("insights", **params)
+
+    @task(name="normalise_meta_row")
+    async def _normalise_meta_row_task(self, tenant_id: str, row: Mapping[str, Any]) -> Dict[str, Any]:
+        """Normalize a Meta Ads row into standard format."""
+        logger = get_run_logger()
+        campaign_id = str(row.get("campaign_id", "unknown"))
+        logger.debug(f"Normalizing Meta Ads row for campaign {campaign_id}")
+        return self._normalise_meta_row(tenant_id, row)
+
+    @flow(name="ingest_google_ads", retries=3, retry_delay_seconds=60)
     async def ingest_google(
         self,
         tenant_id: str,
         start_date: datetime,
         end_date: datetime,
     ) -> IngestionSummary | None:
+        """Ingest Google Ads data as a Prefect flow.
+
+        Coordinates tasks to:
+        1. Fetch Google Ads campaign data
+        2. Normalize and validate
+        3. Write to lake storage
+        """
+        logger = get_run_logger()
         if not self.google_connector:
+            logger.warning("No Google Ads connector configured, skipping ingestion")
             return None
+
+        logger.info(f"Starting Google Ads ingestion for tenant {tenant_id}")
         service = "GoogleAdsService"
         params = {
             "query": (
@@ -68,17 +118,41 @@ class AdsIngestor(BaseIngestor):
                 "FROM campaign WHERE segments.date BETWEEN '{start}' AND '{end}'"
             ).format(start=iso(start_date), end=iso(end_date)),
         }
-        response = await self.google_connector.fetch(service, **params)
+
+        response = await self._fetch_google_ads(service, params)
         data = response.get("results", [])
-        rows = [self._normalise_google_row(tenant_id, row) for row in data]
+        logger.info(f"Retrieved {len(data)} Google Ads records")
+
+        logger.info("Normalizing and validating Google Ads data")
+        rows = [await self._normalise_google_row_task(tenant_id, row) for row in data]
         if rows:
             validate_google_ads(rows)
-        return self._write_incremental(
+            logger.info(f"Validated {len(rows)} Google Ads records")
+
+        return await self._write_incremental(
             dataset=f"{tenant_id}_google_ads",
             rows=rows,
             unique_keys=("tenant_id", "date", "campaign_id"),
             source="google_api",
         )
+
+    @task(name="fetch_google_ads", retries=3, retry_delay_seconds=30)
+    async def _fetch_google_ads(self, service: str, params: Dict[str, Any]) -> Dict[str, Any]:
+        """Fetch Google Ads campaign data."""
+        if not self.google_connector:
+            raise ValueError("Google Ads connector not configured")
+        logger = get_run_logger()
+        logger.info("Fetching Google Ads campaign data")
+        logger.debug(f"Using parameters: {params}")
+        return await self.google_connector.fetch(service, **params)
+
+    @task(name="normalise_google_row")
+    async def _normalise_google_row_task(self, tenant_id: str, row: Mapping[str, Any]) -> Dict[str, Any]:
+        """Normalize a Google Ads row into standard format."""
+        logger = get_run_logger()
+        campaign_id = str(row.get("campaign", {}).get("id", "unknown"))
+        logger.debug(f"Normalizing Google Ads row for campaign {campaign_id}")
+        return self._normalise_google_row(tenant_id, row)
 
     def _normalise_meta_row(self, tenant_id: str, row: Mapping[str, Any]) -> Dict[str, Any]:
         return {

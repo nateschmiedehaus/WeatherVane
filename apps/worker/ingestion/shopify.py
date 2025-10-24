@@ -16,6 +16,8 @@ from datetime import datetime
 from typing import Any, Dict, List, Mapping
 
 from shared.libs.connectors import ShopifyConfig, ShopifyConnector
+from prefect import flow, get_run_logger, task
+
 from shared.libs.storage.lake import LakeWriter
 from shared.libs.storage.state import JsonStateStore
 from shared.validation.schemas import validate_shopify_orders, validate_shopify_products
@@ -32,6 +34,7 @@ class ShopifyIngestor(BaseIngestor):
     geocoder: Geocoder | None = None
     state_store: JsonStateStore | None = None
 
+    @flow(name="ingest_shopify_orders", retries=3, retry_delay_seconds=60)
     async def ingest_orders(
         self,
         tenant_id: str,
@@ -39,6 +42,17 @@ class ShopifyIngestor(BaseIngestor):
         end_date: datetime,
         status: str = "any",
     ) -> IngestionSummary:
+        """Ingest Shopify orders as a Prefect flow.
+
+        Coordinates tasks to:
+        1. Load state and configure parameters
+        2. Collect orders via REST API
+        3. Enrich with geocoding
+        4. Normalize and validate
+        5. Write to lake storage
+        6. Update state
+        """
+        logger = get_run_logger()
         params = {
             "status": status,
             "limit": DEFAULT_PAGE_LIMIT,
@@ -52,11 +66,18 @@ class ShopifyIngestor(BaseIngestor):
         since = state.get("updated_at_min")
         if since:
             params["updated_at_min"] = since
+            logger.info(f"Resuming from last processed record at {since}")
 
+        logger.info(f"Starting Shopify orders ingestion for tenant {tenant_id}")
         orders = await self._collect_rest("orders", params=params)
+        logger.info(f"Retrieved {len(orders)} orders from Shopify API")
+
         geocoder = self.geocoder or Geocoder(state_store=self.state_store)
-        enriched = [enrich_order_with_geo(order, geocoder) for order in orders]
-        rows = [self._normalise_order(tenant_id, order) for order in enriched]
+        logger.info("Enriching orders with geocoding data")
+        enriched = [await self._enrich_order(order, geocoder) for order in orders]
+
+        logger.info("Normalizing and validating order data")
+        rows = [await self._normalise_order_task(tenant_id, order) for order in enriched]
         if rows:
             validate_shopify_orders(rows)
         geocoded_count = sum(1 for row in rows if row.get("ship_geohash"))
@@ -85,21 +106,40 @@ class ShopifyIngestor(BaseIngestor):
                 )
         return summary
 
+    @flow(name="ingest_shopify_products", retries=3, retry_delay_seconds=60)
     async def ingest_products(self, tenant_id: str) -> IngestionSummary:
+        """Ingest Shopify products as a Prefect flow.
+
+        Coordinates tasks to:
+        1. Collect products via REST API
+        2. Normalize and validate
+        3. Write to lake storage
+        """
+        logger = get_run_logger()
+        logger.info(f"Starting Shopify products ingestion for tenant {tenant_id}")
+
         params = {"limit": DEFAULT_PAGE_LIMIT}
         products = await self._collect_rest("products", params=params)
-        rows = [self._normalise_product(tenant_id, product) for product in products]
+        logger.info(f"Retrieved {len(products)} products from Shopify API")
+
+        logger.info("Normalizing and validating product data")
+        rows = [await self._normalise_product_task(tenant_id, product) for product in products]
         if rows:
             validate_shopify_products(rows)
-        return self._write_incremental(
+            logger.info(f"Validated {len(rows)} products successfully")
+
+        return await self._write_incremental(
             dataset=f"{tenant_id}_shopify_products",
             rows=rows,
             unique_keys=("tenant_id", "product_id"),
             source="shopify_api",
         )
 
+    @task(name="collect_shopify_rest", retries=3, retry_delay_seconds=30)
     async def _collect_rest(self, resource: str, params: Dict[str, Any]) -> List[Mapping[str, Any]]:
         """Iterate through Shopify REST pagination until there are no more pages."""
+        logger = get_run_logger()
+        logger.info(f"Starting pagination of Shopify {resource} resource")
 
         cursor = None
         results: List[Mapping[str, Any]] = []
@@ -112,7 +152,25 @@ class ShopifyIngestor(BaseIngestor):
             results.extend(items)
             if not cursor:
                 break
+            logger.debug(f"Retrieved page with {len(items)} {resource}")
+        logger.info(f"Completed pagination with {len(results)} total {resource}")
         return results
+
+    @task(name="enrich_shopify_order", retries=2)
+    async def _enrich_order(self, order: Mapping[str, Any], geocoder: Geocoder) -> Mapping[str, Any]:
+        """Enrich a Shopify order with geocoding data."""
+        logger = get_run_logger()
+        order_id = str(order.get("id", "unknown"))
+        logger.debug(f"Enriching order {order_id} with geocoding data")
+        return enrich_order_with_geo(order, geocoder)
+
+    @task(name="normalise_shopify_order")
+    async def _normalise_order_task(self, tenant_id: str, order: Mapping[str, Any]) -> Dict[str, Any]:
+        """Normalize a Shopify order into standard format."""
+        logger = get_run_logger()
+        order_id = str(order.get("id", "unknown"))
+        logger.debug(f"Normalizing order {order_id} for tenant {tenant_id}")
+        return self._normalise_order(tenant_id, order)
 
     def _normalise_order(self, tenant_id: str, order: Mapping[str, Any]) -> Dict[str, Any]:
         shipping = order.get("shipping_address") or {}
@@ -157,6 +215,14 @@ class ShopifyIngestor(BaseIngestor):
             return None
         text = str(value).strip()
         return text or None
+
+    @task(name="normalise_shopify_product")
+    async def _normalise_product_task(self, tenant_id: str, product: Mapping[str, Any]) -> Dict[str, Any]:
+        """Normalize a Shopify product into standard format."""
+        logger = get_run_logger()
+        product_id = str(product.get("id", "unknown"))
+        logger.debug(f"Normalizing product {product_id} for tenant {tenant_id}")
+        return self._normalise_product(tenant_id, product)
 
 
 def build_shopify_ingestor_from_env(
