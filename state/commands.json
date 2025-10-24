@@ -1,12 +1,12 @@
 {
   "commands": [
     {
-      "id": "CMD-1729726800000",
-      "instruction": "Focus exclusively on REMEDIATION tasks until all are complete. These are critical quality audits of previously completed work.",
+      "id": "CMD-FORCE-REMEDIATION",
+      "instruction": "Work EXCLUSIVELY on REMEDIATION tasks. These are critical quality audits of ALL previously completed work. Do NOT work on any other tasks until ALL REMEDIATION tasks are complete.",
       "task_filter": "REMEDIATION",
-      "created_at": "2025-10-23T23:20:00.000Z",
+      "created_at": "$(date -u +"%Y-%m-%dT%H:%M:%S.000Z")",
       "status": "pending"
     }
   ],
-  "last_updated": "2025-10-23T23:20:00.000Z"
+  "last_updated": "$(date -u +"%Y-%m-%dT%H:%M:%S.000Z")"
 }
