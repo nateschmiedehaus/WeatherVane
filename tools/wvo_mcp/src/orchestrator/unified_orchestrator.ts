@@ -499,7 +499,12 @@ export class UnifiedOrchestrator extends EventEmitter {
   private lastDecompositionReset = Date.now();
   private readonly MAX_DECOMPOSITION_ATTEMPTS_PER_MINUTE = 100;
 
-  // Escalating remediation pipeline (no max attempts - task MUST finish)
+  // Circuit breaker for escalating remediation pipeline
+  private readonly MAX_ESCALATION_ATTEMPTS = 8; // Max 8 attempts before forced exit
+  private readonly MAX_ESCALATION_LEVEL = 6; // Level 0-6 = 7 attempts total
+  private readonly ESCALATION_TIMEOUT_MS = 600_000; // 10 minutes max per task
+
+  // Escalating remediation pipeline
   private remediationState = new Map<string, {
     escalationLevel: number;
     attemptCount: number;
@@ -507,6 +512,7 @@ export class UnifiedOrchestrator extends EventEmitter {
     lastAttemptTime: number;
     originalAgent: string;
     escalatedAgent?: string;
+    startTime: number; // Track when remediation started
   }>();
 
   constructor(
@@ -1494,13 +1500,53 @@ export class UnifiedOrchestrator extends EventEmitter {
   private async performEscalatingRemediation(
     task: Task,
     agent: Agent,
-    state: { escalationLevel: number; attemptCount: number; lastError: string; lastAttemptTime: number; originalAgent: string }
+    state: { escalationLevel: number; attemptCount: number; lastError: string; lastAttemptTime: number; originalAgent: string; startTime: number }
   ): Promise<void> {
     logInfo('🔺 Performing escalating remediation', {
       taskId: task.id,
       level: state.escalationLevel,
       attempts: state.attemptCount,
     });
+
+    // CIRCUIT BREAKER: Check max attempts and timeout
+    const timeSinceStart = Date.now() - state.startTime;
+
+    if (state.attemptCount >= this.MAX_ESCALATION_ATTEMPTS) {
+      logError('🚨 Circuit breaker triggered: Max escalation attempts reached', {
+        taskId: task.id,
+        attempts: state.attemptCount,
+        maxAttempts: this.MAX_ESCALATION_ATTEMPTS,
+        escalationLevel: state.escalationLevel,
+      });
+
+      // Force-release agent and mark task as blocked
+      await this.forceReleaseAgentAndBlockTask(task, agent, state, 'Max escalation attempts reached');
+      return;
+    }
+
+    if (state.escalationLevel > this.MAX_ESCALATION_LEVEL) {
+      logError('🚨 Circuit breaker triggered: Max escalation level exceeded', {
+        taskId: task.id,
+        level: state.escalationLevel,
+        maxLevel: this.MAX_ESCALATION_LEVEL,
+      });
+
+      // Force-release agent and mark task as blocked
+      await this.forceReleaseAgentAndBlockTask(task, agent, state, 'Max escalation level exceeded');
+      return;
+    }
+
+    if (timeSinceStart > this.ESCALATION_TIMEOUT_MS) {
+      logError('🚨 Circuit breaker triggered: Escalation timeout exceeded', {
+        taskId: task.id,
+        duration: timeSinceStart,
+        timeout: this.ESCALATION_TIMEOUT_MS,
+      });
+
+      // Force-release agent and mark task as blocked
+      await this.forceReleaseAgentAndBlockTask(task, agent, state, 'Escalation timeout exceeded');
+      return;
+    }
 
     try {
       if (state.escalationLevel === 0 || state.escalationLevel === 1) {
@@ -1640,13 +1686,91 @@ export class UnifiedOrchestrator extends EventEmitter {
       state.attemptCount++;
       this.remediationState.set(task.id, state);
 
-      // Retry after brief delay
+      // Retry with exponential backoff
+      const backoffDelay = this.calculateBackoffDelay(state.attemptCount);
+      logDebug('Scheduling nested retry with exponential backoff', {
+        taskId: task.id,
+        attempts: state.attemptCount,
+        delayMs: backoffDelay,
+      });
+
       setTimeout(() => {
         this.performEscalatingRemediation(task, agent, state).catch(err => {
           logError('Nested remediation failed', { error: err.message });
         });
-      }, 5000);
+      }, backoffDelay);
     }
+  }
+
+  /**
+   * Calculate exponential backoff delay for retries
+   * Starts at 2s, doubles each time, caps at 60s
+   */
+  private calculateBackoffDelay(attemptCount: number): number {
+    const baseDelay = 2000; // 2 seconds
+    const maxDelay = 60000; // 60 seconds
+    const delay = baseDelay * Math.pow(2, attemptCount - 1);
+    return Math.min(delay, maxDelay);
+  }
+
+  /**
+   * Force-release an agent and mark task as permanently blocked
+   * Used by circuit breaker when max attempts/timeout exceeded
+   */
+  private async forceReleaseAgentAndBlockTask(
+    task: Task,
+    agent: Agent,
+    state: { escalationLevel: number; attemptCount: number; lastError: string; lastAttemptTime: number; originalAgent: string; startTime: number },
+    reason: string
+  ): Promise<void> {
+    logError('🚨 CIRCUIT BREAKER: Force-releasing agent and blocking task', {
+      taskId: task.id,
+      agentId: agent.id,
+      reason,
+      attempts: state.attemptCount,
+      escalationLevel: state.escalationLevel,
+      duration: Date.now() - state.startTime,
+    });
+
+    // Clear agent assignment
+    agent.currentTask = undefined;
+    agent.currentTaskTitle = undefined;
+
+    // Clear remediation state
+    this.remediationState.delete(task.id);
+
+    // CRITICAL: Release agent back to pool
+    this.agentPool.releaseAgent(agent.id);
+
+    // Mark task as blocked with detailed error
+    const blockMessage = `
+🚨 CIRCUIT BREAKER TRIGGERED
+
+Reason: ${reason}
+Attempts: ${state.attemptCount}/${this.MAX_ESCALATION_ATTEMPTS}
+Escalation Level: ${state.escalationLevel}/${this.MAX_ESCALATION_LEVEL}
+Duration: ${Math.round((Date.now() - state.startTime) / 1000)}s
+
+Last Error:
+${state.lastError}
+
+This task has been automatically blocked to prevent system deadlock.
+Please manually investigate and fix, then change status from 'blocked' to 'pending' to retry.
+    `.trim();
+
+    await this.roadmapTracker.updateTaskStatus(task.id, 'blocked', {
+      agent: agent.id,
+      duration: Date.now() - state.startTime,
+      output: blockMessage,
+    });
+
+    // Record as escalated blocker
+    this.blockerEscalationManager.recordBlockedTask(task.id);
+
+    logInfo('✅ Agent released and task blocked', {
+      taskId: task.id,
+      agentId: agent.id,
+    });
   }
 
   /**
@@ -2238,6 +2362,7 @@ export class UnifiedOrchestrator extends EventEmitter {
           lastError: '',
           lastAttemptTime: Date.now(),
           originalAgent: agent.id,
+          startTime: Date.now(), // Track when remediation started for timeout
         };
 
         state.attemptCount++;
@@ -2261,7 +2386,14 @@ export class UnifiedOrchestrator extends EventEmitter {
         // 📊 UPDATE PROGRESS BAR TO SHOW ESCALATION
         this.taskProgressTracker.escalateTask(task.id, state.escalationLevel, finalError);
 
-        // Schedule escalating remediation (async - don't block)
+        // Schedule escalating remediation with exponential backoff (async - don't block)
+        const backoffDelay = this.calculateBackoffDelay(state.attemptCount);
+        logDebug('Scheduling retry with exponential backoff', {
+          taskId: task.id,
+          attempts: state.attemptCount,
+          delayMs: backoffDelay,
+        });
+
         setTimeout(() => {
           this.performEscalatingRemediation(task, agent, state).catch(err => {
             logError('Remediation pipeline failed', {
@@ -2269,7 +2401,7 @@ export class UnifiedOrchestrator extends EventEmitter {
               error: err.message,
             });
           });
-        }, 2000); // 2 second delay before retry
+        }, backoffDelay);
 
         // Agent stays locked - DO NOT RELEASE
         logInfo('🔒 Agent locked for remediation', {
