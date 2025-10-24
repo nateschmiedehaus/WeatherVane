@@ -62,6 +62,32 @@ epics:
               Latest output snippet:
 
               make[1]: *** [lint] Error 1
+          - id: CRIT-PERF-BUILD-4254a2.1
+            title: Research and design for [Critic:build] Restore performance
+            status: pending
+            dependencies: []
+            exit_criteria: []
+            domain: product
+            description: "Research phase: Understand requirements and design approach for
+              [Critic:build] Restore performance"
+          - id: CRIT-PERF-BUILD-4254a2.2
+            title: Implement [Critic:build] Restore performance
+            status: pending
+            dependencies:
+              - CRIT-PERF-BUILD-4254a2.1
+            exit_criteria: []
+            domain: product
+            description: "Implementation phase: Execute the plan for [Critic:build] Restore
+              performance"
+          - id: CRIT-PERF-BUILD-4254a2.3
+            title: Validate and test [Critic:build] Restore performance
+            status: pending
+            dependencies:
+              - CRIT-PERF-BUILD-4254a2.2
+            exit_criteria: []
+            domain: product
+            description: "Validation phase: Test and verify [Critic:build] Restore
+              performance"
           - id: CRIT-PERF-GLOBAL-9dfa06
             title: "[Critics] Systemic performance remediation"
             status: pending
@@ -100,6 +126,32 @@ epics:
 
               - Close this systemic task once individual critics are back on
               track.
+          - id: CRIT-PERF-GLOBAL-9dfa06.1
+            title: Research and design for [Critics] Systemic performance remediation
+            status: pending
+            dependencies: []
+            exit_criteria: []
+            domain: product
+            description: "Research phase: Understand requirements and design approach for
+              [Critics] Systemic performance remediation"
+          - id: CRIT-PERF-GLOBAL-9dfa06.2
+            title: Implement [Critics] Systemic performance remediation
+            status: pending
+            dependencies:
+              - CRIT-PERF-GLOBAL-9dfa06.1
+            exit_criteria: []
+            domain: product
+            description: "Implementation phase: Execute the plan for [Critics] Systemic
+              performance remediation"
+          - id: CRIT-PERF-GLOBAL-9dfa06.3
+            title: Validate and test [Critics] Systemic performance remediation
+            status: pending
+            dependencies:
+              - CRIT-PERF-GLOBAL-9dfa06.2
+            exit_criteria: []
+            domain: product
+            description: "Validation phase: Test and verify [Critics] Systemic performance
+              remediation"
           - id: CRIT-PERF-TESTS-fcee61
             title: "[Critic:tests] Restore performance"
             status: pending
@@ -179,6 +231,673 @@ epics:
 
               ____________ ERROR collecting
               tests/api/onboarding/test_progress.p...
+          - id: CRIT-PERF-TESTS-fcee61.1
+            title: Research and design for [Critic:tests] Restore performance
+            status: pending
+            dependencies: []
+            exit_criteria: []
+            domain: product
+            description: "Research phase: Understand requirements and design approach for
+              [Critic:tests] Restore performance"
+          - id: CRIT-PERF-TESTS-fcee61.2
+            title: Implement [Critic:tests] Restore performance
+            status: pending
+            dependencies:
+              - CRIT-PERF-TESTS-fcee61.1
+            exit_criteria: []
+            domain: product
+            description: "Implementation phase: Execute the plan for [Critic:tests] Restore
+              performance"
+          - id: CRIT-PERF-TESTS-fcee61.3
+            title: Validate and test [Critic:tests] Restore performance
+            status: pending
+            dependencies:
+              - CRIT-PERF-TESTS-fcee61.2
+            exit_criteria: []
+            domain: product
+            description: "Validation phase: Test and verify [Critic:tests] Restore
+              performance"
+          - id: E-GENERAL.1
+            title: Research and design for E-GENERAL
+            status: pending
+            dependencies: []
+            exit_criteria: []
+            domain: product
+            description: "Research phase: Understand requirements and design approach for
+              E-GENERAL"
+          - id: E-GENERAL.2
+            title: Implement E-GENERAL
+            status: pending
+            dependencies:
+              - E-GENERAL.1
+            exit_criteria: []
+            domain: product
+            description: "Implementation phase: Execute the plan for E-GENERAL"
+          - id: E-GENERAL.3
+            title: Validate and test E-GENERAL
+            status: pending
+            dependencies:
+              - E-GENERAL.2
+            exit_criteria: []
+            domain: product
+            description: "Validation phase: Test and verify E-GENERAL"
+          - id: E-ML-REMEDIATION.1
+            title: Research and design for ML Model Remediation - From Prototype to
+              Production
+            status: pending
+            dependencies: []
+            exit_criteria: []
+            domain: product
+            description: "Research phase: Understand requirements and design approach for ML
+              Model Remediation - From Prototype to Production"
+          - id: E-ML-REMEDIATION.2
+            title: Implement ML Model Remediation - From Prototype to Production
+            status: pending
+            dependencies:
+              - E-ML-REMEDIATION.1
+            exit_criteria: []
+            domain: product
+            description: "Implementation phase: Execute the plan for ML Model Remediation -
+              From Prototype to Production"
+          - id: E-ML-REMEDIATION.3
+            title: Validate and test ML Model Remediation - From Prototype to Production
+            status: pending
+            dependencies:
+              - E-ML-REMEDIATION.2
+            exit_criteria: []
+            domain: product
+            description: "Validation phase: Test and verify ML Model Remediation - From
+              Prototype to Production"
+          - id: REM-T-MLR-0.1.1
+            title: Implementation verified
+            status: pending
+            dependencies: []
+            exit_criteria: []
+            domain: product
+            description: "Part of [REM] Verify: Create ModelingReality critic with
+              quantitative thresholds: Implementation verified"
+          - id: REM-T-MLR-0.1.2
+            title: Tests verified
+            status: pending
+            dependencies:
+              - REM-T-MLR-0.1.1
+            exit_criteria: []
+            domain: product
+            description: "Part of [REM] Verify: Create ModelingReality critic with
+              quantitative thresholds: Tests verified"
+          - id: REM-T-MLR-0.1.3
+            title: Quality gate APPROVED
+            status: pending
+            dependencies:
+              - REM-T-MLR-0.1.2
+            exit_criteria: []
+            domain: product
+            description: "Part of [REM] Verify: Create ModelingReality critic with
+              quantitative thresholds: Quality gate APPROVED"
+          - id: REM-T-MLR-0.1.4
+            title: Runtime verification PASSED
+            status: pending
+            dependencies:
+              - REM-T-MLR-0.1.3
+            exit_criteria: []
+            domain: product
+            description: "Part of [REM] Verify: Create ModelingReality critic with
+              quantitative thresholds: Runtime verification PASSED"
+          - id: REM-T-MLR-0.1.5
+            title: Critical issues fixed
+            status: pending
+            dependencies:
+              - REM-T-MLR-0.1.4
+            exit_criteria: []
+            domain: product
+            description: "Part of [REM] Verify: Create ModelingReality critic with
+              quantitative thresholds: Critical issues fixed"
+          - id: REM-T-MLR-0.2.1
+            title: Implementation verified
+            status: pending
+            dependencies: []
+            exit_criteria: []
+            domain: product
+            description: "Part of [REM] Verify: Update all ML task exit criteria with
+              objective metrics: Implementation verified"
+          - id: REM-T-MLR-0.2.2
+            title: Tests verified
+            status: pending
+            dependencies:
+              - REM-T-MLR-0.2.1
+            exit_criteria: []
+            domain: product
+            description: "Part of [REM] Verify: Update all ML task exit criteria with
+              objective metrics: Tests verified"
+          - id: REM-T-MLR-0.2.3
+            title: Quality gate APPROVED
+            status: pending
+            dependencies:
+              - REM-T-MLR-0.2.2
+            exit_criteria: []
+            domain: product
+            description: "Part of [REM] Verify: Update all ML task exit criteria with
+              objective metrics: Quality gate APPROVED"
+          - id: REM-T-MLR-0.2.4
+            title: Runtime verification PASSED
+            status: pending
+            dependencies:
+              - REM-T-MLR-0.2.3
+            exit_criteria: []
+            domain: product
+            description: "Part of [REM] Verify: Update all ML task exit criteria with
+              objective metrics: Runtime verification PASSED"
+          - id: REM-T-MLR-0.2.5
+            title: Critical issues fixed
+            status: pending
+            dependencies:
+              - REM-T-MLR-0.2.4
+            exit_criteria: []
+            domain: product
+            description: "Part of [REM] Verify: Update all ML task exit criteria with
+              objective metrics: Critical issues fixed"
+          - id: REM-T-MLR-1.1.1
+            title: Implementation verified
+            status: pending
+            dependencies: []
+            exit_criteria: []
+            domain: product
+            description: "Part of [REM] Verify: Debug and fix weather multiplier logic in
+              data generator: Implementation verified"
+          - id: REM-T-MLR-1.1.2
+            title: Tests verified
+            status: pending
+            dependencies:
+              - REM-T-MLR-1.1.1
+            exit_criteria: []
+            domain: product
+            description: "Part of [REM] Verify: Debug and fix weather multiplier logic in
+              data generator: Tests verified"
+          - id: REM-T-MLR-1.1.3
+            title: Quality gate APPROVED
+            status: pending
+            dependencies:
+              - REM-T-MLR-1.1.2
+            exit_criteria: []
+            domain: product
+            description: "Part of [REM] Verify: Debug and fix weather multiplier logic in
+              data generator: Quality gate APPROVED"
+          - id: REM-T-MLR-1.1.4
+            title: Runtime verification PASSED
+            status: pending
+            dependencies:
+              - REM-T-MLR-1.1.3
+            exit_criteria: []
+            domain: product
+            description: "Part of [REM] Verify: Debug and fix weather multiplier logic in
+              data generator: Runtime verification PASSED"
+          - id: REM-T-MLR-1.1.5
+            title: Critical issues fixed
+            status: pending
+            dependencies:
+              - REM-T-MLR-1.1.4
+            exit_criteria: []
+            domain: product
+            description: "Part of [REM] Verify: Debug and fix weather multiplier logic in
+              data generator: Critical issues fixed"
+          - id: REM-T-MLR-1.3.1
+            title: Implementation verified
+            status: pending
+            dependencies: []
+            exit_criteria: []
+            domain: product
+            description: "Part of [REM] Verify: Create validation tests for synthetic data
+              quality: Implementation verified"
+          - id: REM-T-MLR-1.3.2
+            title: Tests verified
+            status: pending
+            dependencies:
+              - REM-T-MLR-1.3.1
+            exit_criteria: []
+            domain: product
+            description: "Part of [REM] Verify: Create validation tests for synthetic data
+              quality: Tests verified"
+          - id: REM-T-MLR-1.3.3
+            title: Quality gate APPROVED
+            status: pending
+            dependencies:
+              - REM-T-MLR-1.3.2
+            exit_criteria: []
+            domain: product
+            description: "Part of [REM] Verify: Create validation tests for synthetic data
+              quality: Quality gate APPROVED"
+          - id: REM-T-MLR-1.3.4
+            title: Runtime verification PASSED
+            status: pending
+            dependencies:
+              - REM-T-MLR-1.3.3
+            exit_criteria: []
+            domain: product
+            description: "Part of [REM] Verify: Create validation tests for synthetic data
+              quality: Runtime verification PASSED"
+          - id: REM-T-MLR-1.3.5
+            title: Critical issues fixed
+            status: pending
+            dependencies:
+              - REM-T-MLR-1.3.4
+            exit_criteria: []
+            domain: product
+            description: "Part of [REM] Verify: Create validation tests for synthetic data
+              quality: Critical issues fixed"
+          - id: REM-T-MLR-2.1.1
+            title: Implementation verified
+            status: pending
+            dependencies: []
+            exit_criteria: []
+            domain: product
+            description: "Part of [REM] Verify: Implement proper train/val/test splitting
+              with no leakage: Implementation verified"
+          - id: REM-T-MLR-2.1.2
+            title: Tests verified
+            status: pending
+            dependencies:
+              - REM-T-MLR-2.1.1
+            exit_criteria: []
+            domain: product
+            description: "Part of [REM] Verify: Implement proper train/val/test splitting
+              with no leakage: Tests verified"
+          - id: REM-T-MLR-2.1.3
+            title: Quality gate APPROVED
+            status: pending
+            dependencies:
+              - REM-T-MLR-2.1.2
+            exit_criteria: []
+            domain: product
+            description: "Part of [REM] Verify: Implement proper train/val/test splitting
+              with no leakage: Quality gate APPROVED"
+          - id: REM-T-MLR-2.1.4
+            title: Runtime verification PASSED
+            status: pending
+            dependencies:
+              - REM-T-MLR-2.1.3
+            exit_criteria: []
+            domain: product
+            description: "Part of [REM] Verify: Implement proper train/val/test splitting
+              with no leakage: Runtime verification PASSED"
+          - id: REM-T-MLR-2.1.5
+            title: Critical issues fixed
+            status: pending
+            dependencies:
+              - REM-T-MLR-2.1.4
+            exit_criteria: []
+            domain: product
+            description: "Part of [REM] Verify: Implement proper train/val/test splitting
+              with no leakage: Critical issues fixed"
+          - id: REM-T-MLR-2.2.1
+            title: Implementation verified
+            status: pending
+            dependencies: []
+            exit_criteria: []
+            domain: product
+            description: "Part of [REM] Verify: Implement LightweightMMM with weather
+              features: Implementation verified"
+          - id: REM-T-MLR-2.2.2
+            title: Tests verified
+            status: pending
+            dependencies:
+              - REM-T-MLR-2.2.1
+            exit_criteria: []
+            domain: product
+            description: "Part of [REM] Verify: Implement LightweightMMM with weather
+              features: Tests verified"
+          - id: REM-T-MLR-2.2.3
+            title: Quality gate APPROVED
+            status: pending
+            dependencies:
+              - REM-T-MLR-2.2.2
+            exit_criteria: []
+            domain: product
+            description: "Part of [REM] Verify: Implement LightweightMMM with weather
+              features: Quality gate APPROVED"
+          - id: REM-T-MLR-2.2.4
+            title: Runtime verification PASSED
+            status: pending
+            dependencies:
+              - REM-T-MLR-2.2.3
+            exit_criteria: []
+            domain: product
+            description: "Part of [REM] Verify: Implement LightweightMMM with weather
+              features: Runtime verification PASSED"
+          - id: REM-T-MLR-2.2.5
+            title: Critical issues fixed
+            status: pending
+            dependencies:
+              - REM-T-MLR-2.2.4
+            exit_criteria: []
+            domain: product
+            description: "Part of [REM] Verify: Implement LightweightMMM with weather
+              features: Critical issues fixed"
+          - id: REM-T-MLR-2.5.1
+            title: Implementation verified
+            status: pending
+            dependencies: []
+            exit_criteria: []
+            domain: product
+            description: "Part of [REM] Verify: Compare models to baseline
+              (naive/seasonal/linear): Implementation verified"
+          - id: REM-T-MLR-2.5.2
+            title: Tests verified
+            status: pending
+            dependencies:
+              - REM-T-MLR-2.5.1
+            exit_criteria: []
+            domain: product
+            description: "Part of [REM] Verify: Compare models to baseline
+              (naive/seasonal/linear): Tests verified"
+          - id: REM-T-MLR-2.5.3
+            title: Quality gate APPROVED
+            status: pending
+            dependencies:
+              - REM-T-MLR-2.5.2
+            exit_criteria: []
+            domain: product
+            description: "Part of [REM] Verify: Compare models to baseline
+              (naive/seasonal/linear): Quality gate APPROVED"
+          - id: REM-T-MLR-2.5.4
+            title: Runtime verification PASSED
+            status: pending
+            dependencies:
+              - REM-T-MLR-2.5.3
+            exit_criteria: []
+            domain: product
+            description: "Part of [REM] Verify: Compare models to baseline
+              (naive/seasonal/linear): Runtime verification PASSED"
+          - id: REM-T-MLR-2.5.5
+            title: Critical issues fixed
+            status: pending
+            dependencies:
+              - REM-T-MLR-2.5.4
+            exit_criteria: []
+            domain: product
+            description: "Part of [REM] Verify: Compare models to baseline
+              (naive/seasonal/linear): Critical issues fixed"
+          - id: REM-T-MLR-3.2.1
+            title: Implementation verified
+            status: pending
+            dependencies: []
+            exit_criteria: []
+            domain: product
+            description: "Part of [REM] Verify: Write comprehensive ML validation
+              documentation: Implementation verified"
+          - id: REM-T-MLR-3.2.2
+            title: Tests verified
+            status: pending
+            dependencies:
+              - REM-T-MLR-3.2.1
+            exit_criteria: []
+            domain: product
+            description: "Part of [REM] Verify: Write comprehensive ML validation
+              documentation: Tests verified"
+          - id: REM-T-MLR-3.2.3
+            title: Quality gate APPROVED
+            status: pending
+            dependencies:
+              - REM-T-MLR-3.2.2
+            exit_criteria: []
+            domain: product
+            description: "Part of [REM] Verify: Write comprehensive ML validation
+              documentation: Quality gate APPROVED"
+          - id: REM-T-MLR-3.2.4
+            title: Runtime verification PASSED
+            status: pending
+            dependencies:
+              - REM-T-MLR-3.2.3
+            exit_criteria: []
+            domain: product
+            description: "Part of [REM] Verify: Write comprehensive ML validation
+              documentation: Runtime verification PASSED"
+          - id: REM-T-MLR-3.2.5
+            title: Critical issues fixed
+            status: pending
+            dependencies:
+              - REM-T-MLR-3.2.4
+            exit_criteria: []
+            domain: product
+            description: "Part of [REM] Verify: Write comprehensive ML validation
+              documentation: Critical issues fixed"
+          - id: T-MLR-0.3.1
+            title: artifact:docs/ML_QUALITY_STANDARDS.md
+            status: pending
+            dependencies: []
+            exit_criteria: []
+            domain: product
+            description: "Part of Document world-class quality standards for ML:
+              artifact:docs/ML_QUALITY_STANDARDS.md"
+          - id: T-MLR-0.3.2
+            title: verification:Numeric thresholds for all metrics
+            status: pending
+            dependencies:
+              - T-MLR-0.3.1
+            exit_criteria: []
+            domain: product
+            description: "Part of Document world-class quality standards for ML:
+              verification:Numeric thresholds for all metrics"
+          - id: T-MLR-0.3.3
+            title: verification:Baseline comparison requirements
+            status: pending
+            dependencies:
+              - T-MLR-0.3.2
+            exit_criteria: []
+            domain: product
+            description: "Part of Document world-class quality standards for ML:
+              verification:Baseline comparison requirements"
+          - id: T-MLR-0.3.4
+            title: review:External ML practitioner peer review
+            status: pending
+            dependencies:
+              - T-MLR-0.3.3
+            exit_criteria: []
+            domain: product
+            description: "Part of Document world-class quality standards for ML:
+              review:External ML practitioner peer review"
+          - id: T-MLR-1.2.1
+            title: artifact:storage/seeds/synthetic_v2/*.parquet (20 files)
+            status: pending
+            dependencies: []
+            exit_criteria: []
+            domain: product
+            description: "Part of Generate 3 years of synthetic data for 20 tenants:
+              artifact:storage/seeds/synthetic_v2/*.parquet (20 files)"
+          - id: T-MLR-1.2.2
+            title: metric:total_rows = 219000
+            status: pending
+            dependencies:
+              - T-MLR-1.2.1
+            exit_criteria: []
+            domain: product
+            description: "Part of Generate 3 years of synthetic data for 20 tenants:
+              metric:total_rows = 219000"
+          - id: T-MLR-1.2.3
+            title: metric:date_range = 2022-01-01 to 2024-12-31
+            status: pending
+            dependencies:
+              - T-MLR-1.2.2
+            exit_criteria: []
+            domain: product
+            description: "Part of Generate 3 years of synthetic data for 20 tenants:
+              metric:date_range = 2022-01-01 to 2024-12-31"
+          - id: T-MLR-1.2.4
+            title: metric:weather_correlations_within_target >= 0.90
+            status: pending
+            dependencies:
+              - T-MLR-1.2.3
+            exit_criteria: []
+            domain: product
+            description: "Part of Generate 3 years of synthetic data for 20 tenants:
+              metric:weather_correlations_within_target >= 0.90"
+          - id: T-MLR-1.2.5
+            title: test:pytest tests/data_gen/test_synthetic_v2_quality.py
+            status: pending
+            dependencies:
+              - T-MLR-1.2.4
+            exit_criteria: []
+            domain: product
+            description: "Part of Generate 3 years of synthetic data for 20 tenants:
+              test:pytest tests/data_gen/test_synthetic_v2_quality.py"
+          - id: T-MLR-1.2.6
+            title: critic:data_quality
+            status: pending
+            dependencies:
+              - T-MLR-1.2.5
+            exit_criteria: []
+            domain: product
+            description: "Part of Generate 3 years of synthetic data for 20 tenants:
+              critic:data_quality"
+          - id: T-MLR-2.4.1
+            title: artifact:experiments/mmm_v2/validation_report.json
+            status: pending
+            dependencies: []
+            exit_criteria: []
+            domain: product
+            description: "Part of Validate model performance against objective thresholds:
+              artifact:experiments/mmm_v2/validation_report.json"
+          - id: T-MLR-2.4.2
+            title: metric:weather_sensitive_r2_pass_rate >= 0.80
+            status: pending
+            dependencies:
+              - T-MLR-2.4.1
+            exit_criteria: []
+            domain: product
+            description: "Part of Validate model performance against objective thresholds:
+              metric:weather_sensitive_r2_pass_rate >= 0.80"
+          - id: T-MLR-2.4.3
+            title: metric:weather_elasticity_sign_correct = 1.0
+            status: pending
+            dependencies:
+              - T-MLR-2.4.2
+            exit_criteria: []
+            domain: product
+            description: "Part of Validate model performance against objective thresholds:
+              metric:weather_elasticity_sign_correct = 1.0"
+          - id: T-MLR-2.4.4
+            title: metric:no_overfitting_detected = true
+            status: pending
+            dependencies:
+              - T-MLR-2.4.3
+            exit_criteria: []
+            domain: product
+            description: "Part of Validate model performance against objective thresholds:
+              metric:no_overfitting_detected = true"
+          - id: T-MLR-2.4.5
+            title: critic:modeling_reality_v2
+            status: pending
+            dependencies:
+              - T-MLR-2.4.4
+            exit_criteria: []
+            domain: product
+            description: "Part of Validate model performance against objective thresholds:
+              critic:modeling_reality_v2"
+          - id: T-MLR-2.4.6
+            title: critic:academic_rigor
+            status: pending
+            dependencies:
+              - T-MLR-2.4.5
+            exit_criteria: []
+            domain: product
+            description: "Part of Validate model performance against objective thresholds:
+              critic:academic_rigor"
+          - id: T-MLR-2.6.1
+            title: artifact:experiments/mmm_v2/robustness_report.json
+            status: pending
+            dependencies: []
+            exit_criteria: []
+            domain: product
+            description: "Part of Run robustness tests (outliers, missing data, edge cases):
+              artifact:experiments/mmm_v2/robustness_report.json"
+          - id: T-MLR-2.6.2
+            title: test:Model handles extreme weather without crash
+            status: pending
+            dependencies:
+              - T-MLR-2.6.1
+            exit_criteria: []
+            domain: product
+            description: "Part of Run robustness tests (outliers, missing data, edge cases):
+              test:Model handles extreme weather without crash"
+          - id: T-MLR-2.6.3
+            title: test:Model handles missing data gracefully
+            status: pending
+            dependencies:
+              - T-MLR-2.6.2
+            exit_criteria: []
+            domain: product
+            description: "Part of Run robustness tests (outliers, missing data, edge cases):
+              test:Model handles missing data gracefully"
+          - id: T-MLR-2.6.4
+            title: test:Zero ad spend predicts organic baseline
+            status: pending
+            dependencies:
+              - T-MLR-2.6.3
+            exit_criteria: []
+            domain: product
+            description: "Part of Run robustness tests (outliers, missing data, edge cases):
+              test:Zero ad spend predicts organic baseline"
+          - id: T-MLR-2.6.5
+            title: test:pytest tests/model/test_mmm_robustness.py (15/15 pass)
+            status: pending
+            dependencies:
+              - T-MLR-2.6.4
+            exit_criteria: []
+            domain: product
+            description: "Part of Run robustness tests (outliers, missing data, edge cases):
+              test:pytest tests/model/test_mmm_robustness.py (15/15 pass)"
+          - id: T-MLR-2.6.6
+            title: critic:modeling_reality_v2
+            status: pending
+            dependencies:
+              - T-MLR-2.6.5
+            exit_criteria: []
+            domain: product
+            description: "Part of Run robustness tests (outliers, missing data, edge cases):
+              critic:modeling_reality_v2"
+          - id: T-MLR-3.1.1
+            title: artifact:experiments/mmm_v2/validation_notebook.ipynb
+            status: pending
+            dependencies: []
+            exit_criteria: []
+            domain: product
+            description: "Part of Create reproducible validation notebook:
+              artifact:experiments/mmm_v2/validation_notebook.ipynb"
+          - id: T-MLR-3.1.2
+            title: test:Notebook runs end-to-end without errors
+            status: pending
+            dependencies:
+              - T-MLR-3.1.1
+            exit_criteria: []
+            domain: product
+            description: "Part of Create reproducible validation notebook: test:Notebook
+              runs end-to-end without errors"
+          - id: T-MLR-3.1.3
+            title: test:Output matches claimed metrics
+            status: pending
+            dependencies:
+              - T-MLR-3.1.2
+            exit_criteria: []
+            domain: product
+            description: "Part of Create reproducible validation notebook: test:Output
+              matches claimed metrics"
+          - id: T-MLR-3.1.4
+            title: artifact:experiments/mmm_v2/validation_notebook.html
+            status: pending
+            dependencies:
+              - T-MLR-3.1.3
+            exit_criteria: []
+            domain: product
+            description: "Part of Create reproducible validation notebook:
+              artifact:experiments/mmm_v2/validation_notebook.html"
+          - id: T-MLR-3.1.5
+            title: critic:academic_rigor
+            status: pending
+            dependencies:
+              - T-MLR-3.1.4
+            exit_criteria: []
+            domain: product
+            description: "Part of Create reproducible validation notebook:
+              critic:academic_rigor"
   - id: E-ML-REMEDIATION
     title: ML Model Remediation - From Prototype to Production
     status: pending
@@ -17556,7 +18275,7 @@ epics:
               pass without proof.
           - id: REMEDIATION-ALL-MCP-SERVER
             title: "[CRITICAL] Audit ALL MCP server code for quality issues"
-            status: blocked
+            status: done
             dependencies: []
             exit_criteria:
               - Build passes with 0 errors
@@ -17628,7 +18347,7 @@ epics:
               - ✅ No superficial completion detected
           - id: REMEDIATION-ALL-QUALITY-GATES-DOGFOOD
             title: "[CRITICAL] Integrate multi-domain genius-level reviews (GATE 5)"
-            status: blocked
+            status: done
             dependencies: []
             exit_criteria:
               - unknown
@@ -17706,7 +18425,7 @@ epics:
               (docs/DOMAIN_EXPERT_INTEGRATION_EVIDENCE.md)
           - id: REMEDIATION-ALL-TESTING-INFRASTRUCTURE
             title: "[CRITICAL] Verify testing infrastructure quality"
-            status: blocked
+            status: done
             dependencies: []
             exit_criteria:
               - npm test shows 865/865 passing (100%)
@@ -17794,7 +18513,7 @@ epics:
               - ✅ Evidence: Coverage report + test quality analysis
           - id: REMEDIATION-T1.1.2-PREFECT-FLOW
             title: "[URGENT] Convert ingestion to actual Prefect flow"
-            status: blocked
+            status: done
             dependencies: []
             exit_criteria:
               - Code uses @flow and @task decorators from Prefect
@@ -17849,7 +18568,7 @@ epics:
               **Priority**: HIGH - Must use correct framework
           - id: REMEDIATION-T2.2.1-GAM-BASELINE
             title: "[URGENT] Implement missing Weather-aware GAM baseline"
-            status: blocked
+            status: done
             dependencies: []
             exit_criteria:
               - Training script apps/modeling/train_weather_gam.py exists and
@@ -17907,7 +18626,7 @@ epics:
               **Priority**: CRITICAL - Must fix before claiming task complete
           - id: REMEDIATION-T6.3.1-PERF-BENCHMARKING
             title: "[URGENT] Fix empty performance benchmarking system"
-            status: blocked
+            status: done
             dependencies: []
             exit_criteria:
               - state/analytics/orchestration_metrics.json contains >0 decision
@@ -18727,6 +19446,27 @@ epics:
     description: Close the execution gap between sophisticated modeling plans and
       the current codebase, while embedding Autopilot self-critique so these
       regressions cannot hide in the future.
+  - id: E13.1
+    title: Research and design for Epic 13 — Weather-Aware Modeling Reality
+    status: pending
+    domain: product
+    milestones: []
+    description: "Research phase: Understand requirements and design approach for
+      Epic 13 — Weather-Aware Modeling Reality"
+  - id: E13.2
+    title: Implement Epic 13 — Weather-Aware Modeling Reality
+    status: pending
+    domain: product
+    milestones: []
+    description: "Implementation phase: Execute the plan for Epic 13 — Weather-Aware
+      Modeling Reality"
+  - id: E13.3
+    title: Validate and test Epic 13 — Weather-Aware Modeling Reality
+    status: pending
+    domain: product
+    milestones: []
+    description: "Validation phase: Test and verify Epic 13 — Weather-Aware Modeling
+      Reality"
   - id: E2
     title: Epic 2 — Features & Modeling Baseline
     status: done
@@ -19669,3 +20409,24 @@ epics:
             domain: mcp
     description: Post-v1 performance improvements and production observability. High
       ROI optimizations that still honour the blue/green guardrail contract.
+  - id: E9.1
+    title: Research and design for PHASE-5-OPTIMIZATION — Performance & Observability
+    status: pending
+    domain: product
+    milestones: []
+    description: "Research phase: Understand requirements and design approach for
+      PHASE-5-OPTIMIZATION — Performance & Observability"
+  - id: E9.2
+    title: Implement PHASE-5-OPTIMIZATION — Performance & Observability
+    status: pending
+    domain: product
+    milestones: []
+    description: "Implementation phase: Execute the plan for PHASE-5-OPTIMIZATION —
+      Performance & Observability"
+  - id: E9.3
+    title: Validate and test PHASE-5-OPTIMIZATION — Performance & Observability
+    status: pending
+    domain: product
+    milestones: []
+    description: "Validation phase: Test and verify PHASE-5-OPTIMIZATION —
+      Performance & Observability"

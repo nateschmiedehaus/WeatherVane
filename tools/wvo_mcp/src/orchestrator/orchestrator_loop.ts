@@ -382,7 +382,7 @@ export class OrchestratorLoop extends EventEmitter {
       const state = this.policy.getSystemState();
 
       // 2. Decide what to do
-      const decision = this.policy.decide(state);
+      const decision = await this.policy.decide(state);
 
       this.emitEvent({
         timestamp: Date.now(),

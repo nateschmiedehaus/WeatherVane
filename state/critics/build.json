@@ -1,50 +1,12 @@
 {
   "critic": "build",
-  "code": 2,
-  "stdout": "ruff check apps shared --select E,F --ignore E501\nF821 Undefined name `Tuple`\n   --> apps/model/backtest_generator.py:126:6\n    |\n124 | def _split_train_holdout(\n125 |     frame: pl.DataFrame, train_fraction: float = 0.8\n126 | ) -> Tuple[pl.DataFrame, pl.DataFrame]:\n    |      ^^^^^\n127 |     \"\"\"Split data into train and holdout sets.\n    |\n\nF821 Undefined name `Tuple`\n   --> apps/model/backtest_generator.py:202:6\n    |\n200 |     actuals: np.ndarray,\n201 |     confidence: float = 0.9,\n202 | ) -> Tuple[np.ndarray, np.ndarray]:\n    |      ^^^^^\n203 |     \"\"\"Generate prediction intervals using residual-based bootstrap.\n    |\n\nF821 Undefined name `Optional`\n  --> apps/model/baseline_comparison.py:68:26\n   |\n66 |         self.is_fitted = True\n67 |\n68 |     def predict(self, X: Optional[np.ndarray] = None) -> np.ndarray:\n   |                          ^^^^^^^^\n69 |         \"\"\"Make predictions.\n   |\n\nF401 [*] `pytest` imported but unused\n --> apps/model/tests/test_weather_elasticity_analysis.py:5:8\n  |\n4 | import polars as pl\n5 | import pytest\n  |        ^^^^^^\n6 | from datetime import date, timedelta\n7 | import numpy as np\n  |\nhelp: Remove unused import: `pytest`\n\nE402 Module level import not at top of file\n  --> shared/libs/geography/mapper.py:11:1\n   |\n 9 | STATE_MIN_WEATHER_COVERAGE = 0.70  # 70% weather data required for state level\n10 |\n11 | import csv\n   | ^^^^^^^^^^\n12 | import json\n13 | from dataclasses import dataclass\n   |\n\nE402 Module level import not at top of file\n  --> shared/libs/geography/mapper.py:12:1\n   |\n11 | import csv\n12 | import json\n   | ^^^^^^^^^^^\n13 | from dataclasses import dataclass\n14 | from functools import lru_cache\n   |\n\nE402 Module level import not at top of file\n  --> shared/libs/geography/mapper.py:13:1\n   |\n11 | import csv\n12 | import json\n13 | from dataclasses import dataclass\n   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n14 | from functools import lru_cache\n15 | from pathlib import Path\n   |\n\nE402 Module level import not at top of file\n  --> shared/libs/geography/mapper.py:14:1\n   |\n12 | import json\n13 | from dataclasses import dataclass\n14 | from functools import lru_cache\n   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n15 | from pathlib import Path\n16 | from typing import Dict, Optional\n   |\n\nE402 Module level import not at top of file\n  --> shared/libs/geography/mapper.py:15:1\n   |\n13 | from dataclasses import dataclass\n14 | from functools import lru_cache\n15 | from pathlib import Path\n   | ^^^^^^^^^^^^^^^^^^^^^^^^\n16 | from typing import Dict, Optional\n   |\n\nE402 Module level import not at top of file\n  --> shared/libs/geography/mapper.py:16:1\n   |\n14 | from functools import lru_cache\n15 | from pathlib import Path\n16 | from typing import Dict, Optional\n   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n17 |\n18 | import geohash2  # type: ignore\n   |\n\nE402 Module level import not at top of file\n  --> shared/libs/geography/mapper.py:18:1\n   |\n16 | from typing import Dict, Optional\n17 |\n18 | import geohash2  # type: ignore\n   | ^^^^^^^^^^^^^^^\n19 | from shapely.geometry import Point, shape  # type: ignore\n20 | from shapely.strtree import STRtree  # type: ignore\n   |\n\nE402 Module level import not at top of file\n  --> shared/libs/geography/mapper.py:19:1\n   |\n18 | import geohash2  # type: ignore\n19 | from shapely.geometry import Point, shape  # type: ignore\n   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n20 | from shapely.strtree import STRtree  # type: ignore\n   |\n\nE402 Module level import not at top of file\n  --> shared/libs/geography/mapper.py:20:1\n   |\n18 | import geohash2  # type: ignore\n19 | from shapely.geometry import Point, shape  # type: ignore\n20 | from shapely.strtree import STRtree  # type: ignore\n   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n21 |\n22 | DATA_DIR = Path(__file__).resolve().parents[2] / \"data\" / \"geography\"\n   |\n\nF401 [*] `typing.Optional` imported but unused\n  --> shared/meta_evaluation.py:9:32\n   |\n 7 | import os\n 8 | from pathlib import Path\n 9 | from typing import Dict, List, Optional, Tuple\n   |                                ^^^^^^^^\n10 |\n11 | import numpy as np\n   |\nhelp: Remove unused import: `typing.Optional`\n\nFound 14 errors.\n[*] 2 fixable with the `--fix` option.",
-  "stderr": "make[1]: *** [lint] Error 1",
-  "passed": false,
-  "analysis": {
-    "category": "lint_violation",
-    "confidence": 0.75,
-    "rootCauses": [
-      "Linting or static analysis detected style violations"
-    ],
-    "recommendations": [
-      "Rerun lint locally and stage fixes.",
-      "Check formatter configuration drift.",
-      "Review alternative implementation options supplied by the research layer."
-    ],
-    "history": {
-      "totalObservations": 11,
-      "similarFailures": 6
-    },
-    "researchFindings": [
-      {
-        "id": "stub-academic-1761266605261",
-        "title": "Research stub for build critic lint_violation failure",
-        "summary": "Academic research integration is not yet implemented. Enable the research_layer flag once ready.",
-        "source": "placeholder",
-        "confidence": 0.1
-      }
-    ],
-    "alternativeOptions": [
-      {
-        "id": "stub-alternative-1761266605262",
-        "title": "Alternative placeholder for build critic remediation",
-        "summary": "Alternative generation is not yet implemented. This entry is returned to keep the pipeline stable.",
-        "pros": [
-          "Placeholder recommendation"
-        ],
-        "cons": [
-          "No real evaluation available"
-        ],
-        "confidence": 0.1
-      }
-    ]
-  },
-  "git_sha": "f87edf545f9299dab60d588dafeb13d288cf9896",
-  "timestamp": "2025-10-24T00:50:32.530Z",
+  "code": 0,
+  "stdout": "ruff check apps shared --select E,F --ignore E501\nAll checks passed!\nnpm run lint --prefix apps/web || true\n\n> weathervane-web@0.1.0 lint\n> next lint\n\n✔ No ESLint warnings or errors",
+  "stderr": "",
+  "passed": true,
+  "analysis": null,
+  "git_sha": "9ec9f1550a52c3f8648ed7ba3a5d85d6128f6e7d",
+  "timestamp": "2025-10-24T19:31:21.955Z",
   "identity": {
     "title": "Build Sentinel",
     "mission": "Guarantee that core build processes remain reproducible and optimized across environments.",

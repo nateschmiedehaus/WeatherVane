@@ -13,6 +13,7 @@
 
 import type { StateMachine } from './state_machine.js';
 import type { Task } from './state_machine.js';
+import { TaskReadinessChecker } from './task_readiness.js';
 
 /**
  * OrchestratorAction - Actions the orchestrator can take
@@ -93,10 +94,12 @@ export interface PolicyConfig {
 export class PolicyEngine {
   private readonly config: Required<PolicyConfig>;
   private criticApprovalCache: Map<string, CriticApprovalStatus> = new Map();
+  private readinessChecker?: TaskReadinessChecker;
 
   constructor(
     private readonly stateMachine: StateMachine,
-    config: PolicyConfig = {}
+    config: PolicyConfig = {},
+    private readonly workspaceRoot?: string
   ) {
     this.config = {
       maxCriticInterval: config.maxCriticInterval ?? 30 * 60 * 1000, // 30 minutes
@@ -112,6 +115,11 @@ export class PolicyEngine {
         '*': []
       }
     };
+
+    // Initialize task readiness checker if workspace root provided
+    if (this.workspaceRoot) {
+      this.readinessChecker = new TaskReadinessChecker(this.stateMachine, this.workspaceRoot);
+    }
   }
 
   /**
@@ -210,7 +218,7 @@ export class PolicyEngine {
   /**
    * Decide what action to take based on current state
    */
-  decide(state: SystemState): OrchestratorAction {
+  async decide(state: SystemState): Promise<OrchestratorAction> {
     // Priority 1: Handle critical issues
     if (!state.workerHealthy) {
       return {
@@ -242,7 +250,7 @@ export class PolicyEngine {
 
     // Priority 3: Run tasks if capacity available
     if (state.pendingTasks > 0 && state.inProgressTasks < this.config.maxConcurrentTasks) {
-      const nextTask = this.getNextTask();
+      const nextTask = await this.getNextTask();
       if (nextTask) {
         return {
           type: 'run_task',
@@ -282,7 +290,7 @@ export class PolicyEngine {
    * This is a simplified version - the real implementation should use
    * the TaskScheduler's priority logic.
    */
-  private getNextTask(): Task | null {
+  private async getNextTask(): Promise<Task | null> {
     try {
       // Get pending tasks from state machine
       const tasks = this.stateMachine.getTasks({ status: ['pending'] });
@@ -291,9 +299,20 @@ export class PolicyEngine {
         return null;
       }
 
-      // Simple priority: first pending task
+      // Filter to ready tasks if readiness checker is available
+      let readyTasks = tasks;
+      if (this.readinessChecker) {
+        readyTasks = await this.readinessChecker.filterReadyTasks(tasks);
+
+        if (readyTasks.length === 0 && tasks.length > 0) {
+          // All tasks are blocked
+          return null;
+        }
+      }
+
+      // Simple priority: first ready task
       // In production, this should use TaskScheduler.getNextTasks()
-      return tasks[0];
+      return readyTasks[0];
     } catch (error) {
       // Defensive: Don't crash on state machine errors
       return null;

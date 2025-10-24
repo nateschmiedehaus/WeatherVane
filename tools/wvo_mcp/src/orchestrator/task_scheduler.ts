@@ -2,6 +2,7 @@ import { EventEmitter } from 'node:events';
 
 import type { Task, TaskStatus } from './state_machine.js';
 import type { StateMachine } from './state_machine.js';
+import { WIPLimitEnforcer } from './wip_limits.js';
 
 type ResourceProfile = 'light' | 'standard' | 'heavy';
 
@@ -104,6 +105,7 @@ type ResolvedPriorityProfile = {
 export class TaskScheduler extends EventEmitter {
   private readonly busyTasks = new Set<string>();
   private readonly blockedTasks = new Set<string>();
+  private wipLimits: WIPLimitEnforcer;
   private queue: ScheduledTask[] = [];
   private queueMetrics: QueueMetrics = {
     updatedAt: Date.now(),
@@ -158,6 +160,13 @@ export class TaskScheduler extends EventEmitter {
     this.stateMachine.on('task:transition', this.onTaskTransition);
     this.stateMachine.on('task:completed', this.onStateChange);
 
+    // Initialize WIP limit enforcer
+    this.wipLimits = new WIPLimitEnforcer(this.stateMachine, {
+      maxGlobal: 5,
+      maxPerAgent: 1,
+      maxPerEpic: 3,
+    });
+
     this.setResourceLimits({ heavyTaskLimit: options.heavyTaskLimit });
     this.researchSignalsEnabled = options.researchSignalsEnabled ?? false;
     this.researchSensitivity = this.normalizeSensitivity(options.researchSensitivity);
@@ -210,6 +219,13 @@ export class TaskScheduler extends EventEmitter {
    * Fetch the next task ready for execution and mark it busy.
    */
   takeNextTask(): ScheduledTask | undefined {
+    // Check global WIP limit first
+    const wipStatus = this.wipLimits.getWIPStatus();
+    if (wipStatus.atLimitGlobal) {
+      // At global WIP limit, don't start any new tasks
+      return undefined;
+    }
+
     if (this.queue.length === 0) {
       this.refreshQueue();
     }
