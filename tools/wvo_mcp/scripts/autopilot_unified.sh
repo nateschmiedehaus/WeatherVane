@@ -365,9 +365,17 @@ async function main() {
   });
 
   // Graceful shutdown on Ctrl+C
-  process.on('SIGINT', async () => {
-    await orchestrator.stop();
-    await stateMachine.close();
+  let shutdownInProgress = false;
+  process.once('SIGINT', async () => {
+    if (shutdownInProgress) return;
+    shutdownInProgress = true;
+
+    try {
+      await orchestrator.stop();
+      await stateMachine.close();
+    } catch (error) {
+      console.error('Error during shutdown:', error.message);
+    }
     process.exit(0);
   });
 

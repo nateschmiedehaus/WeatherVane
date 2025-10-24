@@ -57,6 +57,7 @@ import { QualityGateOrchestrator, type QualityGateDecision } from './quality_gat
 import type { TaskEvidence } from './adversarial_bullshit_detector.js';
 import { TaskProgressTracker } from './task_progress_tracker.js';
 import { ProcessManager, type ProcessHandle } from './process_manager.js';
+import { TaskReadinessChecker } from './task_readiness.js';
 
 export type Provider = 'codex' | 'claude';
 export type AgentRole = 'orchestrator' | 'worker' | 'critic' | 'architecture_planner' | 'architecture_reviewer';
@@ -469,6 +470,7 @@ export class UnifiedOrchestrator extends EventEmitter {
   private peerReviewManager: PeerReviewManager;
   private qualityGateOrchestrator: QualityGateOrchestrator;
   private taskProgressTracker: TaskProgressTracker;
+  private taskReadinessChecker: TaskReadinessChecker;
   private taskMemoDir: string;
   private usageLimitBackoffMs: number;
   private architecturePlanner?: Agent;
@@ -634,6 +636,10 @@ export class UnifiedOrchestrator extends EventEmitter {
     logInfo('🛡️ Initializing QualityGateOrchestrator - MANDATORY verification enforced');
     this.qualityGateOrchestrator = new QualityGateOrchestrator(config.workspaceRoot);
     this.taskProgressTracker = new TaskProgressTracker();
+
+    // Initialize task readiness checker to prevent task thrashing
+    logInfo('✅ Initializing TaskReadinessChecker - preventing premature task assignment');
+    this.taskReadinessChecker = new TaskReadinessChecker(this.stateMachine, config.workspaceRoot);
 
     this.historicalRegistry = new HistoricalContextRegistry();
     const skipPattern = process.env.WVO_AUTOPILOT_GIT_SKIP_PATTERN ?? '.clean_worktree';
@@ -1215,16 +1221,28 @@ export class UnifiedOrchestrator extends EventEmitter {
       }
 
       // Step 2: Fetch ready tasks (including newly created subtasks)
-      // SIMPLIFIED: Execute ALL ready tasks without filtering
-      const readyTasks = this.stateMachine.getReadyTasks();
+      const dependencyReadyTasks = this.stateMachine.getReadyTasks();
 
-      logInfo('READY TASKS FETCHED', {
-        readyTasksCount: readyTasks.length,
-        readyTaskIds: readyTasks.map(t => t.id)
+      logInfo('DEPENDENCY-READY TASKS FETCHED', {
+        dependencyReadyTasksCount: dependencyReadyTasks.length,
+        dependencyReadyTaskIds: dependencyReadyTasks.map(t => t.id)
       });
 
-      // Add to queue (up to needed amount)
-      const prioritizedTasks = rankTasks(readyTasks, this.stateMachine, this.featureGates, this.config.workspaceRoot);
+      // Step 3: Filter by comprehensive readiness (files, backoff, recent failures, etc.)
+      // This prevents tasks from failing immediately after assignment
+      const fullyReadyTasks = await this.taskReadinessChecker.filterReadyTasks(dependencyReadyTasks);
+
+      const blockedTasksCount = dependencyReadyTasks.length - fullyReadyTasks.length;
+      if (blockedTasksCount > 0) {
+        logInfo('READINESS CHECK: Filtered out blocked tasks', {
+          totalDependencyReady: dependencyReadyTasks.length,
+          fullyReady: fullyReadyTasks.length,
+          blocked: blockedTasksCount,
+        });
+      }
+
+      // Step 4: Prioritize only the fully ready tasks
+      const prioritizedTasks = rankTasks(fullyReadyTasks, this.stateMachine, this.featureGates, this.config.workspaceRoot);
       const tasksToAdd = prioritizedTasks.slice(0, needed);
 
       logInfo('ADDING TASKS TO QUEUE', {
@@ -1256,7 +1274,7 @@ export class UnifiedOrchestrator extends EventEmitter {
           count: tasksToAdd.length,
           queueSize: this.taskQueue.length,
           subtasks: subtasksAdded,
-          pendingReady: readyTasks.length,
+          fullyReady: fullyReadyTasks.length,
           tasks: tasksSnapshot,
         });
 
@@ -1264,7 +1282,7 @@ export class UnifiedOrchestrator extends EventEmitter {
           note: 'prefetch',
           metrics: {
             queueSize: this.taskQueue.length,
-            pendingTasks: readyTasks.length,
+            pendingTasks: fullyReadyTasks.length,
             inProgress: autopilotInProgress.length,
           },
         });

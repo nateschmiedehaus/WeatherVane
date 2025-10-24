@@ -1,11 +1,11 @@
 {
-  "lastUpdated": "2025-10-24T19:30:23.576Z",
+  "lastUpdated": "2025-10-24T21:46:17.051Z",
   "providers": [
     {
       "provider": "claude_code",
       "totalLimitHits": 0,
       "totalRecoveries": 0,
-      "totalFailovers": 107,
+      "totalFailovers": 108,
       "averageDowntimeMs": 0,
       "longestDowntimeMs": 0,
       "shortestDowntimeMs": 0,

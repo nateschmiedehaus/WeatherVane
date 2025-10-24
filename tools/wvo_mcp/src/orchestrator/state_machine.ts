@@ -192,6 +192,7 @@ export class StateMachine extends EventEmitter {
   private readonly dbPath: string;
   private readonly workspaceRoot: string;
   private readonly readOnly: boolean;
+  private closed = false;
 
   // Cache for expensive getRoadmapHealth() queries
   private cachedHealth: RoadmapHealth | null = null;
@@ -1479,6 +1480,12 @@ export class StateMachine extends EventEmitter {
   }
 
   close(): void {
+    // Guard against double-close
+    if (this.closed) {
+      return;
+    }
+    this.closed = true;
+
     // Stop checkpoint timer
     if (this.checkpointTimer) {
       clearInterval(this.checkpointTimer);

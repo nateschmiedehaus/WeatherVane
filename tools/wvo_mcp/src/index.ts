@@ -114,15 +114,9 @@ async function main() {
       } catch {}
     };
 
+    // Register PID cleanup on normal exit only
+    // SIGINT/SIGTERM handled by proper shutdown sequence later
     process.on('exit', () => void cleanupPidFile());
-    process.on('SIGINT', async () => {
-      await cleanupPidFile();
-      process.exit(0);
-    });
-    process.on('SIGTERM', async () => {
-      await cleanupPidFile();
-      process.exit(0);
-    });
   } catch (error) {
     console.error('Failed to manage PID lock file:', error);
     // Continue anyway - this is not critical
@@ -302,12 +296,21 @@ async function main() {
     },
   ];
 
-  const shutdown = () => {
-    void workerManager.stopAll().catch((error: unknown) => {
+  const shutdown = async () => {
+    logInfo("Shutting down WVO MCP server...");
+
+    try {
+      // Stop all workers first
+      await workerManager.stopAll();
+      logInfo("All workers stopped");
+    } catch (error: unknown) {
       logWarning("Failed to stop workers cleanly", {
         error: error instanceof Error ? error.message : String(error),
       });
-    });
+    }
+
+    // Exit cleanly (PID file cleanup happens in 'exit' handler)
+    process.exit(0);
   };
 
   process.once("SIGINT", shutdown);
