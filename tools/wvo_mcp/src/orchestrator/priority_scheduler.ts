@@ -1,7 +1,7 @@
 import type { Task } from './state_machine.js';
 import type { StateMachine } from './state_machine.js';
 import type { FeatureGatesReader } from './feature_gates.js';
-import { readFileSync, existsSync } from 'node:fs';
+import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 import path from 'node:path';
 import { logDebug } from '../telemetry/logger.js';
 
@@ -200,6 +200,44 @@ function getActiveCommands(workspaceRoot?: string): any[] {
 }
 
 /**
+ * Mark commands as completed when no tasks remain
+ */
+function completeCommandsIfDone(workspaceRoot: string | undefined, filteredTaskCount: number, commands: any[]): void {
+  if (!workspaceRoot || commands.length === 0) {
+    return;
+  }
+
+  // If filtering resulted in 0 tasks, mark all active commands as completed
+  if (filteredTaskCount === 0) {
+    const commandsPath = path.join(workspaceRoot, 'state', 'commands.json');
+    try {
+      const commandData = JSON.parse(readFileSync(commandsPath, 'utf-8'));
+      let updated = false;
+
+      for (const command of commandData.commands) {
+        if (command.status === 'pending') {
+          command.status = 'completed';
+          command.completed_at = new Date().toISOString();
+          updated = true;
+          logDebug('Command auto-completed (no tasks remaining)', {
+            commandId: command.id,
+            instruction: command.instruction
+          });
+        }
+      }
+
+      if (updated) {
+        commandData.last_updated = new Date().toISOString();
+        writeFileSync(commandsPath, JSON.stringify(commandData, null, 2));
+        logDebug('Commands cleared - all filtered tasks complete');
+      }
+    } catch (error) {
+      logDebug('Error auto-completing commands', { error });
+    }
+  }
+}
+
+/**
  * Filter tasks based on active command instructions
  */
 function filterTasksByCommands(tasks: Task[], commands: any[]): Task[] {
@@ -256,6 +294,9 @@ export function rankTasks(
 
   // Filter by commands before ranking
   const tasksToRank = filterTasksByCommands(tasks, activeCommands);
+
+  // Auto-complete commands if no tasks remain
+  completeCommandsIfDone(workspaceRoot, tasksToRank.length, activeCommands);
 
   return tasksToRank
     .map(task => {
