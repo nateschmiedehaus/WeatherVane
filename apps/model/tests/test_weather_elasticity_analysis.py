@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import polars as pl
-import pytest
 from datetime import date, timedelta
 import numpy as np
 

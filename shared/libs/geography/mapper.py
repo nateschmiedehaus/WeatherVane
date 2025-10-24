@@ -2,12 +2,6 @@
 
 from __future__ import annotations
 
-# Geographic hierarchy thresholds
-DMA_MIN_GEOCODED_RATIO = 0.55  # 55% orders must be geocoded for DMA level
-DMA_MIN_WEATHER_COVERAGE = 0.85  # 85% weather data required for DMA level
-STATE_MIN_GEOCODED_RATIO = 0.25  # 25% orders for state level
-STATE_MIN_WEATHER_COVERAGE = 0.70  # 70% weather data required for state level
-
 import csv
 import json
 from dataclasses import dataclass
@@ -18,6 +12,12 @@ from typing import Dict, Optional
 import geohash2  # type: ignore
 from shapely.geometry import Point, shape  # type: ignore
 from shapely.strtree import STRtree  # type: ignore
+
+# Geographic hierarchy thresholds
+DMA_MIN_GEOCODED_RATIO = 0.55  # 55% orders must be geocoded for DMA level
+DMA_MIN_WEATHER_COVERAGE = 0.85  # 85% weather data required for DMA level
+STATE_MIN_GEOCODED_RATIO = 0.25  # 25% orders for state level
+STATE_MIN_WEATHER_COVERAGE = 0.70  # 70% weather data required for state level
 
 DATA_DIR = Path(__file__).resolve().parents[2] / "data" / "geography"
 DEFAULT_CROSSWALK_PATH = DATA_DIR / "dma_county_crosswalk.csv"

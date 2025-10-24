@@ -7,13 +7,12 @@ weather effects and marketing interactions for revenue prediction.
 
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional
 
 import numpy as np
 import pandas as pd
 from pygam import LinearGAM, s, te
 from pygam.terms import TermList
-import polars as pl
 
 from shared.feature_store.feature_builder import FeatureBuilder
 from shared.services.data_quality import validate_data_quality

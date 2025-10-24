@@ -7,7 +7,7 @@ using a synthetic control approach with weather-based matching.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Dict, Optional
+from typing import Dict
 
 import polars as pl
 

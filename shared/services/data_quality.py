@@ -16,7 +16,7 @@ import json
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Mapping, MutableMapping, Sequence
+from typing import Any, Dict, Mapping, MutableMapping, Optional, Sequence
 
 import numpy as np
 import pandas as pd
