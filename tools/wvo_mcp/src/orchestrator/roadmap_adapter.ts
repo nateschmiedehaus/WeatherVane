@@ -435,7 +435,8 @@ export async function syncRoadmapFile(
   workspaceRoot: string,
   options?: RoadmapSyncOptions
 ): Promise<void> {
-  const roadmapPath = path.join(workspaceRoot, 'state', 'roadmap.yaml');
+  const stateRoot = path.join(workspaceRoot, 'state');
+  const roadmapPath = path.join(stateRoot, 'roadmap.yaml');
 
   try {
     await fs.access(roadmapPath);
@@ -443,7 +444,7 @@ export async function syncRoadmapFile(
     return;
   }
 
-  const store = new RoadmapStore(workspaceRoot);
+  const store = new RoadmapStore(stateRoot);
   const document = await store.read();
   await syncRoadmapDocument(stateMachine, document, options);
 }

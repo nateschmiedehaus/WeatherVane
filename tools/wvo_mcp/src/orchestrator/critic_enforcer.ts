@@ -1,3 +1,5 @@
+import path from "node:path";
+
 import type { CriticResult } from "../critics/base.js";
 import { flattenTasks } from "../planner/roadmap_parser.js";
 import type { StateMachine } from "./state_machine.js";
@@ -26,7 +28,8 @@ export class CriticEnforcer {
     private readonly workspaceRoot: string,
     private readonly options: { stateMachine?: StateMachine; sessionFactory?: () => SessionContext } = {},
   ) {
-    this.roadmapStore = new RoadmapStore(workspaceRoot);
+    const stateRoot = path.join(workspaceRoot, "state");
+    this.roadmapStore = new RoadmapStore(stateRoot);
   }
 
   async enforce(taskId: string): Promise<CriticEnforcementResult> {
