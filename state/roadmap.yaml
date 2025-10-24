@@ -10,7 +10,7 @@ epics:
         tasks:
           - id: CRIT-PERF-BUILD-4254a2
             title: "[Critic:build] Restore performance"
-            status: pending
+            status: needs_improvement
             dependencies: []
             exit_criteria: []
             domain: product
@@ -1145,7 +1145,7 @@ epics:
         tasks:
           - id: T-MLR-2.3
             title: Train models on all 20 synthetic tenants with cross-validation
-            status: pending
+            status: needs_improvement
             dependencies:
               - T-MLR-2.2
             exit_criteria: []

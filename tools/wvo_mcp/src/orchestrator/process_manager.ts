@@ -38,7 +38,7 @@ export interface ProcessManagerConfig {
 }
 
 const DEFAULT_CONFIG: ProcessManagerConfig = {
-  maxConcurrentProcesses: 3, // Conservative: max 3 concurrent CLI processes
+  maxConcurrentProcesses: 10, // Allow up to 10 concurrent CLI processes (agents + task executions)
   maxMemoryUsagePercent: 80, // Don't spawn if >80% memory used
   processTimeoutMs: 15 * 60 * 1000, // Kill after 15 minutes (safety backstop)
   checkIntervalMs: 30 * 1000, // Check every 30 seconds

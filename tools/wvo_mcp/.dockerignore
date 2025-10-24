@@ -1,0 +1,47 @@
+# Node modules (will be installed in container)
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# Build artifacts
+dist/
+*.tsbuildinfo
+
+# Tests
+*.test.ts
+*.test.js
+__tests__/
+coverage/
+
+# Logs
+logs/
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Git
+.git/
+.gitignore
+
+# Documentation (will be mounted as volume)
+docs/
+
+# State (will be mounted as volume)
+state/
+
+# Environment
+.env
+.env.*
+
+# Temporary files
+*.tmp
+*.temp
+.cache/

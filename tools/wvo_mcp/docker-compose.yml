@@ -1,0 +1,108 @@
+version: '3.8'
+
+services:
+  # MCP Server - Main orchestration service
+  mcp-server:
+    build:
+      context: ./tools/wvo_mcp
+      dockerfile: Dockerfile
+    container_name: weathervane-mcp
+    restart: unless-stopped
+
+    # HARD RESOURCE LIMITS - CANNOT exceed these
+    deploy:
+      resources:
+        limits:
+          cpus: '4.0'
+          memory: 8G
+        reservations:
+          cpus: '2.0'
+          memory: 4G
+
+    volumes:
+      - ./state:/workspace/state
+      - ./docs:/workspace/docs
+      - ./apps:/workspace/apps:ro
+      - ./shared:/workspace/shared:ro
+      - ./tools/wvo_mcp/logs:/workspace/logs
+
+    environment:
+      - MAX_CONCURRENT_PROCESSES=10
+      - NODE_OPTIONS=--max-old-space-size=4096
+      - WORKSPACE_ROOT=/workspace
+      - WVO_OTEL_ENABLED=0
+      - WVO_DRY_RUN=0
+      - AGENT_COUNT=3
+      - PREFERRED_ORCHESTRATOR=claude
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - CODEX_API_KEY=${CODEX_API_KEY:-}
+
+    networks:
+      - weathervane-net
+
+    healthcheck:
+      test: ["CMD", "node", "-e", "console.log('healthy')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Autopilot - Autonomous task execution
+  autopilot:
+    build:
+      context: ./tools/wvo_mcp
+      dockerfile: Dockerfile
+    container_name: weathervane-autopilot
+    restart: unless-stopped
+    command: ["bash", "scripts/autopilot_unified.sh"]
+
+    # HARD RESOURCE LIMITS
+    deploy:
+      resources:
+        limits:
+          cpus: '6.0'
+          memory: 12G
+        reservations:
+          cpus: '3.0'
+          memory: 6G
+
+    volumes:
+      - ./state:/workspace/state
+      - ./docs:/workspace/docs
+      - ./apps:/workspace/apps
+      - ./shared:/workspace/shared
+      - ./tools/wvo_mcp/logs:/workspace/logs
+
+    environment:
+      - MAX_CONCURRENT_PROCESSES=10
+      - NODE_OPTIONS=--max-old-space-size=6144
+      - WORKSPACE_ROOT=/workspace
+      - AGENT_COUNT=5
+      - PREFERRED_ORCHESTRATOR=claude
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - CODEX_API_KEY=${CODEX_API_KEY:-}
+
+    depends_on:
+      mcp-server:
+        condition: service_healthy
+
+    networks:
+      - weathervane-net
+
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  weathervane-net:
+    driver: bridge
