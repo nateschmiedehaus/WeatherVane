@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import date
-from typing import Any, Dict, Mapping, Sequence
+from typing import Dict, Sequence
 
 import polars as pl
 
@@ -14,7 +14,6 @@ from .optimizer import (
     HierarchyConstraint,
     OptimizerRequest,
     OptimizerResult,
-    OptimizationError,
     optimize_allocation,
 )
 
@@ -152,22 +151,12 @@ async def optimize_weather_aware_allocation(
             # Only reduce if temp is below threshold by more than window
             if temp < (thresholds.min_temperature - window):
                 reduction_needed = True
-                # Scale reduction based on distance from threshold
-                factor = max(0.0, (temp - (thresholds.min_temperature - window * 2)) / window)
-                reduction_factor = max(factor, thresholds.weather_reduction_factor)
-            else:
-                reduction_factor = 1.0
 
         if thresholds.max_temperature is not None:
             temp = float(conditions["temp_c"].max() or 0)
             # Only reduce if temp is above threshold by more than window
             if temp > (thresholds.max_temperature + window):
                 reduction_needed = True
-                # Scale reduction based on distance from threshold
-                factor = max(0.0, 1.0 - (temp - thresholds.max_temperature) / window)
-                reduction_factor = max(factor, thresholds.weather_reduction_factor)
-            else:
-                reduction_factor = 1.0
 
         # Check precipitation thresholds
         if thresholds.max_precipitation_prob is not None:

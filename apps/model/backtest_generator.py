@@ -19,17 +19,16 @@ from __future__ import annotations
 
 import argparse
 import json
-import pickle
-from dataclasses import asdict, dataclass
-from datetime import datetime, timedelta
+from dataclasses import dataclass
+from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Sequence, Tuple
+from typing import Dict, List, Optional, Sequence
 
 import numpy as np
 import polars as pl
 from loguru import logger
 
-from apps.model.baseline import BaselineModel, fit_baseline_model, evaluate_r2
+from apps.model.baseline import fit_baseline_model
 
 
 # Target column name (synchronized with feature_builder)

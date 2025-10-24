@@ -288,7 +288,7 @@ def train_weather_allocation_for_tenant(
 
     spend_cols = get_spend_columns(df)
     if not spend_cols:
-        raise ValueError(f"No spend columns found in tenant data")
+        raise ValueError("No spend columns found in tenant data")
 
     # Calculate current average spend by channel
     current_spend = df[spend_cols].mean().to_dict()

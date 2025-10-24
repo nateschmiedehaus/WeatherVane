@@ -5,8 +5,9 @@
  * Generates actionable insights for improving task completion quality and methodology.
  */
 
+import fs from "node:fs";
 import path from "node:path";
-import { Critic, type CriticResult, type CriticIdentityProfile } from "./base.js";
+import { Critic, type CriticResult } from "./base.js";
 import {
   MLTaskAggregator,
   type AggregatedMLTasksReport,
@@ -45,10 +46,30 @@ export class MLTaskMetaCriticCritic extends Critic {
   }
 
   protected command(profile: string): string | null {
+    const scriptPath = path.join(
+      this.workspaceRoot,
+      "tools",
+      "wvo_mcp",
+      "scripts",
+      "ml_task_meta_critic.py",
+    );
+
+    if (!fs.existsSync(scriptPath)) {
+      return null;
+    }
+
     // Meta-critic runs Python analysis if available
     const epicFilter = process.env.WVO_ML_TASK_FILTER ?? "";
-    const baseCmd = `python tools/wvo_mcp/scripts/ml_task_meta_critic.py --json`;
-    return epicFilter ? `${baseCmd} --filter ${epicFilter}` : baseCmd;
+    const relativeScript = path
+      .relative(this.workspaceRoot, scriptPath)
+      .replace(/\\/g, "/");
+    const baseCmd = `python ${relativeScript} --json`;
+    if (epicFilter.trim().length === 0) {
+      return baseCmd;
+    }
+
+    const escapedFilter = epicFilter.replace(/(["$`\\])/g, "\\$1");
+    return `${baseCmd} --filter "${escapedFilter}"`;
   }
 
   async run(profile: string): Promise<CriticResult> {

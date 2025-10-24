@@ -17,7 +17,6 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Mapping, MutableMapping, Sequence
-from collections.abc import Mapping as ABCMapping
 
 import numpy as np
 import pandas as pd

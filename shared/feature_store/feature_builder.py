@@ -6,7 +6,7 @@ import glob
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import List, Optional
 
 import polars as pl
 
@@ -152,8 +152,7 @@ class FeatureBuilder:
         forward_leakage_rows = int(forward_frame.height)
         forward_leakage_dates = forward_frame.select("date").unique()["date"].to_list() if forward_leakage_rows > 0 else []
 
-        # Detect forecast leakage
-        forecast_frame = frame.filter(pl.col("target_available"))  # Mock implementation
+        # Detect forecast leakage (currently not implemented)
         forecast_leakage_rows = 0
         forecast_leakage_dates: List[str] = []
 

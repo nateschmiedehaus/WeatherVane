@@ -15,10 +15,10 @@ from __future__ import annotations
 
 import json
 import logging
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass
 from datetime import datetime, timedelta, date
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List
 
 import numpy as np
 import polars as pl
@@ -180,8 +180,8 @@ class SyntheticDataGenerator:
         Returns:
             SyntheticDataset with all data tables
         """
-        num_days = (end_date - start_date).days + 1
-        dates = [start_date + timedelta(days=i) for i in range(num_days)]
+        dates = [start_date + timedelta(days=i) for i in range((end_date - start_date).days + 1)]
+        num_days = len(dates)
 
         # Generate weather patterns (use tenant location)
         weather_daily = self._generate_weather(
@@ -371,7 +371,6 @@ class SyntheticDataGenerator:
         Returns:
             DataFrame with Shopify orders
         """
-        num_days = len(dates)
         orders = []
 
         for day_idx, (current_date, revenue) in enumerate(zip(dates, daily_revenue)):

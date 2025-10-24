@@ -274,7 +274,6 @@ def optimize_allocation(request: OptimizerRequest, *, solver: str | None = None,
             effective_max = min(effective_max, upper_cap)
 
         roas_floor = max(request.roas_floor, 0.0)
-        roas_floor_active = False
         if roas_floor > 0 and effective_max > effective_min + 1e-6:
             roas_at_max = _roas_at_spend(item, effective_max, cleaned_curve)
             if roas_at_max < roas_floor - 1e-6:
@@ -284,7 +283,6 @@ def optimize_allocation(request: OptimizerRequest, *, solver: str | None = None,
                     if relax_infeasible:
                         # Relax ROAS floor for this item
                         effective_max = effective_min
-                        roas_floor_active = True
                         relaxations.append(f"roas_floor_relaxed:{item.id}")
                     else:
                         effective_max = effective_min
@@ -302,7 +300,6 @@ def optimize_allocation(request: OptimizerRequest, *, solver: str | None = None,
                         else:
                             hi = mid
                     effective_max = max(effective_min, lo)
-                    roas_floor_active = True
 
         if effective_max < effective_min - 1e-6:
             if relax_infeasible:

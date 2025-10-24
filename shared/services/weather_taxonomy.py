@@ -5,15 +5,13 @@ from __future__ import annotations
 import logging
 import pandas as pd
 import polars as pl
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Sequence
 from loguru import logger
 
 from shared.libs.geography import GeographyMapper, GeographyResolution
 from shared.schemas.product_taxonomy import ProductSourceRecord
 from shared.services.product_taxonomy import (
-    AFFINITY_SEASONALITY,
-    VALID_WEATHER_AFFINITIES,
     ProductTaxonomyClassifier,
     ProductTaxonomyLLMResult,
 )

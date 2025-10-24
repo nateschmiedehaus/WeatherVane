@@ -8,11 +8,10 @@ continue to run without the optional dependency.
 """
 from __future__ import annotations
 
-import itertools
 import subprocess
 import sys
 from dataclasses import dataclass
-from typing import Any, Callable, Dict, Iterable, List, Sequence, Optional
+from typing import Any, Dict, List, Optional
 
 import numpy as np
 import polars as pl

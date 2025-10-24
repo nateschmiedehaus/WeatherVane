@@ -45,11 +45,7 @@ import numpy as np
 
 from apps.model.mmm_lightweight_weather import (
     CrossValidationMetrics,
-    ModelValidationResult,
     load_cv_results_from_json,
-    validate_models_against_thresholds,
-    summarize_validation_results,
-    export_validation_results,
 )
 
 logging.basicConfig(
@@ -443,30 +439,30 @@ def print_validation_summary(
     print(f"Failing: {summary['failing_models']}")
 
     thresholds = report["thresholds"]
-    print(f"\nValidation Thresholds:")
+    print("\nValidation Thresholds:")
     print(f"  R² minimum: {thresholds['r2_min']:.2f}")
     print(f"  R² std maximum: {thresholds['r2_std_max']:.2f}")
     print(f"  RMSE max % of revenue: {thresholds['rmse_max_pct']:.1%}")
     print(f"  Minimum CV folds: {thresholds['min_folds']}")
 
     metrics = report["performance_metrics"]["r2_all_models"]
-    print(f"\nPerformance (All Models):")
+    print("\nPerformance (All Models):")
     print(f"  R² mean: {metrics['mean']:.3f} ± {metrics['std']:.3f}")
     print(f"  R² range: [{metrics['min']:.3f}, {metrics['max']:.3f}]")
     print(f"  R² median: {metrics['median']:.3f}")
 
     if report["failure_analysis"]["failure_patterns"]:
-        print(f"\nFailure Patterns:")
+        print("\nFailure Patterns:")
         for pattern, count in report["failure_analysis"]["failure_patterns"].items():
             print(f"  {pattern}: {count} models")
 
-    print(f"\nTop Performers:")
+    print("\nTop Performers:")
     for tenant_name, r2 in report["passing_models"]["top_performers"]:
         result = validation_results[tenant_name]
         print(f"  {tenant_name}: R²={r2:.3f}±{result.std_r2:.3f}")
 
     if report["failure_analysis"]["failing_model_names"]:
-        print(f"\nFailing Models:")
+        print("\nFailing Models:")
         for tenant_name in report["failure_analysis"]["failing_model_names"][:10]:
             result = validation_results[tenant_name]
             print(f"  {tenant_name}: R²={result.mean_r2:.3f} - {', '.join(result.failure_reasons)}")

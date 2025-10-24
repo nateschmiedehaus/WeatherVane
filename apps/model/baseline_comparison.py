@@ -6,10 +6,9 @@ import json
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Dict, List, Any, Optional, Union
+from typing import Dict, List, Any, Union
 
 import numpy as np
-import polars as pl
 from loguru import logger
 
 from apps.model.baseline import evaluate_r2
