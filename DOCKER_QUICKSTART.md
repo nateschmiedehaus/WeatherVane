@@ -103,7 +103,7 @@ Then: `source ~/.bashrc`
 
 **If that doesn't work:**
 ```bash
-docker-compose down --timeout 5
+cd tools/wvo_mcp && docker-compose down --timeout 5
 ```
 
 **Nuclear option:**
@@ -115,7 +115,7 @@ docker stop $(docker ps -q)  # Stop ALL containers
 
 ## ⚙️ Configuration
 
-**Change resource limits** - Edit `docker-compose.yml`:
+**Change resource limits** - Edit `tools/wvo_mcp/docker-compose.yml`:
 
 ```yaml
 deploy:
@@ -125,7 +125,7 @@ deploy:
       memory: 16G      # Increase RAM
 ```
 
-**Change agent count** - Edit `docker-compose.yml`:
+**Change agent count** - Edit `tools/wvo_mcp/docker-compose.yml`:
 
 ```yaml
 environment:

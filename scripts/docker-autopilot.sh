@@ -6,7 +6,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-cd "$PROJECT_ROOT"
+cd "$PROJECT_ROOT/tools/wvo_mcp"
 
 # Colors for output
 RED='\033[0;31m'
@@ -171,7 +171,7 @@ clean() {
 
 # Show help
 show_help() {
-    cat <<EOF
+    cat <<HELP
 WeatherVane Autopilot - Docker Management
 
 Usage: $0 <command> [options]
@@ -210,7 +210,7 @@ Set in ~/.bashrc or ~/.zshrc:
   export ANTHROPIC_API_KEY='your-key-here'
   export OPENAI_API_KEY='your-key-here'
 
-EOF
+HELP
 }
 
 # Main command dispatcher

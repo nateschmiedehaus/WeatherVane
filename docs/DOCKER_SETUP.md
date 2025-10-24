@@ -237,7 +237,7 @@ docker info
 
 **View crash logs:**
 ```bash
-docker-compose logs --tail=100 autopilot
+cd tools/wvo_mcp && docker-compose logs --tail=100 autopilot
 ```
 
 ### Tasks Still Failing
@@ -253,7 +253,7 @@ If tasks fail with "Resource limits exceeded" in container:
 
 **Force stop:**
 ```bash
-docker-compose down --timeout 5
+cd tools/wvo_mcp && docker-compose down --timeout 5
 # or
 docker kill weathervane-mcp weathervane-autopilot
 ```
@@ -269,7 +269,7 @@ docker stop $(docker ps -q)  # Stop all containers
 
 ### Change Resource Limits
 
-Edit `docker-compose.yml`:
+Edit `tools/wvo_mcp/docker-compose.yml`:
 
 ```yaml
 services:
@@ -288,7 +288,7 @@ Then restart:
 
 ### Change Agent Count
 
-Edit `docker-compose.yml`:
+Edit `tools/wvo_mcp/docker-compose.yml`:
 
 ```yaml
 environment:
@@ -302,7 +302,7 @@ environment:
 
 ### Enable Observability
 
-Edit `docker-compose.yml`:
+Edit `tools/wvo_mcp/docker-compose.yml`:
 
 ```yaml
 environment:
@@ -312,7 +312,7 @@ environment:
 ### Run MCP Server Only (No Autopilot)
 
 ```bash
-docker-compose up -d mcp-server
+cd tools/wvo_mcp && docker-compose up -d mcp-server
 ```
 
 Useful for:
