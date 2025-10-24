@@ -205,4 +205,43 @@ export class ResourceMonitor {
     const message = await this.getStatusMessage();
     console.log(message);
   }
+
+  /**
+   * Check if system resources are critically high (emergency stop threshold)
+   * Returns true if memory >= 95% OR cpu >= 95%
+   */
+  async isCriticalResourcePressure(): Promise<boolean> {
+    const metrics = await this.getMetrics(true); // Force fresh check
+    return metrics.memory_used_pct >= 95 || metrics.cpu_used_pct >= 95;
+  }
+
+  /**
+   * Get detailed resource pressure status with recommendations
+   */
+  async getResourcePressureDetails(): Promise<{
+    critical: boolean;
+    shouldStop: boolean;
+    message: string;
+    metrics: ResourceMetrics;
+  }> {
+    const metrics = await this.getMetrics(true);
+    const critical = metrics.memory_used_pct >= 95 || metrics.cpu_used_pct >= 95;
+    const shouldStop = metrics.memory_used_pct >= 98 || metrics.cpu_used_pct >= 98;
+
+    let message = '';
+    if (shouldStop) {
+      message = `🚨 CRITICAL: System resources exhausted (Memory: ${metrics.memory_used_pct}%, CPU: ${metrics.cpu_used_pct}%). STOPPING to prevent system crash.`;
+    } else if (critical) {
+      message = `⚠️ WARNING: System resources critical (Memory: ${metrics.memory_used_pct}%, CPU: ${metrics.cpu_used_pct}%). Consider stopping soon.`;
+    } else {
+      message = `✓ System resources OK (Memory: ${metrics.memory_used_pct}%, CPU: ${metrics.cpu_used_pct}%)`;
+    }
+
+    return {
+      critical,
+      shouldStop,
+      message,
+      metrics,
+    };
+  }
 }

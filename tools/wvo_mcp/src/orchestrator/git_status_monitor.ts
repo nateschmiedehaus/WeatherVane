@@ -23,6 +23,9 @@ export class GitStatusMonitor {
   private readonly skipPattern: string | null;
   private lastSnapshot: GitStatusSnapshot | null = null;
   private readonly telemetryPath: string;
+  private readonly maxLogSize = 10 * 1024 * 1024; // 10MB
+  private lastRotationCheck = 0;
+  private readonly rotationCheckInterval = 60000; // Check every 60s
 
   constructor(
     private readonly workspaceRoot: string,
@@ -154,11 +157,60 @@ export class GitStatusMonitor {
 
     try {
       await fs.mkdir(path.dirname(this.telemetryPath), { recursive: true });
+
+      // Check log rotation periodically to prevent bloat
+      await this.checkAndRotateLog();
+
       await fs.appendFile(this.telemetryPath, `${JSON.stringify(record)}\n`, 'utf-8');
     } catch (error) {
       logWarning('Failed to append git status telemetry', {
         error: error instanceof Error ? error.message : String(error),
       });
+    }
+  }
+
+  private async checkAndRotateLog(): Promise<void> {
+    const now = Date.now();
+
+    // Only check periodically to avoid excessive stat calls
+    if (now - this.lastRotationCheck < this.rotationCheckInterval) {
+      return;
+    }
+
+    this.lastRotationCheck = now;
+
+    try {
+      const stats = await fs.stat(this.telemetryPath);
+
+      if (stats.size > this.maxLogSize) {
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+        const archivePath = this.telemetryPath.replace('.jsonl', `.${timestamp}.jsonl`);
+
+        logInfo('Rotating git_status.jsonl', {
+          currentSize: stats.size,
+          maxSize: this.maxLogSize,
+          archivePath,
+        });
+
+        await fs.rename(this.telemetryPath, archivePath);
+
+        // Optionally compress old logs after rotation (gzip)
+        try {
+          await execa('gzip', [archivePath], { cwd: this.workspaceRoot });
+        } catch (gzipError) {
+          logDebug('Failed to compress rotated log (non-critical)', {
+            archivePath,
+            error: gzipError instanceof Error ? gzipError.message : String(gzipError),
+          });
+        }
+      }
+    } catch (error) {
+      // File doesn't exist yet or other stat error - not critical
+      if ((error as any).code !== 'ENOENT') {
+        logDebug('Failed to check log size for rotation', {
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
     }
   }
 }

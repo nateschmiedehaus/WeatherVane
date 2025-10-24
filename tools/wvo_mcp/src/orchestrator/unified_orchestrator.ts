@@ -1739,13 +1739,15 @@ export class UnifiedOrchestrator extends EventEmitter {
           await this.roadmapTracker.updateTaskStatus(task.id, 'blocked', {
             agent: agent.id,
             duration: 0,
-            output: combinedOutput,
+            output: preflightResult.shouldEscalate
+              ? `${combinedOutput}\n\n⚠️ Pre-flight failed ${preflightResult.consecutiveFailures ?? 3}+ times. Escalating to higher-powered agent.`
+              : combinedOutput,
           });
 
           // Record blocker for escalation SLA tracking
           this.blockerEscalationManager.recordBlockedTask(task.id);
 
-          // Intelligently respond to failure: validate, auto-fix if possible, or escalate
+          // Always try to handle failure - escalate to more powerful agents if needed
           await this.failureResponseManager.handleFailure(task.id);
 
           try {

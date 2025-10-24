@@ -16,11 +16,16 @@ export interface PreflightResult {
   success: boolean;
   commandId?: string;
   output?: string;
+  shouldEscalate?: boolean;
+  consecutiveFailures?: number;
 }
 
 export class PreflightRunner {
   private lastSignature: string | null = null;
   private lastRunAt = 0;
+  private consecutiveFailures = 0;
+  private lastFailureFingerprint: string | null = null;
+  private readonly maxConsecutiveFailures = 3;
 
   constructor(
     private readonly workspaceRoot: string,
@@ -93,18 +98,38 @@ export class PreflightRunner {
         const stderr = error?.stderr ?? '';
         const stdout = error?.stdout ?? '';
         const output = [stdout, stderr].filter(Boolean).join('\n').trim();
+
+        // Circuit breaker: track consecutive failures
+        const failureFingerprint = `${command.id}:${output.slice(0, 200)}`;
+        if (failureFingerprint === this.lastFailureFingerprint) {
+          this.consecutiveFailures++;
+        } else {
+          this.consecutiveFailures = 1;
+          this.lastFailureFingerprint = failureFingerprint;
+        }
+
+        const shouldEscalate = this.consecutiveFailures >= this.maxConsecutiveFailures;
+
         logWarning('Pre-flight command failed', {
           id: command.id,
           error: error instanceof Error ? error.message : String(error),
+          consecutiveFailures: this.consecutiveFailures,
+          shouldEscalate,
         });
+
         return {
           success: false,
           commandId: command.id,
           output,
+          shouldEscalate,
+          consecutiveFailures: this.consecutiveFailures,
         };
       }
     }
 
+    // Success: reset failure counter
+    this.consecutiveFailures = 0;
+    this.lastFailureFingerprint = null;
     return { success: true };
   }
 
