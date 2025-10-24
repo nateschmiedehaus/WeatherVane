@@ -10,6 +10,8 @@
  */
 
 import { EventEmitter } from 'node:events';
+import { execSync } from 'node:child_process';
+import { readFileSync } from 'node:fs';
 import os from 'node:os';
 import { logInfo, logWarning, logError, logDebug } from '../telemetry/logger.js';
 
@@ -234,17 +236,61 @@ export class ProcessManager extends EventEmitter {
    */
   getResourceSnapshot(): ResourceSnapshot {
     const totalMem = os.totalmem();
-    const freeMem = os.freemem();
-    const usedMem = totalMem - freeMem;
+    const availableBytes = this.getAvailableMemoryBytes(totalMem);
+    const usedMem = totalMem - availableBytes;
     const memoryUsagePercent = (usedMem / totalMem) * 100;
 
     return {
-      availableMemoryMB: Math.round(freeMem / 1024 / 1024),
+      availableMemoryMB: Math.round(availableBytes / 1024 / 1024),
       totalMemoryMB: Math.round(totalMem / 1024 / 1024),
       memoryUsagePercent,
       cpuCount: os.cpus().length,
       loadAverage: os.loadavg(),
     };
+  }
+
+  /**
+   * Cross-platform approximation of \"available\" memory (accounts for caches on macOS/Linux)
+   */
+  private getAvailableMemoryBytes(totalMem: number): number {
+    try {
+      if (process.platform === 'linux') {
+        const contents = readFileSync('/proc/meminfo', 'utf8');
+        const match = contents.match(/MemAvailable:\s+(\d+)\s+kB/i);
+        if (match) {
+          const available = Number(match[1]) * 1024;
+          if (available > 0) {
+            return Math.min(available, totalMem);
+          }
+        }
+      } else if (process.platform === 'darwin') {
+        const output = execSync('vm_stat', { encoding: 'utf8' });
+        const pageSizeMatch = output.match(/page size of (\d+) bytes/i);
+        const pageSize = pageSizeMatch ? Number(pageSizeMatch[1]) : 4096;
+        const parsePages = (label: string): number => {
+          const pageMatch = output.match(new RegExp(`${label}:\\s+(\\d+)\\.`));
+          return pageMatch ? Number(pageMatch[1]) : 0;
+        };
+
+        const pagesFree = parsePages('Pages free');
+        const pagesInactive = parsePages('Pages inactive');
+        const pagesSpeculative = parsePages('Pages speculative');
+        const availablePages = pagesFree + pagesInactive + pagesSpeculative;
+
+        if (availablePages > 0) {
+          const available = availablePages * pageSize;
+          return Math.min(available, totalMem);
+        }
+      }
+    } catch (error) {
+      logDebug('Failed to sample detailed memory stats', {
+        platform: process.platform,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+
+    const fallback = os.freemem();
+    return Math.min(Math.max(fallback, 0), totalMem);
   }
 
   /**
