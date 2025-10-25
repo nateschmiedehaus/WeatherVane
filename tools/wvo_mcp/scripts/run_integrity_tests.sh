@@ -9,7 +9,7 @@ function section() {
 }
 
 section "Python test suite"
-PYTHONPATH=.deps:. pytest apps tests
+pytest apps tests
 
 section "Web unit tests"
 npm test --prefix apps/web
