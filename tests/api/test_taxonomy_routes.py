@@ -6,7 +6,7 @@ from fastapi.testclient import TestClient
 from apps.api.main import create_app
 from apps.api.routes import taxonomy
 from apps.api.services.product_taxonomy import ProductTaxonomyService
-from shared.services.weather_taxonomy import WeatherTaxonomyClassifier
+from shared.services.weather_taxonomy import WeatherTaxonomyClassifier, WeatherTaxonomyResult
 
 
 @pytest.fixture(name="api_app")

@@ -67,6 +67,6 @@ exclude = [
 select = ["E", "F", "I", "B", "UP", "N"]
 
 [tool.pytest.ini_options]
-pythonpath = [".deps", "."]
+pythonpath = [".", ".deps"]
 testpaths = ["tests"]
 asyncio_mode = "auto"
