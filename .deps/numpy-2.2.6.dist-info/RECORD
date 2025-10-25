@@ -1,10 +1,9 @@
-../../bin/f2py,sha256=EYbtt1aT_avQJNXuWLV3seL5HCJfekvHplCgkmaIytM,260
-../../bin/numpy-config,sha256=fq9UDaozBw6CkYX6ZYOsz_t6CulyHQNe9c9CDdRWmW0,260
+../../bin/f2py,sha256=M50XaXxSeyAMF7P03yGv2ut65wBDJLwFCHqvlriy48o,237
+../../bin/numpy-config,sha256=230TGwf3d3J28Kj60iiAKYlW6RPVkRcTPnEw22gAviU,237
 numpy-2.2.6.dist-info/INSTALLER,sha256=zuuue4knoyJ-UwPPXg8fezS7VCrXJQrAP7zeNuwvFQg,4
 numpy-2.2.6.dist-info/LICENSE.txt,sha256=tK5iiH9N1ulDCxqNcBejuoTF16pjC50X7W8lwhsOxbQ,47786
 numpy-2.2.6.dist-info/METADATA,sha256=kdZtDWCtRnxnlVXA4SrHObs5WUDcIrxaOdRXgKuhKa0,62048
 numpy-2.2.6.dist-info/RECORD,,
-numpy-2.2.6.dist-info/REQUESTED,sha256=47DEQpj8HBSa-_TImW-5JCeuQeRkm5NMpJWZG3hSuFU,0
 numpy-2.2.6.dist-info/WHEEL,sha256=_cS6fEsxLUIcIdoA6Si0dddGONVIRpHlSl13K8j9MME,93
 numpy-2.2.6.dist-info/entry_points.txt,sha256=4mXDNhJDQ9GHqMBeRJ8B3PlixTFmkXGqU3RVuac20q0,172
 numpy/__config__.py,sha256=7x8sKgKIYttfP-o_eI9nPvPRKnmbkYfGUfFygVtjcSo,4867

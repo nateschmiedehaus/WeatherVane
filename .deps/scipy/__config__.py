@@ -36,7 +36,7 @@ CONFIG = _cleanup(
             "cython": {
                 "name": r"cython",
                 "linker": r"cython",
-                "version": r"3.0.11",
+                "version": r"3.0.12",
                 "commands": r"cython",
                 "args": r"",
                 "linker args": r"",
@@ -59,7 +59,7 @@ CONFIG = _cleanup(
             },
             "pythran": {
                 "version": r"0.17.0",
-                "include directory": r"../../../../../../private/var/folders/ml/x_tvfgn50_s7p67dm1ypcqqm0000gn/T/pip-build-env-jc0py8u4/overlay/lib/python3.10/site-packages/pythran"
+                "include directory": r"../../../../../../private/var/folders/hn/k7g0_sh57112t0xtjxcjcm5r0000gn/T/pip-build-env-nm8x7n7q/overlay/lib/python3.10/site-packages/pythran"
             },
         },
         "Machine Information": {
@@ -106,7 +106,7 @@ CONFIG = _cleanup(
             },
         },
         "Python Information": {
-            "path": r"/private/var/folders/ml/x_tvfgn50_s7p67dm1ypcqqm0000gn/T/cibw-run-fvs_c8t_/cp310-macosx_arm64/build/venv/bin/python",
+            "path": r"/private/var/folders/hn/k7g0_sh57112t0xtjxcjcm5r0000gn/T/cibw-run-7ycb4g2e/cp310-macosx_arm64/build/venv/bin/python",
             "version": "3.10",
         },
     }
