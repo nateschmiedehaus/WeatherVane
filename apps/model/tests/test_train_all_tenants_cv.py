@@ -16,9 +16,9 @@ from __future__ import annotations
 
 import json
 import shutil
+import sys
 import tempfile
 from pathlib import Path
-from typing import Dict
 from unittest import mock
 
 import numpy as np
@@ -26,13 +26,12 @@ import pandas as pd
 import pytest
 
 # Add parent directory to path for imports
-import sys
 _SCRIPT_DIR = Path(__file__).parent.parent
 if str(_SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(_SCRIPT_DIR))
 
-from train_all_tenants_cv import export_cv_results, main
-from mmm_lightweight_weather import (
+from train_all_tenants_cv import export_cv_results  # noqa: E402
+from mmm_lightweight_weather import (  # noqa: E402
     CrossValidationMetrics,
     TenantModelTrainer,
     validate_models_against_thresholds,
@@ -160,12 +159,6 @@ def test_export_cv_results(temp_data_dir, create_test_tenant_file):
 
 def test_validate_models_against_thresholds(temp_data_dir, create_test_tenant_file):
     """Test model validation against performance thresholds."""
-    # Train models
-    tenant_file_1 = create_test_tenant_file("good_tenant")
-    tenant_file_2 = create_test_tenant_file("bad_tenant")
-
-    trainer = TenantModelTrainer(data_dir=temp_data_dir)
-
     # Create mock CV results with different R² scores
     cv_results = {
         "good_tenant": CrossValidationMetrics(
@@ -323,8 +316,6 @@ def test_corrupted_parquet_file(temp_data_dir):
 
 def test_insufficient_folds():
     """Test error handling for insufficient number of folds."""
-    trainer = TenantModelTrainer()
-
     # Mock data
     df = pd.DataFrame({
         "date": pd.date_range(start="2023-01-01", periods=10, freq="D"),

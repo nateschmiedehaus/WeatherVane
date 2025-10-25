@@ -29,9 +29,8 @@ _SCRIPT_DIR = Path(__file__).parent
 if str(_SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(_SCRIPT_DIR))
 
-from mmm_lightweight_weather import (
+from mmm_lightweight_weather import (  # noqa: E402
     CrossValidationMetrics,
-    ModelValidationResult,
     TenantModelTrainer,
     export_validation_results,
     summarize_validation_results,
@@ -180,7 +179,7 @@ def main() -> int:
 
     _LOGGER.info("=" * 80)
     _LOGGER.info("Training and validation complete!")
-    _LOGGER.info(f"Results saved to:")
+    _LOGGER.info("Results saved to:")
     _LOGGER.info(f"  - {cv_output_path}")
     _LOGGER.info(f"  - {validation_output_path}")
     _LOGGER.info("=" * 80)
