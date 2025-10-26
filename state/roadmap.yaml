@@ -154,7 +154,7 @@ epics:
               remediation"
           - id: CRIT-PERF-TESTS-fcee61
             title: "[Critic:tests] Restore performance"
-            status: in_progress
+            status: blocked
             dependencies: []
             exit_criteria: []
             domain: product
@@ -310,7 +310,7 @@ epics:
               Prototype to Production"
           - id: REM-T-MLR-0.1.1
             title: Implementation verified
-            status: pending
+            status: blocked
             dependencies: []
             exit_criteria: []
             domain: product
@@ -354,7 +354,7 @@ epics:
               quantitative thresholds: Critical issues fixed"
           - id: REM-T-MLR-0.2.1
             title: Implementation verified
-            status: pending
+            status: in_progress
             dependencies: []
             exit_criteria: []
             domain: product
