@@ -1,6 +1,6 @@
 {
   "version": "v2025-10-25",
-  "generated_at": "2025-10-26T19:02:49.229Z",
+  "generated_at": "2025-10-26T19:46:18.773Z",
   "components": [
     {
       "id": "state-graph",
@@ -8,7 +8,7 @@
       "code_refs": [
         {
           "path": "tools/wvo_mcp/src/orchestrator/state_graph.ts",
-          "sha256": "540e604425d10b664338da26c94203f20789851783d0b4e42de0a49cfda2d1d8"
+          "sha256": "b2c803f3643a7ea34e69e2e914d684a804c8704e39b8e974d8fe4faee25b82fb"
         }
       ],
       "doc_refs": [
@@ -120,7 +120,7 @@
     {
       "id": "reviewer_rubric",
       "path": "tools/wvo_mcp/prompts/reviewer_rubric.md",
-      "sha256": "37fc2b51793b2ea058dddb8ab5315a02bb49b6f7cec18ad28d89732ffa2d6a98"
+      "sha256": "b6f914bd8087260e6a2ecbfd497bb87c0c351cf09c7d8ca01b3c13a5a7a35ffe"
     },
     {
       "id": "context_system",

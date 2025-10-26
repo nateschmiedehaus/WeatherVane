@@ -787,8 +787,7 @@ export class StateGraph {
 
       // Extract model info from router decisions
       const lastDecision = routerDecisions[routerDecisions.length - 1];
-      const modelProvider = lastDecision?.selection.provider === 'codex-cli' ? 'codex' :
-                            lastDecision?.selection.provider === 'claude' ? 'claude' : 'unknown';
+      const modelProvider = lastDecision?.selection.provider ?? 'unknown';
       const modelTier = lastDecision?.selection.model;
 
       // Build tags
@@ -844,13 +843,14 @@ export class StateGraph {
           const baseTokens = 1500 + (complexity.score * 250);
           estimatedTokens += baseTokens;
 
-          // Estimate cost based on model tier (rough pricing)
-          // Haiku: $0.003/1K, Sonnet: $0.015/1K, Opus: $0.075/1K
-          let costPer1K = 0.015; // Default to Sonnet pricing
-          if (decision.selection.model.toLowerCase().includes('haiku')) {
-            costPer1K = 0.003;
-          } else if (decision.selection.model.toLowerCase().includes('opus')) {
-            costPer1K = 0.075;
+          // Estimate cost based on model tier (rough pricing from ModelRegistry)
+          // Base tier: $0.015/1K tokens
+          let costPer1K = 0.015; // Default to base tier pricing
+          const modelName = decision.selection.model.toLowerCase();
+          if (modelName.includes('mini') || modelName.includes('small')) {
+            costPer1K = 0.003; // Small models are cheaper
+          } else if (modelName.includes('premium') || modelName.includes('max')) {
+            costPer1K = 0.075; // Premium models are more expensive
           }
           estimatedCost += (baseTokens / 1000) * costPer1K;
         }
