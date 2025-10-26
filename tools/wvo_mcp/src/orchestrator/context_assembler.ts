@@ -294,7 +294,7 @@ export class ContextAssembler {
 
   /**
    * Format assembled context as a concise text block for agent prompts
-   * This is the actual text that goes into Claude/Codex prompts
+   * This is the actual text that goes into the downstream provider prompts
    */
   formatForPrompt(context: AssembledContext): string {
     const sections: string[] = [];

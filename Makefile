@@ -1,4 +1,4 @@
-.PHONY: bootstrap api web worker model demo-ml simulator format lint test migrate smoke-context smoke-pipeline export-observability check-secrets security clean-metrics mcp-build mcp-register mcp-run mcp-auto mcp-autopilot-feed mcp-autopilot-reservations mcp-autopilot-budget mcp-autopilot-summary autopilot
+.PHONY: bootstrap bootstrap-offline api web worker model demo-ml simulator format lint test test-py migrate smoke-context smoke-pipeline export-observability check-secrets security clean-metrics mcp-build mcp-register mcp-run mcp-auto mcp-autopilot-feed mcp-autopilot-reservations mcp-autopilot-budget mcp-autopilot-summary autopilot
 
 NUMERIC_AGENT_GOALS := 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16
 
@@ -30,7 +30,7 @@ export AGENTS := $(strip $(AGENT_OVERRIDE))
 endif
 
 ifeq ($(strip $(MAKECMDGOALS)),)
-.DEFAULT_GOAL := mcp-autopilot
+.DEFAULT_GOAL := autopilot
 endif
 
 .PHONY: $(NUMERIC_AGENT_GOALS)
@@ -52,10 +52,13 @@ export WVO_AUTOPILOT_ALLOW_OFFLINE_FALLBACK ?= 0
 export STOP_ON_BLOCKER ?= 0
 export WVO_AUTOPILOT_STREAM ?= 0
 
+PYTHON_BIN ?= $(shell ./scripts/python_toolchain.sh)
+PYTHON_ENV = PYTHONPATH=.deps:. $(PYTHON_BIN)
+
 CODEX_HOME ?= $(shell pwd)/.codex
 CODEX_ORCHESTRATOR_PROFILE ?= weathervane_orchestrator
 WVO_CAPABILITY ?= high
-CODEX_AUTOPILOT_MODEL ?= gpt-5-codex
+CODEX_AUTOPILOT_MODEL ?= codex-5-high
 CODEX_AUTOPILOT_REASONING ?= auto
 BASE_INSTRUCTIONS ?= $(shell pwd)/docs/wvo_prompt.md
 CONFIGURE_CODEX_PROFILE = python tools/wvo_mcp/scripts/configure_codex_profile.py
@@ -88,9 +91,14 @@ else
 endif
 
 bootstrap:
-	pip install --upgrade pip
-	pip install -r $(PYTHON_REQUIREMENTS) || true
+	$(PYTHON_BIN) -m pip install --upgrade pip
+	$(PYTHON_BIN) -m pip install -r $(PYTHON_REQUIREMENTS) || true
 	npm install --prefix apps/web || true
+
+bootstrap-offline:
+	@[ -d .wheels ] || (echo ".wheels cache missing; run 'pip download -r $(PYTHON_REQUIREMENTS) -d .wheels' on a networked host." && exit 1)
+	$(PYTHON_BIN) -m pip install --no-index --find-links .wheels -r $(PYTHON_REQUIREMENTS)
+	npm install --prefer-offline --prefix apps/web || true
 
 api:
 	uvicorn apps.api.main:app --reload
@@ -99,20 +107,20 @@ web:
 	npm run dev --prefix apps/web
 
 worker:
-	python -m apps.worker.run
+	$(PYTHON_BIN) -m apps.worker.run
 
 model:
-	python -m apps.model.train
+	$(PYTHON_BIN) -m apps.model.train
 
 demo-ml:
-	PYTHONPATH=. python scripts/minimal_ml_demo.py --tenant $(DEMO_TENANT) $(if $(DEMO_PLAN),--plan $(DEMO_PLAN),) $(if $(DEMO_YEARS),--years $(DEMO_YEARS),--days $(DEMO_DAYS)) --output $(DEMO_OUTPUT) $(if $(DEMO_GEO_LAT),--geo $(DEMO_GEO_LAT) $(DEMO_GEO_LON),) --product $(DEMO_PRODUCT) --category $(DEMO_CATEGORY) $(if $(DEMO_SEED_WEATHER_SHOCK),--seed-weather-shock,)
+	PYTHONPATH=. $(PYTHON_BIN) scripts/minimal_ml_demo.py --tenant $(DEMO_TENANT) $(if $(DEMO_PLAN),--plan $(DEMO_PLAN),) $(if $(DEMO_YEARS),--years $(DEMO_YEARS),--days $(DEMO_DAYS)) --output $(DEMO_OUTPUT) $(if $(DEMO_GEO_LAT),--geo $(DEMO_GEO_LAT) $(DEMO_GEO_LON),) --product $(DEMO_PRODUCT) --category $(DEMO_CATEGORY) $(if $(DEMO_SEED_WEATHER_SHOCK),--seed-weather-shock,)
 
 .PHONY: demo-plan
 demo-plan:
-	PYTHONPATH=. python scripts/plan_brand_demo.py --tenant $(DEMO_TENANT) --lake-root $(DEMO_LAKE_ROOT) --output $(DEMO_PLAN_OUTPUT) --pretty
+	PYTHONPATH=. $(PYTHON_BIN) scripts/plan_brand_demo.py --tenant $(DEMO_TENANT) --lake-root $(DEMO_LAKE_ROOT) --output $(DEMO_PLAN_OUTPUT) --pretty
 
 simulator:
-	python -m apps.simulator.run
+	$(PYTHON_BIN) -m apps.simulator.run
 
 format:
 	black apps shared
@@ -127,33 +135,36 @@ typecheck:
 	npm --prefix tools/wvo_mcp run typecheck
 
 security:
-	python tools/security/run_security_checks.py
+	$(PYTHON_BIN) tools/security/run_security_checks.py
 
 test:
-	PYTHONPATH=.deps:. pytest apps tests
+	$(PYTHON_ENV) -m pytest apps tests
 	npm test --prefix apps/web || true
-	python -m shared.observability.metrics --base-dir tmp/metrics
+	$(PYTHON_BIN) -m shared.observability.metrics --base-dir tmp/metrics
+
+test-py:
+	$(PYTHON_ENV) -m pytest apps tests
 
 migrate:
 	env database_url=$${DATABASE_URL} alembic upgrade head
 
 smoke-context:
-	PYTHONPATH=.deps:. python apps/worker/run.py demo-tenant --start 2024-01-01 --end 2024-01-07
+	$(PYTHON_ENV) apps/worker/run.py demo-tenant --start 2024-01-01 --end 2024-01-07
 
 smoke-pipeline:
-	PYTHONPATH=.deps:. python apps/worker/run.py demo-tenant --smoke-test
+	$(PYTHON_ENV) apps/worker/run.py demo-tenant --smoke-test
 
 export-observability:
-	PYTHONPATH=.deps:. python apps/worker/maintenance/export_observability.py storage/metadata/state observability/latest
+	$(PYTHON_ENV) apps/worker/maintenance/export_observability.py storage/metadata/state observability/latest
 
 publish-observability:
-	PYTHONPATH=.deps:. python apps/worker/maintenance/publish_observability.py analytics.telemetry retention geocoding --dry-run
+	$(PYTHON_ENV) apps/worker/maintenance/publish_observability.py analytics.telemetry retention geocoding --dry-run
 
 check-secrets:
-	PYTHONPATH=.deps:. python apps/worker/maintenance/secrets.py
+	$(PYTHON_ENV) apps/worker/maintenance/secrets.py
 
 clean-metrics:
-	python -m shared.observability.metrics --base-dir tmp/metrics
+	$(PYTHON_BIN) -m shared.observability.metrics --base-dir tmp/metrics
 
 # Unified Multi-Provider Autopilot
 # Usage: make autopilot AGENTS=5
@@ -189,133 +200,14 @@ mcp-autopilot-cleanup:
 	@pkill -9 -f "codex exec.*weathervane_orchestrator" 2>/dev/null || true
 	@pkill -9 -f "tools/wvo_mcp/dist/worker/worker_entry.js" 2>/dev/null || true
 	@pkill -9 -f "dist/index-claude.js.*weathervane" 2>/dev/null || true
-	@pkill -9 -f "tools/wvo_mcp/scripts/autopilot.sh" 2>/dev/null || true
+	@pkill -9 -f "tools/wvo_mcp/scripts/autopilot_unified.sh" 2>/dev/null || true
 	@sleep 1
 	@echo "✅ Cleanup complete"
 
 .PHONY: mcp-autopilot
-mcp-autopilot: mcp-build
-	@echo "🚀 Starting Unified Multi-Provider Autopilot"
-	@echo "  Agents: $(AGENTS)"
-	@echo "  Live telemetry: Enabled"
-	@echo ""
-	@bash tools/wvo_mcp/scripts/autopilot_unified.sh --agents $(AGENTS)
-	@( \
-		set -euo pipefail; \
-		LOG_PATH=/tmp/wvo_autopilot.log; \
-		: > "$$LOG_PATH"; \
-		USE_TMUX=0; \
-		if command -v tmux >/dev/null 2>&1 && [ "${WVO_AUTOPILOT_TMUX:-1}" = "1" ]; then \
-			USE_TMUX=1; \
-		fi; \
-		if [ "$$USE_TMUX" -eq 1 ] && [ ! -t 1 ]; then \
-			USE_TMUX=0; \
-		fi; \
-		AUTOPILOT_INTERACTIVE=$${WVO_AUTOPILOT_INTERACTIVE:-1}; \
-		AGENTS_VALUE=$${AGENTS:-$${WVO_AUTOPILOT_AGENTS:-$${MCP_AUTOPILOT_COUNT:-}}}; \
-		if [ "$$AUTOPILOT_INTERACTIVE" = "1" ] && [ -z "$$AGENTS_VALUE" ]; then \
-			printf 'How many Codex agents should participate? [default: 3]: '; read AGENTS_VALUE; \
-		fi; \
-		AGENTS_VALUE=$${AGENTS_VALUE:-3}; \
-		if ! printf '%s' "$$AGENTS_VALUE" | grep -Eq '^[0-9]+$$'; then AGENTS_VALUE=3; fi; \
-		if [ "$$AGENTS_VALUE" -le 0 ]; then AGENTS_VALUE=1; fi; \
-		echo "⚙️  Codex agents: $$AGENTS_VALUE"; \
-		export AGENTS="$$AGENTS_VALUE"; \
-		export WVO_AUTOPILOT_AGENTS="$$AGENTS_VALUE"; \
-		export WVO_CODEX_WORKERS="$$AGENTS_VALUE"; \
-		export WVO_WORKER_COUNT="$$AGENTS_VALUE"; \
-		export CODEX_HOME="$(CODEX_HOME)"; \
-		export CODEX_PROFILE_NAME="$(CODEX_ORCHESTRATOR_PROFILE)"; \
-		export WVO_CAPABILITY="$(WVO_CAPABILITY)"; \
-		export CODEX_AUTOPILOT_MODEL="$(CODEX_AUTOPILOT_MODEL)"; \
-		export CODEX_AUTOPILOT_REASONING="$(CODEX_AUTOPILOT_REASONING)"; \
-		export BASE_INSTRUCTIONS="$(BASE_INSTRUCTIONS)"; \
-		export WVO_DEFAULT_PROVIDER=codex; \
-		export WVO_AUTOPILOT_ENTRY="$(shell pwd)/$(WVO_MCP_ENTRY)"; \
-		export MCP_AUTOPILOT_COUNT="$$AGENTS_VALUE"; \
-		export WVO_AUTOPILOT_INTERACTIVE="$$AUTOPILOT_INTERACTIVE"; \
-		export WVO_AUTOPILOT_SHOW_FEED="$${WVO_AUTOPILOT_SHOW_FEED:-1}"; \
-		export WVO_AUTOPILOT_TMUX_FEED="$${WVO_AUTOPILOT_TMUX_FEED:-1}"; \
-		export WVO_AUTOPILOT_FEED_TAIL="$${WVO_AUTOPILOT_FEED_TAIL:-25}"; \
-		export WVO_AUTOPILOT_AGENT_LOG="$${WVO_AUTOPILOT_AGENT_LOG:-1}"; \
-		export WVO_AUTOPILOT_AGENT_REFRESH="$${WVO_AUTOPILOT_AGENT_REFRESH:-2}"; \
-		export LOG_FILE="$$LOG_PATH"; \
-		export WVO_AUTOPILOT_STREAM=0; \
-		if [ "$$USE_TMUX" -eq 1 ]; then \
-			tools/wvo_mcp/scripts/autopilot_tmux.sh; \
-			AUTOPILOT_EXIT=$$?; \
-	else \
-		tail -n +1 -f "$$LOG_PATH" & \
-		TAIL_PID=$$!; \
-		FEED_VIEWER_PID=""; \
-		AGENT_LOG_PID=""; \
-		cleanup_sidecars() { \
-			kill $$TAIL_PID 2>/dev/null || true; \
-			wait $$TAIL_PID 2>/dev/null || true; \
-			if [ -n "$$FEED_VIEWER_PID" ]; then \
-				kill $$FEED_VIEWER_PID 2>/dev/null || true; \
-				wait $$FEED_VIEWER_PID 2>/dev/null || true; \
-				FEED_VIEWER_PID=""; \
-			fi; \
-			if [ -n "$$AGENT_LOG_PID" ]; then \
-				kill $$AGENT_LOG_PID 2>/dev/null || true; \
-				wait $$AGENT_LOG_PID 2>/dev/null || true; \
-				AGENT_LOG_PID=""; \
-			fi; \
-		}; \
-		trap cleanup_sidecars EXIT; \
-		if [ "$${WVO_AUTOPILOT_SHOW_FEED:-1}" = "1" ]; then \
-			if command -v python >/dev/null 2>&1; then \
-				( \
-					PYTHONUNBUFFERED=1 python tools/wvo_mcp/scripts/activity_feed.py --mode feed --follow --tail "$${WVO_AUTOPILOT_FEED_TAIL:-25}" \
-					| while IFS= read -r line; do printf '[feed] %s\n' "$$line"; done \
-				) & \
-				FEED_VIEWER_PID=$$!; \
-				echo "📡 Activity feed streaming (PID=$$FEED_VIEWER_PID)"; \
-			else \
-				echo "ℹ️ Python not found; skipping activity feed viewer."; \
-			fi; \
-		fi; \
-		if [ "$${WVO_AUTOPILOT_AGENT_LOG:-1}" = "1" ]; then \
-			if command -v python >/dev/null 2>&1; then \
-				( \
-					PYTHONUNBUFFERED=1 python tools/wvo_mcp/scripts/activity_feed.py --mode agent-log --follow --interval "$${WVO_AUTOPILOT_AGENT_REFRESH:-2}" \
-					| while IFS= read -r line; do printf '[agents] %s\n' "$$line"; done \
-				) & \
-				AGENT_LOG_PID=$$!; \
-				echo "👥 Agent log streaming (PID=$$AGENT_LOG_PID)"; \
-			else \
-				echo "ℹ️ Python not found; skipping agent log viewer."; \
-			fi; \
-		fi; \
-		tools/wvo_mcp/scripts/autopilot.sh & \
-			AUTOPILOT_PID=$$!; \
-			interrupt_run() { \
-				echo ""; \
-				echo "🛑 Stopping autopilot and cleaning up workers..."; \
-				kill $$AUTOPILOT_PID 2>/dev/null || true; \
-				pkill -P $$AUTOPILOT_PID 2>/dev/null || true; \
-				pkill -f "tools/wvo_mcp/dist/index.js" 2>/dev/null || true; \
-				wait $$AUTOPILOT_PID 2>/dev/null || true; \
-				echo "✅ Cleanup complete."; \
-				exit 130; \
-			}; \
-			trap interrupt_run INT TERM; \
-			wait $$AUTOPILOT_PID; \
-			AUTOPILOT_EXIT=$$?; \
-			trap - EXIT; \
-			cleanup_sidecars; \
-		fi; \
-		if command -v python >/dev/null 2>&1; then \
-			echo ""; \
-			echo "📋 Autopilot session summary:"; \
-			python tools/wvo_mcp/scripts/activity_feed.py --mode summary --output "$(shell pwd)/state/autopilot_sessions.jsonl" || true; \
-			echo "🗂  Summary archive: state/autopilot_sessions.jsonl"; \
-		else \
-			echo "ℹ️ Python not available; skipping summary."; \
-		fi; \
-		exit $$AUTOPILOT_EXIT; \
-	)
+mcp-autopilot:
+	@echo "⚠️  Legacy alias: use 'make autopilot' going forward."
+	@$(MAKE) autopilot AGENTS=$(AGENTS)
 
 .PHONY: mcp-autopilot-feed
 mcp-autopilot-feed:

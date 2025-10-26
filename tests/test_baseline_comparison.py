@@ -2,12 +2,26 @@
 
 from pathlib import Path
 from datetime import datetime, timedelta
+import sys
 import pytest
 import json
 import pandas as pd
 
 import polars as pl
 import numpy as np
+
+REPO_ROOT = Path(__file__).resolve().parents[1]
+root_str = str(REPO_ROOT)
+if root_str not in sys.path:
+    sys.path.insert(0, root_str)
+
+shared_module = sys.modules.get("shared")
+tests_shared_path = str(REPO_ROOT / "tests" / "shared")
+if shared_module is not None:
+    module_file = getattr(shared_module, "__file__", "") or ""
+    if tests_shared_path in module_file:
+        sys.modules.pop("shared", None)
+        sys.modules.pop("shared.feature_store", None)
 
 from apps.model.baseline_comparison import (
     validate_tenant_predictions,

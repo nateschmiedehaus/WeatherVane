@@ -1,0 +1,386 @@
+{
+  "checks": {
+    "autocorrelation": {
+      "dw_statistic": 0.011154910729196985,
+      "issues": [],
+      "lag1_autocorr": 0.7912814619811218,
+      "status": "pass",
+      "target_column": "net_revenue"
+    },
+    "completeness": {
+      "issues": [],
+      "missing_ratios": {
+        "date": 0.0,
+        "geo_level": 0.0,
+        "geo_scope": 0.0,
+        "google_conversions": 0.0,
+        "google_spend": 0.0,
+        "google_spend_lag1": 0.011111111111111112,
+        "google_spend_roll7": 0.0,
+        "has_forecast_observation": 0.0,
+        "meta_conversions": 0.0,
+        "meta_spend": 0.0,
+        "meta_spend_lag1": 0.011111111111111112,
+        "meta_spend_roll7": 0.0,
+        "net_revenue": 0.0,
+        "net_revenue_lag1": 0.011111111111111112,
+        "net_revenue_roll7": 0.0,
+        "order_count": 0.0,
+        "precip_anomaly": 0.0,
+        "precip_mm": 0.0,
+        "precip_mm_lag1": 0.011111111111111112,
+        "precip_mm_roll7": 0.0,
+        "precip_roll7": 0.0,
+        "promos_sent": 0.0,
+        "promos_sent_lag1": 0.011111111111111112,
+        "temp_anomaly": 0.0,
+        "temp_c": 0.0,
+        "temp_c_lag1": 0.011111111111111112,
+        "temp_c_roll7": 0.0,
+        "temp_roll7": 0.0
+      },
+      "status": "warning"
+    },
+    "coverage": {
+      "column": "date",
+      "issues": [],
+      "missing_dates": [],
+      "status": "pass"
+    },
+    "feature_correlation": {
+      "feature_count": 23,
+      "high_correlations": [
+        {
+          "correlation": 0.9999994922335863,
+          "feature_1": "meta_spend",
+          "feature_2": "meta_conversions"
+        },
+        {
+          "correlation": 0.9999999622337313,
+          "feature_1": "meta_spend",
+          "feature_2": "google_spend"
+        },
+        {
+          "correlation": 0.9999976517778698,
+          "feature_1": "meta_spend",
+          "feature_2": "google_conversions"
+        },
+        {
+          "correlation": 1.0,
+          "feature_1": "meta_spend",
+          "feature_2": "meta_spend_lag1"
+        },
+        {
+          "correlation": 0.9998480206686754,
+          "feature_1": "meta_spend",
+          "feature_2": "meta_spend_roll7"
+        },
+        {
+          "correlation": 0.999999961796126,
+          "feature_1": "meta_spend",
+          "feature_2": "google_spend_lag1"
+        },
+        {
+          "correlation": 0.9998477639060096,
+          "feature_1": "meta_spend",
+          "feature_2": "google_spend_roll7"
+        },
+        {
+          "correlation": 0.9999994542620048,
+          "feature_1": "meta_conversions",
+          "feature_2": "google_spend"
+        },
+        {
+          "correlation": 0.9999971297819714,
+          "feature_1": "meta_conversions",
+          "feature_2": "google_conversions"
+        },
+        {
+          "correlation": 0.9999994749356699,
+          "feature_1": "meta_conversions",
+          "feature_2": "meta_spend_lag1"
+        },
+        {
+          "correlation": 0.9998480760936737,
+          "feature_1": "meta_conversions",
+          "feature_2": "meta_spend_roll7"
+        },
+        {
+          "correlation": 0.9999995800369321,
+          "feature_1": "meta_conversions",
+          "feature_2": "google_spend_lag1"
+        },
+        {
+          "correlation": 0.9998478389972437,
+          "feature_1": "meta_conversions",
+          "feature_2": "google_spend_roll7"
+        },
+        {
+          "correlation": 0.9999976268056666,
+          "feature_1": "google_spend",
+          "feature_2": "google_conversions"
+        },
+        {
+          "correlation": 0.9999999609472116,
+          "feature_1": "google_spend",
+          "feature_2": "meta_spend_lag1"
+        },
+        {
+          "correlation": 0.9998481364817651,
+          "feature_1": "google_spend",
+          "feature_2": "meta_spend_roll7"
+        },
+        {
+          "correlation": 0.9999998836609133,
+          "feature_1": "google_spend",
+          "feature_2": "google_spend_lag1"
+        },
+        {
+          "correlation": 0.9998478857169946,
+          "feature_1": "google_spend",
+          "feature_2": "google_spend_roll7"
+        },
+        {
+          "correlation": 0.9999976082946422,
+          "feature_1": "google_conversions",
+          "feature_2": "meta_spend_lag1"
+        },
+        {
+          "correlation": 0.999835273304198,
+          "feature_1": "google_conversions",
+          "feature_2": "meta_spend_roll7"
+        },
+        {
+          "correlation": 0.9999975629219302,
+          "feature_1": "google_conversions",
+          "feature_2": "google_spend_lag1"
+        },
+        {
+          "correlation": 0.9998350085109848,
+          "feature_1": "google_conversions",
+          "feature_2": "google_spend_roll7"
+        },
+        {
+          "correlation": -0.9722818303670644,
+          "feature_1": "temp_roll7",
+          "feature_2": "net_revenue_roll7"
+        },
+        {
+          "correlation": 1.0,
+          "feature_1": "temp_roll7",
+          "feature_2": "temp_c_roll7"
+        },
+        {
+          "correlation": 0.9999999999999999,
+          "feature_1": "precip_roll7",
+          "feature_2": "precip_mm_roll7"
+        },
+        {
+          "correlation": -0.9722818303670646,
+          "feature_1": "net_revenue_roll7",
+          "feature_2": "temp_c_roll7"
+        },
+        {
+          "correlation": 0.9999021283048407,
+          "feature_1": "meta_spend_lag1",
+          "feature_2": "meta_spend_roll7"
+        },
+        {
+          "correlation": 0.999999961796126,
+          "feature_1": "meta_spend_lag1",
+          "feature_2": "google_spend_lag1"
+        },
+        {
+          "correlation": 0.9999018438925942,
+          "feature_1": "meta_spend_lag1",
+          "feature_2": "google_spend_roll7"
+        },
+        {
+          "correlation": 0.9999022916435799,
+          "feature_1": "meta_spend_roll7",
+          "feature_2": "google_spend_lag1"
+        },
+        {
+          "correlation": 0.999999999025237,
+          "feature_1": "meta_spend_roll7",
+          "feature_2": "google_spend_roll7"
+        },
+        {
+          "correlation": 0.9999020123367549,
+          "feature_1": "google_spend_lag1",
+          "feature_2": "google_spend_roll7"
+        }
+      ],
+      "issues": [
+        "high_feature_correlation:32"
+      ],
+      "status": "warning"
+    },
+    "joinability": {
+      "failure_threshold": 0.8,
+      "geocoded_order_ratio": null,
+      "issues": [
+        "missing_join_ratio"
+      ],
+      "status": "warning",
+      "warning_threshold": 0.9
+    },
+    "outliers": {
+      "columns": {
+        "net_revenue": [
+          {
+            "index": 88,
+            "value": 1183.4099999999999,
+            "z_score": 3.581547676169887
+          }
+        ],
+        "net_revenue_lag1": [
+          {
+            "index": 48,
+            "value": 1102.29,
+            "z_score": 3.0007592310447184
+          },
+          {
+            "index": 89,
+            "value": 1183.4099999999999,
+            "z_score": 3.666653222473166
+          }
+        ],
+        "precip_anomaly": [
+          {
+            "index": 2,
+            "value": 21.7,
+            "z_score": 4.560209004763109
+          },
+          {
+            "index": 42,
+            "value": 14.878124999999997,
+            "z_score": 3.1707213926689195
+          },
+          {
+            "index": 52,
+            "value": 15.803125,
+            "z_score": 3.3591264926138953
+          }
+        ],
+        "precip_mm": [
+          {
+            "index": 2,
+            "value": 21.9,
+            "z_score": 4.087414243679758
+          },
+          {
+            "index": 4,
+            "value": 21.3,
+            "z_score": 3.9593639047816285
+          },
+          {
+            "index": 42,
+            "value": 17.099999999999998,
+            "z_score": 3.0630115324947167
+          },
+          {
+            "index": 52,
+            "value": 17.2,
+            "z_score": 3.0843532556444053
+          }
+        ],
+        "precip_mm_lag1": [
+          {
+            "index": 3,
+            "value": 21.9,
+            "z_score": 4.0635346071290055
+          },
+          {
+            "index": 5,
+            "value": 21.3,
+            "z_score": 3.9361839715161833
+          },
+          {
+            "index": 43,
+            "value": 17.099999999999998,
+            "z_score": 3.0447295222264223
+          },
+          {
+            "index": 53,
+            "value": 17.2,
+            "z_score": 3.0659546281618932
+          }
+        ],
+        "precip_mm_roll7": [
+          {
+            "index": 4,
+            "value": 11.52,
+            "z_score": 3.6824421360979667
+          }
+        ],
+        "precip_roll7": [
+          {
+            "index": 4,
+            "value": 11.52,
+            "z_score": 3.682442136097966
+          }
+        ]
+      },
+      "issues": [
+        "outliers:net_revenue:1",
+        "outliers:precip_roll7:1",
+        "outliers:precip_mm:4",
+        "outliers:precip_mm_lag1:4",
+        "outliers:precip_anomaly:3",
+        "outliers:net_revenue_lag1:2",
+        "outliers:precip_mm_roll7:1"
+      ],
+      "status": "warning",
+      "threshold": 3.0
+    },
+    "stationarity": {
+      "adf_results": {},
+      "issues": [],
+      "status": "pass"
+    },
+    "target_variance": {
+      "cv": 0.16853759121846643,
+      "issues": [],
+      "mean": 739.5098888888889,
+      "status": "pass",
+      "std_dev": 124.63521535556909,
+      "target_column": "net_revenue",
+      "variance": 15533.936906729085
+    },
+    "volume": {
+      "issues": [],
+      "min_required": 90,
+      "row_count": 90,
+      "status": "pass"
+    }
+  },
+  "date_column": "date",
+  "generated_at": "2025-10-26T19:27:45.692308+00:00",
+  "issues": [
+    "outliers:outliers:net_revenue:1",
+    "outliers:outliers:precip_roll7:1",
+    "outliers:outliers:precip_mm:4",
+    "outliers:outliers:precip_mm_lag1:4",
+    "outliers:outliers:precip_anomaly:3",
+    "outliers:outliers:net_revenue_lag1:2",
+    "outliers:outliers:precip_mm_roll7:1",
+    "joinability:missing_join_ratio",
+    "feature_correlation:high_feature_correlation:32"
+  ],
+  "metadata": {
+    "ads_rows": 180,
+    "feature_rows": 270,
+    "promo_rows": 90,
+    "weather_rows": 180
+  },
+  "ml_ready": false,
+  "row_count": 90,
+  "status": "warning",
+  "target_column": "net_revenue",
+  "tenant_id": "brand-alpine-outfitters",
+  "window": {
+    "end": "2024-01-07T00:00:00+00:00",
+    "start": "2023-10-10T00:00:00+00:00"
+  }
+}

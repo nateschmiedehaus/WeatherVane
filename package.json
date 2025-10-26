@@ -3,7 +3,15 @@
     "node": ">=24.10.0",
     "npm": ">=10.0.0"
   },
+  "license": "MIT",
+  "scripts": {
+    "test": "node tools/oss_autopilot/scripts/run_vitest.mjs --run || (echo \"[fallback] rerunning vitest with verbose logs\" && npm_config_loglevel=verbose node tools/oss_autopilot/scripts/run_vitest.mjs --run)",
+    "test:autopilot": "node tools/oss_autopilot/scripts/run_vitest.mjs --run --scope=autopilot",
+    "test:web": "node tools/oss_autopilot/scripts/run_vitest.mjs --run --scope=web",
+    "test:ci": "CI=1 node tools/oss_autopilot/scripts/run_vitest.mjs --run"
+  },
   "devDependencies": {
+    "tsx": "^4.11.0",
     "vitest": "^4.0.1"
   },
   "overrides": {

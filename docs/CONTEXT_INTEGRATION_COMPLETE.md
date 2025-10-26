@@ -192,8 +192,8 @@ All TypeScript errors resolved:
 - ✅ Agent spawning configured (1 orchestrator, N workers, M critics)
 
 ### Model Names
-- ✅ claude-sonnet-4-5 (with hyphens)
-- ✅ claude-haiku-4-5 (with hyphens)
+- ✅ claude-sonnet-4.5 (with hyphens)
+- ✅ claude-haiku-4.5 (with hyphens)
 - ✅ gpt-5-codex-high
 - ✅ gpt-5-codex-medium
 - ✅ gpt-5-codex-low
@@ -254,7 +254,7 @@ When an agent receives a task, the prompt now includes:
 
 ## Agent Assignment
 - **Your Role**: [Atlas/Director Dana/Worker/Critic persona]
-- **Model**: claude-sonnet-4-5 (claude)
+- **Model**: claude-sonnet-4.5 (claude)
 - **Autonomy Level**: strategic/operational/tactical
 - **Complexity**: complex (9/10)
 

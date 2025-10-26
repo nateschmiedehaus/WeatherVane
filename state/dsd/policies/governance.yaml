@@ -1,0 +1,12 @@
+reframe:
+  cool_down_hours:
+    task: 12
+    story: 24
+    epic: 72
+  evidence_required:
+    - failing_artifact
+    - plan_delta
+    - coverage_report
+    - router_decisions
+approval:
+  dsd_changes: "RFC + ADR + governance PR"

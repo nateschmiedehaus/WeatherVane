@@ -29,6 +29,7 @@ import { CriticalAgent } from '../critical_agent.js';
 import { SupervisorAgent } from '../supervisor.js';
 import { StateGraph } from '../state_graph.js';
 import type { ModelRouter, ModelSelection } from '../model_router.js';
+import { ComplexityRouter } from '../complexity_router.js';
 import { RunEphemeralMemory } from '../../memory/run_ephemeral.js';
 import { KnowledgeBaseResources } from '../../memory/kb_resources.js';
 import { ProjectIndex } from '../../memory/project_index.js';
@@ -84,6 +85,7 @@ describe('StateGraph Performance Baseline (SPIKE 1)', () => {
     const reviewer = new ReviewerAgent(router);
     const critical = new CriticalAgent();
     const supervisor = new SupervisorAgent(router);
+    const complexityRouter = new ComplexityRouter();
 
     contextEmitSpy = vi.fn(async () => 'context://stub');
 
@@ -97,6 +99,7 @@ describe('StateGraph Performance Baseline (SPIKE 1)', () => {
         critical,
         supervisor,
         router,
+        complexityRouter,
         journal,
         memory,
         contextAssembler: { emit: contextEmitSpy } as unknown as ContextAssembler,

@@ -48,10 +48,10 @@ analyzeCostSavings(tasks: Task[]): CostAnalysis
 **Model Tiers:**
 | Tier | Model | Cost/1K | Complexity | Use Case |
 |------|-------|---------|------------|----------|
-| Haiku | claude-haiku-4-5 | $0.001 | 0-3 | Simple tasks (70% target) |
+| Haiku | claude-haiku-4.5 | $0.001 | 0-3 | Simple tasks (70% target) |
 | Sonnet 3.5 | claude-3-5-sonnet-20241022 | $0.015 | 4-6 | Standard tasks (20% target) |
-| Sonnet 4.5 | claude-sonnet-4-5 | $0.03 | 7-9 | Complex tasks (9% target) |
-| Sonnet 4.5 + Reasoning | claude-sonnet-4-5 (high) | $0.05 | 10 | Strategic tasks (1% target) |
+| Sonnet 4.5 | claude-sonnet-4.5 | $0.03 | 7-9 | Complex tasks (9% target) |
+| Sonnet 4.5 + Reasoning | claude-sonnet-4.5 (high) | $0.05 | 10 | Strategic tasks (1% target) |
 
 **Complexity Scoring:**
 - **Dependencies:** +2 per dependency

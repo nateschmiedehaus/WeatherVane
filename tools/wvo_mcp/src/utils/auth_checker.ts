@@ -198,28 +198,35 @@ export class AuthChecker {
   }
 
   /**
-   * Check authentication for both providers
+   * Check authentication for both providers (silent)
    */
-  async checkAll(): Promise<AuthStatus> {
-    logInfo("Checking authentication status...");
-
+  async checkAllSilent(): Promise<AuthStatus> {
     const [codexAuth, claudeAuth] = await Promise.all([
       this.checkCodexAuth(),
       this.checkClaudeCodeAuth(),
     ]);
 
-    const status: AuthStatus = {
+    return {
       codex: codexAuth,
       claude_code: claudeAuth,
     };
+  }
+
+  /**
+   * Check authentication for both providers with logging
+   */
+  async checkAll(): Promise<AuthStatus> {
+    logInfo("Checking authentication status...");
+
+    const status = await this.checkAllSilent();
 
     // Log results
-    if (codexAuth.authenticated && claudeAuth.authenticated) {
+    if (status.codex.authenticated && status.claude_code.authenticated) {
       logInfo("✅ Both providers authenticated", {
-        codex: codexAuth.user,
-        claude_code: claudeAuth.user,
+        codex: status.codex.user,
+        claude_code: status.claude_code.user,
       });
-    } else if (codexAuth.authenticated || claudeAuth.authenticated) {
+    } else if (status.codex.authenticated || status.claude_code.authenticated) {
       logWarning("⚠️  Partial authentication - some providers unavailable", status as unknown as Record<string, unknown>);
     } else {
       logError("❌ No providers authenticated", status as unknown as Record<string, unknown>);

@@ -32,7 +32,7 @@
       },
       {
         "agent_type": "codex",
-        "codex_preset": "gpt-5-codex-low",
+        "codex_preset": "codex-5-high-low",
         "critics_failed": [],
         "duration_seconds": 0,
         "final_status": "needs_improvement",
@@ -47,7 +47,7 @@
       },
       {
         "agent_type": "codex",
-        "codex_preset": "gpt-5-codex-high",
+        "codex_preset": "codex-5-high-high",
         "critics_failed": [],
         "duration_seconds": 0,
         "final_status": "needs_improvement",
@@ -62,7 +62,7 @@
       },
       {
         "agent_type": "codex",
-        "codex_preset": "gpt-5-codex-low",
+        "codex_preset": "codex-5-high-low",
         "critics_failed": [],
         "duration_seconds": 0,
         "final_status": "needs_improvement",
@@ -92,7 +92,7 @@
       },
       {
         "agent_type": "codex",
-        "codex_preset": "gpt-5-codex-low",
+        "codex_preset": "codex-5-high-low",
         "critics_failed": [],
         "duration_seconds": 0,
         "final_status": "needs_improvement",
@@ -107,7 +107,7 @@
       },
       {
         "agent_type": "codex",
-        "codex_preset": "gpt-5-codex-high",
+        "codex_preset": "codex-5-high-high",
         "critics_failed": [],
         "duration_seconds": 0,
         "final_status": "needs_improvement",
@@ -122,7 +122,7 @@
       },
       {
         "agent_type": "codex",
-        "codex_preset": "gpt-5-codex-low",
+        "codex_preset": "codex-5-high-low",
         "critics_failed": [],
         "duration_seconds": 0,
         "final_status": "needs_improvement",
@@ -152,7 +152,7 @@
       },
       {
         "agent_type": "codex",
-        "codex_preset": "gpt-5-codex-low",
+        "codex_preset": "codex-5-high-low",
         "critics_failed": [],
         "duration_seconds": 0,
         "final_status": "needs_improvement",
@@ -246,7 +246,7 @@
       "medium": 585
     },
     "models": {
-      "gpt-5-codex": 585
+      "codex-5-high": 585
     },
     "statuses": {
       "error": 425,

@@ -4,15 +4,15 @@
   "preferences": {
     "allocator": {
       "preferred_provider": "codex",
-      "preferred_model": "gpt-5-codex",
+      "preferred_model": "codex-5",
       "reasoning_level": "high",
       "rationale": "Budget allocation requires deep numerical reasoning and optimization",
       "fallback_provider": "claude",
-      "fallback_model": "claude-opus-4"
+      "fallback_model": "claude-opus-4.1.1"
     },
     "tests": {
       "preferred_provider": "codex",
-      "preferred_model": "gpt-5-codex",
+      "preferred_model": "codex-5",
       "reasoning_level": "medium",
       "rationale": "Test generation benefits from code understanding and systematic coverage",
       "fallback_provider": "claude",
@@ -20,67 +20,67 @@
     },
     "build": {
       "preferred_provider": "codex",
-      "preferred_model": "gpt-5",
+      "preferred_model": "codex-5-low",
       "reasoning_level": "low",
       "rationale": "Build verification is straightforward, doesn't need maximum reasoning",
       "fallback_provider": "claude",
-      "fallback_model": "claude-sonnet-4"
+      "fallback_model": "claude-sonnet-4.5"
     },
     "security": {
       "preferred_provider": "claude",
-      "preferred_model": "claude-opus-4",
+      "preferred_model": "claude-opus-4.1.1",
       "rationale": "Security analysis requires careful reasoning and threat modeling",
       "fallback_provider": "codex",
-      "fallback_model": "gpt-5-codex"
+      "fallback_model": "codex-5"
     },
     "design_system": {
       "preferred_provider": "claude",
-      "preferred_model": "claude-opus-4",
+      "preferred_model": "claude-opus-4.1.1",
       "rationale": "UX/design requires visual understanding and human-centric reasoning",
       "fallback_provider": "claude",
       "fallback_model": "claude-sonnet-4.5"
     },
     "org_pm": {
       "preferred_provider": "claude",
-      "preferred_model": "claude-opus-4",
+      "preferred_model": "claude-opus-4.1.1",
       "rationale": "Strategic product management needs deep contextual understanding",
       "fallback_provider": "claude",
       "fallback_model": "claude-sonnet-4.5"
     },
     "data_quality": {
       "preferred_provider": "codex",
-      "preferred_model": "gpt-5-codex",
+      "preferred_model": "codex-5",
       "reasoning_level": "high",
       "rationale": "Data quality checks require statistical reasoning and numerical analysis",
       "fallback_provider": "claude",
-      "fallback_model": "claude-opus-4"
+      "fallback_model": "claude-opus-4.1.1"
     },
     "weather_coverage": {
       "preferred_provider": "codex",
-      "preferred_model": "gpt-5-codex",
+      "preferred_model": "codex-5",
       "reasoning_level": "high",
       "rationale": "Analyzing weather coverage drift requires numerical comparison against baselines and guardrail thresholds",
       "fallback_provider": "claude",
-      "fallback_model": "claude-opus-4"
+      "fallback_model": "claude-opus-4.1.1"
     },
     "forecast_stitch": {
       "preferred_provider": "codex",
-      "preferred_model": "gpt-5-codex",
+      "preferred_model": "codex-5",
       "reasoning_level": "high",
       "rationale": "Forecast stitching involves complex temporal reasoning and numerical optimization",
       "fallback_provider": "claude",
-      "fallback_model": "claude-opus-4"
+      "fallback_model": "claude-opus-4.1.1"
     },
     "causal": {
       "preferred_provider": "claude",
-      "preferred_model": "claude-opus-4",
+      "preferred_model": "claude-opus-4.1.1",
       "rationale": "Causal inference requires deep reasoning about counterfactuals and mechanisms",
       "fallback_provider": "codex",
-      "fallback_model": "gpt-5-codex"
+      "fallback_model": "codex-5"
     },
     "cost_perf": {
       "preferred_provider": "codex",
-      "preferred_model": "gpt-5-codex",
+      "preferred_model": "codex-5",
       "reasoning_level": "medium",
       "rationale": "Cost/performance analysis benefits from numerical optimization",
       "fallback_provider": "claude",
@@ -88,29 +88,29 @@
     },
     "typecheck": {
       "preferred_provider": "codex",
-      "preferred_model": "gpt-5",
+      "preferred_model": "codex-5-low",
       "reasoning_level": "low",
       "rationale": "Type checking is mechanical and doesn't need high reasoning",
       "fallback_provider": "claude",
-      "fallback_model": "claude-sonnet-4"
+      "fallback_model": "claude-sonnet-4.5"
     },
     "integration_completeness": {
       "preferred_provider": "claude",
       "preferred_model": "claude-sonnet-4.5",
       "rationale": "Integration verification requires understanding of system architecture",
       "fallback_provider": "codex",
-      "fallback_model": "gpt-5-codex"
+      "fallback_model": "codex-5"
     },
     "experience_flow": {
       "preferred_provider": "claude",
-      "preferred_model": "claude-opus-4",
+      "preferred_model": "claude-opus-4.1.1",
       "rationale": "User experience flow analysis requires empathy and human-centric thinking",
       "fallback_provider": "claude",
       "fallback_model": "claude-sonnet-4.5"
     },
     "motion_design": {
       "preferred_provider": "claude",
-      "preferred_model": "claude-opus-4",
+      "preferred_model": "claude-opus-4.1.1",
       "rationale": "Motion design critique requires visual and aesthetic reasoning",
       "fallback_provider": "claude",
       "fallback_model": "claude-sonnet-4.5"
@@ -120,18 +120,18 @@
       "preferred_model": "claude-sonnet-4.5",
       "rationale": "Responsive design verification benefits from visual understanding",
       "fallback_provider": "codex",
-      "fallback_model": "gpt-5"
+      "fallback_model": "codex-5-low"
     },
     "weather_aesthetic": {
       "preferred_provider": "claude",
-      "preferred_model": "claude-opus-4",
+      "preferred_model": "claude-opus-4.1.1",
       "rationale": "Weather-themed aesthetics require creative and visual reasoning",
       "fallback_provider": "claude",
       "fallback_model": "claude-sonnet-4.5"
     },
     "stakeholder_narrative": {
       "preferred_provider": "claude",
-      "preferred_model": "claude-opus-4",
+      "preferred_model": "claude-opus-4.1.1",
       "rationale": "Executive narratives require strategic communication and storytelling",
       "fallback_provider": "claude",
       "fallback_model": "claude-sonnet-4.5"
@@ -141,43 +141,43 @@
       "preferred_model": "claude-sonnet-4.5",
       "rationale": "Demo effectiveness requires understanding user psychology and conversion",
       "fallback_provider": "claude",
-      "fallback_model": "claude-opus-4"
+      "fallback_model": "claude-opus-4.1.1"
     },
     "modeling_data_watch": {
       "preferred_provider": "codex",
-      "preferred_model": "gpt-5-codex",
+      "preferred_model": "codex-5",
       "reasoning_level": "high",
       "rationale": "Modeling data watch depends on interpreting monitoring telemetry and threshold comparisons",
       "fallback_provider": "claude",
-      "fallback_model": "claude-opus-4"
+      "fallback_model": "claude-opus-4.1.1"
     },
     "inspiration_coverage": {
       "preferred_provider": "claude",
       "preferred_model": "claude-sonnet-4.5",
       "rationale": "Design inspiration analysis benefits from creative and aesthetic understanding",
       "fallback_provider": "claude",
-      "fallback_model": "claude-opus-4"
+      "fallback_model": "claude-opus-4.1.1"
     },
     "modeling_reality": {
       "preferred_provider": "codex",
-      "preferred_model": "gpt-5-codex",
+      "preferred_model": "codex-5",
       "reasoning_level": "high",
       "rationale": "ML quality validation requires complex numerical thresholds and statistical reasoning",
       "fallback_provider": "claude",
-      "fallback_model": "claude-opus-4"
+      "fallback_model": "claude-opus-4.1.1"
     },
     "modeling_reality_v2": {
       "preferred_provider": "codex",
-      "preferred_model": "gpt-5-codex",
+      "preferred_model": "codex-5",
       "reasoning_level": "high",
       "rationale": "ModelingReality_v2 enforces quantitative validation and benefits from Codex's statistical tooling",
       "fallback_provider": "claude",
-      "fallback_model": "claude-opus-4"
+      "fallback_model": "claude-opus-4.1.1"
     }
   },
   "default": {
     "preferred_provider": "codex",
-    "preferred_model": "gpt-5-codex",
+    "preferred_model": "codex-5",
     "reasoning_level": "medium",
     "rationale": "Default to Codex for general-purpose code analysis",
     "fallback_provider": "claude",

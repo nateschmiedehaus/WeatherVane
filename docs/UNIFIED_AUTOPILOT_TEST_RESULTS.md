@@ -8,7 +8,7 @@
 ### ✅ **Passing Tests** (6/11)
 
 1. **Model Names in Compiled Code** ✓
-   - All correct: `claude-sonnet-4-5`, `claude-haiku-4-5`, `gpt-5-codex-high/medium/low`
+   - All correct: `claude-sonnet-4.5`, `claude-haiku-4.5`, `gpt-5-codex-high/medium/low`
 
 2. **Dry-Run Validation** ✓
    - Orchestrator spawning configured

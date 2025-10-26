@@ -1,0 +1,15 @@
+{
+  "from": "Implementer",
+  "to": "Reviewer",
+  "task_id": "INBOX-7227706627CB",
+  "diff_refs": [
+    "b2d3c1a"
+  ],
+  "evidence": [
+    "resources://runs/ctx-1761434896465/context/Implementer.lcp.json"
+  ],
+  "risks": [
+    "Policy hook integration touches queue health metrics."
+  ],
+  "notes": "Focus on verifying guardrail telemetry + coverage evidence."
+}

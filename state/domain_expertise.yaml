@@ -13,7 +13,7 @@ domains:
       - "What about model identifiability and parameter estimation?"
       - "Is the model complexity justified by the data?"
       - "Are confidence intervals properly constructed?"
-    expertModel: "claude-opus-4"
+    expertModel: "claude-opus-4.1"
     reasoningEffort: "high"
 
   - id: statistics_generalized_additive_models
@@ -26,7 +26,7 @@ domains:
       - "Are interaction effects considered? Is additivity assumption valid?"
       - "What about shape constraints (monotonicity, convexity)?"
       - "Is the computational complexity acceptable for the data size?"
-    expertModel: "claude-opus-4"
+    expertModel: "claude-opus-4.1"
     reasoningEffort: "high"
 
   - id: statistics_causal_inference
@@ -38,7 +38,7 @@ domains:
       - "Are there unmeasured confounders? Collider bias?"
       - "What counterfactual assumptions are being made?"
       - "Is the treatment assignment ignorable?"
-    expertModel: "gpt-5-codex"
+    expertModel: "codex-5-high"
     reasoningEffort: "high"
 
   # Machine Learning & AI
@@ -52,7 +52,7 @@ domains:
       - "What about overfitting? Regularization strategy?"
       - "Is the optimization landscape well-understood?"
       - "How does this compare to transformer-based approaches?"
-    expertModel: "claude-opus-4"
+    expertModel: "claude-opus-4.1"
     reasoningEffort: "high"
 
   - id: ml_interpretability
@@ -64,7 +64,7 @@ domains:
       - "Are feature importances meaningful or spurious?"
       - "Can this model be audited for bias?"
       - "What are the failure modes users should know about?"
-    expertModel: "claude-opus-4"
+    expertModel: "claude-opus-4.1"
     reasoningEffort: "medium"
 
   # Domain Expertise
@@ -78,7 +78,7 @@ domains:
       - "Is the temporal resolution appropriate for the phenomena?"
       - "How does this handle regime shifts (fronts, convection)?"
       - "Would an operational forecaster trust this?"
-    expertModel: "claude-opus-4"
+    expertModel: "claude-opus-4.1"
     reasoningEffort: "high"
 
   - id: domain_energy_markets
@@ -90,7 +90,7 @@ domains:
       - "What about price spikes and regime changes?"
       - "Is this tradeable? What's the economic value?"
       - "How does this handle real-time vs. day-ahead markets?"
-    expertModel: "gpt-5-codex"
+    expertModel: "codex-5-high"
     reasoningEffort: "medium"
 
   # Software Engineering
@@ -104,7 +104,7 @@ domains:
       - "Is this maintainable? Technical debt?"
       - "What happens under load? Resource exhaustion?"
       - "Is the abstraction appropriate? SOLID principles?"
-    expertModel: "claude-sonnet-4-5"
+    expertModel: "claude-sonnet-4.5"
     reasoningEffort: "medium"
 
   - id: software_distributed_systems
@@ -117,7 +117,7 @@ domains:
       - "Is this coordination-free? What's the latency?"
       - "Are there single points of failure?"
       - "What's the formal model? TLA+? Linearizability?"
-    expertModel: "claude-opus-4"
+    expertModel: "claude-opus-4.1"
     reasoningEffort: "high"
 
   - id: software_performance
@@ -130,7 +130,7 @@ domains:
       - "Did you profile this? Where's the hot path?"
       - "What about SIMD? Parallelization opportunities?"
       - "Is this the right data structure for the access pattern?"
-    expertModel: "gpt-5-codex"
+    expertModel: "codex-5-high"
     reasoningEffort: "medium"
 
   # Design & UX
@@ -144,7 +144,7 @@ domains:
       - "Does this respect user mental models?"
       - "What about accessibility? Edge cases?"
       - "Would this pass a usability test?"
-    expertModel: "claude-sonnet-4-5"
+    expertModel: "claude-sonnet-4.5"
     reasoningEffort: "medium"
 
   - id: design_aesthetics
@@ -157,7 +157,7 @@ domains:
       - "Would this win a design award?"
       - "Is there a simpler, more elegant solution?"
       - "Does this 'spark joy' for developers?"
-    expertModel: "claude-opus-4"
+    expertModel: "claude-opus-4.1"
     reasoningEffort: "medium"
 
   # Philosophy & Theory
@@ -170,7 +170,7 @@ domains:
       - "What are the implicit assumptions? Ontological commitments?"
       - "Is this knowledge or mere data?"
       - "What's the theory of truth here? Correspondence? Coherence?"
-    expertModel: "claude-opus-4"
+    expertModel: "claude-opus-4.1"
     reasoningEffort: "high"
 
   - id: philosophy_systems_thinking
@@ -183,7 +183,7 @@ domains:
       - "Is this reductionist or holistic?"
       - "What about unintended consequences?"
       - "How does this fit the larger system?"
-    expertModel: "gpt-5-codex"
+    expertModel: "codex-5-high"
     reasoningEffort: "high"
 
   # Research & Academia
@@ -196,7 +196,7 @@ domains:
       - "Are we using SOTA methods or outdated approaches?"
       - "What are the open problems in this area?"
       - "Has this been benchmarked against recent baselines?"
-    expertModel: "claude-opus-4"
+    expertModel: "claude-opus-4.1"
     reasoningEffort: "high"
 
   # Practitioner Experience
@@ -210,7 +210,7 @@ domains:
       - "What are the unknown unknowns?"
       - "Have you talked to someone who's run this at scale?"
       - "What lessons from production deployments apply here?"
-    expertModel: "claude-opus-4"
+    expertModel: "claude-opus-4.1"
     reasoningEffort: "medium"
 
 # Task type to domain mappings (suggestions)

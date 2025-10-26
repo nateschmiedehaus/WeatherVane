@@ -1,0 +1,138 @@
+{
+  "artifacts": {
+    "holdout_diagnostics": "tmp-models/brand-alpine-outfitters/alpine-test/holdout_diagnostics.parquet",
+    "model_path": "tmp-models/brand-alpine-outfitters/alpine-test/baseline_model.pkl"
+  },
+  "data": {
+    "ads_rows": 180,
+    "feature_columns": 23,
+    "holdout_rows": 18,
+    "latest_observed_target_date": "2024-01-07",
+    "observed_rows": 90,
+    "orders_rows": 270,
+    "promo_rows": 90,
+    "train_rows": 72,
+    "weather_rows": 180
+  },
+  "features": [
+    "order_count",
+    "meta_spend",
+    "meta_conversions",
+    "google_spend",
+    "google_conversions",
+    "promos_sent",
+    "temp_roll7",
+    "temp_c_lag1",
+    "temp_c",
+    "precip_roll7",
+    "temp_anomaly",
+    "precip_mm",
+    "precip_mm_lag1",
+    "precip_anomaly",
+    "net_revenue_lag1",
+    "net_revenue_roll7",
+    "meta_spend_lag1",
+    "meta_spend_roll7",
+    "google_spend_lag1",
+    "google_spend_roll7",
+    "temp_c_roll7",
+    "precip_mm_roll7",
+    "promos_sent_lag1"
+  ],
+  "gam": {
+    "min_required_rows": 92,
+    "reason": "insufficient_rows",
+    "used": false
+  },
+  "holdout": {
+    "bias": -37.73789528524593,
+    "mae": 56.103187058565034,
+    "mean_prediction": 861.6856730630238,
+    "r2": 0.747829098053727,
+    "rmse": 67.48022875021624,
+    "rows": 18,
+    "std_prediction": 119.11208622368926
+  },
+  "leakage_guardrail": {
+    "forecast_leakage_dates": [],
+    "forecast_leakage_rows": 0,
+    "forecast_leakage_rows_matrix": 0,
+    "forward_leakage_dates": [],
+    "forward_leakage_rows": 0,
+    "forward_leakage_rows_matrix": 0,
+    "leakage_dates": [],
+    "leakage_risk_rows": 0,
+    "removed_rows": 0,
+    "status": "clean"
+  },
+  "run_id": "alpine-test",
+  "tenant_id": "brand-alpine-outfitters",
+  "timestamp_utc": "2025-10-26T19:27:45Z",
+  "top_features": [
+    {
+      "feature": "google_spend_roll7",
+      "influence": 585495.8326156762,
+      "target_corr": 0.6451414894178026
+    },
+    {
+      "feature": "meta_spend_roll7",
+      "influence": 584943.5924275602,
+      "target_corr": 0.6451372006834705
+    },
+    {
+      "feature": "meta_spend",
+      "influence": 71486.9622438611,
+      "target_corr": 0.6441004185808469
+    },
+    {
+      "feature": "google_spend",
+      "influence": 70846.66726583135,
+      "target_corr": 0.6441250984916682
+    },
+    {
+      "feature": "meta_conversions",
+      "influence": 3169.0193353991863,
+      "target_corr": 0.6441731567976205
+    },
+    {
+      "feature": "google_conversions",
+      "influence": 1258.6449526652632,
+      "target_corr": 0.6441712951925388
+    },
+    {
+      "feature": "net_revenue_roll7",
+      "influence": 139.939956046766,
+      "target_corr": 0.6974106849733477
+    },
+    {
+      "feature": "temp_anomaly",
+      "influence": 117.49128264325176,
+      "target_corr": -0.769672345370034
+    }
+  ],
+  "training": {
+    "bias": 0.0,
+    "mae": 0.0,
+    "mean_prediction": 0.0,
+    "r2": 0.0,
+    "rmse": 0.0,
+    "rows": 72,
+    "std_prediction": 0.0
+  },
+  "weather_fit": {
+    "classification": "none",
+    "message": "Weather impact negligible; WeatherVane is not a fit for this brand.",
+    "score": 0.0,
+    "weather_features": [
+      {
+        "feature": "temp_anomaly",
+        "influence": 117.49128264325176,
+        "target_corr": -0.769672345370034
+      }
+    ]
+  },
+  "window": {
+    "end": "2024-01-07T00:00:00",
+    "start": "2023-10-10T00:00:00"
+  }
+}

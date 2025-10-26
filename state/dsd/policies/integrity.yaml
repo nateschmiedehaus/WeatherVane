@@ -1,0 +1,10 @@
+gates:
+  - tests.run
+  - lint.run
+  - typecheck.run
+  - security.scan
+  - license.check
+coverage:
+  changed_lines_min: 0.8
+anti_greenlight:
+  skip_tokens: ["skip", "xfail", "test.only"]

@@ -1,0 +1,73 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "DesiredState",
+  "type": "object",
+  "required": ["mission", "okrs", "policies", "roadmap", "slos", "capacity", "cost", "release_trains"],
+  "properties": {
+    "mission": {"type": "string"},
+    "okrs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "title"],
+        "properties": {
+          "id": {"type": "string"},
+          "title": {"type": "string"},
+          "metrics": {
+            "type": "array",
+            "items": {"type": "string"}
+          }
+        }
+      }
+    },
+    "policies": {
+      "type": "object"
+    },
+    "roadmap": {
+      "type": "object",
+      "required": ["epics"],
+      "properties": {
+        "epics": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["id", "title", "stories"],
+            "properties": {
+              "id": {"type": "string"},
+              "title": {"type": "string"},
+              "stories": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": ["id", "title", "tasks"],
+                  "properties": {
+                    "id": {"type": "string"},
+                    "title": {"type": "string"},
+                    "tasks": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": ["id", "title", "acceptance", "budgets", "status"],
+                        "properties": {
+                          "id": {"type": "string"},
+                          "title": {"type": "string"},
+                          "acceptance": {"type": "array", "items": {"type": "string"}},
+                          "budgets": {"type": "object"},
+                          "status": {"type": "string"}
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "slos": {"type": "object"},
+    "capacity": {"type": "object"},
+    "cost": {"type": "object"},
+    "release_trains": {"type": "array"}
+  }
+}

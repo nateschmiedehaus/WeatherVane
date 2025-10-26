@@ -65,17 +65,17 @@ async function test() {
   let passed = true;
 
   // Check orchestrator
-  if (orch?.config.model === 'gpt-5-codex-high' && orch?.config.provider === 'codex') {
-    console.log('✅ Orchestrator: HIGH tier (gpt-5-codex-high)');
+  if (orch?.config.model === 'codex-5-high' && orch?.config.provider === 'codex') {
+    console.log('✅ Orchestrator: HIGH tier (codex-5-high)');
   } else {
-    console.error(\`❌ Orchestrator: Expected gpt-5-codex-high, got \${orch?.config.model}\`);
+    console.error(\`❌ Orchestrator: Expected codex-5-high, got \${orch?.config.model}\`);
     passed = false;
   }
 
   // Check workers
   const codexWorkers = workers.filter(w => w.config.provider === 'codex');
   if (codexWorkers.length > 0) {
-    const allMedium = codexWorkers.every(w => w.config.model === 'gpt-5-codex-medium');
+    const allMedium = codexWorkers.every(w => w.config.model === 'codex-5-medium');
     if (allMedium) {
       console.log(\`✅ Workers: MEDIUM tier (\${codexWorkers.length} Codex workers)\`);
     } else {
@@ -90,7 +90,7 @@ async function test() {
   // Check critics
   const codexCritics = critics.filter(c => c.config.provider === 'codex');
   if (codexCritics.length > 0) {
-    const allLow = codexCritics.every(c => c.config.model === 'gpt-5-codex-low');
+    const allLow = codexCritics.every(c => c.config.model === 'codex-5-low');
     if (allLow) {
       console.log(\`✅ Critics: LOW tier (\${codexCritics.length} Codex critics)\`);
     } else {

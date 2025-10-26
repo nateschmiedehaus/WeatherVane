@@ -95,7 +95,7 @@ describe('ModelRegistry', () => {
   it('should get model cost correctly', async () => {
     await registry.load();
 
-    const cost = registry.getModelCost('codex', 'gpt-5-codex');
+    const cost = registry.getModelCost('codex', 'codex-5-high');
     expect(cost).toBeDefined();
     expect(cost?.input).toBeGreaterThan(0);
     expect(cost?.output).toBeGreaterThan(0);
@@ -104,7 +104,7 @@ describe('ModelRegistry', () => {
   it('should check model availability', async () => {
     await registry.load();
 
-    expect(registry.isModelAvailable('codex', 'gpt-5-codex')).toBe(true);
+    expect(registry.isModelAvailable('codex', 'codex-5-high')).toBe(true);
     expect(registry.isModelAvailable('codex', 'nonexistent-model')).toBe(false);
   });
 
@@ -270,7 +270,7 @@ describe('ModelManager', () => {
   it('should get model cost', async () => {
     await manager.initialize();
 
-    const cost = manager.getModelCost('codex', 'gpt-5-codex');
+    const cost = manager.getModelCost('codex', 'codex-5-high');
     expect(cost).toBeDefined();
     expect(cost?.input).toBeGreaterThan(0);
     expect(cost?.output).toBeGreaterThan(0);
@@ -279,7 +279,7 @@ describe('ModelManager', () => {
   it('should check model availability', async () => {
     await manager.initialize();
 
-    expect(manager.isModelAvailable('codex', 'gpt-5-codex')).toBe(true);
+    expect(manager.isModelAvailable('codex', 'codex-5-high')).toBe(true);
     expect(manager.isModelAvailable('codex', 'nonexistent')).toBe(false);
   });
 
@@ -475,7 +475,7 @@ describe('Cost Estimation Integration', () => {
   });
 
   it('should retrieve costs from registry', () => {
-    const cost = manager.getModelCost('codex', 'gpt-5-codex');
+    const cost = manager.getModelCost('codex', 'codex-5-high');
 
     expect(cost).toBeDefined();
     expect(cost?.input).toBeGreaterThan(0);
@@ -490,7 +490,7 @@ describe('Cost Estimation Integration', () => {
   });
 
   it('should estimate cost correctly', () => {
-    const cost = manager.getModelCost('codex', 'gpt-5-codex');
+    const cost = manager.getModelCost('codex', 'codex-5-high');
     if (!cost) throw new Error('Cost not found');
 
     // 1000 input tokens, 500 output tokens

@@ -1,7 +1,46 @@
-import { render, screen, fireEvent } from "@testing-library/react";
+import "@testing-library/jest-dom/vitest";
+import { screen, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, it, expect, beforeEach } from "vitest";
-import WeatherAnalysisDemoPage from "../demo-weather-analysis";
+import { describe, it, expect, beforeEach, beforeAll, vi } from "vitest";
+import * as matchers from "@testing-library/jest-dom/matchers";
+import type { ReactNode } from "react";
+import { renderWithProviders } from "../../test-utils/renderWithProviders";
+
+expect.extend(matchers);
+
+let WeatherAnalysisDemoPage: (typeof import("../demo-weather-analysis"))["default"];
+
+beforeAll(async () => {
+  WeatherAnalysisDemoPage = (await import("../demo-weather-analysis")).default;
+});
+
+const renderDemo = () => renderWithProviders(<WeatherAnalysisDemoPage />);
+
+vi.mock("next/link", () => ({
+  __esModule: true,
+  default: ({ children, href, ...rest }: { children: ReactNode; href?: string }) => (
+    <a href={typeof href === "string" ? href : "#"} {...rest}>
+      {children}
+    </a>
+  ),
+}));
+
+vi.mock("next/head", () => ({
+  __esModule: true,
+  default: ({ children }: { children: ReactNode }) => <>{children}</>,
+}));
+
+vi.mock("next/router", () => ({
+  __esModule: true,
+  useRouter: () => ({
+    pathname: "/demo-weather-analysis",
+    push: vi.fn(),
+    replace: vi.fn(),
+    prefetch: vi.fn(),
+    query: {},
+    asPath: "/demo-weather-analysis",
+  }),
+}));
 
 /**
  * Test Suite: Weather Analysis Demo Page
@@ -21,12 +60,12 @@ import WeatherAnalysisDemoPage from "../demo-weather-analysis";
 describe("WeatherAnalysisDemoPage", () => {
   describe("Rendering and Structure", () => {
     it("should render the page title", () => {
-      render(<WeatherAnalysisDemoPage />);
+      renderWithProviders(<WeatherAnalysisDemoPage />);
       expect(screen.getByText("Weather-Aware Modeling: Interactive Demo")).toBeInTheDocument();
     });
 
     it("should display the subtitle", () => {
-      render(<WeatherAnalysisDemoPage />);
+      renderWithProviders(<WeatherAnalysisDemoPage />);
       expect(
         screen.getByText(
           "Explore how weather intelligence improves ROAS predictions across product categories"
@@ -35,21 +74,21 @@ describe("WeatherAnalysisDemoPage", () => {
     });
 
     it("should render all view mode buttons", () => {
-      render(<WeatherAnalysisDemoPage />);
+      renderWithProviders(<WeatherAnalysisDemoPage />);
       expect(screen.getByRole("button", { name: /Overview/i })).toBeInTheDocument();
       expect(screen.getByRole("button", { name: /Tenant Analysis/i })).toBeInTheDocument();
       expect(screen.getByRole("button", { name: /Comparison/i })).toBeInTheDocument();
     });
 
     it("should display breadcrumb navigation", () => {
-      render(<WeatherAnalysisDemoPage />);
+      renderWithProviders(<WeatherAnalysisDemoPage />);
       expect(screen.getByText(/Weather Demo/i)).toBeInTheDocument();
     });
   });
 
   describe("Overview Mode (Default)", () => {
     it("should display overview mode by default", () => {
-      render(<WeatherAnalysisDemoPage />);
+      renderWithProviders(<WeatherAnalysisDemoPage />);
       expect(screen.getByText("Weather Impact Summary")).toBeInTheDocument();
       expect(
         screen.getByText("How weather integration improves ROAS prediction accuracy")
@@ -57,7 +96,7 @@ describe("WeatherAnalysisDemoPage", () => {
     });
 
     it("should render summary cards for all tenant types", () => {
-      render(<WeatherAnalysisDemoPage />);
+      renderWithProviders(<WeatherAnalysisDemoPage />);
       expect(screen.getByText("Extreme Sensitivity")).toBeInTheDocument();
       expect(screen.getByText("High Sensitivity")).toBeInTheDocument();
       expect(screen.getByText("Medium Sensitivity")).toBeInTheDocument();
@@ -65,7 +104,7 @@ describe("WeatherAnalysisDemoPage", () => {
     });
 
     it("should display correct weather signal values", () => {
-      render(<WeatherAnalysisDemoPage />);
+      renderWithProviders(<WeatherAnalysisDemoPage />);
       // These are the weather signal values from TENANT_DATA
       expect(screen.getByText("0.140")).toBeInTheDocument(); // Extreme
       expect(screen.getByText("0.221")).toBeInTheDocument(); // High
@@ -74,7 +113,7 @@ describe("WeatherAnalysisDemoPage", () => {
     });
 
     it("should display validation status badges", () => {
-      render(<WeatherAnalysisDemoPage />);
+      renderWithProviders(<WeatherAnalysisDemoPage />);
       const passElements = screen.getAllByText("✅ PASS");
       const reviewElements = screen.queryAllByText("⚠️ REVIEW");
       expect(passElements.length).toBe(3); // High, Medium, None
@@ -82,7 +121,7 @@ describe("WeatherAnalysisDemoPage", () => {
     });
 
     it("should display key finding about revenue variance", () => {
-      render(<WeatherAnalysisDemoPage />);
+      renderWithProviders(<WeatherAnalysisDemoPage />);
       expect(screen.getByText(/10-30% of revenue variance/i)).toBeInTheDocument();
       expect(screen.getByText(/\$150K\+ per million/i)).toBeInTheDocument();
     });
@@ -91,7 +130,7 @@ describe("WeatherAnalysisDemoPage", () => {
   describe("View Mode Switching", () => {
     it("should switch to tenant analysis mode", async () => {
       const user = userEvent.setup();
-      render(<WeatherAnalysisDemoPage />);
+      renderWithProviders(<WeatherAnalysisDemoPage />);
 
       const tenantButton = screen.getByRole("button", { name: /Tenant Analysis/i });
       await user.click(tenantButton);
@@ -104,7 +143,7 @@ describe("WeatherAnalysisDemoPage", () => {
 
     it("should switch to comparison mode", async () => {
       const user = userEvent.setup();
-      render(<WeatherAnalysisDemoPage />);
+      renderWithProviders(<WeatherAnalysisDemoPage />);
 
       const comparisonButton = screen.getByRole("button", { name: /Comparison/i });
       await user.click(comparisonButton);
@@ -117,7 +156,7 @@ describe("WeatherAnalysisDemoPage", () => {
 
     it("should return to overview mode", async () => {
       const user = userEvent.setup();
-      render(<WeatherAnalysisDemoPage />);
+      renderWithProviders(<WeatherAnalysisDemoPage />);
 
       // Switch away from overview
       await user.click(screen.getByRole("button", { name: /Tenant Analysis/i }));
@@ -130,7 +169,7 @@ describe("WeatherAnalysisDemoPage", () => {
 
     it("should update active button state when switching modes", async () => {
       const user = userEvent.setup();
-      render(<WeatherAnalysisDemoPage />);
+      renderWithProviders(<WeatherAnalysisDemoPage />);
 
       const overviewButton = screen.getByRole("button", { name: /Overview/i });
       const tenantButton = screen.getByRole("button", { name: /Tenant Analysis/i });
@@ -148,7 +187,7 @@ describe("WeatherAnalysisDemoPage", () => {
 
   describe("Tenant Analysis Mode", () => {
     beforeEach(() => {
-      const { container } = render(<WeatherAnalysisDemoPage />);
+      const { container } = renderWithProviders(<WeatherAnalysisDemoPage />);
       // Switch to tenant analysis mode
       const tenantButton = container.querySelector('button[class*="modeButton"]');
       if (tenantButton) {
@@ -219,7 +258,7 @@ describe("WeatherAnalysisDemoPage", () => {
 
   describe("Weather Toggle Functionality", () => {
     beforeEach(() => {
-      render(<WeatherAnalysisDemoPage />);
+      renderWithProviders(<WeatherAnalysisDemoPage />);
       fireEvent.click(screen.getByRole("button", { name: /Tenant Analysis/i }));
     });
 
@@ -298,7 +337,7 @@ describe("WeatherAnalysisDemoPage", () => {
   describe("Comparison Mode", () => {
     it("should display comparison table", async () => {
       const user = userEvent.setup();
-      render(<WeatherAnalysisDemoPage />);
+      renderWithProviders(<WeatherAnalysisDemoPage />);
 
       const comparisonButton = screen.getByRole("button", { name: /Comparison/i });
       await user.click(comparisonButton);
@@ -309,7 +348,7 @@ describe("WeatherAnalysisDemoPage", () => {
 
     it("should display all tenant data in comparison table", async () => {
       const user = userEvent.setup();
-      render(<WeatherAnalysisDemoPage />);
+      renderWithProviders(<WeatherAnalysisDemoPage />);
 
       const comparisonButton = screen.getByRole("button", { name: /Comparison/i });
       await user.click(comparisonButton);
@@ -325,7 +364,7 @@ describe("WeatherAnalysisDemoPage", () => {
 
     it("should display recommendations", async () => {
       const user = userEvent.setup();
-      render(<WeatherAnalysisDemoPage />);
+      renderWithProviders(<WeatherAnalysisDemoPage />);
 
       const comparisonButton = screen.getByRole("button", { name: /Comparison/i });
       await user.click(comparisonButton);
@@ -337,7 +376,7 @@ describe("WeatherAnalysisDemoPage", () => {
 
   describe("Data Integrity", () => {
     it("should display correct ROAS ranges for High sensitivity tenant", () => {
-      render(<WeatherAnalysisDemoPage />);
+      renderWithProviders(<WeatherAnalysisDemoPage />);
       fireEvent.click(screen.getByRole("button", { name: /Tenant Analysis/i }));
 
       // High sensitivity: 12-25% with 18% target
@@ -345,7 +384,7 @@ describe("WeatherAnalysisDemoPage", () => {
     });
 
     it("should maintain location consistency for each tenant", () => {
-      render(<WeatherAnalysisDemoPage />);
+      renderWithProviders(<WeatherAnalysisDemoPage />);
       fireEvent.click(screen.getByRole("button", { name: /Tenant Analysis/i }));
 
       // High (default)
@@ -358,7 +397,7 @@ describe("WeatherAnalysisDemoPage", () => {
     });
 
     it("should format revenue values correctly", () => {
-      render(<WeatherAnalysisDemoPage />);
+      renderWithProviders(<WeatherAnalysisDemoPage />);
       fireEvent.click(screen.getByRole("button", { name: /Tenant Analysis/i }));
 
       // Revenue should be formatted with comma separators
@@ -369,13 +408,13 @@ describe("WeatherAnalysisDemoPage", () => {
 
   describe("Footer and Documentation", () => {
     it("should display footer with documentation links", () => {
-      render(<WeatherAnalysisDemoPage />);
+      renderWithProviders(<WeatherAnalysisDemoPage />);
       expect(screen.getByText(/Full technical details available/i)).toBeInTheDocument();
       expect(screen.getByText(/Demo uses synthetic data/i)).toBeInTheDocument();
     });
 
     it("should have accessible links in footer", () => {
-      render(<WeatherAnalysisDemoPage />);
+      renderWithProviders(<WeatherAnalysisDemoPage />);
       const links = screen.getAllByRole("link");
       expect(links.length).toBeGreaterThan(0);
     });
@@ -383,7 +422,7 @@ describe("WeatherAnalysisDemoPage", () => {
 
   describe("Accessibility", () => {
     it("should use semantic HTML with proper button roles", () => {
-      render(<WeatherAnalysisDemoPage />);
+      renderWithProviders(<WeatherAnalysisDemoPage />);
       const buttons = screen.getAllByRole("button");
       expect(buttons.length).toBeGreaterThan(0);
       buttons.forEach((button) => {
@@ -392,14 +431,14 @@ describe("WeatherAnalysisDemoPage", () => {
     });
 
     it("should have proper heading hierarchy", () => {
-      render(<WeatherAnalysisDemoPage />);
+      renderWithProviders(<WeatherAnalysisDemoPage />);
       // Should have an h1 for main title
       const mainHeading = screen.queryByText("Weather-Aware Modeling: Interactive Demo");
       expect(mainHeading).toBeInTheDocument();
     });
 
     it("should display emojis for visual context", () => {
-      render(<WeatherAnalysisDemoPage />);
+      renderWithProviders(<WeatherAnalysisDemoPage />);
       // Check for emoji indicators
       const emojis = screen.queryAllByText(/[🌧️❌📊🏢📈]/);
       expect(emojis.length).toBeGreaterThanOrEqual(0); // Some emojis may be missing due to rendering
@@ -409,7 +448,7 @@ describe("WeatherAnalysisDemoPage", () => {
   describe("State Management", () => {
     it("should maintain independent state for view mode and tenant selection", async () => {
       const user = userEvent.setup();
-      render(<WeatherAnalysisDemoPage />);
+      renderWithProviders(<WeatherAnalysisDemoPage />);
 
       // Switch to tenant analysis
       await user.click(screen.getByRole("button", { name: /Tenant Analysis/i }));
@@ -428,13 +467,13 @@ describe("WeatherAnalysisDemoPage", () => {
   describe("Performance and Responsiveness", () => {
     it("should render without errors", () => {
       expect(() => {
-        render(<WeatherAnalysisDemoPage />);
+        renderWithProviders(<WeatherAnalysisDemoPage />);
       }).not.toThrow();
     });
 
     it("should handle rapid mode switching", async () => {
       const user = userEvent.setup();
-      const { container } = render(<WeatherAnalysisDemoPage />);
+      const { container } = renderWithProviders(<WeatherAnalysisDemoPage />);
 
       const overviewBtn = screen.getByRole("button", { name: /Overview/i });
       const tenantBtn = screen.getByRole("button", { name: /Tenant Analysis/i });

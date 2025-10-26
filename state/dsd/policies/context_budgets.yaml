@@ -1,0 +1,16 @@
+budgets:
+  fast_code:
+    tiny: 900
+    small: 1500
+    medium: 2500
+    large: 4000
+  reasoning_high:
+    tiny: 1500
+    small: 3000
+    medium: 6000
+    large: 12000
+  long_context:
+    tiny: 3000
+    small: 6000
+    medium: 12000
+    large: 20000

@@ -1,0 +1,26 @@
+labels:
+  - missing_dependency
+  - flaky_test
+  - underspecified_requirements
+  - external_secret_or_credential
+  - integration_contract_break
+  - non_determinism
+  - performance_regression
+  - lint_type_security_blocker
+playbooks:
+  missing_dependency:
+    - cause_hypothesis: "Dependency unavailable"
+      step_actions:
+        - "Add/install dependency stub"
+        - "Lock versions"
+      expected_signal: "Tests fail differently or pass"
+      evidence_required:
+        - "failing_test_log"
+        - "new_dependency_patch"
+      next_state: Plan
+      ceilings:
+        attempts: 2
+cooldowns:
+  task: 12
+  story: 24
+  epic: 72

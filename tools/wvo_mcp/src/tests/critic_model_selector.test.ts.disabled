@@ -55,7 +55,7 @@ describe('CriticModelSelector', () => {
 
     expect(selection).toBeDefined();
     expect(selection.provider).toBe('codex');
-    expect(selection.model).toBe('gpt-5-codex');
+    expect(selection.model).toBe('codex-5-high');
     expect(selection.reasoning_level).toBe('high');
     expect(selection.rationale).toContain('numerical reasoning');
   });
@@ -65,7 +65,7 @@ describe('CriticModelSelector', () => {
 
     expect(selection).toBeDefined();
     expect(selection.provider).toBe('claude');
-    expect(selection.model).toBe('claude-opus-4');
+    expect(selection.model).toBe('claude-opus-4.1');
     expect(selection.rationale).toContain('Security');
   });
 
@@ -74,7 +74,7 @@ describe('CriticModelSelector', () => {
 
     expect(selection).toBeDefined();
     expect(selection.provider).toBe('claude');
-    expect(selection.model).toBe('claude-opus-4');
+    expect(selection.model).toBe('claude-opus-4.1');
     expect(selection.rationale).toContain('UX/design');
   });
 
@@ -83,7 +83,7 @@ describe('CriticModelSelector', () => {
 
     expect(selection).toBeDefined();
     expect(selection.provider).toBe('codex');
-    expect(selection.model).toBe('gpt-5-codex');
+    expect(selection.model).toBe('codex-5-high');
     expect(selection.reasoning_level).toBe('medium');
   });
 
@@ -92,7 +92,7 @@ describe('CriticModelSelector', () => {
 
     expect(preference).toBeDefined();
     expect(preference?.preferred_provider).toBe('codex');
-    expect(preference?.preferred_model).toBe('gpt-5-codex');
+    expect(preference?.preferred_model).toBe('codex-5-high');
     expect(preference?.fallback_provider).toBe('claude');
   });
 
@@ -172,7 +172,7 @@ describe('CriticModelSelector quota overrides', () => {
       getBestModel: vi
         .fn()
         .mockImplementation((provider: 'claude' | 'codex') =>
-          provider === 'claude' ? 'claude-opus-4' : 'gpt-5-codex'
+          provider === 'claude' ? 'claude-opus-4.1' : 'codex-5-high'
         ),
     }) as unknown as ModelManager;
 
@@ -194,7 +194,7 @@ describe('CriticModelSelector quota overrides', () => {
     const selection = selector.selectForCritic('allocator');
 
     expect(selection.provider).toBe('claude');
-    expect(selection.model).toBe('claude-opus-4');
+    expect(selection.model).toBe('claude-opus-4.1');
     expect(selection.selection_reason).toBe('quota_pressure');
     expect(selection.is_preferred).toBe(false);
     expect(selection.rationale.toLowerCase()).toContain('quota override');
@@ -250,8 +250,8 @@ describe('CriticModelSelector with Model Availability', () => {
   it('should check model availability from registry', () => {
     const selection = selector.selectForCritic('allocator');
 
-    // gpt-5-codex should be available in defaults
-    const isAvailable = modelManager.isModelAvailable('codex', 'gpt-5-codex');
+    // codex-5-high should be available in defaults
+    const isAvailable = modelManager.isModelAvailable('codex', 'codex-5-high');
     expect(isAvailable).toBe(true);
   });
 

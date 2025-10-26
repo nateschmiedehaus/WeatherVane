@@ -16,11 +16,25 @@ const PROVIDER_DEFINITIONS: ProviderMetadata[] = [
     },
     models: [
       {
-        id: "gpt-5-codex",
-        label: "GPT-5 Codex (default)",
+        id: "codex-5-high",
+        label: "Codex 5 High",
         stage: "production",
         variant: "primary",
-        contextTokens: 200000,
+        contextTokens: 128000,
+      },
+      {
+        id: "codex-5-medium",
+        label: "Codex 5 Medium",
+        stage: "production",
+        variant: "primary",
+        contextTokens: 128000,
+      },
+      {
+        id: "codex-5-low",
+        label: "Codex 5 Low",
+        stage: "production",
+        variant: "primary",
+        contextTokens: 128000,
       },
     ],
     smokeTest: {
@@ -29,8 +43,8 @@ const PROVIDER_DEFINITIONS: ProviderMetadata[] = [
     },
   },
   {
-    id: "claude_code",
-    label: "Claude Code (auto)",
+    id: "claude",
+    label: "Anthropic Claude",
     family: "anthropic",
     defaultEnabled: true,
     staging: false,
@@ -43,184 +57,30 @@ const PROVIDER_DEFINITIONS: ProviderMetadata[] = [
     },
     models: [
       {
-        id: "claude-3.5-sonnet",
-        label: "Claude 3.5 Sonnet (Code)",
+        id: "claude-sonnet-4.5",
+        label: "Claude Sonnet 4.5",
         stage: "production",
         variant: "primary",
         contextTokens: 200000,
       },
-    ],
-    smokeTest: {
-      type: "env",
-      description: "Ensures ANTHROPIC_API_KEY is set before attempting Claude Code calls.",
-    },
-  },
-  {
-    id: "claude_opus",
-    label: "Claude Code Opus",
-    family: "anthropic",
-    defaultEnabled: false,
-    staging: true,
-    enableEnv: "WVO_ENABLE_PROVIDER_CLAUDE_OPUS",
-    requiredEnv: ["ANTHROPIC_API_KEY"],
-    hourlyLimit: 120000,
-    dailyLimit: 600000,
-    capabilities: {
-      largeContext: true,
-      costTier: "high",
-    },
-    models: [
       {
-        id: "claude-3-opus",
-        label: "Claude 3 Opus",
-        stage: "preview",
-        variant: "primary",
-        contextTokens: 200000,
-      },
-    ],
-    smokeTest: {
-      type: "env",
-      description: "Requires ANTHROPIC_API_KEY; toggle via WVO_ENABLE_PROVIDER_CLAUDE_OPUS=1.",
-    },
-  },
-  {
-    id: "claude_sonnet",
-    label: "Claude Code Sonnet",
-    family: "anthropic",
-    defaultEnabled: false,
-    staging: true,
-    enableEnv: "WVO_ENABLE_PROVIDER_CLAUDE_SONNET",
-    requiredEnv: ["ANTHROPIC_API_KEY"],
-    hourlyLimit: 150000,
-    dailyLimit: 750000,
-    capabilities: {
-      largeContext: true,
-      costTier: "high",
-    },
-    models: [
-      {
-        id: "claude-3.5-sonnet",
-        label: "Claude 3.5 Sonnet",
-        stage: "production",
-        variant: "primary",
-        contextTokens: 200000,
-      },
-    ],
-    smokeTest: {
-      type: "env",
-      description: "Requires ANTHROPIC_API_KEY; toggle via WVO_ENABLE_PROVIDER_CLAUDE_SONNET=1.",
-    },
-  },
-  {
-    id: "claude_haiku",
-    label: "Claude Code Haiku",
-    family: "anthropic",
-    defaultEnabled: false,
-    staging: true,
-    enableEnv: "WVO_ENABLE_PROVIDER_CLAUDE_HAIKU",
-    requiredEnv: ["ANTHROPIC_API_KEY"],
-    hourlyLimit: 200000,
-    dailyLimit: 900000,
-    capabilities: {
-      largeContext: false,
-      costTier: "medium",
-    },
-    models: [
-      {
-        id: "claude-3-haiku",
-        label: "Claude 3 Haiku",
+        id: "claude-haiku-4.5",
+        label: "Claude Haiku 4.5",
         stage: "production",
         variant: "light",
-        contextTokens: 65000,
+        contextTokens: 200000,
       },
-    ],
-    smokeTest: {
-      type: "env",
-      description: "Requires ANTHROPIC_API_KEY; toggle via WVO_ENABLE_PROVIDER_CLAUDE_HAIKU=1.",
-    },
-  },
-  {
-    id: "glm_latest",
-    label: "GLM (latest)",
-    family: "glm",
-    defaultEnabled: false,
-    staging: true,
-    enableEnv: "WVO_ENABLE_PROVIDER_GLM",
-    requiredEnv: ["GLM_API_KEY"],
-    hourlyLimit: 100000,
-    dailyLimit: 400000,
-    capabilities: {
-      largeContext: true,
-      costTier: "medium",
-    },
-    models: [
       {
-        id: "glm-4-plus-latest",
-        label: "GLM-4 Plus (latest)",
-        stage: "preview",
+        id: "claude-opus-4.1",
+        label: "Claude Opus 4.1",
+        stage: "production",
         variant: "primary",
-        contextTokens: 128000,
+        contextTokens: 200000,
       },
     ],
     smokeTest: {
       type: "env",
-      description: "Requires GLM_API_KEY; toggle via WVO_ENABLE_PROVIDER_GLM=1.",
-    },
-  },
-  {
-    id: "gemini_pro",
-    label: "Gemini Pro",
-    family: "google",
-    defaultEnabled: false,
-    staging: true,
-    enableEnv: "WVO_ENABLE_PROVIDER_GEMINI_PRO",
-    requiredEnv: ["GEMINI_API_KEY"],
-    hourlyLimit: 120000,
-    dailyLimit: 500000,
-    capabilities: {
-      largeContext: true,
-      costTier: "low",
-    },
-    models: [
-      {
-        id: "gemini-1.5-pro-latest",
-        label: "Gemini 1.5 Pro (latest)",
-        stage: "preview",
-        variant: "primary",
-        contextTokens: 1000000,
-      },
-    ],
-    smokeTest: {
-      type: "env",
-      description: "Requires GEMINI_API_KEY; toggle via WVO_ENABLE_PROVIDER_GEMINI_PRO=1.",
-    },
-  },
-  {
-    id: "gemini_flash",
-    label: "Gemini Flash",
-    family: "google",
-    defaultEnabled: false,
-    staging: true,
-    enableEnv: "WVO_ENABLE_PROVIDER_GEMINI_FLASH",
-    requiredEnv: ["GEMINI_API_KEY"],
-    hourlyLimit: 150000,
-    dailyLimit: 600000,
-    capabilities: {
-      largeContext: false,
-      costTier: "low",
-    },
-    models: [
-      {
-        id: "gemini-1.5-flash-latest",
-        label: "Gemini 1.5 Flash (latest)",
-        stage: "preview",
-        variant: "light",
-        contextTokens: 128000,
-      },
-    ],
-    smokeTest: {
-      type: "env",
-      description: "Requires GEMINI_API_KEY; toggle via WVO_ENABLE_PROVIDER_GEMINI_FLASH=1.",
+      description: "Ensures ANTHROPIC_API_KEY is set before attempting Claude calls.",
     },
   },
 ];
@@ -232,6 +92,20 @@ export const providerRegistry: ProviderRegistry = Object.fromEntries(
 ) as ProviderRegistry;
 
 export type KnownProvider = keyof typeof providerRegistry;
+
+const PROVIDER_ALIAS_TO_ID = {
+  claude_code: "claude",
+} as const;
+
+const PROVIDER_ID_TO_ALIAS = Object.entries(PROVIDER_ALIAS_TO_ID).reduce<Record<string, string>>(
+  (acc, [alias, id]) => {
+    acc[id] = alias;
+    return acc;
+  },
+  {}
+);
+
+export type ProviderAlias = ProviderId | keyof typeof PROVIDER_ALIAS_TO_ID;
 
 export function getProviderMetadata(id: ProviderId): ProviderMetadata | undefined {
   return providerRegistry[id];
@@ -259,4 +133,16 @@ export function listProviders(options?: { includeStaging?: boolean }): ProviderM
     }
     return true;
   });
+}
+
+export function normalizeProviderId(id: ProviderAlias): ProviderId {
+  const key = id as keyof typeof PROVIDER_ALIAS_TO_ID;
+  if (key in PROVIDER_ALIAS_TO_ID) {
+    return PROVIDER_ALIAS_TO_ID[key];
+  }
+  return id as ProviderId;
+}
+
+export function displayProviderId(id: ProviderId): ProviderAlias {
+  return (PROVIDER_ID_TO_ALIAS[id] ?? id) as ProviderAlias;
 }

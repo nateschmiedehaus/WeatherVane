@@ -1,0 +1,37 @@
+name: Refresh Model Catalog
+
+on:
+  workflow_dispatch: {}
+  schedule:
+    - cron: '0 9 * * 1'
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Refresh catalog
+        run: >
+          npx tsx tools/wvo_mcp/scripts/refresh_model_catalog.ts
+          --changelog state/analytics/model_catalog_changelog.md
+
+      - name: Ensure catalog committed
+        run: |
+          if git diff --quiet --exit-code -- tools/wvo_mcp/src/orchestrator/models_last.json state/analytics/model_catalog_changelog.md; then
+            echo "Model catalog is up to date."
+          else
+            echo "::error::Model catalog drift detected. Run refresh_model_catalog.ts locally and commit the results."
+            git status --short -- tools/wvo_mcp/src/orchestrator/models_last.json state/analytics/model_catalog_changelog.md
+            exit 1
+          fi

@@ -42,6 +42,8 @@ NUMERIC_DTYPES = {
     pl.UInt8,
 }
 
+MIN_WEATHER_TARGET_CORRELATION = 0.3
+
 
 @dataclass(frozen=True)
 class BaselineTrainingResult:
@@ -354,7 +356,21 @@ def _rank_features(model: BaselineModel, frame: pl.DataFrame, limit: int = 8) ->
     if frame.is_empty() or not model.features:
         return []
 
-    rankings: List[Tuple[str, float]] = []
+    target_array: np.ndarray | None = None
+    if TARGET_COLUMN in frame.columns:
+        target_array = frame[TARGET_COLUMN].to_numpy()
+
+    def _corr_with_target(values: np.ndarray) -> float:
+        if target_array is None or values.size != target_array.size:
+            return 0.0
+        if np.allclose(values, values[0]) or np.allclose(target_array, target_array[0]):
+            return 0.0
+        corr = np.corrcoef(values, target_array)[0, 1]
+        if not np.isfinite(corr):
+            return 0.0
+        return float(corr)
+
+    rankings: List[Tuple[str, float, float]] = []
     if model.gam is None and model.coefficients:
         for feature in model.features:
             if feature not in model.coefficients or feature not in frame.columns:
@@ -366,7 +382,7 @@ def _rank_features(model: BaselineModel, frame: pl.DataFrame, limit: int = 8) ->
             if not math.isfinite(std) or std == 0.0:
                 continue
             influence = abs(model.coefficients[feature]) * std
-            rankings.append((feature, influence))
+            rankings.append((feature, influence, _corr_with_target(values)))
     else:
         preds = model.predict(frame).to_numpy()
         for feature in model.features:
@@ -380,11 +396,15 @@ def _rank_features(model: BaselineModel, frame: pl.DataFrame, limit: int = 8) ->
             corr = np.corrcoef(values, preds)[0, 1]
             if not np.isfinite(corr):
                 continue
-            rankings.append((feature, float(abs(corr))))
+            influence = float(abs(corr))
+            rankings.append((feature, influence, _corr_with_target(values)))
 
     rankings.sort(key=lambda item: item[1], reverse=True)
     top = rankings[:limit]
-    return [{"feature": name, "influence": _clean_float(score)} for name, score in top]
+    return [
+        {"feature": name, "influence": _clean_float(score), "target_corr": _clean_float(target_corr)}
+        for name, score, target_corr in top
+    ]
 
 
 def _is_weather_feature(name: str) -> bool:
@@ -417,10 +437,21 @@ def _summarize_weather_fit(influences: List[Dict[str, float]]) -> Dict[str, Any]
     if not influences:
         return _weather_fit_payload(0.0, [])
     weather_influences = [item for item in influences if _is_weather_feature(item["feature"])]
+    if not weather_influences:
+        return _weather_fit_payload(0.0, [])
+
+    filtered_weather = [
+        item
+        for item in weather_influences
+        if abs(item.get("target_corr", 0.0)) >= MIN_WEATHER_TARGET_CORRELATION
+    ]
+    if not filtered_weather:
+        return _weather_fit_payload(0.0, [])
+
     total = sum(item["influence"] for item in influences) or 1.0
-    weather_sum = sum(item["influence"] for item in weather_influences)
+    weather_sum = sum(item["influence"] for item in filtered_weather)
     score = max(0.0, min(1.0, weather_sum / total))
-    return _weather_fit_payload(score, weather_influences)
+    return _weather_fit_payload(score, filtered_weather)
 
 
 def _clean_float(value: float) -> float:

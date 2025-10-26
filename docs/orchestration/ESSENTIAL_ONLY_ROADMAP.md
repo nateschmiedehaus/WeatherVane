@@ -61,10 +61,10 @@ assessComplexity(task: Task): TaskComplexity {
 }
 
 selectModel(complexity: number): string {
-  if (complexity <= 3) return 'claude-haiku-4-5';
+  if (complexity <= 3) return 'claude-haiku-4.5';
   if (complexity <= 6) return 'claude-3-5-sonnet-20241022';
-  if (complexity <= 9) return 'claude-sonnet-4-5';
-  return 'claude-sonnet-4-5'; // + reasoning effort high
+  if (complexity <= 9) return 'claude-sonnet-4.5';
+  return 'claude-sonnet-4.5'; // + reasoning effort high
 }
 ```
 
@@ -163,7 +163,7 @@ export class TaskDecomposer {
       Output JSON array of subtasks.
     `;
 
-    const result = await this.executor.exec('claude-sonnet-4-5', prompt);
+    const result = await this.executor.exec('claude-sonnet-4.5', prompt);
     const subtasks = JSON.parse(result.output);
 
     // Create tasks in database

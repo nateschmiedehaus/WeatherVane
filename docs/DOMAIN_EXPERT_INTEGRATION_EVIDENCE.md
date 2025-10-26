@@ -72,7 +72,7 @@ constructor(workspaceRoot: string = process.cwd()) {
         reasoning: 'Simulated review - actual model routing not yet integrated'
       });
     },
-    getLastModelUsed: () => 'claude-sonnet-4-5'
+    getLastModelUsed: () => 'claude-sonnet-4.5'
   };
 
   this.domainExpertReviewer = new DomainExpertReviewer(workspaceRoot, modelRouter);  // ← NEW!

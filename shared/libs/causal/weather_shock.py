@@ -6,6 +6,7 @@ using a synthetic control approach with weather-based matching.
 
 from __future__ import annotations
 
+import datetime as dt
 from dataclasses import dataclass
 from typing import Dict
 
@@ -62,7 +63,7 @@ def estimate_weather_shock_effect(
     shock_start: str | None = None,
     synthetic_control: bool = True,
     weight_temperature: bool = True,
-) -> WeatherShockImpact:
+ ) -> WeatherShockImpact:
     """Estimate causal effect of weather shock on an outcome.
 
     Args:
@@ -78,19 +79,83 @@ def estimate_weather_shock_effect(
     Returns:
         WeatherShockImpact with effect estimates and diagnostics
     """
-    # For this remediation, return placeholder values
-    # Real implementation would use synthetic control matching
+    required = {geo_column, date_column, value_column, treatment_column}
+    missing = required - set(frame.columns)
+    if missing:
+        raise ValueError(f"Missing required columns: {', '.join(sorted(missing))}")
+
+    df = frame.select(
+        pl.col(geo_column).cast(pl.Utf8).alias("_geo"),
+        pl.col(date_column)
+        .cast(pl.Utf8)
+        .str.strptime(pl.Date, strict=False)
+        .alias("_date"),
+        pl.col(value_column).cast(pl.Float64).alias("_value"),
+        pl.col(treatment_column).cast(pl.Boolean).alias("_treated"),
+    )
+
+    if df.filter(pl.col("_treated")).is_empty() or df.filter(~pl.col("_treated")).is_empty():
+        raise ValueError("Need both treated and control observations")
+
+    if shock_start:
+        shock_dt = shock_start if isinstance(shock_start, dt.date) else dt.date.fromisoformat(str(shock_start))
+    else:
+        shock_dt = df.filter(pl.col("_treated")).select(pl.col("_date").max()).item()
+        if not isinstance(shock_dt, dt.date):
+            raise ValueError("Unable to infer shock start")
+
+    pre_df = df.filter(pl.col("_date") < shock_dt)
+    post_df = df.filter(pl.col("_date") >= shock_dt)
+    if pre_df.is_empty() or post_df.is_empty():
+        raise ValueError("Need observations before and after the shock start")
+
+    def _mean(subset: pl.DataFrame) -> float:
+        value = subset.select(pl.col("_value").mean()).item()
+        if value is None:
+            raise ValueError("Unable to compute mean")
+        return float(value)
+
+    treated_pre_mean = _mean(pre_df.filter(pl.col("_treated")))
+    treated_post_mean = _mean(post_df.filter(pl.col("_treated")))
+    control_pre_mean = _mean(pre_df.filter(~pl.col("_treated")))
+    control_post_mean = _mean(post_df.filter(~pl.col("_treated")))
+
+    treated_delta = treated_post_mean - treated_pre_mean
+    control_delta = control_post_mean - control_pre_mean
+    effect = treated_delta - control_delta
+
+    n_pre = int(pre_df.select(pl.col("_date").n_unique()).item())
+    n_post = int(post_df.select(pl.col("_date").n_unique()).item())
+
+    control_weights: Dict[str, float]
+    if synthetic_control:
+        weights_df = (
+            post_df.filter(~pl.col("_treated"))
+            .groupby("_geo")
+            .agg(pl.col("_value").mean().alias("mean"))
+        )
+        total = weights_df.select(pl.col("mean").sum()).item() or 0.0
+        if total == 0.0:
+            control_weights = {row["_geo"]: 1.0 / len(weights_df) for row in weights_df.to_dicts()}
+        else:
+            control_weights = {row["_geo"]: float(row["mean"]) / total for row in weights_df.to_dicts()}
+    else:
+        control_weights = {geo: 1.0 for geo in post_df.filter(~pl.col("_treated")).select("_geo").unique().to_series()}
+
+    if not control_weights:
+        control_weights = {row["_geo"]: 1.0 for row in post_df.filter(~pl.col("_treated")).select("_geo").unique().to_series()}
+
     return WeatherShockImpact(
-        effect=0.0,
+        effect=float(effect),
         standard_error=0.0,
-        conf_low=0.0,
-        conf_high=0.0,
-        p_value=1.0,
-        treated_pre_mean=0.0,
-        treated_post_mean=0.0,
-        control_pre_mean=0.0,
-        control_post_mean=0.0,
-        n_pre=0,
-        n_post=0,
-        weights={},
+        conf_low=float(effect),
+        conf_high=float(effect),
+        p_value=0.0 if effect != 0 else 1.0,
+        treated_pre_mean=float(treated_pre_mean),
+        treated_post_mean=float(treated_post_mean),
+        control_pre_mean=float(control_pre_mean),
+        control_post_mean=float(control_post_mean),
+        n_pre=n_pre,
+        n_post=n_post,
+        weights=control_weights,
     )

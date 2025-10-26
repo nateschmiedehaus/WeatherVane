@@ -37,6 +37,14 @@ interface RoadmapYamlTask {
   description?: string;
 }
 
+interface NormalizedRoadmapTask {
+  id: string;
+  title?: string;
+  status: TaskStatus;
+  type: TaskType;
+  description?: string;
+}
+
 type RoadmapYamlNode = RoadmapYamlTask & Record<string, unknown>;
 
 const STATUS_MAP: Record<string, TaskStatus> = {
@@ -74,9 +82,9 @@ function parseArgs(): CliOptions {
   return { workspaceRoot: path.resolve(workspaceRoot) };
 }
 
-async function readRoadmapYaml(workspaceRoot: string): Promise<Record<string, RoadmapYamlTask>> {
+async function readRoadmapYaml(workspaceRoot: string): Promise<Record<string, NormalizedRoadmapTask>> {
   const roadmapPath = path.join(workspaceRoot, "state", "roadmap.yaml");
-  const result = new Map<string, RoadmapYamlTask>();
+  const result = new Map<string, NormalizedRoadmapTask>();
 
   let text: string;
   try {
@@ -152,8 +160,8 @@ function loadDbTasks(workspaceRoot: string): DbTask[] {
   const db = new DatabaseConstructor(sqlitePath, { readonly: true, fileMustExist: true });
   try {
     const rows = db
-      .prepare<{ id: string; status: string; type: string }>("SELECT id, status, type FROM tasks")
-      .all();
+      .prepare("SELECT id, status, type FROM tasks")
+      .all() as Array<{ id: string; status: string; type: string }>;
     return rows.map((row) => ({
       id: row.id,
       status: normalizeStatus(row.status),
@@ -164,12 +172,12 @@ function loadDbTasks(workspaceRoot: string): DbTask[] {
   }
 }
 
-function compareTasks(dbTasks: DbTask[], yamlTasks: Record<string, RoadmapYamlTask>) {
+function compareTasks(dbTasks: DbTask[], yamlTasks: Record<string, NormalizedRoadmapTask>) {
   const dbMap = new Map<string, DbTask>(dbTasks.map((task) => [task.id, task]));
-  const yamlMap = new Map<string, RoadmapYamlTask>(Object.entries(yamlTasks));
+  const yamlMap = new Map<string, NormalizedRoadmapTask>(Object.entries(yamlTasks));
 
-  const missingInDb: RoadmapYamlTask[] = [];
-  const missingInYaml: Task[] = [];
+  const missingInDb: NormalizedRoadmapTask[] = [];
+  const missingInYaml: DbTask[] = [];
   const statusMismatches: Array<{ id: string; dbStatus: TaskStatus; yamlStatus: TaskStatus }> = [];
   const typeMismatches: Array<{ id: string; dbType: TaskType; yamlType: TaskType }> = [];
 
@@ -179,11 +187,13 @@ function compareTasks(dbTasks: DbTask[], yamlTasks: Record<string, RoadmapYamlTa
       missingInDb.push(yamlTask);
       continue;
     }
-    if (dbTask.status !== yamlTask.status) {
-      statusMismatches.push({ id, dbStatus: dbTask.status, yamlStatus: yamlTask.status! });
+    const yamlStatus = yamlTask.status ?? "pending";
+    if (dbTask.status !== yamlStatus) {
+      statusMismatches.push({ id, dbStatus: dbTask.status, yamlStatus });
     }
-    if (dbTask.type !== normalizeType(yamlTask.type)) {
-      typeMismatches.push({ id, dbType: dbTask.type, yamlType: normalizeType(yamlTask.type) });
+    const yamlType = yamlTask.type ?? "task";
+    if (dbTask.type !== yamlType) {
+      typeMismatches.push({ id, dbType: dbTask.type, yamlType });
     }
   }
 
@@ -212,23 +222,23 @@ async function main() {
       yamlTasks,
     );
 
-  const ignoredPrefixes = ["PHASE-", "CRIT-", "TASK-RESEARCH-"];
-  const filteredMissingInYaml = missingInYaml.filter(
-    (task) => !ignoredPrefixes.some((prefix) => task.id.startsWith(prefix)),
-  );
+    const ignoredPrefixes = ["PHASE-", "CRIT-", "TASK-RESEARCH-"];
+    const filteredMissingInYaml = missingInYaml.filter(
+      (task) => !ignoredPrefixes.some((prefix) => task.id.startsWith(prefix)),
+    );
 
-  const summary = {
-    workspace: options.workspaceRoot,
-    total_yaml_tasks: Object.keys(yamlTasks).length,
-    total_db_tasks: dbTasks.length,
-    missing_in_db: missingInDb.map((task) => ({ id: task.id, status: task.status })),
-    missing_in_yaml: missingInYaml.map((task) => ({ id: task.id, status: task.status })),
-    status_mismatches: statusMismatches,
-    type_mismatches: typeMismatches,
-  };
+    const summary = {
+      workspace: options.workspaceRoot,
+      total_yaml_tasks: Object.keys(yamlTasks).length,
+      total_db_tasks: dbTasks.length,
+      missing_in_db: missingInDb.map((task) => ({ id: task.id, status: task.status })),
+      missing_in_yaml: missingInYaml.map((task) => ({ id: task.id, status: task.status })),
+      status_mismatches: statusMismatches,
+      type_mismatches: typeMismatches,
+    };
 
-  const parityOk =
-    missingInDb.length === 0 && filteredMissingInYaml.length === 0 && statusMismatches.length === 0;
+    const parityOk =
+      missingInDb.length === 0 && filteredMissingInYaml.length === 0 && statusMismatches.length === 0;
 
     if (parityOk) {
       console.log("✅ Roadmap parity check passed.");

@@ -123,6 +123,14 @@ export const lspInitializeInput = z.object({
   workspaceRoot: z.string().min(1),
 });
 
+export const selfGetSchemaInput = z.object({
+  id: z.string().min(1),
+});
+
+export const selfGetPromptInput = z.object({
+  id: z.string().min(1),
+});
+
 // Admin tool schemas
 export const adminFlagsInput = z.object({
   action: z.enum(["get", "set", "reset"]).describe("get: read current flags, set: update one or more flags, reset: restore defaults"),
@@ -150,3 +158,5 @@ export type LspHoverInput = z.infer<typeof lspHoverInput>;
 export type LspServerStatusInput = z.infer<typeof lspServerStatusInput>;
 export type LspInitializeInput = z.infer<typeof lspInitializeInput>;
 export type AdminFlagsInput = z.infer<typeof adminFlagsInput>;
+export type SelfGetSchemaInput = z.infer<typeof selfGetSchemaInput>;
+export type SelfGetPromptInput = z.infer<typeof selfGetPromptInput>;

@@ -1,0 +1,46 @@
+mission: "Deliver a fully autonomous Unified Autopilot for WeatherVane."
+okrs:
+  - id: okr-coverage
+    title: "Raise changed-lines coverage to ≥85%"
+    metrics: ["coverage_changed_lines_min"]
+policies:
+  security: resources://policies/security.yaml
+  integrity: resources://policies/integrity.yaml
+  governance: resources://policies/governance.yaml
+  context_budgets: resources://policies/context_budgets.yaml
+  router_lock: resources://policies/router_lock.yaml
+  resolution_rules: resources://policies/resolution_rules.yaml
+roadmap:
+  epics:
+    - id: epic-unified-autopilot
+      title: "Unified Autopilot hardening"
+      stories:
+        - id: story-router-lock
+          title: "Router lock + integrity gates"
+          tasks:
+            - id: task-router-allow-list
+              title: "Filter discovery to Codex5/Claude4.x"
+              acceptance:
+                - "Only allowed models appear in catalog"
+              budgets:
+                coverage: 0.85
+                perf_ms: 0
+              status: in_progress
+slos:
+  time_to_green_min: 20
+  coverage_changed_lines_min: 0.8
+  canary_pass_rate: 0.95
+  incident_mttr_hours: 4
+capacity:
+  teams:
+    - name: autopilot-core
+      velocity_points: 20
+cost:
+  router_tokens_per_state:
+    plan: 30000
+    implement: 15000
+    verify: 10000
+release_trains:
+  - name: weekly-autopilot
+    cadence_days: 7
+    next_cut: 2025-11-01

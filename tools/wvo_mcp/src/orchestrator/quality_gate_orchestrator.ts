@@ -107,7 +107,7 @@ export class QualityGateOrchestrator {
         });
       },
       getLastModelUsed: () => {
-        return 'claude-opus-4 (domain expert routing)';
+        return 'claude-opus-4.1 (domain expert routing)';
       }
     };
 
@@ -447,11 +447,11 @@ export class QualityGateOrchestrator {
   private getModelForTier(tier: ModelTier): string {
     switch (tier) {
       case 'FAST':
-        return 'claude-haiku-4-5 | gpt-4';
+        return 'claude-haiku-4.5 | codex-5-low';
       case 'STANDARD':
-        return 'claude-sonnet-4-5 | gpt-4.5-turbo';
+        return 'claude-sonnet-4.5 | codex-5-medium';
       case 'POWERFUL':
-        return 'claude-opus-4 | gpt-5-codex (high reasoning effort)';
+        return 'claude-opus-4.1 | codex-5-high (high reasoning effort)';
     }
   }
 

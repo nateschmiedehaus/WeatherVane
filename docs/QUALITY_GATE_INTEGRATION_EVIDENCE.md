@@ -158,7 +158,7 @@ npx ts-node tools/wvo_mcp/scripts/demo_quality_gates.ts
 1️⃣  Testing PRE-TASK REVIEW (Task Plan Approval)
    Testing with GOOD plan...
    ✅ Good plan APPROVED
-   Model used: claude-sonnet-4-5 | gpt-4.5-turbo
+   Model used: claude-sonnet-4.5 | gpt-4.5-turbo
    Concerns: 0
 
    Testing with BAD plan (missing rollback)...
@@ -236,7 +236,7 @@ Proof of Integration:
     "peer": {
       "approved": true,
       "reviewer": "PeerWorker",
-      "modelUsed": "claude-sonnet-4-5 | gpt-4.5-turbo",
+      "modelUsed": "claude-sonnet-4.5 | gpt-4.5-turbo",
       "blockers": [],
       "warnings": [],
       "reasoning": "Peer review passed"

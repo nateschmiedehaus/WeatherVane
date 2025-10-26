@@ -10,54 +10,48 @@
       "target_column": null
     },
     "completeness": {
-      "issues": [],
+      "issues": [
+        "missing_ratio:precip_mm_lag1:1.000",
+        "missing_ratio:temp_c_lag1:1.000",
+        "missing_ratio:net_revenue_lag1:1.000",
+        "missing_ratio:meta_spend_lag1:1.000",
+        "missing_ratio:google_spend_lag1:1.000",
+        "missing_ratio:promos_sent_lag1:1.000"
+      ],
       "missing_ratios": {
-        "ads_conversions": 0.0,
-        "ads_spend": 0.0,
-        "apparent_temp_c": 0.0,
-        "as_of_utc": 0.0,
         "date": 0.0,
-        "day_of_year": 0.0,
-        "dma_code": 0.0,
-        "dma_code_right": 0.0,
-        "dma_name": 0.0,
-        "dma_name_right": 0.0,
-        "freeze_flag": 0.0,
         "geo_level": 0.0,
-        "geo_level_right": 0.0,
         "geo_scope": 0.0,
-        "geohash": 0.0,
-        "heatwave_flag": 0.0,
-        "high_precip_prob_flag": 0.0,
-        "high_wind_flag": 0.0,
-        "humidity_mean": 0.0,
+        "google_conversions": 0.0,
+        "google_spend": 0.0,
+        "google_spend_lag1": 1.0,
+        "google_spend_roll7": 0.0,
+        "has_forecast_observation": 0.0,
         "leakage_risk": 0.0,
-        "local_date": 0.0,
-        "local_datetime": 0.0,
+        "meta_conversions": 0.0,
+        "meta_spend": 0.0,
+        "meta_spend_lag1": 1.0,
+        "meta_spend_roll7": 0.0,
         "net_revenue": 0.0,
-        "observation_type": 0.0,
+        "net_revenue_lag1": 1.0,
+        "net_revenue_roll7": 0.0,
+        "order_count": 0.0,
         "precip_anomaly": 0.0,
         "precip_mm": 0.0,
-        "precip_probability": 0.0,
+        "precip_mm_lag1": 1.0,
+        "precip_mm_roll7": 0.0,
         "precip_roll7": 0.0,
         "promos_sent": 0.0,
-        "snow_event_flag": 0.0,
+        "promos_sent_lag1": 1.0,
         "snowfall_mm": 0.0,
-        "state_abbr": 0.0,
-        "state_abbr_right": 0.0,
         "target_available": 0.0,
         "temp_anomaly": 0.0,
         "temp_c": 0.0,
-        "temp_max_c": 0.0,
-        "temp_min_c": 0.0,
-        "temp_roll7": 0.0,
-        "timezone": 0.0,
-        "utc_datetime": 0.0,
-        "uv_alert_flag": 0.0,
-        "uv_index_max": 0.0,
-        "windspeed_max": 0.0
+        "temp_c_lag1": 1.0,
+        "temp_c_roll7": 0.0,
+        "temp_roll7": 0.0
       },
-      "status": "pass"
+      "status": "fail"
     },
     "coverage": {
       "column": "date",
@@ -66,7 +60,7 @@
       "status": "pass"
     },
     "feature_correlation": {
-      "feature_count": 25,
+      "feature_count": 19,
       "high_correlations": [],
       "issues": [],
       "status": "pass"
@@ -108,9 +102,15 @@
     }
   },
   "date_column": null,
-  "generated_at": "2025-10-23T02:17:02.313408+00:00",
+  "generated_at": "2025-10-26T19:31:45.495599+00:00",
   "issues": [
     "volume:row_count_below_min:1",
+    "completeness:missing_ratio:precip_mm_lag1:1.000",
+    "completeness:missing_ratio:temp_c_lag1:1.000",
+    "completeness:missing_ratio:net_revenue_lag1:1.000",
+    "completeness:missing_ratio:meta_spend_lag1:1.000",
+    "completeness:missing_ratio:google_spend_lag1:1.000",
+    "completeness:missing_ratio:promos_sent_lag1:1.000",
     "target_variance:missing_target_column",
     "autocorrelation:missing_target_column"
   ],
@@ -126,7 +126,7 @@
       "meta_total_rows": 1,
       "meta_updated_rows": 0
     },
-    "end": "2024-01-07T00:00:00",
+    "end": "2024-01-03T00:00:00",
     "geocoded_order_ratio": 1.0,
     "geography_fallback_reason": null,
     "geography_level": "dma",
@@ -135,13 +135,27 @@
     "leakage_guardrail": {
       "forecast_leakage_dates": [],
       "forecast_leakage_rows": 0,
-      "forward_leakage_dates": [],
-      "forward_leakage_rows": 0,
-      "leakage_risk_dates": [],
-      "leakage_risk_rows": 0,
+      "forecast_trigger_dates": [],
+      "forward_leakage_dates": [
+        "2024-01-02",
+        "2024-01-03"
+      ],
+      "forward_leakage_rows": 2,
+      "forward_trigger_dates": [
+        "2024-01-02",
+        "2024-01-03"
+      ],
+      "leakage_risk_dates": [
+        "2024-01-02",
+        "2024-01-03"
+      ],
+      "leakage_risk_rows": 2,
+      "message": "Feature leakage detected for tenant test-tenant: 2 rows (2 forward, 0 forecast).",
       "observed_rows": 1,
-      "passes": true,
-      "status": "clean",
+      "passes": false,
+      "remediation": "dropped_leakage_rows",
+      "removed_rows": 2,
+      "status": "sanitized",
       "target_available_column": "target_available",
       "total_rows": 1
     },
@@ -149,19 +163,19 @@
     "orders_rows": 1,
     "promo_rows": 1,
     "promo_summary": {
-      "campaigns": 0,
-      "promo_new_rows": 0,
+      "campaigns": 1,
+      "promo_new_rows": 1,
       "promo_total_rows": 1,
       "promo_updated_rows": 0
     },
     "shopify_summary": {
-      "orders": 0,
+      "orders": 1,
       "orders_geocoded_ratio": 1.0,
-      "orders_new_rows": 0,
+      "orders_new_rows": 1,
       "orders_total_rows": 1,
       "orders_updated_rows": 0,
-      "products": 0,
-      "products_new_rows": 0,
+      "products": 1,
+      "products_new_rows": 1,
       "products_total_rows": 1,
       "products_updated_rows": 0
     },
@@ -171,25 +185,27 @@
     "weather_join": {
       "geography_fallback_reason": null,
       "geography_level": "dma",
-      "issues": [],
+      "issues": [
+        "Leakage guardrail activated; forward or forecast rows were removed before producing the matrix."
+      ],
       "join_mode": "date_dma",
-      "leakage_rows": 0,
+      "leakage_rows": 2,
       "report_path": "experiments/features/weather_join_validation.json",
       "weather_coverage_ratio": 1.0,
       "weather_coverage_threshold": 0.85,
       "weather_missing_rows": 0
     },
     "weather_missing_records": [],
-    "weather_row_count": 14,
-    "weather_rows": 14
+    "weather_row_count": 10,
+    "weather_rows": 10
   },
   "ml_ready": false,
   "row_count": 1,
   "status": "fail",
   "target_column": null,
-  "tenant_id": "demo-tenant",
+  "tenant_id": "test-tenant",
   "window": {
-    "end": "2024-01-07T00:00:00+00:00",
+    "end": "2024-01-03T00:00:00+00:00",
     "start": "2024-01-01T00:00:00+00:00"
   }
 }

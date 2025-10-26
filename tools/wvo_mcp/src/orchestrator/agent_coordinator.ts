@@ -43,8 +43,7 @@ const MAX_PROMPT_TOKENS = 600;
 const MAX_PROMPT_CHARACTERS = MAX_PROMPT_TOKENS * TOKEN_ESTIMATE_CHAR_RATIO;
 
 const MODEL_COST_TABLE: Record<string, { prompt: number; completion: number }> = {
-  'gpt-5-codex': { prompt: 0.012, completion: 0.024 },
-  'gpt-5': { prompt: 0.012, completion: 0.03 },
+  'codex-5': { prompt: 0.012, completion: 0.024 },
   claude_code: { prompt: 0.011, completion: 0.033 },
 };
 
@@ -80,7 +79,7 @@ function estimateModelCost(
   }
 
   // Fall back to hardcoded table
-  const pricingKey = agentType === 'codex' ? modelSlug ?? 'gpt-5-codex' : 'claude_code';
+  const pricingKey = agentType === 'codex' ? modelSlug ?? 'codex-5' : 'claude_code';
   if (!pricingKey) return undefined;
 
   const pricing = MODEL_COST_TABLE[pricingKey];

@@ -32,6 +32,7 @@ import { SERVER_VERSION } from "../utils/version.js";
 import type { WorkerOutgoingMessage, WorkerRpcErrorPayload } from "./protocol.js";
 import { WorkerToolRouter } from "./tool_router.js";
 import { ExecutorToolRouter, type RunToolPayload } from "./executor_router.js";
+import { verifyAtlasAttestationSync } from "../atlas/attestation.js";
 
 type WorkerRole = "orchestrator" | "executor";
 type RunToolMessage = {
@@ -87,6 +88,12 @@ function startOrchestratorWorker(): void {
   const startedAtMs = Date.now();
   const startedAt = new Date(startedAtMs).toISOString();
   const workspaceRoot = resolveWorkspaceRoot();
+  try {
+    verifyAtlasAttestationSync(workspaceRoot);
+  } catch (error) {
+    console.error("Atlas attestation failed", error);
+    process.exit(1);
+  }
 
   // Initialize OrchestratorRuntime which internally manages StateMachine
   // If DRY_RUN=1, StateMachine will open DB in read-only mode
@@ -127,6 +134,11 @@ function startOrchestratorWorker(): void {
     "autopilot_status",
     "heavy_queue_list",
     "codex_commands",
+    "self_describe",
+    "self_list_tools",
+    "self_get_schema",
+    "self_get_prompt",
+    "self_briefing_pack",
   ]);
 
   /**

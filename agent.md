@@ -2,10 +2,187 @@
 
 ## Rapid Orientation (read this first)
 - **Start every loop** by calling the MCP tools `plan_next` (use `minimal=true`) and `autopilot_status`. The status response now includes consensus staffing insights and token health (fed by `state/analytics/orchestration_metrics.json`). If either tool fails, pause and run `./tools/wvo_mcp/scripts/restart_mcp.sh`.
+- **🚨 ALWAYS FINISH TASKS COMPLETELY - NO FOLLOW-UPS.** When you start a task with Spec→Plan→Think→Implement→Verify→Review→PR→Monitor protocol, you MUST complete ALL stages in the current session. No partial completion, no "will fix later", no deferring to follow-up sessions. Build must pass (0 errors), all tests pass, all acceptance criteria met, documentation complete. See CLAUDE.md for full policy.
 - **Respect the consensus engine.** When critical or failed-quorum decisions appear, the autopilot will open follow-up tasks assigned to Atlas or Director Dana. Use them to progress escalations instead of bypassing review.
 - **Keep the test critic honest.** Run `bash tools/wvo_mcp/scripts/run_integrity_tests.sh` (the TestsCritic command) to execute backend pytest, web checks, and MCP vitest in one batch. Tag failures with the batch step when reporting.
 - **Mind the token budget.** Context is trimmed automatically by `TokenEfficiencyManager` when it grows past ~1000 words; it writes backups under `state/backups/context/`. Keep `state/context.md` concise to avoid churn.
 - **Log decisions as you go.** Update `state/context.md` and run `state_save` before breaks so the autopilot and Atlas receive current briefings.
+
+### Mandatory Spec→Plan→…→Monitor Loop (Codex edition)
+The Claude council policy applies verbatim to Codex. For every task:
+
+**CRITICAL: Integration-First Development Protocol**
+
+⚠️ **BEFORE implementing ANY feature, you MUST check for existing systems** ⚠️
+
+**Search → Integrate → Verify** (not "Build → Integrate → Fix"):
+
+**Step 1: SEARCH** (5-10 minutes, mandatory):
+```bash
+# Search for similar functionality
+grep -r "keyword" src/
+glob "**/*keyword*.ts"
+
+# Examples:
+grep -r "model" src/        # Find model-related systems
+grep -r "registry" src/     # Find registry patterns
+grep -r "discovery" src/    # Find discovery services
+```
+
+**Questions to answer**:
+- Does this system already exist?
+- Are there similar patterns to follow?
+- What types/interfaces are defined?
+- What's the standard approach in this codebase?
+
+**Step 2: INTEGRATE** (not implement from scratch):
+- ✅ Use existing systems, extend them if needed
+- ✅ Follow established patterns
+- ✅ Reference shared types/interfaces
+- ❌ Don't duplicate functionality
+- ❌ Don't create custom patterns
+
+**Step 3: VERIFY** integration points:
+- All integrations tested
+- No duplicate functionality
+- Follows codebase patterns
+- Uses shared utilities
+
+**Red Flags** (stop and escalate):
+- Hardcoding values that come from existing systems
+- Creating duplicate interfaces/types
+- Not using shared utilities (logger, config, etc.)
+- Inventing new patterns instead of following existing ones
+
+**Real Example**: ComplexityRouter initially hardcoded model names instead of using ModelRegistry/ModelDiscoveryService. Fixed by searching for "model", "registry", "discovery" → found existing systems → integrated with them.
+
+**🚨 CRITICAL: Programmatic Integration Verification**
+
+**Problem**: Code can CALL a system without USING its output (integration theater). Manual checklists are high-token and not scalable.
+
+**Solution**: Create automated verification scripts (see CLAUDE.md for full protocol).
+
+**MANDATORY for EVERY integration:**
+
+1. **Create verification script**: `scripts/verify_<system>_integration.sh`
+   - Use grep to check integration points
+   - Exit 0 on success, 1 on failure
+   - See `scripts/verify_complexity_router_integration.sh` for example
+
+2. **Write integration tests**: `src/__tests__/<system>_integration.test.ts`
+   - Verify output is USED, not just passed
+   - Mock fallback to prove integration works
+
+3. **Run in REVIEW stage**:
+   ```bash
+   bash scripts/verify_<system>_integration.sh
+   # Must exit 0 before claiming integration complete
+   ```
+
+**Example verification script structure**:
+```bash
+#!/usr/bin/env bash
+set -e
+FAILURES=0
+
+# Check system is called
+if ! grep -q "systemX.process" src/caller.ts; then
+  echo "❌ SystemX not called"
+  FAILURES=$((FAILURES + 1))
+fi
+
+# Check output is used
+if ! grep -q "input.systemXOutput" src/consumer.ts; then
+  echo "❌ Consumer doesn't use output"
+  FAILURES=$((FAILURES + 1))
+fi
+
+[ $FAILURES -eq 0 ] && echo "✅ Integration verified" || exit 1
+```
+
+**Benefits**: Low-token, automated, self-documenting, naturally evolving.
+
+See CLAUDE.md § "Programmatic Integration Verification" for complete protocol.
+
+**The protocol can loop multiple times - fix issues at the appropriate stage:**
+```
+Spec → Plan → Think → Implement → Verify → Review → PR → Monitor
+  ↑      ↑      ↑        ↑           ↓
+  └──────┴──────┴────────┴───────────┘
+     Issues found? Loop back to appropriate stage
+```
+
+1. **Spec** – Restate the goal, enumerate acceptance criteria, cite relevant files/docs, list constraints (perf, security, compatibility). Record this in `state/context.md` or the task journal.
+2. **Plan** – Break work into concrete diffs/commands/tests. Identify owners/files and log the plan hash (when required) so Supervisor can enforce plan deltas.
+3. **Think (adversarial)** – Challenge the plan. Capture unknowns, risks, spike ideas, and edge cases. Skip only when the change truly fits in one trivial diff.
+4. **Implement** – Write the code/docs/tests. Update prompts/scripts concurrently; no "docs later." Keep diffs minimal and logged.
+5. **Verify** – Run the full suite:
+   - `npm run build --prefix tools/wvo_mcp`
+   - `node tools/oss_autopilot/scripts/run_vitest.mjs --run --scope=autopilot` (plus `--scope=web` when touching UI)
+   - `bash tools/wvo_mcp/scripts/run_integrity_tests.sh` for consolidated testing when changes affect API/worker/shared libs.
+   Fix failures before moving on. If failures found → back to IMPLEMENT.
+6. **Review** – Self-review against the rubric (readability, maintainability, perf/security, executive quality). Capture notes and ensure Critical agent checks (secret/auth) are satisfied. If issues found:
+   - Minor fixes → back to IMPLEMENT
+   - Design issues → back to THINK or PLAN
+   - Requirement gaps → back to SPEC
+7. **PR** – Stage/describe the change (even if local). Update `state/autopilot_execution.md` with Spec→Monitor evidence and mention regenerated artifacts (e.g., Atlas) when applicable. Only proceed after REVIEW passes.
+8. **Monitor** – Re-run `./autopilot_status` (and other monitors if relevant) to prove the system is healthy post-change. Log the timestamp in the execution log. Only proceed after PR complete.
+
+**Zero tolerance items:**
+- No skipping stages, no "follow-up needed," no leaving failing tests/builds.
+- Every acceptance criterion must be met before declaring success.
+- Protocol can loop multiple times - fix issues at the appropriate stage.
+- Only stop mid-protocol for a critical blocker that demands human approval.
+
+### Autonomous Modularization Review Policy
+
+**🎯 Files exceeding length thresholds trigger AUTOMATIC modularization:**
+
+**Thresholds:**
+- File > 500 lines → Mandatory modularization
+- Function > 100 lines → Mandatory refactoring
+- Class > 300 lines → Mandatory breakdown
+
+**When threshold exceeded:**
+1. Pause current work immediately
+2. Document violation (file, lines, reason)
+3. Create modularization spec (follow Spec→Monitor)
+4. Execute full protocol for modularization
+5. Resume original work ONLY after modularization complete
+
+**No exceptions** - "works fine" / "too busy" / "later" are NOT acceptable.
+
+Large files = hard to understand/test/modify. Phase 3 lesson: StateGraph hit 648 lines because we didn't modularize earlier. Prevention is cheaper than remediation.
+
+See CLAUDE.md for complete policy details.
+
+### 🚨 MANDATORY: ZERO GAPS POLICY 🚨
+
+**If REVIEW identifies ANY gaps, missing functionality, or placeholder implementations:**
+
+❌ **NEVER say:** "Ship it with known gaps documented"
+❌ **NEVER say:** "This can be addressed in Phase 7"
+❌ **NEVER say:** "TODO: implement later"
+❌ **NEVER say:** "This is non-blocking"
+
+✅ **ALWAYS:** Fix ALL gaps immediately before claiming task complete
+
+**What counts as a "gap":**
+- Placeholder values (e.g., `tokens: 0`, `cost: 0` when real data exists)
+- Missing integrations (e.g., "needs to wire with X" when X exists)
+- Incomplete features (e.g., dashboard has `byTaskType` but not `byEpic` when tags support both)
+- "TODO" comments in production code
+- Features mentioned in SPEC but not implemented
+- Test coverage gaps for critical paths
+
+**Process when gaps found:**
+1. Document ALL gaps with specific file:line references
+2. Loop back to IMPLEMENT and fix every gap
+3. Re-run VERIFY (build, tests, runtime)
+4. REVIEW again - must find ZERO gaps
+5. Only proceed to PR/MONITOR when gaps == 0
+
+**This is non-negotiable. Deferred gaps become technical debt.**
 
 ## 0. Mission and Constraints
 - **Mission:** Implement WeatherVane, a multi-tenant, weather-intelligent ads allocator that recommends or pushes platform-safe budgets by product category × geo × channel.

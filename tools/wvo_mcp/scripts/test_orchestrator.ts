@@ -12,7 +12,7 @@
  *   ts-node scripts/test_orchestrator.ts [--workspace /path/to/WeatherVane]
  */
 
-import { Orchestrator Runtime } from '../src/orchestrator/orchestrator_runtime.js';
+import { OrchestratorRuntime } from '../src/orchestrator/orchestrator_runtime.js';
 import { ResilienceManager } from '../src/orchestrator/resilience_manager.js';
 
 async function test(workspaceRoot: string) {

@@ -15,7 +15,7 @@ echo "Test 1: Basic codex exec test"
 set +e
 OUTPUT=$(CODEX_HOME="$CODEX_HOME" codex exec \
   --profile weathervane_orchestrator \
-  --model gpt-5-codex-medium \
+  --model codex-5-medium \
   --dangerously-bypass-approvals-and-sandbox \
   "Print exactly: TEST_OK" 2>&1)
 EXIT_CODE=$?

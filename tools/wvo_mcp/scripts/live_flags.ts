@@ -28,7 +28,7 @@ import {
   SettingsStore,
   isLiveFlagKey,
   seedLiveFlagDefaults,
-} from '../src/state/live_flags.ts';
+} from '../src/state/live_flags.js';
 
 type Command = 'list' | 'get' | 'set' | 'kill-switch' | 'help';
 

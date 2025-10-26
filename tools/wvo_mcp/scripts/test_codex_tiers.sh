@@ -26,21 +26,21 @@ const { resolveCodexCliOptions } = require('./tools/wvo_mcp/dist/models/codex_cl
 console.log('=== Testing Model Resolution ===\\n');
 
 // Test high tier (orchestrator)
-const highRes = resolveCodexCliOptions('gpt-5-codex-high');
+const highRes = resolveCodexCliOptions('codex-5-high');
 console.log('Orchestrator (high):');
 console.log('  Model:', highRes.model);
 console.log('  Config Overrides:', highRes.configOverrides);
 console.log('');
 
 // Test medium tier (workers)
-const mediumRes = resolveCodexCliOptions('gpt-5-codex-medium');
+const mediumRes = resolveCodexCliOptions('codex-5-medium');
 console.log('Worker (medium):');
 console.log('  Model:', mediumRes.model);
 console.log('  Config Overrides:', mediumRes.configOverrides);
 console.log('');
 
 // Test low tier (critics)
-const lowRes = resolveCodexCliOptions('gpt-5-codex-low');
+const lowRes = resolveCodexCliOptions('codex-5-low');
 console.log('Critic (low):');
 console.log('  Model:', lowRes.model);
 console.log('  Config Overrides:', lowRes.configOverrides);
@@ -82,7 +82,7 @@ async function testOrchestrator() {
   await orchestrator.stop();
 
   // Verify expected tiers
-  const expectedOrchModel = status.orchestrator?.config.provider === 'codex' ? 'gpt-5-codex-high' : 'claude-sonnet-4-5';
+  const expectedOrchModel = status.orchestrator?.config.provider === 'codex' ? 'codex-5-high' : 'claude-sonnet-4.5';
   const orcActual = status.orchestrator?.config.model;
 
   if (orcActual === expectedOrchModel) {
@@ -95,7 +95,7 @@ async function testOrchestrator() {
   // Check worker tiers
   const codexWorkers = status.workers.filter(w => w.config.provider === 'codex');
   if (codexWorkers.length > 0) {
-    const allMedium = codexWorkers.every(w => w.config.model === 'gpt-5-codex-medium');
+    const allMedium = codexWorkers.every(w => w.config.model === 'codex-5-medium');
     if (allMedium) {
       console.log('✅ Worker tiers: CORRECT (all Codex workers use medium)');
     } else {
@@ -107,7 +107,7 @@ async function testOrchestrator() {
   // Check critic tiers
   const codexCritics = status.critics.filter(c => c.config.provider === 'codex');
   if (codexCritics.length > 0) {
-    const allLow = codexCritics.every(c => c.config.model === 'gpt-5-codex-low');
+    const allLow = codexCritics.every(c => c.config.model === 'codex-5-low');
     if (allLow) {
       console.log('✅ Critic tiers: CORRECT (all Codex critics use low)');
     } else {

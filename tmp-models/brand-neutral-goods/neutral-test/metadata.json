@@ -1,0 +1,143 @@
+{
+  "artifacts": {
+    "holdout_diagnostics": "tmp-models/brand-neutral-goods/neutral-test/holdout_diagnostics.parquet",
+    "model_path": "tmp-models/brand-neutral-goods/neutral-test/baseline_model.pkl"
+  },
+  "data": {
+    "ads_rows": 180,
+    "feature_columns": 23,
+    "holdout_rows": 18,
+    "latest_observed_target_date": "2024-01-07",
+    "observed_rows": 90,
+    "orders_rows": 270,
+    "promo_rows": 90,
+    "train_rows": 72,
+    "weather_rows": 540
+  },
+  "features": [
+    "order_count",
+    "meta_spend",
+    "meta_conversions",
+    "google_spend",
+    "google_conversions",
+    "promos_sent",
+    "temp_roll7",
+    "precip_mm",
+    "precip_roll7",
+    "precip_mm_lag1",
+    "temp_anomaly",
+    "temp_c",
+    "temp_c_lag1",
+    "precip_anomaly",
+    "net_revenue_lag1",
+    "net_revenue_roll7",
+    "meta_spend_lag1",
+    "meta_spend_roll7",
+    "google_spend_lag1",
+    "google_spend_roll7",
+    "temp_c_roll7",
+    "precip_mm_roll7",
+    "promos_sent_lag1"
+  ],
+  "gam": {
+    "min_required_rows": 92,
+    "reason": "insufficient_rows",
+    "used": false
+  },
+  "holdout": {
+    "bias": -23.23989251448289,
+    "mae": 58.73733205425041,
+    "mean_prediction": 221.65989251448286,
+    "r2": 0.0,
+    "rmse": 68.93232170178769,
+    "rows": 18,
+    "std_prediction": 51.50155927513277
+  },
+  "leakage_guardrail": {
+    "forecast_leakage_dates": [],
+    "forecast_leakage_rows": 0,
+    "forecast_leakage_rows_matrix": 0,
+    "forward_leakage_dates": [],
+    "forward_leakage_rows": 0,
+    "forward_leakage_rows_matrix": 0,
+    "leakage_dates": [],
+    "leakage_risk_rows": 0,
+    "removed_rows": 0,
+    "status": "clean"
+  },
+  "run_id": "neutral-test",
+  "tenant_id": "brand-neutral-goods",
+  "timestamp_utc": "2025-10-26T19:27:11Z",
+  "top_features": [
+    {
+      "feature": "google_conversions",
+      "influence": 574.7513084773271,
+      "target_corr": -0.05497772569613978
+    },
+    {
+      "feature": "temp_anomaly",
+      "influence": 345.2280682201882,
+      "target_corr": -0.21112804318910894
+    },
+    {
+      "feature": "meta_spend_roll7",
+      "influence": 197.23817740775345,
+      "target_corr": -0.052908259308670075
+    },
+    {
+      "feature": "meta_spend",
+      "influence": 172.09216849218637,
+      "target_corr": -0.055102292264061416
+    },
+    {
+      "feature": "google_spend_roll7",
+      "influence": 112.38188254114297,
+      "target_corr": -0.052908259308670075
+    },
+    {
+      "feature": "google_spend",
+      "influence": 86.27953431097916,
+      "target_corr": -0.055102292264061416
+    },
+    {
+      "feature": "precip_mm",
+      "influence": 50.119499326095934,
+      "target_corr": 0.15942066944224134
+    },
+    {
+      "feature": "temp_c",
+      "influence": 37.85327364263192,
+      "target_corr": -0.12570752551811468
+    }
+  ],
+  "training": {
+    "bias": 0.0,
+    "mae": 0.0,
+    "mean_prediction": 0.0,
+    "r2": 0.0,
+    "rmse": 0.0,
+    "rows": 72,
+    "std_prediction": 0.0
+  },
+  "weather_fit": {
+    "classification": "moderate",
+    "message": "Weather contributes meaningfully alongside other drivers.",
+    "score": 0.251,
+    "weather_features": [
+      {
+        "feature": "temp_anomaly",
+        "influence": 345.2280682201882,
+        "target_corr": -0.21112804318910894
+      },
+      {
+        "feature": "precip_mm",
+        "influence": 50.119499326095934,
+        "target_corr": 0.15942066944224134
+      }
+    ]
+  },
+  "window": {
+    "end": "2024-01-07T00:00:00",
+    "start": "2023-10-10T00:00:00"
+  }
+}

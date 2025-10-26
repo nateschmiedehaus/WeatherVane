@@ -22,6 +22,23 @@ On Apple Silicon (arm64) hosts, `make bootstrap` automatically pins wheels from
 `requirements/apple-silicon.lock` to avoid NumPy/SciPy crashes stemming from mismatched
 Accelerate/OpenBLAS builds.
 
+### Offline Python bootstrap
+If the sandbox prevents outbound PyPI traffic, prepare a wheel cache on a networked host and
+sync it to `.wheels/` in the repo:
+
+```bash
+pip download -r requirements.txt -d .wheels
+```
+
+After copying `.wheels/` into the sandbox, run:
+
+```bash
+make bootstrap-offline
+```
+
+The target installs every requirement via `pip --no-index --find-links .wheels ...` and
+skips the network entirely. Regenerate the cache whenever `requirements*.txt` changes.
+
 ### Offline web toolchain bootstrap
 If the sandbox blocks outbound npm traffic, seed the offline cache on a machine with
 network access and sync the artifacts back into the repo before installing locally:
@@ -57,6 +74,9 @@ Use `docker-compose up` to start Postgres plus containerised API/web/worker stac
 make lint
 make test
 ```
+
+Use `make test-py` to run only the Python suites (handy for offline sandboxes that cannot
+run the front-end tests).
 
 These run Ruff/ESLint and Pytest/Next.js tests respectively. Formatting helper:
 ```bash
@@ -218,6 +238,9 @@ credentials the pipeline falls back to synthetic stubs, which is fine for local 
 
 Run the same check via `make smoke-pipeline` if you prefer Make shortcuts. The command uses the
 `.deps` virtual wheel directory so it behaves consistently with `make test` on Apple Silicon.
+The repo tracks the expected interpreter for `.deps` inside `python-toolchain.toml`; use
+`./scripts/python_toolchain.sh` (or the `PYTHON_BIN` Make variable) to guarantee that the
+selected Python matches the vendored ABI before running any Make target.
 Add `--log-file logs/smoke.ndjson` (or set `LOG_FILE` env) to capture NDJSON entries for observability
 pipelines.
 

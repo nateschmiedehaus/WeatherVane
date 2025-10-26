@@ -1,6 +1,11 @@
 import { describe, it, expect, vi } from "vitest";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import "@testing-library/jest-dom/vitest";
+import { screen, fireEvent, waitFor } from "@testing-library/react";
+import * as matchers from "@testing-library/jest-dom/matchers";
 import { SaveScenarioModal } from "../SaveScenarioModal";
+import { renderWithProviders } from "../../test-utils/renderWithProviders";
+
+expect.extend(matchers);
 
 describe("SaveScenarioModal", () => {
   const mockOnClose = vi.fn();
@@ -11,25 +16,25 @@ describe("SaveScenarioModal", () => {
   });
 
   it("renders nothing when closed", () => {
-    const { container } = render(
+    const { container } = renderWithProviders(
       <SaveScenarioModal isOpen={false} onClose={mockOnClose} onSave={mockOnSave} />
     );
     expect(container.firstChild).toBeNull();
   });
 
   it("renders modal when open", () => {
-    render(<SaveScenarioModal isOpen={true} onClose={mockOnClose} onSave={mockOnSave} />);
+    renderWithProviders(<SaveScenarioModal isOpen={true} onClose={mockOnClose} onSave={mockOnSave} />);
     expect(screen.getByRole("heading", { name: /save scenario/i })).toBeInTheDocument();
   });
 
   it("requires scenario name", () => {
-    render(<SaveScenarioModal isOpen={true} onClose={mockOnClose} onSave={mockOnSave} />);
+    renderWithProviders(<SaveScenarioModal isOpen={true} onClose={mockOnClose} onSave={mockOnSave} />);
     const saveButton = screen.getByRole("button", { name: /save scenario/i });
     expect(saveButton).toBeDisabled();
   });
 
   it("enables save button when name is entered", () => {
-    render(<SaveScenarioModal isOpen={true} onClose={mockOnClose} onSave={mockOnSave} />);
+    renderWithProviders(<SaveScenarioModal isOpen={true} onClose={mockOnClose} onSave={mockOnSave} />);
     const nameInput = screen.getByLabelText(/scenario name/i);
     fireEvent.change(nameInput, { target: { value: "Test Scenario" } });
     const saveButton = screen.getByRole("button", { name: /save scenario/i });
@@ -37,21 +42,21 @@ describe("SaveScenarioModal", () => {
   });
 
   it("calls onClose when cancel button clicked", () => {
-    render(<SaveScenarioModal isOpen={true} onClose={mockOnClose} onSave={mockOnSave} />);
+    renderWithProviders(<SaveScenarioModal isOpen={true} onClose={mockOnClose} onSave={mockOnSave} />);
     const cancelButton = screen.getByText("Cancel");
     fireEvent.click(cancelButton);
     expect(mockOnClose).toHaveBeenCalledTimes(1);
   });
 
   it("calls onClose when close button clicked", () => {
-    render(<SaveScenarioModal isOpen={true} onClose={mockOnClose} onSave={mockOnSave} />);
+    renderWithProviders(<SaveScenarioModal isOpen={true} onClose={mockOnClose} onSave={mockOnSave} />);
     const closeButton = screen.getByLabelText("Close dialog");
     fireEvent.click(closeButton);
     expect(mockOnClose).toHaveBeenCalledTimes(1);
   });
 
   it("calls onClose when clicking overlay", () => {
-    const { container } = render(<SaveScenarioModal isOpen={true} onClose={mockOnClose} onSave={mockOnSave} />);
+    const { container } = renderWithProviders(<SaveScenarioModal isOpen={true} onClose={mockOnClose} onSave={mockOnSave} />);
     const overlay = container.firstChild as HTMLElement;
     if (overlay) {
       fireEvent.click(overlay);
@@ -60,7 +65,7 @@ describe("SaveScenarioModal", () => {
   });
 
   it("does not close when clicking modal content", () => {
-    render(<SaveScenarioModal isOpen={true} onClose={mockOnClose} onSave={mockOnSave} />);
+    renderWithProviders(<SaveScenarioModal isOpen={true} onClose={mockOnClose} onSave={mockOnSave} />);
     const modal = screen.getByRole("heading", { name: /save scenario/i }).parentElement;
     if (modal) {
       fireEvent.click(modal);
@@ -69,7 +74,7 @@ describe("SaveScenarioModal", () => {
   });
 
   it("calls onSave with name and description when submitted", async () => {
-    render(<SaveScenarioModal isOpen={true} onClose={mockOnClose} onSave={mockOnSave} />);
+    renderWithProviders(<SaveScenarioModal isOpen={true} onClose={mockOnClose} onSave={mockOnSave} />);
 
     const nameInput = screen.getByLabelText(/scenario name/i);
     fireEvent.change(nameInput, { target: { value: "Test Scenario" } });
@@ -86,7 +91,7 @@ describe("SaveScenarioModal", () => {
   });
 
   it("allows adding tags", () => {
-    render(<SaveScenarioModal isOpen={true} onClose={mockOnClose} onSave={mockOnSave} />);
+    renderWithProviders(<SaveScenarioModal isOpen={true} onClose={mockOnClose} onSave={mockOnSave} />);
 
     const tagInput = screen.getByLabelText(/tags/i);
     fireEvent.change(tagInput, { target: { value: "high-confidence" } });
@@ -98,7 +103,7 @@ describe("SaveScenarioModal", () => {
   });
 
   it("allows removing tags", () => {
-    render(<SaveScenarioModal isOpen={true} onClose={mockOnClose} onSave={mockOnSave} />);
+    renderWithProviders(<SaveScenarioModal isOpen={true} onClose={mockOnClose} onSave={mockOnSave} />);
 
     // Add a tag
     const tagInput = screen.getByLabelText(/tags/i);
@@ -114,7 +119,7 @@ describe("SaveScenarioModal", () => {
   });
 
   it("prevents duplicate tags", () => {
-    render(<SaveScenarioModal isOpen={true} onClose={mockOnClose} onSave={mockOnSave} />);
+    renderWithProviders(<SaveScenarioModal isOpen={true} onClose={mockOnClose} onSave={mockOnSave} />);
 
     const tagInput = screen.getByLabelText(/tags/i);
     const addTagButton = screen.getByText("Add tag");
@@ -132,7 +137,7 @@ describe("SaveScenarioModal", () => {
   });
 
   it("adds tag when Enter key is pressed", () => {
-    render(<SaveScenarioModal isOpen={true} onClose={mockOnClose} onSave={mockOnSave} />);
+    renderWithProviders(<SaveScenarioModal isOpen={true} onClose={mockOnClose} onSave={mockOnSave} />);
 
     const tagInput = screen.getByLabelText(/tags/i);
     fireEvent.change(tagInput, { target: { value: "enter-tag" } });
@@ -142,7 +147,7 @@ describe("SaveScenarioModal", () => {
   });
 
   it("disables form when saving", () => {
-    render(<SaveScenarioModal isOpen={true} onClose={mockOnClose} onSave={mockOnSave} isSaving={true} />);
+    renderWithProviders(<SaveScenarioModal isOpen={true} onClose={mockOnClose} onSave={mockOnSave} isSaving={true} />);
 
     const nameInput = screen.getByLabelText(/scenario name/i);
     const saveButton = screen.getByRole("button", { name: /saving/i });
@@ -154,7 +159,7 @@ describe("SaveScenarioModal", () => {
   });
 
   it("resets form after successful save", async () => {
-    const { rerender } = render(
+    const { rerender } = renderWithProviders(
       <SaveScenarioModal isOpen={true} onClose={mockOnClose} onSave={mockOnSave} />
     );
 

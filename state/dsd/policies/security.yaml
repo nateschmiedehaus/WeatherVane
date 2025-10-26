@@ -1,0 +1,12 @@
+allowlists:
+  shell_commands:
+    - ls
+    - pwd
+    - git status
+    - npm
+  network_hosts:
+    - api.openai.com
+    - api.anthropic.com
+requirements:
+  - "No secrets in model context"
+  - "ABAC enforced for shell.exec/git.push/deploy.*"

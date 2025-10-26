@@ -42,7 +42,7 @@ const TENANT_DATA: Record<TenantType, TenantData> = {
   extreme: {
     id: "extreme",
     name: "Extreme Weather Sensitivity",
-    location: "High-Signal Categories (Cooling, Heating, Snow Gear, Sunscreen)",
+    location: "Denver, CO",
     sensitivity: "Extreme",
     products: ["Air Conditioner Units", "Heater Systems", "Ski & Winter Gear", "Sunscreen SPF 50+"],
     revenueWithoutWeather: 1268174 * 0.7,
@@ -63,9 +63,16 @@ const TENANT_DATA: Record<TenantType, TenantData> = {
   high: {
     id: "high",
     name: "High Weather Sensitivity",
-    location: "Moderate-Signal Categories (Gym, Outdoor, Summer, Winter, Rain Gear)",
+    location: "New York, NY",
     sensitivity: "High",
-    products: ["Gym Equipment", "Outdoor Apparel", "Summer Clothing", "Winter Clothing", "Rain Gear"],
+    products: [
+      "Gym Equipment",
+      "Outdoor Apparel",
+      "Summer Clothing",
+      "Winter Coat",
+      "Umbrella",
+      "Rain Gear",
+    ],
     revenueWithoutWeather: 1317967 * 0.7,
     revenueWithWeather: 1317967 * 0.80,
     weatherSignal: 0.221,
@@ -84,7 +91,7 @@ const TENANT_DATA: Record<TenantType, TenantData> = {
   medium: {
     id: "medium",
     name: "Medium Weather Sensitivity",
-    location: "Control Group (Accessories, Beauty, Clothing, Footwear, Sports)",
+    location: "Chicago, IL",
     sensitivity: "Medium",
     products: ["Accessories", "Beauty Products", "Casual Clothing", "Footwear", "Sports Equipment"],
     revenueWithoutWeather: 1274210 * 0.7,
@@ -105,7 +112,7 @@ const TENANT_DATA: Record<TenantType, TenantData> = {
   none: {
     id: "none",
     name: "No Weather Sensitivity",
-    location: "Non-Weather Categories (Books, Electronics, Home, Kitchen, Office)",
+    location: "Los Angeles, CA",
     sensitivity: "None",
     products: ["Books", "Electronics", "Home Decor", "Kitchen Items", "Office Supplies"],
     revenueWithoutWeather: 1120403 * 0.7,
@@ -137,23 +144,30 @@ export default function WeatherAnalysisDemoPage() {
     return showWeather ? currentTenant.revenueWithWeather : currentTenant.revenueWithoutWeather;
   }, [showWeather, currentTenant]);
 
-  const baselineRevenue = useMemo(() => {
-    return currentTenant.revenueWithoutWeather;
+  const revenueDeltaPercent = useMemo(() => {
+    const delta = currentTenant.revenueWithWeather - currentTenant.revenueWithoutWeather;
+    if (currentTenant.revenueWithoutWeather === 0) {
+      return 0;
+    }
+    return (delta / currentTenant.revenueWithoutWeather) * 100;
   }, [currentTenant]);
 
-  const revenueImprovement = useMemo(() => {
-    return ((displayRevenue - baselineRevenue) / baselineRevenue) * 100;
-  }, [displayRevenue, baselineRevenue]);
+  const revenueImprovement = showWeather ? revenueDeltaPercent : -revenueDeltaPercent;
 
   const handleToggleWeather = () => {
     setAnimateRevenue(true);
-    setTimeout(() => setShowWeather(!showWeather), 100);
+    setShowWeather((prev) => !prev);
     setTimeout(() => setAnimateRevenue(false), 600);
   };
 
   const handleTenantChange = (tenantId: TenantType) => {
     setSelectedTenant(tenantId);
     setShowWeather(true);
+  };
+
+  const modeButtonClass = (mode: ViewMode) => {
+    const activeClass = viewMode === mode ? `${styles.active} active` : "";
+    return `${styles.modeButton} ${activeClass}`.trim();
   };
 
   return (
@@ -182,20 +196,26 @@ export default function WeatherAnalysisDemoPage() {
           {/* View Mode Selector */}
           <div className={styles.modeSelector}>
             <button
-              className={`${styles.modeButton} ${viewMode === "overview" ? styles.active : ""}`}
+              className={modeButtonClass("overview")}
               onClick={() => setViewMode("overview")}
+              aria-current={viewMode === "overview" ? "page" : undefined}
+              aria-pressed={viewMode === "overview"}
             >
               📊 Overview
             </button>
             <button
-              className={`${styles.modeButton} ${viewMode === "tenant" ? styles.active : ""}`}
+              className={modeButtonClass("tenant")}
               onClick={() => setViewMode("tenant")}
+              aria-current={viewMode === "tenant" ? "page" : undefined}
+              aria-pressed={viewMode === "tenant"}
             >
               🏢 Tenant Analysis
             </button>
             <button
-              className={`${styles.modeButton} ${viewMode === "comparison" ? styles.active : ""}`}
+              className={modeButtonClass("comparison")}
               onClick={() => setViewMode("comparison")}
+              aria-current={viewMode === "comparison" ? "page" : undefined}
+              aria-pressed={viewMode === "comparison"}
             >
               📈 Comparison
             </button>
@@ -263,13 +283,15 @@ export default function WeatherAnalysisDemoPage() {
                   <button
                     key={tenantId}
                     className={`${styles.tenantButton} ${
-                      selectedTenant === tenantId ? styles.selected : ""
-                    }`}
+                      selectedTenant === tenantId ? `${styles.selected} active` : ""
+                    }`.trim()}
+                    aria-pressed={selectedTenant === tenantId}
                     onClick={() => handleTenantChange(tenantId)}
                   >
                     {TENANT_DATA[tenantId].name}
                     <div className={styles.tenantLocation}>
-                      📍 {TENANT_DATA[tenantId].location}
+                      <span aria-hidden="true">📍 </span>
+                      <span>HQ: {TENANT_DATA[tenantId].location}</span>
                     </div>
                   </button>
                 ))}
@@ -278,8 +300,11 @@ export default function WeatherAnalysisDemoPage() {
               {/* Tenant Details */}
               <div className={styles.tenantDetails}>
                 <div className={styles.detailsLeft}>
-                  <h3>{currentTenant.name}</h3>
-                  <p className={styles.location}>📍 {currentTenant.location}</p>
+                  <h3>Selected Tenant: {currentTenant.name}</h3>
+                  <p className={styles.location}>
+                    <span aria-hidden="true">📍 </span>
+                    <span>{currentTenant.location}</span>
+                  </p>
 
                   <div className={styles.productsSection}>
                     <h4>Products</h4>
@@ -312,7 +337,7 @@ export default function WeatherAnalysisDemoPage() {
 
                   {/* Revenue Display */}
                   <div className={`${styles.revenueDisplay} ${animateRevenue ? styles.animating : ""}`}>
-                    <div className={styles.revenueLabel}>Predicted Revenue (90 days)</div>
+                    <div className={styles.revenueLabel}>Forecasted Revenue (90 days)</div>
                     <div className={styles.revenueValue}>
                       ${displayRevenue.toLocaleString("en-US", { maximumFractionDigits: 0 })}
                     </div>
@@ -403,31 +428,22 @@ export default function WeatherAnalysisDemoPage() {
                   <thead>
                     <tr>
                       <th>Category</th>
-                      <th>R² Score</th>
+                      <th>Location</th>
+                      <th>Weather Signal</th>
+                      <th>Expected</th>
                       <th>Status</th>
                       <th>ROAS Uplift</th>
-                      <th>Production Ready</th>
                     </tr>
                   </thead>
                   <tbody>
                     {(["extreme", "high", "medium", "none"] as TenantType[]).map((tenantId) => {
                       const tenant = TENANT_DATA[tenantId];
-                      const r2 = tenant.r2_score ?? 0;
-                      const isProduction = r2 >= 0.5 && tenant.validationStatus === "PASS";
                       return (
                         <tr key={tenantId}>
-                          <td>
-                            <strong>{tenant.name}</strong>
-                            <br />
-                            <span className={styles.locationSubtext}>{tenant.location}</span>
-                          </td>
-                          <td className={styles.signalCell}>
-                            <strong>{r2.toFixed(3)}</strong>
-                            <br />
-                            <span className={styles.metricsNote}>
-                              {r2 >= 0.8 ? "Excellent" : r2 >= 0.5 ? "Good" : "Needs Review"}
-                            </span>
-                          </td>
+                          <td>{tenant.name}</td>
+                          <td>{tenant.location}</td>
+                          <td>{tenant.weatherSignal.toFixed(3)}</td>
+                          <td>{tenant.expectedWeatherSignal.toFixed(3)}</td>
                           <td
                             className={`${styles.statusCell} ${
                               tenant.validationStatus === "PASS" ? styles.pass : styles.review
@@ -437,9 +453,6 @@ export default function WeatherAnalysisDemoPage() {
                           </td>
                           <td className={styles.upliftCell}>
                             {tenant.roas_uplift_low}-{tenant.roas_uplift_high}%
-                          </td>
-                          <td className={styles.upliftCell}>
-                            {isProduction ? "✅ Yes" : "⚠️ No"}
                           </td>
                         </tr>
                       );

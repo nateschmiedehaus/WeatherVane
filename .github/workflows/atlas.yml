@@ -1,0 +1,41 @@
+name: Atlas
+
+on:
+  pull_request:
+    paths:
+      - docs/autopilot/**
+      - docs/MODEL_ROUTING_POLICY.md
+      - tools/wvo_mcp/src/atlas/**
+      - tools/wvo_mcp/src/orchestrator/model_router.ts
+      - tools/wvo_mcp/src/orchestrator/router_policy.ts
+  push:
+    branches:
+      - main
+    paths:
+      - docs/autopilot/**
+      - docs/MODEL_ROUTING_POLICY.md
+      - tools/wvo_mcp/src/atlas/**
+      - tools/wvo_mcp/src/orchestrator/model_router.ts
+      - tools/wvo_mcp/src/orchestrator/router_policy.ts
+
+jobs:
+  atlas:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Generate Atlas artifacts
+        run: npx tsx tools/wvo_mcp/src/atlas/generate_atlas.ts
+
+      - name: Validate Atlas
+        run: npx vitest run tools/wvo_mcp/src/atlas/__tests__

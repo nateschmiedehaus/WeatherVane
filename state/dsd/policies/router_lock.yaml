@@ -1,0 +1,17 @@
+allowed_models:
+  reasoning_high:
+    - claude-sonnet-4.5
+    - claude-opus-4.1
+  fast_code:
+    - codex-5-medium
+    - codex-5-high
+    - codex-5-low
+  cheap_batch:
+    - claude-haiku-4.5
+  long_context:
+    - claude-sonnet-4.5
+    - claude-opus-4.1
+circuit_breaker_ms: 180000
+escalation:
+  verify_failures: 2
+  require_plan_delta: true

@@ -1,0 +1,200 @@
+{
+  "version": "v2025-10-25",
+  "generated_at": "2025-10-26T19:02:49.229Z",
+  "components": [
+    {
+      "id": "state-graph",
+      "card": "docs/autopilot/COMPONENT_CARDS/state-graph.md",
+      "code_refs": [
+        {
+          "path": "tools/wvo_mcp/src/orchestrator/state_graph.ts",
+          "sha256": "540e604425d10b664338da26c94203f20789851783d0b4e42de0a49cfda2d1d8"
+        }
+      ],
+      "doc_refs": [
+        "docs/autopilot/OVERVIEW.md"
+      ],
+      "schema_refs": [
+        "docs/autopilot/DATA_SCHEMAS/atlas_manifest.schema.json"
+      ]
+    },
+    {
+      "id": "context-fabric",
+      "card": "docs/autopilot/COMPONENT_CARDS/context-fabric.md",
+      "code_refs": [
+        {
+          "path": "tools/wvo_mcp/src/context/context_assembler.ts",
+          "sha256": "5d0ca43dce32f8e067cb3481fa9aa3be10cad12cad5d6f307547349eb68fa83e"
+        },
+        {
+          "path": "tools/wvo_mcp/src/context/context_budgeting.ts",
+          "sha256": "ef0a21dd3005c83aae3b83ff1351a52715e999923c2eb1e30a115bfc30cfa49f"
+        },
+        {
+          "path": "tools/wvo_mcp/src/context/knowledge_navigator.ts",
+          "sha256": "f9a6544ff13cbf23775e801a93d35dd7a01fe9cd7e3afe5ab38a024f1ea5b0c7"
+        }
+      ],
+      "doc_refs": [
+        "docs/autopilot/CONTEXT_FABRIC.md"
+      ],
+      "schema_refs": [
+        "docs/autopilot/DATA_SCHEMAS/local_context_pack.schema.json"
+      ]
+    },
+    {
+      "id": "model-router",
+      "card": "docs/autopilot/COMPONENT_CARDS/model-router.md",
+      "code_refs": [
+        {
+          "path": "tools/wvo_mcp/src/orchestrator/model_router.ts",
+          "sha256": "d079e4b7ad418b009a0cf2f247cb93ae6ef6c2482c3e176542a4175d1dd89706"
+        },
+        {
+          "path": "tools/wvo_mcp/src/orchestrator/model_policy.yaml",
+          "sha256": "e88683508b60fc14e5a2cd1b9815552f666bab6c152d8f610e5fd7701a3796c3"
+        }
+      ],
+      "doc_refs": [
+        "docs/MODEL_ROUTING_POLICY.md"
+      ],
+      "schema_refs": []
+    },
+    {
+      "id": "policy-controller",
+      "card": "docs/autopilot/COMPONENT_CARDS/policy-controller.md",
+      "code_refs": [
+        {
+          "path": "tools/wvo_mcp/src/orchestrator/policy_controller.ts",
+          "sha256": "32be0ce864991f9fc672e05b6d20ad9eed6537911965e3023eca2e68623a941f"
+        }
+      ],
+      "doc_refs": [
+        "docs/AUTOPILOT_STATUS.md"
+      ],
+      "schema_refs": []
+    },
+    {
+      "id": "atlas-introspection",
+      "card": "docs/autopilot/COMPONENT_CARDS/atlas-introspection.md",
+      "code_refs": [
+        {
+          "path": "tools/wvo_mcp/src/atlas/atlas_service.ts",
+          "sha256": "cf9a877b04f3ffdcd735d8369c9db51ebe9e6596d1fa958919cd9bd5408fa85b"
+        }
+      ],
+      "doc_refs": [
+        "docs/autopilot/OVERVIEW.md"
+      ],
+      "schema_refs": [
+        "docs/autopilot/DATA_SCHEMAS/atlas_manifest.schema.json"
+      ]
+    },
+    {
+      "id": "roadmap-ops",
+      "card": "docs/autopilot/COMPONENT_CARDS/roadmap-ops.md",
+      "code_refs": [
+        {
+          "path": "tools/wvo_mcp/src/state/roadmap_store.ts",
+          "sha256": "fa7b96ef80dc87bf46a3eadec689e68419d5c35679aa345c9f7c4ee2ca476e88"
+        },
+        {
+          "path": "tools/wvo_mcp/src/planner/planner_engine.ts",
+          "sha256": "dc60a480271c22282b8f5a14679fddc5aaa34d3b87a0efa0d92c642ddeb073df"
+        }
+      ],
+      "doc_refs": [
+        "docs/autopilot/ROADMAP_OPS.md"
+      ],
+      "schema_refs": [
+        "state/roadmap.yaml"
+      ]
+    }
+  ],
+  "prompts": [
+    {
+      "id": "dod_pr",
+      "path": "tools/wvo_mcp/prompts/dod_pr.md",
+      "sha256": "9e18656c42a9a069068eb3d9dc5ff77bd9cc5570ade521f813389213bf269778"
+    },
+    {
+      "id": "reviewer_rubric",
+      "path": "tools/wvo_mcp/prompts/reviewer_rubric.md",
+      "sha256": "37fc2b51793b2ea058dddb8ab5315a02bb49b6f7cec18ad28d89732ffa2d6a98"
+    },
+    {
+      "id": "context_system",
+      "path": "docs/CONTEXT_SYSTEM.md",
+      "sha256": "440271e5df2214b67f785fb7907f2dde3afab2e2babb31abfffd5e59c273179c"
+    },
+    {
+      "id": "atlas_kit",
+      "path": "docs/autopilot/AGENT_README.md",
+      "sha256": "fbda22649c05208d303abc67a5de33de642e7897f65b0c25b487669005559949"
+    }
+  ],
+  "tools": [
+    {
+      "name": "plan_next",
+      "path": "tools/wvo_mcp/src/worker/tool_router.ts",
+      "description": "Fetch prioritized roadmap tasks (with clusters)."
+    },
+    {
+      "name": "autopilot_status",
+      "path": "tools/wvo_mcp/src/worker/tool_router.ts",
+      "description": "Report autopilot consensus metrics and staffing guidance."
+    },
+    {
+      "name": "self_describe",
+      "path": "tools/wvo_mcp/src/atlas/atlas_service.ts",
+      "description": "Return mission, versions, core components, policy hashes."
+    },
+    {
+      "name": "self_list_tools",
+      "path": "tools/wvo_mcp/src/atlas/atlas_service.ts",
+      "description": "Enumerate MCP tools with schema references and examples."
+    },
+    {
+      "name": "self_get_schema",
+      "path": "tools/wvo_mcp/src/atlas/atlas_service.ts",
+      "description": "Return JSON schema by id."
+    },
+    {
+      "name": "self_get_prompt",
+      "path": "tools/wvo_mcp/src/atlas/atlas_service.ts",
+      "description": "Return canonical prompt text by registry id."
+    },
+    {
+      "name": "self_briefing_pack",
+      "path": "tools/wvo_mcp/src/atlas/atlas_service.ts",
+      "description": "Return path + hash for Agent Briefing Pack."
+    }
+  ],
+  "schemas": [
+    {
+      "id": "lcp",
+      "path": "docs/autopilot/DATA_SCHEMAS/local_context_pack.schema.json",
+      "sha256": "330f53ab9058dbd357cb6d067cf44bf70ef4f9a6c3ff146854bac1d944b4b612"
+    },
+    {
+      "id": "atlas_manifest",
+      "path": "docs/autopilot/DATA_SCHEMAS/atlas_manifest.schema.json",
+      "sha256": "3664bb1b0c6aa0adc731bedf228bbf0d47c65d0d2bc57ab9aace534122cd96c7"
+    }
+  ],
+  "docs": [
+    "docs/autopilot/OVERVIEW.md",
+    "docs/autopilot/HISTORY.md",
+    "docs/autopilot/GLOSSARY.md",
+    "docs/autopilot/FAQ.md",
+    "docs/autopilot/TOOLBOX.md",
+    "docs/autopilot/PROMPT_REGISTRY.md",
+    "docs/autopilot/AGENT_README.md",
+    "docs/autopilot/ROADMAP_OPS.md",
+    "docs/autopilot/CONTEXT_FABRIC.md",
+    "docs/autopilot/SECURITY.md",
+    "docs/autopilot/QUALITY_BAR.md",
+    "docs/autopilot/GOVERNANCE.md",
+    "docs/autopilot/DSD.md"
+  ]
+}
