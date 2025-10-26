@@ -354,15 +354,17 @@ describe('MetricsAggregator', () => {
     // Create 7 days of records with improving metrics
     for (let day = 0; day < 7; day++) {
       const timestamp = new Date(now.getTime() - (6 - day) * 24 * 60 * 60 * 1000);
-      const successRate = 0.70 + day * 0.05; // Improving from 70% to 100%
+      const successRate = 0.50 + day * 0.08; // Improving from 50% to 98%
       const cost = 0.60 - day * 0.05; // Decreasing from 0.60 to 0.30
 
       for (let task = 0; task < 5; task++) {
+        // Deterministic success based on task index to ensure trend
+        const succeeded = task < Math.floor(successRate * 5);
         records.push(
           createRecord({
             timestamp: timestamp.toISOString(),
             tags: { taskId: `T-day${day}-task${task}` },
-            quality: { taskSucceeded: Math.random() < successRate },
+            quality: { taskSucceeded: succeeded },
             efficiency: { costUsd: cost },
           })
         );
