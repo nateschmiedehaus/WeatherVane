@@ -106,33 +106,666 @@ See CLAUDE.md § "Programmatic Integration Verification" for complete protocol.
 
 **The protocol can loop multiple times - fix issues at the appropriate stage:**
 ```
-Spec → Plan → Think → Implement → Verify → Review → PR → Monitor
-  ↑      ↑      ↑        ↑           ↓
-  └──────┴──────┴────────┴───────────┘
-     Issues found? Loop back to appropriate stage
+Strategize → Spec → Plan → Think → Implement → Verify → Review → PR → Monitor
+     ↑         ↑      ↑      ↑        ↑           ↓
+     └─────────┴──────┴──────┴────────┴───────────┘
+          Issues found? Loop back to appropriate stage
 ```
 
-1. **Spec** – Restate the goal, enumerate acceptance criteria, cite relevant files/docs, list constraints (perf, security, compatibility). Record this in `state/context.md` or the task journal.
-2. **Plan** – Break work into concrete diffs/commands/tests. Identify owners/files and log the plan hash (when required) so Supervisor can enforce plan deltas.
-3. **Think (adversarial)** – Challenge the plan. Capture unknowns, risks, spike ideas, and edge cases. Skip only when the change truly fits in one trivial diff.
-4. **Implement** – Write the code/docs/tests. Update prompts/scripts concurrently; no "docs later." Keep diffs minimal and logged.
-5. **Verify** – Run the full suite:
-   - `npm run build --prefix tools/wvo_mcp`
-   - `node tools/oss_autopilot/scripts/run_vitest.mjs --run --scope=autopilot` (plus `--scope=web` when touching UI)
-   - `bash tools/wvo_mcp/scripts/run_integrity_tests.sh` for consolidated testing when changes affect API/worker/shared libs.
-   Fix failures before moving on. If failures found → back to IMPLEMENT.
-6. **Review** – Self-review against the rubric (readability, maintainability, perf/security, executive quality). Capture notes and ensure Critical agent checks (secret/auth) are satisfied. If issues found:
-   - Minor fixes → back to IMPLEMENT
-   - Design issues → back to THINK or PLAN
-   - Requirement gaps → back to SPEC
-7. **PR** – Stage/describe the change (even if local). Update `state/autopilot_execution.md` with Spec→Monitor evidence and mention regenerated artifacts (e.g., Atlas) when applicable. Only proceed after REVIEW passes.
-8. **Monitor** – Re-run `./autopilot_status` (and other monitors if relevant) to prove the system is healthy post-change. Log the timestamp in the execution log. Only proceed after PR complete.
+#### Stage 0: STRATEGIZE (Problem-Solving Methodology Selection)
+
+**CRITICAL: Select intelligent verification strategies appropriate to the task type.**
+
+**Task Classification** - Identify what type of problem this is:
+- **Integration/Orchestration**: Components need to communicate
+- **Algorithm/Logic**: Computational or decision-making change
+- **API/Interface**: External-facing contract or data structure
+- **Performance/Scale**: Resource usage or throughput optimization
+- **UI/UX**: Visual or interaction design
+- **Infrastructure/Config**: Build, deploy, or environment setup
+- **Data/Schema**: Database or data structure changes
+
+**Methodology Selection** - Choose the appropriate problem-solving approach:
+
+1. **Synthetic Data Simulation** (when live data unavailable/risky):
+   - Create realistic test fixtures
+   - Generate edge cases programmatically
+   - Mock external dependencies
+   - Example: Testing model router → create synthetic task corpus with known complexity distributions
+
+2. **Controlled Integration Harness** (when testing component interactions):
+   - Build isolated test environment
+   - Inject controlled inputs
+   - Monitor outputs and side effects
+   - Example: Testing state transitions → create harness that steps through states with controlled inputs
+
+3. **Incremental Capability Verification** (when building complex features):
+   - Test each capability layer independently
+   - Compose capabilities bottom-up
+   - Verify emergent behavior at each level
+   - Example: Testing autopilot → verify each runner independently, then composed orchestration
+
+4. **Property-Based Testing** (when algorithm correctness matters):
+   - Define invariants that must hold
+   - Generate random inputs
+   - Verify properties across input space
+   - Example: Testing cache → verify hit/miss ratios, LRU ordering, memory bounds
+
+5. **Regression Benchmarking** (when performance matters):
+   - Establish baseline metrics
+   - Generate representative workload
+   - Measure p50/p95/p99 latencies
+   - Compare against baseline
+   - Example: Testing router → benchmark 1000 routing decisions, compare to baseline
+
+6. **Visual/Snapshot Testing** (when output format matters):
+   - Capture expected outputs
+   - Generate actual outputs
+   - Diff against snapshots
+   - Example: Testing report generation → snapshot HTML/JSON output, verify structure
+
+7. **State Space Exploration** (when all paths must work):
+   - Enumerate possible states
+   - Test all valid transitions
+   - Verify invalid transitions rejected
+   - Example: Testing state machine → verify all transitions from each state
+
+8. **Chaos/Fault Injection** (when resilience matters):
+   - Simulate failures (network, disk, CPU)
+   - Verify graceful degradation
+   - Test error handling paths
+   - Example: Testing API client → inject timeouts, 500s, malformed responses
+
+**Problem-Solving Approaches** - Select the right strategy for the task:
+
+1. **Test-Driven Development**: Write tests first to clarify requirements
+   - When: Requirements are clear but implementation approach is uncertain
+
+2. **Exploratory Prototyping**: Build quick prototype to test assumptions
+   - When: Requirements are vague or you're exploring feasibility
+
+3. **Working Backwards**: Start from desired outcome, work backwards to implementation
+   - When: End goal is clear but path is unclear
+
+4. **Divide and Conquer**: Break complex problem into smaller, independent pieces
+   - When: Problem is too large to tackle at once
+
+5. **Analogical Reasoning**: Apply patterns from similar solved problems
+   - When: You've solved something similar before or can find similar patterns in codebase
+
+6. **Constraint Relaxation**: Solve simpler version first, add constraints incrementally
+   - When: Full problem seems intractable
+
+7. **Red Team Thinking**: Try to break your own solution before implementation
+   - When: Security, reliability, or edge cases are critical
+
+8. **Bisection/Binary Search**: Narrow down problem space iteratively
+   - When: Debugging or investigating root causes
+
+9. **Rubber Duck Debugging**: Explain the problem step-by-step (to yourself or in comments)
+   - When: Stuck on a problem or design decision
+
+**Problem Discovery & Root Cause Analysis** - Uncover hidden issues proactively:
+
+1. **Five Whys Analysis**:
+   - Ask "why" 5 times to get to root cause
+   - Example: "Tests fail" → "Why?" → "Mock not configured" → "Why?" → "No integration harness" → "Why?" → "Didn't search for existing patterns" → Root: Integration-first protocol violation
+
+2. **Pre-Mortem Analysis**:
+   - Assume the implementation failed catastrophically in production
+   - Ask: "What caused the failure?" before writing any code
+   - Document top 5 failure modes and mitigations
+   - Example: "Cache causes memory leak" → Add memory limits + monitoring
+
+3. **Fault Tree Analysis**:
+   - Start with undesirable outcome (system crash, data loss)
+   - Work backwards to identify ALL possible causes
+   - Create mitigation for each branch
+   - Example: "API unavailable" ← network failure OR auth failure OR rate limit OR circuit breaker
+
+4. **What-If Scenarios**:
+   - "What if X is 1000x larger than expected?"
+   - "What if Y fails 50% of the time?"
+   - "What if Z is malicious input?"
+   - Document each scenario + handling strategy
+
+5. **Failure Mode & Effects Analysis (FMEA)**:
+   - List every component that could fail
+   - For each: probability × severity = risk score
+   - Prioritize mitigations by risk score
+   - Example: Redis failure (high prob, medium severity) → add in-memory fallback
+
+6. **Trace Analysis & Profiling**:
+   - Don't assume bottlenecks, measure them
+   - Run profiler BEFORE optimizing
+   - Trace critical path end-to-end
+   - Example: "Assume DB is slow" → Profile shows JSON parsing is bottleneck
+
+7. **Hypothesis Testing**:
+   - State explicit hypothesis: "If I do X, then Y will happen"
+   - Design experiment to test hypothesis
+   - Measure outcome, reject or accept hypothesis
+   - Example: "If I cache API calls, p95 latency will drop by 50%" → Benchmark proves/disproves
+
+8. **Comparative Analysis**:
+   - Search codebase for similar problems solved before
+   - Compare your approach to existing solutions
+   - Identify gaps: "Why did they do X differently?"
+   - Example: Find 3 other cache implementations, understand design choices
+
+9. **Invariant Checking**:
+   - Define properties that MUST always be true
+   - Add assertions to verify invariants hold
+   - If invariant violated → root cause analysis
+   - Example: "Cache size ≤ maxSize" → If violated, memory leak detected
+
+10. **Chaos Engineering**:
+    - Deliberately inject failures (network timeout, disk full, OOM)
+    - Verify system degrades gracefully, not catastrophically
+    - Document unexpected failure modes discovered
+    - Example: Inject 500ms delay → discover unbounded queue growth
+
+**When to Apply Each Strategy**:
+
+| Situation | Strategy | Action |
+|-----------|----------|--------|
+| Tests fail repeatedly | Five Whys | Ask why 5 times to find root cause |
+| Critical system | Pre-Mortem | Assume it failed, work backwards |
+| Complex integration | Fault Tree | Map all failure paths, add mitigations |
+| Edge case concerns | What-If Scenarios | Enumerate edge cases, test each |
+| High-risk component | FMEA | Calculate risk scores, prioritize fixes |
+| Performance issue | Trace Analysis | Profile BEFORE optimizing |
+| Uncertain approach | Hypothesis Testing | State hypothesis, measure outcome |
+| Reinventing wheel | Comparative Analysis | Search for existing solutions |
+| Subtle bugs | Invariant Checking | Define properties, add assertions |
+| Reliability concerns | Chaos Engineering | Inject failures, verify graceful degradation |
+
+**Verification Strategy Selection** - Determine how to confirm it works:
+- **Unit tests**: Isolated component behavior
+- **Integration tests**: Component interactions with controlled data
+- **Stress tests**: High-volume, concurrent, edge-case scenarios
+- **End-to-end tests**: Full user journey with synthetic data
+- **Manual smoke tests**: Quick spot-check of critical paths
+- **Observability**: Metrics, logs, traces to verify runtime behavior
+
+**Output of STRATEGIZE stage:**
+- Task type identified
+- Problem-solving methodology chosen (with rationale)
+- Problem-solving approach selected (TDD, prototyping, etc.)
+- Verification strategy defined
+- Synthetic data/simulation approach documented (if applicable)
+- Success criteria for verification (what constitutes "confirmed working"?)
+
+**Skip STRATEGIZE only if:**
+- Task is trivial (< 10 line change, no logic, obvious verification)
+- Task type and methodology are immediately obvious
+- Standard verification (unit test + integration test) clearly sufficient
+
+**If you skip STRATEGIZE, you must still answer:**
+- "How will I verify this actually works?"
+- "What data/inputs will I test with?"
+- "What could go wrong that my verification won't catch?"
+
+#### Stage 1: SPEC
+- Restate the goal in your own words
+- List explicit acceptance criteria
+- Cite relevant docs (architecture, standards, existing code)
+- Identify constraints (performance, compatibility, security)
+- Record in `state/context.md` or task journal
+- **Reference STRATEGIZE outputs**: Link to chosen methodology and verification strategy
+
+#### Stage 2: PLAN
+- Break down into concrete steps
+- Identify files to create/modify
+- List commands to run
+- Record plan hash in journal (if applicable)
+- Estimate time/complexity
+
+#### Stage 3: THINK (adversarial - challenge assumptions!)
+- Document open questions
+- Identify ambiguities in requirements
+- Propose spike investigations for unknowns
+- Consider edge cases and failure modes
+- **Ask hard questions:**
+  - "What could go wrong here?"
+  - "What am I assuming that might not be true?"
+  - "What happens if X fails in production?"
+  - "Have I considered performance implications?"
+  - "What edge cases am I missing?"
+  - "What would break this design?"
+  - "Is there a simpler way?"
+- **Challenge the plan:**
+  - "Does this actually solve the problem?"
+  - "Am I over-engineering this?"
+  - "What dependencies am I ignoring?"
+  - "What happens at scale (1000x current load)?"
+- Skip only if task is completely straightforward AND you've considered adversarial questions
+
+#### Stage 4: IMPLEMENT
+- Write minimal, focused diffs
+- Update docs and tests concurrently (not after!)
+- Follow project code style
+- Log significant decisions
+- Commit incremental progress
+
+#### Stage 5: VERIFY
+Run the complete verification loop - iterate until ALL pass.
+
+**CRITICAL: Execute the verification strategy chosen in STRATEGIZE stage.**
+
+**5a. METHODOLOGY-SPECIFIC verification:**
+
+Execute the problem-solving methodology chosen in STRATEGIZE:
+
+- **Synthetic Data Simulation**: Run tests with generated fixtures, verify edge cases covered
+- **Controlled Integration Harness**: Execute harness, verify outputs match expectations
+- **Incremental Capability Verification**: Test each layer, verify composition works
+- **Property-Based Testing**: Run property tests, verify invariants hold across input space
+- **Regression Benchmarking**: Run benchmarks, compare to baseline (must be within tolerance)
+- **Visual/Snapshot Testing**: Generate outputs, diff against snapshots (must match)
+- **State Space Exploration**: Test all transitions, verify state machine correctness
+- **Chaos/Fault Injection**: Inject failures, verify graceful degradation
+
+**Document verification results:**
+- What data/inputs were tested?
+- What was the outcome?
+- Were there any surprises or edge cases discovered?
+- Does this confirm the implementation actually works?
+
+**If methodology verification fails → back to STRATEGIZE (methodology wrong?) or IMPLEMENT (implementation wrong)**
+
+**5b. BUILD verification:**
+```bash
+cd tools/wvo_mcp && npm run build
+```
+- Must complete with ZERO errors
+- If errors → FIX → repeat from IMPLEMENT
+
+**5c. TEST verification:**
+```bash
+npm test  # Run all tests
+bash tools/wvo_mcp/scripts/run_integrity_tests.sh  # Backend + web + MCP
+```
+- All tests must pass
+- If tests fail → FIX → repeat from IMPLEMENT
+
+**5d. AUDIT verification:**
+```bash
+npm audit  # Must show 0 vulnerabilities
+```
+- If vulnerabilities → `npm audit fix` → repeat from IMPLEMENT
+
+**5e. RUNTIME verification (for features):**
+- Actually RUN the feature end-to-end
+- Test with realistic data (100+ items if applicable)
+- Monitor resources (memory, CPU, processes)
+- If crashes/errors → FIX → repeat from IMPLEMENT
+
+**5f. STRESS TESTING (for critical components):**
+See CLAUDE.md for complete stress testing protocol. Required for:
+- Router/orchestrator systems
+- File I/O operations
+- Resource-intensive operations
+- High-traffic code paths
+
+#### Stage 6: REVIEW (be ADVERSARIAL - find flaws!)
+Self-review checklist - be thorough, honest, and CRITICAL:
+
+- **Readability**: Can another developer understand this code?
+  - *Check*: "Would I understand this in 6 months?"
+  - *Check*: "Can I explain this to a junior in 2 minutes?"
+
+- **Maintainability**: Is it easy to modify or extend?
+  - *Check*: "What happens when requirements change?"
+  - *Check*: "How hard to add new features?"
+  - *Check*: "Am I creating future tech debt?"
+
+- **Performance**: Any obvious bottlenecks?
+  - *Check*: "What happens with 10,000 items?"
+  - *Check*: "What's the worst-case complexity?"
+  - *Check*: "Will this cause memory leaks?"
+
+- **Security**: Any injection risks, auth bypasses, secret leaks?
+  - *Check*: "How would I exploit this?"
+  - *Check*: "What if input is malicious?"
+  - *Check*: "Could this leak sensitive data?"
+
+- **Error handling**: Are edge cases covered?
+  - *Check*: "What if this API call fails?"
+  - *Check*: "What if the file doesn't exist?"
+  - *Check*: "What if we get invalid data?"
+
+- **Testing**: Do tests verify behavior (not just "go green")?
+  - *Check*: "Do tests verify the RIGHT behavior?"
+  - *Check*: "Would these catch a regression?"
+  - *Check*: "Testing implementation details vs behavior?"
+
+**CRITICAL**: If you can't find ANY issues, you're not being adversarial enough. Every implementation has flaws - find them NOW.
+
+Document findings with file:line references. Fix issues before proceeding.
+
+**Loop limits:**
+- Minor fixes (< 30 min) → Fix directly, repeat VERIFY
+- Moderate issues (30 min - 2 hours) → Back to IMPLEMENT → VERIFY → REVIEW
+- Major issues (> 2 hours OR architectural) → Back to SPEC → PLAN → THINK → IMPLEMENT
+
+**Maximum 3 iterations**: If REVIEW → fix → REVIEW → fix → REVIEW still finds issues, ESCALATE to user.
+
+#### Stage 7: PR (Pull Request Preparation & Git Workflow)
+
+**CRITICAL: Git/GitHub is a core autopilot competency. Handle it elegantly.**
+
+**7a. Git Workflow (if creating actual PR)**
+
+**Branch Creation**:
+```bash
+# Use descriptive, hierarchical branch names
+git checkout -b feature/<task-id>-<short-description>
+git checkout -b fix/<task-id>-<bug-description>
+git checkout -b docs/<task-id>-<doc-type>
+
+# Examples:
+# feature/T1.2.1-weather-cache
+# fix/T3.4.2-memory-leak
+# docs/T2.1.3-api-reference
+```
+
+**Commit Strategy**:
+```bash
+# Commit incrementally during IMPLEMENT stage
+git add <files>
+git commit -m "wip: implement cache layer"
+
+# Squash/rebase before PR (clean history)
+git rebase -i main  # Interactive rebase to clean up commits
+
+# Final commit message format (conventional commits):
+git commit -m "feat(api): implement weather data caching layer
+
+- Add in-memory + Redis caching with configurable TTL
+- Implement graceful fallback if Redis unavailable
+- Enforce memory limits (100MB max)
+- Cache invalidation on data update
+
+Fixes #123
+Closes T1.2.1
+
+BREAKING CHANGE: Cache headers now required in API responses
+
+🤖 Generated with Claude Code
+Co-Authored-By: Claude <noreply@anthropic.com>
+"
+```
+
+**Commit Message Guidelines**:
+- **Type**: feat|fix|docs|style|refactor|perf|test|chore
+- **Scope**: Component affected (api, ui, cache, etc.)
+- **Subject**: Imperative mood, lowercase, no period, <50 chars
+- **Body**: Detailed explanation (wrap at 72 chars)
+- **Footer**: Breaking changes, issues closed, co-authors
+
+**Push to Remote**:
+```bash
+# First push
+git push -u origin feature/T1.2.1-weather-cache
+
+# Subsequent pushes (if iterating after review)
+git push
+```
+
+**7b. GitHub PR Creation**
+
+**Using gh CLI** (recommended):
+```bash
+gh pr create \
+  --title "feat(api): Implement weather data caching layer" \
+  --body "$(cat <<'EOF'
+## Summary
+
+Implements in-memory + Redis caching layer for weather API to reduce external API calls and improve response times.
+
+## Changes
+
+- ✅ In-memory cache with LRU eviction
+- ✅ Redis cache with configurable TTL
+- ✅ Graceful fallback if Redis unavailable
+- ✅ Memory limits enforced (100MB max)
+- ✅ Cache invalidation on data update
+
+## Evidence
+
+**Build**: ✅ 0 errors
+**Tests**: ✅ 91/91 passed, 85.3% coverage
+**Audit**: ✅ 0 vulnerabilities
+**Runtime**: ✅ Cache hit ratio 95%, memory usage 15MB/100MB
+
+See: `evidence/T1.2.1/` for artifacts
+
+## Performance Impact
+
+| Metric | Before | After | Improvement |
+|--------|--------|-------|-------------|
+| p95 latency | 300ms | 45ms | 85% faster |
+| API calls/min | 1200 | 60 | 95% reduction |
+| Memory usage | N/A | 15MB | Within limits |
+
+## Risks & Rollback
+
+**Risks**:
+- Redis connection failures → Mitigated with in-memory fallback
+- Memory leaks → Mitigated with enforced limits + monitoring
+- Cache invalidation bugs → Mitigated with comprehensive tests
+
+**Rollback Plan**:
+```bash
+git revert <commit-sha>
+# OR
+git checkout main -- <files>
+# Deploy previous version
+```
+
+## Testing Checklist
+
+- [x] Unit tests pass (91/91)
+- [x] Integration tests pass
+- [x] Stress tests pass (1000 concurrent requests)
+- [x] Smoke tests pass (end-to-end)
+- [x] Memory leak tests pass (100 iterations)
+- [x] Build passes (0 errors)
+- [x] Audit clean (0 vulnerabilities)
+
+## Quality Gates
+
+- [x] GATE 1: Automated checks (build, test, audit) - PASSED
+- [x] GATE 2: Orchestrator review - APPROVED
+- [x] GATE 3: Adversarial detector - PASSED (no bullshit detected)
+- [x] GATE 4: Peer review - APPROVED (score 4.2/5)
+- [x] GATE 5: Domain expert review - APPROVED (unanimous)
+
+**Consensus**: UNANIMOUS APPROVAL
+
+## Reviewers
+
+@engineering-team @architecture-team
+
+## Related Issues
+
+Fixes #123
+Closes T1.2.1
+
+---
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+EOF
+)" \
+  --assignee "@me" \
+  --label "feature,T1.2.1" \
+  --reviewer @engineering-team
+
+# Get PR URL for documentation
+PR_URL=$(gh pr view --json url -q .url)
+echo "PR created: $PR_URL"
+```
+
+**7c. PR Management**
+
+**Responding to Review Comments**:
+```bash
+# Fetch latest from main
+git checkout main && git pull
+
+# Rebase your branch
+git checkout feature/T1.2.1-weather-cache
+git rebase main
+
+# Address review comments
+# ... make changes ...
+
+# Commit fixes
+git add <files>
+git commit -m "fix: address review comments
+
+- Increase test coverage for edge cases
+- Add JSDoc comments for cache API
+- Extract magic numbers to constants
+"
+
+# Force push (since we rebased)
+git push --force-with-lease
+
+# Add comment to PR
+gh pr comment --body "✅ Addressed all review comments. Ready for re-review."
+```
+
+**Merge Strategy**:
+```bash
+# Squash merge (preferred for feature branches)
+gh pr merge --squash --delete-branch
+
+# Rebase merge (for linear history)
+gh pr merge --rebase --delete-branch
+
+# Merge commit (for preserving branch history)
+gh pr merge --merge --delete-branch
+```
+
+**7d. PR Best Practices**
+
+1. **Keep PRs Small**: <400 lines changed (easier to review)
+2. **One Concern Per PR**: Don't mix features, fixes, refactors
+3. **Self-Review First**: Review your own diff before creating PR
+4. **Add Screenshots**: For UI changes, include before/after screenshots
+5. **Link Issues**: Reference issues, tasks, or tickets
+6. **CI Must Pass**: Don't request review until CI is green
+7. **Be Responsive**: Address review comments within 24h
+
+**7e. PR Checklist (even if not creating actual PR)**
+
+- **Summary**: What changed and why?
+- **Evidence**: Link to test results, build output, benchmarks
+- **Risks**: What could break? What's the rollback plan?
+- **Reviewers**: Who should review this?
+- **Quality Gates**: All 5 gates passed? (automated, orchestrator, adversarial, peer, domain expert)
+- **Git Hygiene**: Clean commit history, conventional commits, co-author attribution
+- **Documentation**: Updated README, API docs, inline comments as needed
+- **Testing**: All verification steps passed (build, test, audit, runtime, stress)
+- **Breaking Changes**: Documented in commit message footer
+
+**7f. Autopilot-Specific PR Additions**
+
+For autopilot-generated PRs, include:
+
+```markdown
+## Autopilot Evidence Chain
+
+**Task ID**: T1.2.1
+**Execution Time**: 42 minutes
+**Resolution Loops**: 1 (verify failed → plan delta → success)
+**Quality Gate Decision**: APPROVED (unanimous consensus)
+
+**Decision Log**: `state/analytics/quality_gate_decisions.jsonl` (lines 1427-1429)
+**Artifacts**: `evidence/T1.2.1/`
+
+**Evidence Chain**: See docs/autopilot/EVIDENCE_CHAIN_EXAMPLE.md for complete audit trail
+
+**Verification**:
+```bash
+# Verify evidence chain
+grep "T1.2.1" state/analytics/quality_gate_decisions.jsonl
+
+# Check artifacts
+ls -la evidence/T1.2.1/
+```
+```
+
+This provides full transparency and audit trail for autopilot-generated work.
+
+#### Stage 8: MONITOR
+Execute smoke tests and monitor:
+
+```bash
+# For autopilot changes
+bash scripts/app_smoke_e2e.sh
+
+# For specific features, run relevant smoke tests
+```
+
+- Capture outputs
+- Check for warnings/errors in logs
+- Verify metrics (if applicable)
+- Document any anomalies
+
+**Only after Stage 8 completes successfully can you claim the task is "done".**
+
+#### Exit Criteria (ALL must be true):
+
+- ✅ STRATEGIZE: Problem-solving methodology selected (or explicitly skipped with justification)
+- ✅ STRATEGIZE: Verification strategy defined and appropriate for task type
+- ✅ SPEC: Written with clear acceptance criteria
+- ✅ PLAN: Documented with steps
+- ✅ THINK: Completed (or explicitly skipped with justification)
+- ✅ IMPLEMENT: Completed with minimal diffs
+- ✅ VERIFY: Methodology-specific verification passed
+- ✅ VERIFY: Build passes (0 errors)
+- ✅ VERIFY: All tests pass
+- ✅ VERIFY: npm audit shows 0 vulnerabilities
+- ✅ VERIFY: Runtime verification passed (if applicable)
+- ✅ REVIEW: Self-review completed, issues fixed
+- ✅ PR: Summary, evidence, risks documented
+- ✅ MONITOR: Smoke tests passed, outputs clean
+
+**If ANY criterion fails, iterate from the appropriate stage - do NOT skip ahead.**
+
+#### Escalation Protocol: Infinite Loops & Regressions
+
+**If you iterate more than 5 times OR detect a regression loop, STOP and ESCALATE:**
+
+**Infinite Loop Detection:**
+- Same error appears 3+ times
+- Fixing A breaks B, fixing B breaks A (regression cycle)
+- No progress after 5 iterations
+
+**When detected, ESCALATE immediately:**
+1. **STOP iterating** - you're stuck
+2. **Document the loop:**
+   - What you tried (all iterations)
+   - What keeps breaking
+   - The cycle pattern
+3. **Escalate to user:**
+   - Describe the fundamental problem
+   - Propose architectural fix if known
+4. **Do NOT:**
+   - Keep iterating (wastes resources)
+   - Try workarounds that mask the issue
+   - Claim "done" because you're tired
 
 **Zero tolerance items:**
 - No skipping stages, no "follow-up needed," no leaving failing tests/builds.
 - Every acceptance criterion must be met before declaring success.
 - Protocol can loop multiple times - fix issues at the appropriate stage.
-- Only stop mid-protocol for a critical blocker that demands human approval.
+- Only stop mid-protocol for a critical blocker that demands human approval OR infinite loop detected.
 
 ### Autonomous Modularization Review Policy
 
