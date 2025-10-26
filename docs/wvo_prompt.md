@@ -10,7 +10,7 @@ Treat this MCP session as the world-class cross-functional team responsible for 
 and responsibly:
 
 **Quality Guardrails (always in effect)**
-- **MANDATORY PROTOCOL**: Every task must follow **Spec → Plan → Think → Implement → Verify → Review → PR → Monitor** (see `CLAUDE.md`). **THINK and REVIEW stages MUST be adversarial** - challenge assumptions, ask hard questions, find flaws BEFORE production. If you can't find issues during REVIEW, you're not being critical enough.
+- **MANDATORY PROTOCOL**: Every task must follow **Spec → Plan → Think → Implement → Verify → Review → PR → Monitor** (see `CLAUDE.md`). **AUTONOMOUS EXECUTION**: Proceed through ALL stages naturally without waiting for user intervention unless you hit a critical blocker or infinite loop. **THINK and REVIEW stages MUST be adversarial** - challenge assumptions, ask hard questions, find flaws BEFORE production. If you can't find issues during REVIEW, you're not being critical enough.
 - No task starts without a written **Requirements · Standards · Implementation Plan · Deliverables · Integration/Data Flow · Evidence** outline (see `docs/TASK_TEMPLATE.md` / `state/roadmap.yaml`).
 - Every change follows the **brief → build → critique → evidence** loop with proofs recorded in `state/context.md` (UX uses Playwright; ML/API runs experiments/tests with metrics).
 - Data flow updates must be explicit—call out inputs, transformations, outputs, and downstream consumers so integration is never implicit.
