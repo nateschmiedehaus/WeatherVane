@@ -908,11 +908,16 @@ Escalating for architectural guidance.
 - **Run the integrity batch:** Execute `bash tools/wvo_mcp/scripts/run_integrity_tests.sh` before declaring stability. Attach failures to the consensus record so Atlas can remediate with the right batch step.
 - **Checkpoint regularly:** Use `state_save` after major updates and ensure blockers/decisions land in the context file so Atlas and Dana receive complete briefs.
 - **VERIFY BEFORE CLAIMING DONE:** Follow the Mandatory Verification checklist above for EVERY task. No exceptions.
+- **Meta-cognitive awareness:** Run progress check every 30 minutes. If no deliverables in 90 min → escalate. Track iterations (max 3 before escalation). If repeating same approach → STOP and escalate. See `docs/autopilot/META_COGNITION_GUARDRAILS.md`.
+- **Iteration tracking:** Before retrying approach, confirm it wasn't already attempted. Max 3 iterations before escalation. Document each attempt to prevent repeated failures.
+- **Time-boxing:** If task exceeds 2x estimate → escalate with summary of attempts and blockers. Set estimates at SPEC stage, check progress every 30 min.
 
 ## Decision Framework
 - **Consensus:** Uphold quorum rules. When a decision escalates, gather proposals from critics, codify disagreements, and outline the safest path to resolution. Only override follow-up tasks if the telemetry shows quorum restored and blockers cleared.
 - **Staffing guidance:** Interpret the recommendation in `autopilot_status.consensus.recommendation`. If load is `High critical decision volume`, ensure Director Dana stays engaged and consider temporarily promoting additional Claude strategists.
 - **Risk triage:** Prioritise issues that threaten guardrails (budget pushes, retention compliance, automation safety) over throughput concerns.
+- **Escalation triggers:** Circular dependencies unsolved after stub strategy, >3 identical failures, >90 min without progress, context overflow requiring reset, repeating same approach without new information. Document attempts before escalating.
+- **Progress velocity:** Track completions per hour. If velocity drops to 0 for >1 hour → investigate blocker or escalate. "Busy work" without deliverables is a red flag.
 
 ## Collaboration Patterns
 - **Atlas (Autopilot lead):** Provide crisp directions, including which critic or engineer should close the loop. Confirm Atlas acknowledges consensus follow-ups before marking decisions resolved.

@@ -306,6 +306,55 @@ Strategize → Spec → Plan → Think → Implement → Verify → Review → P
 - "What data/inputs will I test with?"
 - "What could go wrong that my verification won't catch?"
 
+**Meta-Cognitive Pre-Flight Checks** (prevent Codex blockers):
+
+Before proceeding to SPEC, run these self-awareness checks:
+
+1. **MVP vs Nice-to-Have**:
+   - [ ] Have I defined the MINIMUM viable implementation?
+   - [ ] Have I separated "must have" from "nice to have"?
+   - [ ] Can I ship something simpler first?
+
+2. **Exit Criteria**:
+   - [ ] Do I know when this task is "done"?
+   - [ ] Have I listed explicit acceptance criteria?
+   - [ ] What's my "good enough" threshold?
+
+3. **Time-Boxing**:
+   - [ ] Have I estimated time for this task?
+   - [ ] What's 2x my estimate (escalation threshold)?
+   - [ ] Am I tracking progress every 30 minutes?
+
+4. **Escalation Awareness**:
+   - [ ] Do I know when to escalate vs iterate?
+   - [ ] What's my max iterations (3) before escalation?
+   - [ ] What signals mean "I'm stuck"?
+
+5. **Integration Check**:
+   - [ ] Did I SEARCH for existing systems first?
+   - [ ] Am I integrating or reinventing?
+   - [ ] Have I identified all integration points?
+
+6. **Circular Dependency Prevention**:
+   - [ ] Does A need B AND B need A?
+   - [ ] If yes, which gets stub implementation first?
+   - [ ] When will I replace stub with real implementation?
+
+7. **Repeat Detection**:
+   - [ ] Have I tried this approach before?
+   - [ ] If repeating, what's different this time?
+   - [ ] Am I in an iteration loop?
+
+**See**: `docs/autopilot/META_COGNITION_GUARDRAILS.md` for complete framework
+
+**Red Flags** (stop and escalate):
+- You can't define MVP
+- You don't know "done" criteria
+- You've exceeded 2x time estimate
+- You're repeating same approach (>3 times)
+- You detect circular dependency without stub strategy
+- Context is filled with failed attempts
+
 #### Stage 1: SPEC
 - Restate the goal in your own words
 - List explicit acceptance criteria
@@ -347,6 +396,65 @@ Strategize → Spec → Plan → Think → Implement → Verify → Review → P
 - Follow project code style
 - Log significant decisions
 - Commit incremental progress
+
+**Circular Dependency Protocol**:
+
+If you discover A needs B AND B needs A:
+1. **STOP** - don't spiral into planning paralysis
+2. **Implement stub for one component** (choose simpler one):
+   ```typescript
+   // STUB: Temporary implementation until B is ready
+   // TODO: Replace with real implementation after B complete
+   // See: file.ts:line for real implementation
+   function stubA(): ResultType {
+     return mockResult; // Minimal stub
+   }
+   ```
+3. **Build other component against stub**
+4. **Replace stub with real implementation** in SAME session
+5. **Verify integration** - run tests to confirm both work together
+6. **Never leave session with stubs in place** - this creates technical debt
+
+**Progress Tracking Protocol** (every 30 minutes):
+
+Set a 30-minute timer. At each interval, answer:
+1. **What did I complete in last 30 min?**
+   - If answer is "nothing" or "fixed errors" → warning signal
+2. **Am I closer to "done" than 30 min ago?**
+   - If no → identify blocker
+3. **Are new blockers appearing?**
+   - If yes → document and assess if stuck
+4. **Should I escalate?**
+   - If 0 progress for 90 min → YES, escalate now
+   - If 3+ iterations of same fix → YES, escalate now
+   - If exceeded 2x time estimate → YES, escalate now
+
+**Iteration Counter** (prevent infinite loops):
+
+Track attempts for each fix:
+```typescript
+// Mental model (or actual counter if implementing):
+let iterations = 0;
+const MAX_ITERATIONS = 3;
+
+while (!working && iterations < MAX_ITERATIONS) {
+  attempt_fix();
+  iterations++;
+}
+
+if (iterations >= MAX_ITERATIONS) {
+  escalate_to_user('Repeated failures, need guidance');
+}
+```
+
+**Red Flags During Implementation**:
+- Same error appears 3+ times
+- Fix A breaks B, fix B breaks A (regression loop)
+- Context filling with error logs
+- Can't remember what you tried
+- Tempted to try "one more thing"
+
+→ If ANY red flag appears: **STOP and ESCALATE**
 
 #### Stage 5: VERIFY
 Run the complete verification loop - iterate until ALL pass.
@@ -450,6 +558,65 @@ Document findings with file:line references. Fix issues before proceeding.
 - Major issues (> 2 hours OR architectural) → Back to SPEC → PLAN → THINK → IMPLEMENT
 
 **Maximum 3 iterations**: If REVIEW → fix → REVIEW → fix → REVIEW still finds issues, ESCALATE to user.
+
+**"Good Enough" Checklist** (prevent over-engineering):
+
+Before claiming implementation complete, verify:
+
+**Acceptance Criteria** (from SPEC):
+- [ ] Does implementation meet ALL acceptance criteria from SPEC?
+- [ ] Are all "must have" features implemented?
+- [ ] Are all "nice to have" features documented as future enhancements (NOT implemented)?
+
+**Quality Gates**:
+- [ ] Build passes (0 errors)?
+- [ ] All tests pass (no skipped, no disabled)?
+- [ ] npm audit clean (0 vulnerabilities)?
+- [ ] Runtime verification passed (feature actually works)?
+
+**Edge Cases** (from SPEC):
+- [ ] All required edge cases handled?
+- [ ] Error paths tested?
+- [ ] Graceful degradation verified?
+
+**Documentation**:
+- [ ] Code documented (comments where needed)?
+- [ ] Integration points clear?
+- [ ] README/docs updated (if applicable)?
+
+**Integration Verification**:
+- [ ] Created verification script (`scripts/verify_<system>_integration.sh`)?
+- [ ] Ran integrated system end-to-end (not just tests)?
+- [ ] Verification script exits 0?
+
+**If ALL checkboxes true → IMPLEMENTATION IS GOOD ENOUGH**
+
+**Stop Rule**:
+- If "good enough" → STOP implementing, proceed to PR
+- If not "good enough" → identify specific gap, fix ONLY that gap
+- If "could be better" but meets criteria → STOP, document improvements as future enhancements
+
+**Do NOT implement**:
+- Optimizations not backed by benchmarks
+- Features not in acceptance criteria
+- "Just one more thing" additions
+- Refactorings that don't fix actual problems
+
+**Escalation Check** (did I follow meta-cognitive protocols?):
+
+Reflect on the implementation process:
+- [ ] Did I exceed 2x time estimate?
+  - If yes → should have escalated earlier
+- [ ] Did I repeat same fix >3 times?
+  - If yes → should have escalated after 3rd attempt
+- [ ] Did I have 0 progress for >90 min?
+  - If yes → should have escalated at 90-min mark
+- [ ] Did I fill context with failed attempts?
+  - If yes → should have reset context or escalated
+- [ ] Did I get stuck in circular dependency without stub strategy?
+  - If yes → should have implemented stub immediately
+
+**Learn from escalation failures**: If any checkbox is YES, note the meta-cognitive failure for future improvement.
 
 #### Stage 7: PR (Pull Request Preparation & Git Workflow)
 
