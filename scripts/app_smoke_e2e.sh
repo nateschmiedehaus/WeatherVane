@@ -16,6 +16,12 @@ ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 WVO_MCP_DIR="$ROOT_DIR/tools/wvo_mcp"
 SMOKE_MODE="${SMOKE_MODE:-full}"
 TIMEOUT="${SMOKE_TIMEOUT:-120}"
+MAX_DISK_PERCENT="${SMOKE_MAX_DISK_PERCENT:-90}"
+WARN_DISK_PERCENT="${SMOKE_WARN_DISK_PERCENT:-80}"
+
+# Normalise threshold inputs (strip decimals if provided)
+MAX_DISK_PERCENT="${MAX_DISK_PERCENT%.*}"
+WARN_DISK_PERCENT="${WARN_DISK_PERCENT%.*}"
 
 log_info() { echo -e "${GREEN}[SMOKE]${NC} $*"; }
 log_warn() { echo -e "${YELLOW}[SMOKE]${NC} $*"; }
@@ -102,11 +108,11 @@ smoke_filesystem() {
   done
   
   local disk_usage=$(df "$ROOT_DIR" | tail -1 | awk '{print $5}' | sed 's/%//')
-  if [[ $disk_usage -gt 90 ]]; then
-    log_error "❌ Disk critical: ${disk_usage}%"
+  if [[ $disk_usage -gt $MAX_DISK_PERCENT ]]; then
+    log_error "❌ Disk critical: ${disk_usage}% (threshold ${MAX_DISK_PERCENT}%)"
     return 1
-  elif [[ $disk_usage -gt 80 ]]; then
-    log_warn "⚠️  Disk high: ${disk_usage}%"
+  elif [[ $disk_usage -gt $WARN_DISK_PERCENT ]]; then
+    log_warn "⚠️  Disk high: ${disk_usage}% (warn ${WARN_DISK_PERCENT}%)"
   fi
   
   log_info "✅ File system healthy (disk: ${disk_usage}%)"
