@@ -112,6 +112,8 @@ Same error ≥3×, no progress >90m, or >5 iterations without resolution ⇒ **E
 
 ---
 
+<!-- SYNC_START: learning -->
+
 ## 7.5) Systematic Learning & Self-Improvement Mandate
 
 **Philosophy:** Every significant problem is a learning opportunity. The work process MUST evolve to prevent recurrence.
@@ -186,6 +188,8 @@ Same error ≥3×, no progress >90m, or >5 iterations without resolution ⇒ **E
 2. ✅ Update relevant process document
 3. ✅ Add automated check if possible
 4. ✅ Include in commit message under "Learnings:" section
+
+<!-- SYNC_END: learning -->
 
 **Monthly Learning Audit:**
 - Review all learnings from past month

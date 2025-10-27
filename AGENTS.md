@@ -78,6 +78,89 @@
 
 ---
 
+## Learning System
+
+<!-- INJECT_START: learning -->
+
+## 7.5) Systematic Learning & Self-Improvement Mandate
+
+**Philosophy:** Every significant problem is a learning opportunity. The work process MUST evolve to prevent recurrence.
+
+### When to Capture Learnings
+
+**Trigger any of these:**
+- ✅ **Major Issue Found** - Issue that took >30 min to diagnose OR blocked progress
+- ✅ **Process Gap Discovered** - Work process failed to catch something it should have
+- ✅ **Repeated Pattern** - Same type of issue encountered 2+ times
+- ✅ **Architecture Insight** - Discovered how system actually works vs. assumptions
+- ✅ **Tool/Method Innovation** - Found better way to verify/test/implement something
+
+### Learning Capture Protocol
+
+**When learning trigger occurs:**
+
+1. **Document the Issue** (in commit message or docs/learnings/)
+   - What went wrong?
+   - Root cause (not just symptoms)
+   - Why wasn't it caught earlier?
+   - What stage should have caught it?
+
+2. **Extract the Learning**
+   - What assumption was wrong?
+   - What check was missing?
+   - What knowledge was lacking?
+   - What process step failed?
+
+3. **Define the Prevention**
+   - What VERIFY check would have caught this?
+   - What DISCOVER step was missing?
+   - What documentation needs updating?
+   - What automated check can prevent recurrence?
+
+4. **Update Work Process**
+   - Add check to appropriate stage (VERIFY, REVIEW, etc.)
+   - Update CLAUDE.md or stage-specific docs
+   - Create automated verification if possible
+   - Document in commit message
+
+### Examples from Real Sessions
+
+**Learning 1: Build Artifact Verification (2025-10-27)**
+- **Issue:** Code changes in src/ didn't appear in dist/ after build
+- **Root Cause:** Didn't verify compiled output contained changes
+- **Prevention:** Added to VERIFY stage: `grep "expected-code" dist/path/to/file.js`
+- **Process Update:** VERIFY checklist now requires dist/ verification
+
+**Learning 2: Path Resolution Complexity (2025-10-27)**
+- **Issue:** workspaceRoot vs process.cwd() vs relative paths caused config loading failures
+- **Root Cause:** Assumed process.cwd() == workspaceRoot, didn't test from multiple directories
+- **Prevention:** Always use workspaceRoot parameter, test from different working directories
+- **Process Update:** VERIFY stage requires testing from both workspace root and subdirectories
+
+**Learning 3: Worker Architecture Discovery (2025-10-27)**
+- **Issue:** Tried to test IPC worker standalone, worker exited silently
+- **Root Cause:** DISCOVER phase skipped - didn't identify worker type before testing
+- **Prevention:** DISCOVER must identify: standalone vs IPC, parent requirements, env vars needed
+- **Process Update:** Added worker architecture checks to DISCOVER phase
+
+**Learning 4: JSON Import in Node.js ESM (2025-10-27)**
+- **Issue:** Import assertions not supported in current Node.js/TypeScript config
+- **Root Cause:** Didn't check runtime compatibility of import syntax
+- **Prevention:** Use dynamic fs.readFileSync for JSON in ESM contexts
+- **Process Update:** Added ESM import patterns to IMPLEMENT best practices
+
+### Systematic Learning Review
+
+**After every major issue resolution:**
+1. ✅ Create learning entry (format above)
+2. ✅ Update relevant process document
+3. ✅ Add automated check if possible
+4. ✅ Include in commit message under "Learnings:" section
+
+<!-- INJECT_END: learning -->
+
+---
+
 ## Repo Ops Quick Reference
 - Project layout: `apps/api`, `apps/web`, `apps/worker`, `shared`, `tests`, `docs`.
 - Primary commands: `make api`, `make web`, `make worker`, `make lint`, `make test`, `make smoke-context`, `python apps/worker/run.py <tenant>`.

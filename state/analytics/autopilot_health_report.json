@@ -1,9 +1,9 @@
 {
   "running": true,
-  "lastCycle": 54,
+  "lastCycle": 6,
   "metricsHistory": [
     {
-      "timestamp": 1761510317567,
+      "timestamp": 1761594742574,
       "pendingCount": 216,
       "readyCount": 137,
       "inProgressCount": 0,
@@ -16,170 +16,98 @@
       "staleTaskCount": 0,
       "maxStaleAgeMs": 0,
       "dependencySyncRatio": 1.0533333333333332,
-      "busyAgents": 3,
-      "idleAgents": 0,
+      "busyAgents": 0,
+      "idleAgents": 3,
       "totalAgents": 3
     },
     {
-      "timestamp": 1761510377568,
-      "pendingCount": 216,
-      "readyCount": 137,
-      "inProgressCount": 0,
+      "timestamp": 1761594802575,
+      "pendingCount": 214,
+      "readyCount": 135,
+      "inProgressCount": 2,
       "doneCount": 148,
       "blockedCount": 18,
-      "queueDepth": 137,
-      "wipUtilization": 0,
+      "queueDepth": 135,
+      "wipUtilization": 0.6666666666666666,
       "throughputLastHour": 0,
       "throughputLast5Min": 0,
       "staleTaskCount": 0,
       "maxStaleAgeMs": 0,
       "dependencySyncRatio": 1.0533333333333332,
-      "busyAgents": 3,
-      "idleAgents": 0,
+      "busyAgents": 2,
+      "idleAgents": 1,
       "totalAgents": 3
     },
     {
-      "timestamp": 1761510437774,
-      "pendingCount": 216,
-      "readyCount": 137,
-      "inProgressCount": 0,
+      "timestamp": 1761594862575,
+      "pendingCount": 214,
+      "readyCount": 135,
+      "inProgressCount": 2,
       "doneCount": 148,
       "blockedCount": 18,
-      "queueDepth": 137,
-      "wipUtilization": 0,
+      "queueDepth": 135,
+      "wipUtilization": 0.6666666666666666,
       "throughputLastHour": 0,
       "throughputLast5Min": 0,
       "staleTaskCount": 0,
       "maxStaleAgeMs": 0,
       "dependencySyncRatio": 1.0533333333333332,
-      "busyAgents": 3,
-      "idleAgents": 0,
+      "busyAgents": 2,
+      "idleAgents": 1,
       "totalAgents": 3
     },
     {
-      "timestamp": 1761510498720,
-      "pendingCount": 216,
-      "readyCount": 137,
-      "inProgressCount": 0,
+      "timestamp": 1761594922574,
+      "pendingCount": 214,
+      "readyCount": 135,
+      "inProgressCount": 2,
       "doneCount": 148,
       "blockedCount": 18,
-      "queueDepth": 137,
-      "wipUtilization": 0,
+      "queueDepth": 135,
+      "wipUtilization": 0.6666666666666666,
       "throughputLastHour": 0,
       "throughputLast5Min": 0,
       "staleTaskCount": 0,
       "maxStaleAgeMs": 0,
       "dependencySyncRatio": 1.0533333333333332,
-      "busyAgents": 3,
-      "idleAgents": 0,
+      "busyAgents": 2,
+      "idleAgents": 1,
       "totalAgents": 3
     },
     {
-      "timestamp": 1761510558138,
-      "pendingCount": 216,
-      "readyCount": 137,
-      "inProgressCount": 0,
+      "timestamp": 1761594982575,
+      "pendingCount": 214,
+      "readyCount": 135,
+      "inProgressCount": 2,
       "doneCount": 148,
       "blockedCount": 18,
-      "queueDepth": 137,
-      "wipUtilization": 0,
+      "queueDepth": 135,
+      "wipUtilization": 0.6666666666666666,
       "throughputLastHour": 0,
       "throughputLast5Min": 0,
       "staleTaskCount": 0,
       "maxStaleAgeMs": 0,
       "dependencySyncRatio": 1.0533333333333332,
-      "busyAgents": 3,
-      "idleAgents": 0,
+      "busyAgents": 2,
+      "idleAgents": 1,
       "totalAgents": 3
     },
     {
-      "timestamp": 1761510618079,
-      "pendingCount": 216,
-      "readyCount": 137,
-      "inProgressCount": 0,
+      "timestamp": 1761595042574,
+      "pendingCount": 214,
+      "readyCount": 135,
+      "inProgressCount": 2,
       "doneCount": 148,
       "blockedCount": 18,
-      "queueDepth": 137,
-      "wipUtilization": 0,
+      "queueDepth": 135,
+      "wipUtilization": 0.6666666666666666,
       "throughputLastHour": 0,
       "throughputLast5Min": 0,
       "staleTaskCount": 0,
       "maxStaleAgeMs": 0,
       "dependencySyncRatio": 1.0533333333333332,
-      "busyAgents": 3,
-      "idleAgents": 0,
-      "totalAgents": 3
-    },
-    {
-      "timestamp": 1761510678004,
-      "pendingCount": 216,
-      "readyCount": 137,
-      "inProgressCount": 0,
-      "doneCount": 148,
-      "blockedCount": 18,
-      "queueDepth": 137,
-      "wipUtilization": 0,
-      "throughputLastHour": 0,
-      "throughputLast5Min": 0,
-      "staleTaskCount": 0,
-      "maxStaleAgeMs": 0,
-      "dependencySyncRatio": 1.0533333333333332,
-      "busyAgents": 3,
-      "idleAgents": 0,
-      "totalAgents": 3
-    },
-    {
-      "timestamp": 1761510738390,
-      "pendingCount": 216,
-      "readyCount": 137,
-      "inProgressCount": 0,
-      "doneCount": 148,
-      "blockedCount": 18,
-      "queueDepth": 137,
-      "wipUtilization": 0,
-      "throughputLastHour": 0,
-      "throughputLast5Min": 0,
-      "staleTaskCount": 0,
-      "maxStaleAgeMs": 0,
-      "dependencySyncRatio": 1.0533333333333332,
-      "busyAgents": 3,
-      "idleAgents": 0,
-      "totalAgents": 3
-    },
-    {
-      "timestamp": 1761510798319,
-      "pendingCount": 216,
-      "readyCount": 137,
-      "inProgressCount": 0,
-      "doneCount": 148,
-      "blockedCount": 18,
-      "queueDepth": 137,
-      "wipUtilization": 0,
-      "throughputLastHour": 0,
-      "throughputLast5Min": 0,
-      "staleTaskCount": 0,
-      "maxStaleAgeMs": 0,
-      "dependencySyncRatio": 1.0533333333333332,
-      "busyAgents": 3,
-      "idleAgents": 0,
-      "totalAgents": 3
-    },
-    {
-      "timestamp": 1761510858541,
-      "pendingCount": 216,
-      "readyCount": 137,
-      "inProgressCount": 0,
-      "doneCount": 148,
-      "blockedCount": 18,
-      "queueDepth": 137,
-      "wipUtilization": 0,
-      "throughputLastHour": 0,
-      "throughputLast5Min": 0,
-      "staleTaskCount": 0,
-      "maxStaleAgeMs": 0,
-      "dependencySyncRatio": 1.0533333333333332,
-      "busyAgents": 3,
-      "idleAgents": 0,
+      "busyAgents": 2,
+      "idleAgents": 1,
       "totalAgents": 3
     }
   ],
@@ -193,7 +121,7 @@
         "baselineThroughput": 10,
         "degradationPercent": 100
       },
-      "detectedAt": 1761510317567
+      "detectedAt": 1761594982575
     },
     {
       "type": "throughput_degradation",
@@ -204,95 +132,7 @@
         "baselineThroughput": 10,
         "degradationPercent": 100
       },
-      "detectedAt": 1761510377568
-    },
-    {
-      "type": "throughput_degradation",
-      "severity": "critical",
-      "description": "Throughput degraded to 0.0/hr (baseline: 10/hr)",
-      "metrics": {
-        "currentThroughput": 0,
-        "baselineThroughput": 10,
-        "degradationPercent": 100
-      },
-      "detectedAt": 1761510437774
-    },
-    {
-      "type": "throughput_degradation",
-      "severity": "critical",
-      "description": "Throughput degraded to 0.0/hr (baseline: 10/hr)",
-      "metrics": {
-        "currentThroughput": 0,
-        "baselineThroughput": 10,
-        "degradationPercent": 100
-      },
-      "detectedAt": 1761510498720
-    },
-    {
-      "type": "throughput_degradation",
-      "severity": "critical",
-      "description": "Throughput degraded to 0.0/hr (baseline: 10/hr)",
-      "metrics": {
-        "currentThroughput": 0,
-        "baselineThroughput": 10,
-        "degradationPercent": 100
-      },
-      "detectedAt": 1761510558138
-    },
-    {
-      "type": "throughput_degradation",
-      "severity": "critical",
-      "description": "Throughput degraded to 0.0/hr (baseline: 10/hr)",
-      "metrics": {
-        "currentThroughput": 0,
-        "baselineThroughput": 10,
-        "degradationPercent": 100
-      },
-      "detectedAt": 1761510618079
-    },
-    {
-      "type": "throughput_degradation",
-      "severity": "critical",
-      "description": "Throughput degraded to 0.0/hr (baseline: 10/hr)",
-      "metrics": {
-        "currentThroughput": 0,
-        "baselineThroughput": 10,
-        "degradationPercent": 100
-      },
-      "detectedAt": 1761510678004
-    },
-    {
-      "type": "throughput_degradation",
-      "severity": "critical",
-      "description": "Throughput degraded to 0.0/hr (baseline: 10/hr)",
-      "metrics": {
-        "currentThroughput": 0,
-        "baselineThroughput": 10,
-        "degradationPercent": 100
-      },
-      "detectedAt": 1761510738390
-    },
-    {
-      "type": "throughput_degradation",
-      "severity": "critical",
-      "description": "Throughput degraded to 0.0/hr (baseline: 10/hr)",
-      "metrics": {
-        "currentThroughput": 0,
-        "baselineThroughput": 10,
-        "degradationPercent": 100
-      },
-      "detectedAt": 1761510798319
-    },
-    {
-      "type": "throughput_degradation",
-      "severity": "critical",
-      "description": "Throughput degraded to 0.0/hr (baseline: 10/hr)",
-      "metrics": {
-        "currentThroughput": 0,
-        "baselineThroughput": 10,
-        "degradationPercent": 100
-      },
-      "detectedAt": 1761510858541
+      "detectedAt": 1761595042574
     }
   ],
   "recentRemediations": [
@@ -307,7 +147,7 @@
             "baselineThroughput": 10,
             "degradationPercent": 100
           },
-          "detectedAt": 1761510317567
+          "detectedAt": 1761594982575
         },
         "action": "alert_only",
         "rationale": "Throughput degradation is often a symptom of other issues. Investigate manually.",
@@ -328,175 +168,7 @@
             "baselineThroughput": 10,
             "degradationPercent": 100
           },
-          "detectedAt": 1761510377568
-        },
-        "action": "alert_only",
-        "rationale": "Throughput degradation is often a symptom of other issues. Investigate manually.",
-        "estimatedImpact": "low",
-        "safe": true
-      },
-      "success": true,
-      "message": "Alert logged, no action taken"
-    },
-    {
-      "plan": {
-        "anomaly": {
-          "type": "throughput_degradation",
-          "severity": "critical",
-          "description": "Throughput degraded to 0.0/hr (baseline: 10/hr)",
-          "metrics": {
-            "currentThroughput": 0,
-            "baselineThroughput": 10,
-            "degradationPercent": 100
-          },
-          "detectedAt": 1761510437774
-        },
-        "action": "alert_only",
-        "rationale": "Throughput degradation is often a symptom of other issues. Investigate manually.",
-        "estimatedImpact": "low",
-        "safe": true
-      },
-      "success": true,
-      "message": "Alert logged, no action taken"
-    },
-    {
-      "plan": {
-        "anomaly": {
-          "type": "throughput_degradation",
-          "severity": "critical",
-          "description": "Throughput degraded to 0.0/hr (baseline: 10/hr)",
-          "metrics": {
-            "currentThroughput": 0,
-            "baselineThroughput": 10,
-            "degradationPercent": 100
-          },
-          "detectedAt": 1761510498720
-        },
-        "action": "alert_only",
-        "rationale": "Throughput degradation is often a symptom of other issues. Investigate manually.",
-        "estimatedImpact": "low",
-        "safe": true
-      },
-      "success": true,
-      "message": "Alert logged, no action taken"
-    },
-    {
-      "plan": {
-        "anomaly": {
-          "type": "throughput_degradation",
-          "severity": "critical",
-          "description": "Throughput degraded to 0.0/hr (baseline: 10/hr)",
-          "metrics": {
-            "currentThroughput": 0,
-            "baselineThroughput": 10,
-            "degradationPercent": 100
-          },
-          "detectedAt": 1761510558138
-        },
-        "action": "alert_only",
-        "rationale": "Throughput degradation is often a symptom of other issues. Investigate manually.",
-        "estimatedImpact": "low",
-        "safe": true
-      },
-      "success": true,
-      "message": "Alert logged, no action taken"
-    },
-    {
-      "plan": {
-        "anomaly": {
-          "type": "throughput_degradation",
-          "severity": "critical",
-          "description": "Throughput degraded to 0.0/hr (baseline: 10/hr)",
-          "metrics": {
-            "currentThroughput": 0,
-            "baselineThroughput": 10,
-            "degradationPercent": 100
-          },
-          "detectedAt": 1761510618079
-        },
-        "action": "alert_only",
-        "rationale": "Throughput degradation is often a symptom of other issues. Investigate manually.",
-        "estimatedImpact": "low",
-        "safe": true
-      },
-      "success": true,
-      "message": "Alert logged, no action taken"
-    },
-    {
-      "plan": {
-        "anomaly": {
-          "type": "throughput_degradation",
-          "severity": "critical",
-          "description": "Throughput degraded to 0.0/hr (baseline: 10/hr)",
-          "metrics": {
-            "currentThroughput": 0,
-            "baselineThroughput": 10,
-            "degradationPercent": 100
-          },
-          "detectedAt": 1761510678004
-        },
-        "action": "alert_only",
-        "rationale": "Throughput degradation is often a symptom of other issues. Investigate manually.",
-        "estimatedImpact": "low",
-        "safe": true
-      },
-      "success": true,
-      "message": "Alert logged, no action taken"
-    },
-    {
-      "plan": {
-        "anomaly": {
-          "type": "throughput_degradation",
-          "severity": "critical",
-          "description": "Throughput degraded to 0.0/hr (baseline: 10/hr)",
-          "metrics": {
-            "currentThroughput": 0,
-            "baselineThroughput": 10,
-            "degradationPercent": 100
-          },
-          "detectedAt": 1761510738390
-        },
-        "action": "alert_only",
-        "rationale": "Throughput degradation is often a symptom of other issues. Investigate manually.",
-        "estimatedImpact": "low",
-        "safe": true
-      },
-      "success": true,
-      "message": "Alert logged, no action taken"
-    },
-    {
-      "plan": {
-        "anomaly": {
-          "type": "throughput_degradation",
-          "severity": "critical",
-          "description": "Throughput degraded to 0.0/hr (baseline: 10/hr)",
-          "metrics": {
-            "currentThroughput": 0,
-            "baselineThroughput": 10,
-            "degradationPercent": 100
-          },
-          "detectedAt": 1761510798319
-        },
-        "action": "alert_only",
-        "rationale": "Throughput degradation is often a symptom of other issues. Investigate manually.",
-        "estimatedImpact": "low",
-        "safe": true
-      },
-      "success": true,
-      "message": "Alert logged, no action taken"
-    },
-    {
-      "plan": {
-        "anomaly": {
-          "type": "throughput_degradation",
-          "severity": "critical",
-          "description": "Throughput degraded to 0.0/hr (baseline: 10/hr)",
-          "metrics": {
-            "currentThroughput": 0,
-            "baselineThroughput": 10,
-            "degradationPercent": 100
-          },
-          "detectedAt": 1761510858541
+          "detectedAt": 1761595042574
         },
         "action": "alert_only",
         "rationale": "Throughput degradation is often a symptom of other issues. Investigate manually.",

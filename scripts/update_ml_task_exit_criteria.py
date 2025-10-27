@@ -108,7 +108,14 @@ def get_validation_exit_criteria(task_id: str, existing_criteria: list) -> list:
     ]
 
     new_criteria.extend(validation_metrics)
-    new_criteria.extend(["critic:modeling_reality_v2", "critic:academic_rigor", "critic:causal"])
+    new_criteria.extend(
+        [
+            "critic:modeling_reality_v2",
+            "critic:academic_rigor",
+            "critic:causal",
+            "critic:data_quality",
+        ]
+    )
 
     # Add back existing critics
     for critic in existing_critics:
@@ -143,17 +150,22 @@ def should_update_task(task_id: str, title: str) -> str:
 
     title_lower = title.lower()
 
-    # Data generation tasks
-    if any(kw in title_lower for kw in ["generate", "synthetic data", "dataset"]):
-        return "data_generation"
+    is_validation = any(kw in title_lower for kw in ["validate", "validation", "verify"])
+    is_modeling = any(
+        kw in title_lower
+        for kw in ["train", "model", "mmm", "backtest", "elasticity", "allocation", "inference", "fit"]
+    )
+    is_data_generation = any(kw in title_lower for kw in ["generate", "synthetic", "dataset"])
 
-    # Validation tasks
-    if any(kw in title_lower for kw in ["validate", "validation", "verify"]):
+    if is_validation:
         return "validation"
 
-    # Modeling/training tasks
-    if any(kw in title_lower for kw in ["train", "model", "mmm", "backtest", "elasticity", "allocation"]):
+    if is_modeling:
         return "modeling"
+
+    # Data generation tasks
+    if is_data_generation:
+        return "data_generation"
 
     # Default to modeling for T12/T13 tasks
     return "modeling"
