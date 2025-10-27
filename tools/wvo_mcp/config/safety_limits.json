@@ -1,0 +1,30 @@
+{
+  "memory": {
+    "max_tree_rss_mb": 2048
+  },
+  "disk": {
+    "min_free_percent": 10,
+    "min_free_gb": 5,
+    "check_interval_seconds": 10,
+    "pause_threshold_percent": 90,
+    "shutdown_threshold_percent": 95,
+    "monitor_inodes": true
+  },
+  "processes": {
+    "max_children": 100,
+    "check_interval_seconds": 60,
+    "orphan_check_interval_seconds": 300
+  },
+  "file_descriptors": {
+    "soft_limit": 1024,
+    "warning_threshold": 819
+  },
+  "supervisor": {
+    "restart_backoff_seconds": [1, 2, 4, 8, 16],
+    "max_crashes": 6,
+    "backoff_reset_runtime_seconds": 300,
+    "heartbeat_interval_seconds": 30,
+    "heartbeat_timeout_seconds": 90,
+    "stuck_process_kill_timeout_seconds": 10
+  }
+}

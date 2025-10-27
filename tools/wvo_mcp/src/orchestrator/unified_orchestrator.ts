@@ -26,6 +26,10 @@ import { logInfo, logWarning, logError, logDebug } from '../telemetry/logger.js'
 
 import { acquireLock, releaseLock, registerCleanupHandlers } from '../utils/pid_file_manager.js';
 import { cleanupChildProcesses } from '../utils/process_cleanup.js';
+import { HeartbeatWriter } from '../utils/heartbeat.js';
+import { SafetyMonitor, type SafetyLimits } from '../utils/safety_monitor.js';
+// @ts-ignore - JSON import
+import safetyLimitsConfig from '../../config/safety_limits.json';
 
 import { CodeSearchIndex } from '../utils/code_search.js';
 
@@ -542,6 +546,8 @@ export class UnifiedOrchestrator extends EventEmitter {
   private readonly stateGraphEnabled: boolean;
   private readonly runId: string;
   private readonly pidFilePath: string;
+  private heartbeatWriter: HeartbeatWriter | null = null;
+  private safetyMonitor: SafetyMonitor | null = null;
 
   // Continuous pipeline for zero worker idle time
   private taskQueue: Task[] = [];
@@ -957,6 +963,32 @@ export class UnifiedOrchestrator extends EventEmitter {
       throw error;
     }
 
+    // Set process group for reliable process tree cleanup (Phase 1)
+    try {
+      // @ts-ignore - setpgid is available on Unix-like systems
+      process.setpgid(0, 0);
+      // @ts-ignore - getpgid is available on Unix-like systems
+      const pgid = process.getpgid(0);
+      logInfo('Set process group', { pid: process.pid, pgid });
+    } catch (error) {
+      logWarning('Failed to set process group', {
+        error: error instanceof Error ? error.message : String(error),
+      });
+      // Continue anyway - fallback to individual child killing
+    }
+
+    // Start heartbeat writer for supervisor monitoring (Phase 2)
+    const heartbeatPath = path.join(this.config.workspaceRoot, 'state', 'heartbeat');
+    const heartbeatInterval = (safetyLimitsConfig as SafetyLimits & { supervisor: { heartbeat_interval_seconds: number } }).supervisor.heartbeat_interval_seconds * 1000;
+    this.heartbeatWriter = new HeartbeatWriter(heartbeatPath, heartbeatInterval);
+    this.heartbeatWriter.start();
+    logInfo('Started heartbeat writer', { path: heartbeatPath, intervalMs: heartbeatInterval });
+
+    // Start safety monitor for resource limits enforcement (Phase 3)
+    this.safetyMonitor = new SafetyMonitor(safetyLimitsConfig as SafetyLimits, this.config.workspaceRoot);
+    this.safetyMonitor.start();
+    logInfo('Started safety monitor', { limits: safetyLimitsConfig });
+
     logInfo('Starting UnifiedOrchestrator', {
       agentCount: this.config.agentCount,
       preferredOrchestrator: this.config.preferredOrchestrator,
@@ -1161,6 +1193,17 @@ export class UnifiedOrchestrator extends EventEmitter {
     }
 
     logInfo('Stopping UnifiedOrchestrator');
+
+    // Stop heartbeat writer and safety monitor first (Phase 2/3)
+    if (this.heartbeatWriter) {
+      this.heartbeatWriter.stop();
+      logDebug('Stopped heartbeat writer');
+    }
+
+    if (this.safetyMonitor) {
+      this.safetyMonitor.stop();
+      logDebug('Stopped safety monitor');
+    }
 
     // Clean up child processes first (before stopping components)
     try {
