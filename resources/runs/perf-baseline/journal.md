@@ -75238,3 +75238,1235 @@ Actionables:
 - Replicate install locally ➜ Add lock/dependency file updates ➜ Record CI run installing dependency
 - Add lightweight stub/provider with deterministic responses ➜ Guard behind feature toggle
 
+## Resolution 2025-10-27T20:06:42.780Z
+Task: PERF-TEST-1
+Label: missing_dependency
+Plan Delta:
+Resolution label: missing_dependency
+Focus: Dependency or provider not installed in CI.
+Show dependency install logs and passing CI snippet.
+Actionables:
+- Replicate install locally ➜ Add lock/dependency file updates ➜ Record CI run installing dependency
+- Add lightweight stub/provider with deterministic responses ➜ Guard behind feature toggle
+
+## Resolution 2025-10-27T20:06:42.798Z
+Task: PERF-TEST-0
+Label: missing_dependency
+Plan Delta:
+Resolution label: missing_dependency
+Focus: Dependency or provider not installed in CI.
+Show dependency install logs and passing CI snippet.
+Actionables:
+- Replicate install locally ➜ Add lock/dependency file updates ➜ Record CI run installing dependency
+- Add lightweight stub/provider with deterministic responses ➜ Guard behind feature toggle
+
+## Resolution 2025-10-27T20:06:42.801Z
+Task: PERF-TEST-1
+Label: missing_dependency
+Plan Delta:
+Resolution label: missing_dependency
+Focus: Dependency or provider not installed in CI.
+Show dependency install logs and passing CI snippet.
+Actionables:
+- Replicate install locally ➜ Add lock/dependency file updates ➜ Record CI run installing dependency
+- Add lightweight stub/provider with deterministic responses ➜ Guard behind feature toggle
+
+## Resolution 2025-10-27T20:06:42.805Z
+Task: PERF-TEST-2
+Label: missing_dependency
+Plan Delta:
+Resolution label: missing_dependency
+Focus: Dependency or provider not installed in CI.
+Show dependency install logs and passing CI snippet.
+Actionables:
+- Replicate install locally ➜ Add lock/dependency file updates ➜ Record CI run installing dependency
+- Add lightweight stub/provider with deterministic responses ➜ Guard behind feature toggle
+
+## Resolution 2025-10-27T20:06:42.812Z
+Task: PERF-TEST-3
+Label: missing_dependency
+Plan Delta:
+Resolution label: missing_dependency
+Focus: Dependency or provider not installed in CI.
+Show dependency install logs and passing CI snippet.
+Actionables:
+- Replicate install locally ➜ Add lock/dependency file updates ➜ Record CI run installing dependency
+- Add lightweight stub/provider with deterministic responses ➜ Guard behind feature toggle
+
+## Resolution 2025-10-27T20:06:42.818Z
+Task: PERF-TEST-4
+Label: missing_dependency
+Plan Delta:
+Resolution label: missing_dependency
+Focus: Dependency or provider not installed in CI.
+Show dependency install logs and passing CI snippet.
+Actionables:
+- Replicate install locally ➜ Add lock/dependency file updates ➜ Record CI run installing dependency
+- Add lightweight stub/provider with deterministic responses ➜ Guard behind feature toggle
+
+## Resolution 2025-10-27T20:06:42.821Z
+Task: PERF-TEST-5
+Label: missing_dependency
+Plan Delta:
+Resolution label: missing_dependency
+Focus: Dependency or provider not installed in CI.
+Show dependency install logs and passing CI snippet.
+Actionables:
+- Replicate install locally ➜ Add lock/dependency file updates ➜ Record CI run installing dependency
+- Add lightweight stub/provider with deterministic responses ➜ Guard behind feature toggle
+
+## Resolution 2025-10-27T20:06:42.824Z
+Task: PERF-TEST-6
+Label: missing_dependency
+Plan Delta:
+Resolution label: missing_dependency
+Focus: Dependency or provider not installed in CI.
+Show dependency install logs and passing CI snippet.
+Actionables:
+- Replicate install locally ➜ Add lock/dependency file updates ➜ Record CI run installing dependency
+- Add lightweight stub/provider with deterministic responses ➜ Guard behind feature toggle
+
+## Resolution 2025-10-27T20:06:42.828Z
+Task: PERF-TEST-7
+Label: missing_dependency
+Plan Delta:
+Resolution label: missing_dependency
+Focus: Dependency or provider not installed in CI.
+Show dependency install logs and passing CI snippet.
+Actionables:
+- Replicate install locally ➜ Add lock/dependency file updates ➜ Record CI run installing dependency
+- Add lightweight stub/provider with deterministic responses ➜ Guard behind feature toggle
+
+## Resolution 2025-10-27T20:06:42.831Z
+Task: PERF-TEST-8
+Label: missing_dependency
+Plan Delta:
+Resolution label: missing_dependency
+Focus: Dependency or provider not installed in CI.
+Show dependency install logs and passing CI snippet.
+Actionables:
+- Replicate install locally ➜ Add lock/dependency file updates ➜ Record CI run installing dependency
+- Add lightweight stub/provider with deterministic responses ➜ Guard behind feature toggle
+
+## Resolution 2025-10-27T20:06:42.834Z
+Task: PERF-TEST-9
+Label: missing_dependency
+Plan Delta:
+Resolution label: missing_dependency
+Focus: Dependency or provider not installed in CI.
+Show dependency install logs and passing CI snippet.
+Actionables:
+- Replicate install locally ➜ Add lock/dependency file updates ➜ Record CI run installing dependency
+- Add lightweight stub/provider with deterministic responses ➜ Guard behind feature toggle
+
+## Resolution 2025-10-27T20:06:42.840Z
+Task: PERF-TEST-1
+Label: missing_dependency
+Plan Delta:
+Resolution label: missing_dependency
+Focus: Dependency or provider not installed in CI.
+Show dependency install logs and passing CI snippet.
+Actionables:
+- Replicate install locally ➜ Add lock/dependency file updates ➜ Record CI run installing dependency
+- Add lightweight stub/provider with deterministic responses ➜ Guard behind feature toggle
+
+## Resolution 2025-10-27T20:06:42.847Z
+Task: PERF-TEST-0
+Label: missing_dependency
+Plan Delta:
+Resolution label: missing_dependency
+Focus: Dependency or provider not installed in CI.
+Show dependency install logs and passing CI snippet.
+Actionables:
+- Replicate install locally ➜ Add lock/dependency file updates ➜ Record CI run installing dependency
+- Add lightweight stub/provider with deterministic responses ➜ Guard behind feature toggle
+
+## Resolution 2025-10-27T20:06:42.852Z
+Task: PERF-TEST-1
+Label: missing_dependency
+Plan Delta:
+Resolution label: missing_dependency
+Focus: Dependency or provider not installed in CI.
+Show dependency install logs and passing CI snippet.
+Actionables:
+- Replicate install locally ➜ Add lock/dependency file updates ➜ Record CI run installing dependency
+- Add lightweight stub/provider with deterministic responses ➜ Guard behind feature toggle
+
+## Resolution 2025-10-27T20:06:42.857Z
+Task: PERF-TEST-2
+Label: missing_dependency
+Plan Delta:
+Resolution label: missing_dependency
+Focus: Dependency or provider not installed in CI.
+Show dependency install logs and passing CI snippet.
+Actionables:
+- Replicate install locally ➜ Add lock/dependency file updates ➜ Record CI run installing dependency
+- Add lightweight stub/provider with deterministic responses ➜ Guard behind feature toggle
+
+## Resolution 2025-10-27T20:06:42.867Z
+Task: PERF-TEST-3
+Label: missing_dependency
+Plan Delta:
+Resolution label: missing_dependency
+Focus: Dependency or provider not installed in CI.
+Show dependency install logs and passing CI snippet.
+Actionables:
+- Replicate install locally ➜ Add lock/dependency file updates ➜ Record CI run installing dependency
+- Add lightweight stub/provider with deterministic responses ➜ Guard behind feature toggle
+
+## Resolution 2025-10-27T20:06:42.885Z
+Task: PERF-TEST-4
+Label: missing_dependency
+Plan Delta:
+Resolution label: missing_dependency
+Focus: Dependency or provider not installed in CI.
+Show dependency install logs and passing CI snippet.
+Actionables:
+- Replicate install locally ➜ Add lock/dependency file updates ➜ Record CI run installing dependency
+- Add lightweight stub/provider with deterministic responses ➜ Guard behind feature toggle
+
+## Resolution 2025-10-27T20:06:42.899Z
+Task: PERF-TEST-5
+Label: missing_dependency
+Plan Delta:
+Resolution label: missing_dependency
+Focus: Dependency or provider not installed in CI.
+Show dependency install logs and passing CI snippet.
+Actionables:
+- Replicate install locally ➜ Add lock/dependency file updates ➜ Record CI run installing dependency
+- Add lightweight stub/provider with deterministic responses ➜ Guard behind feature toggle
+
+## Resolution 2025-10-27T20:06:42.904Z
+Task: PERF-TEST-6
+Label: missing_dependency
+Plan Delta:
+Resolution label: missing_dependency
+Focus: Dependency or provider not installed in CI.
+Show dependency install logs and passing CI snippet.
+Actionables:
+- Replicate install locally ➜ Add lock/dependency file updates ➜ Record CI run installing dependency
+- Add lightweight stub/provider with deterministic responses ➜ Guard behind feature toggle
+
+## Resolution 2025-10-27T20:06:42.915Z
+Task: PERF-TEST-7
+Label: missing_dependency
+Plan Delta:
+Resolution label: missing_dependency
+Focus: Dependency or provider not installed in CI.
+Show dependency install logs and passing CI snippet.
+Actionables:
+- Replicate install locally ➜ Add lock/dependency file updates ➜ Record CI run installing dependency
+- Add lightweight stub/provider with deterministic responses ➜ Guard behind feature toggle
+
+## Resolution 2025-10-27T20:06:42.920Z
+Task: PERF-TEST-8
+Label: missing_dependency
+Plan Delta:
+Resolution label: missing_dependency
+Focus: Dependency or provider not installed in CI.
+Show dependency install logs and passing CI snippet.
+Actionables:
+- Replicate install locally ➜ Add lock/dependency file updates ➜ Record CI run installing dependency
+- Add lightweight stub/provider with deterministic responses ➜ Guard behind feature toggle
+
+## Resolution 2025-10-27T20:06:42.925Z
+Task: PERF-TEST-9
+Label: missing_dependency
+Plan Delta:
+Resolution label: missing_dependency
+Focus: Dependency or provider not installed in CI.
+Show dependency install logs and passing CI snippet.
+Actionables:
+- Replicate install locally ➜ Add lock/dependency file updates ➜ Record CI run installing dependency
+- Add lightweight stub/provider with deterministic responses ➜ Guard behind feature toggle
+
+## Resolution 2025-10-27T20:06:42.929Z
+Task: PERF-TEST-10
+Label: missing_dependency
+Plan Delta:
+Resolution label: missing_dependency
+Focus: Dependency or provider not installed in CI.
+Show dependency install logs and passing CI snippet.
+Actionables:
+- Replicate install locally ➜ Add lock/dependency file updates ➜ Record CI run installing dependency
+- Add lightweight stub/provider with deterministic responses ➜ Guard behind feature toggle
+
+## Resolution 2025-10-27T20:06:42.937Z
+Task: PERF-TEST-11
+Label: missing_dependency
+Plan Delta:
+Resolution label: missing_dependency
+Focus: Dependency or provider not installed in CI.
+Show dependency install logs and passing CI snippet.
+Actionables:
+- Replicate install locally ➜ Add lock/dependency file updates ➜ Record CI run installing dependency
+- Add lightweight stub/provider with deterministic responses ➜ Guard behind feature toggle
+
+## Resolution 2025-10-27T20:06:42.954Z
+Task: PERF-TEST-12
+Label: missing_dependency
+Plan Delta:
+Resolution label: missing_dependency
+Focus: Dependency or provider not installed in CI.
+Show dependency install logs and passing CI snippet.
+Actionables:
+- Replicate install locally ➜ Add lock/dependency file updates ➜ Record CI run installing dependency
+- Add lightweight stub/provider with deterministic responses ➜ Guard behind feature toggle
+
+## Resolution 2025-10-27T20:06:42.962Z
+Task: PERF-TEST-13
+Label: missing_dependency
+Plan Delta:
+Resolution label: missing_dependency
+Focus: Dependency or provider not installed in CI.
+Show dependency install logs and passing CI snippet.
+Actionables:
+- Replicate install locally ➜ Add lock/dependency file updates ➜ Record CI run installing dependency
+- Add lightweight stub/provider with deterministic responses ➜ Guard behind feature toggle
+
+## Resolution 2025-10-27T20:06:42.969Z
+Task: PERF-TEST-14
+Label: missing_dependency
+Plan Delta:
+Resolution label: missing_dependency
+Focus: Dependency or provider not installed in CI.
+Show dependency install logs and passing CI snippet.
+Actionables:
+- Replicate install locally ➜ Add lock/dependency file updates ➜ Record CI run installing dependency
+- Add lightweight stub/provider with deterministic responses ➜ Guard behind feature toggle
+
+## Resolution 2025-10-27T20:06:42.980Z
+Task: PERF-TEST-15
+Label: missing_dependency
+Plan Delta:
+Resolution label: missing_dependency
+Focus: Dependency or provider not installed in CI.
+Show dependency install logs and passing CI snippet.
+Actionables:
+- Replicate install locally ➜ Add lock/dependency file updates ➜ Record CI run installing dependency
+- Add lightweight stub/provider with deterministic responses ➜ Guard behind feature toggle
+
+## Resolution 2025-10-27T20:06:42.999Z
+Task: PERF-TEST-16
+Label: missing_dependency
+Plan Delta:
+Resolution label: missing_dependency
+Focus: Dependency or provider not installed in CI.
+Show dependency install logs and passing CI snippet.
+Actionables:
+- Replicate install locally ➜ Add lock/dependency file updates ➜ Record CI run installing dependency
+- Add lightweight stub/provider with deterministic responses ➜ Guard behind feature toggle
+
+## Resolution 2025-10-27T20:06:43.047Z
+Task: PERF-TEST-17
+Label: missing_dependency
+Plan Delta:
+Resolution label: missing_dependency
+Focus: Dependency or provider not installed in CI.
+Show dependency install logs and passing CI snippet.
+Actionables:
+- Replicate install locally ➜ Add lock/dependency file updates ➜ Record CI run installing dependency
+- Add lightweight stub/provider with deterministic responses ➜ Guard behind feature toggle
+
+## Resolution 2025-10-27T20:06:43.058Z
+Task: PERF-TEST-18
+Label: missing_dependency
+Plan Delta:
+Resolution label: missing_dependency
+Focus: Dependency or provider not installed in CI.
+Show dependency install logs and passing CI snippet.
+Actionables:
+- Replicate install locally ➜ Add lock/dependency file updates ➜ Record CI run installing dependency
+- Add lightweight stub/provider with deterministic responses ➜ Guard behind feature toggle
+
+## Resolution 2025-10-27T20:06:43.080Z
+Task: PERF-TEST-19
+Label: missing_dependency
+Plan Delta:
+Resolution label: missing_dependency
+Focus: Dependency or provider not installed in CI.
+Show dependency install logs and passing CI snippet.
+Actionables:
+- Replicate install locally ➜ Add lock/dependency file updates ➜ Record CI run installing dependency
+- Add lightweight stub/provider with deterministic responses ➜ Guard behind feature toggle
+
+## Resolution 2025-10-27T20:06:43.089Z
+Task: PERF-TEST-20
+Label: missing_dependency
+Plan Delta:
+Resolution label: missing_dependency
+Focus: Dependency or provider not installed in CI.
+Show dependency install logs and passing CI snippet.
+Actionables:
+- Replicate install locally ➜ Add lock/dependency file updates ➜ Record CI run installing dependency
+- Add lightweight stub/provider with deterministic responses ➜ Guard behind feature toggle
+
+## Resolution 2025-10-27T20:06:43.099Z
+Task: PERF-TEST-21
+Label: missing_dependency
+Plan Delta:
+Resolution label: missing_dependency
+Focus: Dependency or provider not installed in CI.
+Show dependency install logs and passing CI snippet.
+Actionables:
+- Replicate install locally ➜ Add lock/dependency file updates ➜ Record CI run installing dependency
+- Add lightweight stub/provider with deterministic responses ➜ Guard behind feature toggle
+
+## Resolution 2025-10-27T20:06:43.107Z
+Task: PERF-TEST-22
+Label: missing_dependency
+Plan Delta:
+Resolution label: missing_dependency
+Focus: Dependency or provider not installed in CI.
+Show dependency install logs and passing CI snippet.
+Actionables:
+- Replicate install locally ➜ Add lock/dependency file updates ➜ Record CI run installing dependency
+- Add lightweight stub/provider with deterministic responses ➜ Guard behind feature toggle
+
+## Resolution 2025-10-27T20:06:43.112Z
+Task: PERF-TEST-23
+Label: missing_dependency
+Plan Delta:
+Resolution label: missing_dependency
+Focus: Dependency or provider not installed in CI.
+Show dependency install logs and passing CI snippet.
+Actionables:
+- Replicate install locally ➜ Add lock/dependency file updates ➜ Record CI run installing dependency
+- Add lightweight stub/provider with deterministic responses ➜ Guard behind feature toggle
+
+## Resolution 2025-10-27T20:06:43.119Z
+Task: PERF-TEST-24
+Label: missing_dependency
+Plan Delta:
+Resolution label: missing_dependency
+Focus: Dependency or provider not installed in CI.
+Show dependency install logs and passing CI snippet.
+Actionables:
+- Replicate install locally ➜ Add lock/dependency file updates ➜ Record CI run installing dependency
+- Add lightweight stub/provider with deterministic responses ➜ Guard behind feature toggle
+
+## Resolution 2025-10-27T20:06:43.123Z
+Task: PERF-TEST-25
+Label: missing_dependency
+Plan Delta:
+Resolution label: missing_dependency
+Focus: Dependency or provider not installed in CI.
+Show dependency install logs and passing CI snippet.
+Actionables:
+- Replicate install locally ➜ Add lock/dependency file updates ➜ Record CI run installing dependency
+- Add lightweight stub/provider with deterministic responses ➜ Guard behind feature toggle
+
+## Resolution 2025-10-27T20:06:43.131Z
+Task: PERF-TEST-26
+Label: missing_dependency
+Plan Delta:
+Resolution label: missing_dependency
+Focus: Dependency or provider not installed in CI.
+Show dependency install logs and passing CI snippet.
+Actionables:
+- Replicate install locally ➜ Add lock/dependency file updates ➜ Record CI run installing dependency
+- Add lightweight stub/provider with deterministic responses ➜ Guard behind feature toggle
+
+## Resolution 2025-10-27T20:06:43.136Z
+Task: PERF-TEST-27
+Label: missing_dependency
+Plan Delta:
+Resolution label: missing_dependency
+Focus: Dependency or provider not installed in CI.
+Show dependency install logs and passing CI snippet.
+Actionables:
+- Replicate install locally ➜ Add lock/dependency file updates ➜ Record CI run installing dependency
+- Add lightweight stub/provider with deterministic responses ➜ Guard behind feature toggle
+
+## Resolution 2025-10-27T20:06:43.147Z
+Task: PERF-TEST-28
+Label: missing_dependency
+Plan Delta:
+Resolution label: missing_dependency
+Focus: Dependency or provider not installed in CI.
+Show dependency install logs and passing CI snippet.
+Actionables:
+- Replicate install locally ➜ Add lock/dependency file updates ➜ Record CI run installing dependency
+- Add lightweight stub/provider with deterministic responses ➜ Guard behind feature toggle
+
+## Resolution 2025-10-27T20:06:43.154Z
+Task: PERF-TEST-29
+Label: missing_dependency
+Plan Delta:
+Resolution label: missing_dependency
+Focus: Dependency or provider not installed in CI.
+Show dependency install logs and passing CI snippet.
+Actionables:
+- Replicate install locally ➜ Add lock/dependency file updates ➜ Record CI run installing dependency
+- Add lightweight stub/provider with deterministic responses ➜ Guard behind feature toggle
+
+## Resolution 2025-10-27T20:06:43.160Z
+Task: PERF-TEST-30
+Label: missing_dependency
+Plan Delta:
+Resolution label: missing_dependency
+Focus: Dependency or provider not installed in CI.
+Show dependency install logs and passing CI snippet.
+Actionables:
+- Replicate install locally ➜ Add lock/dependency file updates ➜ Record CI run installing dependency
+- Add lightweight stub/provider with deterministic responses ➜ Guard behind feature toggle
+
+## Resolution 2025-10-27T20:06:43.178Z
+Task: PERF-TEST-31
+Label: missing_dependency
+Plan Delta:
+Resolution label: missing_dependency
+Focus: Dependency or provider not installed in CI.
+Show dependency install logs and passing CI snippet.
+Actionables:
+- Replicate install locally ➜ Add lock/dependency file updates ➜ Record CI run installing dependency
+- Add lightweight stub/provider with deterministic responses ➜ Guard behind feature toggle
+
+## Resolution 2025-10-27T20:06:43.183Z
+Task: PERF-TEST-32
+Label: missing_dependency
+Plan Delta:
+Resolution label: missing_dependency
+Focus: Dependency or provider not installed in CI.
+Show dependency install logs and passing CI snippet.
+Actionables:
+- Replicate install locally ➜ Add lock/dependency file updates ➜ Record CI run installing dependency
+- Add lightweight stub/provider with deterministic responses ➜ Guard behind feature toggle
+
+## Resolution 2025-10-27T20:06:43.188Z
+Task: PERF-TEST-33
+Label: missing_dependency
+Plan Delta:
+Resolution label: missing_dependency
+Focus: Dependency or provider not installed in CI.
+Show dependency install logs and passing CI snippet.
+Actionables:
+- Replicate install locally ➜ Add lock/dependency file updates ➜ Record CI run installing dependency
+- Add lightweight stub/provider with deterministic responses ➜ Guard behind feature toggle
+
+## Resolution 2025-10-27T20:06:43.199Z
+Task: PERF-TEST-34
+Label: missing_dependency
+Plan Delta:
+Resolution label: missing_dependency
+Focus: Dependency or provider not installed in CI.
+Show dependency install logs and passing CI snippet.
+Actionables:
+- Replicate install locally ➜ Add lock/dependency file updates ➜ Record CI run installing dependency
+- Add lightweight stub/provider with deterministic responses ➜ Guard behind feature toggle
+
+## Resolution 2025-10-27T20:06:43.202Z
+Task: PERF-TEST-35
+Label: missing_dependency
+Plan Delta:
+Resolution label: missing_dependency
+Focus: Dependency or provider not installed in CI.
+Show dependency install logs and passing CI snippet.
+Actionables:
+- Replicate install locally ➜ Add lock/dependency file updates ➜ Record CI run installing dependency
+- Add lightweight stub/provider with deterministic responses ➜ Guard behind feature toggle
+
+## Resolution 2025-10-27T20:06:43.206Z
+Task: PERF-TEST-36
+Label: missing_dependency
+Plan Delta:
+Resolution label: missing_dependency
+Focus: Dependency or provider not installed in CI.
+Show dependency install logs and passing CI snippet.
+Actionables:
+- Replicate install locally ➜ Add lock/dependency file updates ➜ Record CI run installing dependency
+- Add lightweight stub/provider with deterministic responses ➜ Guard behind feature toggle
+
+## Resolution 2025-10-27T20:06:43.211Z
+Task: PERF-TEST-37
+Label: missing_dependency
+Plan Delta:
+Resolution label: missing_dependency
+Focus: Dependency or provider not installed in CI.
+Show dependency install logs and passing CI snippet.
+Actionables:
+- Replicate install locally ➜ Add lock/dependency file updates ➜ Record CI run installing dependency
+- Add lightweight stub/provider with deterministic responses ➜ Guard behind feature toggle
+
+## Resolution 2025-10-27T20:06:43.217Z
+Task: PERF-TEST-38
+Label: missing_dependency
+Plan Delta:
+Resolution label: missing_dependency
+Focus: Dependency or provider not installed in CI.
+Show dependency install logs and passing CI snippet.
+Actionables:
+- Replicate install locally ➜ Add lock/dependency file updates ➜ Record CI run installing dependency
+- Add lightweight stub/provider with deterministic responses ➜ Guard behind feature toggle
+
+## Resolution 2025-10-27T20:06:43.219Z
+Task: PERF-TEST-39
+Label: missing_dependency
+Plan Delta:
+Resolution label: missing_dependency
+Focus: Dependency or provider not installed in CI.
+Show dependency install logs and passing CI snippet.
+Actionables:
+- Replicate install locally ➜ Add lock/dependency file updates ➜ Record CI run installing dependency
+- Add lightweight stub/provider with deterministic responses ➜ Guard behind feature toggle
+
+## Resolution 2025-10-27T20:06:43.225Z
+Task: PERF-TEST-40
+Label: missing_dependency
+Plan Delta:
+Resolution label: missing_dependency
+Focus: Dependency or provider not installed in CI.
+Show dependency install logs and passing CI snippet.
+Actionables:
+- Replicate install locally ➜ Add lock/dependency file updates ➜ Record CI run installing dependency
+- Add lightweight stub/provider with deterministic responses ➜ Guard behind feature toggle
+
+## Resolution 2025-10-27T20:06:43.228Z
+Task: PERF-TEST-41
+Label: missing_dependency
+Plan Delta:
+Resolution label: missing_dependency
+Focus: Dependency or provider not installed in CI.
+Show dependency install logs and passing CI snippet.
+Actionables:
+- Replicate install locally ➜ Add lock/dependency file updates ➜ Record CI run installing dependency
+- Add lightweight stub/provider with deterministic responses ➜ Guard behind feature toggle
+
+## Resolution 2025-10-27T20:06:43.229Z
+Task: PERF-TEST-42
+Label: missing_dependency
+Plan Delta:
+Resolution label: missing_dependency
+Focus: Dependency or provider not installed in CI.
+Show dependency install logs and passing CI snippet.
+Actionables:
+- Replicate install locally ➜ Add lock/dependency file updates ➜ Record CI run installing dependency
+- Add lightweight stub/provider with deterministic responses ➜ Guard behind feature toggle
+
+## Resolution 2025-10-27T20:06:43.233Z
+Task: PERF-TEST-43
+Label: missing_dependency
+Plan Delta:
+Resolution label: missing_dependency
+Focus: Dependency or provider not installed in CI.
+Show dependency install logs and passing CI snippet.
+Actionables:
+- Replicate install locally ➜ Add lock/dependency file updates ➜ Record CI run installing dependency
+- Add lightweight stub/provider with deterministic responses ➜ Guard behind feature toggle
+
+## Resolution 2025-10-27T20:06:43.237Z
+Task: PERF-TEST-44
+Label: missing_dependency
+Plan Delta:
+Resolution label: missing_dependency
+Focus: Dependency or provider not installed in CI.
+Show dependency install logs and passing CI snippet.
+Actionables:
+- Replicate install locally ➜ Add lock/dependency file updates ➜ Record CI run installing dependency
+- Add lightweight stub/provider with deterministic responses ➜ Guard behind feature toggle
+
+## Resolution 2025-10-27T20:06:43.241Z
+Task: PERF-TEST-45
+Label: missing_dependency
+Plan Delta:
+Resolution label: missing_dependency
+Focus: Dependency or provider not installed in CI.
+Show dependency install logs and passing CI snippet.
+Actionables:
+- Replicate install locally ➜ Add lock/dependency file updates ➜ Record CI run installing dependency
+- Add lightweight stub/provider with deterministic responses ➜ Guard behind feature toggle
+
+## Resolution 2025-10-27T20:06:43.246Z
+Task: PERF-TEST-46
+Label: missing_dependency
+Plan Delta:
+Resolution label: missing_dependency
+Focus: Dependency or provider not installed in CI.
+Show dependency install logs and passing CI snippet.
+Actionables:
+- Replicate install locally ➜ Add lock/dependency file updates ➜ Record CI run installing dependency
+- Add lightweight stub/provider with deterministic responses ➜ Guard behind feature toggle
+
+## Resolution 2025-10-27T20:06:43.255Z
+Task: PERF-TEST-47
+Label: missing_dependency
+Plan Delta:
+Resolution label: missing_dependency
+Focus: Dependency or provider not installed in CI.
+Show dependency install logs and passing CI snippet.
+Actionables:
+- Replicate install locally ➜ Add lock/dependency file updates ➜ Record CI run installing dependency
+- Add lightweight stub/provider with deterministic responses ➜ Guard behind feature toggle
+
+## Resolution 2025-10-27T20:06:43.285Z
+Task: PERF-TEST-48
+Label: missing_dependency
+Plan Delta:
+Resolution label: missing_dependency
+Focus: Dependency or provider not installed in CI.
+Show dependency install logs and passing CI snippet.
+Actionables:
+- Replicate install locally ➜ Add lock/dependency file updates ➜ Record CI run installing dependency
+- Add lightweight stub/provider with deterministic responses ➜ Guard behind feature toggle
+
+## Resolution 2025-10-27T20:06:43.334Z
+Task: PERF-TEST-49
+Label: missing_dependency
+Plan Delta:
+Resolution label: missing_dependency
+Focus: Dependency or provider not installed in CI.
+Show dependency install logs and passing CI snippet.
+Actionables:
+- Replicate install locally ➜ Add lock/dependency file updates ➜ Record CI run installing dependency
+- Add lightweight stub/provider with deterministic responses ➜ Guard behind feature toggle
+
+## Resolution 2025-10-27T20:06:43.338Z
+Task: PERF-TEST-50
+Label: missing_dependency
+Plan Delta:
+Resolution label: missing_dependency
+Focus: Dependency or provider not installed in CI.
+Show dependency install logs and passing CI snippet.
+Actionables:
+- Replicate install locally ➜ Add lock/dependency file updates ➜ Record CI run installing dependency
+- Add lightweight stub/provider with deterministic responses ➜ Guard behind feature toggle
+
+## Resolution 2025-10-27T20:06:43.343Z
+Task: PERF-TEST-51
+Label: missing_dependency
+Plan Delta:
+Resolution label: missing_dependency
+Focus: Dependency or provider not installed in CI.
+Show dependency install logs and passing CI snippet.
+Actionables:
+- Replicate install locally ➜ Add lock/dependency file updates ➜ Record CI run installing dependency
+- Add lightweight stub/provider with deterministic responses ➜ Guard behind feature toggle
+
+## Resolution 2025-10-27T20:06:43.347Z
+Task: PERF-TEST-52
+Label: missing_dependency
+Plan Delta:
+Resolution label: missing_dependency
+Focus: Dependency or provider not installed in CI.
+Show dependency install logs and passing CI snippet.
+Actionables:
+- Replicate install locally ➜ Add lock/dependency file updates ➜ Record CI run installing dependency
+- Add lightweight stub/provider with deterministic responses ➜ Guard behind feature toggle
+
+## Resolution 2025-10-27T20:06:43.376Z
+Task: PERF-TEST-53
+Label: missing_dependency
+Plan Delta:
+Resolution label: missing_dependency
+Focus: Dependency or provider not installed in CI.
+Show dependency install logs and passing CI snippet.
+Actionables:
+- Replicate install locally ➜ Add lock/dependency file updates ➜ Record CI run installing dependency
+- Add lightweight stub/provider with deterministic responses ➜ Guard behind feature toggle
+
+## Resolution 2025-10-27T20:06:43.388Z
+Task: PERF-TEST-54
+Label: missing_dependency
+Plan Delta:
+Resolution label: missing_dependency
+Focus: Dependency or provider not installed in CI.
+Show dependency install logs and passing CI snippet.
+Actionables:
+- Replicate install locally ➜ Add lock/dependency file updates ➜ Record CI run installing dependency
+- Add lightweight stub/provider with deterministic responses ➜ Guard behind feature toggle
+
+## Resolution 2025-10-27T20:06:43.448Z
+Task: PERF-TEST-55
+Label: missing_dependency
+Plan Delta:
+Resolution label: missing_dependency
+Focus: Dependency or provider not installed in CI.
+Show dependency install logs and passing CI snippet.
+Actionables:
+- Replicate install locally ➜ Add lock/dependency file updates ➜ Record CI run installing dependency
+- Add lightweight stub/provider with deterministic responses ➜ Guard behind feature toggle
+
+## Resolution 2025-10-27T20:06:43.462Z
+Task: PERF-TEST-56
+Label: missing_dependency
+Plan Delta:
+Resolution label: missing_dependency
+Focus: Dependency or provider not installed in CI.
+Show dependency install logs and passing CI snippet.
+Actionables:
+- Replicate install locally ➜ Add lock/dependency file updates ➜ Record CI run installing dependency
+- Add lightweight stub/provider with deterministic responses ➜ Guard behind feature toggle
+
+## Resolution 2025-10-27T20:06:43.484Z
+Task: PERF-TEST-57
+Label: missing_dependency
+Plan Delta:
+Resolution label: missing_dependency
+Focus: Dependency or provider not installed in CI.
+Show dependency install logs and passing CI snippet.
+Actionables:
+- Replicate install locally ➜ Add lock/dependency file updates ➜ Record CI run installing dependency
+- Add lightweight stub/provider with deterministic responses ➜ Guard behind feature toggle
+
+## Resolution 2025-10-27T20:06:43.498Z
+Task: PERF-TEST-58
+Label: missing_dependency
+Plan Delta:
+Resolution label: missing_dependency
+Focus: Dependency or provider not installed in CI.
+Show dependency install logs and passing CI snippet.
+Actionables:
+- Replicate install locally ➜ Add lock/dependency file updates ➜ Record CI run installing dependency
+- Add lightweight stub/provider with deterministic responses ➜ Guard behind feature toggle
+
+## Resolution 2025-10-27T20:06:43.501Z
+Task: PERF-TEST-59
+Label: missing_dependency
+Plan Delta:
+Resolution label: missing_dependency
+Focus: Dependency or provider not installed in CI.
+Show dependency install logs and passing CI snippet.
+Actionables:
+- Replicate install locally ➜ Add lock/dependency file updates ➜ Record CI run installing dependency
+- Add lightweight stub/provider with deterministic responses ➜ Guard behind feature toggle
+
+## Resolution 2025-10-27T20:06:43.512Z
+Task: PERF-TEST-60
+Label: missing_dependency
+Plan Delta:
+Resolution label: missing_dependency
+Focus: Dependency or provider not installed in CI.
+Show dependency install logs and passing CI snippet.
+Actionables:
+- Replicate install locally ➜ Add lock/dependency file updates ➜ Record CI run installing dependency
+- Add lightweight stub/provider with deterministic responses ➜ Guard behind feature toggle
+
+## Resolution 2025-10-27T20:06:43.517Z
+Task: PERF-TEST-61
+Label: missing_dependency
+Plan Delta:
+Resolution label: missing_dependency
+Focus: Dependency or provider not installed in CI.
+Show dependency install logs and passing CI snippet.
+Actionables:
+- Replicate install locally ➜ Add lock/dependency file updates ➜ Record CI run installing dependency
+- Add lightweight stub/provider with deterministic responses ➜ Guard behind feature toggle
+
+## Resolution 2025-10-27T20:06:43.521Z
+Task: PERF-TEST-62
+Label: missing_dependency
+Plan Delta:
+Resolution label: missing_dependency
+Focus: Dependency or provider not installed in CI.
+Show dependency install logs and passing CI snippet.
+Actionables:
+- Replicate install locally ➜ Add lock/dependency file updates ➜ Record CI run installing dependency
+- Add lightweight stub/provider with deterministic responses ➜ Guard behind feature toggle
+
+## Resolution 2025-10-27T20:06:43.528Z
+Task: PERF-TEST-63
+Label: missing_dependency
+Plan Delta:
+Resolution label: missing_dependency
+Focus: Dependency or provider not installed in CI.
+Show dependency install logs and passing CI snippet.
+Actionables:
+- Replicate install locally ➜ Add lock/dependency file updates ➜ Record CI run installing dependency
+- Add lightweight stub/provider with deterministic responses ➜ Guard behind feature toggle
+
+## Resolution 2025-10-27T20:06:43.532Z
+Task: PERF-TEST-64
+Label: missing_dependency
+Plan Delta:
+Resolution label: missing_dependency
+Focus: Dependency or provider not installed in CI.
+Show dependency install logs and passing CI snippet.
+Actionables:
+- Replicate install locally ➜ Add lock/dependency file updates ➜ Record CI run installing dependency
+- Add lightweight stub/provider with deterministic responses ➜ Guard behind feature toggle
+
+## Resolution 2025-10-27T20:06:43.539Z
+Task: PERF-TEST-65
+Label: missing_dependency
+Plan Delta:
+Resolution label: missing_dependency
+Focus: Dependency or provider not installed in CI.
+Show dependency install logs and passing CI snippet.
+Actionables:
+- Replicate install locally ➜ Add lock/dependency file updates ➜ Record CI run installing dependency
+- Add lightweight stub/provider with deterministic responses ➜ Guard behind feature toggle
+
+## Resolution 2025-10-27T20:06:43.545Z
+Task: PERF-TEST-66
+Label: missing_dependency
+Plan Delta:
+Resolution label: missing_dependency
+Focus: Dependency or provider not installed in CI.
+Show dependency install logs and passing CI snippet.
+Actionables:
+- Replicate install locally ➜ Add lock/dependency file updates ➜ Record CI run installing dependency
+- Add lightweight stub/provider with deterministic responses ➜ Guard behind feature toggle
+
+## Resolution 2025-10-27T20:06:43.554Z
+Task: PERF-TEST-67
+Label: missing_dependency
+Plan Delta:
+Resolution label: missing_dependency
+Focus: Dependency or provider not installed in CI.
+Show dependency install logs and passing CI snippet.
+Actionables:
+- Replicate install locally ➜ Add lock/dependency file updates ➜ Record CI run installing dependency
+- Add lightweight stub/provider with deterministic responses ➜ Guard behind feature toggle
+
+## Resolution 2025-10-27T20:06:43.566Z
+Task: PERF-TEST-68
+Label: missing_dependency
+Plan Delta:
+Resolution label: missing_dependency
+Focus: Dependency or provider not installed in CI.
+Show dependency install logs and passing CI snippet.
+Actionables:
+- Replicate install locally ➜ Add lock/dependency file updates ➜ Record CI run installing dependency
+- Add lightweight stub/provider with deterministic responses ➜ Guard behind feature toggle
+
+## Resolution 2025-10-27T20:06:43.573Z
+Task: PERF-TEST-69
+Label: missing_dependency
+Plan Delta:
+Resolution label: missing_dependency
+Focus: Dependency or provider not installed in CI.
+Show dependency install logs and passing CI snippet.
+Actionables:
+- Replicate install locally ➜ Add lock/dependency file updates ➜ Record CI run installing dependency
+- Add lightweight stub/provider with deterministic responses ➜ Guard behind feature toggle
+
+## Resolution 2025-10-27T20:06:43.582Z
+Task: PERF-TEST-70
+Label: missing_dependency
+Plan Delta:
+Resolution label: missing_dependency
+Focus: Dependency or provider not installed in CI.
+Show dependency install logs and passing CI snippet.
+Actionables:
+- Replicate install locally ➜ Add lock/dependency file updates ➜ Record CI run installing dependency
+- Add lightweight stub/provider with deterministic responses ➜ Guard behind feature toggle
+
+## Resolution 2025-10-27T20:06:43.597Z
+Task: PERF-TEST-71
+Label: missing_dependency
+Plan Delta:
+Resolution label: missing_dependency
+Focus: Dependency or provider not installed in CI.
+Show dependency install logs and passing CI snippet.
+Actionables:
+- Replicate install locally ➜ Add lock/dependency file updates ➜ Record CI run installing dependency
+- Add lightweight stub/provider with deterministic responses ➜ Guard behind feature toggle
+
+## Resolution 2025-10-27T20:06:43.602Z
+Task: PERF-TEST-72
+Label: missing_dependency
+Plan Delta:
+Resolution label: missing_dependency
+Focus: Dependency or provider not installed in CI.
+Show dependency install logs and passing CI snippet.
+Actionables:
+- Replicate install locally ➜ Add lock/dependency file updates ➜ Record CI run installing dependency
+- Add lightweight stub/provider with deterministic responses ➜ Guard behind feature toggle
+
+## Resolution 2025-10-27T20:06:43.609Z
+Task: PERF-TEST-73
+Label: missing_dependency
+Plan Delta:
+Resolution label: missing_dependency
+Focus: Dependency or provider not installed in CI.
+Show dependency install logs and passing CI snippet.
+Actionables:
+- Replicate install locally ➜ Add lock/dependency file updates ➜ Record CI run installing dependency
+- Add lightweight stub/provider with deterministic responses ➜ Guard behind feature toggle
+
+## Resolution 2025-10-27T20:06:43.613Z
+Task: PERF-TEST-74
+Label: missing_dependency
+Plan Delta:
+Resolution label: missing_dependency
+Focus: Dependency or provider not installed in CI.
+Show dependency install logs and passing CI snippet.
+Actionables:
+- Replicate install locally ➜ Add lock/dependency file updates ➜ Record CI run installing dependency
+- Add lightweight stub/provider with deterministic responses ➜ Guard behind feature toggle
+
+## Resolution 2025-10-27T20:06:43.616Z
+Task: PERF-TEST-75
+Label: missing_dependency
+Plan Delta:
+Resolution label: missing_dependency
+Focus: Dependency or provider not installed in CI.
+Show dependency install logs and passing CI snippet.
+Actionables:
+- Replicate install locally ➜ Add lock/dependency file updates ➜ Record CI run installing dependency
+- Add lightweight stub/provider with deterministic responses ➜ Guard behind feature toggle
+
+## Resolution 2025-10-27T20:06:43.629Z
+Task: PERF-TEST-76
+Label: missing_dependency
+Plan Delta:
+Resolution label: missing_dependency
+Focus: Dependency or provider not installed in CI.
+Show dependency install logs and passing CI snippet.
+Actionables:
+- Replicate install locally ➜ Add lock/dependency file updates ➜ Record CI run installing dependency
+- Add lightweight stub/provider with deterministic responses ➜ Guard behind feature toggle
+
+## Resolution 2025-10-27T20:06:43.634Z
+Task: PERF-TEST-77
+Label: missing_dependency
+Plan Delta:
+Resolution label: missing_dependency
+Focus: Dependency or provider not installed in CI.
+Show dependency install logs and passing CI snippet.
+Actionables:
+- Replicate install locally ➜ Add lock/dependency file updates ➜ Record CI run installing dependency
+- Add lightweight stub/provider with deterministic responses ➜ Guard behind feature toggle
+
+## Resolution 2025-10-27T20:06:43.638Z
+Task: PERF-TEST-78
+Label: missing_dependency
+Plan Delta:
+Resolution label: missing_dependency
+Focus: Dependency or provider not installed in CI.
+Show dependency install logs and passing CI snippet.
+Actionables:
+- Replicate install locally ➜ Add lock/dependency file updates ➜ Record CI run installing dependency
+- Add lightweight stub/provider with deterministic responses ➜ Guard behind feature toggle
+
+## Resolution 2025-10-27T20:06:43.653Z
+Task: PERF-TEST-79
+Label: missing_dependency
+Plan Delta:
+Resolution label: missing_dependency
+Focus: Dependency or provider not installed in CI.
+Show dependency install logs and passing CI snippet.
+Actionables:
+- Replicate install locally ➜ Add lock/dependency file updates ➜ Record CI run installing dependency
+- Add lightweight stub/provider with deterministic responses ➜ Guard behind feature toggle
+
+## Resolution 2025-10-27T20:06:43.663Z
+Task: PERF-TEST-80
+Label: missing_dependency
+Plan Delta:
+Resolution label: missing_dependency
+Focus: Dependency or provider not installed in CI.
+Show dependency install logs and passing CI snippet.
+Actionables:
+- Replicate install locally ➜ Add lock/dependency file updates ➜ Record CI run installing dependency
+- Add lightweight stub/provider with deterministic responses ➜ Guard behind feature toggle
+
+## Resolution 2025-10-27T20:06:43.670Z
+Task: PERF-TEST-81
+Label: missing_dependency
+Plan Delta:
+Resolution label: missing_dependency
+Focus: Dependency or provider not installed in CI.
+Show dependency install logs and passing CI snippet.
+Actionables:
+- Replicate install locally ➜ Add lock/dependency file updates ➜ Record CI run installing dependency
+- Add lightweight stub/provider with deterministic responses ➜ Guard behind feature toggle
+
+## Resolution 2025-10-27T20:06:43.678Z
+Task: PERF-TEST-82
+Label: missing_dependency
+Plan Delta:
+Resolution label: missing_dependency
+Focus: Dependency or provider not installed in CI.
+Show dependency install logs and passing CI snippet.
+Actionables:
+- Replicate install locally ➜ Add lock/dependency file updates ➜ Record CI run installing dependency
+- Add lightweight stub/provider with deterministic responses ➜ Guard behind feature toggle
+
+## Resolution 2025-10-27T20:06:43.683Z
+Task: PERF-TEST-83
+Label: missing_dependency
+Plan Delta:
+Resolution label: missing_dependency
+Focus: Dependency or provider not installed in CI.
+Show dependency install logs and passing CI snippet.
+Actionables:
+- Replicate install locally ➜ Add lock/dependency file updates ➜ Record CI run installing dependency
+- Add lightweight stub/provider with deterministic responses ➜ Guard behind feature toggle
+
+## Resolution 2025-10-27T20:06:43.698Z
+Task: PERF-TEST-84
+Label: missing_dependency
+Plan Delta:
+Resolution label: missing_dependency
+Focus: Dependency or provider not installed in CI.
+Show dependency install logs and passing CI snippet.
+Actionables:
+- Replicate install locally ➜ Add lock/dependency file updates ➜ Record CI run installing dependency
+- Add lightweight stub/provider with deterministic responses ➜ Guard behind feature toggle
+
+## Resolution 2025-10-27T20:06:43.704Z
+Task: PERF-TEST-85
+Label: missing_dependency
+Plan Delta:
+Resolution label: missing_dependency
+Focus: Dependency or provider not installed in CI.
+Show dependency install logs and passing CI snippet.
+Actionables:
+- Replicate install locally ➜ Add lock/dependency file updates ➜ Record CI run installing dependency
+- Add lightweight stub/provider with deterministic responses ➜ Guard behind feature toggle
+
+## Resolution 2025-10-27T20:06:43.708Z
+Task: PERF-TEST-86
+Label: missing_dependency
+Plan Delta:
+Resolution label: missing_dependency
+Focus: Dependency or provider not installed in CI.
+Show dependency install logs and passing CI snippet.
+Actionables:
+- Replicate install locally ➜ Add lock/dependency file updates ➜ Record CI run installing dependency
+- Add lightweight stub/provider with deterministic responses ➜ Guard behind feature toggle
+
+## Resolution 2025-10-27T20:06:43.712Z
+Task: PERF-TEST-87
+Label: missing_dependency
+Plan Delta:
+Resolution label: missing_dependency
+Focus: Dependency or provider not installed in CI.
+Show dependency install logs and passing CI snippet.
+Actionables:
+- Replicate install locally ➜ Add lock/dependency file updates ➜ Record CI run installing dependency
+- Add lightweight stub/provider with deterministic responses ➜ Guard behind feature toggle
+
+## Resolution 2025-10-27T20:06:43.716Z
+Task: PERF-TEST-88
+Label: missing_dependency
+Plan Delta:
+Resolution label: missing_dependency
+Focus: Dependency or provider not installed in CI.
+Show dependency install logs and passing CI snippet.
+Actionables:
+- Replicate install locally ➜ Add lock/dependency file updates ➜ Record CI run installing dependency
+- Add lightweight stub/provider with deterministic responses ➜ Guard behind feature toggle
+
+## Resolution 2025-10-27T20:06:43.719Z
+Task: PERF-TEST-89
+Label: missing_dependency
+Plan Delta:
+Resolution label: missing_dependency
+Focus: Dependency or provider not installed in CI.
+Show dependency install logs and passing CI snippet.
+Actionables:
+- Replicate install locally ➜ Add lock/dependency file updates ➜ Record CI run installing dependency
+- Add lightweight stub/provider with deterministic responses ➜ Guard behind feature toggle
+
+## Resolution 2025-10-27T20:06:43.723Z
+Task: PERF-TEST-90
+Label: missing_dependency
+Plan Delta:
+Resolution label: missing_dependency
+Focus: Dependency or provider not installed in CI.
+Show dependency install logs and passing CI snippet.
+Actionables:
+- Replicate install locally ➜ Add lock/dependency file updates ➜ Record CI run installing dependency
+- Add lightweight stub/provider with deterministic responses ➜ Guard behind feature toggle
+
+## Resolution 2025-10-27T20:06:43.729Z
+Task: PERF-TEST-91
+Label: missing_dependency
+Plan Delta:
+Resolution label: missing_dependency
+Focus: Dependency or provider not installed in CI.
+Show dependency install logs and passing CI snippet.
+Actionables:
+- Replicate install locally ➜ Add lock/dependency file updates ➜ Record CI run installing dependency
+- Add lightweight stub/provider with deterministic responses ➜ Guard behind feature toggle
+
+## Resolution 2025-10-27T20:06:43.735Z
+Task: PERF-TEST-92
+Label: missing_dependency
+Plan Delta:
+Resolution label: missing_dependency
+Focus: Dependency or provider not installed in CI.
+Show dependency install logs and passing CI snippet.
+Actionables:
+- Replicate install locally ➜ Add lock/dependency file updates ➜ Record CI run installing dependency
+- Add lightweight stub/provider with deterministic responses ➜ Guard behind feature toggle
+
+## Resolution 2025-10-27T20:06:43.740Z
+Task: PERF-TEST-93
+Label: missing_dependency
+Plan Delta:
+Resolution label: missing_dependency
+Focus: Dependency or provider not installed in CI.
+Show dependency install logs and passing CI snippet.
+Actionables:
+- Replicate install locally ➜ Add lock/dependency file updates ➜ Record CI run installing dependency
+- Add lightweight stub/provider with deterministic responses ➜ Guard behind feature toggle
+
+## Resolution 2025-10-27T20:06:43.752Z
+Task: PERF-TEST-94
+Label: missing_dependency
+Plan Delta:
+Resolution label: missing_dependency
+Focus: Dependency or provider not installed in CI.
+Show dependency install logs and passing CI snippet.
+Actionables:
+- Replicate install locally ➜ Add lock/dependency file updates ➜ Record CI run installing dependency
+- Add lightweight stub/provider with deterministic responses ➜ Guard behind feature toggle
+
+## Resolution 2025-10-27T20:06:43.766Z
+Task: PERF-TEST-95
+Label: missing_dependency
+Plan Delta:
+Resolution label: missing_dependency
+Focus: Dependency or provider not installed in CI.
+Show dependency install logs and passing CI snippet.
+Actionables:
+- Replicate install locally ➜ Add lock/dependency file updates ➜ Record CI run installing dependency
+- Add lightweight stub/provider with deterministic responses ➜ Guard behind feature toggle
+
+## Resolution 2025-10-27T20:06:43.778Z
+Task: PERF-TEST-96
+Label: missing_dependency
+Plan Delta:
+Resolution label: missing_dependency
+Focus: Dependency or provider not installed in CI.
+Show dependency install logs and passing CI snippet.
+Actionables:
+- Replicate install locally ➜ Add lock/dependency file updates ➜ Record CI run installing dependency
+- Add lightweight stub/provider with deterministic responses ➜ Guard behind feature toggle
+
+## Resolution 2025-10-27T20:06:43.790Z
+Task: PERF-TEST-97
+Label: missing_dependency
+Plan Delta:
+Resolution label: missing_dependency
+Focus: Dependency or provider not installed in CI.
+Show dependency install logs and passing CI snippet.
+Actionables:
+- Replicate install locally ➜ Add lock/dependency file updates ➜ Record CI run installing dependency
+- Add lightweight stub/provider with deterministic responses ➜ Guard behind feature toggle
+
+## Resolution 2025-10-27T20:06:43.800Z
+Task: PERF-TEST-98
+Label: missing_dependency
+Plan Delta:
+Resolution label: missing_dependency
+Focus: Dependency or provider not installed in CI.
+Show dependency install logs and passing CI snippet.
+Actionables:
+- Replicate install locally ➜ Add lock/dependency file updates ➜ Record CI run installing dependency
+- Add lightweight stub/provider with deterministic responses ➜ Guard behind feature toggle
+
+## Resolution 2025-10-27T20:06:43.805Z
+Task: PERF-TEST-99
+Label: missing_dependency
+Plan Delta:
+Resolution label: missing_dependency
+Focus: Dependency or provider not installed in CI.
+Show dependency install logs and passing CI snippet.
+Actionables:
+- Replicate install locally ➜ Add lock/dependency file updates ➜ Record CI run installing dependency
+- Add lightweight stub/provider with deterministic responses ➜ Guard behind feature toggle
+

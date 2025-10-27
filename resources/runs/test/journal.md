@@ -3274,3 +3274,36 @@ Actionables:
 - Replicate install locally ➜ Add lock/dependency file updates ➜ Record CI run installing dependency
 - Add lightweight stub/provider with deterministic responses ➜ Guard behind feature toggle
 
+## Resolution 2025-10-27T20:06:48.683Z
+Task: TASK-1
+Label: missing_dependency
+Plan Delta:
+Resolution label: missing_dependency
+Focus: Dependency or provider not installed in CI.
+Show dependency install logs and passing CI snippet.
+Actionables:
+- Replicate install locally ➜ Add lock/dependency file updates ➜ Record CI run installing dependency
+- Add lightweight stub/provider with deterministic responses ➜ Guard behind feature toggle
+
+## Resolution 2025-10-27T20:06:48.688Z
+Task: TASK-1
+Label: missing_dependency
+Plan Delta:
+Resolution label: missing_dependency
+Focus: Dependency or provider not installed in CI.
+Show dependency install logs and passing CI snippet.
+Actionables:
+- Replicate install locally ➜ Add lock/dependency file updates ➜ Record CI run installing dependency
+- Add lightweight stub/provider with deterministic responses ➜ Guard behind feature toggle
+
+## Resolution 2025-10-27T20:06:48.690Z
+Task: TASK-1
+Label: missing_dependency
+Plan Delta:
+Resolution label: missing_dependency
+Focus: Dependency or provider not installed in CI.
+Show dependency install logs and passing CI snippet.
+Actionables:
+- Replicate install locally ➜ Add lock/dependency file updates ➜ Record CI run installing dependency
+- Add lightweight stub/provider with deterministic responses ➜ Guard behind feature toggle
+

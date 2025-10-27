@@ -15,6 +15,7 @@
  */
 
 import { promises as fs } from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 
 import { logInfo, logWarning, logError, logDebug } from '../telemetry/logger.js';
@@ -91,6 +92,18 @@ export interface AutopilotHealthMonitorConfig {
 
   /** Throughput baseline (tasks/hour) - warn if drops below 50% */
   baselineThroughput?: number;
+
+  /** Emergency circuit breaker thresholds */
+  emergencyThresholds?: {
+    /** 1-minute load average threshold for emergency shutdown */
+    loadAvg1Min?: number;
+    /** Minutes of zero throughput before emergency shutdown */
+    zeroThroughputMinutes?: number;
+    /** Minutes all agents can be stuck before emergency shutdown */
+    allAgentsStuckMinutes?: number;
+    /** Enable emergency circuit breaker (default: true) */
+    enabled?: boolean;
+  };
 }
 
 /**
@@ -110,6 +123,11 @@ export class AutopilotHealthMonitor {
   private lastOodaCycle = 0;
   private lastHealthExport = 0;
   private readonly HEALTH_EXPORT_INTERVAL = 5 * 60 * 1000; // Export every 5 minutes
+
+  // Emergency circuit breaker state
+  private lastThroughputTime: number = Date.now();
+  private highLoadCount: number = 0;
+  private emergencyShutdownTriggered = false;
 
   constructor(
     private readonly stateMachine: StateMachine,
@@ -169,6 +187,10 @@ export class AutopilotHealthMonitor {
     logDebug('Starting OODA cycle', { cycle: this.lastOodaCycle + 1 });
 
     try {
+      // EMERGENCY CIRCUIT BREAKER: Check critical thresholds BEFORE normal OODA loop
+      // This can immediately terminate the process if system is in critical state
+      this.checkEmergencyCircuitBreaker();
+
       // OBSERVE: Collect current metrics
       const metrics = this.observe();
 
@@ -216,6 +238,131 @@ export class AutopilotHealthMonitor {
       logError('OODA cycle failed', {
         error: error instanceof Error ? error.message : String(error)
       });
+    }
+  }
+
+  /**
+   * EMERGENCY CIRCUIT BREAKER: Check critical system thresholds
+   *
+   * This runs BEFORE the normal OODA loop and can immediately terminate
+   * the process if critical safety thresholds are exceeded.
+   *
+   * Prevents catastrophic system failures like:
+   * - Runaway load (CPU >150 load average)
+   * - Stuck agents (zero throughput for 30+ minutes)
+   * - Infinite loops consuming system resources
+   */
+  private checkEmergencyCircuitBreaker(): void {
+    // Emergency circuit breaker can be disabled via config (default: enabled)
+    const emergencyConfig = this.config.emergencyThresholds;
+    const enabled = emergencyConfig?.enabled ?? true;
+
+    if (!enabled || this.emergencyShutdownTriggered) {
+      return; // Circuit breaker disabled or already triggered
+    }
+
+    const now = Date.now();
+    const reasons: string[] = [];
+
+    // Default thresholds (can be overridden in config)
+    const LOAD_THRESHOLD = emergencyConfig?.loadAvg1Min ?? 50;
+    const ZERO_THROUGHPUT_MS = (emergencyConfig?.zeroThroughputMinutes ?? 30) * 60 * 1000;
+
+    // Check 1: System load average (1-minute)
+    const [loadAvg1] = os.loadavg();
+    if (loadAvg1 > LOAD_THRESHOLD) {
+      this.highLoadCount++;
+
+      // Emergency shutdown if load is critically high (>100) OR sustained high (>50 for 3+ checks)
+      if (loadAvg1 > 100 || this.highLoadCount >= 3) {
+        reasons.push(`Critical system load: ${loadAvg1.toFixed(2)} (threshold: ${LOAD_THRESHOLD})`);
+      }
+    } else {
+      // Reset counter if load drops below threshold
+      this.highLoadCount = 0;
+    }
+
+    // Check 2: Zero throughput for extended period
+    const recentMetrics = this.metrics.slice(-5); // Last 5 cycles
+    if (recentMetrics.length >= 5) {
+      const allZeroThroughput = recentMetrics.every(m => m.throughputLast5Min === 0);
+
+      if (allZeroThroughput) {
+        const zeroThroughputDuration = now - this.lastThroughputTime;
+
+        if (zeroThroughputDuration > ZERO_THROUGHPUT_MS) {
+          reasons.push(`Zero throughput for ${Math.round(zeroThroughputDuration / 60000)} minutes (threshold: ${emergencyConfig?.zeroThroughputMinutes ?? 30}m)`);
+        }
+      } else {
+        // Reset zero throughput timer if we had any throughput
+        this.lastThroughputTime = now;
+      }
+    }
+
+    // If any emergency condition triggered, shut down immediately
+    if (reasons.length > 0) {
+      this.emergencyShutdownTriggered = true;
+
+      logError('🚨 EMERGENCY CIRCUIT BREAKER TRIGGERED - SHUTTING DOWN', {
+        reasons,
+        loadAvg1Min: loadAvg1,
+        highLoadCount: this.highLoadCount,
+        metrics: this.metrics.slice(-3) // Last 3 cycles for context
+      });
+
+      // Log emergency shutdown to file for post-mortem analysis
+      this.logEmergencyShutdown(reasons).catch(err => {
+        console.error('Failed to log emergency shutdown:', err);
+      });
+
+      // Graceful shutdown: Stop health monitor and exit process
+      this.stop();
+
+      console.error('\n🚨 EMERGENCY SHUTDOWN: Autopilot exceeded safety thresholds\n');
+      console.error('Reasons:');
+      reasons.forEach(reason => console.error(`  - ${reason}`));
+      console.error('\nSee state/analytics/emergency_shutdowns.jsonl for details\n');
+
+      // Force exit after 5 seconds if graceful shutdown doesn't complete
+      setTimeout(() => {
+        console.error('Graceful shutdown timeout - force killing process');
+        process.exit(1);
+      }, 5000).unref();
+
+      // Initiate graceful shutdown
+      process.exit(1);
+    }
+  }
+
+  /**
+   * Log emergency shutdown to persistent storage for analysis
+   */
+  private async logEmergencyShutdown(reasons: string[]): Promise<void> {
+    try {
+      const logPath = path.join(this.config.workspaceRoot, 'state/analytics/emergency_shutdowns.jsonl');
+      const [loadAvg1, loadAvg5, loadAvg15] = os.loadavg();
+
+      const entry = {
+        timestamp: new Date().toISOString(),
+        timestampMs: Date.now(),
+        reasons,
+        systemMetrics: {
+          loadAvg1Min: loadAvg1,
+          loadAvg5Min: loadAvg5,
+          loadAvg15Min: loadAvg15,
+          freeMem: os.freemem(),
+          totalMem: os.totalmem(),
+          uptime: os.uptime()
+        },
+        autopilotMetrics: this.metrics.slice(-5), // Last 5 cycles
+        activeAnomalies: this.anomalies,
+        recentRemediations: this.remediations.slice(-10)
+      };
+
+      await fs.appendFile(logPath, JSON.stringify(entry) + '\n', 'utf-8');
+    } catch (error) {
+      // Best effort - don't block shutdown if logging fails
+      console.error('Failed to log emergency shutdown:', error);
     }
   }
 
