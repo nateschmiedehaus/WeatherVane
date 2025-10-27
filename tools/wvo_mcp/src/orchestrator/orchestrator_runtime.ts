@@ -28,6 +28,12 @@ import { CriticModelSelector } from '../utils/critic_model_selector.js';
 import { ActivityFeedWriter } from './activity_feed_writer.js';
 import { HolisticReviewManager, type HolisticReviewStatus } from './holistic_review_manager.js';
 
+// Safety and monitoring
+import { HeartbeatWriter } from '../utils/heartbeat.js';
+import { SafetyMonitor, type SafetyLimits } from '../utils/safety_monitor.js';
+// @ts-ignore - JSON import
+import safetyLimitsConfig from '../../config/safety_limits.json';
+
 
 export interface OrchestratorRuntimeOptions {
   codexWorkers?: number;
@@ -73,6 +79,11 @@ export class OrchestratorRuntime {
   private criticReputationTrackerPromise?: Promise<import('./critic_reputation_tracker.js').CriticReputationTracker | null>;
   private decisionEvidenceLinkerPromise?: Promise<import('../telemetry/decision_evidence_linker.js').DecisionEvidenceLinker | null>;
   private readonly holisticReviewManager: HolisticReviewManager;
+
+  // Safety and monitoring
+  private heartbeatWriter: HeartbeatWriter | null = null;
+  private safetyMonitor: SafetyMonitor | null = null;
+
   private started = false;
 
   constructor(
@@ -250,12 +261,36 @@ export class OrchestratorRuntime {
     await this.criticModelSelector.load();
     this.coordinator.start();
     this.holisticReviewManager.start();
+
+    // Start safety monitoring
+    const path = await import('node:path');
+    const heartbeatPath = path.join(this.workspaceRoot, 'state', 'heartbeat');
+    const heartbeatInterval = (safetyLimitsConfig as any).supervisor?.heartbeat_interval_seconds ?? 30;
+    this.heartbeatWriter = new HeartbeatWriter(heartbeatPath, heartbeatInterval * 1000);
+    this.heartbeatWriter.start();
+    logInfo('Heartbeat writer started', { path: heartbeatPath, intervalMs: heartbeatInterval * 1000 });
+
+    this.safetyMonitor = new SafetyMonitor(safetyLimitsConfig as SafetyLimits, this.workspaceRoot);
+    this.safetyMonitor.start();
+    logInfo('Safety monitor started');
+
     logInfo('Orchestrator runtime started');
   }
 
   stop(): void {
     if (!this.started) return;
     this.started = false;
+
+    // Stop safety monitoring first
+    if (this.heartbeatWriter) {
+      this.heartbeatWriter.stop();
+      logInfo('Heartbeat writer stopped');
+    }
+    if (this.safetyMonitor) {
+      this.safetyMonitor.stop();
+      logInfo('Safety monitor stopped');
+    }
+
     this.coordinator.stop();
     this.operationsManager.stop();
     this.tokenEfficiencyManager?.dispose();

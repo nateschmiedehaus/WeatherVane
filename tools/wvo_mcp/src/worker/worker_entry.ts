@@ -85,7 +85,7 @@ if (workerRole === "executor") {
   startOrchestratorWorker();
 }
 
-function startOrchestratorWorker(): void {
+async function startOrchestratorWorker(): Promise<void> {
   const startedAtMs = Date.now();
   const startedAt = new Date(startedAtMs).toISOString();
   const workspaceRoot = resolveWorkspaceRoot();
@@ -104,6 +104,9 @@ function startOrchestratorWorker(): void {
 
   // Store runtime for cleanup on crash
   runtimeInstance = runtime;
+
+  // Start runtime (enables heartbeat, safety monitoring, etc.)
+  await runtime.start();
 
   const session = new SessionContext(runtime);
   const authChecker = new AuthChecker();

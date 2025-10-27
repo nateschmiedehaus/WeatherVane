@@ -1,7 +1,7 @@
 
 # Claude Agent Handbook (Claude / MCP)
 
-> **Scope:** Claude-specific agent guide. Mirrors `agent.md` (Codex) but sets **Claude-specific stability/telemetry**. Autopilot (MCP orchestration layer) uses this when Claude acts. **WeatherVane** is a separate product Autopilot builds/operates via MCP tools (see `docs/weathervane/Product-Handbook.md`).
+> **Scope:** Claude-specific agent guide. Mirrors `AGENTS.md` (Codex) but sets **Claude-specific stability/telemetry**. Autopilot (MCP orchestration layer) uses this when Claude acts. **WeatherVane** is a separate product Autopilot builds/operates via MCP tools (see `docs/weathervane/Product-Handbook.md`).
 
 ## 1) Rapid Orientation
 - Start each loop: `plan_next --minimal`, `autopilot_status`. If either fails: `./autopilot/scripts/restart_mcp.sh` and log to `state/analytics/health_checks.jsonl`.
