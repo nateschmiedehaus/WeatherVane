@@ -112,6 +112,129 @@ Same error ≥3×, no progress >90m, or >5 iterations without resolution ⇒ **E
 
 ---
 
+## 7.5) Systematic Learning & Self-Improvement Mandate
+
+**Philosophy:** Every significant problem is a learning opportunity. The work process MUST evolve to prevent recurrence.
+
+### When to Capture Learnings
+
+**Trigger any of these:**
+- ✅ **Major Issue Found** - Issue that took >30 min to diagnose OR blocked progress
+- ✅ **Process Gap Discovered** - Work process failed to catch something it should have
+- ✅ **Repeated Pattern** - Same type of issue encountered 2+ times
+- ✅ **Architecture Insight** - Discovered how system actually works vs. assumptions
+- ✅ **Tool/Method Innovation** - Found better way to verify/test/implement something
+
+### Learning Capture Protocol
+
+**When learning trigger occurs:**
+
+1. **Document the Issue** (in commit message or docs/learnings/)
+   - What went wrong?
+   - Root cause (not just symptoms)
+   - Why wasn't it caught earlier?
+   - What stage should have caught it?
+
+2. **Extract the Learning**
+   - What assumption was wrong?
+   - What check was missing?
+   - What knowledge was lacking?
+   - What process step failed?
+
+3. **Define the Prevention**
+   - What VERIFY check would have caught this?
+   - What DISCOVER step was missing?
+   - What documentation needs updating?
+   - What automated check can prevent recurrence?
+
+4. **Update Work Process**
+   - Add check to appropriate stage (VERIFY, REVIEW, etc.)
+   - Update CLAUDE.md or stage-specific docs
+   - Create automated verification if possible
+   - Document in commit message
+
+### Examples from Real Sessions
+
+**Learning 1: Build Artifact Verification (2025-10-27)**
+- **Issue:** Code changes in src/ didn't appear in dist/ after build
+- **Root Cause:** Didn't verify compiled output contained changes
+- **Prevention:** Added to VERIFY stage: `grep "expected-code" dist/path/to/file.js`
+- **Process Update:** VERIFY checklist now requires dist/ verification
+
+**Learning 2: Path Resolution Complexity (2025-10-27)**
+- **Issue:** workspaceRoot vs process.cwd() vs relative paths caused config loading failures
+- **Root Cause:** Assumed process.cwd() == workspaceRoot, didn't test from multiple directories
+- **Prevention:** Always use workspaceRoot parameter, test from different working directories
+- **Process Update:** VERIFY stage requires testing from both workspace root and subdirectories
+
+**Learning 3: Worker Architecture Discovery (2025-10-27)**
+- **Issue:** Tried to test IPC worker standalone, worker exited silently
+- **Root Cause:** DISCOVER phase skipped - didn't identify worker type before testing
+- **Prevention:** DISCOVER must identify: standalone vs IPC, parent requirements, env vars needed
+- **Process Update:** Added worker architecture checks to DISCOVER phase
+
+**Learning 4: JSON Import in Node.js ESM (2025-10-27)**
+- **Issue:** Import assertions not supported in current Node.js/TypeScript config
+- **Root Cause:** Didn't check runtime compatibility of import syntax
+- **Prevention:** Use dynamic fs.readFileSync for JSON in ESM contexts
+- **Process Update:** Added ESM import patterns to IMPLEMENT best practices
+
+### Systematic Learning Review
+
+**After every major issue resolution:**
+1. ✅ Create learning entry (format above)
+2. ✅ Update relevant process document
+3. ✅ Add automated check if possible
+4. ✅ Include in commit message under "Learnings:" section
+
+**Monthly Learning Audit:**
+- Review all learnings from past month
+- Identify patterns (what's breaking repeatedly?)
+- Update core process documents
+- Create meta-learnings about the learning process itself
+
+**Learning Log Location:**
+- `docs/learnings/YYYY-MM-DD-topic.md` - Detailed learning write-ups
+- Commit messages - Concise "Learnings:" sections
+- CLAUDE.md (this file) - High-impact learnings that affect core process
+
+### Forward-Looking Problem Prevention
+
+**Before starting ANY task:**
+- Review recent learnings (past 2 weeks)
+- Check if current task relates to past issues
+- Apply preventions proactively
+
+**During VERIFY stage:**
+- Explicitly check for issues that occurred in past 30 days
+- Run automated checks created from past learnings
+- Document which past-issue checks passed
+
+**Example Pre-Flight Checklist** (from learnings):
+```bash
+# Learning-based verification (2025-10-27 learnings)
+grep "runtime.start" dist/src/worker/worker_entry.js  # Build artifact verification
+test -f config/safety_limits.json                      # Path resolution check
+grep "workspaceRoot" src/path/to/file.ts              # No process.cwd() usage
+```
+
+### Meta-Learning: Learning About Learning
+
+**If same issue occurs twice:**
+- Learning was incomplete or prevention insufficient
+- Create meta-learning: "Why didn't the prevention work?"
+- Update prevention to be more robust
+- Add automated check to prevent the prevention from being bypassed
+
+**Success Metrics:**
+- Issue recurrence rate (target: <5% of issues recur within 90 days)
+- Time to detection (issues caught earlier in process over time)
+- Prevention automation (% of learnings with automated checks)
+
+**See:** [docs/learnings/LEARNING_SYSTEM.md](docs/learnings/LEARNING_SYSTEM.md) for detailed learning capture templates and examples
+
+---
+
 ## 8) The Complete Protocol
 
 **Strategize** → **Spec** → **Plan** → **Think** → **Implement** → **Verify** → **Review** → **PR** → **Monitor**
