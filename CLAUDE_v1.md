@@ -4,7 +4,7 @@
 > This comprehensive guide has been successfully migrated to a modular documentation structure for better maintainability.
 >
 > **New structure:**
-> - **Quick Start**: [claude.md](claude.md) (Claude) or [agent.md](agent.md) (Codex)
+- **Quick Start**: [claude.md](claude.md) (Claude) or [AGENTS.md](AGENTS.md) (Codex)
 > - **Full Index**: [docs/INDEX.md](docs/INDEX.md)
 > - **Migration Status**: [Coverage Matrix](docs/autopilot/migration/claude_v1_coverage.json) - **100% complete**
 >
@@ -801,7 +801,7 @@ if (fileLines > 500) {
 
 **CRITICAL: Git/GitHub is a core autopilot competency. Handle it elegantly.**
 
-See `agent.md` § "Stage 7: PR" for complete git/GitHub workflow documentation.
+See `AGENTS.md` § "Stage 7: PR" for complete git/GitHub workflow documentation.
 
 **Git Workflow Essentials**:
 - Use conventional commits: `feat(scope): description`

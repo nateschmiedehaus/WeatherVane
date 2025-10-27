@@ -23,7 +23,7 @@ Successfully migrated the comprehensive `CLAUDE.md` (927 lines) into a modular d
 
 **Top-Level Handbooks:**
 - ✅ `claude.md` - Claude-specific agent handbook (~140 lines)
-- ✅ `agent.md` - Codex-specific agent handbook (~128 lines)
+- ✅ `AGENTS.md` - Codex-specific agent handbook (~128 lines)
 - Both feature prominent NO FOLLOW-UPS banner with full 7-rule policy
 
 **Core Documents:**
@@ -88,7 +88,7 @@ Successfully migrated the comprehensive `CLAUDE.md` (927 lines) into a modular d
 **All references updated:**
 - `README.md` → `CLAUDE_v1.md`
 - `claude.md` references → `CLAUDE_v1.md`
-- `agent.md` references → `CLAUDE_v1.md`
+- `AGENTS.md` references → `CLAUDE_v1.md`
 - `.github/CODEOWNERS` → `CLAUDE_v1.md`
 
 ---
@@ -162,7 +162,7 @@ bash scripts/check_core_size.sh
 .
 ├── CLAUDE_v1.md (927 lines, comprehensive, deprecated)
 ├── claude.md (140 lines, condensed Claude handbook)
-├── agent.md (128 lines, condensed Codex handbook)
+├── AGENTS.md (128 lines, condensed Codex handbook)
 ├── README.md (updated with doc links)
 ├── .github/
 │   └── CODEOWNERS (doc ownership)

@@ -16,7 +16,7 @@ Phase 7 completes the unified autopilot recovery by ensuring:
 ### 1. Enhanced Spec→Monitor Protocol
 
 **Files Modified**:
-- `agent.md`: Added complete Strategize→Spec→Plan→Think→Implement→Verify→Review→PR→Monitor protocol
+- `AGENTS.md`: Added complete Strategize→Spec→Plan→Think→Implement→Verify→Review→PR→Monitor protocol
 - `CLAUDE.md`: Integrated STRATEGIZE stage with problem-solving methodology selection
 
 **Key Enhancements**:
@@ -105,7 +105,7 @@ it('invokes incident reporter when plan retries exceed ceiling', async () => {
 - [x] **Build passes**: `npm run build` (0 errors)
 - [x] **All tests pass**: 21/21 quality gate integration tests ✓
 - [x] **Audit clean**: `npm audit` (0 vulnerabilities)
-- [x] **Documentation complete**: agent.md, CLAUDE.md, EVIDENCE_CHAIN_EXAMPLE.md, PHASE7_ROLLOUT_GUIDE.md
+- [x] **Documentation complete**: AGENTS.md, CLAUDE.md, EVIDENCE_CHAIN_EXAMPLE.md, PHASE7_ROLLOUT_GUIDE.md
 - [x] **Integration verified**: Quality gates integrated into unified_orchestrator (tested programmatically)
 
 ### Rollout Stages
@@ -122,7 +122,7 @@ it('invokes incident reporter when plan retries exceed ceiling', async () => {
 ```bash
 # Create rollout PR
 git checkout -b phase-7-rollout
-git add agent.md CLAUDE.md docs/autopilot/*.md
+git add AGENTS.md CLAUDE.md docs/autopilot/*.md
 git commit -m "feat(phase-7): Complete acceptance & rollout
 
 Phase 7 Deliverables:
@@ -213,8 +213,8 @@ jobs:
 
       - name: Verify protocol documentation
         run: |
-          # Ensure STRATEGIZE stage exists in agent.md
-          grep -q "Stage 0: STRATEGIZE" agent.md || exit 1
+          # Ensure STRATEGIZE stage exists in AGENTS.md
+          grep -q "Stage 0: STRATEGIZE" AGENTS.md || exit 1
           grep -q "Stage 0: STRATEGIZE" CLAUDE.md || exit 1
 
       - name: Evidence chain verification
@@ -376,7 +376,7 @@ Once Director Dana approves, proceed with:
 
 ## Appendix: Related Documentation
 
-- **Protocol**: `agent.md` § "The Complete Protocol"
+- **Protocol**: `AGENTS.md` § "The Complete Protocol"
 - **Claude Instructions**: `CLAUDE.md` § "Mandatory Task Execution Protocol"
 - **Evidence Chain**: `docs/autopilot/EVIDENCE_CHAIN_EXAMPLE.md`
 - **Integration Tests**: `tools/wvo_mcp/src/orchestrator/quality_gate_integration.test.ts`

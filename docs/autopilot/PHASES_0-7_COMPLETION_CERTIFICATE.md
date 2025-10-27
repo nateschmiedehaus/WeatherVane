@@ -226,12 +226,12 @@
 - ✅ docs/autopilot/META_COGNITION_GUARDRAILS.md (756 lines)
 - ✅ 10 meta-cognitive failure modes identified (circular dependencies, perfectionism, unclear criteria, etc.)
 - ✅ Prevention protocols for each failure mode
-- ✅ Integration into agent.md + CLAUDE.md
+- ✅ Integration into AGENTS.md + CLAUDE.md
 
 **Documentation**:
 - ✅ docs/autopilot/EVIDENCE_CHAIN_EXAMPLE.md (449 lines)
 - ✅ docs/autopilot/PHASE7_ROLLOUT_GUIDE.md (390 lines)
-- ✅ agent.md enhanced (+364 lines)
+- ✅ AGENTS.md enhanced (+364 lines)
 - ✅ CLAUDE.md enhanced (+111 lines)
 
 **Evidence**:

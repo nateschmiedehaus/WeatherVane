@@ -1,7 +1,7 @@
 # WeatherVane
 
 ## Documentation
-- **Quick Start**: [claude.md](claude.md) (Claude) · [agent.md](agent.md) (Codex)
+- **Quick Start**: [claude.md](claude.md) (Claude) · [AGENTS.md](AGENTS.md) (Codex)
 - **Full Index**: [docs/INDEX.md](docs/INDEX.md)
 - **Comprehensive Guide**: [CLAUDE_v1.md](CLAUDE_v1.md) *(v1, migration complete — see [coverage matrix](docs/autopilot/migration/claude_v1_coverage.json))*
 

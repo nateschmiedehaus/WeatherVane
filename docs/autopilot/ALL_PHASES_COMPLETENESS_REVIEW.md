@@ -266,7 +266,7 @@
 - [x] Rollout guide (PHASE7_ROLLOUT_GUIDE.md)
 
 **Evidence**:
-- agent.md: +248 lines (STRATEGIZE stage + problem-solving + git/GitHub workflow)
+- AGENTS.md: +248 lines (STRATEGIZE stage + problem-solving + git/GitHub workflow)
 - CLAUDE.md: +103 lines (STRATEGIZE stage + problem-solving)
 - docs/autopilot/EVIDENCE_CHAIN_EXAMPLE.md (449 lines)
 - docs/autopilot/PHASE7_ROLLOUT_GUIDE.md (390 lines)
@@ -284,7 +284,7 @@
 
 2. **No Git/GitHub Competency**:
    - **Root Cause**: Autopilot didn't know how to create PRs, handle reviews, manage branches
-   - **Prevention**: Complete git/GitHub workflow documentation in agent.md
+   - **Prevention**: Complete git/GitHub workflow documentation in AGENTS.md
    - **Autopilot Guard**: PR stage has explicit gh CLI commands, conventional commits spec
    - **Template**: PR template with evidence, quality gates, risks, rollback plans
 

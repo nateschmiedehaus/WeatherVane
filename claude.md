@@ -1,6 +1,6 @@
 # Claude Agent Handbook (Claude / MCP)
 
-**Scope:** This is the Claude-specific agent guide. It mirrors [agent.md](agent.md) (Codex) but sets Claude-specific stability/telemetry requirements. Autopilot (the MCP orchestration layer) uses this guide when Claude is the actor. WeatherVane is a separate product the Autopilot builds/operates via MCP tools (see [docs/weathervane/Product-Handbook.md](docs/weathervane/Product-Handbook.md)).
+**Scope:** This is the Claude-specific agent guide. It mirrors [AGENTS.md](AGENTS.md) (Codex) but sets Claude-specific stability/telemetry requirements. Autopilot (the MCP orchestration layer) uses this guide when Claude is the actor. WeatherVane is a separate product the Autopilot builds/operates via MCP tools (see [docs/weathervane/Product-Handbook.md](docs/weathervane/Product-Handbook.md)).
 
 ---
 

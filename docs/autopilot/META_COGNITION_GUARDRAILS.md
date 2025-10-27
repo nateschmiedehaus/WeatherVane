@@ -583,9 +583,9 @@ function checkProgress(checkpoints: ProgressCheckpoint[]): void {
 
 These guardrails should be integrated into:
 
-### agent.md Updates
+### AGENTS.md Updates
 
-**Stage 0: STRATEGIZE** (add):
+**Stage 0: STRATEGIZE** (add to AGENTS.md):
 ```markdown
 **Meta-Cognitive Pre-Flight Checks**:
 - [ ] Have I defined MVP vs nice-to-have?
@@ -595,7 +595,7 @@ These guardrails should be integrated into:
 - [ ] Am I attempting something I tried before?
 ```
 
-**Stage 4: IMPLEMENT** (add):
+**Stage 4: IMPLEMENT** (add to AGENTS.md):
 ```markdown
 **Circular Dependency Protocol**:
 If A needs B AND B needs A → implement stub for one, build other, replace stub
@@ -762,4 +762,4 @@ Add to observability dashboard (Phase 8):
 
 ---
 
-**Status**: Meta-cognitive guardrails defined. Next: integrate into agent.md and CLAUDE.md.
+**Status**: Meta-cognitive guardrails defined. Next: integrate into AGENTS.md and CLAUDE.md.

@@ -197,7 +197,7 @@ Despite modularizing, the line count increased slightly because:
 
 ### System Documentation:
 - `CLAUDE.md` (updated with completion policy and adversarial requirements)
-- `agent.md` (updated with autonomous execution policy)
+- `AGENTS.md` (updated with autonomous execution policy)
 
 ---
 

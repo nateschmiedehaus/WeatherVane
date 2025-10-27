@@ -11,8 +11,8 @@
     },
     "completeness": {
       "issues": [
-        "missing_ratio:precip_mm_lag1:1.000",
         "missing_ratio:temp_c_lag1:1.000",
+        "missing_ratio:precip_mm_lag1:1.000",
         "missing_ratio:net_revenue_lag1:1.000",
         "missing_ratio:meta_spend_lag1:1.000",
         "missing_ratio:google_spend_lag1:1.000",
@@ -102,11 +102,11 @@
     }
   },
   "date_column": null,
-  "generated_at": "2025-10-27T18:13:28.554182+00:00",
+  "generated_at": "2025-10-27T19:46:15.706996+00:00",
   "issues": [
     "volume:row_count_below_min:1",
-    "completeness:missing_ratio:precip_mm_lag1:1.000",
     "completeness:missing_ratio:temp_c_lag1:1.000",
+    "completeness:missing_ratio:precip_mm_lag1:1.000",
     "completeness:missing_ratio:net_revenue_lag1:1.000",
     "completeness:missing_ratio:meta_spend_lag1:1.000",
     "completeness:missing_ratio:google_spend_lag1:1.000",

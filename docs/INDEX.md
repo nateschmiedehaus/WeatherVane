@@ -2,7 +2,7 @@
 # Documentation Index
 
 **Start here**
-- Quick reference: [claude.md](../claude.md) (Claude) · [agent.md](../agent.md) (Codex)
+- Quick reference: [claude.md](../claude.md) (Claude) · [AGENTS.md](../AGENTS.md) (Codex)
 - Core policy: [ClaudeCouncil-Core.md](autopilot/ClaudeCouncil-Core.md)
 - Extended overview: [ClaudeCouncil-Extended.md](autopilot/ClaudeCouncil-Extended.md)
 - **Migration status**: [Coverage Matrix](autopilot/migration/claude_v1_coverage.json)

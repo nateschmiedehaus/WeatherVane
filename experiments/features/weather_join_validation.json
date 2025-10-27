@@ -25,7 +25,7 @@
     "unique_geo_scope_count": 1,
     "unique_geohash_count": 1
   },
-  "generated_at": "2025-10-27T18:13:28.544284",
+  "generated_at": "2025-10-27T19:46:15.698999",
   "issues": [
     "Leakage guardrail activated; forward or forecast rows were removed before producing the matrix."
   ],

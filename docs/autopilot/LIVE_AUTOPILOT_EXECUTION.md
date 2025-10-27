@@ -199,7 +199,7 @@ Build critic: UNBLOCKED ✅
 1. ✅ Update Phase 5 AC to require "lint passes in ALL scopes"
 2. ⏸️ Add pre-commit hook enforcing lint (prevents future accumulation)
 3. ⏸️ Add CI job running `make lint` + `npm run lint` (catches regressions)
-4. ⏸️ Update agent.md with "Always run project-specific lint commands"
+4. ⏸️ Update AGENTS.md with "Always run project-specific lint commands"
 
 **Long-term Meta-Cognitive Enhancement**:
 

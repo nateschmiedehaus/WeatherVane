@@ -31,8 +31,6 @@ import { HolisticReviewManager, type HolisticReviewStatus } from './holistic_rev
 // Safety and monitoring
 import { HeartbeatWriter } from '../utils/heartbeat.js';
 import { SafetyMonitor, type SafetyLimits } from '../utils/safety_monitor.js';
-// @ts-ignore - JSON import
-import safetyLimitsConfig from '../../config/safety_limits.json';
 
 
 export interface OrchestratorRuntimeOptions {
@@ -264,13 +262,19 @@ export class OrchestratorRuntime {
 
     // Start safety monitoring
     const path = await import('node:path');
-    const heartbeatPath = path.join(this.workspaceRoot, 'state', 'heartbeat');
-    const heartbeatInterval = (safetyLimitsConfig as any).supervisor?.heartbeat_interval_seconds ?? 30;
+    const fs = await import('node:fs');
+    const configPath = path.join(this.workspaceRoot, 'tools', 'wvo_mcp', 'config', 'safety_limits.json');
+    const safetyLimitsConfig = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+
+    const heartbeatPath = path.join(this.workspaceRoot, 'tools', 'wvo_mcp', 'state', 'heartbeat');
+    const heartbeatInterval = safetyLimitsConfig.supervisor?.heartbeat_interval_seconds ?? 30;
     this.heartbeatWriter = new HeartbeatWriter(heartbeatPath, heartbeatInterval * 1000);
     this.heartbeatWriter.start();
     logInfo('Heartbeat writer started', { path: heartbeatPath, intervalMs: heartbeatInterval * 1000 });
 
-    this.safetyMonitor = new SafetyMonitor(safetyLimitsConfig as SafetyLimits, this.workspaceRoot);
+    // SafetyMonitor should monitor from the tools/wvo_mcp directory
+    const wvoMcpRoot = path.join(this.workspaceRoot, 'tools', 'wvo_mcp');
+    this.safetyMonitor = new SafetyMonitor(safetyLimitsConfig as SafetyLimits, wvoMcpRoot);
     this.safetyMonitor.start();
     logInfo('Safety monitor started');
 
