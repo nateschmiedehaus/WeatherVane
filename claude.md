@@ -181,6 +181,45 @@ Same error ≥3×, no progress >90m, or >5 iterations without resolution ⇒ **E
 - **Prevention:** Use dynamic fs.readFileSync for JSON in ESM contexts
 - **Process Update:** Added ESM import patterns to IMPLEMENT best practices
 
+**Learning 5: Guarantee Verification Gap (2025-10-27)**
+- **Issue:** Guaranteed "autopilot will complete tasks autonomously" when orchestrator only 30% done
+- **Root Cause:** Made guarantee based on safety fix (circuit breaker), never verified functional completeness
+- **Prevention:** MANDATORY pre-guarantee verification checklist (see below)
+- **Process Update:** Cannot make ANY guarantee without running verification checklist first
+- **Full Learning:** docs/learnings/2025-10-27-guarantee-verification-gap.md
+
+### Pre-Guarantee Verification (MANDATORY)
+
+**Before making ANY guarantee or capability claim, you MUST:**
+
+1. **STOP**: Do not proceed with the guarantee
+2. **RUN CHECKLIST**:
+   - [ ] Read IMPLEMENTATION_STATUS.md or similar docs
+   - [ ] Verify claimed features marked ✅ (not ⏳ or ❌)
+   - [ ] Search for TODOs: `grep -r "TODO\|FIXME\|not implemented" relevant/path`
+   - [ ] Check for disabled/stubbed tests
+   - [ ] Distinguish: Safety vs Functionality (be explicit which)
+   - [ ] If claiming functionality: Run end-to-end test of workflow
+   - [ ] Document what IS and IS NOT guaranteed
+3. **SCOPE**: Write explicit sections:
+   - "What I CAN guarantee (with evidence)"
+   - "What I CANNOT guarantee (gaps/missing work)"
+4. **PROCEED**: Only then make guarantee with documented verification
+
+**Red flags requiring extra verification:**
+- 🚩 Guaranteeing something you just built (not production-tested)
+- 🚩 User explicitly asks "can you guarantee X?"
+- 🚩 Complex multi-step workflows
+- 🚩 Implementation doc says "in progress" or "X% complete"
+
+**Never guarantee functionality based on:**
+- ❌ "Build succeeded" (only proves it compiles)
+- ❌ "Dry run worked" (may not test actual functionality)
+- ❌ "I implemented X" (doesn't mean Y works end-to-end)
+- ❌ "User requested it" (doesn't make it true)
+
+**Violation = erodes trust, wastes time, creates debt**
+
 ### Systematic Learning Review
 
 **After every major issue resolution:**
