@@ -1,0 +1,17 @@
+# Code Owners for WeatherVane Repository
+#
+# These owners will be automatically requested for review when someone
+# opens a pull request that modifies files in the specified paths.
+
+# Documentation - require review from docs team
+CLAUDE_v1.md @nathanielschmiedehaus
+claude.md @nathanielschmiedehaus
+agent.md @nathanielschmiedehaus
+/docs/ @nathanielschmiedehaus
+/docs/autopilot/ @nathanielschmiedehaus
+/docs/autopilot/migration/ @nathanielschmiedehaus
+
+# Critical configuration and CI
+/.github/ @nathanielschmiedehaus
+/scripts/check_*.sh @nathanielschmiedehaus
+/scripts/check_*.py @nathanielschmiedehaus

@@ -1,0 +1,1630 @@
+{
+  "updatedAt": "2025-10-27T16:18:56.417Z",
+  "activeLoops": [
+    {
+      "taskId": "PERF-TEST-1",
+      "attempts": 1,
+      "firstAttemptAt": "2025-10-27T16:18:52.726Z",
+      "lastAttemptAt": "2025-10-27T16:18:52.919Z",
+      "lastLabel": "missing_dependency",
+      "labels": [
+        "missing_dependency"
+      ],
+      "elapsedMs": 193,
+      "runId": "perf-baseline"
+    },
+    {
+      "taskId": "PERF-TEST-0",
+      "attempts": 1,
+      "firstAttemptAt": "2025-10-27T16:18:52.750Z",
+      "lastAttemptAt": "2025-10-27T16:18:52.916Z",
+      "lastLabel": "missing_dependency",
+      "labels": [
+        "missing_dependency"
+      ],
+      "elapsedMs": 166,
+      "runId": "perf-baseline"
+    },
+    {
+      "taskId": "PERF-TEST-2",
+      "attempts": 1,
+      "firstAttemptAt": "2025-10-27T16:18:52.801Z",
+      "lastAttemptAt": "2025-10-27T16:18:52.922Z",
+      "lastLabel": "missing_dependency",
+      "labels": [
+        "missing_dependency"
+      ],
+      "elapsedMs": 121,
+      "runId": "perf-baseline"
+    },
+    {
+      "taskId": "PERF-TEST-3",
+      "attempts": 1,
+      "firstAttemptAt": "2025-10-27T16:18:52.818Z",
+      "lastAttemptAt": "2025-10-27T16:18:52.926Z",
+      "lastLabel": "missing_dependency",
+      "labels": [
+        "missing_dependency"
+      ],
+      "elapsedMs": 108,
+      "runId": "perf-baseline"
+    },
+    {
+      "taskId": "PERF-TEST-4",
+      "attempts": 1,
+      "firstAttemptAt": "2025-10-27T16:18:52.834Z",
+      "lastAttemptAt": "2025-10-27T16:18:52.929Z",
+      "lastLabel": "missing_dependency",
+      "labels": [
+        "missing_dependency"
+      ],
+      "elapsedMs": 95,
+      "runId": "perf-baseline"
+    },
+    {
+      "taskId": "PERF-TEST-5",
+      "attempts": 1,
+      "firstAttemptAt": "2025-10-27T16:18:52.842Z",
+      "lastAttemptAt": "2025-10-27T16:18:52.932Z",
+      "lastLabel": "missing_dependency",
+      "labels": [
+        "missing_dependency"
+      ],
+      "elapsedMs": 90,
+      "runId": "perf-baseline"
+    },
+    {
+      "taskId": "PERF-TEST-6",
+      "attempts": 1,
+      "firstAttemptAt": "2025-10-27T16:18:52.850Z",
+      "lastAttemptAt": "2025-10-27T16:18:52.935Z",
+      "lastLabel": "missing_dependency",
+      "labels": [
+        "missing_dependency"
+      ],
+      "elapsedMs": 85,
+      "runId": "perf-baseline"
+    },
+    {
+      "taskId": "PERF-TEST-7",
+      "attempts": 1,
+      "firstAttemptAt": "2025-10-27T16:18:52.880Z",
+      "lastAttemptAt": "2025-10-27T16:18:52.938Z",
+      "lastLabel": "missing_dependency",
+      "labels": [
+        "missing_dependency"
+      ],
+      "elapsedMs": 58,
+      "runId": "perf-baseline"
+    },
+    {
+      "taskId": "PERF-TEST-8",
+      "attempts": 1,
+      "firstAttemptAt": "2025-10-27T16:18:52.896Z",
+      "lastAttemptAt": "2025-10-27T16:18:52.942Z",
+      "lastLabel": "missing_dependency",
+      "labels": [
+        "missing_dependency"
+      ],
+      "elapsedMs": 46,
+      "runId": "perf-baseline"
+    },
+    {
+      "taskId": "PERF-TEST-9",
+      "attempts": 1,
+      "firstAttemptAt": "2025-10-27T16:18:52.903Z",
+      "lastAttemptAt": "2025-10-27T16:18:52.948Z",
+      "lastLabel": "missing_dependency",
+      "labels": [
+        "missing_dependency"
+      ],
+      "elapsedMs": 45,
+      "runId": "perf-baseline"
+    },
+    {
+      "taskId": "PERF-TEST-10",
+      "attempts": 1,
+      "firstAttemptAt": "2025-10-27T16:18:52.958Z",
+      "lastAttemptAt": "2025-10-27T16:18:52.958Z",
+      "lastLabel": "missing_dependency",
+      "labels": [
+        "missing_dependency"
+      ],
+      "elapsedMs": 0,
+      "runId": "perf-baseline"
+    },
+    {
+      "taskId": "PERF-TEST-11",
+      "attempts": 1,
+      "firstAttemptAt": "2025-10-27T16:18:52.967Z",
+      "lastAttemptAt": "2025-10-27T16:18:52.967Z",
+      "lastLabel": "missing_dependency",
+      "labels": [
+        "missing_dependency"
+      ],
+      "elapsedMs": 0,
+      "runId": "perf-baseline"
+    },
+    {
+      "taskId": "PERF-TEST-12",
+      "attempts": 1,
+      "firstAttemptAt": "2025-10-27T16:18:52.971Z",
+      "lastAttemptAt": "2025-10-27T16:18:52.971Z",
+      "lastLabel": "missing_dependency",
+      "labels": [
+        "missing_dependency"
+      ],
+      "elapsedMs": 0,
+      "runId": "perf-baseline"
+    },
+    {
+      "taskId": "PERF-TEST-13",
+      "attempts": 1,
+      "firstAttemptAt": "2025-10-27T16:18:52.975Z",
+      "lastAttemptAt": "2025-10-27T16:18:52.975Z",
+      "lastLabel": "missing_dependency",
+      "labels": [
+        "missing_dependency"
+      ],
+      "elapsedMs": 0,
+      "runId": "perf-baseline"
+    },
+    {
+      "taskId": "PERF-TEST-14",
+      "attempts": 1,
+      "firstAttemptAt": "2025-10-27T16:18:52.978Z",
+      "lastAttemptAt": "2025-10-27T16:18:52.978Z",
+      "lastLabel": "missing_dependency",
+      "labels": [
+        "missing_dependency"
+      ],
+      "elapsedMs": 0,
+      "runId": "perf-baseline"
+    },
+    {
+      "taskId": "PERF-TEST-15",
+      "attempts": 1,
+      "firstAttemptAt": "2025-10-27T16:18:52.981Z",
+      "lastAttemptAt": "2025-10-27T16:18:52.981Z",
+      "lastLabel": "missing_dependency",
+      "labels": [
+        "missing_dependency"
+      ],
+      "elapsedMs": 0,
+      "runId": "perf-baseline"
+    },
+    {
+      "taskId": "PERF-TEST-16",
+      "attempts": 1,
+      "firstAttemptAt": "2025-10-27T16:18:52.984Z",
+      "lastAttemptAt": "2025-10-27T16:18:52.984Z",
+      "lastLabel": "missing_dependency",
+      "labels": [
+        "missing_dependency"
+      ],
+      "elapsedMs": 0,
+      "runId": "perf-baseline"
+    },
+    {
+      "taskId": "PERF-TEST-17",
+      "attempts": 1,
+      "firstAttemptAt": "2025-10-27T16:18:52.987Z",
+      "lastAttemptAt": "2025-10-27T16:18:52.987Z",
+      "lastLabel": "missing_dependency",
+      "labels": [
+        "missing_dependency"
+      ],
+      "elapsedMs": 0,
+      "runId": "perf-baseline"
+    },
+    {
+      "taskId": "PERF-TEST-18",
+      "attempts": 1,
+      "firstAttemptAt": "2025-10-27T16:18:52.990Z",
+      "lastAttemptAt": "2025-10-27T16:18:52.990Z",
+      "lastLabel": "missing_dependency",
+      "labels": [
+        "missing_dependency"
+      ],
+      "elapsedMs": 0,
+      "runId": "perf-baseline"
+    },
+    {
+      "taskId": "PERF-TEST-19",
+      "attempts": 1,
+      "firstAttemptAt": "2025-10-27T16:18:52.993Z",
+      "lastAttemptAt": "2025-10-27T16:18:52.993Z",
+      "lastLabel": "missing_dependency",
+      "labels": [
+        "missing_dependency"
+      ],
+      "elapsedMs": 0,
+      "runId": "perf-baseline"
+    },
+    {
+      "taskId": "PERF-TEST-20",
+      "attempts": 1,
+      "firstAttemptAt": "2025-10-27T16:18:52.997Z",
+      "lastAttemptAt": "2025-10-27T16:18:52.997Z",
+      "lastLabel": "missing_dependency",
+      "labels": [
+        "missing_dependency"
+      ],
+      "elapsedMs": 0,
+      "runId": "perf-baseline"
+    },
+    {
+      "taskId": "PERF-TEST-21",
+      "attempts": 1,
+      "firstAttemptAt": "2025-10-27T16:18:52.999Z",
+      "lastAttemptAt": "2025-10-27T16:18:52.999Z",
+      "lastLabel": "missing_dependency",
+      "labels": [
+        "missing_dependency"
+      ],
+      "elapsedMs": 0,
+      "runId": "perf-baseline"
+    },
+    {
+      "taskId": "PERF-TEST-22",
+      "attempts": 1,
+      "firstAttemptAt": "2025-10-27T16:18:53.002Z",
+      "lastAttemptAt": "2025-10-27T16:18:53.002Z",
+      "lastLabel": "missing_dependency",
+      "labels": [
+        "missing_dependency"
+      ],
+      "elapsedMs": 0,
+      "runId": "perf-baseline"
+    },
+    {
+      "taskId": "PERF-TEST-23",
+      "attempts": 1,
+      "firstAttemptAt": "2025-10-27T16:18:53.005Z",
+      "lastAttemptAt": "2025-10-27T16:18:53.005Z",
+      "lastLabel": "missing_dependency",
+      "labels": [
+        "missing_dependency"
+      ],
+      "elapsedMs": 0,
+      "runId": "perf-baseline"
+    },
+    {
+      "taskId": "PERF-TEST-24",
+      "attempts": 1,
+      "firstAttemptAt": "2025-10-27T16:18:53.008Z",
+      "lastAttemptAt": "2025-10-27T16:18:53.008Z",
+      "lastLabel": "missing_dependency",
+      "labels": [
+        "missing_dependency"
+      ],
+      "elapsedMs": 0,
+      "runId": "perf-baseline"
+    },
+    {
+      "taskId": "PERF-TEST-25",
+      "attempts": 1,
+      "firstAttemptAt": "2025-10-27T16:18:53.012Z",
+      "lastAttemptAt": "2025-10-27T16:18:53.012Z",
+      "lastLabel": "missing_dependency",
+      "labels": [
+        "missing_dependency"
+      ],
+      "elapsedMs": 0,
+      "runId": "perf-baseline"
+    },
+    {
+      "taskId": "PERF-TEST-26",
+      "attempts": 1,
+      "firstAttemptAt": "2025-10-27T16:18:53.016Z",
+      "lastAttemptAt": "2025-10-27T16:18:53.016Z",
+      "lastLabel": "missing_dependency",
+      "labels": [
+        "missing_dependency"
+      ],
+      "elapsedMs": 0,
+      "runId": "perf-baseline"
+    },
+    {
+      "taskId": "PERF-TEST-27",
+      "attempts": 1,
+      "firstAttemptAt": "2025-10-27T16:18:53.019Z",
+      "lastAttemptAt": "2025-10-27T16:18:53.019Z",
+      "lastLabel": "missing_dependency",
+      "labels": [
+        "missing_dependency"
+      ],
+      "elapsedMs": 0,
+      "runId": "perf-baseline"
+    },
+    {
+      "taskId": "PERF-TEST-28",
+      "attempts": 1,
+      "firstAttemptAt": "2025-10-27T16:18:53.022Z",
+      "lastAttemptAt": "2025-10-27T16:18:53.022Z",
+      "lastLabel": "missing_dependency",
+      "labels": [
+        "missing_dependency"
+      ],
+      "elapsedMs": 0,
+      "runId": "perf-baseline"
+    },
+    {
+      "taskId": "PERF-TEST-29",
+      "attempts": 1,
+      "firstAttemptAt": "2025-10-27T16:18:53.027Z",
+      "lastAttemptAt": "2025-10-27T16:18:53.027Z",
+      "lastLabel": "missing_dependency",
+      "labels": [
+        "missing_dependency"
+      ],
+      "elapsedMs": 0,
+      "runId": "perf-baseline"
+    },
+    {
+      "taskId": "PERF-TEST-30",
+      "attempts": 1,
+      "firstAttemptAt": "2025-10-27T16:18:53.030Z",
+      "lastAttemptAt": "2025-10-27T16:18:53.030Z",
+      "lastLabel": "missing_dependency",
+      "labels": [
+        "missing_dependency"
+      ],
+      "elapsedMs": 0,
+      "runId": "perf-baseline"
+    },
+    {
+      "taskId": "PERF-TEST-31",
+      "attempts": 1,
+      "firstAttemptAt": "2025-10-27T16:18:53.036Z",
+      "lastAttemptAt": "2025-10-27T16:18:53.036Z",
+      "lastLabel": "missing_dependency",
+      "labels": [
+        "missing_dependency"
+      ],
+      "elapsedMs": 0,
+      "runId": "perf-baseline"
+    },
+    {
+      "taskId": "PERF-TEST-32",
+      "attempts": 1,
+      "firstAttemptAt": "2025-10-27T16:18:53.041Z",
+      "lastAttemptAt": "2025-10-27T16:18:53.041Z",
+      "lastLabel": "missing_dependency",
+      "labels": [
+        "missing_dependency"
+      ],
+      "elapsedMs": 0,
+      "runId": "perf-baseline"
+    },
+    {
+      "taskId": "PERF-TEST-33",
+      "attempts": 1,
+      "firstAttemptAt": "2025-10-27T16:18:53.046Z",
+      "lastAttemptAt": "2025-10-27T16:18:53.046Z",
+      "lastLabel": "missing_dependency",
+      "labels": [
+        "missing_dependency"
+      ],
+      "elapsedMs": 0,
+      "runId": "perf-baseline"
+    },
+    {
+      "taskId": "PERF-TEST-34",
+      "attempts": 1,
+      "firstAttemptAt": "2025-10-27T16:18:53.049Z",
+      "lastAttemptAt": "2025-10-27T16:18:53.049Z",
+      "lastLabel": "missing_dependency",
+      "labels": [
+        "missing_dependency"
+      ],
+      "elapsedMs": 0,
+      "runId": "perf-baseline"
+    },
+    {
+      "taskId": "PERF-TEST-35",
+      "attempts": 1,
+      "firstAttemptAt": "2025-10-27T16:18:53.052Z",
+      "lastAttemptAt": "2025-10-27T16:18:53.052Z",
+      "lastLabel": "missing_dependency",
+      "labels": [
+        "missing_dependency"
+      ],
+      "elapsedMs": 0,
+      "runId": "perf-baseline"
+    },
+    {
+      "taskId": "PERF-TEST-36",
+      "attempts": 1,
+      "firstAttemptAt": "2025-10-27T16:18:53.056Z",
+      "lastAttemptAt": "2025-10-27T16:18:53.056Z",
+      "lastLabel": "missing_dependency",
+      "labels": [
+        "missing_dependency"
+      ],
+      "elapsedMs": 0,
+      "runId": "perf-baseline"
+    },
+    {
+      "taskId": "PERF-TEST-37",
+      "attempts": 1,
+      "firstAttemptAt": "2025-10-27T16:18:53.059Z",
+      "lastAttemptAt": "2025-10-27T16:18:53.059Z",
+      "lastLabel": "missing_dependency",
+      "labels": [
+        "missing_dependency"
+      ],
+      "elapsedMs": 0,
+      "runId": "perf-baseline"
+    },
+    {
+      "taskId": "PERF-TEST-38",
+      "attempts": 1,
+      "firstAttemptAt": "2025-10-27T16:18:53.063Z",
+      "lastAttemptAt": "2025-10-27T16:18:53.063Z",
+      "lastLabel": "missing_dependency",
+      "labels": [
+        "missing_dependency"
+      ],
+      "elapsedMs": 0,
+      "runId": "perf-baseline"
+    },
+    {
+      "taskId": "PERF-TEST-39",
+      "attempts": 1,
+      "firstAttemptAt": "2025-10-27T16:18:53.067Z",
+      "lastAttemptAt": "2025-10-27T16:18:53.067Z",
+      "lastLabel": "missing_dependency",
+      "labels": [
+        "missing_dependency"
+      ],
+      "elapsedMs": 0,
+      "runId": "perf-baseline"
+    },
+    {
+      "taskId": "PERF-TEST-40",
+      "attempts": 1,
+      "firstAttemptAt": "2025-10-27T16:18:53.070Z",
+      "lastAttemptAt": "2025-10-27T16:18:53.070Z",
+      "lastLabel": "missing_dependency",
+      "labels": [
+        "missing_dependency"
+      ],
+      "elapsedMs": 0,
+      "runId": "perf-baseline"
+    },
+    {
+      "taskId": "PERF-TEST-41",
+      "attempts": 1,
+      "firstAttemptAt": "2025-10-27T16:18:53.154Z",
+      "lastAttemptAt": "2025-10-27T16:18:53.154Z",
+      "lastLabel": "missing_dependency",
+      "labels": [
+        "missing_dependency"
+      ],
+      "elapsedMs": 0,
+      "runId": "perf-baseline"
+    },
+    {
+      "taskId": "PERF-TEST-42",
+      "attempts": 1,
+      "firstAttemptAt": "2025-10-27T16:18:53.165Z",
+      "lastAttemptAt": "2025-10-27T16:18:53.165Z",
+      "lastLabel": "missing_dependency",
+      "labels": [
+        "missing_dependency"
+      ],
+      "elapsedMs": 0,
+      "runId": "perf-baseline"
+    },
+    {
+      "taskId": "PERF-TEST-43",
+      "attempts": 1,
+      "firstAttemptAt": "2025-10-27T16:18:53.169Z",
+      "lastAttemptAt": "2025-10-27T16:18:53.169Z",
+      "lastLabel": "missing_dependency",
+      "labels": [
+        "missing_dependency"
+      ],
+      "elapsedMs": 0,
+      "runId": "perf-baseline"
+    },
+    {
+      "taskId": "PERF-TEST-44",
+      "attempts": 1,
+      "firstAttemptAt": "2025-10-27T16:18:53.178Z",
+      "lastAttemptAt": "2025-10-27T16:18:53.178Z",
+      "lastLabel": "missing_dependency",
+      "labels": [
+        "missing_dependency"
+      ],
+      "elapsedMs": 0,
+      "runId": "perf-baseline"
+    },
+    {
+      "taskId": "PERF-TEST-45",
+      "attempts": 1,
+      "firstAttemptAt": "2025-10-27T16:18:53.183Z",
+      "lastAttemptAt": "2025-10-27T16:18:53.183Z",
+      "lastLabel": "missing_dependency",
+      "labels": [
+        "missing_dependency"
+      ],
+      "elapsedMs": 0,
+      "runId": "perf-baseline"
+    },
+    {
+      "taskId": "PERF-TEST-46",
+      "attempts": 1,
+      "firstAttemptAt": "2025-10-27T16:18:53.199Z",
+      "lastAttemptAt": "2025-10-27T16:18:53.199Z",
+      "lastLabel": "missing_dependency",
+      "labels": [
+        "missing_dependency"
+      ],
+      "elapsedMs": 0,
+      "runId": "perf-baseline"
+    },
+    {
+      "taskId": "PERF-TEST-47",
+      "attempts": 1,
+      "firstAttemptAt": "2025-10-27T16:18:53.208Z",
+      "lastAttemptAt": "2025-10-27T16:18:53.208Z",
+      "lastLabel": "missing_dependency",
+      "labels": [
+        "missing_dependency"
+      ],
+      "elapsedMs": 0,
+      "runId": "perf-baseline"
+    },
+    {
+      "taskId": "PERF-TEST-48",
+      "attempts": 1,
+      "firstAttemptAt": "2025-10-27T16:18:53.215Z",
+      "lastAttemptAt": "2025-10-27T16:18:53.215Z",
+      "lastLabel": "missing_dependency",
+      "labels": [
+        "missing_dependency"
+      ],
+      "elapsedMs": 0,
+      "runId": "perf-baseline"
+    },
+    {
+      "taskId": "PERF-TEST-49",
+      "attempts": 1,
+      "firstAttemptAt": "2025-10-27T16:18:53.221Z",
+      "lastAttemptAt": "2025-10-27T16:18:53.221Z",
+      "lastLabel": "missing_dependency",
+      "labels": [
+        "missing_dependency"
+      ],
+      "elapsedMs": 0,
+      "runId": "perf-baseline"
+    },
+    {
+      "taskId": "PERF-TEST-50",
+      "attempts": 1,
+      "firstAttemptAt": "2025-10-27T16:18:53.227Z",
+      "lastAttemptAt": "2025-10-27T16:18:53.227Z",
+      "lastLabel": "missing_dependency",
+      "labels": [
+        "missing_dependency"
+      ],
+      "elapsedMs": 0,
+      "runId": "perf-baseline"
+    },
+    {
+      "taskId": "PERF-TEST-51",
+      "attempts": 1,
+      "firstAttemptAt": "2025-10-27T16:18:53.246Z",
+      "lastAttemptAt": "2025-10-27T16:18:53.246Z",
+      "lastLabel": "missing_dependency",
+      "labels": [
+        "missing_dependency"
+      ],
+      "elapsedMs": 0,
+      "runId": "perf-baseline"
+    },
+    {
+      "taskId": "PERF-TEST-52",
+      "attempts": 1,
+      "firstAttemptAt": "2025-10-27T16:18:53.255Z",
+      "lastAttemptAt": "2025-10-27T16:18:53.255Z",
+      "lastLabel": "missing_dependency",
+      "labels": [
+        "missing_dependency"
+      ],
+      "elapsedMs": 0,
+      "runId": "perf-baseline"
+    },
+    {
+      "taskId": "PERF-TEST-53",
+      "attempts": 1,
+      "firstAttemptAt": "2025-10-27T16:18:53.277Z",
+      "lastAttemptAt": "2025-10-27T16:18:53.277Z",
+      "lastLabel": "missing_dependency",
+      "labels": [
+        "missing_dependency"
+      ],
+      "elapsedMs": 0,
+      "runId": "perf-baseline"
+    },
+    {
+      "taskId": "PERF-TEST-54",
+      "attempts": 1,
+      "firstAttemptAt": "2025-10-27T16:18:53.324Z",
+      "lastAttemptAt": "2025-10-27T16:18:53.324Z",
+      "lastLabel": "missing_dependency",
+      "labels": [
+        "missing_dependency"
+      ],
+      "elapsedMs": 0,
+      "runId": "perf-baseline"
+    },
+    {
+      "taskId": "PERF-TEST-55",
+      "attempts": 1,
+      "firstAttemptAt": "2025-10-27T16:18:53.339Z",
+      "lastAttemptAt": "2025-10-27T16:18:53.339Z",
+      "lastLabel": "missing_dependency",
+      "labels": [
+        "missing_dependency"
+      ],
+      "elapsedMs": 0,
+      "runId": "perf-baseline"
+    },
+    {
+      "taskId": "PERF-TEST-56",
+      "attempts": 1,
+      "firstAttemptAt": "2025-10-27T16:18:53.352Z",
+      "lastAttemptAt": "2025-10-27T16:18:53.352Z",
+      "lastLabel": "missing_dependency",
+      "labels": [
+        "missing_dependency"
+      ],
+      "elapsedMs": 0,
+      "runId": "perf-baseline"
+    },
+    {
+      "taskId": "PERF-TEST-57",
+      "attempts": 1,
+      "firstAttemptAt": "2025-10-27T16:18:53.367Z",
+      "lastAttemptAt": "2025-10-27T16:18:53.367Z",
+      "lastLabel": "missing_dependency",
+      "labels": [
+        "missing_dependency"
+      ],
+      "elapsedMs": 0,
+      "runId": "perf-baseline"
+    },
+    {
+      "taskId": "PERF-TEST-58",
+      "attempts": 1,
+      "firstAttemptAt": "2025-10-27T16:18:53.371Z",
+      "lastAttemptAt": "2025-10-27T16:18:53.371Z",
+      "lastLabel": "missing_dependency",
+      "labels": [
+        "missing_dependency"
+      ],
+      "elapsedMs": 0,
+      "runId": "perf-baseline"
+    },
+    {
+      "taskId": "PERF-TEST-59",
+      "attempts": 1,
+      "firstAttemptAt": "2025-10-27T16:18:53.380Z",
+      "lastAttemptAt": "2025-10-27T16:18:53.380Z",
+      "lastLabel": "missing_dependency",
+      "labels": [
+        "missing_dependency"
+      ],
+      "elapsedMs": 0,
+      "runId": "perf-baseline"
+    },
+    {
+      "taskId": "PERF-TEST-60",
+      "attempts": 1,
+      "firstAttemptAt": "2025-10-27T16:18:53.387Z",
+      "lastAttemptAt": "2025-10-27T16:18:53.387Z",
+      "lastLabel": "missing_dependency",
+      "labels": [
+        "missing_dependency"
+      ],
+      "elapsedMs": 0,
+      "runId": "perf-baseline"
+    },
+    {
+      "taskId": "PERF-TEST-61",
+      "attempts": 1,
+      "firstAttemptAt": "2025-10-27T16:18:53.398Z",
+      "lastAttemptAt": "2025-10-27T16:18:53.398Z",
+      "lastLabel": "missing_dependency",
+      "labels": [
+        "missing_dependency"
+      ],
+      "elapsedMs": 0,
+      "runId": "perf-baseline"
+    },
+    {
+      "taskId": "PERF-TEST-62",
+      "attempts": 1,
+      "firstAttemptAt": "2025-10-27T16:18:53.410Z",
+      "lastAttemptAt": "2025-10-27T16:18:53.410Z",
+      "lastLabel": "missing_dependency",
+      "labels": [
+        "missing_dependency"
+      ],
+      "elapsedMs": 0,
+      "runId": "perf-baseline"
+    },
+    {
+      "taskId": "PERF-TEST-63",
+      "attempts": 1,
+      "firstAttemptAt": "2025-10-27T16:18:53.431Z",
+      "lastAttemptAt": "2025-10-27T16:18:53.431Z",
+      "lastLabel": "missing_dependency",
+      "labels": [
+        "missing_dependency"
+      ],
+      "elapsedMs": 0,
+      "runId": "perf-baseline"
+    },
+    {
+      "taskId": "PERF-TEST-64",
+      "attempts": 1,
+      "firstAttemptAt": "2025-10-27T16:18:53.439Z",
+      "lastAttemptAt": "2025-10-27T16:18:53.439Z",
+      "lastLabel": "missing_dependency",
+      "labels": [
+        "missing_dependency"
+      ],
+      "elapsedMs": 0,
+      "runId": "perf-baseline"
+    },
+    {
+      "taskId": "PERF-TEST-65",
+      "attempts": 1,
+      "firstAttemptAt": "2025-10-27T16:18:53.448Z",
+      "lastAttemptAt": "2025-10-27T16:18:53.448Z",
+      "lastLabel": "missing_dependency",
+      "labels": [
+        "missing_dependency"
+      ],
+      "elapsedMs": 0,
+      "runId": "perf-baseline"
+    },
+    {
+      "taskId": "PERF-TEST-66",
+      "attempts": 1,
+      "firstAttemptAt": "2025-10-27T16:18:53.453Z",
+      "lastAttemptAt": "2025-10-27T16:18:53.453Z",
+      "lastLabel": "missing_dependency",
+      "labels": [
+        "missing_dependency"
+      ],
+      "elapsedMs": 0,
+      "runId": "perf-baseline"
+    },
+    {
+      "taskId": "PERF-TEST-67",
+      "attempts": 1,
+      "firstAttemptAt": "2025-10-27T16:18:53.465Z",
+      "lastAttemptAt": "2025-10-27T16:18:53.465Z",
+      "lastLabel": "missing_dependency",
+      "labels": [
+        "missing_dependency"
+      ],
+      "elapsedMs": 0,
+      "runId": "perf-baseline"
+    },
+    {
+      "taskId": "PERF-TEST-68",
+      "attempts": 1,
+      "firstAttemptAt": "2025-10-27T16:18:53.471Z",
+      "lastAttemptAt": "2025-10-27T16:18:53.471Z",
+      "lastLabel": "missing_dependency",
+      "labels": [
+        "missing_dependency"
+      ],
+      "elapsedMs": 0,
+      "runId": "perf-baseline"
+    },
+    {
+      "taskId": "PERF-TEST-69",
+      "attempts": 1,
+      "firstAttemptAt": "2025-10-27T16:18:53.477Z",
+      "lastAttemptAt": "2025-10-27T16:18:53.477Z",
+      "lastLabel": "missing_dependency",
+      "labels": [
+        "missing_dependency"
+      ],
+      "elapsedMs": 0,
+      "runId": "perf-baseline"
+    },
+    {
+      "taskId": "PERF-TEST-70",
+      "attempts": 1,
+      "firstAttemptAt": "2025-10-27T16:18:53.484Z",
+      "lastAttemptAt": "2025-10-27T16:18:53.484Z",
+      "lastLabel": "missing_dependency",
+      "labels": [
+        "missing_dependency"
+      ],
+      "elapsedMs": 0,
+      "runId": "perf-baseline"
+    },
+    {
+      "taskId": "PERF-TEST-71",
+      "attempts": 1,
+      "firstAttemptAt": "2025-10-27T16:18:53.489Z",
+      "lastAttemptAt": "2025-10-27T16:18:53.489Z",
+      "lastLabel": "missing_dependency",
+      "labels": [
+        "missing_dependency"
+      ],
+      "elapsedMs": 0,
+      "runId": "perf-baseline"
+    },
+    {
+      "taskId": "PERF-TEST-72",
+      "attempts": 1,
+      "firstAttemptAt": "2025-10-27T16:18:53.495Z",
+      "lastAttemptAt": "2025-10-27T16:18:53.495Z",
+      "lastLabel": "missing_dependency",
+      "labels": [
+        "missing_dependency"
+      ],
+      "elapsedMs": 0,
+      "runId": "perf-baseline"
+    },
+    {
+      "taskId": "PERF-TEST-73",
+      "attempts": 1,
+      "firstAttemptAt": "2025-10-27T16:18:53.500Z",
+      "lastAttemptAt": "2025-10-27T16:18:53.500Z",
+      "lastLabel": "missing_dependency",
+      "labels": [
+        "missing_dependency"
+      ],
+      "elapsedMs": 0,
+      "runId": "perf-baseline"
+    },
+    {
+      "taskId": "PERF-TEST-74",
+      "attempts": 1,
+      "firstAttemptAt": "2025-10-27T16:18:53.505Z",
+      "lastAttemptAt": "2025-10-27T16:18:53.505Z",
+      "lastLabel": "missing_dependency",
+      "labels": [
+        "missing_dependency"
+      ],
+      "elapsedMs": 0,
+      "runId": "perf-baseline"
+    },
+    {
+      "taskId": "PERF-TEST-75",
+      "attempts": 1,
+      "firstAttemptAt": "2025-10-27T16:18:53.511Z",
+      "lastAttemptAt": "2025-10-27T16:18:53.511Z",
+      "lastLabel": "missing_dependency",
+      "labels": [
+        "missing_dependency"
+      ],
+      "elapsedMs": 0,
+      "runId": "perf-baseline"
+    },
+    {
+      "taskId": "PERF-TEST-76",
+      "attempts": 1,
+      "firstAttemptAt": "2025-10-27T16:18:53.516Z",
+      "lastAttemptAt": "2025-10-27T16:18:53.516Z",
+      "lastLabel": "missing_dependency",
+      "labels": [
+        "missing_dependency"
+      ],
+      "elapsedMs": 0,
+      "runId": "perf-baseline"
+    },
+    {
+      "taskId": "PERF-TEST-77",
+      "attempts": 1,
+      "firstAttemptAt": "2025-10-27T16:18:53.522Z",
+      "lastAttemptAt": "2025-10-27T16:18:53.522Z",
+      "lastLabel": "missing_dependency",
+      "labels": [
+        "missing_dependency"
+      ],
+      "elapsedMs": 0,
+      "runId": "perf-baseline"
+    },
+    {
+      "taskId": "PERF-TEST-78",
+      "attempts": 1,
+      "firstAttemptAt": "2025-10-27T16:18:53.529Z",
+      "lastAttemptAt": "2025-10-27T16:18:53.529Z",
+      "lastLabel": "missing_dependency",
+      "labels": [
+        "missing_dependency"
+      ],
+      "elapsedMs": 0,
+      "runId": "perf-baseline"
+    },
+    {
+      "taskId": "PERF-TEST-79",
+      "attempts": 1,
+      "firstAttemptAt": "2025-10-27T16:18:53.533Z",
+      "lastAttemptAt": "2025-10-27T16:18:53.533Z",
+      "lastLabel": "missing_dependency",
+      "labels": [
+        "missing_dependency"
+      ],
+      "elapsedMs": 0,
+      "runId": "perf-baseline"
+    },
+    {
+      "taskId": "PERF-TEST-80",
+      "attempts": 1,
+      "firstAttemptAt": "2025-10-27T16:18:53.539Z",
+      "lastAttemptAt": "2025-10-27T16:18:53.539Z",
+      "lastLabel": "missing_dependency",
+      "labels": [
+        "missing_dependency"
+      ],
+      "elapsedMs": 0,
+      "runId": "perf-baseline"
+    },
+    {
+      "taskId": "PERF-TEST-81",
+      "attempts": 1,
+      "firstAttemptAt": "2025-10-27T16:18:53.544Z",
+      "lastAttemptAt": "2025-10-27T16:18:53.544Z",
+      "lastLabel": "missing_dependency",
+      "labels": [
+        "missing_dependency"
+      ],
+      "elapsedMs": 0,
+      "runId": "perf-baseline"
+    },
+    {
+      "taskId": "PERF-TEST-82",
+      "attempts": 1,
+      "firstAttemptAt": "2025-10-27T16:18:53.549Z",
+      "lastAttemptAt": "2025-10-27T16:18:53.549Z",
+      "lastLabel": "missing_dependency",
+      "labels": [
+        "missing_dependency"
+      ],
+      "elapsedMs": 0,
+      "runId": "perf-baseline"
+    },
+    {
+      "taskId": "PERF-TEST-83",
+      "attempts": 1,
+      "firstAttemptAt": "2025-10-27T16:18:53.552Z",
+      "lastAttemptAt": "2025-10-27T16:18:53.552Z",
+      "lastLabel": "missing_dependency",
+      "labels": [
+        "missing_dependency"
+      ],
+      "elapsedMs": 0,
+      "runId": "perf-baseline"
+    },
+    {
+      "taskId": "PERF-TEST-84",
+      "attempts": 1,
+      "firstAttemptAt": "2025-10-27T16:18:53.556Z",
+      "lastAttemptAt": "2025-10-27T16:18:53.556Z",
+      "lastLabel": "missing_dependency",
+      "labels": [
+        "missing_dependency"
+      ],
+      "elapsedMs": 0,
+      "runId": "perf-baseline"
+    },
+    {
+      "taskId": "PERF-TEST-85",
+      "attempts": 1,
+      "firstAttemptAt": "2025-10-27T16:18:53.563Z",
+      "lastAttemptAt": "2025-10-27T16:18:53.563Z",
+      "lastLabel": "missing_dependency",
+      "labels": [
+        "missing_dependency"
+      ],
+      "elapsedMs": 0,
+      "runId": "perf-baseline"
+    },
+    {
+      "taskId": "PERF-TEST-86",
+      "attempts": 1,
+      "firstAttemptAt": "2025-10-27T16:18:53.567Z",
+      "lastAttemptAt": "2025-10-27T16:18:53.567Z",
+      "lastLabel": "missing_dependency",
+      "labels": [
+        "missing_dependency"
+      ],
+      "elapsedMs": 0,
+      "runId": "perf-baseline"
+    },
+    {
+      "taskId": "PERF-TEST-87",
+      "attempts": 1,
+      "firstAttemptAt": "2025-10-27T16:18:53.576Z",
+      "lastAttemptAt": "2025-10-27T16:18:53.576Z",
+      "lastLabel": "missing_dependency",
+      "labels": [
+        "missing_dependency"
+      ],
+      "elapsedMs": 0,
+      "runId": "perf-baseline"
+    },
+    {
+      "taskId": "PERF-TEST-88",
+      "attempts": 1,
+      "firstAttemptAt": "2025-10-27T16:18:53.584Z",
+      "lastAttemptAt": "2025-10-27T16:18:53.584Z",
+      "lastLabel": "missing_dependency",
+      "labels": [
+        "missing_dependency"
+      ],
+      "elapsedMs": 0,
+      "runId": "perf-baseline"
+    },
+    {
+      "taskId": "PERF-TEST-89",
+      "attempts": 1,
+      "firstAttemptAt": "2025-10-27T16:18:53.590Z",
+      "lastAttemptAt": "2025-10-27T16:18:53.590Z",
+      "lastLabel": "missing_dependency",
+      "labels": [
+        "missing_dependency"
+      ],
+      "elapsedMs": 0,
+      "runId": "perf-baseline"
+    },
+    {
+      "taskId": "PERF-TEST-90",
+      "attempts": 1,
+      "firstAttemptAt": "2025-10-27T16:18:53.595Z",
+      "lastAttemptAt": "2025-10-27T16:18:53.595Z",
+      "lastLabel": "missing_dependency",
+      "labels": [
+        "missing_dependency"
+      ],
+      "elapsedMs": 0,
+      "runId": "perf-baseline"
+    },
+    {
+      "taskId": "PERF-TEST-91",
+      "attempts": 1,
+      "firstAttemptAt": "2025-10-27T16:18:53.600Z",
+      "lastAttemptAt": "2025-10-27T16:18:53.600Z",
+      "lastLabel": "missing_dependency",
+      "labels": [
+        "missing_dependency"
+      ],
+      "elapsedMs": 0,
+      "runId": "perf-baseline"
+    },
+    {
+      "taskId": "PERF-TEST-92",
+      "attempts": 1,
+      "firstAttemptAt": "2025-10-27T16:18:53.608Z",
+      "lastAttemptAt": "2025-10-27T16:18:53.608Z",
+      "lastLabel": "missing_dependency",
+      "labels": [
+        "missing_dependency"
+      ],
+      "elapsedMs": 0,
+      "runId": "perf-baseline"
+    },
+    {
+      "taskId": "PERF-TEST-93",
+      "attempts": 1,
+      "firstAttemptAt": "2025-10-27T16:18:53.616Z",
+      "lastAttemptAt": "2025-10-27T16:18:53.616Z",
+      "lastLabel": "missing_dependency",
+      "labels": [
+        "missing_dependency"
+      ],
+      "elapsedMs": 0,
+      "runId": "perf-baseline"
+    },
+    {
+      "taskId": "PERF-TEST-94",
+      "attempts": 1,
+      "firstAttemptAt": "2025-10-27T16:18:53.631Z",
+      "lastAttemptAt": "2025-10-27T16:18:53.631Z",
+      "lastLabel": "missing_dependency",
+      "labels": [
+        "missing_dependency"
+      ],
+      "elapsedMs": 0,
+      "runId": "perf-baseline"
+    },
+    {
+      "taskId": "PERF-TEST-95",
+      "attempts": 1,
+      "firstAttemptAt": "2025-10-27T16:18:53.644Z",
+      "lastAttemptAt": "2025-10-27T16:18:53.644Z",
+      "lastLabel": "missing_dependency",
+      "labels": [
+        "missing_dependency"
+      ],
+      "elapsedMs": 0,
+      "runId": "perf-baseline"
+    },
+    {
+      "taskId": "PERF-TEST-96",
+      "attempts": 1,
+      "firstAttemptAt": "2025-10-27T16:18:53.651Z",
+      "lastAttemptAt": "2025-10-27T16:18:53.651Z",
+      "lastLabel": "missing_dependency",
+      "labels": [
+        "missing_dependency"
+      ],
+      "elapsedMs": 0,
+      "runId": "perf-baseline"
+    },
+    {
+      "taskId": "PERF-TEST-97",
+      "attempts": 1,
+      "firstAttemptAt": "2025-10-27T16:18:53.662Z",
+      "lastAttemptAt": "2025-10-27T16:18:53.662Z",
+      "lastLabel": "missing_dependency",
+      "labels": [
+        "missing_dependency"
+      ],
+      "elapsedMs": 0,
+      "runId": "perf-baseline"
+    },
+    {
+      "taskId": "PERF-TEST-98",
+      "attempts": 1,
+      "firstAttemptAt": "2025-10-27T16:18:53.667Z",
+      "lastAttemptAt": "2025-10-27T16:18:53.667Z",
+      "lastLabel": "missing_dependency",
+      "labels": [
+        "missing_dependency"
+      ],
+      "elapsedMs": 0,
+      "runId": "perf-baseline"
+    },
+    {
+      "taskId": "PERF-TEST-99",
+      "attempts": 1,
+      "firstAttemptAt": "2025-10-27T16:18:53.670Z",
+      "lastAttemptAt": "2025-10-27T16:18:53.670Z",
+      "lastLabel": "missing_dependency",
+      "labels": [
+        "missing_dependency"
+      ],
+      "elapsedMs": 0,
+      "runId": "perf-baseline"
+    },
+    {
+      "taskId": "TASK-1",
+      "attempts": 1,
+      "firstAttemptAt": "2025-10-27T16:18:56.404Z",
+      "lastAttemptAt": "2025-10-27T16:18:56.417Z",
+      "lastLabel": "missing_dependency",
+      "labels": [
+        "missing_dependency"
+      ],
+      "elapsedMs": 13,
+      "runId": "test"
+    }
+  ],
+  "stats": {
+    "totalLoops": 101,
+    "closedLoops": 0,
+    "closedWithin3": 0,
+    "infiniteLoopCount": 0,
+    "incidentCount": 0,
+    "attemptHistogram": {
+      "1": 115
+    }
+  },
+  "recentEvents": [
+    {
+      "type": "attempt",
+      "taskId": "TASK-1",
+      "label": "missing_dependency",
+      "attempt": 1,
+      "timestamp": "2025-10-27T16:18:56.417Z",
+      "runId": "test"
+    },
+    {
+      "type": "attempt",
+      "taskId": "TASK-1",
+      "label": "missing_dependency",
+      "attempt": 1,
+      "timestamp": "2025-10-27T16:18:56.413Z",
+      "runId": "test"
+    },
+    {
+      "type": "attempt",
+      "taskId": "TASK-1",
+      "label": "missing_dependency",
+      "attempt": 1,
+      "timestamp": "2025-10-27T16:18:56.404Z",
+      "runId": "test"
+    },
+    {
+      "type": "attempt",
+      "taskId": "PERF-TEST-99",
+      "label": "missing_dependency",
+      "attempt": 1,
+      "timestamp": "2025-10-27T16:18:53.670Z",
+      "runId": "perf-baseline"
+    },
+    {
+      "type": "attempt",
+      "taskId": "PERF-TEST-98",
+      "label": "missing_dependency",
+      "attempt": 1,
+      "timestamp": "2025-10-27T16:18:53.667Z",
+      "runId": "perf-baseline"
+    },
+    {
+      "type": "attempt",
+      "taskId": "PERF-TEST-97",
+      "label": "missing_dependency",
+      "attempt": 1,
+      "timestamp": "2025-10-27T16:18:53.662Z",
+      "runId": "perf-baseline"
+    },
+    {
+      "type": "attempt",
+      "taskId": "PERF-TEST-96",
+      "label": "missing_dependency",
+      "attempt": 1,
+      "timestamp": "2025-10-27T16:18:53.651Z",
+      "runId": "perf-baseline"
+    },
+    {
+      "type": "attempt",
+      "taskId": "PERF-TEST-95",
+      "label": "missing_dependency",
+      "attempt": 1,
+      "timestamp": "2025-10-27T16:18:53.644Z",
+      "runId": "perf-baseline"
+    },
+    {
+      "type": "attempt",
+      "taskId": "PERF-TEST-94",
+      "label": "missing_dependency",
+      "attempt": 1,
+      "timestamp": "2025-10-27T16:18:53.631Z",
+      "runId": "perf-baseline"
+    },
+    {
+      "type": "attempt",
+      "taskId": "PERF-TEST-93",
+      "label": "missing_dependency",
+      "attempt": 1,
+      "timestamp": "2025-10-27T16:18:53.616Z",
+      "runId": "perf-baseline"
+    },
+    {
+      "type": "attempt",
+      "taskId": "PERF-TEST-92",
+      "label": "missing_dependency",
+      "attempt": 1,
+      "timestamp": "2025-10-27T16:18:53.608Z",
+      "runId": "perf-baseline"
+    },
+    {
+      "type": "attempt",
+      "taskId": "PERF-TEST-91",
+      "label": "missing_dependency",
+      "attempt": 1,
+      "timestamp": "2025-10-27T16:18:53.600Z",
+      "runId": "perf-baseline"
+    },
+    {
+      "type": "attempt",
+      "taskId": "PERF-TEST-90",
+      "label": "missing_dependency",
+      "attempt": 1,
+      "timestamp": "2025-10-27T16:18:53.595Z",
+      "runId": "perf-baseline"
+    },
+    {
+      "type": "attempt",
+      "taskId": "PERF-TEST-89",
+      "label": "missing_dependency",
+      "attempt": 1,
+      "timestamp": "2025-10-27T16:18:53.590Z",
+      "runId": "perf-baseline"
+    },
+    {
+      "type": "attempt",
+      "taskId": "PERF-TEST-88",
+      "label": "missing_dependency",
+      "attempt": 1,
+      "timestamp": "2025-10-27T16:18:53.584Z",
+      "runId": "perf-baseline"
+    },
+    {
+      "type": "attempt",
+      "taskId": "PERF-TEST-87",
+      "label": "missing_dependency",
+      "attempt": 1,
+      "timestamp": "2025-10-27T16:18:53.576Z",
+      "runId": "perf-baseline"
+    },
+    {
+      "type": "attempt",
+      "taskId": "PERF-TEST-86",
+      "label": "missing_dependency",
+      "attempt": 1,
+      "timestamp": "2025-10-27T16:18:53.567Z",
+      "runId": "perf-baseline"
+    },
+    {
+      "type": "attempt",
+      "taskId": "PERF-TEST-85",
+      "label": "missing_dependency",
+      "attempt": 1,
+      "timestamp": "2025-10-27T16:18:53.563Z",
+      "runId": "perf-baseline"
+    },
+    {
+      "type": "attempt",
+      "taskId": "PERF-TEST-84",
+      "label": "missing_dependency",
+      "attempt": 1,
+      "timestamp": "2025-10-27T16:18:53.556Z",
+      "runId": "perf-baseline"
+    },
+    {
+      "type": "attempt",
+      "taskId": "PERF-TEST-83",
+      "label": "missing_dependency",
+      "attempt": 1,
+      "timestamp": "2025-10-27T16:18:53.552Z",
+      "runId": "perf-baseline"
+    },
+    {
+      "type": "attempt",
+      "taskId": "PERF-TEST-82",
+      "label": "missing_dependency",
+      "attempt": 1,
+      "timestamp": "2025-10-27T16:18:53.549Z",
+      "runId": "perf-baseline"
+    },
+    {
+      "type": "attempt",
+      "taskId": "PERF-TEST-81",
+      "label": "missing_dependency",
+      "attempt": 1,
+      "timestamp": "2025-10-27T16:18:53.544Z",
+      "runId": "perf-baseline"
+    },
+    {
+      "type": "attempt",
+      "taskId": "PERF-TEST-80",
+      "label": "missing_dependency",
+      "attempt": 1,
+      "timestamp": "2025-10-27T16:18:53.539Z",
+      "runId": "perf-baseline"
+    },
+    {
+      "type": "attempt",
+      "taskId": "PERF-TEST-79",
+      "label": "missing_dependency",
+      "attempt": 1,
+      "timestamp": "2025-10-27T16:18:53.533Z",
+      "runId": "perf-baseline"
+    },
+    {
+      "type": "attempt",
+      "taskId": "PERF-TEST-78",
+      "label": "missing_dependency",
+      "attempt": 1,
+      "timestamp": "2025-10-27T16:18:53.529Z",
+      "runId": "perf-baseline"
+    },
+    {
+      "type": "attempt",
+      "taskId": "PERF-TEST-77",
+      "label": "missing_dependency",
+      "attempt": 1,
+      "timestamp": "2025-10-27T16:18:53.522Z",
+      "runId": "perf-baseline"
+    },
+    {
+      "type": "attempt",
+      "taskId": "PERF-TEST-76",
+      "label": "missing_dependency",
+      "attempt": 1,
+      "timestamp": "2025-10-27T16:18:53.516Z",
+      "runId": "perf-baseline"
+    },
+    {
+      "type": "attempt",
+      "taskId": "PERF-TEST-75",
+      "label": "missing_dependency",
+      "attempt": 1,
+      "timestamp": "2025-10-27T16:18:53.511Z",
+      "runId": "perf-baseline"
+    },
+    {
+      "type": "attempt",
+      "taskId": "PERF-TEST-74",
+      "label": "missing_dependency",
+      "attempt": 1,
+      "timestamp": "2025-10-27T16:18:53.505Z",
+      "runId": "perf-baseline"
+    },
+    {
+      "type": "attempt",
+      "taskId": "PERF-TEST-73",
+      "label": "missing_dependency",
+      "attempt": 1,
+      "timestamp": "2025-10-27T16:18:53.500Z",
+      "runId": "perf-baseline"
+    },
+    {
+      "type": "attempt",
+      "taskId": "PERF-TEST-72",
+      "label": "missing_dependency",
+      "attempt": 1,
+      "timestamp": "2025-10-27T16:18:53.495Z",
+      "runId": "perf-baseline"
+    },
+    {
+      "type": "attempt",
+      "taskId": "PERF-TEST-71",
+      "label": "missing_dependency",
+      "attempt": 1,
+      "timestamp": "2025-10-27T16:18:53.489Z",
+      "runId": "perf-baseline"
+    },
+    {
+      "type": "attempt",
+      "taskId": "PERF-TEST-70",
+      "label": "missing_dependency",
+      "attempt": 1,
+      "timestamp": "2025-10-27T16:18:53.484Z",
+      "runId": "perf-baseline"
+    },
+    {
+      "type": "attempt",
+      "taskId": "PERF-TEST-69",
+      "label": "missing_dependency",
+      "attempt": 1,
+      "timestamp": "2025-10-27T16:18:53.477Z",
+      "runId": "perf-baseline"
+    },
+    {
+      "type": "attempt",
+      "taskId": "PERF-TEST-68",
+      "label": "missing_dependency",
+      "attempt": 1,
+      "timestamp": "2025-10-27T16:18:53.471Z",
+      "runId": "perf-baseline"
+    },
+    {
+      "type": "attempt",
+      "taskId": "PERF-TEST-67",
+      "label": "missing_dependency",
+      "attempt": 1,
+      "timestamp": "2025-10-27T16:18:53.465Z",
+      "runId": "perf-baseline"
+    },
+    {
+      "type": "attempt",
+      "taskId": "PERF-TEST-66",
+      "label": "missing_dependency",
+      "attempt": 1,
+      "timestamp": "2025-10-27T16:18:53.453Z",
+      "runId": "perf-baseline"
+    },
+    {
+      "type": "attempt",
+      "taskId": "PERF-TEST-65",
+      "label": "missing_dependency",
+      "attempt": 1,
+      "timestamp": "2025-10-27T16:18:53.448Z",
+      "runId": "perf-baseline"
+    },
+    {
+      "type": "attempt",
+      "taskId": "PERF-TEST-64",
+      "label": "missing_dependency",
+      "attempt": 1,
+      "timestamp": "2025-10-27T16:18:53.439Z",
+      "runId": "perf-baseline"
+    },
+    {
+      "type": "attempt",
+      "taskId": "PERF-TEST-63",
+      "label": "missing_dependency",
+      "attempt": 1,
+      "timestamp": "2025-10-27T16:18:53.431Z",
+      "runId": "perf-baseline"
+    },
+    {
+      "type": "attempt",
+      "taskId": "PERF-TEST-62",
+      "label": "missing_dependency",
+      "attempt": 1,
+      "timestamp": "2025-10-27T16:18:53.410Z",
+      "runId": "perf-baseline"
+    },
+    {
+      "type": "attempt",
+      "taskId": "PERF-TEST-61",
+      "label": "missing_dependency",
+      "attempt": 1,
+      "timestamp": "2025-10-27T16:18:53.398Z",
+      "runId": "perf-baseline"
+    },
+    {
+      "type": "attempt",
+      "taskId": "PERF-TEST-60",
+      "label": "missing_dependency",
+      "attempt": 1,
+      "timestamp": "2025-10-27T16:18:53.387Z",
+      "runId": "perf-baseline"
+    },
+    {
+      "type": "attempt",
+      "taskId": "PERF-TEST-59",
+      "label": "missing_dependency",
+      "attempt": 1,
+      "timestamp": "2025-10-27T16:18:53.380Z",
+      "runId": "perf-baseline"
+    },
+    {
+      "type": "attempt",
+      "taskId": "PERF-TEST-58",
+      "label": "missing_dependency",
+      "attempt": 1,
+      "timestamp": "2025-10-27T16:18:53.371Z",
+      "runId": "perf-baseline"
+    },
+    {
+      "type": "attempt",
+      "taskId": "PERF-TEST-57",
+      "label": "missing_dependency",
+      "attempt": 1,
+      "timestamp": "2025-10-27T16:18:53.367Z",
+      "runId": "perf-baseline"
+    },
+    {
+      "type": "attempt",
+      "taskId": "PERF-TEST-56",
+      "label": "missing_dependency",
+      "attempt": 1,
+      "timestamp": "2025-10-27T16:18:53.352Z",
+      "runId": "perf-baseline"
+    },
+    {
+      "type": "attempt",
+      "taskId": "PERF-TEST-55",
+      "label": "missing_dependency",
+      "attempt": 1,
+      "timestamp": "2025-10-27T16:18:53.339Z",
+      "runId": "perf-baseline"
+    },
+    {
+      "type": "attempt",
+      "taskId": "PERF-TEST-54",
+      "label": "missing_dependency",
+      "attempt": 1,
+      "timestamp": "2025-10-27T16:18:53.324Z",
+      "runId": "perf-baseline"
+    },
+    {
+      "type": "attempt",
+      "taskId": "PERF-TEST-53",
+      "label": "missing_dependency",
+      "attempt": 1,
+      "timestamp": "2025-10-27T16:18:53.277Z",
+      "runId": "perf-baseline"
+    }
+  ],
+  "recentlyClosed": []
+}

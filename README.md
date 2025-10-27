@@ -1,5 +1,12 @@
 # WeatherVane
 
+## Documentation
+- **Quick Start**: [claude.md](claude.md) (Claude) · [agent.md](agent.md) (Codex)
+- **Full Index**: [docs/INDEX.md](docs/INDEX.md)
+- **Comprehensive Guide**: [CLAUDE_v1.md](CLAUDE_v1.md) *(v1, migration complete — see [coverage matrix](docs/autopilot/migration/claude_v1_coverage.json))*
+
+---
+
 WeatherVane turns public weather intelligence, your storefront data, and ad platform history into weather-aware budget plans that marketers can approve or auto-push safely.
 
 > **Honesty first:** WeatherVane does not guarantee performance. It analyses your history, today’s forecast, and your guardrails to propose plans with expected ranges and clear assumptions. You choose how changes get applied.

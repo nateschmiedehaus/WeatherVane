@@ -19,6 +19,9 @@ import { EventEmitter } from 'node:events';
 import { logError, logInfo, logWarning } from '../telemetry/logger.js';
 import { withSpan } from '../telemetry/tracing.js';
 
+const ROLLBACK_MONITOR_DISABLED =
+  process.env.WVO_DISABLE_ROLLBACK_MONITOR === '1';
+
 export interface HealthCheckResult {
   timestamp: string;
   ok: boolean;
@@ -57,6 +60,7 @@ export interface RollbackMonitorOptions {
   errorRateThreshold?: number;
   consecutiveFailureThreshold?: number;
   checkWindowSize?: number;
+  disabled?: boolean;
 }
 
 export class RollbackMonitor extends EventEmitter {
@@ -73,6 +77,7 @@ export class RollbackMonitor extends EventEmitter {
   private monitoringStarted: number | null = null;
   private checkTimer: NodeJS.Timeout | null = null;
   private lastRollbackDecision: RollbackDecision | null = null;
+  private readonly disabled: boolean;
 
   constructor(options: RollbackMonitorOptions) {
     super();
@@ -84,6 +89,10 @@ export class RollbackMonitor extends EventEmitter {
     this.errorRateThreshold = options.errorRateThreshold ?? 0.2; // 20%
     this.consecutiveFailureThreshold = options.consecutiveFailureThreshold ?? 2;
     this.checkWindowSize = options.checkWindowSize ?? 5;
+    this.disabled =
+      (options.disabled ?? false) ||
+      ROLLBACK_MONITOR_DISABLED ||
+      !this.liveFlags;
   }
 
   /**
@@ -91,6 +100,13 @@ export class RollbackMonitor extends EventEmitter {
    * Runs for postPromotionGracePeriodMs or until manually stopped.
    */
   async startPostPromotionMonitoring(): Promise<void> {
+    if (this.disabled) {
+      logInfo('Rollback monitor disabled; skipping post-promotion monitoring', {
+        component: 'RollbackMonitor',
+      });
+      return;
+    }
+
     if (this.monitoringActive) {
       logWarning('Monitoring already active, skipping restart', { component: 'RollbackMonitor' });
       return;
@@ -130,6 +146,9 @@ export class RollbackMonitor extends EventEmitter {
    * Stop monitoring and clean up resources.
    */
   stopMonitoring(): void {
+    if (this.disabled) {
+      return;
+    }
     if (this.checkTimer) {
       clearInterval(this.checkTimer);
       this.checkTimer = null;
@@ -364,6 +383,14 @@ export class RollbackMonitor extends EventEmitter {
    * Execute automatic rollback to previous worker.
    */
   private async executeRollback(decision: RollbackDecision): Promise<void> {
+    if (this.disabled) {
+      logInfo('Rollback monitor disabled; skipping automatic rollback', {
+        component: 'RollbackMonitor',
+        reason: decision.reason,
+      });
+      return;
+    }
+
     this.stopMonitoring();
 
     return withSpan('rollback_monitor.execute_rollback', async (span) => {
@@ -419,6 +446,14 @@ export class RollbackMonitor extends EventEmitter {
    * Execute escalation: trigger kill-switch and alert on-call.
    */
   private async executeEscalation(decision: RollbackDecision): Promise<void> {
+    if (this.disabled) {
+      logInfo('Rollback monitor disabled; skipping escalation', {
+        component: 'RollbackMonitor',
+        reason: decision.reason,
+      });
+      return;
+    }
+
     return withSpan('rollback_monitor.execute_escalation', async (span) => {
       try {
         logError('ESCALATION: Setting kill-switch and alerting on-call', {
@@ -456,6 +491,13 @@ export class RollbackMonitor extends EventEmitter {
    * Restores all flags to defaults and reverts to legacy behavior.
    */
   private async triggerKillSwitch(): Promise<void> {
+    if (this.disabled) {
+      logWarning('Kill-switch trigger skipped because rollback monitor is disabled', {
+        component: 'RollbackMonitor',
+      });
+      return;
+    }
+
     try {
       if (!this.liveFlags) {
         logWarning('Live flags not available for kill-switch', { component: 'RollbackMonitor' });

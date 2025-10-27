@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "note": "Migration coverage from CLAUDE.md (v1) to modular docs.",
+  "rows": [
+    {
+      "section_id": "complete",
+      "heading": "Complete Finish Policy",
+      "claude_v1_lines": "78-142",
+      "target_file": "docs/autopilot/Complete-Finish-Policy.md",
+      "anchor": "#no-follow-ups-policy",
+      "migrated": true,
+      "pr": "PR-Phase1",
+      "notes": "Phase 1 deliverable"
+    },
+    {
+      "section_id": "strategize",
+      "heading": "Strategize Stage",
+      "claude_v1_lines": "145-345",
+      "target_file": "docs/autopilot/Strategize-Methodologies.md",
+      "anchor": "#strategize-methodologies",
+      "migrated": false,
+      "pr": "TBD",
+      "notes": "8 methodologies + 9 approaches + 10 RCA frameworks"
+    }
+  ]
+}

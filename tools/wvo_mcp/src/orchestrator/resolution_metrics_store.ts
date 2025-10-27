@@ -72,6 +72,7 @@ export class ResolutionMetricsStore {
   private activeLoops = new Map<string, ActiveLoop>();
   private recentlyClosed: ResolutionClosedEvent[] = [];
   private saveInProgress: Promise<void> | null = null;
+  private readonly ready: Promise<void>;
 
   constructor(workspaceRoot: string) {
     this.filePath = path.join(
@@ -81,7 +82,7 @@ export class ResolutionMetricsStore {
       'resolution_metrics.json'
     );
     this.data = this.createDefaultData();
-    void this.loadInitial();
+    this.ready = this.loadInitial();
   }
 
   private createDefaultData(): ResolutionMetricsData {
@@ -141,6 +142,7 @@ export class ResolutionMetricsStore {
     runId: string;
     label: string;
   }): Promise<void> {
+    await this.ready;
     const timestampMs = Date.parse(params.timestamp);
     const existing = this.activeLoops.get(params.taskId);
     if (existing) {
@@ -191,6 +193,7 @@ export class ResolutionMetricsStore {
     timestamp: string;
     runId: string;
   }): Promise<void> {
+    await this.ready;
     const entry = this.activeLoops.get(params.taskId);
     if (!entry) {
       return;
@@ -231,6 +234,7 @@ export class ResolutionMetricsStore {
     attempt: number;
     timestamp: string;
   }): Promise<void> {
+    await this.ready;
     this.data.stats.incidentCount += 1;
     this.pushRecentEvent({
       type: 'incident',
@@ -252,6 +256,7 @@ export class ResolutionMetricsStore {
   }
 
   private async persist(): Promise<void> {
+    await this.ready;
     if (this.saveInProgress) {
       await this.saveInProgress;
     }

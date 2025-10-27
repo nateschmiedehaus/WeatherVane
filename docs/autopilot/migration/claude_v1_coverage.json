@@ -1,0 +1,105 @@
+{
+  "version": 1,
+  "note": "Migration coverage from CLAUDE.md (v1) to modular docs. Tracks which sections have been successfully migrated to deep-dive documents.",
+  "migration_status": "complete",
+  "phase": "Phase 1 + Phase 2 (combined)",
+  "pr": "Phase1+2-combined",
+  "rows": [
+    {
+      "section_id": "complete_finish",
+      "heading": "Complete Finish Policy / NO FOLLOW-UPS",
+      "claude_v1_lines": "23-47",
+      "target_file": "docs/autopilot/Complete-Finish-Policy.md",
+      "anchor": "#-critical-always-finish-tasks-completely---no-follow-ups",
+      "migrated": true,
+      "pr": "Phase1+2",
+      "notes": "Full 7-rule policy with enforcement, violations, and integration"
+    },
+    {
+      "section_id": "integration_first",
+      "heading": "Integration-First Development Protocol",
+      "claude_v1_lines": "49-269",
+      "target_file": "docs/autopilot/Integration-Verification.md",
+      "anchor": "#integration-first-development",
+      "migrated": true,
+      "pr": "Phase1+2",
+      "notes": "Search→Integrate→Verify protocol with programmatic verification scripts"
+    },
+    {
+      "section_id": "strategize",
+      "heading": "Strategize Stage (Problem-Solving Methodologies)",
+      "claude_v1_lines": "270-438",
+      "target_file": "docs/autopilot/Strategize-Methodologies.md",
+      "anchor": "#strategize-methodologies",
+      "migrated": true,
+      "pr": "Phase1+2",
+      "notes": "8 verification methodologies, 9 problem-solving approaches, 10 RCA frameworks, decision matrix"
+    },
+    {
+      "section_id": "verification",
+      "heading": "Verify Stage (Complete Verification Loop)",
+      "claude_v1_lines": "488-618",
+      "target_file": "docs/autopilot/Verification-Standards.md",
+      "anchor": "#verification-standards",
+      "migrated": true,
+      "pr": "Phase1+2",
+      "notes": "7-stage verification: methodology, build, test, audit, lint, runtime, stress testing"
+    },
+    {
+      "section_id": "stress_testing",
+      "heading": "Stress Testing (Critical Components)",
+      "claude_v1_lines": "543-618",
+      "target_file": "docs/autopilot/Stress-Testing.md",
+      "anchor": "#stress-testing",
+      "migrated": true,
+      "pr": "Phase1+2",
+      "notes": "7 categories with p50/p95/p99 targets, memory thresholds, real examples (ENAMETOOLONG)"
+    },
+    {
+      "section_id": "review",
+      "heading": "Review Stage (Adversarial Review)",
+      "claude_v1_lines": "619-721",
+      "target_file": "docs/autopilot/Adversarial-Review.md",
+      "anchor": "#adversarial-review",
+      "migrated": true,
+      "pr": "Phase1+2",
+      "notes": "Adversarial questioning framework, zero-gaps policy, infinite loop prevention"
+    },
+    {
+      "section_id": "modularization",
+      "heading": "Autonomous Modularization Review Policy",
+      "claude_v1_lines": "722-786",
+      "target_file": "docs/autopilot/Modularization-Policy.md",
+      "anchor": "#autonomous-modularization-review-policy",
+      "migrated": true,
+      "pr": "Phase1+2",
+      "notes": "File >500, Function >100, Class >300 thresholds with mandatory protocol"
+    },
+    {
+      "section_id": "pr_workflow",
+      "heading": "PR (Pull Request Preparation & Git Workflow)",
+      "claude_v1_lines": "787-826",
+      "target_file": "docs/autopilot/PR-Template.md",
+      "anchor": "#pr-template",
+      "migrated": true,
+      "pr": "Phase1+2",
+      "notes": "Git workflow essentials, PR template, best practices"
+    },
+    {
+      "section_id": "universal_test_standards",
+      "heading": "Universal Test Standards (7 Dimensions)",
+      "claude_v1_lines": "521-529",
+      "target_file": "docs/autopilot/UNIVERSAL_TEST_STANDARDS.md",
+      "anchor": "#universal-test-standards",
+      "migrated": true,
+      "pr": "Phase1+2",
+      "notes": "7-dimension test coverage requirements referenced in verification"
+    }
+  ],
+  "summary": {
+    "total_sections": 9,
+    "migrated": 9,
+    "pending": 0,
+    "percentage_complete": 100
+  }
+}
