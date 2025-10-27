@@ -341,10 +341,28 @@ echo ""
 
 # Run the orchestrator with live telemetry (pipe through formatter for human-readable output)
 STREAM_BUFFER="$(mktemp -t wvo_autopilot_stream.XXXXXX)"
-cleanup_stream() {
+ORCHESTRATOR_PID=""
+
+cleanup_on_exit() {
   rm -f "$STREAM_BUFFER"
+
+  # Kill orchestrator process if still running
+  if [ -n "$ORCHESTRATOR_PID" ]; then
+    echo ""
+    echo -e "${YELLOW}Cleaning up orchestrator process (PID $ORCHESTRATOR_PID)...${NC}"
+    kill -- -"$ORCHESTRATOR_PID" 2>/dev/null || kill "$ORCHESTRATOR_PID" 2>/dev/null || true
+    sleep 1
+  fi
+
+  # Run kill_autopilot.sh to ensure cleanup
+  bash "$SCRIPT_DIR/kill_autopilot.sh" 2>/dev/null || true
 }
-trap cleanup_stream EXIT
+
+# Register cleanup handlers
+trap cleanup_on_exit EXIT
+trap cleanup_on_exit SIGINT
+trap cleanup_on_exit SIGTERM
+trap cleanup_on_exit SIGHUP
 
 set +e
 node - <<'NODE_SCRIPT' 2>&1 | tee "$STREAM_BUFFER" | node tools/wvo_mcp/scripts/format_telemetry.mjs

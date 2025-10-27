@@ -24,6 +24,8 @@ import { resolveCodexCliOptions } from '../models/codex_cli.js';
 import { CurrentStateTracker } from '../telemetry/current_state_tracker.js';
 import { logInfo, logWarning, logError, logDebug } from '../telemetry/logger.js';
 
+import { acquireLock, releaseLock, registerCleanupHandlers } from '../utils/pid_file_manager.js';
+import { cleanupChildProcesses } from '../utils/process_cleanup.js';
 
 import { CodeSearchIndex } from '../utils/code_search.js';
 
@@ -539,6 +541,7 @@ export class UnifiedOrchestrator extends EventEmitter {
   private readonly stateGraph: StateGraph;
   private readonly stateGraphEnabled: boolean;
   private readonly runId: string;
+  private readonly pidFilePath: string;
 
   // Continuous pipeline for zero worker idle time
   private taskQueue: Task[] = [];
@@ -754,6 +757,11 @@ export class UnifiedOrchestrator extends EventEmitter {
     });
 
     this.runId = process.env.WVO_RUN_ID ?? `run-${Date.now()}`;
+    this.pidFilePath = path.join(this.config.workspaceRoot, 'state', 'worker_pid');
+
+    // Register cleanup handlers to ensure PID file is deleted on exit
+    registerCleanupHandlers(this.pidFilePath);
+
     this.modelRouter = new ModelRouter({
       workspaceRoot: config.workspaceRoot,
       runId: this.runId,
@@ -936,6 +944,17 @@ export class UnifiedOrchestrator extends EventEmitter {
     if (this.running) {
       logWarning('UnifiedOrchestrator already running');
       return;
+    }
+
+    // Acquire PID file lock to ensure only one autopilot instance runs
+    try {
+      await acquireLock(this.pidFilePath, this.config.workspaceRoot);
+      logInfo('Acquired autopilot PID lock', { pid: process.pid, pidFile: this.pidFilePath });
+    } catch (error) {
+      logError('Failed to acquire PID lock - another autopilot may be running', {
+        error: error instanceof Error ? error.message : String(error),
+      });
+      throw error;
     }
 
     logInfo('Starting UnifiedOrchestrator', {
@@ -1143,6 +1162,16 @@ export class UnifiedOrchestrator extends EventEmitter {
 
     logInfo('Stopping UnifiedOrchestrator');
 
+    // Clean up child processes first (before stopping components)
+    try {
+      logDebug('Cleaning up child processes');
+      await cleanupChildProcesses({ gracefulTimeoutMs: 5000 });
+    } catch (error) {
+      logWarning('Failed to clean up child processes', {
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+
     // Stop health monitor
     logDebug('Stopping health monitor');
     this.healthMonitor.stop();
@@ -1183,6 +1212,16 @@ export class UnifiedOrchestrator extends EventEmitter {
     this.architectureReviewer = undefined;
     this.workers = [];
     this.critics = [];
+
+    // Release PID file lock
+    try {
+      await releaseLock(this.pidFilePath);
+      logDebug('Released autopilot PID lock');
+    } catch (error) {
+      logWarning('Failed to release PID lock', {
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
 
     this.running = false;
     this.emit('stopped');
