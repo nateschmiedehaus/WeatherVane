@@ -8,6 +8,16 @@ CLEANUP_SCRIPT="$ROOT/tools/wvo_mcp/scripts/cleanup_workspace.py"
 
 echo "[restart_mcp] Starting MCP restart at $(date -u +"%Y-%m-%dT%H:%M:%SZ")"
 
+count_mcp_processes() {
+  local matches
+  matches=$(pgrep -f "wvo_mcp/dist" 2>/dev/null || true)
+  if [ -z "$matches" ]; then
+    echo "0"
+    return
+  fi
+  printf '%s\n' "$matches" | wc -l | tr -d '[:space:]'
+}
+
 if [ -x "$CLEANUP_SCRIPT" ]; then
   echo "[restart_mcp] Running workspace cleanup script."
   if ! python "$CLEANUP_SCRIPT"; then
@@ -21,7 +31,7 @@ pkill -f "wvo_mcp/dist" 2>/dev/null || true
 
 # Wait for processes to actually terminate
 for i in {1..10}; do
-  REMAINING=$(pgrep -f "wvo_mcp/dist" 2>/dev/null | wc -l)
+  REMAINING=$(count_mcp_processes)
   if [ "$REMAINING" -gt 0 ]; then
     echo "[restart_mcp] Waiting for $REMAINING processes to terminate..."
     sleep 0.5
@@ -32,7 +42,7 @@ for i in {1..10}; do
 done
 
 # Force kill any stragglers
-REMAINING=$(pgrep -f "wvo_mcp/dist" 2>/dev/null | wc -l)
+REMAINING=$(count_mcp_processes)
 if [ "$REMAINING" -gt 0 ]; then
   echo "[restart_mcp] Force killing $REMAINING stubborn processes..."
   pkill -9 -f "wvo_mcp/dist" 2>/dev/null || true
@@ -40,7 +50,7 @@ if [ "$REMAINING" -gt 0 ]; then
 fi
 
 # Final verification: Ensure ALL processes are dead
-FINAL_COUNT=$(pgrep -f "wvo_mcp/dist" 2>/dev/null | wc -l)
+FINAL_COUNT=$(count_mcp_processes)
 if [ "$FINAL_COUNT" -gt 0 ]; then
   echo "[restart_mcp] ERROR: Failed to kill all processes. $FINAL_COUNT remaining:" >&2
   ps aux | grep "wvo_mcp/dist" | grep -v grep >&2
