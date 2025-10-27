@@ -5,9 +5,10 @@
  * This is the most complex runner due to multiple validation paths.
  */
 
+import { runResolution, type ResolutionResult } from '../resolution_engine.js';
 import type { Verifier, VerifierResult } from '../verifier.js';
 import type { IntegrityReport, ChangedFile } from '../verify_integrity.js';
-import { runResolution, type ResolutionResult } from '../resolution_engine.js';
+
 import type { RunnerContext, RunnerResult } from './runner_types.js';
 
 export interface VerifyRunnerDeps {

@@ -2,6 +2,7 @@ import { spawn } from 'node:child_process';
 import { once } from 'node:events';
 import fs from 'node:fs';
 import path from 'node:path';
+
 import { logInfo, logWarning } from '../telemetry/logger.js';
 
 export interface SmokeCommandResult {

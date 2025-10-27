@@ -13,7 +13,9 @@
 
 import { readFileSync, writeFileSync, existsSync } from 'fs';
 import { join } from 'path';
+
 import * as yaml from 'js-yaml';
+
 import { logInfo, logWarning } from '../telemetry/logger.js';
 
 interface Task {

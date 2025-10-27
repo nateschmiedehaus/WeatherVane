@@ -1,8 +1,8 @@
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
+
 import { logInfo, logWarning } from '../telemetry/logger.js';
-import type { VerifierResult } from './verifier.js';
-import type { IntegrityReport } from './verify_integrity.js';
+
 import {
   BlockerLabel,
   FailureSignals,
@@ -15,6 +15,8 @@ import {
   describeEvidenceExpectation,
   getBlockerProfile,
 } from './blocker_taxonomy.js';
+import type { VerifierResult } from './verifier.js';
+import type { IntegrityReport } from './verify_integrity.js';
 
 export interface ResolutionStep {
   cause_hypothesis: string;

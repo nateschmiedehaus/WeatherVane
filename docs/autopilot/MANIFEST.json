@@ -1,6 +1,6 @@
 {
   "version": "v2025-10-25",
-  "generated_at": "2025-10-26T19:46:18.773Z",
+  "generated_at": "2025-10-26T20:35:23.390Z",
   "components": [
     {
       "id": "state-graph",
@@ -8,7 +8,7 @@
       "code_refs": [
         {
           "path": "tools/wvo_mcp/src/orchestrator/state_graph.ts",
-          "sha256": "b2c803f3643a7ea34e69e2e914d684a804c8704e39b8e974d8fe4faee25b82fb"
+          "sha256": "8521cc3684a719a57163fa94184fdfc92cbfad1287c25466e77fa70e4984b6cc"
         }
       ],
       "doc_refs": [

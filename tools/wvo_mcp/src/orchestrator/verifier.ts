@@ -1,5 +1,10 @@
-import { execa } from 'execa';
+import { execSync } from 'node:child_process';
+
+import { execa, type ExecaChildProcess } from 'execa';
+
 import { logInfo, logWarning } from '../telemetry/logger.js';
+
+import type { ProcessManager, ProcessHandle } from './process_manager.js';
 import type { TaskEnvelope } from './task_envelope.js';
 import type { ChangedFile } from './verify_integrity.js';
 import { verifyIntegrity } from './verify_integrity.js';
@@ -22,6 +27,7 @@ export interface ToolRunner {
 export interface ShellToolRunnerOptions {
   workspaceRoot: string;
   commands: Record<string, string>;
+  processManager?: ProcessManager;
 }
 
 export class ShellToolRunner implements ToolRunner {
@@ -35,15 +41,94 @@ export class ShellToolRunner implements ToolRunner {
         output: `No command configured for gate ${toolName}`,
       };
     }
+    const taskId = typeof input.taskId === 'string' ? input.taskId : 'unknown';
+    const processManager = this.options.processManager;
+    const useProcessGroup = Boolean(processManager) && process.platform !== 'win32';
+    let processHandle: ProcessHandle | undefined;
+    let killTimer: NodeJS.Timeout | undefined;
+    let subprocess: ExecaChildProcess | undefined;
+
+    const registerProcess = () => {
+      if (!processManager || !subprocess?.pid) {
+        return;
+      }
+
+      const pid = subprocess.pid;
+      const killProcess = () => {
+        try {
+          subprocess?.kill('SIGTERM', { forceKillAfterTimeout: 5000 });
+        } catch {}
+
+        if (process.platform === 'win32') {
+          try {
+            execSync(`taskkill /PID ${pid} /T /F`, { stdio: 'ignore' });
+          } catch (error) {
+            logWarning('Failed to terminate gate command on Windows', {
+              pid,
+              toolName,
+              error: error instanceof Error ? error.message : String(error),
+            });
+          }
+          return;
+        }
+
+        if (useProcessGroup) {
+          try {
+            process.kill(-pid, 'SIGTERM');
+          } catch (error) {
+            const err = error as NodeJS.ErrnoException;
+            if (err.code !== 'ESRCH') {
+              logWarning('Failed to signal gate process group', {
+                pid,
+                toolName,
+                error: err.message,
+              });
+            }
+          }
+
+          killTimer = setTimeout(() => {
+            try {
+              process.kill(-pid, 'SIGKILL');
+            } catch (error) {
+              const err = error as NodeJS.ErrnoException;
+              if (err.code !== 'ESRCH') {
+                logWarning('Failed to force kill gate process group', {
+                  pid,
+                  toolName,
+                  error: err.message,
+                });
+              }
+            }
+          }, 5000);
+        }
+      };
+
+      processHandle = {
+        pid,
+        taskId,
+        provider: 'shell',
+        model: `gate:${toolName}`,
+        startTime: Date.now(),
+        kill: killProcess,
+      };
+
+      processManager.registerProcess(processHandle);
+    };
+
     try {
-      const { stdout, stderr } = await execa(command, {
+      subprocess = execa(command, {
         cwd: this.options.workspaceRoot,
         shell: true,
+        detached: useProcessGroup,
         env: {
           ...process.env,
-          TASK_ID: typeof input.taskId === 'string' ? input.taskId : undefined,
+          TASK_ID: taskId !== 'unknown' ? taskId : undefined,
         },
       });
+
+      registerProcess();
+
+      const { stdout, stderr } = await subprocess;
       const output = [stdout, stderr].filter(Boolean).join('\n').trim();
       return {
         success: true,
@@ -59,6 +144,13 @@ export class ShellToolRunner implements ToolRunner {
         success: false,
         output: combined.trim(),
       };
+    } finally {
+      if (killTimer) {
+        clearTimeout(killTimer);
+      }
+      if (processManager && processHandle) {
+        processManager.unregisterProcess(processHandle.pid);
+      }
     }
   }
 }

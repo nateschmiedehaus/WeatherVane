@@ -16,22 +16,36 @@ if [ -x "$CLEANUP_SCRIPT" ]; then
 fi
 
 echo "[restart_mcp] Stopping existing MCP workers (if any)."
-pkill -f "tools/wvo_mcp/dist/index.js" 2>/dev/null || true
-pkill -f "tools/wvo_mcp/dist/index-claude.js" 2>/dev/null || true
-pkill -f "tools/wvo_mcp/dist/worker/worker_entry.js" 2>/dev/null || true
+# Use broader pattern to match all variations (full paths, partial paths)
+pkill -f "wvo_mcp/dist" 2>/dev/null || true
 
 # Wait for processes to actually terminate
 for i in {1..10}; do
-  if pgrep -f "tools/wvo_mcp/dist/index.js" >/dev/null 2>&1; then
+  REMAINING=$(pgrep -f "wvo_mcp/dist" 2>/dev/null | wc -l)
+  if [ "$REMAINING" -gt 0 ]; then
+    echo "[restart_mcp] Waiting for $REMAINING processes to terminate..."
     sleep 0.5
   else
+    echo "[restart_mcp] All processes terminated gracefully."
     break
   fi
 done
 
 # Force kill any stragglers
-pkill -9 -f "tools/wvo_mcp/dist/index.js" 2>/dev/null || true
-sleep 1
+REMAINING=$(pgrep -f "wvo_mcp/dist" 2>/dev/null | wc -l)
+if [ "$REMAINING" -gt 0 ]; then
+  echo "[restart_mcp] Force killing $REMAINING stubborn processes..."
+  pkill -9 -f "wvo_mcp/dist" 2>/dev/null || true
+  sleep 1
+fi
+
+# Final verification: Ensure ALL processes are dead
+FINAL_COUNT=$(pgrep -f "wvo_mcp/dist" 2>/dev/null | wc -l)
+if [ "$FINAL_COUNT" -gt 0 ]; then
+  echo "[restart_mcp] ERROR: Failed to kill all processes. $FINAL_COUNT remaining:" >&2
+  ps aux | grep "wvo_mcp/dist" | grep -v grep >&2
+  exit 1
+fi
 
 echo "[restart_mcp] Rebuilding MCP distribution."
 npm run build --prefix "$ROOT/tools/wvo_mcp" >/dev/null

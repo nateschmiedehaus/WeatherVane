@@ -20,11 +20,14 @@
 
 import * as fs from 'fs/promises';
 import * as path from 'path';
+
 import { execa } from 'execa';
-import type { Task } from './state_machine.js';
+
 import { logDebug, logError, logInfo } from '../telemetry/logger.js';
 import { VerificationTelemetryLogger, createVerificationEntry } from '../telemetry/verification_telemetry.js';
+
 import { EvidenceBundleGenerator } from './evidence_bundle.js';
+import type { Task } from './state_machine.js';
 
 export interface VerificationCheck {
   name: string;

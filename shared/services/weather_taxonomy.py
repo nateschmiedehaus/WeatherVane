@@ -100,7 +100,9 @@ class WeatherTaxonomyClassifier(ProductTaxonomyClassifier):
             return None
 
         try:
-            weather_signals = base_result.raw_payload.get("weather_signals", {})
+            weather_signals = base_result.raw_payload.get("weather_signals")
+            if not weather_signals:
+                return None
             return WeatherTaxonomyResult.from_llm_result(base_result, weather_signals)
         except Exception:
             self.logger.exception("Failed to extract weather taxonomy signals")
@@ -110,7 +112,7 @@ class WeatherTaxonomyClassifier(ProductTaxonomyClassifier):
         self,
         records: Sequence[ProductSourceRecord],
         *,
-        combined_text: str | None
+        combined_text: str | None = None
     ) -> str:
         """Override to use weather-specific prompting"""
         lines: List[str] = [WEATHER_EXAMPLE, "### Task", "Catalog records:"]

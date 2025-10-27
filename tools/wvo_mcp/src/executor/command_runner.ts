@@ -1,9 +1,9 @@
 import { execa } from "execa";
 
+import { withSpan } from "../telemetry/tracing.js";
 import type { CommandResult } from "../utils/types.js";
 
 import { ensureAllowedCommand, ensureCommandSafe } from "./guardrails.js";
-import { withSpan } from "../telemetry/tracing.js";
 
 export async function runCommand(
   cmd: string,

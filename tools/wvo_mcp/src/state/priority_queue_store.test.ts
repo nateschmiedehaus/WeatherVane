@@ -1,9 +1,13 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { promises as fs } from "node:fs";
-import path from "node:path";
 import os from "node:os";
-import { PriorityQueueStore } from "./priority_queue_store.js";
+import path from "node:path";
+
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
+
 import type { HeavyTaskQueueItem } from "../utils/types.js";
+
+import { PriorityQueueStore } from "./priority_queue_store.js";
+
 
 describe("PriorityQueueStore", () => {
   let tempDir: string;

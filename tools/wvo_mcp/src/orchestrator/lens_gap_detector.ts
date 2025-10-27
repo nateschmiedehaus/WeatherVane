@@ -12,10 +12,12 @@
  * See: docs/MISSING_OBJECTIVES_ANALYSIS.md
  */
 
-import { SevenLensEvaluator } from './seven_lens_evaluator.js';
-import { logInfo, logDebug, logWarning } from '../telemetry/logger.js';
 import { readFileSync, writeFileSync, existsSync } from 'fs';
 import { join } from 'path';
+
+import { logInfo, logDebug, logWarning } from '../telemetry/logger.js';
+
+import { SevenLensEvaluator } from './seven_lens_evaluator.js';
 
 interface Task {
   id: string;

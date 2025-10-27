@@ -1,7 +1,7 @@
-import type { Task } from './state_machine.js';
-import type { ImplementerAgentResult } from './implementer_agent.js';
-import type { VerifierResult, GateResult } from './verifier.js';
 import type { TaskEvidence } from './adversarial_bullshit_detector.js';
+import type { ImplementerAgentResult } from './implementer_agent.js';
+import type { Task } from './state_machine.js';
+import type { VerifierResult, GateResult } from './verifier.js';
 
 const DOC_PATTERN = /(^(docs|docs\/)|\.md$|\.rst$|\/README\.md$)/i;
 

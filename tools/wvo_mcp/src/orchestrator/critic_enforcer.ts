@@ -2,11 +2,12 @@ import path from "node:path";
 
 import type { CriticResult } from "../critics/base.js";
 import { flattenTasks } from "../planner/roadmap_parser.js";
-import type { StateMachine } from "./state_machine.js";
+import { CRITIC_KEYS, SessionContext, type CriticKey } from "../session.js";
 import { RoadmapStore } from "../state/roadmap_store.js";
 import { logInfo, logWarning } from "../telemetry/logger.js";
-import { CRITIC_KEYS, SessionContext, type CriticKey } from "../session.js";
+
 import { taskToPlanSummary } from "./roadmap_adapter.js";
+import type { StateMachine } from "./state_machine.js";
 
 interface CriticEnforcementResult {
   required: CriticKey[];

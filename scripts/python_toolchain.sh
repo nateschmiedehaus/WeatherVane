@@ -93,5 +93,6 @@ for candidate in "${parsed[@]}"; do
 done
 if [[ -n "${selected}" ]]; then
   emit "${selected}"
+else
+  emit "python3"
 fi
-emit "python3"

@@ -5,6 +5,7 @@
  */
 
 import type { ThinkerAgent } from '../thinker_agent.js';
+
 import type { RunnerContext, RunnerResult } from './runner_types.js';
 
 export interface ThinkerRunnerDeps {

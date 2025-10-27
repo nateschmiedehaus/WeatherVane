@@ -1,4 +1,5 @@
 import path from 'node:path';
+
 import { logWarning } from '../telemetry/logger.js';
 
 export type BlockerLabel =

@@ -7,9 +7,11 @@
  *  - Dirty-worktree alerts that can feed policy escalations.
  */
 
-import path from 'node:path';
 import { promises as fs } from 'node:fs';
+import path from 'node:path';
+
 import { execa } from 'execa';
+
 import { logInfo, logWarning, logDebug } from '../telemetry/logger.js';
 
 export interface GitStatusSnapshot {

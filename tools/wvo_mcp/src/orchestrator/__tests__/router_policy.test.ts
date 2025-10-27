@@ -1,7 +1,9 @@
-import { describe, expect, it, afterEach } from 'vitest';
 import { mkdtemp, rm, writeFile } from 'node:fs/promises';
-import path from 'node:path';
 import { tmpdir } from 'node:os';
+import path from 'node:path';
+
+import { describe, expect, it, afterEach } from 'vitest';
+
 import { loadRouterPolicy } from '../router_policy.js';
 
 const tmpRoot = path.join(tmpdir(), 'router-policy-');

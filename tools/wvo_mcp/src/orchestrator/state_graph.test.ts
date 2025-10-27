@@ -1,21 +1,24 @@
 import path from 'node:path';
-import { describe, expect, it, vi } from 'vitest';
-import type { ContextAssembler } from '../context/context_assembler.js';
 
-import { PlannerAgent } from './planner_agent.js';
-import { ThinkerAgent } from './thinker_agent.js';
-import { ImplementerAgent } from './implementer_agent.js';
-import { Verifier, type ToolRunner } from './verifier.js';
-import { ReviewerAgent } from './reviewer_agent.js';
-import { CriticalAgent } from './critical_agent.js';
-import { SupervisorAgent } from './supervisor.js';
-import { StateGraph } from './state_graph.js';
-import type { ModelRouter, ModelSelection } from './model_router.js';
-import { ComplexityRouter } from './complexity_router.js';
-import { RunEphemeralMemory } from '../memory/run_ephemeral.js';
+import { describe, expect, it, vi } from 'vitest';
+
+import type { ContextAssembler } from '../context/context_assembler.js';
+import { DecisionJournal } from '../memory/decision_journal.js';
 import { KnowledgeBaseResources } from '../memory/kb_resources.js';
 import { ProjectIndex } from '../memory/project_index.js';
-import { DecisionJournal } from '../memory/decision_journal.js';
+import { RunEphemeralMemory } from '../memory/run_ephemeral.js';
+
+import { ComplexityRouter } from './complexity_router.js';
+import { CriticalAgent } from './critical_agent.js';
+import { ImplementerAgent } from './implementer_agent.js';
+import type { ModelRouter, ModelSelection } from './model_router.js';
+import { PlannerAgent } from './planner_agent.js';
+import { ReviewerAgent } from './reviewer_agent.js';
+import { SupervisorAgent } from './supervisor.js';
+import { ThinkerAgent } from './thinker_agent.js';
+import { Verifier, type ToolRunner } from './verifier.js';
+import { StateGraph } from './state_graph.js';
+
 
 type ContextEmitFn = OmitThisParameter<ContextAssembler['emit']>;
 type ContextEmitArgs = Parameters<ContextEmitFn>;

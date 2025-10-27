@@ -6,6 +6,7 @@
  */
 
 import path from 'node:path';
+
 import type { Task } from './state_machine.js';
 
 interface HistoricalEntry {

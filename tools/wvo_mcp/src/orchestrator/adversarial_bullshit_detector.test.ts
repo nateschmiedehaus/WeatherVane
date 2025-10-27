@@ -2,9 +2,11 @@
  * Tests for AdversarialBullshitDetector
  */
 
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
+
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+
 import { AdversarialBullshitDetector, type TaskEvidence } from './adversarial_bullshit_detector.js';
 
 describe('AdversarialBullshitDetector', () => {

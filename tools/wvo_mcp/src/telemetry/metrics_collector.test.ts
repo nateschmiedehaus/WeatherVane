@@ -1,7 +1,11 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { promises as fs } from 'node:fs';
-import path from 'node:path';
 import os from 'node:os';
+import path from 'node:path';
+
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+
+import type { TaskEnvelope } from '../orchestrator/task_envelope.js';
+
 import {
   MetricsCollector,
   inferTaskType,
@@ -11,7 +15,7 @@ import {
   type LearningMetrics,
   type SystemHealthMetrics,
 } from './metrics_collector.js';
-import type { TaskEnvelope } from '../orchestrator/task_envelope.js';
+
 
 describe('inferTaskType', () => {
   it('infers feature type from label with high confidence', () => {

@@ -8,7 +8,8 @@
     "test": "node tools/oss_autopilot/scripts/run_vitest.mjs --run || (echo \"[fallback] rerunning vitest with verbose logs\" && npm_config_loglevel=verbose node tools/oss_autopilot/scripts/run_vitest.mjs --run)",
     "test:autopilot": "node tools/oss_autopilot/scripts/run_vitest.mjs --run --scope=autopilot",
     "test:web": "node tools/oss_autopilot/scripts/run_vitest.mjs --run --scope=web",
-    "test:ci": "CI=1 node tools/oss_autopilot/scripts/run_vitest.mjs --run"
+    "test:ci": "CI=1 node tools/oss_autopilot/scripts/run_vitest.mjs --run",
+    "observability": "node --loader tsx tools/wvo_mcp/scripts/start_observability.ts"
   },
   "devDependencies": {
     "tsx": "^4.11.0",

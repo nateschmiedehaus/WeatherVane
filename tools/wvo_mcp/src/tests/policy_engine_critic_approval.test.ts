@@ -9,6 +9,7 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
+
 import { PolicyEngine, CriticApprovalStatus } from '../orchestrator/policy_engine.js';
 import type { StateMachine } from '../orchestrator/state_machine.js';
 

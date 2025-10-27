@@ -8,13 +8,15 @@
  */
 
 import { EventEmitter } from 'node:events';
-import type { TaskComplexity } from './unified_orchestrator.js';
-import type { Task } from './state_machine.js';
-import { logDebug, logInfo, logWarning } from '../telemetry/logger.js';
+
 import { SubscriptionLimitTracker } from '../limits/subscription_tracker.js';
 import { UsageEstimator } from '../limits/usage_estimator.js';
+import { logDebug, logInfo, logWarning } from '../telemetry/logger.js';
 import { resolveWorkspaceRoot } from '../utils/config.js';
+
+import type { Task } from './state_machine.js';
 import { isArchitectureTask, isArchitectureReviewTask } from './task_characteristics.js';
+import type { TaskComplexity } from './unified_orchestrator.js';
 
 // Compatibility exports for other files that depend on old agent_pool.ts
 export type AgentType = 'claude_code' | 'codex';

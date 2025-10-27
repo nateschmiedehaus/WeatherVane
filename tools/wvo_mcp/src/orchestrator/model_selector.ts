@@ -1,11 +1,12 @@
-import type { Task } from './state_machine.js';
-import type { AssembledContext } from './context_assembler.js';
 import type { ModelManager } from '../models/model_manager.js';
+
+import type { AssembledContext } from './context_assembler.js';
 import {
   inferReasoningRequirement,
   type ReasoningDecision,
   type ReasoningLevel,
 } from './reasoning_classifier.js';
+import type { Task } from './state_machine.js';
 
 export interface CodexPresetPerformance {
   sampleSize: number;

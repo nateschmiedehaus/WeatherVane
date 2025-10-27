@@ -1,4 +1,5 @@
 import path from 'path';
+
 import { SafeCodeSearchIndex } from '../utils/safe_code_search';
 
 let searchIndex: SafeCodeSearchIndex | null = null;

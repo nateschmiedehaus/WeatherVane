@@ -9,11 +9,14 @@
  * 5. Prevents restart loops with rollback protection
  */
 
-import { EventEmitter } from 'node:events';
 import { randomUUID } from 'node:crypto';
+import { EventEmitter } from 'node:events';
+
 import { execa } from 'execa';
-import type { StateMachine, Task } from './state_machine.js';
+
 import { logInfo, logWarning, logError } from '../telemetry/logger.js';
+
+import type { StateMachine, Task } from './state_machine.js';
 
 // Files that require restart when modified
 const ORCHESTRATOR_PATHS = [

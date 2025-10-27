@@ -1,6 +1,6 @@
-import { logError, logInfo } from '../telemetry/logger.js';
-import type { LiveFlagsReader } from '../state/live_flags.js';
 import { FeatureGates, type FeatureGatesReader } from '../orchestrator/feature_gates.js';
+import type { LiveFlagsReader } from '../state/live_flags.js';
+import { logError, logInfo } from '../telemetry/logger.js';
 
 // Manually define types to avoid hard dependency on @types/playwright
 export type Page = {

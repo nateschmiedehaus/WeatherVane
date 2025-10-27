@@ -10,8 +10,9 @@
 
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
-import { logInfo, logWarning, logError } from '../telemetry/logger.js';
+
 import { assertRouterEntry, assertRouterProvider } from '../orchestrator/router_lock.js';
+import { logInfo, logWarning, logError } from '../telemetry/logger.js';
 
 export interface ModelCost {
   input: number; // Cost per million tokens (input)

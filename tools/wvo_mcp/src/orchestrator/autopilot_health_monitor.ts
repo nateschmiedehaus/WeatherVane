@@ -14,11 +14,13 @@
  * - ACT: Execute fixes safely without disrupting running work
  */
 
-import type { StateMachine, Task } from './state_machine.js';
-import type { AgentPool } from './agent_pool.js';
-import { logInfo, logWarning, logError, logDebug } from '../telemetry/logger.js';
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
+
+import { logInfo, logWarning, logError, logDebug } from '../telemetry/logger.js';
+
+import type { AgentPool } from './agent_pool.js';
+import type { StateMachine, Task } from './state_machine.js';
 
 export interface HealthMetrics {
   timestamp: number;

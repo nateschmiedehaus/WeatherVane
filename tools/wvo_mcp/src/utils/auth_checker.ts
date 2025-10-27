@@ -7,6 +7,7 @@ import { promises as fs, existsSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { promisify } from "util";
+
 import { logError, logInfo, logWarning } from "../telemetry/logger.js";
 
 const execAsync = promisify(exec);

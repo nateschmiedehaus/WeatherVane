@@ -5,9 +5,9 @@
  * Evidence bundles provide objective proof that work was completed to world-class standards.
  */
 
+import { execSync } from 'child_process';
 import * as fs from 'fs/promises';
 import * as path from 'path';
-import { execSync } from 'child_process';
 
 export interface VerificationCommand {
   name: string;

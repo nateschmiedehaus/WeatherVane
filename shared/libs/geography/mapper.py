@@ -143,12 +143,12 @@ class GeographyMapper:
             return resolution
 
         county_fips = self._resolve_county(longitude, latitude)
+        fallback_reason: Optional[str] = None
         if county_fips and county_fips in self._county_crosswalk:
             row = self._county_crosswalk[county_fips]
 
             # Try DMA level first (preferred)
             dma_eligible = False
-            fallback_reason = None
             if self._geocoded_ratio is not None and self._weather_coverage is not None:
                 if self._geocoded_ratio < DMA_MIN_GEOCODED_RATIO:
                     fallback_reason = "dma_geocoded_ratio_below_threshold"
@@ -185,18 +185,19 @@ class GeographyMapper:
 
         if state_abbr:
             # Try state level if DMA level wasn't eligible or state level meets thresholds
-            state_eligible = False
-            state_fallback_reason = None
+            state_eligible = True
+            state_fallback_reason: Optional[str] = None
 
             if self._geocoded_ratio is not None and self._weather_coverage is not None:
-                if self._geocoded_ratio < STATE_MIN_GEOCODED_RATIO:
+                allow_dma_ratio_override = (
+                    fallback_reason == "dma_geocoded_ratio_below_threshold"
+                    and self._weather_coverage >= STATE_MIN_WEATHER_COVERAGE
+                )
+                if self._geocoded_ratio < STATE_MIN_GEOCODED_RATIO and not allow_dma_ratio_override:
+                    state_eligible = False
                     state_fallback_reason = "state_geocoded_ratio_below_threshold"
-                elif self._weather_coverage < STATE_MIN_WEATHER_COVERAGE:
+                elif state_eligible and self._weather_coverage < STATE_MIN_WEATHER_COVERAGE:
                     state_fallback_reason = "state_weather_coverage_below_threshold"
-                else:
-                    state_eligible = True
-            else:
-                state_eligible = True  # No coverage info, try state by default
 
             if state_eligible:
                 resolution = GeographyResolution(
@@ -214,6 +215,8 @@ class GeographyMapper:
             else:
                 # If state level isn't eligible either, fall back to global
                 resolution = self._global(key, state_fallback_reason)
+                self._cache[key] = resolution
+                return resolution
 
         resolution = self._global(key)
         self._cache[key] = resolution

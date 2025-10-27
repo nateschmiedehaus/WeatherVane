@@ -9,11 +9,12 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+
 import { OrchestratorLoop } from '../orchestrator/orchestrator_loop.js';
-import { StateMachine } from '../orchestrator/state_machine.js';
-import { TaskScheduler } from '../orchestrator/task_scheduler.js';
 import { QualityMonitor } from '../orchestrator/quality_monitor.js';
+import { StateMachine } from '../orchestrator/state_machine.js';
 import type { Task } from '../orchestrator/state_machine.js';
+import { TaskScheduler } from '../orchestrator/task_scheduler.js';
 
 describe('OrchestratorLoop - Critic Approval Integration', () => {
   let stateMachine: StateMachine;

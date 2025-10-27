@@ -11,11 +11,14 @@
  * Philosophy: Call the APIs, don't just read the OpenAPI spec
  */
 
-import { Critic, type CriticResult } from "./base.js";
+import { spawn, type ChildProcess } from "node:child_process";
 import { promises as fs } from "node:fs";
 import path from "node:path";
+
 import { logInfo, logWarning, logError } from "../telemetry/logger.js";
-import { spawn, type ChildProcess } from "node:child_process";
+
+import { Critic, type CriticResult } from "./base.js";
+
 
 export interface APITrace {
   endpoint: string;

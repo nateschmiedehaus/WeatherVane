@@ -1,23 +1,23 @@
-import fs from 'node:fs';
-import path from 'node:path';
-import { promises as fsp } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { EventEmitter } from 'node:events';
+import fs, { promises as fsp } from 'node:fs';
+import path from 'node:path';
 
 import { logWarning } from '../telemetry/logger.js';
-import type { StateMachine, Task, TaskStatus } from './state_machine.js';
-import type { TaskScheduler } from './task_scheduler.js';
+
+import type {
+  AgentCoordinator,
+  ExecutionLifecycleEvent,
+  ExecutionSummary,
+} from './agent_coordinator.js';
 import type {
   Agent,
   AgentPool,
   TaskAssignmentEventPayload,
 } from './agent_pool.js';
 import type { OperationsManager } from './operations_manager.js';
-import type {
-  AgentCoordinator,
-  ExecutionLifecycleEvent,
-  ExecutionSummary,
-} from './agent_coordinator.js';
+import type { StateMachine, Task, TaskStatus } from './state_machine.js';
+import type { TaskScheduler } from './task_scheduler.js';
 
 interface ActivityFeedWriterConfig {
   workspaceRoot: string;

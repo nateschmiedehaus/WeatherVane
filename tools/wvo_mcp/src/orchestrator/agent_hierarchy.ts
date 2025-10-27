@@ -17,6 +17,7 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
+
 import type { Task } from './state_machine.js';
 
 export type AgentRole = 'atlas' | 'director_dana' | 'worker' | 'critic';

@@ -13,14 +13,16 @@
  * Run with: npm test autopilot_decomposition_integration.test.ts
  */
 
+import fs from 'node:fs/promises';
+import os from 'node:os';
+import path from 'node:path';
+
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import type { TestContext } from 'vitest';
+
 import { StateMachine, Task } from '../orchestrator/state_machine.js';
 import { TaskDecomposer } from '../orchestrator/task_decomposer.js';
 import { UnifiedOrchestrator } from '../orchestrator/unified_orchestrator.js';
-import path from 'node:path';
-import os from 'node:os';
-import fs from 'node:fs/promises';
 
 type TaskInit = Omit<Task, 'created_at'> & Partial<Pick<Task, 'created_at'>>;
 

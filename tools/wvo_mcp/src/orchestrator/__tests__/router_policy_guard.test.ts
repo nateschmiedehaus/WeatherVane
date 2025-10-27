@@ -1,5 +1,6 @@
-import path from 'node:path';
 import { promises as fs } from 'node:fs';
+import path from 'node:path';
+
 import { describe, it, expect } from 'vitest';
 
 const HARD_CODED_MODEL_PATTERN = /\b(gpt-[\w.-]+|claude[\w.-]*|sonnet[\w.-]*|haiku[\w.-]*|gemini[\w.-]*|grok[\w.-]*)\b/i;

@@ -1,6 +1,6 @@
-import path from 'node:path';
-import { promises as fs } from 'node:fs';
 import crypto from 'node:crypto';
+import { promises as fs } from 'node:fs';
+import path from 'node:path';
 
 export interface Anchor {
   kind: 'code' | 'test' | 'kb' | 'decision' | 'artifact';

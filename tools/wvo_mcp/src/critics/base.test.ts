@@ -9,8 +9,9 @@ vi.mock("../executor/command_runner.js", () => ({
 }));
 
 import { runCommand } from "../executor/command_runner.js";
-import { Critic } from "./base.js";
 import type { Task, TaskStatus } from "../orchestrator/state_machine.js";
+
+import { Critic } from "./base.js";
 
 class MockStateMachine {
   public tasks: Task[] = [];

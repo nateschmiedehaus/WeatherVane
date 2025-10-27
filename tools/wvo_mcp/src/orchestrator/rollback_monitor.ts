@@ -15,8 +15,9 @@
  */
 
 import { EventEmitter } from 'node:events';
-import { withSpan } from '../telemetry/tracing.js';
+
 import { logError, logInfo, logWarning } from '../telemetry/logger.js';
+import { withSpan } from '../telemetry/tracing.js';
 
 export interface HealthCheckResult {
   timestamp: string;

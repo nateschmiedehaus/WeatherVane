@@ -10,9 +10,11 @@
 
 import { exec } from 'child_process';
 import { promisify } from 'util';
-import { logInfo, logWarning, logError } from '../telemetry/logger.js';
-import { ModelRegistry, type ProviderModels, type ClaudeModel, type CodexModel } from './model_registry.js';
+
 import { assertRouterEntry, assertRouterProvider } from '../orchestrator/router_lock.js';
+import { logInfo, logWarning, logError } from '../telemetry/logger.js';
+
+import { ModelRegistry, type ProviderModels, type ClaudeModel, type CodexModel } from './model_registry.js';
 
 const execAsync = promisify(exec);
 

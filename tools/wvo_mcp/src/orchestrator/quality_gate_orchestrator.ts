@@ -19,10 +19,13 @@
 
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
+
+import yaml from 'yaml';
+
 import { logInfo, logWarning, logError } from '../telemetry/logger.js';
+
 import { AdversarialBullshitDetector, type TaskEvidence, type BullshitReport } from './adversarial_bullshit_detector.js';
 import { DomainExpertReviewer, type MultiDomainReview, type ModelRouter } from './domain_expert_reviewer.js';
-import yaml from 'yaml';
 
 export type ModelTier = 'FAST' | 'STANDARD' | 'POWERFUL';
 

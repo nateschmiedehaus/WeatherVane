@@ -1,7 +1,10 @@
-import path from 'node:path';
 import { promises as fs } from 'node:fs';
-import type { StateMachine, Task } from './state_machine.js';
+import path from 'node:path';
+
 import { logInfo, logWarning, logDebug } from '../telemetry/logger.js';
+
+import type { StateMachine, Task } from './state_machine.js';
+
 
 interface RoadmapInboxEntry {
   id: string;

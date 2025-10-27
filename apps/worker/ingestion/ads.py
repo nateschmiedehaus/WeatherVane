@@ -65,7 +65,7 @@ class AdsIngestor(BaseIngestor):
             validate_meta_ads(rows)
             logger.info(f"Validated {len(rows)} Meta Ads records")
 
-        return await self._write_incremental(
+        return self._write_incremental(
             dataset=f"{tenant_id}_meta_ads",
             rows=rows,
             unique_keys=("tenant_id", "date", "campaign_id", "adset_id"),
@@ -129,7 +129,7 @@ class AdsIngestor(BaseIngestor):
             validate_google_ads(rows)
             logger.info(f"Validated {len(rows)} Google Ads records")
 
-        return await self._write_incremental(
+        return self._write_incremental(
             dataset=f"{tenant_id}_google_ads",
             rows=rows,
             unique_keys=("tenant_id", "date", "campaign_id"),

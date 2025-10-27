@@ -8,8 +8,9 @@
  */
 
 import { logInfo, logWarning } from '../telemetry/logger.js';
-import { ModelRegistry } from './model_registry.js';
+
 import { ModelDiscoveryService } from './model_discovery.js';
+import { ModelRegistry } from './model_registry.js';
 
 export class ModelManager {
   private readonly registry: ModelRegistry;

@@ -9,6 +9,7 @@
  */
 
 import cliProgress from 'cli-progress';
+
 import { logInfo } from '../telemetry/logger.js';
 
 export interface TaskStep {

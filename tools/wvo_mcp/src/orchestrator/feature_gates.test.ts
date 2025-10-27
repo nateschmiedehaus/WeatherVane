@@ -1,6 +1,8 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { FeatureGates } from './feature_gates.js';
+
 import type { LiveFlagsReader } from '../state/live_flags.js';
+
+import { FeatureGates } from './feature_gates.js';
 
 describe('FeatureGates', () => {
   let mockLiveFlags: LiveFlagsReader;

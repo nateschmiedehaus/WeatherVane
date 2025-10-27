@@ -1,7 +1,9 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { promises as fs } from 'node:fs';
-import path from 'node:path';
 import os from 'node:os';
+import path from 'node:path';
+
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+
 import { MetricsAggregator } from './metrics_aggregator.js';
 import type { MetricsRecord } from './metrics_collector.js';
 

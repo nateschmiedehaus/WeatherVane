@@ -1,7 +1,9 @@
-import { describe, expect, it, afterEach } from 'vitest';
 import { mkdtemp, rm, writeFile, mkdir } from 'node:fs/promises';
-import path from 'node:path';
 import { tmpdir } from 'node:os';
+import path from 'node:path';
+
+import { describe, expect, it, afterEach } from 'vitest';
+
 import { ModelRouter, type RouterDecisionLog } from '../model_router.js';
 import type { RouterState } from '../router_policy.js';
 

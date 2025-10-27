@@ -10,16 +10,29 @@
  */
 
 import { EventEmitter } from 'node:events';
-import path from 'node:path';
 import { promises as fs } from 'node:fs';
+import path from 'node:path';
+
 import { execa } from 'execa';
-import type { StateMachine, Task, ContextEntry } from './state_machine.js';
-import { logInfo, logWarning, logError, logDebug } from '../telemetry/logger.js';
-import { ContextAssembler as LegacyContextAssembler, type AssembledContext, type ContextAssemblyOptions } from './context_assembler.js';
-import { CodeSearchIndex } from '../utils/code_search.js';
-import { AgentHierarchy, type AgentRole as HierarchyAgentRole, type AgentProfile, type PolicyDecision, type TaskClassification } from './agent_hierarchy.js';
+
+import { ContextAssembler as LocalContextAssembler } from '../context/context_assembler.js';
+import { DecisionJournal } from '../memory/decision_journal.js';
+import { KnowledgeBaseResources } from '../memory/kb_resources.js';
+import { ProjectIndex } from '../memory/project_index.js';
+import { RunEphemeralMemory } from '../memory/run_ephemeral.js';
 import { resolveCodexCliOptions } from '../models/codex_cli.js';
+import { CurrentStateTracker } from '../telemetry/current_state_tracker.js';
+import { logInfo, logWarning, logError, logDebug } from '../telemetry/logger.js';
+
+
+import { CodeSearchIndex } from '../utils/code_search.js';
+
+import { AgentHierarchy, type AgentRole as HierarchyAgentRole, type AgentProfile, type PolicyDecision, type TaskClassification } from './agent_hierarchy.js';
+
+
 import { RoadmapTracker } from './roadmap_tracker.js';
+import { SupervisorAgent } from './supervisor.js';
+import { isArchitectureTask, isArchitectureReviewTask } from './task_characteristics.js';
 import { TaskVerifier } from './task_verifier.js';
 import { IdleManager } from './idle_manager.js';
 import { AgentPool, type Agent, type AgentType } from './agent_pool.js';
@@ -32,19 +45,18 @@ import { ComplexityRouter } from './complexity_router.js';
 import { WIPController } from './wip_controller.js';
 import { MetricsCollector } from '../telemetry/metrics_collector.js';
 import { MetricsAggregator } from '../telemetry/metrics_aggregator.js';
-import { CurrentStateTracker } from '../telemetry/current_state_tracker.js';
 import { HistoricalContextRegistry } from './historical_context_registry.js';
 import { GitStatusMonitor, type GitStatusSnapshot } from './git_status_monitor.js';
 import { PreflightRunner } from './preflight_runner.js';
 import { RoadmapInboxProcessor } from './roadmap_inbox_processor.js';
 import { rankTasks } from './priority_scheduler.js';
 import { PeerReviewManager } from './peer_review_manager.js';
-import { isArchitectureTask, isArchitectureReviewTask } from './task_characteristics.js';
 import { TaskDecomposer } from './task_decomposer.js';
 import { BlockerEscalationManager } from './blocker_escalation_manager.js';
 import { FeatureGates, type FeatureGatesReader } from './feature_gates.js';
 import { AutopilotHealthMonitor } from './autopilot_health_monitor.js';
 import { FailureResponseManager } from './failure_response_manager.js';
+
 import {
   OutputValidationError,
   resolveOutputValidationSettings,
@@ -52,6 +64,7 @@ import {
   strictValidateOutput,
   type OutputValidationSettings,
 } from '../utils/output_validator.js';
+
 import {
   getNextBackgroundTask,
   executeBackgroundTask,
@@ -60,8 +73,8 @@ import {
 } from './orchestrator_background_tasks.js';
 import { QualityGateOrchestrator, type QualityGateDecision } from './quality_gate_orchestrator.js';
 import type { TaskEvidence } from './adversarial_bullshit_detector.js';
+import { ContextAssembler as LegacyContextAssembler, type AssembledContext, type ContextAssemblyOptions } from './context_assembler.js';
 import { TaskProgressTracker } from './task_progress_tracker.js';
-import { ProcessManager, type ProcessHandle } from './process_manager.js';
 import { TaskReadinessChecker } from './task_readiness.js';
 import { StateGraph, type StateGraphTaskContext, type CheckpointClient } from './state_graph.js';
 import { IncidentReporter } from './incident_reporter.js';
@@ -71,15 +84,11 @@ import { ImplementerAgent, type ImplementerAgentResult } from './implementer_age
 import { Verifier as GraphVerifier, ShellToolRunner, type VerifierResult } from './verifier.js';
 import { ReviewerAgent } from './reviewer_agent.js';
 import { CriticalAgent } from './critical_agent.js';
-import { SupervisorAgent } from './supervisor.js';
 import type { TaskEnvelope } from './task_envelope.js';
 import { ModelRouter } from './model_router.js';
-import { RunEphemeralMemory } from '../memory/run_ephemeral.js';
-import { ProjectIndex } from '../memory/project_index.js';
-import { KnowledgeBaseResources } from '../memory/kb_resources.js';
-import { DecisionJournal } from '../memory/decision_journal.js';
-import { ContextAssembler as LocalContextAssembler } from '../context/context_assembler.js';
+import { ProcessManager, type ProcessHandle } from './process_manager.js';
 import { buildTaskEvidenceFromArtifacts, type QualityGateArtifacts } from './quality_gate_bridge.js';
+import type { StateMachine, Task, ContextEntry } from './state_machine.js';
 
 export type Provider = 'codex' | 'claude';
 export type AgentRole = 'orchestrator' | 'worker' | 'critic' | 'architecture_planner' | 'architecture_reviewer';
@@ -781,6 +790,7 @@ export class UnifiedOrchestrator extends EventEmitter {
       new ShellToolRunner({
         workspaceRoot: this.config.workspaceRoot,
         commands: VERIFY_COMMANDS,
+        processManager: this.processManager,
       })
     );
     const reviewer = new ReviewerAgent(this.modelRouter);
@@ -1031,7 +1041,7 @@ export class UnifiedOrchestrator extends EventEmitter {
     this.architecturePlanner = undefined;
     this.architectureReviewer = undefined;
 
-    let remainingAgents = this.config.agentCount - 1; // Subtract orchestrator
+    const remainingAgents = this.config.agentCount - 1; // Subtract orchestrator
 
     // SIMPLIFIED ALLOCATION: ALL remaining agents become workers
     // This maximizes task execution capacity
@@ -3877,7 +3887,7 @@ Verification: [How you'll confirm it works]
   private formatVelocityMetrics(context: AssembledContext): string {
     const metrics = context.velocityMetrics;
 
-    let output = `## Velocity Metrics
+    const output = `## Velocity Metrics
 **Project Velocity**:
 - Tasks completed today: ${metrics.tasksCompletedToday}
 - Average task duration: ${metrics.averageTaskDuration} minutes

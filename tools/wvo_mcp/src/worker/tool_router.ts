@@ -2,11 +2,25 @@ import { randomUUID } from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
 
+import { AtlasService } from "../atlas/atlas_service.js";
 import { describeCodexCommands } from "../executor/codex_commands.js";
-import { SessionContext } from "../session.js";
-import type { OrchestratorRuntime } from "../orchestrator/orchestrator_runtime.js";
+import { withWorkerCallObservability } from "../observability/worker_call_wrapper.js";
 import type { OperationsSnapshot } from "../orchestrator/operations_manager.js";
+import type { OrchestratorRuntime } from "../orchestrator/orchestrator_runtime.js";
 import type { StateMachine } from "../orchestrator/state_machine.js";
+import { SessionContext } from "../session.js";
+import { IdempotencyStore } from "../state/idempotency_cache.js";
+import { IdempotencyMiddleware, type WrappedHandler } from "../state/idempotency_middleware.js";
+import {
+  DEFAULT_LIVE_FLAGS,
+  SettingsStore,
+  isLiveFlagKey,
+  type LiveFlagKey,
+  type LiveFlagSnapshot,
+} from "../state/live_flags.js";
+import type { ConsensusMetricsSnapshot } from "../telemetry/consensus_metrics.js";
+import { logWarning } from "../telemetry/logger.js";
+import { withSpan } from "../telemetry/tracing.js";
 import {
   artifactRecordInput,
   authStatusInput,
@@ -32,13 +46,7 @@ import {
   selfGetSchemaInput,
   selfGetPromptInput,
 } from "../tools/input_schemas.js";
-import {
-  DEFAULT_LIVE_FLAGS,
-  SettingsStore,
-  isLiveFlagKey,
-  type LiveFlagKey,
-  type LiveFlagSnapshot,
-} from "../state/live_flags.js";
+import { AuthChecker } from "../utils/auth_checker.js";
 import { buildClusterSummaries } from "../utils/cluster.js";
 import {
   dispatchInputSchema,
@@ -46,15 +54,7 @@ import {
   planNextInputSchema,
   verifyInputSchema,
 } from "../utils/schemas.js";
-import { AuthChecker } from "../utils/auth_checker.js";
-import { logWarning } from "../telemetry/logger.js";
 import type { PlanTaskSummary } from "../utils/types.js";
-import type { ConsensusMetricsSnapshot } from "../telemetry/consensus_metrics.js";
-import { withSpan } from "../telemetry/tracing.js";
-import { withWorkerCallObservability } from "../observability/worker_call_wrapper.js";
-import { IdempotencyStore } from "../state/idempotency_cache.js";
-import { IdempotencyMiddleware, type WrappedHandler } from "../state/idempotency_middleware.js";
-import { AtlasService } from "../atlas/atlas_service.js";
 
 interface RunToolParams {
   name: string;

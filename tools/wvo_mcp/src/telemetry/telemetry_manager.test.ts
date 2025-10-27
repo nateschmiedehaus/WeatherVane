@@ -2,9 +2,11 @@
  * Tests for TelemetryManager
  */
 
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
+
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+
 import { TelemetryManager, type LogLevel } from './telemetry_manager.js';
 
 describe('TelemetryManager', () => {

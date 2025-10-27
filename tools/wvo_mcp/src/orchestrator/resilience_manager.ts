@@ -9,9 +9,11 @@
  */
 
 import { EventEmitter } from 'node:events';
-import type { StateMachine, Task } from './state_machine.js';
-import type { AgentPool, ExecutionFailureType } from './agent_pool.js';
+
 import { logInfo, logWarning, logError } from '../telemetry/logger.js';
+
+import type { AgentPool, ExecutionFailureType } from './agent_pool.js';
+import type { StateMachine, Task } from './state_machine.js';
 
 export interface FailureContext {
   taskId: string;

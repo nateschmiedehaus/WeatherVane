@@ -1,9 +1,11 @@
 import crypto from 'node:crypto';
+
+import { RunEphemeralMemory } from '../memory/run_ephemeral.js';
 import { logInfo, logWarning } from '../telemetry/logger.js';
-import type { TaskEnvelope } from './task_envelope.js';
+
 import type { ModelSelection } from './model_router.js';
 import { ModelRouter } from './model_router.js';
-import { RunEphemeralMemory } from '../memory/run_ephemeral.js';
+import type { TaskEnvelope } from './task_envelope.js';
 import type { ChangedFile } from './verify_integrity.js';
 
 export interface ImplementerAgentInput {

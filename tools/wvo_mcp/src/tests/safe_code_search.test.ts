@@ -1,10 +1,14 @@
-import { beforeEach, afterEach, describe, expect, it } from 'vitest';
-import path from 'path';
 import { promises as fs } from 'fs';
-import { SafeCodeSearchIndex } from '../utils/safe_code_search';
-import { initializeSearch, searchCode, getSearchMetadata, resetSearch } from '../tools/safe_code_search';
-import Database from 'better-sqlite3';
 import os from 'os';
+import path from 'path';
+
+import Database from 'better-sqlite3';
+import { beforeEach, afterEach, describe, expect, it } from 'vitest';
+
+import { initializeSearch, searchCode, getSearchMetadata, resetSearch } from '../tools/safe_code_search';
+import { SafeCodeSearchIndex } from '../utils/safe_code_search';
+
+
 
 describe('SafeCodeSearchIndex', () => {
   let tempDir: string;

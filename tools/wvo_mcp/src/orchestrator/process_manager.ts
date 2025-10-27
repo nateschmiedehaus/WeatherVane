@@ -9,16 +9,17 @@
  * 5. Graceful cleanup on shutdown
  */
 
-import { EventEmitter } from 'node:events';
 import { execSync } from 'node:child_process';
+import { EventEmitter } from 'node:events';
 import { readFileSync } from 'node:fs';
 import os from 'node:os';
+
 import { logInfo, logWarning, logError, logDebug } from '../telemetry/logger.js';
 
 export interface ProcessHandle {
   pid: number;
   taskId: string;
-  provider: 'codex' | 'claude';
+  provider: 'codex' | 'claude' | 'shell' | 'system';
   model: string;
   startTime: number;
   kill: () => void;

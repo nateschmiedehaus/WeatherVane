@@ -3,8 +3,8 @@ import path from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-import { QNA_SOURCES } from "../atlas_sources.js";
 import { AtlasService } from "../atlas_service.js";
+import { QNA_SOURCES } from "../atlas_sources.js";
 
 const workspaceRoot = process.cwd();
 

@@ -12,9 +12,9 @@
  * 5. Critics enforce excellence, not just correctness
  */
 
+import { execSync } from 'child_process';
 import * as fs from 'fs/promises';
 import * as path from 'path';
-import { execSync } from 'child_process';
 
 export interface ModelMetrics {
   out_of_sample_r2?: number;

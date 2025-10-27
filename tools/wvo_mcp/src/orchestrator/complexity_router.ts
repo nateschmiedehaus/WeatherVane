@@ -11,11 +11,13 @@
  * Achieves ~60% cost reduction by avoiding expensive models for simple work.
  */
 
-import type { TaskEnvelope } from './task_envelope.js';
+import { ModelRegistry, type ClaudeModel, type CodexModel } from '../models/model_registry.js';
+import { logInfo, logWarning, logError } from '../telemetry/logger.js';
+
 import type { ModelSelection } from './model_router.js';
 import type { CapabilityTag } from './router_policy.js';
-import { logInfo, logWarning, logError } from '../telemetry/logger.js';
-import { ModelRegistry, type ClaudeModel, type CodexModel } from '../models/model_registry.js';
+import type { TaskEnvelope } from './task_envelope.js';
+
 
 export interface ComplexityFactor {
   name: string;           // Factor name (e.g., "dependencies")

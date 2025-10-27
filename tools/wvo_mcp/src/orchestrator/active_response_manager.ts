@@ -21,10 +21,11 @@
  * - Proactive diagnosis beats reactive firefighting
  */
 
+import { logInfo, logWarning, logError } from '../telemetry/logger.js';
+
+import type { PolicyEngine } from './policy_engine.js';
 import type { StateMachine } from './state_machine.js';
 import type { Task } from './task_types.js';
-import type { PolicyEngine } from './policy_engine.js';
-import { logInfo, logWarning, logError } from '../telemetry/logger.js';
 
 /**
  * Issue types the Active Response Manager monitors

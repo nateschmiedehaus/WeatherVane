@@ -1,10 +1,12 @@
 /**
  * Tests for ML Task Aggregator critic result tracking
  */
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { MLTaskAggregator } from '../ml_task_aggregator.js';
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
+
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+
+import { MLTaskAggregator } from '../ml_task_aggregator.js';
 
 describe('MLTaskAggregator - Critic Results', () => {
   let aggregator: MLTaskAggregator;

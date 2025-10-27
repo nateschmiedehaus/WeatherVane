@@ -12,12 +12,14 @@
  * Philosophy: Test actual failures, don't just read architecture diagrams
  */
 
-import { Critic, type CriticResult } from "./base.js";
+import { exec, spawn } from "child_process";
 import { promises as fs } from "node:fs";
 import path from "node:path";
-import { exec, spawn } from "child_process";
 import { promisify } from "util";
+
 import { logInfo, logWarning, logError } from "../telemetry/logger.js";
+
+import { Critic, type CriticResult } from "./base.js";
 
 const execAsync = promisify(exec);
 

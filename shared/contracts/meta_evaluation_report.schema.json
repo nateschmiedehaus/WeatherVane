@@ -11,7 +11,7 @@
     },
     "evaluation_id": {
       "type": "string",
-      "pattern": "^ME-\\d{8}-[A-F0-9]{8}$",
+      "pattern": "^ME-\\d{8}-[A-F0-9]{7}$",
       "description": "Unique ID for this meta-evaluation"
     },
     "metrics": {

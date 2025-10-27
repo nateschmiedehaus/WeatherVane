@@ -1,8 +1,8 @@
 import { randomUUID } from 'node:crypto';
 
-import type { Task, TaskStatus } from './state_machine.js';
-import type { StateMachine } from './state_machine.js';
 import { logInfo, logWarning } from '../telemetry/logger.js';
+
+import type { Task, TaskStatus , StateMachine } from './state_machine.js';
 
 export interface HolisticReviewConfig {
   minTasksPerGroup: number;

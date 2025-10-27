@@ -4,7 +4,7 @@
  */
 
 import { EventEmitter } from "node:events";
-import { logError, logInfo, logWarning } from "../telemetry/logger.js";
+
 import {
   getEnabledProviders,
   getProviderMetadata,
@@ -14,6 +14,8 @@ import {
   displayProviderId,
   ProviderAlias,
 } from "../providers/registry.js";
+import { logError, logInfo, logWarning } from "../telemetry/logger.js";
+
 import { ProviderCapacityMonitor } from "./provider_capacity_monitor.js";
 
 export type Provider = KnownProvider;

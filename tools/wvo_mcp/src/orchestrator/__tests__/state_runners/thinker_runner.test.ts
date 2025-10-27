@@ -6,9 +6,10 @@
  */
 
 import { describe, expect, it, vi, beforeEach } from 'vitest';
+
+import type { ModelSelection } from '../../model_router.js';
 import { runThinker, type ThinkerRunnerDeps, type ThinkerRunnerContext } from '../../state_runners/thinker_runner.js';
 import type { ThinkerAgent } from '../../thinker_agent.js';
-import type { ModelSelection } from '../../model_router.js';
 
 describe('ThinkerRunner - Behavior Tests', () => {
   let context: ThinkerRunnerContext;

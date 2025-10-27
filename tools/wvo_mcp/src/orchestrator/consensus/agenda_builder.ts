@@ -1,5 +1,6 @@
-import type { Task } from "../state_machine.js";
 import type { AssembledContext } from "../context_assembler.js";
+import type { Task } from "../state_machine.js";
+
 import {
   getConsensusWorkloadSnapshot,
   type ConsensusWorkloadSnapshot,

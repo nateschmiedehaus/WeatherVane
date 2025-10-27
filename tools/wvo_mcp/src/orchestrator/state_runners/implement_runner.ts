@@ -5,6 +5,7 @@
  */
 
 import type { ImplementerAgent, ImplementerAgentResult } from '../implementer_agent.js';
+
 import type { RunnerContext, RunnerResult } from './runner_types.js';
 
 export interface ImplementRunnerDeps {

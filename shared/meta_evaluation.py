@@ -10,21 +10,22 @@ from typing import Dict, List, Tuple
 
 import numpy as np
 import pandas as pd
-from jsonschema import validate
+from jsonschema import Draft7Validator
 
 from shared.services.data_quality import DataQualityService
 from shared.validation.schemas import load_schema
 
 class ModelingMetaEvaluator:
     def __init__(self):
-        self.schema = load_schema("meta_evaluation_report")
+        schema_dict = load_schema("meta_evaluation_report")
+        self.schema = Draft7Validator(schema_dict)
         self.data_quality = DataQualityService()
         self.root_dir = Path(__file__).resolve().parents[1]
 
     def generate_evaluation_id(self) -> str:
         """Generate unique evaluation ID."""
         timestamp = datetime.datetime.now().strftime("%Y%m%d")
-        random_hex = os.urandom(4).hex().upper()
+        random_hex = os.urandom(4).hex().upper()[:7]
         return f"ME-{timestamp}-{random_hex}"
 
     def evaluate_data_integrity(self) -> Tuple[float, List[str]]:
@@ -56,8 +57,13 @@ class ModelingMetaEvaluator:
         with open(validation_path) as f:
             validation = json.load(f)
 
-        r2_scores = [m["r2"] for m in validation["models"]]
-        mape_scores = [m["mape"] for m in validation["models"]]
+        models = validation.get("models") or []
+        if not models:
+            findings.append("Validation results missing model entries")
+            return 0.0, findings
+
+        r2_scores = [m.get("r2", 0.0) for m in models]
+        mape_scores = [m.get("mape", 0.0) for m in models]
 
         mean_r2 = np.mean(r2_scores)
         mean_mape = np.mean(mape_scores)
@@ -81,11 +87,14 @@ class ModelingMetaEvaluator:
         cv_path = self.root_dir / "state/analytics/mmm_training_results_cv.json"
         if cv_path.exists():
             cv_results = pd.read_json(cv_path)
-            r2_std = cv_results["r2"].std()
-
-            if r2_std > 0.1:
+            if "r2" in cv_results.columns:
+                r2_std = cv_results["r2"].std()
+                if r2_std > 0.1:
+                    score -= 20
+                    findings.append(f"High R² variance across CV folds: {r2_std:.3f}")
+            else:
                 score -= 20
-                findings.append(f"High R² variance across CV folds: {r2_std:.3f}")
+                findings.append("Cross-validation results missing R² column")
         else:
             score -= 50
             findings.append("Missing cross-validation results")
@@ -96,7 +105,11 @@ class ModelingMetaEvaluator:
             with open(synth_path) as f:
                 synth_validation = json.load(f)
 
-            if synth_validation["weather_correlation_error"] > 0.1:
+            error = synth_validation.get("weather_correlation_error")
+            if error is None:
+                score -= 20
+                findings.append("Synthetic data validation missing weather correlation metrics")
+            elif error > 0.1:
                 score -= 30
                 findings.append("Poor weather correlation recovery on synthetic data")
         else:
@@ -219,7 +232,7 @@ class ModelingMetaEvaluator:
         }
 
         # Validate against schema
-        validate(instance=report, schema=self.schema)
+        self.schema.validate(report)
         return report
 
     def main(self) -> int:

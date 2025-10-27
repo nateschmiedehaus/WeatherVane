@@ -11,12 +11,14 @@
  * Philosophy: Plot the data, don't just check the schema
  */
 
-import { Critic, type CriticResult } from "./base.js";
+import { exec } from "child_process";
 import { promises as fs } from "node:fs";
 import path from "path";
-import { exec } from "child_process";
 import { promisify } from "util";
+
 import { logInfo, logWarning, logError } from "../telemetry/logger.js";
+
+import { Critic, type CriticResult } from "./base.js";
 
 const execAsync = promisify(exec);
 

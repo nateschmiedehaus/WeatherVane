@@ -1,7 +1,9 @@
-import { describe, expect, it, afterEach, beforeAll, afterAll, vi } from 'vitest';
 import { mkdtemp, rm } from 'node:fs/promises';
-import path from 'node:path';
 import { tmpdir } from 'node:os';
+import path from 'node:path';
+
+import { describe, expect, it, afterEach, beforeAll, afterAll, vi } from 'vitest';
+
 import { discoverModelCatalog } from '../model_discovery.js';
 import { ROUTER_ALLOWED_MODELS } from '../router_lock.js';
 

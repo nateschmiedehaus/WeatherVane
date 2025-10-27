@@ -1,9 +1,11 @@
-import { SafeCodeSearchIndex } from './safe_code_search';
 import { promises as fs } from 'fs';
-import path from 'path';
 import os from 'os';
-import { describe, test, expect, beforeEach, afterEach } from 'vitest';
+import path from 'path';
+
 import Database from 'better-sqlite3';
+import { describe, test, expect, beforeEach, afterEach } from 'vitest';
+
+import { SafeCodeSearchIndex } from './safe_code_search';
 
 describe('SafeCodeSearchIndex', () => {
   let testDir: string;

@@ -5,6 +5,7 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
+
 import { WIPController } from './wip_controller.js';
 
 describe('WIPController', () => {

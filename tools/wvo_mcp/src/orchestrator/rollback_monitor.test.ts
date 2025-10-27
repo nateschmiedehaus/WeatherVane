@@ -3,6 +3,7 @@
  */
 
 import { describe, it, beforeEach, afterEach, expect, vi } from 'vitest';
+
 import { RollbackMonitor, type HealthCheckResult } from './rollback_monitor.js';
 
 // Mock worker and operations managers

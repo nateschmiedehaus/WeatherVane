@@ -6,9 +6,10 @@
  */
 
 import { describe, expect, it, vi, beforeEach } from 'vitest';
-import { runPlan, type PlanRunnerDeps, type PlanRunnerContext } from '../../state_runners/plan_runner.js';
-import type { PlannerAgent } from '../../planner_agent.js';
+
 import type { ModelSelection } from '../../model_router.js';
+import type { PlannerAgent } from '../../planner_agent.js';
+import { runPlan, type PlanRunnerDeps, type PlanRunnerContext } from '../../state_runners/plan_runner.js';
 
 describe('PlanRunner - Behavior Tests', () => {
   let context: PlanRunnerContext;

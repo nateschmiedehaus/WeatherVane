@@ -16,10 +16,12 @@
  * - Optimizes retry strategy based on success rates
  */
 
-import type { Task } from './state_machine.js';
-import { logInfo, logWarning, logError } from '../telemetry/logger.js';
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 import path from 'node:path';
+
+import { logInfo, logWarning, logError } from '../telemetry/logger.js';
+
+import type { Task } from './state_machine.js';
 
 export type FailureType = 'transient' | 'persistent' | 'impossible' | 'environmental';
 export type RetryStrategy = 'immediate' | 'exponential_backoff' | 'linear_backoff' | 'never';
@@ -246,7 +248,7 @@ export class FailureClassifier {
 
   private normalizeError(error: string): string {
     // Remove file paths, line numbers, timestamps
-    let normalized = error
+    const normalized = error
       .replace(/\/[^\s]+/g, '[PATH]') // file paths
       .replace(/:\d+:\d+/g, '[LINE]') // line numbers
       .replace(/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/g, '[TIMESTAMP]') // timestamps

@@ -15,10 +15,11 @@
  * - NOT: Full event log, all metrics, entire roadmap
  */
 
-import type { StateMachine, Task, ContextEntry, QualityMetric, ResearchCacheRecord } from './state_machine.js';
-import { CodeSearchIndex } from '../utils/code_search.js';
 import type { LiveFlagsReader } from '../state/live_flags.js';
+import { CodeSearchIndex } from '../utils/code_search.js';
+
 import { FeatureGates, type FeatureGatesReader } from './feature_gates.js';
+import type { StateMachine, Task, ContextEntry, QualityMetric, ResearchCacheRecord } from './state_machine.js';
 
 // ============================================================================
 // Types

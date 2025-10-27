@@ -10,9 +10,11 @@
 import { EventEmitter } from 'node:events';
 import * as fs from 'node:fs/promises';
 import path from 'node:path';
+
+import { logInfo, logDebug, logError, logWarning } from '../telemetry/logger.js';
+
 import { syncRoadmapFile } from './roadmap_adapter.js';
 import type { StateMachine } from './state_machine.js';
-import { logInfo, logDebug, logError, logWarning } from '../telemetry/logger.js';
 
 export interface RoadmapUpdateEvent {
   newTasks: number;

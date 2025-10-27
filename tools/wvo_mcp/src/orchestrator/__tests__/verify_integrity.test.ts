@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
+
 import { verifyIntegrity } from '../verify_integrity.js';
 
 describe('verifyIntegrity', () => {

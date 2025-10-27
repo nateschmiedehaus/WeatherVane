@@ -4,8 +4,9 @@
  * Handles the "review" state: runs code review and critical audit.
  */
 
-import type { ReviewerAgent } from '../reviewer_agent.js';
 import type { CriticalAgent } from '../critical_agent.js';
+import type { ReviewerAgent } from '../reviewer_agent.js';
+
 import type { RunnerContext, RunnerResult } from './runner_types.js';
 
 export interface ReviewRunnerDeps {

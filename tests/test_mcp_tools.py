@@ -12,8 +12,11 @@ import pytest
 REPO_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_TIMEOUT = 5.0
 
+NEW_SHARED_TOOLS = {"route_switch", "settings_update", "upgrade_apply_patch"}
+
+
 CODEX_TOOLS = frozenset(
-    [
+    {
         "orchestrator_status",
         "auth_status",
         "plan_next",
@@ -39,11 +42,12 @@ CODEX_TOOLS = frozenset(
         "lsp_definition",
         "lsp_references",
         "lsp_hover",
-    ]
+    }
+    | NEW_SHARED_TOOLS
 )
 
 CLAUDE_TOOLS = frozenset(
-    [
+    {
         "wvo_status",
         "state_save",
         "state_metrics",
@@ -79,7 +83,7 @@ CLAUDE_TOOLS = frozenset(
         "lsp_definition",
         "lsp_references",
         "lsp_hover",
-    ]
+    }
 )
 
 

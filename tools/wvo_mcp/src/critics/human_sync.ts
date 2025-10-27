@@ -1,6 +1,6 @@
+import { readFileSync, writeFileSync, existsSync, mkdirSync } from "node:fs";
 import path from "node:path";
 
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from "node:fs";
 
 import { Critic, CriticResult } from "./base.js";
 

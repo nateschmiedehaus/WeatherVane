@@ -1,6 +1,6 @@
-import path from 'node:path';
 import { promises as fs } from 'node:fs';
-import { LocalContextPack, LocalContextPackSchema } from './context_pack_schema.js';
+import path from 'node:path';
+
 import {
   classifyScope,
   deriveBudget,
@@ -8,6 +8,7 @@ import {
   ScopeClass,
   type TokenBudget,
 } from './context_budgeting.js';
+import { LocalContextPack, LocalContextPackSchema } from './context_pack_schema.js';
 import { KnowledgeNavigator } from './knowledge_navigator.js';
 
 type Agent =

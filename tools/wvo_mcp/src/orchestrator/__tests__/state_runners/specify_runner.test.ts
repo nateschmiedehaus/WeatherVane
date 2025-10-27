@@ -6,10 +6,11 @@
  */
 
 import { describe, expect, it, vi, beforeEach } from 'vitest';
-import { runSpecify, type SpecifyRunnerDeps } from '../../state_runners/specify_runner.js';
-import type { RunnerContext } from '../../state_runners/runner_types.js';
-import type { SupervisorAgent } from '../../supervisor.js';
+
 import type { ModelSelection } from '../../model_router.js';
+import type { RunnerContext } from '../../state_runners/runner_types.js';
+import { runSpecify, type SpecifyRunnerDeps } from '../../state_runners/specify_runner.js';
+import type { SupervisorAgent } from '../../supervisor.js';
 
 describe('SpecifyRunner - Behavior Tests', () => {
   let context: RunnerContext;

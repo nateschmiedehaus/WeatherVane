@@ -15,10 +15,12 @@
  * Expected Savings: 225K tokens/day by preventing premature task starts
  */
 
-import type { Task, StateMachine } from './state_machine.js';
-import { logDebug, logWarning } from '../telemetry/logger.js';
 import { existsSync } from 'node:fs';
 import path from 'node:path';
+
+import { logDebug, logWarning } from '../telemetry/logger.js';
+
+import type { Task, StateMachine } from './state_machine.js';
 
 export type BlockerType =
   | 'dependency'

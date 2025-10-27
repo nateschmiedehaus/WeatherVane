@@ -6,16 +6,17 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { ComplexityRouter } from '../complexity_router.js';
-import { PlannerAgent } from '../planner_agent.js';
-import { ThinkerAgent } from '../thinker_agent.js';
-import { ImplementerAgent } from '../implementer_agent.js';
-import { ReviewerAgent } from '../reviewer_agent.js';
-import type { TaskEnvelope } from '../task_envelope.js';
-import type { ModelRouter } from '../model_router.js';
-import { RunEphemeralMemory } from '../../memory/run_ephemeral.js';
+
 import { KnowledgeBaseResources } from '../../memory/kb_resources.js';
 import { ProjectIndex } from '../../memory/project_index.js';
+import { RunEphemeralMemory } from '../../memory/run_ephemeral.js';
+import { ComplexityRouter } from '../complexity_router.js';
+import { ImplementerAgent } from '../implementer_agent.js';
+import type { ModelRouter } from '../model_router.js';
+import { PlannerAgent } from '../planner_agent.js';
+import { ReviewerAgent } from '../reviewer_agent.js';
+import type { TaskEnvelope } from '../task_envelope.js';
+import { ThinkerAgent } from '../thinker_agent.js';
 
 describe('ComplexityRouter Integration', () => {
   const workspaceRoot = '/tmp/test-workspace';

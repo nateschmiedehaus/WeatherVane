@@ -1,8 +1,9 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 
-import type { Task } from "../state_machine.js";
 import type { AssembledContext } from "../context_assembler.js";
+import type { Task } from "../state_machine.js";
+
 import type { ConsensusEngine } from "./consensus_engine.js";
 
 export interface SimulationTaskInput {

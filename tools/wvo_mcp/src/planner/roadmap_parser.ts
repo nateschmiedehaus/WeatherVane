@@ -1,3 +1,4 @@
+import { normalizeClusterSpec } from "../utils/cluster.js";
 import type {
   PlanTaskSummary,
   RoadmapDocument,
@@ -5,7 +6,6 @@ import type {
   RoadmapMilestone,
   RoadmapTask,
 } from "../utils/types.js";
-import { normalizeClusterSpec } from "../utils/cluster.js";
 
 export function flattenTasks(document: RoadmapDocument): PlanTaskSummary[] {
   const summaries: PlanTaskSummary[] = [];

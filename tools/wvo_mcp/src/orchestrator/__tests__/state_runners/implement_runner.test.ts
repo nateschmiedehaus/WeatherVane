@@ -6,9 +6,10 @@
  */
 
 import { describe, expect, it, vi, beforeEach } from 'vitest';
-import { runImplement, type ImplementRunnerDeps, type ImplementRunnerContext } from '../../state_runners/implement_runner.js';
+
 import type { ImplementerAgent, ImplementerAgentResult } from '../../implementer_agent.js';
 import type { ModelSelection } from '../../model_router.js';
+import { runImplement, type ImplementRunnerDeps, type ImplementRunnerContext } from '../../state_runners/implement_runner.js';
 
 describe('ImplementRunner - Behavior Tests', () => {
   let context: ImplementRunnerContext;

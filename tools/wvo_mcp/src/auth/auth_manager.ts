@@ -9,9 +9,11 @@
  */
 
 import { EventEmitter } from 'node:events';
+
+import { logInfo, logWarning, logError } from '../telemetry/logger.js';
+
 import { GoogleOAuthFlow, type OAuthTokens, type OAuthFlowOptions } from './google_oauth.js';
 import { TokenRefresher, type TokenRefresherOptions } from './token_refresher.js';
-import { logInfo, logWarning, logError } from '../telemetry/logger.js';
 
 export interface AuthManagerOptions {
   oauthOptions?: OAuthFlowOptions;

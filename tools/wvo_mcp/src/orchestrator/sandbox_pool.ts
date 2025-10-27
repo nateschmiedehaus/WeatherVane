@@ -16,6 +16,7 @@
  */
 
 import { EventEmitter } from 'node:events';
+
 import { logInfo } from '../telemetry/logger.js';
 
 export interface SandboxConfig {

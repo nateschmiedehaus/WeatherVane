@@ -2,12 +2,14 @@
  * Screenshot Manager - Intelligent, resilient screenshot capture with auto-detection
  */
 
+import { exec } from "child_process";
 import { promises as fs } from "node:fs";
 import path from "node:path";
-import { ScreenshotCapture } from "./screenshot.js";
-import { logError, logInfo, logWarning } from "../telemetry/logger.js";
-import { exec } from "child_process";
 import { promisify } from "util";
+
+import { logError, logInfo, logWarning } from "../telemetry/logger.js";
+
+import { ScreenshotCapture } from "./screenshot.js";
 
 const execAsync = promisify(exec);
 
@@ -308,7 +310,7 @@ export class ScreenshotManager {
     await fs.mkdir(sessionDir, { recursive: true });
 
     let successCount = 0;
-    let totalScreenshots = pagesToCapture.length * viewportsToUse.length;
+    const totalScreenshots = pagesToCapture.length * viewportsToUse.length;
 
     // Capture each page at each viewport
     for (const page of pagesToCapture) {

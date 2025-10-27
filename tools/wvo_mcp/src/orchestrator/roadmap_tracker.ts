@@ -4,12 +4,14 @@
  * Used by UnifiedOrchestrator to keep roadmap in sync as agents execute tasks.
  */
 
-import path from 'node:path';
 import { promises as fs } from 'node:fs';
+import path from 'node:path';
+
 import yaml from 'yaml';
 
-import type { StateMachine, TaskStatus } from './state_machine.js';
 import { logInfo, logWarning, logDebug } from '../telemetry/logger.js';
+
+import type { StateMachine, TaskStatus } from './state_machine.js';
 
 interface RoadmapTask {
   id: string;

@@ -10,8 +10,9 @@
 
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
-import type { ModelManager } from '../models/model_manager.js';
+
 import type { UsageEstimator } from '../limits/usage_estimator.js';
+import type { ModelManager } from '../models/model_manager.js';
 import { logInfo, logWarning } from '../telemetry/logger.js';
 
 export interface CriticModelPreference {

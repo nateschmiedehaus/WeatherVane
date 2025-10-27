@@ -1,38 +1,39 @@
-import path from "node:path";
-import { promises as fs } from "node:fs";
 import { randomUUID } from "node:crypto";
+import { promises as fs } from "node:fs";
+import path from "node:path";
 
 import { AcademicRigorCritic } from "./critics/academic_rigor.js";
 import { AllocatorCritic } from "./critics/allocator.js";
+import type { CriticResult, CriticIdentityProfile } from "./critics/base.js";
 import { BuildCritic } from "./critics/build.js";
 import { CausalCritic } from "./critics/causal.js";
 import { CostPerfCritic } from "./critics/cost_perf.js";
 import { DataQualityCritic } from "./critics/data_quality.js";
+import { DemoConversionCritic } from "./critics/demo_conversion.js";
 import { DesignSystemCritic } from "./critics/design_system.js";
 import { ExecReviewCritic } from "./critics/exec_review.js";
+import { ExperienceFlowCritic } from "./critics/experience_flow.js";
+import { FailoverGuardrailCritic } from "./critics/failover_guardrail.js";
 import { ForecastStitchCritic } from "./critics/forecast_stitch.js";
 import { HealthCheckCritic } from "./critics/health_check.js";
 import { HumanSyncCritic } from "./critics/human_sync.js";
+import { InspirationCoverageCritic } from "./critics/inspiration_coverage.js";
+import { IntegrationCompletenessCritic } from "./critics/integration_completeness.js";
+import { IntegrationFuryCritic } from "./critics/integration_fury.js";
 import { LeakageCritic } from "./critics/leakage.js";
 import { ManagerSelfCheckCritic } from "./critics/manager_self_check.js";
-import { PromptBudgetCritic } from "./critics/prompt_budget.js";
+import { MotionDesignCritic } from "./critics/motion_design.js";
+import { NetworkNavigatorCritic } from "./critics/network_navigator.js";
 import { OrgPmCritic } from "./critics/org_pm.js";
+import { PromptBudgetCritic } from "./critics/prompt_budget.js";
 import { SecurityCritic } from "./critics/security.js";
+import { StakeholderNarrativeCritic } from "./critics/stakeholder_narrative.js";
 import { TestsCritic } from "./critics/tests.js";
 import { TypecheckCritic } from "./critics/typecheck.js";
-import { FailoverGuardrailCritic } from "./critics/failover_guardrail.js";
 import { ProductCompletenessCritic } from "./critics/product_completeness.js";
-import { IntegrationFuryCritic } from "./critics/integration_fury.js";
-import { NetworkNavigatorCritic } from "./critics/network_navigator.js";
-import { ExperienceFlowCritic } from "./critics/experience_flow.js";
 import { WeatherAestheticCritic } from "./critics/weather_aesthetic.js";
 import { WeatherCoverageCritic } from "./critics/weather_coverage.js";
-import { MotionDesignCritic } from "./critics/motion_design.js";
 import { ResponsiveSurfaceCritic } from "./critics/responsive_surface.js";
-import { InspirationCoverageCritic } from "./critics/inspiration_coverage.js";
-import { StakeholderNarrativeCritic } from "./critics/stakeholder_narrative.js";
-import { DemoConversionCritic } from "./critics/demo_conversion.js";
-import { IntegrationCompletenessCritic } from "./critics/integration_completeness.js";
 import { ModelingRealityCritic, ModelingRealityV2OrchestratorCritic } from "./critics/modeling_reality.js";
 import { MetaCritiqueCritic } from "./critics/meta_critique.js";
 import { MLTaskMetaCriticCritic } from "./critics/ml_task_meta_critic.js";
@@ -40,15 +41,26 @@ import { ModelingDataWatchCritic } from "./critics/modeling_data_watch.js";
 import { runCommand } from "./executor/command_runner.js";
 import { readFile, writeFile } from "./executor/file_ops.js";
 import { GuardrailViolation } from "./executor/guardrails.js";
-import type { CriticResult, CriticIdentityProfile } from "./critics/base.js";
-import { PlannerEngine } from "./planner/planner_engine.js";
 import { ensureNoCriticBlocking } from "./orchestrator/critic_availability_guardian.js";
+import type { OrchestratorRuntime } from "./orchestrator/orchestrator_runtime.js";
+import { PriorityQueueDispatcher } from "./orchestrator/priority_queue_dispatcher.js";
+import {
+  buildPlanSummaries,
+  syncRoadmapFile,
+  toLegacyStatus,
+} from "./orchestrator/roadmap_adapter.js";
+import type {
+  StateMachine,
+  Task,
+  TaskStatus as OrchestratorTaskStatus,
+  CriticHistoryRecord,
+} from "./orchestrator/state_machine.js";
+import { PlannerEngine } from "./planner/planner_engine.js";
 import { AutopilotStore } from "./state/autopilot_store.js";
 import { CheckpointStore } from "./state/checkpoint_store.js";
 import { ContextStore } from "./state/context_store.js";
 import { HeavyTaskQueueStore } from "./state/heavy_queue_store.js";
 import { PriorityQueueStore } from "./state/priority_queue_store.js";
-import { PriorityQueueDispatcher } from "./orchestrator/priority_queue_dispatcher.js";
 import { RoadmapStore } from "./state/roadmap_store.js";
 import { ArtifactRegistry } from "./telemetry/artifact_registry.js";
 import { logError, logInfo, logWarning } from "./telemetry/logger.js";
@@ -63,18 +75,6 @@ import type {
   TaskPriority,
   TaskStatus as LegacyTaskStatus,
 } from "./utils/types.js";
-import type { OrchestratorRuntime } from "./orchestrator/orchestrator_runtime.js";
-import type {
-  StateMachine,
-  Task,
-  TaskStatus as OrchestratorTaskStatus,
-  CriticHistoryRecord,
-} from "./orchestrator/state_machine.js";
-import {
-  buildPlanSummaries,
-  syncRoadmapFile,
-  toLegacyStatus,
-} from "./orchestrator/roadmap_adapter.js";
 
 const CRITIC_REGISTRY = {
   build: BuildCritic,

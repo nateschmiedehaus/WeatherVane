@@ -1,4 +1,5 @@
 import { logInfo } from '../telemetry/logger.js';
+
 import type { PatternInsight, PatternMiningInput } from './research_types.js';
 
 export interface PatternMiningOptions {

@@ -1,8 +1,12 @@
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
+
 import { execa } from 'execa';
+
 import { logInfo, logWarning } from '../telemetry/logger.js';
+import { recordBrowserLogin } from '../utils/browser_login_tracker.js';
+
 import {
   ModelCatalogSchema,
   ModelCapability,
@@ -10,7 +14,6 @@ import {
   ensureNotes,
 } from './model_catalog_schema.js';
 import { ROUTER_ALLOWED_MODELS, ROUTER_BANNED_PROVIDERS } from './router_lock.js';
-import { recordBrowserLogin } from '../utils/browser_login_tracker.js';
 
 type ProviderId = 'openai' | 'anthropic';
 

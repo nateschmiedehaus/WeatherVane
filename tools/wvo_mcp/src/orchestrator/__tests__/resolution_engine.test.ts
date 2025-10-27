@@ -1,7 +1,9 @@
-import { beforeEach, afterEach, describe, expect, it } from 'vitest';
 import { mkdtemp, rm, readFile, readdir } from 'node:fs/promises';
-import path from 'node:path';
 import os from 'node:os';
+import path from 'node:path';
+
+import { beforeEach, afterEach, describe, expect, it } from 'vitest';
+
 import { runResolution } from '../resolution_engine.js';
 import type { VerifierResult } from '../verifier.js';
 

@@ -2,9 +2,11 @@
  * Tests for LSP Manager
  */
 
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { LSPManager, resetLSPManager } from "./lsp_manager";
 import * as path from "path";
+
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
+
+import { LSPManager, resetLSPManager } from "./lsp_manager";
 
 describe("LSPManager", () => {
   let manager: LSPManager;

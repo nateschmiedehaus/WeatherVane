@@ -1,8 +1,9 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import Database from 'better-sqlite3';
-import path from 'path';
-import fs from 'fs/promises';
 import { randomUUID } from 'crypto';
+import fs from 'fs/promises';
+import path from 'path';
+
+import Database from 'better-sqlite3';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
 import {
   DEFAULT_LIVE_FLAGS,

@@ -56,15 +56,44 @@ function bootstrap_python() {
   local prefer_wheels="${INTEGRITY_PREFER_WHEELS:-1}"
   local pip_args=()
 
-  if [[ "$offline" == "1" ]] || [[ -d "$WHEELS_DIR" && "$prefer_wheels" == "1" ]]; then
-    if [[ ! -d "$WHEELS_DIR" ]]; then
-      echo "[integrity] Offline mode requested but wheel cache missing at $WHEELS_DIR"
+  if [[ "$prefer_wheels" == "1" ]]; then
+    local has_cache=0
+    if [[ -d "$WHEELS_DIR" ]]; then
+      if find "$WHEELS_DIR" -maxdepth 1 -name "*.whl" -print -quit | grep -q .; then
+        has_cache=1
+      fi
+    fi
+
+    if [[ "$has_cache" == "0" ]]; then
+      if [[ "$offline" == "1" ]]; then
+        echo "[integrity] Offline mode requested but wheel cache missing at $WHEELS_DIR"
+        echo "[integrity] Populate the cache (pip download -r $PYTHON_REQUIREMENTS_FILE -d $WHEELS_DIR) before running offline."
+        return 1
+      fi
+
+      echo "[integrity] Wheel cache missing – downloading dependencies into $WHEELS_DIR"
+      mkdir -p "$WHEELS_DIR"
+      if "$PYTHON_BIN" -m pip download -r "$PYTHON_REQUIREMENTS_FILE" -d "$WHEELS_DIR"; then
+        echo "[integrity] Wheel cache populated successfully"
+        has_cache=1
+      else
+        echo "[integrity] Failed to populate wheel cache; falling back to PyPI installs"
+        prefer_wheels=0
+      fi
+    fi
+
+    if [[ "$has_cache" == "1" && "$prefer_wheels" == "1" ]]; then
+      echo "[integrity] Installing Python deps from wheel cache at $WHEELS_DIR"
+      pip_args+=(--no-index "--find-links" "$WHEELS_DIR")
+    fi
+  fi
+
+  if [[ "$prefer_wheels" != "1" ]]; then
+    if [[ "$offline" == "1" ]]; then
+      echo "[integrity] Offline mode forbids PyPI installs and wheel cache creation failed"
       return 1
     fi
-    echo "[integrity] Installing Python deps from wheel cache at $WHEELS_DIR"
-    pip_args+=(--no-index "--find-links" "$WHEELS_DIR")
-  else
-    echo "[integrity] Installing Python deps from PyPI (wheel cache unavailable or disabled)"
+    echo "[integrity] Installing Python deps directly from PyPI"
   fi
 
   pip_args+=(-r "$PYTHON_REQUIREMENTS_FILE")

@@ -3,6 +3,7 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
+
 import { ErrorAnalysisWorker, type ErrorContext } from './error_analysis_worker.js';
 
 describe('ErrorAnalysisWorker', () => {

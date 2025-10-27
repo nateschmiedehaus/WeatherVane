@@ -67,6 +67,26 @@ def fit_lightweight_mmm(
         )
 
     model = LightweightMMM()
+    media_names = list(media_cols)
+
+    def _seed_media_names(instance) -> None:
+        """Best-effort injection of media names before Bayesian helpers run."""
+        # Some LightweightMMM builds expose a setter; fall back to attribute injection.
+        for attr in ("set_media_names",):
+            setter = getattr(instance, attr, None)
+            if callable(setter):
+                try:
+                    setter(media_names)
+                    return
+                except Exception:
+                    continue
+        for attr in ("media_names", "_media_names", "_names"):
+            try:
+                setattr(instance, attr, media_names)
+            except Exception:
+                continue
+
+    _seed_media_names(model)
 
     transformed_media = media_spend
 
@@ -85,9 +105,17 @@ def fit_lightweight_mmm(
         transformed_media = adstock_data
     else:
         # Basic transformations using provided parameters
+        def _safe_lag(value: Optional[int]) -> int:
+            try:
+                return max(1, int(round(value)))  # type: ignore[arg-type]
+            except Exception:
+                return 1
+
+        sanitized_lags = {name: _safe_lag((adstock_lags or {}).get(name)) for name in media_names}
+        adstock_lags = sanitized_lags
         transformed_media = transform_adstock(
             media=transformed_media,
-            adstock_lags=[adstock_lags.get(col, 1) if adstock_lags else 1 for col in media_cols],
+            adstock_lags=[sanitized_lags[name] for name in media_names],
         )
 
     if estimate_saturation:
@@ -109,24 +137,34 @@ def fit_lightweight_mmm(
         transformed_media = saturation_data
     else:
         # Basic transformations using provided parameters
+        def _safe_positive(value: Optional[float], default: float = 1.0) -> float:
+            try:
+                return float(value) if float(value) > 0 else default
+            except Exception:
+                return default
+
+        sanitized_k = {name: _safe_positive((saturation_k or {}).get(name)) for name in media_names}
+        sanitized_s = {name: _safe_positive((saturation_s or {}).get(name), default=0.1) for name in media_names}
+        saturation_k = sanitized_k
+        saturation_s = sanitized_s
         transformed_media = transform_saturation(
             media=transformed_media,
-            gamma=[saturation_s.get(col, 1.0) if saturation_s else 1.0 for col in media_cols],
-            k=[saturation_k.get(col, 1.0) if saturation_k else 1.0 for col in media_cols],
+            gamma=[sanitized_s[name] for name in media_names],
+            k=[sanitized_k[name] for name in media_names],
         )
 
     model.fit(
         media=transformed_media,
         target=target,
         extra_features=extra_features,
-        media_names=media_cols,
+        media_names=media_names,
     )
 
     return LightweightMMMResult(
         mmm=model,
-        channel_names=media_cols,
-        adstock_lags=adstock_lags or {name: 1 for name in media_cols},
-        saturation_k=saturation_k or {name: 1.0 for name in media_cols},
-        saturation_s=saturation_s or {name: 1.0 for name in media_cols},
-        transformed_media=saturation_data,
+        channel_names=media_names,
+        adstock_lags=adstock_lags or {name: 1 for name in media_names},
+        saturation_k=saturation_k or {name: 1.0 for name in media_names},
+        saturation_s=saturation_s or {name: 1.0 for name in media_names},
+        transformed_media=transformed_media,
     )

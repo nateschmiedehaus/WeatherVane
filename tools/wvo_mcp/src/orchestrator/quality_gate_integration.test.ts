@@ -8,34 +8,36 @@
  * the task execution flow.
  */
 
-import { describe, it, expect, beforeEach, afterEach, afterAll, vi } from 'vitest';
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
-import { QualityGateOrchestrator } from './quality_gate_orchestrator.js';
-import type { TaskEvidence } from './adversarial_bullshit_detector.js';
-import { Verifier, type ToolRunner } from './verifier.js';
-import type { TaskEnvelope } from './task_envelope.js';
-import type { PlannerAgent } from './planner_agent.js';
-import type { ThinkerAgent } from './thinker_agent.js';
-import type { ImplementerAgent } from './implementer_agent.js';
-import type { ReviewerAgent } from './reviewer_agent.js';
-import type { CriticalAgent } from './critical_agent.js';
-import type { SupervisorAgent } from './supervisor.js';
+
+import { describe, it, expect, beforeEach, afterEach, afterAll, vi } from 'vitest';
+
 import type { ModelRouter } from './model_router.js';
 import type { DecisionJournal } from '../memory/decision_journal.js';
 import type { RunEphemeralMemory } from '../memory/run_ephemeral.js';
 import type { ContextAssembler } from '../context/context_assembler.js';
+import type { TaskEvidence } from './adversarial_bullshit_detector.js';
 import { IncidentReporter } from './incident_reporter.js';
 import { ComplexityRouter } from './complexity_router.js';
+import type { CriticalAgent } from './critical_agent.js';
+import type { ImplementerAgent } from './implementer_agent.js';
+import type { PlannerAgent } from './planner_agent.js';
+import { QualityGateOrchestrator } from './quality_gate_orchestrator.js';
+import type { ReviewerAgent } from './reviewer_agent.js';
 import { StateGraph } from './state_graph.js';
 import type { StateGraphDependencies } from './state_graph.js';
-import * as specifyRunner from './state_runners/specify_runner.js';
-import * as planRunner from './state_runners/plan_runner.js';
 import * as implementRunner from './state_runners/implement_runner.js';
-import * as verifyRunner from './state_runners/verify_runner.js';
-import * as reviewRunner from './state_runners/review_runner.js';
-import * as prRunner from './state_runners/pr_runner.js';
 import * as monitorRunner from './state_runners/monitor_runner.js';
+import * as planRunner from './state_runners/plan_runner.js';
+import * as prRunner from './state_runners/pr_runner.js';
+import * as reviewRunner from './state_runners/review_runner.js';
+import * as specifyRunner from './state_runners/specify_runner.js';
+import * as verifyRunner from './state_runners/verify_runner.js';
+import type { SupervisorAgent } from './supervisor.js';
+import type { TaskEnvelope } from './task_envelope.js';
+import type { ThinkerAgent } from './thinker_agent.js';
+import { Verifier, type ToolRunner } from './verifier.js';
 
 describe('Quality Gate Integration Tests', () => {
   let testWorkspace: string;

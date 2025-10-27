@@ -15,12 +15,14 @@
  * - Fail gracefully with detailed telemetry
  */
 
+import { EventEmitter } from 'node:events';
+
+import { logInfo, logWarning, logError } from '../telemetry/logger.js';
+
 import { PolicyEngine, type OrchestratorAction } from './policy_engine.js';
+import type { QualityMonitor } from './quality_monitor.js';
 import type { StateMachine, Task, RoadmapHealth, TaskStatus } from './state_machine.js';
 import type { TaskScheduler, QueueMetrics } from './task_scheduler.js';
-import type { QualityMonitor } from './quality_monitor.js';
-import { logInfo, logWarning, logError } from '../telemetry/logger.js';
-import { EventEmitter } from 'node:events';
 
 /**
  * OrchestratorEvent - Events emitted by the orchestrator

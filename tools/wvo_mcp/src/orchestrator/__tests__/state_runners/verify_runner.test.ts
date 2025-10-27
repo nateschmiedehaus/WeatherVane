@@ -6,10 +6,11 @@
  */
 
 import { describe, expect, it, vi, beforeEach } from 'vitest';
+
+import { runResolution, type ResolutionResult } from '../../resolution_engine.js';
 import { runVerify, type VerifyRunnerDeps, type VerifyRunnerContext } from '../../state_runners/verify_runner.js';
 import type { Verifier, VerifierResult } from '../../verifier.js';
 import type { IntegrityReport } from '../../verify_integrity.js';
-import { runResolution, type ResolutionResult } from '../../resolution_engine.js';
 
 // Mock resolution engine
 vi.mock('../../resolution_engine.js', () => ({

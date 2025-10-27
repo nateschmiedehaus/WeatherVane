@@ -128,7 +128,7 @@ class ShopifyIngestor(BaseIngestor):
             validate_shopify_products(rows)
             logger.info(f"Validated {len(rows)} products successfully")
 
-        return await self._write_incremental(
+        return self._write_incremental(
             dataset=f"{tenant_id}_shopify_products",
             rows=rows,
             unique_keys=("tenant_id", "product_id"),

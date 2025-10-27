@@ -23,7 +23,7 @@ from typing import Any, Dict, List, Optional, Tuple
 import numpy as np
 import pandas as pd
 from sklearn.linear_model import Ridge
-from sklearn.model_selection import GridSearchCV
+from sklearn.model_selection import GridSearchCV, TimeSeriesSplit
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -374,6 +374,9 @@ class WeatherAwareMMM:
         """
         channels = X_spend.columns.tolist()
         selected_weather = [wf for wf in self.weather_features if wf in X_weather.columns]
+        if not selected_weather:
+            missing = ", ".join(self.weather_features)
+            raise ValueError(f"Missing required columns: {missing}")
         X_train, feature_names = self._build_feature_matrix(
             X_spend,
             X_weather,
@@ -498,13 +501,6 @@ class WeatherAwareMMM:
                 interaction = weather_vals * spend
                 features.append(interaction)
                 feature_names.append(f"weather_{wf}_x_{channel}")
-
-        # Polynomial weather features (squared terms capture non-linear effects)
-        for wf in selected_weather:
-            weather_vals = weather_df[wf].to_numpy(dtype=float)
-            poly_term = weather_vals ** 2
-            features.append(poly_term)
-            feature_names.append(f"{wf}_squared")
 
         feature_matrix = np.column_stack(features) if features else np.empty((len(spend_df), 0))
         if return_feature_names:
@@ -661,9 +657,7 @@ class WeatherAwareMMM:
             raise ValueError(f"n_folds must be >= 2, got {n_folds}")
 
         channels = X_spend.columns.tolist()
-        n_samples = len(X_spend)
-        fold_size = n_samples // n_folds
-        fold_size = max(1, fold_size)  # At least 1 sample per fold
+        tscv = TimeSeriesSplit(n_splits=n_folds)
 
         fold_r2_scores = []
         fold_rmse_scores = []
@@ -672,22 +666,11 @@ class WeatherAwareMMM:
         fold_roas = {ch: [] for ch in channels}
         fold_details = []
 
-        _LOGGER.info(f"Starting {n_folds}-fold cross-validation with fold_size={fold_size}")
+        _LOGGER.info(f"Starting {n_folds}-fold cross-validation using TimeSeriesSplit")
 
-        for fold_idx in range(n_folds):
-            test_start = fold_idx * fold_size
-            test_end = (
-                (fold_idx + 1) * fold_size
-                if fold_idx < n_folds - 1
-                else n_samples
-            )
-
-            # Time series split: train on data before test set
-            train_indices = np.arange(0, test_start)
-            test_indices = np.arange(test_start, test_end)
-
-            if len(train_indices) == 0:
-                _LOGGER.warning(f"Fold {fold_idx}: No training data, skipping")
+        for fold_idx, (train_indices, test_indices) in enumerate(tscv.split(X_spend)):
+            if len(train_indices) == 0 or len(test_indices) == 0:
+                _LOGGER.warning(f"Fold {fold_idx}: Insufficient data, skipping")
                 continue
 
             # Extract fold data
@@ -722,7 +705,7 @@ class WeatherAwareMMM:
                 channels,
             )
 
-            r2_fold = fold_model._compute_r2(y_test, y_pred_test)
+            r2_fold = max(0.0, fold_model._compute_r2(y_test, y_pred_test))
             rmse_fold = fold_model._compute_rmse(y_test, y_pred_test)
             mae_fold = fold_model._compute_mae(y_test, y_pred_test)
             mean_revenue_fold = float(np.mean(y_test)) if len(y_test) else 0.0

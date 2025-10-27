@@ -1,6 +1,7 @@
 import crypto from 'node:crypto';
-import path from 'node:path';
 import { promises as fs } from 'node:fs';
+import path from 'node:path';
+
 import { logDebug, logWarning } from '../telemetry/logger.js';
 
 interface IndexedFile {

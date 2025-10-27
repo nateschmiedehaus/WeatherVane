@@ -8,9 +8,12 @@
  */
 
 import path from 'node:path';
+
 import { execa } from 'execa';
-import type { Task } from './state_machine.js';
+
 import { logDebug, logError } from '../telemetry/logger.js';
+
+import type { Task } from './state_machine.js';
 
 export interface VerificationResult {
   success: boolean;

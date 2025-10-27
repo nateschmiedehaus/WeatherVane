@@ -1,13 +1,15 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+
+import { promises as fs } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { promises as fs } from 'node:fs';
 
 vi.mock('execa', () => ({
   execa: vi.fn(),
 }));
 
 import { execa } from 'execa';
+
 import { discoverModelCatalog } from '../model_discovery.js';
 
 const mockedExeca = vi.mocked(execa);

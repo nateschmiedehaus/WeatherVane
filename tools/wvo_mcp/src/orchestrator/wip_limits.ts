@@ -18,8 +18,9 @@
  * Expected Savings: 37.5K tokens/day by preventing concurrent thrashing
  */
 
-import type { Task, StateMachine } from './state_machine.js';
 import { logDebug, logInfo, logWarning } from '../telemetry/logger.js';
+
+import type { Task, StateMachine } from './state_machine.js';
 
 export interface WIPLimitsConfig {
   maxGlobal: number; // Default: 5

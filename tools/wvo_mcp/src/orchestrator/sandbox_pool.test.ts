@@ -12,6 +12,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+
 import { SandboxPool, SandboxExecutor, type SandboxConfig } from './sandbox_pool.js';
 
 describe('SandboxPool', () => {
@@ -104,7 +105,7 @@ describe('SandboxPool', () => {
     });
 
     it('should track task completion statistics', async () => {
-      let initialStats = pool.getStats();
+      const initialStats = pool.getStats();
       expect(initialStats.tasksCreated).toBe(0);
 
       await pool.withSandbox(async (sandbox) => {
@@ -152,7 +153,7 @@ describe('SandboxPool', () => {
       await new Promise((resolve) => setTimeout(resolve, 50));
 
       // Check that only 2 are in use
-      let stats = smallPool.getStats();
+      const stats = smallPool.getStats();
       expect(stats.inUse).toBeLessThanOrEqual(2);
 
       await Promise.all(blockingTasks);

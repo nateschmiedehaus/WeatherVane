@@ -1,7 +1,8 @@
 import { logInfo, logWarning } from '../telemetry/logger.js';
-import type { TaskEnvelope } from './task_envelope.js';
+
 import type { ModelSelection } from './model_router.js';
 import { ModelRouter } from './model_router.js';
+import type { TaskEnvelope } from './task_envelope.js';
 
 export interface ReviewerInput {
   task: TaskEnvelope;

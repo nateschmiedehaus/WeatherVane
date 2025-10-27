@@ -2,11 +2,13 @@
  * Tests for TypeScript LSP Proxy
  */
 
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { TypeScriptLSPProxy } from "./tsserver_proxy";
-import { LSPManager, resetLSPManager } from "./lsp_manager";
-import * as path from "path";
 import * as fs from "fs";
+import * as path from "path";
+
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
+
+import { LSPManager, resetLSPManager } from "./lsp_manager";
+import { TypeScriptLSPProxy } from "./tsserver_proxy";
 
 describe("TypeScriptLSPProxy", () => {
   let proxy: TypeScriptLSPProxy;

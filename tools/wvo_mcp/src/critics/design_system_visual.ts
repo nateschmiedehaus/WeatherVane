@@ -11,10 +11,12 @@
  * Philosophy: The best design feedback comes from actually seeing the UI, not just linting.
  */
 
-import { Critic, type CriticResult } from "./base.js";
 import { promises as fs } from "node:fs";
 import path from "node:path";
+
 import { logInfo, logWarning, logError } from "../telemetry/logger.js";
+
+import { Critic, type CriticResult } from "./base.js";
 
 export interface DesignIssue {
   severity: "critical" | "high" | "medium" | "low";

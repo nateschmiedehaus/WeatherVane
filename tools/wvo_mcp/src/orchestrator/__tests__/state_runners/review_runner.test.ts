@@ -6,10 +6,11 @@
  */
 
 import { describe, expect, it, vi, beforeEach } from 'vitest';
-import { runReview, type ReviewRunnerDeps, type ReviewRunnerContext } from '../../state_runners/review_runner.js';
-import type { ReviewerAgent } from '../../reviewer_agent.js';
+
 import type { CriticalAgent } from '../../critical_agent.js';
 import type { ModelSelection } from '../../model_router.js';
+import type { ReviewerAgent } from '../../reviewer_agent.js';
+import { runReview, type ReviewRunnerDeps, type ReviewRunnerContext } from '../../state_runners/review_runner.js';
 
 describe('ReviewRunner - Behavior Tests', () => {
   let context: ReviewRunnerContext;

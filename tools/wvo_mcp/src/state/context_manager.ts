@@ -5,6 +5,7 @@
 
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from "fs";
 import { join } from "path";
+
 import { logInfo, logWarning } from "../telemetry/logger.js";
 import { resolveStateRoot } from "../utils/config.js";
 

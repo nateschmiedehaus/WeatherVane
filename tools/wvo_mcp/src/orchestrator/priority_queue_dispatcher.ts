@@ -1,6 +1,6 @@
 import type { PriorityQueueStore } from "../state/priority_queue_store.js";
-import type { HeavyTaskQueueItem, TaskPriority } from "../utils/types.js";
 import { logInfo, logWarning } from "../telemetry/logger.js";
+import type { HeavyTaskQueueItem, TaskPriority } from "../utils/types.js";
 
 /**
  * Priority Queue Dispatcher

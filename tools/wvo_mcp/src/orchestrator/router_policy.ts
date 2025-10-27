@@ -1,8 +1,11 @@
 import fs from 'node:fs';
 import path from 'node:path';
+
 import yaml from 'yaml';
 import { z } from 'zod';
+
 import { logWarning } from '../telemetry/logger.js';
+
 import { ROUTER_ALLOWED_MODELS, ROUTER_LOCKED_MODELS, ROUTER_BANNED_PROVIDERS } from './router_lock.js';
 
 const CAPABILITY_TAG_VALUES = ['reasoning_high', 'fast_code', 'cheap_batch', 'long_context'] as const;

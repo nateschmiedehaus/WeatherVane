@@ -30,8 +30,8 @@ def _ensure_typing_extensions_sentinel() -> None:
 
 _ensure_typing_extensions_sentinel()
 
-from shared.services.data_quality import DataQualityConfig, run_data_quality_validation
-from shared.services.product_taxonomy import ProductTaxonomyClassifier, ProductTaxonomyLLMResult
+from shared.services.data_quality import DataQualityConfig, run_data_quality_validation  # noqa: E402
+from shared.services.product_taxonomy import ProductTaxonomyClassifier, ProductTaxonomyLLMResult  # noqa: E402
 
 __all__ = [
     "onboarding",

@@ -1,6 +1,12 @@
 // @ts-nocheck - Legacy MCP architecture file with incompatible types
-import { EventEmitter } from 'node:events';
 import { randomUUID } from 'node:crypto';
+import { EventEmitter } from 'node:events';
+
+import type { ModelManager } from '../models/model_manager.js';
+import { logError, logInfo, logWarning } from '../telemetry/logger.js';
+import { resolveOutputValidationSettings } from '../utils/output_validator.js';
+import { standardPromptHeader } from '../utils/prompt_headers.js';
+import type { PromptIntent } from '../utils/prompt_headers.js';
 
 import type {
   Agent,
@@ -11,8 +17,13 @@ import type {
   PromptCacheStatus,
 } from './agent_pool.js';
 import { AgentPool } from './agent_pool.js';
+import { ConsensusEngine, ConsensusTelemetryRecorder } from './consensus/index.js';
 import type { AssembledContext } from './context_assembler.js';
 import { ContextAssembler } from './context_assembler.js';
+import { CriticEnforcer } from './critic_enforcer.js';
+import type { FeatureGatesReader } from './feature_gates.js';
+import type { LiveFlagsReader } from './live_flags.js';
+import { selectCodexModel } from './model_selector.js';
 import type { QualityCheckInput, QualityMonitor } from './quality_monitor.js';
 import type {
   ScheduledTask,
@@ -21,22 +32,13 @@ import type {
   BatchInfo,
 } from './task_scheduler.js';
 import type { StateMachine, Task } from './state_machine.js';
-import { selectCodexModel } from './model_selector.js';
 import type { CodexOperationalSnapshot } from './model_selector.js';
 import type { ReasoningLevel } from './reasoning_classifier.js';
 import type { OperationsManager, OperationsSnapshot } from './operations_manager.js';
-import { logError, logInfo, logWarning } from '../telemetry/logger.js';
-import { CriticEnforcer } from './critic_enforcer.js';
 import type { WebInspirationManager } from './web_inspiration_manager.js';
 import type { SelfImprovementManager } from './self_improvement_manager.js';
-import { standardPromptHeader } from '../utils/prompt_headers.js';
-import type { PromptIntent } from '../utils/prompt_headers.js';
 import { ResilienceManager } from './resilience_manager.js';
-import { resolveOutputValidationSettings } from '../utils/output_validator.js';
-import type { LiveFlagsReader } from './live_flags.js';
-import type { FeatureGatesReader } from './feature_gates.js';
-import { ConsensusEngine, ConsensusTelemetryRecorder } from './consensus/index.js';
-import type { ModelManager } from '../models/model_manager.js';
+
 
 const TOKEN_ESTIMATE_CHAR_RATIO = 4;
 const MAX_PROMPT_TOKENS = 600;

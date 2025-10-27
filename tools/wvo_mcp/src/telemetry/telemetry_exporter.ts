@@ -2,6 +2,7 @@ import { promises as fs } from "node:fs";
 import path from "node:path";
 
 import { resolveStateRoot } from "../utils/config.js";
+
 import { logWarning } from "./logger.js";
 
 export class TelemetryExporter {

@@ -9,7 +9,9 @@
  */
 
 import { randomUUID } from 'node:crypto';
+
 import { logInfo, logWarning } from '../telemetry/logger.js';
+
 import type { StateMachine, Task } from './state_machine.js';
 import type { Agent } from './unified_orchestrator.js';
 

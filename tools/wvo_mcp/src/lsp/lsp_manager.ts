@@ -7,6 +7,7 @@
 
 import { spawn, ChildProcess } from "child_process";
 import { EventEmitter } from "events";
+
 import {
   LSPServerStatus,
   LSPRequest,

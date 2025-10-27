@@ -1,17 +1,34 @@
 import path from 'node:path';
-import { PlannerAgent, type PlannerAgentResult } from './planner_agent.js';
-import { ThinkerAgent } from './thinker_agent.js';
-import { ImplementerAgent, type ImplementerAgentResult } from './implementer_agent.js';
-import { Verifier, type VerifierResult } from './verifier.js';
-import { ReviewerAgent } from './reviewer_agent.js';
-import { CriticalAgent } from './critical_agent.js';
-import { SupervisorAgent } from './supervisor.js';
-import type { TaskEnvelope } from './task_envelope.js';
-import { logWarning, logError, logInfo } from '../telemetry/logger.js';
-import type { ModelRouter, ModelSelection } from './model_router.js';
+
+import { ContextAssembler } from '../context/context_assembler.js';
 import { DecisionJournal } from '../memory/decision_journal.js';
 import { RunEphemeralMemory } from '../memory/run_ephemeral.js';
-import { ContextAssembler } from '../context/context_assembler.js';
+import { CurrentStateTracker } from '../telemetry/current_state_tracker.js';
+import { logWarning, logError, logInfo } from '../telemetry/logger.js';
+import {
+  MetricsCollector,
+  inferTaskType,
+  type MetricsTags,
+  type QualityMetrics,
+  type EfficiencyMetrics,
+  type LearningMetrics,
+  type SystemHealthMetrics,
+} from '../telemetry/metrics_collector.js';
+
+import { ComplexityRouter } from './complexity_router.js';
+import { CriticalAgent } from './critical_agent.js';
+import { ImplementerAgent, type ImplementerAgentResult } from './implementer_agent.js';
+import type { ModelRouter, ModelSelection } from './model_router.js';
+import { PlannerAgent, type PlannerAgentResult } from './planner_agent.js';
+import { ThinkerAgent } from './thinker_agent.js';
+import { Verifier, type VerifierResult } from './verifier.js';
+import { ReviewerAgent } from './reviewer_agent.js';
+import { SupervisorAgent } from './supervisor.js';
+import type { TaskEnvelope } from './task_envelope.js';
+
+
+
+
 import type { IntegrityReport } from './verify_integrity.js';
 import { runResolution, type ResolutionResult } from './resolution_engine.js';
 import type { IncidentReporter } from './incident_reporter.js';
@@ -24,18 +41,9 @@ import { runVerify } from './state_runners/verify_runner.js';
 import { runReview } from './state_runners/review_runner.js';
 import { runPr } from './state_runners/pr_runner.js';
 import { runMonitor } from './state_runners/monitor_runner.js';
-import { ComplexityRouter } from './complexity_router.js';
 import { SmokeCommand, type SmokeCommandResult } from './smoke_command.js';
-import {
-  MetricsCollector,
-  inferTaskType,
-  type MetricsTags,
-  type QualityMetrics,
-  type EfficiencyMetrics,
-  type LearningMetrics,
-  type SystemHealthMetrics,
-} from '../telemetry/metrics_collector.js';
-import { CurrentStateTracker } from '../telemetry/current_state_tracker.js';
+import { ResolutionMetricsStore } from './resolution_metrics_store.js';
+
 
 export type AutopilotState = RouterState;
 
@@ -109,11 +117,13 @@ export class StateGraph {
   private readonly workspaceRoot: string;
   private readonly runId: string;
   private readonly incidentReporter?: IncidentReporter;
+  private readonly resolutionMetrics: ResolutionMetricsStore;
 
   constructor(private readonly deps: StateGraphDependencies, options: StateGraphOptions) {
     this.workspaceRoot = options.workspaceRoot;
     this.runId = options.runId ?? process.env.WVO_RUN_ID ?? 'run-local';
     this.incidentReporter = options.incidentReporter;
+    this.resolutionMetrics = new ResolutionMetricsStore(this.workspaceRoot);
   }
 
   async run(task: StateGraphTaskContext): Promise<StateGraphResult> {
@@ -375,7 +385,15 @@ export class StateGraph {
               this.spikeBranches.set(task.id, result.spikeBranch);
             }
             if (result.artifacts.resolution) {
-              this.recordResolutionTrace(task.id, resolutionTrace, result.artifacts.resolution as ResolutionResult);
+              const resolution = result.artifacts.resolution as ResolutionResult;
+              await this.resolutionMetrics.recordAttempt({
+                taskId: task.id,
+                attempt: this.getAttempt(task.id, current),
+                timestamp: new Date().toISOString(),
+                runId: this.runId,
+                label: resolution.label,
+              });
+              this.recordResolutionTrace(task.id, resolutionTrace, resolution);
             }
             await this.emitContextPack('Verifier', {
               taskId: task.id,
@@ -497,6 +515,12 @@ export class StateGraph {
               current = result.nextState;
               break;
             }
+            await this.resolutionMetrics.markClosed({
+              taskId: task.id,
+              attempt: this.getAttempt(task.id, 'verify'),
+              timestamp: new Date().toISOString(),
+              runId: this.runId,
+            });
             artifacts.routerDecisions = routerDecisions;
             artifacts.resolutionTrace = resolutionTrace;
             if (this.spikeBranches.has(task.id)) {
@@ -583,6 +607,12 @@ export class StateGraph {
   }
 
   private async handleIncident(task: TaskEnvelope, state: AutopilotState, attempt: number): Promise<void> {
+    await this.resolutionMetrics.recordIncident({
+      taskId: task.id,
+      state,
+      attempt,
+      timestamp: new Date().toISOString(),
+    });
     if (!this.incidentReporter) {
       return;
     }
@@ -787,7 +817,7 @@ export class StateGraph {
 
       // Extract model info from router decisions
       const lastDecision = routerDecisions[routerDecisions.length - 1];
-      const modelProvider = lastDecision?.selection.provider ?? 'unknown';
+      const modelProvider = (lastDecision?.selection.provider ?? 'unknown') as MetricsTags['modelProvider'];
       const modelTier = lastDecision?.selection.model;
 
       // Build tags

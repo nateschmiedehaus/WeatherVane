@@ -11,9 +11,10 @@
  * - Record monitoring state in snapshots
  */
 
-import { RollbackMonitor, type RollbackDecision } from './rollback_monitor.js';
 import { logError, logInfo, logWarning } from '../telemetry/logger.js';
 import { withSpan } from '../telemetry/tracing.js';
+
+import { RollbackMonitor, type RollbackDecision } from './rollback_monitor.js';
 
 export interface PostPromotionMonitorOptions {
   workerManager: any; // WorkerManager instance

@@ -16,8 +16,8 @@
  * - Critic requirements tracked separately from blocking status
  */
 
-import type { RoadmapDocument, RoadmapTask } from '../utils/types.js';
 import { logInfo } from '../telemetry/logger.js';
+import type { RoadmapDocument, RoadmapTask } from '../utils/types.js';
 
 export interface CriticRequirement {
   taskId: string;

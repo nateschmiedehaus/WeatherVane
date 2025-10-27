@@ -9,8 +9,9 @@
  * issue subtasking.
  */
 
-import type { StateMachine, Task } from './state_machine.js';
 import { logInfo, logDebug, logWarning } from '../telemetry/logger.js';
+
+import type { StateMachine, Task } from './state_machine.js';
 
 export interface Subtask {
   id: string;
@@ -133,7 +134,7 @@ export class TaskDecomposer {
    */
   private getDecompositionDepth(task: Task): number {
     let depth = 0;
-    let currentId = task.id;
+    const currentId = task.id;
 
     // Count dots in task ID as proxy for depth (e.g., T1.1.1 has depth 2)
     const dotCount = (currentId.match(/\./g) || []).length;

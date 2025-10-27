@@ -2,11 +2,13 @@
  * Tests for QualityGateOrchestrator
  */
 
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
-import { QualityGateOrchestrator, type QualityGateDecision } from './quality_gate_orchestrator.js';
+
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+
 import type { TaskEvidence } from './adversarial_bullshit_detector.js';
+import { QualityGateOrchestrator, type QualityGateDecision } from './quality_gate_orchestrator.js';
 
 describe('QualityGateOrchestrator', () => {
   let orchestrator: QualityGateOrchestrator;

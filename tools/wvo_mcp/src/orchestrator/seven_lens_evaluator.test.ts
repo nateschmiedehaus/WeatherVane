@@ -12,6 +12,7 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
+
 import { SevenLensEvaluator } from './seven_lens_evaluator.js';
 
 describe('SevenLensEvaluator', () => {

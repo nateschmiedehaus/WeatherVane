@@ -8,8 +8,11 @@
 
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
+
 import yaml from 'yaml';
+
 import { logInfo, logWarning, logError } from '../telemetry/logger.js';
+
 import type { TaskEvidence } from './adversarial_bullshit_detector.js';
 
 // Simple model router interface for dependency injection

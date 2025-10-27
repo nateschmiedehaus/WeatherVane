@@ -3,8 +3,9 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import { DomainExpertReviewer, type ModelRouter } from './domain_expert_reviewer.js';
+
 import type { TaskEvidence } from './adversarial_bullshit_detector.js';
+import { DomainExpertReviewer, type ModelRouter } from './domain_expert_reviewer.js';
 
 // Mock model router
 class MockModelRouter {

@@ -23,16 +23,17 @@
 
 import process from "node:process";
 
+import { verifyAtlasAttestationSync } from "../atlas/attestation.js";
 import { OrchestratorRuntime } from "../orchestrator/orchestrator_runtime.js";
 import { SessionContext } from "../session.js";
 import { AuthChecker } from "../utils/auth_checker.js";
 import { resolveWorkspaceRoot } from "../utils/config.js";
 import { createDryRunError, isDryRunEnabled } from "../utils/dry_run.js";
 import { SERVER_VERSION } from "../utils/version.js";
+
+import { ExecutorToolRouter, type RunToolPayload } from "./executor_router.js";
 import type { WorkerOutgoingMessage, WorkerRpcErrorPayload } from "./protocol.js";
 import { WorkerToolRouter } from "./tool_router.js";
-import { ExecutorToolRouter, type RunToolPayload } from "./executor_router.js";
-import { verifyAtlasAttestationSync } from "../atlas/attestation.js";
 
 type WorkerRole = "orchestrator" | "executor";
 type RunToolMessage = {

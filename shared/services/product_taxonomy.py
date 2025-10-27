@@ -94,14 +94,26 @@ class ProductTaxonomyClassifier:
             return None
 
         payload = self._classification_prompt(records, combined_text=combined_text)
+        client = self.llm_client
         try:
-            response = self.llm_client.messages.create(
-                model=self.model,
-                system=SYSTEM_PROMPT,
-                temperature=self.temperature,
-                max_output_tokens=self.max_output_tokens,
-                messages=[{"role": "user", "content": payload}],
-            )
+            if hasattr(client, "messages") and hasattr(client.messages, "create"):
+                response = client.messages.create(
+                    model=self.model,
+                    system=SYSTEM_PROMPT,
+                    temperature=self.temperature,
+                    max_output_tokens=self.max_output_tokens,
+                    messages=[{"role": "user", "content": payload}],
+                )
+            elif hasattr(client, "messages_create"):
+                response = client.messages_create(
+                    model=self.model,
+                    system=SYSTEM_PROMPT,
+                    temperature=self.temperature,
+                    max_output_tokens=self.max_output_tokens,
+                    messages=[{"role": "user", "content": payload}],
+                )
+            else:
+                raise AttributeError("LLM client is missing a messages.create interface")
         except Exception:  # pragma: no cover - network/SDK failure path
             self.logger.exception("Product taxonomy LLM call failed")
             return None

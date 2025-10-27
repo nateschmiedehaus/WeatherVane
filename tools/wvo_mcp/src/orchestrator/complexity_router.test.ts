@@ -5,6 +5,7 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
+
 import { ComplexityRouter } from './complexity_router.js';
 import type { TaskEnvelope } from './task_envelope.js';
 

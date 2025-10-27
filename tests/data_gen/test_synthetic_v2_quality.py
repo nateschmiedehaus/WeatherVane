@@ -9,12 +9,45 @@ Tests cover:
 - Train/val/test split compatibility
 """
 
-import pytest
-import pandas as pd
-import numpy as np
-from pathlib import Path
 import json
+import os
+import sys
+import tracemalloc
+from pathlib import Path
+
+import numpy as np
+import pandas as pd
+import pytest
 from scipy import stats
+
+try:  # psutil is optional in sealed sandboxes
+    import psutil  # type: ignore
+except ModuleNotFoundError:  # pragma: no cover - optional dependency
+    psutil = None
+
+
+def _memory_usage_mb() -> float:
+    """Return current RSS in MB, falling back to stdlib when psutil is unavailable."""
+    if psutil is not None:
+        try:
+            process = psutil.Process(os.getpid())
+            return process.memory_info().rss / (1024 * 1024)
+        except Exception:
+            pass
+
+    try:
+        import resource
+
+        usage = resource.getrusage(resource.RUSAGE_SELF)
+        rss = usage.ru_maxrss
+        if sys.platform == 'darwin':
+            return rss / (1024 * 1024)  # value already in bytes
+        return rss / 1024  # Linux reports kilobytes
+    except Exception:
+        tracemalloc.start()
+        _, peak = tracemalloc.get_traced_memory()
+        tracemalloc.stop()
+        return peak / (1024 * 1024)
 
 
 class TestSyntheticDataStructure:
@@ -612,11 +645,9 @@ class TestResourceManagement:
 
         # Record baseline memory
         import gc
+
         gc.collect()
-        import psutil
-        import os
-        process = psutil.Process(os.getpid())
-        baseline_memory = process.memory_info().rss / (1024 * 1024)  # MB
+        baseline_memory = _memory_usage_mb()
 
         # Load and process 5 files
         for file in all_data_files[:5]:
@@ -630,7 +661,7 @@ class TestResourceManagement:
         gc.collect()
 
         # Check memory growth
-        final_memory = process.memory_info().rss / (1024 * 1024)  # MB
+        final_memory = _memory_usage_mb()
         memory_growth = final_memory - baseline_memory
 
         # Memory growth should be reasonable (< 100 MB for 5 files)

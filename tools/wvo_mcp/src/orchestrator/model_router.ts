@@ -1,10 +1,12 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
+
 import { z } from 'zod';
+
 import { logDebug, logInfo, logWarning } from '../telemetry/logger.js';
-import type { Task } from './state_machine.js';
 import { withSpan } from '../telemetry/tracing.js';
+
 import {
   ModelCatalogSchema,
   ModelCapability as CatalogModelCapability,
@@ -23,6 +25,7 @@ import {
   RouterPolicy,
   RouterState,
 } from './router_policy.js';
+import type { Task } from './state_machine.js';
 
 export interface ModelRouterOptions {
   workspaceRoot: string;

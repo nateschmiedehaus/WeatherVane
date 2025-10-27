@@ -13,8 +13,10 @@
 
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
-import { logDebug, logWarning } from './logger.js';
+
 import type { TaskEnvelope } from '../orchestrator/task_envelope.js';
+
+import { logDebug, logWarning } from './logger.js';
 
 /**
  * Tags for metric segmentation

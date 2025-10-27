@@ -8,8 +8,9 @@
  * - Calculates optimal task distribution
  */
 
-import { SubscriptionLimitTracker, ProviderName, ProviderUsage } from './subscription_tracker.js';
 import { logInfo, logWarning } from '../telemetry/logger.js';
+
+import { SubscriptionLimitTracker, ProviderName, ProviderUsage } from './subscription_tracker.js';
 
 export interface QuotaEstimate {
   provider: ProviderName;

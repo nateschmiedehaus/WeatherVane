@@ -127,8 +127,8 @@ def test_train_single_tenant_with_cv(temp_data_dir, create_test_tenant_file):
     assert tenant_name == "tenant_cv_test"
     assert isinstance(cv_metrics, CrossValidationMetrics)
     assert cv_metrics.num_folds == 3
-    # First fold is skipped (no training data in time-series CV), so we get n_folds - 1 results
-    assert len(cv_metrics.fold_r2_scores) == 2
+    # TimeSeriesSplit yields exactly n_folds evaluation windows
+    assert len(cv_metrics.fold_r2_scores) == 3
     assert cv_metrics.mean_r2 >= 0.0
     assert cv_metrics.std_r2 >= 0.0
 

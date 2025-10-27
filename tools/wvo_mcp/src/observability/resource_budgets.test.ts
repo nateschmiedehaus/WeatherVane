@@ -3,6 +3,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+
 import {
   ResourceBudgetManager,
   DEFAULT_RESOURCE_BUDGET_CONFIG,

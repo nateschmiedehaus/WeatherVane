@@ -2,11 +2,13 @@
  * Tests for Provider Capacity Monitor
  */
 
-import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import { ProviderCapacityMonitor } from "./provider_capacity_monitor.js";
-import { tmpdir } from "node:os";
 import { mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import path from "node:path";
+
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+
+import { ProviderCapacityMonitor } from "./provider_capacity_monitor.js";
 
 describe("ProviderCapacityMonitor", () => {
   let testWorkspace: string;

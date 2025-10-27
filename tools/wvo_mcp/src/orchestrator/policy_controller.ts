@@ -7,9 +7,11 @@
  * needs the same hook so supervisors keep their guardrail visibility.
  */
 
-import path from 'node:path';
 import { promises as fs } from 'node:fs';
+import path from 'node:path';
+
 import { execa, execaSync } from 'execa';
+
 import { logInfo, logWarning } from '../telemetry/logger.js';
 
 const PYTHON_BINARIES = ['python3', 'python'];

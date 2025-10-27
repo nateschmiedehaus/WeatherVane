@@ -1,8 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import type { Task } from '../state_machine.js';
+
 import type { ImplementerAgentResult } from '../implementer_agent.js';
-import type { VerifierResult } from '../verifier.js';
 import { buildTaskEvidenceFromArtifacts } from '../quality_gate_bridge.js';
+import type { Task } from '../state_machine.js';
+import type { VerifierResult } from '../verifier.js';
 
 const baseTask: Task = {
   id: 'T-QG',

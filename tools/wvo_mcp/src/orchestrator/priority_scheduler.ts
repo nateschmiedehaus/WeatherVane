@@ -1,9 +1,10 @@
-import type { Task } from './state_machine.js';
-import type { StateMachine } from './state_machine.js';
-import type { FeatureGatesReader } from './feature_gates.js';
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 import path from 'node:path';
+
 import { logDebug } from '../telemetry/logger.js';
+
+import type { FeatureGatesReader } from './feature_gates.js';
+import type { StateMachine , Task } from './state_machine.js';
 
 interface PriorityScore {
   score: number;

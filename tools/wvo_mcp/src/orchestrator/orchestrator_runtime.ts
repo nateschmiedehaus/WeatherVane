@@ -1,6 +1,17 @@
-import { AgentPool } from './agent_pool.js';
+import { ResearchManager } from '../intelligence/research_manager.js';
+import { ModelManager } from '../models/model_manager.js';
+import { LiveFlags } from '../state/live_flags.js';
+import { logInfo, logWarning, logError } from '../telemetry/logger.js';
+import { AuthChecker } from '../utils/auth_checker.js';
+import { browserManager } from '../utils/browser.js';
+import { CodeSearchIndex } from '../utils/code_search.js';
+import { deriveResourceLimits, loadActiveDeviceProfile } from '../utils/device_profile.js';
+
+import { isDryRunEnabled } from '../utils/dry_run.js';
 import { AgentCoordinator } from './agent_coordinator.js';
+import { AgentPool } from './agent_pool.js';
 import { ContextAssembler } from './context_assembler.js';
+import { FeatureGates } from './feature_gates.js';
 import { OperationsManager } from './operations_manager.js';
 import { ResilienceManager } from './resilience_manager.js';
 import { WebInspirationManager } from './web_inspiration_manager.js';
@@ -8,21 +19,15 @@ import { QualityMonitor } from './quality_monitor.js';
 import { TaskScheduler } from './task_scheduler.js';
 import { StateMachine } from './state_machine.js';
 import { SelfImprovementManager } from './self_improvement_manager.js';
-import { LiveFlags } from '../state/live_flags.js';
-import { FeatureGates } from './feature_gates.js';
-import { logInfo, logWarning, logError } from '../telemetry/logger.js';
-import { AuthChecker } from '../utils/auth_checker.js';
-import { CodeSearchIndex } from '../utils/code_search.js';
-import { deriveResourceLimits, loadActiveDeviceProfile } from '../utils/device_profile.js';
-import { isDryRunEnabled } from '../utils/dry_run.js';
-import { ResearchManager } from '../intelligence/research_manager.js';
+
 import { ResearchOrchestrator } from './research_orchestrator.js';
 import { TokenEfficiencyManager } from './token_efficiency_manager.js';
-import { ModelManager } from '../models/model_manager.js';
+
 import { CriticModelSelector } from '../utils/critic_model_selector.js';
+
 import { ActivityFeedWriter } from './activity_feed_writer.js';
 import { HolisticReviewManager, type HolisticReviewStatus } from './holistic_review_manager.js';
-import { browserManager } from '../utils/browser.js';
+
 
 export interface OrchestratorRuntimeOptions {
   codexWorkers?: number;

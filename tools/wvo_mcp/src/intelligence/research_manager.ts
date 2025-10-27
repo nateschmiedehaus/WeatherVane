@@ -1,8 +1,9 @@
+import type { StateMachine } from '../orchestrator/state_machine.js';
+
 import { AcademicSearchClient, type AcademicSearchOptions } from './academic_search.js';
 import { AlternativeGenerator, type AlternativeGeneratorOptions } from './alternative_generator.js';
 import { PatternMiningClient, type PatternMiningOptions } from './pattern_mining.js';
 import { ResearchCache, ResearchCacheEntry } from './research_cache.js';
-import type { StateMachine } from '../orchestrator/state_machine.js';
 import type {
   AlternativeOption,
   AlternativeRequest,

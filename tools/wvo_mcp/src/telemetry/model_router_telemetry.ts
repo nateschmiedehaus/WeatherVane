@@ -7,8 +7,10 @@
 
 import * as fs from 'node:fs/promises';
 import path from 'node:path';
-import type { Task } from '../orchestrator/state_machine.js';
+
 import type { ModelTier } from '../orchestrator/model_router.js';
+import type { Task } from '../orchestrator/state_machine.js';
+
 import { logDebug, logInfo } from './logger.js';
 
 interface ModelRouterTelemetry {

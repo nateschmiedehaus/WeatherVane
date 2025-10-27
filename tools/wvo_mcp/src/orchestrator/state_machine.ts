@@ -9,15 +9,16 @@
  * - Checkpoints (versioned snapshots)
  */
 
-import Database from 'better-sqlite3';
-import { EventEmitter } from 'node:events';
 import { randomUUID } from 'node:crypto';
-import path from 'node:path';
+import { EventEmitter } from 'node:events';
 import fs from 'node:fs';
+import path from 'node:path';
+
+import Database from 'better-sqlite3';
 
 import { seedLiveFlagDefaults } from '../state/live_flags.js';
-import { createDryRunError } from '../utils/dry_run.js';
 import { logWarning, logDebug } from '../telemetry/logger.js';
+import { createDryRunError } from '../utils/dry_run.js';
 
 // ============================================================================
 // Types

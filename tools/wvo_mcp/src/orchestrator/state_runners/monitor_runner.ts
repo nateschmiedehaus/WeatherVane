@@ -5,9 +5,10 @@
  * This is the final state - successful completion exits with nextState=null.
  */
 
-import type { SupervisorAgent } from '../supervisor.js';
-import type { RunnerContext, RunnerResult } from './runner_types.js';
 import type { SmokeCommandResult } from '../smoke_command.js';
+import type { SupervisorAgent } from '../supervisor.js';
+
+import type { RunnerContext, RunnerResult } from './runner_types.js';
 
 export interface MonitorRunnerDeps {
   supervisor: SupervisorAgent;
