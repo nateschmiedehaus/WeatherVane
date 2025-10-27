@@ -6,7 +6,7 @@
 - Core policy: [ClaudeCouncil-Core.md](autopilot/ClaudeCouncil-Core.md)
 - Extended overview: [ClaudeCouncil-Extended.md](autopilot/ClaudeCouncil-Extended.md)
 - **Migration status**: [Coverage Matrix](autopilot/migration/claude_v1_coverage.json)
-- Comprehensive (v1, in migration): [CLAUDE.md](../CLAUDE.md)
+- Comprehensive (v1, migration complete): [CLAUDE_v1.md](../CLAUDE_v1.md)
 
 **Deep‑dives**
 - Strategize methodologies: [Strategize-Methodologies.md](autopilot/Strategize-Methodologies.md)
