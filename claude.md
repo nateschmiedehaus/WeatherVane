@@ -36,7 +36,17 @@
 
 **Start every loop** by calling MCP tools `plan_next --minimal` and `autopilot_status`. If either fails, run `./autopilot/scripts/restart_mcp.sh` and log to `state/analytics/health_checks.jsonl`.
 
-**Finish in one loop:** Strategize → Spec → Plan → Think → Implement → Verify → Review → PR → Monitor. No partials; build=0 errors; all tests pass; docs done.
+**🚨 MANDATORY PROCESS - NO EXCEPTIONS:**
+**STRATEGIZE → SPEC → PLAN → THINK → IMPLEMENT → VERIFY → REVIEW → PR → MONITOR**
+
+**Enforcement is ACTIVE:**
+- Skipping ANY phase = IMMEDIATE TASK FAILURE
+- Starting with IMPLEMENT = REJECTED
+- Claiming done without VERIFY = REJECTED
+- WorkProcessEnforcer will BLOCK violating tasks
+- Violations are logged and tracked in metrics
+
+**Finish in one loop:** No partials; build=0 errors; all tests pass; docs done.
 
 **Respect consensus:** Failed-quorum decisions spawn follow-ups for Atlas/Dana—use them instead of bypassing.
 

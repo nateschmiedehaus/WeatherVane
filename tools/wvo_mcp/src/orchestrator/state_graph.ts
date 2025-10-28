@@ -78,6 +78,7 @@ export interface StateGraphDependencies {
   metricsCollector?: MetricsCollector;
   currentStateTracker?: CurrentStateTracker;
   checkpoint?: CheckpointClient;
+  workProcessEnforcer?: import('./work_process_enforcer.js').WorkProcessEnforcer;
 }
 
 export interface StateGraphOptions {
@@ -205,6 +206,9 @@ export class StateGraph {
             break;
           }
           case 'plan': {
+            // CRITICAL: Validate and advance work process phase
+            await this.advanceWorkPhase(task.id, current);
+
             await this.ensureRetryBudget(task, current);
             const modelSelection = this.selectModelForState(task, complexity);
             let result;
@@ -259,6 +263,9 @@ export class StateGraph {
             break;
           }
           case 'thinker': {
+            // CRITICAL: Validate and advance work process phase
+            await this.advanceWorkPhase(task.id, current);
+
             if (!planResult) {
               throw new StateGraphError('Thinker requires plan result', current);
             }
@@ -294,6 +301,9 @@ export class StateGraph {
             break;
           }
           case 'implement': {
+            // CRITICAL: Validate and advance work process phase
+            await this.advanceWorkPhase(task.id, current);
+
             if (!planResult) {
               throw new StateGraphError('Implement requires plan result', current);
             }
@@ -342,6 +352,9 @@ export class StateGraph {
             break;
           }
           case 'verify': {
+            // CRITICAL: Validate and advance work process phase
+            await this.advanceWorkPhase(task.id, current);
+
             if (!implementResult) {
               throw new StateGraphError('Verify requires implementation result', current);
             }
@@ -411,6 +424,9 @@ export class StateGraph {
             break;
           }
           case 'review': {
+            // CRITICAL: Validate and advance work process phase
+            await this.advanceWorkPhase(task.id, current);
+
             if (!implementResult || !verifierResult) {
               throw new StateGraphError('Review requires implementation and verification artifacts', current);
             }
@@ -451,6 +467,9 @@ export class StateGraph {
             break;
           }
           case 'pr': {
+            // CRITICAL: Validate and advance work process phase
+            await this.advanceWorkPhase(task.id, current);
+
             const modelSelection = this.selectModelForState(task, complexity);
             const result = await runPr(
               { task, attemptNumber: this.getAttempt(task.id, current), modelSelection },
@@ -478,6 +497,9 @@ export class StateGraph {
             break;
           }
           case 'monitor': {
+            // CRITICAL: Validate and advance work process phase
+            await this.advanceWorkPhase(task.id, current);
+
             const modelSelection = this.selectModelForState(task, complexity);
             const result = await runMonitor(
               {
@@ -671,6 +693,73 @@ export class StateGraph {
       attempt,
       payload,
     });
+  }
+
+  /**
+   * Validate and advance work process phase before state transition
+   * CRITICAL: Enforces STRATEGIZE→SPEC→PLAN→THINK→IMPLEMENT→VERIFY→REVIEW→PR→MONITOR sequence
+   * Throws StateGraphError on illegal phase skips
+   */
+  private async advanceWorkPhase(taskId: string, nextState: AutopilotState): Promise<void> {
+    if (!this.deps.workProcessEnforcer) {
+      return; // Enforcer not configured, allow transition
+    }
+
+    try {
+      // Advance to next phase in work process
+      // This validates evidence and checks for phase skips
+      const advanced = await this.deps.workProcessEnforcer.advancePhase(taskId);
+
+      if (!advanced) {
+        // Phase advancement was rejected (e.g., missing evidence, drift detected)
+        const phaseMap: Record<AutopilotState, string> = {
+          specify: 'SPEC',
+          plan: 'PLAN',
+          thinker: 'THINK',
+          implement: 'IMPLEMENT',
+          verify: 'VERIFY',
+          review: 'REVIEW',
+          pr: 'PR',
+          monitor: 'MONITOR'
+        };
+
+        throw new StateGraphError(
+          `phase_skip: Cannot advance to ${nextState} - work process enforcement blocked transition`,
+          nextState,
+          {
+            taskId,
+            requiredPhase: phaseMap[nextState],
+            reason: 'Phase advancement validation failed'
+          }
+        );
+      }
+
+      logInfo('Work process phase advanced', {
+        taskId,
+        nextState,
+        enforcement: 'pass'
+      });
+    } catch (error) {
+      if (error instanceof StateGraphError) {
+        throw error;
+      }
+
+      // If enforcer throws, this is a critical failure - fail closed
+      logError('Work process enforcement failed', {
+        taskId,
+        nextState,
+        error: error instanceof Error ? error.message : String(error)
+      });
+
+      throw new StateGraphError(
+        `phase_skip: Work process enforcer error during transition to ${nextState}`,
+        nextState,
+        {
+          taskId,
+          error: error instanceof Error ? error.message : String(error)
+        }
+      );
+    }
   }
 
   private async emitContextPack(

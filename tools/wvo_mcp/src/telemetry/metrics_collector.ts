@@ -227,6 +227,37 @@ export class MetricsCollector {
   }
 
   /**
+   * Record a simple counter increment (e.g., violations, errors)
+   * Used for lightweight metrics like phase_skips_attempted
+   */
+  async recordCounter(counterName: string, value: number = 1, metadata?: Record<string, unknown>): Promise<void> {
+    if (this.options.disabled) {
+      return;
+    }
+
+    try {
+      const counterPath = path.join(this.workspaceRoot, 'state', 'telemetry', 'counters.jsonl');
+      await fs.mkdir(path.dirname(counterPath), { recursive: true });
+
+      const record = {
+        timestamp: new Date().toISOString(),
+        counter: counterName,
+        value,
+        metadata: metadata ?? {}
+      };
+
+      await fs.appendFile(counterPath, JSON.stringify(record) + '\n');
+
+      logDebug('MetricsCollector recorded counter', { counterName, value });
+    } catch (error) {
+      logWarning('MetricsCollector failed to record counter', {
+        counterName,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
+
+  /**
    * Flush pending records to disk
    */
   async flush(): Promise<void> {

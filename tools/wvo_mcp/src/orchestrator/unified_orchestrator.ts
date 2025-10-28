@@ -95,6 +95,7 @@ import { ModelRouter } from './model_router.js';
 import { ProcessManager, type ProcessHandle } from './process_manager.js';
 import { buildTaskEvidenceFromArtifacts, type QualityGateArtifacts } from './quality_gate_bridge.js';
 import type { StateMachine, Task, ContextEntry } from './state_machine.js';
+import { WorkProcessEnforcer } from './work_process_enforcer.js';
 
 export type Provider = 'codex' | 'claude';
 export type AgentRole = 'orchestrator' | 'worker' | 'critic' | 'architecture_planner' | 'architecture_reviewer';
@@ -544,6 +545,7 @@ export class UnifiedOrchestrator extends EventEmitter {
   private readonly decisionJournal: DecisionJournal;
   private readonly stateGraph: StateGraph;
   private readonly stateGraphEnabled: boolean;
+  private readonly workProcessEnforcer: WorkProcessEnforcer;
   private readonly runId: string;
   private readonly pidFilePath: string;
   private heartbeatWriter: HeartbeatWriter | null = null;
@@ -783,6 +785,12 @@ export class UnifiedOrchestrator extends EventEmitter {
       workspaceRoot: config.workspaceRoot,
       runId: this.runId,
     });
+    // CRITICAL: Initialize work process enforcer before StateGraph
+    // Initialize metrics collector if not already done
+    if (!this.metricsCollector) {
+      this.metricsCollector = new MetricsCollector(config.workspaceRoot);
+    }
+    this.workProcessEnforcer = new WorkProcessEnforcer(this.stateMachine, config.workspaceRoot, this.metricsCollector);
     this.stateGraph = this.createStateGraph();
     this.stateGraphEnabled = true;
   }
@@ -849,6 +857,7 @@ export class UnifiedOrchestrator extends EventEmitter {
         metricsCollector: this.metricsCollector,
         currentStateTracker: this.currentStateTracker,
         checkpoint: this.createCheckpointClient(),
+        workProcessEnforcer: this.workProcessEnforcer,
       },
       {
         workspaceRoot: this.config.workspaceRoot,

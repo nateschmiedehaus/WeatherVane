@@ -29,6 +29,7 @@ import { QualityTrendsAnalyzer } from './quality_trends.js';
 import { ContextAssembler } from './context_assembler.js';
 import { MCPClient } from './mcp_client.js';
 import { WorkProcessEnforcer } from './work_process_enforcer.js';
+import { MetricsCollector } from '../telemetry/metrics_collector.js';
 
 /**
  * OrchestratorEvent - Events emitted by the orchestrator
@@ -258,6 +259,7 @@ export class OrchestratorLoop extends EventEmitter {
   // Intelligence components
   private mcpClient?: MCPClient;
   private workProcessEnforcer?: WorkProcessEnforcer;
+  private metricsCollector?: MetricsCollector;
   private adaptiveRoadmap?: AdaptiveRoadmap;
   private contextManager?: ContextManager;
   private qualityTrends?: QualityTrendsAnalyzer;
@@ -412,7 +414,7 @@ export class OrchestratorLoop extends EventEmitter {
     // Initialize WorkProcessEnforcer if enabled
     if (this.options.enableWorkProcessEnforcement) {
       try {
-        this.workProcessEnforcer = new WorkProcessEnforcer(stateMachine, workspaceRoot);
+        this.workProcessEnforcer = new WorkProcessEnforcer(stateMachine, workspaceRoot, this.metricsCollector);
         logInfo('WorkProcessEnforcer initialized - programmatic process enforcement active');
       } catch (error) {
         logError('Failed to initialize WorkProcessEnforcer', { error: String(error) });
@@ -689,9 +691,71 @@ export class OrchestratorLoop extends EventEmitter {
   private async executeTask(task: Task): Promise<void> {
     logInfo(`Executing task: ${task.id}`, { task });
 
+    // CRITICAL: Validate work process BEFORE marking as in_progress
+    if (this.workProcessEnforcer) {
+      try {
+        const validation = await this.workProcessEnforcer.validatePhaseSequence(task);
+        if (!validation.valid) {
+          logError(`Task ${task.id} violates work process - blocking execution`, {
+            taskId: task.id,
+            violations: validation.violations,
+            requiredPhase: validation.requiredPhase,
+            actualPhase: validation.actualPhase
+          });
+
+          // Reject task that skips phases
+          await this.stateMachine.transition(task.id, 'blocked');
+          await this.syncTaskStatusToMCP(task.id, 'blocked');
+
+          // Add violation to context as a constraint
+          this.stateMachine.addContextEntry({
+            entry_type: 'constraint',
+            topic: 'work_process_violation',
+            content: `Task ${task.id} attempted to skip phases: ${validation.violations.join(', ')}`,
+            confidence: 1.0,
+            metadata: {
+              taskId: task.id,
+              violations: validation.violations,
+              enforcement: 'blocked'
+            }
+          });
+
+          return; // Don't execute task that violates process
+        }
+      } catch (error) {
+        logError('WorkProcessEnforcer validation failed', { error: String(error) });
+        // FAIL CLOSED: If enforcer fails, don't execute task
+        await this.stateMachine.transition(task.id, 'blocked');
+        await this.syncTaskStatusToMCP(task.id, 'blocked');
+        throw new Error(`Work process enforcement failed: ${error}`);
+      }
+    }
+
     // Mark task as in progress
     await this.stateMachine.transition(task.id, 'in_progress');
     await this.syncTaskStatusToMCP(task.id, 'in_progress');
+
+    // CRITICAL: Register task with work process enforcer
+    if (this.workProcessEnforcer) {
+      try {
+        await this.workProcessEnforcer.startCycle(task.id);
+        logInfo('Task registered with work process enforcer', {
+          taskId: task.id,
+          phase: 'STRATEGIZE'
+        });
+      } catch (error) {
+        // If already registered (e.g., retry), log but continue
+        if (error instanceof Error && error.message.includes('already in cycle')) {
+          logWarning('Task already registered with enforcer', { taskId: task.id });
+        } else {
+          logError('Failed to register task with enforcer', { error: String(error) });
+          // FAIL CLOSED: If we can't register, block the task
+          await this.stateMachine.transition(task.id, 'blocked');
+          await this.syncTaskStatusToMCP(task.id, 'blocked');
+          throw new Error(`Failed to start work cycle: ${error}`);
+        }
+      }
+    }
 
     // Assemble context if ContextManager is enabled
     let context = null;

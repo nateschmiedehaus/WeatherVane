@@ -53,6 +53,18 @@
 
 ## Execution Protocol
 
+### 🚨 MANDATORY WORK PROCESS - ENFORCED BY SYSTEM
+
+**EVERY task MUST follow this exact sequence:**
+**STRATEGIZE → SPEC → PLAN → THINK → IMPLEMENT → VERIFY → REVIEW → PR → MONITOR**
+
+**ENFORCEMENT IS ACTIVE:**
+- WorkProcessEnforcer BLOCKS tasks that skip phases
+- Skipping ANY phase = IMMEDIATE TASK FAILURE
+- Starting with IMPLEMENT = REJECTED
+- Claiming done without VERIFY = REJECTED
+- All violations logged to metrics and decision journal
+
 ### Complete-Finish Policy
 - Finish every task within the active loop—no partial completions or deferred fixes.
 - Meet every acceptance criterion; builds must be clean (0 errors/warnings) and all tests must pass with no skips.
