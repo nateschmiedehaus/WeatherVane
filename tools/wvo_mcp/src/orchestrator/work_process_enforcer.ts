@@ -18,6 +18,7 @@ import { CompletionVerifier } from './completion_verifier.js';
 import { MetricsCollector } from '../telemetry/metrics_collector.js';
 import { PhaseLedger } from './phase_ledger.js';
 import { PhaseLeaseManager } from './phase_lease.js';
+import { PromptAttestationManager, type PromptSpec } from './prompt_attestation.js';
 import fs from 'fs';
 import path from 'path';
 import { execSync } from 'child_process';
@@ -69,6 +70,7 @@ export class WorkProcessEnforcer {
   private readonly completionVerifier: CompletionVerifier;
   private readonly phaseLedger: PhaseLedger;
   private readonly phaseLeaseManager: PhaseLeaseManager;
+  private readonly promptAttestationManager: PromptAttestationManager;
 
   // Define the required flow
   private readonly PHASE_SEQUENCE: WorkPhase[] = [
@@ -231,10 +233,18 @@ export class WorkProcessEnforcer {
       leaseDuration: 300,  // 5 minutes
       maxRenewals: 10
     });
+    this.promptAttestationManager = new PromptAttestationManager(workspaceRoot);
 
     // Initialize ledger directory
     this.phaseLedger.initialize().catch(error => {
       logError('Failed to initialize phase ledger', {
+        error: error instanceof Error ? error.message : String(error)
+      });
+    });
+
+    // Initialize prompt attestation
+    this.promptAttestationManager.initialize().catch(error => {
+      logError('Failed to initialize prompt attestation', {
         error: error instanceof Error ? error.message : String(error)
       });
     });
@@ -422,6 +432,60 @@ export class WorkProcessEnforcer {
         drift: driftCheck.details
       });
       validation.errors.push(`Drift detected: ${driftCheck.details}`);
+    }
+
+    // STEP 4.5: Attest to prompt specification to detect drift
+    try {
+      const promptSpec: PromptSpec = {
+        phase: currentPhase,
+        taskId,
+        timestamp: new Date().toISOString(),
+        requirements: this.PHASE_VALIDATIONS[currentPhase].required,
+        qualityGates: this.PHASE_VALIDATIONS[currentPhase].qualityGates.map(g => g.name),
+        artifacts: this.PHASE_VALIDATIONS[currentPhase].artifacts,
+        contextSummary: 'Phase enforcement context',  // Could extract from task context if available
+        agentType: 'work_process_enforcer',
+        modelVersion: 'claude-sonnet-4'  // Could be parameterized
+      };
+
+      const driftAnalysis = await this.promptAttestationManager.attest(promptSpec);
+
+      if (driftAnalysis.hasDrift) {
+        logWarning('PROMPT DRIFT DETECTED - Specification changed from baseline', {
+          taskId,
+          phase: currentPhase,
+          severity: driftAnalysis.severity,
+          baselineHash: driftAnalysis.baselineHash?.slice(0, 16),
+          currentHash: driftAnalysis.currentHash.slice(0, 16),
+          recommendation: driftAnalysis.recommendation
+        });
+
+        // Record prompt drift metric
+        if (this.metricsCollector) {
+          await this.metricsCollector.recordCounter('prompt_drift_detected', 1, {
+            taskId,
+            phase: currentPhase,
+            severity: driftAnalysis.severity
+          });
+        }
+
+        // Add warning to validation (but don't block - just log)
+        // High severity drift could be made blocking in future
+        if (driftAnalysis.severity === 'high') {
+          logError('HIGH SEVERITY PROMPT DRIFT - Review immediately', {
+            taskId,
+            phase: currentPhase,
+            details: driftAnalysis.driftDetails
+          });
+        }
+      }
+    } catch (error) {
+      logWarning('Prompt attestation skipped (non-blocking)', {
+        taskId,
+        phase: currentPhase,
+        error: error instanceof Error ? error.message : String(error)
+      });
+      // Attestation is supplementary - don't block on errors
     }
 
     // STEP 5: Handle validation failure with learning capture
