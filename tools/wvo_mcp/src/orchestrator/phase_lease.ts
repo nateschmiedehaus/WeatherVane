@@ -85,6 +85,10 @@ export class PhaseLeaseManager {
     const dbPath = `${workspaceRoot}/state/orchestrator.db`;
     this.db = new Database(dbPath);
 
+    // Enable Write-Ahead Logging for crash recovery
+    this.db.pragma('journal_mode = WAL');
+    this.db.pragma('synchronous = NORMAL');
+
     this.agentId = options?.agentId ?? this.generateAgentId();
     this.defaultLeaseDuration = options?.leaseDuration ?? 300; // 5 minutes
     this.maxRenewals = options?.maxRenewals ?? 10;

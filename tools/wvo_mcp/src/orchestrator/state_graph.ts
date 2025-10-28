@@ -43,6 +43,7 @@ import { runPr } from './state_runners/pr_runner.js';
 import { runMonitor } from './state_runners/monitor_runner.js';
 import { SmokeCommand, type SmokeCommandResult } from './smoke_command.js';
 import { ResolutionMetricsStore } from './resolution_metrics_store.js';
+import type { WorkPhase } from './work_process_enforcer.js';
 
 
 export type AutopilotState = RouterState;
@@ -706,29 +707,39 @@ export class StateGraph {
     }
 
     try {
+      const phaseMap: Record<AutopilotState, WorkPhase> = {
+        specify: 'SPEC',
+        plan: 'PLAN',
+        thinker: 'THINK',
+        implement: 'IMPLEMENT',
+        verify: 'VERIFY',
+        review: 'REVIEW',
+        pr: 'PR',
+        monitor: 'MONITOR'
+      };
+
+      const desiredPhase = phaseMap[nextState];
+
+      if (!desiredPhase) {
+        throw new StateGraphError(
+          `phase_skip: Unknown desired phase for state ${nextState}`,
+          nextState,
+          { taskId }
+        );
+      }
+
       // Advance to next phase in work process
       // This validates evidence and checks for phase skips
-      const advanced = await this.deps.workProcessEnforcer.advancePhase(taskId);
+      const advanced = await this.deps.workProcessEnforcer.advancePhase(taskId, desiredPhase);
 
       if (!advanced) {
         // Phase advancement was rejected (e.g., missing evidence, drift detected)
-        const phaseMap: Record<AutopilotState, string> = {
-          specify: 'SPEC',
-          plan: 'PLAN',
-          thinker: 'THINK',
-          implement: 'IMPLEMENT',
-          verify: 'VERIFY',
-          review: 'REVIEW',
-          pr: 'PR',
-          monitor: 'MONITOR'
-        };
-
         throw new StateGraphError(
           `phase_skip: Cannot advance to ${nextState} - work process enforcement blocked transition`,
           nextState,
           {
             taskId,
-            requiredPhase: phaseMap[nextState],
+            requiredPhase: desiredPhase,
             reason: 'Phase advancement validation failed'
           }
         );

@@ -71,6 +71,8 @@ export class WorkProcessEnforcer {
   private readonly phaseLedger: PhaseLedger;
   private readonly phaseLeaseManager: PhaseLeaseManager;
   private readonly promptAttestationManager: PromptAttestationManager;
+  private readonly ledgerReady: Promise<void>;
+  private readonly attestationReady: Promise<void>;
 
   // Define the required flow
   private readonly PHASE_SEQUENCE: WorkPhase[] = [
@@ -235,18 +237,20 @@ export class WorkProcessEnforcer {
     });
     this.promptAttestationManager = new PromptAttestationManager(workspaceRoot);
 
-    // Initialize ledger directory
-    this.phaseLedger.initialize().catch(error => {
+    // Initialize ledger directory (awaited before use)
+    this.ledgerReady = this.phaseLedger.initialize().catch(error => {
       logError('Failed to initialize phase ledger', {
         error: error instanceof Error ? error.message : String(error)
       });
+      throw error;
     });
 
-    // Initialize prompt attestation
-    this.promptAttestationManager.initialize().catch(error => {
+    // Initialize prompt attestation (awaited before use)
+    this.attestationReady = this.promptAttestationManager.initialize().catch(error => {
       logError('Failed to initialize prompt attestation', {
         error: error instanceof Error ? error.message : String(error)
       });
+      throw error;
     });
   }
 
@@ -343,6 +347,8 @@ export class WorkProcessEnforcer {
    * Begins evidence collection for full traceability
    */
   async startCycle(taskId: string): Promise<void> {
+    await this.waitForInitialization();
+
     if (this.currentPhase.has(taskId)) {
       throw new Error(`Task ${taskId} already in cycle at phase ${this.currentPhase.get(taskId)}`);
     }
@@ -408,7 +414,9 @@ export class WorkProcessEnforcer {
    * Advance to next phase with SYSTEMATIC evidence collection and verification
    * ORDERING: Collect → Validate → Check Drift → Update Trust → Transition
    */
-  async advancePhase(taskId: string): Promise<boolean> {
+  async advancePhase(taskId: string, desiredPhase?: WorkPhase): Promise<boolean> {
+    await this.waitForInitialization();
+
     const currentPhase = this.currentPhase.get(taskId);
     if (!currentPhase) {
       throw new Error(`Task ${taskId} not in work cycle`);
@@ -592,7 +600,39 @@ export class WorkProcessEnforcer {
     }
 
     // STEP 7: Transition to next phase with fresh evidence collection
-    const nextPhase = this.PHASE_SEQUENCE[currentIndex + 1];
+    const expectedNextPhase = this.PHASE_SEQUENCE[currentIndex + 1];
+
+    if (desiredPhase && expectedNextPhase && desiredPhase !== expectedNextPhase) {
+      logError('Phase advancement rejected - desired phase does not match sequence', {
+        taskId,
+        currentPhase,
+        desiredPhase,
+        expectedNextPhase
+      });
+
+      if (this.metricsCollector) {
+        await this.metricsCollector.recordCounter('phase_skips_attempted', 1, {
+          taskId,
+          currentPhase,
+          desiredPhase,
+          expectedNextPhase,
+          reason: 'sequence_mismatch'
+        });
+      }
+
+      return false;
+    }
+
+    if (!expectedNextPhase) {
+      logError('Phase advancement rejected - no next phase in sequence', {
+        taskId,
+        currentPhase,
+        desiredPhase
+      });
+      return false;
+    }
+
+    const nextPhase = expectedNextPhase;
     this.currentPhase.set(taskId, nextPhase);
     this.evidenceCollector.startCollection(nextPhase, taskId);
     this.logTransition(taskId, currentPhase, nextPhase, true);
@@ -1974,6 +2014,19 @@ export class WorkProcessEnforcer {
         output: error.stdout?.slice(0, 500)
       });
       return false;
+    }
+  }
+  private async waitForInitialization(): Promise<void> {
+    try {
+      await this.ledgerReady;
+    } catch {
+      throw new Error('Phase ledger not initialized');
+    }
+
+    try {
+      await this.attestationReady;
+    } catch {
+      throw new Error('Prompt attestation manager not initialized');
     }
   }
 }

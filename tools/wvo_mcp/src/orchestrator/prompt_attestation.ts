@@ -18,6 +18,7 @@ import path from 'node:path';
 
 import type { WorkPhase } from './work_process_enforcer.js';
 import { logInfo, logWarning, logError } from '../telemetry/logger.js';
+import { withFileLock } from '../utils/file_lock_manager.js';
 
 /**
  * Prompt specification that defines agent behavior
@@ -311,13 +312,19 @@ export class PromptAttestationManager {
 
   /**
    * Record attestation to JSONL log
+   *
+   * Uses file locking to prevent race conditions in multi-process scenarios.
    */
   private async recordAttestation(attestation: PromptAttestation): Promise<void> {
     try {
-      await fs.appendFile(
-        this.attestationPath,
-        JSON.stringify(attestation) + '\n'
-      );
+      const lockPath = this.attestationPath + '.lock';
+
+      await withFileLock(lockPath, async () => {
+        await fs.appendFile(
+          this.attestationPath,
+          JSON.stringify(attestation) + '\n'
+        );
+      });
     } catch (error) {
       logError('Failed to record prompt attestation', {
         error: error instanceof Error ? error.message : String(error)

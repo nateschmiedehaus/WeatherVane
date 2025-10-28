@@ -1,4 +1,204 @@
 epics:
+  - id: E-AUTOPILOT-GUARDRAILS
+    title: Autopilot Guardrails Completion
+    status: pending
+    domain: product
+    milestones:
+      - id: E-AUTOPILOT-PHASE-NEG1
+        title: Phase -1 Enforcement Completion
+        status: pending
+        tasks:
+          - id: AT-GUARD-STRATEGIZE
+            title: "STRATEGIZE: Define enforcement scope and link to Autopilot functionality"
+            status: pending
+            dependencies: []
+            exit_criteria:
+              - Purpose, impacted Autopilot workflows, and success metrics documented in strategy artifact
+            domain: product
+            description: >
+              Capture the strategic framing for Phase -1: which Autopilot behaviours (state transitions,
+              tool executions, evidence gates) must be protected, why enforcement failed previously,
+              and what success looks like. Produce a strategy.md artifact and ledger entry.
+          - id: AT-GUARD-SPEC
+            title: "SPEC: Evidence-gated enforcement requirements"
+            status: pending
+            dependencies:
+              - AT-GUARD-STRATEGIZE
+            exit_criteria:
+              - Acceptance criteria for enforcement, evidence collection, ledger, prompt attestation, and metrics defined and approved
+            domain: product
+            description: >
+              Write spec.md enumerating acceptance criteria for WorkProcessEnforcer wiring,
+              phase ledger persistence, prompt signature checks, artifact validation, leases, and integrity
+              script expectations.
+          - id: AT-GUARD-PLAN
+            title: "PLAN: Implementation breakdown for Phase -1"
+            status: pending
+            dependencies:
+              - AT-GUARD-SPEC
+            exit_criteria:
+              - Plan.md lists work items, owners, estimates, dependencies, and verification strategy
+            domain: product
+            description: >
+              Create plan.md with sequenced tasks (code, tests, telemetry, docs) required to ship
+              Phase -1 enforcement and to gather Strategy→Monitor evidence.
+          - id: AT-GUARD-THINK
+            title: "THINK: Risk analysis for enforcement rollout"
+            status: pending
+            dependencies:
+              - AT-GUARD-PLAN
+            exit_criteria:
+              - Edge cases and mitigation strategies captured in edge_cases.md with ledger reference
+            domain: product
+            description: >
+              Document risks (multi-agent contention, ledger corruption, false positives, integrity flakiness)
+              and mitigation steps before coding.
+          - id: AT-GUARD-IMPLEMENT
+            title: "IMPLEMENT: Wire WorkProcessEnforcer, ledger, attestation, leases"
+            status: pending
+            dependencies:
+              - AT-GUARD-THINK
+            exit_criteria:
+              - Code merged with unit/integration tests; ledger entries created; prompt signature enforced
+            domain: product
+            description: >
+              Implement startCycle/advancePhase wiring, state graph and tool router guards, phase ledger,
+              prompt attestation, artifact gating, lease handling, and metrics emission.
+          - id: AT-GUARD-VERIFY
+            title: "VERIFY: Integrity suite and enforcement telemetry"
+            status: pending
+            dependencies:
+              - AT-GUARD-IMPLEMENT
+            exit_criteria:
+              - run_integrity_tests.sh passes; telemetry shows process.validation spans & counters
+            domain: product
+            description: >
+              Run full integrity script, capture logs, coverage, ledger verification, and ensure metrics/traces are written.
+          - id: AT-GUARD-REVIEW
+            title: "REVIEW: Confirm Autopilot functionality post-enforcement"
+            status: pending
+            dependencies:
+              - AT-GUARD-VERIFY
+            exit_criteria:
+              - Reviewer rubric completed; functionality smoke evidence attached; ledger/journal updated
+            domain: product
+            description: >
+              Conduct structured review validating Autopilot workflows still operate (planner dispatch, tool execution, state transitions)
+              with evidence attached.
+          - id: AT-GUARD-PR
+            title: "PR: Document Phase -1 completion"
+            status: pending
+            dependencies:
+              - AT-GUARD-REVIEW
+            exit_criteria:
+              - PR summary with evidence bundle, ledger hash, prompt signature verification
+            domain: product
+            description: >
+              Assemble PR summary, evidence, and ledger/prompt attestation outputs proving Phase -1 completion.
+          - id: AT-GUARD-MONITOR
+            title: "MONITOR: Post-deployment telemetry for enforcement"
+            status: pending
+            dependencies:
+              - AT-GUARD-PR
+            exit_criteria:
+              - Monitoring plan executed; metrics dashboard updated; discrepancies addressed or logged
+            domain: product
+            description: >
+              Run monitoring plan, ensure enforcement metrics stay stable, capture results in monitoring plan doc.
+      - id: E-AUTOPILOT-PHASE0
+        title: Phase 0 Instrumentation
+        status: pending
+        tasks:
+          - id: AT-INST-STRATEGIZE
+            title: "STRATEGIZE: Define instrumentation outcomes"
+            status: pending
+            dependencies: []
+            exit_criteria:
+              - Strategy artifact links instrumentation goals to Autopilot observability needs
+            domain: product
+            description: >
+              Document why OTEL spans, metrics counters, and dashboards are required, including
+              impacted Autopilot flows and success metrics.
+          - id: AT-INST-SPEC
+            title: "SPEC: Telemetry & dashboard requirements"
+            status: pending
+            dependencies:
+              - AT-INST-STRATEGIZE
+            exit_criteria:
+              - Spec covers span names, attributes, counters, JSONL outputs, dashboards/alerts
+            domain: product
+            description: >
+              Capture detailed specs for instrumentation and visualization deliverables.
+          - id: AT-INST-PLAN
+            title: "PLAN: Implementation breakdown for instrumentation"
+            status: pending
+            dependencies:
+              - AT-INST-SPEC
+            exit_criteria:
+              - Plan with tasks, estimates, dependencies, verification steps
+            domain: product
+            description: >
+              Outline implementation steps for spans, metrics, telemetry writers, dashboards, evidence capture.
+          - id: AT-INST-THINK
+            title: "THINK: Risks & mitigations for instrumentation rollout"
+            status: pending
+            dependencies:
+              - AT-INST-PLAN
+            exit_criteria:
+              - Edge cases logged (overhead, missing traces, noisy counters) with mitigations
+            domain: product
+            description: >
+              Analyze risks (performance, data volume, false positives) before coding.
+          - id: AT-INST-IMPLEMENT
+            title: "IMPLEMENT: Add spans, counters, telemetry outputs"
+            status: pending
+            dependencies:
+              - AT-INST-THINK
+            exit_criteria:
+              - Code merged with tests; traces/metrics JSONL generated in local run
+            domain: product
+            description: >
+              Implement OTEL spans, counters, telemetry writers, and ensure they integrate with enforcement.
+          - id: AT-INST-VERIFY
+            title: "VERIFY: Demonstrate instrumentation under load"
+            status: pending
+            dependencies:
+              - AT-INST-IMPLEMENT
+            exit_criteria:
+              - Tests and manual run produce traces/metrics; artefacts stored and linked
+            domain: product
+            description: >
+              Run validation suite and manual scenario to confirm instrumentation outputs.
+          - id: AT-INST-REVIEW
+            title: "REVIEW: Evaluate instrumentation quality"
+            status: pending
+            dependencies:
+              - AT-INST-VERIFY
+            exit_criteria:
+              - Reviewer confirms coverage, evidence linked, documentation updated
+            domain: product
+            description: >
+              Conduct review ensuring instrumentation meets quality bar and Autopilot functionality preserved.
+          - id: AT-INST-PR
+            title: "PR: Summarize Phase 0 instrumentation"
+            status: pending
+            dependencies:
+              - AT-INST-REVIEW
+            exit_criteria:
+              - PR summary includes spans/metrics evidence, dashboards, ledger references
+            domain: product
+            description: >
+              Document instrumentation deliverables and evidence for PR.
+          - id: AT-INST-MONITOR
+            title: "MONITOR: Ongoing telemetry validation"
+            status: pending
+            dependencies:
+              - AT-INST-PR
+            exit_criteria:
+              - Monitoring plan executed, dashboards reviewed, follow-ups logged
+            domain: product
+            description: >
+              Operate the instrumentation post-deploy, verify dashboards, and log observations.
   - id: E-GENERAL
     title: E-GENERAL
     status: pending
