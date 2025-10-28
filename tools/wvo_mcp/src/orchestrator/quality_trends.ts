@@ -6,6 +6,7 @@
  */
 
 import { StateMachine } from './state_machine.js';
+import { MCPClient } from './mcp_client.js';
 import { logInfo, logWarning, logError } from '../telemetry/logger.js';
 import Database from 'better-sqlite3';
 import path from 'path';
@@ -46,12 +47,21 @@ export class QualityTrendsAnalyzer {
   private readonly MIN_SAMPLES_FOR_TREND = 10;
   private readonly TREND_WINDOW_DAYS = 7;
   private readonly OUTLIER_THRESHOLD = 2; // 2 standard deviations
+  private readonly mcpClient?: MCPClient;
+  private mcpCriticsEnabled = true;
 
   constructor(
     private readonly stateMachine: StateMachine,
-    private readonly workspaceRoot: string
+    private readonly workspaceRoot: string,
+    mcpClient?: MCPClient // Optional for backward compatibility
   ) {
     this.initializeDatabase();
+    this.mcpClient = mcpClient;
+    if (mcpClient) {
+      logInfo('QualityTrends: MCP critics integration enabled');
+    } else {
+      logInfo('QualityTrends: Running in local mode (no MCP critics)');
+    }
   }
 
   private initializeDatabase(): void {
@@ -403,6 +413,76 @@ export class QualityTrendsAnalyzer {
 
     logInfo(`Pruned ${result.changes} old quality trend records`);
     return result.changes;
+  }
+
+  /**
+   * Run MCP critics on a task and record the score
+   */
+  async runMCPCritics(taskId: string, taskType?: string): Promise<QualityScore | null> {
+    if (!this.mcpClient || !this.mcpCriticsEnabled) {
+      return null;
+    }
+
+    try {
+      const response = await this.mcpClient.criticsRun(
+        taskId,
+        taskType || 'general'
+      );
+
+      if (!response || !response.critics_run) {
+        return null;
+      }
+
+      // Create a quality score from MCP critics
+      const score: QualityScore = {
+        taskId,
+        score: response.overall_score,
+        timestamp: Date.now(),
+        agentType: 'mcp_critics',
+        category: this.inferCategoryFromType(taskType || 'general'),
+        metadata: {
+          critics: response.results,
+          passed: response.results.every(r => r.passed)
+        }
+      };
+
+      // Record the score
+      await this.recordScore(score);
+
+      // Log any failures
+      const failures = response.results.filter(r => !r.passed);
+      if (failures.length > 0) {
+        logWarning('QualityTrends: Critics found issues', {
+          taskId,
+          failures: failures.map(f => ({
+            critic: f.critic,
+            feedback: f.feedback
+          }))
+        });
+      }
+
+      return score;
+    } catch (error) {
+      logWarning('QualityTrends: Failed to run MCP critics', {
+        taskId,
+        error: error instanceof Error ? error.message : String(error)
+      });
+      // Disable MCP critics for this session to avoid repeated failures
+      this.mcpCriticsEnabled = false;
+      return null;
+    }
+  }
+
+  /**
+   * Infer category from task type
+   */
+  private inferCategoryFromType(taskType: string): 'code' | 'test' | 'docs' | 'review' | 'other' {
+    const type = taskType.toLowerCase();
+    if (type.includes('test') || type.includes('spec')) return 'test';
+    if (type.includes('doc') || type.includes('readme')) return 'docs';
+    if (type.includes('review') || type.includes('critic')) return 'review';
+    if (type.includes('code') || type.includes('implement')) return 'code';
+    return 'other';
   }
 
   /**

@@ -27,6 +27,8 @@ import { AdaptiveRoadmap } from './adaptive_roadmap.js';
 import { ContextManager } from './context_manager.js';
 import { QualityTrendsAnalyzer } from './quality_trends.js';
 import { ContextAssembler } from './context_assembler.js';
+import { MCPClient } from './mcp_client.js';
+import { WorkProcessEnforcer } from './work_process_enforcer.js';
 
 /**
  * OrchestratorEvent - Events emitted by the orchestrator
@@ -140,6 +142,16 @@ export interface OrchestratorLoopOptions {
   enableQualityTrends?: boolean;
 
   /**
+   * Enable MCP integration for external tools
+   */
+  enableMCPIntegration?: boolean;
+
+  /**
+   * Enable programmatic work process enforcement
+   */
+  enableWorkProcessEnforcement?: boolean;
+
+  /**
    * Workspace root for file operations
    */
   workspaceRoot?: string;
@@ -244,6 +256,8 @@ export class OrchestratorLoop extends EventEmitter {
   private lastActivityAt = Date.now();
 
   // Intelligence components
+  private mcpClient?: MCPClient;
+  private workProcessEnforcer?: WorkProcessEnforcer;
   private adaptiveRoadmap?: AdaptiveRoadmap;
   private contextManager?: ContextManager;
   private qualityTrends?: QualityTrendsAnalyzer;
@@ -311,6 +325,8 @@ export class OrchestratorLoop extends EventEmitter {
       enableAdaptiveRoadmap: options.enableAdaptiveRoadmap ?? false,
       enableContextManager: options.enableContextManager ?? false,
       enableQualityTrends: options.enableQualityTrends ?? false,
+      enableMCPIntegration: options.enableMCPIntegration ?? false,
+      enableWorkProcessEnforcement: options.enableWorkProcessEnforcement ?? false,
       workspaceRoot: options.workspaceRoot ?? process.cwd(),
     };
     this.currentTickInterval = this.clampInterval(this.options.tickInterval);
@@ -322,14 +338,33 @@ export class OrchestratorLoop extends EventEmitter {
     // Initialize intelligence components based on feature flags
     const workspaceRoot = this.options.workspaceRoot || process.cwd();
 
+    // Initialize MCP client if enabled
+    if (this.options.enableMCPIntegration) {
+      try {
+        this.mcpClient = new MCPClient(workspaceRoot, {
+          maxRetries: 3,
+          retryDelayMs: 1000,
+          timeoutMs: 30000,
+          enabled: true
+        });
+        logInfo('MCPClient initialized for orchestrator integration');
+      } catch (error) {
+        logError('Failed to initialize MCPClient', { error: String(error) });
+      }
+    }
+
     if (this.options.enableAdaptiveRoadmap) {
       try {
         const contextAssembler = new ContextAssembler(
           stateMachine,
           workspaceRoot
         );
-        this.adaptiveRoadmap = new AdaptiveRoadmap(stateMachine, contextAssembler);
-        logInfo('AdaptiveRoadmap initialized');
+        this.adaptiveRoadmap = new AdaptiveRoadmap(
+          stateMachine,
+          contextAssembler,
+          this.mcpClient  // Pass MCP client for external task fetching
+        );
+        logInfo('AdaptiveRoadmap initialized' + (this.mcpClient ? ' with MCP integration' : ''));
       } catch (error) {
         logError('Failed to initialize AdaptiveRoadmap', { error: String(error) });
       }
@@ -337,8 +372,11 @@ export class OrchestratorLoop extends EventEmitter {
 
     if (this.options.enableContextManager) {
       try {
-        this.contextManager = new ContextManager(workspaceRoot);
-        logInfo('ContextManager initialized');
+        this.contextManager = new ContextManager(
+          workspaceRoot,
+          this.mcpClient  // Pass MCP client for context persistence
+        );
+        logInfo('ContextManager initialized' + (this.mcpClient ? ' with MCP persistence' : ''));
       } catch (error) {
         logError('Failed to initialize ContextManager', { error: String(error) });
       }
@@ -346,8 +384,12 @@ export class OrchestratorLoop extends EventEmitter {
 
     if (this.options.enableQualityTrends) {
       try {
-        this.qualityTrends = new QualityTrendsAnalyzer(stateMachine, workspaceRoot);
-        logInfo('QualityTrends initialized');
+        this.qualityTrends = new QualityTrendsAnalyzer(
+          stateMachine,
+          workspaceRoot,
+          this.mcpClient  // Pass MCP client for critics integration
+        );
+        logInfo('QualityTrends initialized' + (this.mcpClient ? ' with MCP critics' : ''));
 
         // Hook into quality monitor events
         this.qualityMonitor.on('quality:evaluated', async (result: any) => {
@@ -364,6 +406,16 @@ export class OrchestratorLoop extends EventEmitter {
         });
       } catch (error) {
         logError('Failed to initialize QualityTrends', { error: String(error) });
+      }
+    }
+
+    // Initialize WorkProcessEnforcer if enabled
+    if (this.options.enableWorkProcessEnforcement) {
+      try {
+        this.workProcessEnforcer = new WorkProcessEnforcer(stateMachine, workspaceRoot);
+        logInfo('WorkProcessEnforcer initialized - programmatic process enforcement active');
+      } catch (error) {
+        logError('Failed to initialize WorkProcessEnforcer', { error: String(error) });
       }
     }
 
@@ -639,6 +691,7 @@ export class OrchestratorLoop extends EventEmitter {
 
     // Mark task as in progress
     await this.stateMachine.transition(task.id, 'in_progress');
+    await this.syncTaskStatusToMCP(task.id, 'in_progress');
 
     // Assemble context if ContextManager is enabled
     let context = null;
@@ -701,6 +754,7 @@ export class OrchestratorLoop extends EventEmitter {
 
       // Transition to blocked state on error
       await this.stateMachine.transition(task.id, 'blocked');
+      await this.syncTaskStatusToMCP(task.id, 'blocked');
       return;
     }
 
@@ -778,6 +832,10 @@ export class OrchestratorLoop extends EventEmitter {
 
     // Mark task as completed
     await this.stateMachine.transition(task.id, 'done');
+    await this.syncTaskStatusToMCP(task.id, 'done');
+
+    // Run MCP critics on completed work
+    await this.runMCPCriticsIfEnabled(task.id);
   }
 
   /**
@@ -1547,6 +1605,7 @@ export class OrchestratorLoop extends EventEmitter {
           snapshot,
         },
       });
+      await this.syncTaskStatusToMCP(task.id, 'done');
     }
   }
 
@@ -1646,6 +1705,82 @@ export class OrchestratorLoop extends EventEmitter {
    */
   isRunning(): boolean {
     return this.running;
+  }
+
+  /**
+   * Sync task status with MCP server
+   */
+  private async syncTaskStatusToMCP(taskId: string, status: string): Promise<void> {
+    if (!this.mcpClient) {
+      return;
+    }
+
+    try {
+      const response = await this.mcpClient.planUpdate(taskId, status);
+      if (response?.success) {
+        logInfo('Task status synced to MCP', {
+          taskId,
+          status,
+          message: response.message
+        });
+      }
+    } catch (error) {
+      logWarning('Failed to sync task status to MCP', {
+        taskId,
+        status,
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  }
+
+  /**
+   * Run MCP critics on completed work
+   */
+  private async runMCPCriticsIfEnabled(taskId: string): Promise<void> {
+    if (!this.qualityTrends || !this.mcpClient) {
+      return;
+    }
+
+    try {
+      const task = this.stateMachine.getTask(taskId);
+      if (!task) {
+        return;
+      }
+
+      // Infer task type from title/description
+      const taskType = this.inferTaskType(task);
+
+      // Run MCP critics and record score
+      const score = await this.qualityTrends.runMCPCritics(taskId, taskType);
+
+      if (score) {
+        logInfo('MCP critics completed for task', {
+          taskId,
+          score: score.score,
+          category: score.category
+        });
+      }
+    } catch (error) {
+      logWarning('Failed to run MCP critics', {
+        taskId,
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  }
+
+  /**
+   * Infer task type from task title/description
+   */
+  private inferTaskType(task: Task): string {
+    const text = `${task.title} ${task.description || ''}`.toLowerCase();
+
+    if (text.includes('test') || text.includes('spec')) return 'test';
+    if (text.includes('doc') || text.includes('readme')) return 'docs';
+    if (text.includes('review') || text.includes('critic')) return 'review';
+    if (text.includes('code') || text.includes('implement')) return 'code';
+    if (text.includes('build') || text.includes('compile')) return 'build';
+
+    return 'general';
   }
 
   private enterMonitoringMode(reason: string | null, decision: OrchestratorAction): void {

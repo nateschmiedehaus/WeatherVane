@@ -8,6 +8,7 @@
 
 import { StateMachine, Task } from './state_machine.js';
 import { ContextAssembler } from './context_assembler.js';
+import { MCPClient, MCPPlanTask } from './mcp_client.js';
 import { logInfo, logWarning, logDebug } from '../telemetry/logger.js';
 
 export interface RoadmapMetrics {
@@ -34,11 +35,21 @@ export class AdaptiveRoadmap {
   private readonly MAX_COMPLEXITY = 10;
   private lastExtensionTime = 0;
   private readonly EXTENSION_COOLDOWN = 60 * 60 * 1000; // 1 hour between extensions
+  private readonly mcpClient?: MCPClient;
+  private useMCPFallback = false; // Track if we should use fallback
 
   constructor(
     private readonly stateMachine: StateMachine,
-    private readonly contextAssembler: ContextAssembler
-  ) {}
+    private readonly contextAssembler: ContextAssembler,
+    mcpClient?: MCPClient  // Optional for backward compatibility
+  ) {
+    this.mcpClient = mcpClient;
+    if (mcpClient) {
+      logInfo('AdaptiveRoadmap: MCP integration enabled');
+    } else {
+      logInfo('AdaptiveRoadmap: Running in local mode (no MCP)');
+    }
+  }
 
   /**
    * Check if roadmap needs extension and extend if necessary
@@ -198,7 +209,29 @@ export class AdaptiveRoadmap {
    * Generate task suggestions based on recent context
    */
   private async generateTaskSuggestions(): Promise<TaskSuggestion[]> {
-    const suggestions: TaskSuggestion[] = [];
+    let suggestions: TaskSuggestion[] = [];
+
+    // Try MCP first if available and not in fallback mode
+    if (this.mcpClient && !this.useMCPFallback) {
+      try {
+        const mcpTasks = await this.fetchMCPTasks();
+        if (mcpTasks && mcpTasks.length > 0) {
+          suggestions = mcpTasks;
+          logInfo('AdaptiveRoadmap: Using MCP tasks', {
+            count: suggestions.length
+          });
+          return suggestions;
+        }
+      } catch (error) {
+        logWarning('AdaptiveRoadmap: MCP fetch failed, using fallback', {
+          error: error instanceof Error ? error.message : String(error)
+        });
+        this.useMCPFallback = true; // Switch to fallback for this session
+      }
+    }
+
+    // Fallback to local generation
+    logDebug('AdaptiveRoadmap: Generating tasks locally');
 
     // Analyze recent completions to understand patterns
     const recentTasks = this.getRecentCompletions(14); // Last 2 weeks
@@ -232,6 +265,74 @@ export class AdaptiveRoadmap {
 
     // Limit to reasonable number
     return suggestions.slice(0, 10);
+  }
+
+  /**
+   * Fetch tasks from MCP server
+   */
+  private async fetchMCPTasks(): Promise<TaskSuggestion[]> {
+    if (!this.mcpClient) {
+      return [];
+    }
+
+    const response = await this.mcpClient.planNext(10, false);
+    if (!response || response.tasks.length === 0) {
+      return [];
+    }
+
+    // Convert MCP tasks to TaskSuggestions
+    return response.tasks
+      .filter(task => task.status === 'pending')
+      .map(task => this.convertMCPTaskToSuggestion(task));
+  }
+
+  /**
+   * Convert MCP task format to TaskSuggestion
+   */
+  private convertMCPTaskToSuggestion(mcpTask: MCPPlanTask): TaskSuggestion {
+    // Infer type from title/description
+    const type = this.inferTaskType({
+      id: mcpTask.id,
+      title: mcpTask.title,
+      description: mcpTask.description,
+      status: 'pending',
+      type: 'task',
+      created_at: Date.now(),
+      updated_at: Date.now()
+    } as Task);
+
+    // Estimate complexity based on description length and keywords
+    const complexity = this.estimateComplexity(mcpTask.title, mcpTask.description || '');
+
+    return {
+      title: mcpTask.title,
+      description: mcpTask.description || '',
+      type: type as 'feature' | 'bug' | 'improvement' | 'test' | 'docs',
+      complexity,
+      rationale: `Imported from MCP roadmap (${mcpTask.domain} domain)`,
+      dependencies: mcpTask.dependencies
+    };
+  }
+
+  /**
+   * Estimate task complexity
+   */
+  private estimateComplexity(title: string, description: string): number {
+    const text = (title + ' ' + description).toLowerCase();
+    let complexity = 3; // Default medium
+
+    // Keywords that suggest higher complexity
+    if (text.includes('integrate') || text.includes('refactor')) complexity += 2;
+    if (text.includes('architecture') || text.includes('redesign')) complexity += 3;
+    if (text.includes('performance') || text.includes('optimize')) complexity += 1;
+    if (text.includes('security') || text.includes('authentication')) complexity += 2;
+
+    // Keywords that suggest lower complexity
+    if (text.includes('update') || text.includes('fix')) complexity -= 1;
+    if (text.includes('document') || text.includes('readme')) complexity -= 1;
+    if (text.includes('test') || text.includes('unit')) complexity -= 1;
+
+    return Math.max(1, Math.min(complexity, this.MAX_COMPLEXITY));
   }
 
   /**

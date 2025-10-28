@@ -11,6 +11,8 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
+import { MCPClient } from './mcp_client.js';
+import { logInfo, logWarning } from '../telemetry/logger.js';
 
 import type { Task } from './state_machine.js';
 
@@ -27,9 +29,20 @@ export interface ContextPackage {
 }
 
 export class ContextManager {
+  private readonly mcpClient?: MCPClient;
+  private contextPersistenceEnabled = true;
+
   constructor(
-    private readonly workspaceRoot: string
-  ) {}
+    private readonly workspaceRoot: string,
+    mcpClient?: MCPClient // Optional for backward compatibility
+  ) {
+    this.mcpClient = mcpClient;
+    if (mcpClient) {
+      logInfo('ContextManager: MCP context persistence enabled');
+    } else {
+      logInfo('ContextManager: Running in local mode (no MCP persistence)');
+    }
+  }
 
   /**
    * Assemble context package for a task
@@ -65,7 +78,73 @@ export class ContextManager {
 
     pkg.contextSize = this.estimateContextSize(pkg);
 
+    // Persist to MCP if available
+    this.persistContextToMCP(task.id, pkg);
+
     return pkg;
+  }
+
+  /**
+   * Persist assembled context to MCP for recovery
+   */
+  private async persistContextToMCP(taskId: string, pkg: ContextPackage): Promise<void> {
+    if (!this.mcpClient || !this.contextPersistenceEnabled) {
+      return;
+    }
+
+    try {
+      // Create a summarized context for MCP persistence
+      const contextSummary = this.summarizeContext(pkg);
+
+      // Write to MCP context
+      const response = await this.mcpClient.contextWrite(
+        `Task Context - ${taskId}`,
+        contextSummary,
+        false // Replace, don't append
+      );
+
+      if (response?.success) {
+        logInfo('ContextManager: Persisted context to MCP', {
+          taskId,
+          size: response.content_length
+        });
+      }
+    } catch (error) {
+      logWarning('ContextManager: Failed to persist context to MCP', {
+        taskId,
+        error: error instanceof Error ? error.message : String(error)
+      });
+      // Disable MCP persistence for this session to avoid repeated failures
+      this.contextPersistenceEnabled = false;
+    }
+  }
+
+  /**
+   * Summarize context package for MCP persistence
+   */
+  private summarizeContext(pkg: ContextPackage): string {
+    const sections: string[] = [];
+
+    sections.push(`**Complexity:** ${pkg.complexity}`);
+    sections.push(`**Context Size:** ${pkg.contextSize} tokens (est.)`);
+
+    if (pkg.relevantDocs.length > 0) {
+      sections.push(`**Relevant Docs:** ${pkg.relevantDocs.join(', ')}`);
+    }
+
+    if (pkg.recentDecisions.length > 0) {
+      sections.push('**Recent Decisions:**');
+      sections.push(...pkg.recentDecisions.slice(0, 5));
+    }
+
+    if (pkg.architectureGuidance) {
+      sections.push('**Architecture Focus:** ' +
+        (pkg.architectureGuidance.includes('API') ? 'API Design' :
+         pkg.architectureGuidance.includes('UI') ? 'UI Components' :
+         pkg.architectureGuidance.includes('Model') ? 'ML/Forecasting' : 'General'));
+    }
+
+    return sections.join('\n');
   }
 
   /**
