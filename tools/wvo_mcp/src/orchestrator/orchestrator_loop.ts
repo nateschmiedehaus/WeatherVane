@@ -23,6 +23,10 @@ import { PolicyEngine, type OrchestratorAction } from './policy_engine.js';
 import type { QualityMonitor } from './quality_monitor.js';
 import type { StateMachine, Task, RoadmapHealth, TaskStatus } from './state_machine.js';
 import type { TaskScheduler, QueueMetrics } from './task_scheduler.js';
+import { AdaptiveRoadmap } from './adaptive_roadmap.js';
+import { ContextManager } from './context_manager.js';
+import { QualityTrendsAnalyzer } from './quality_trends.js';
+import { ContextAssembler } from './context_assembler.js';
 
 /**
  * OrchestratorEvent - Events emitted by the orchestrator
@@ -119,6 +123,26 @@ export interface OrchestratorLoopOptions {
    * Debounce window for external wake-up signals (ms). Prevents storm of nudges.
    */
   immediateSignalDebounceMs?: number;
+
+  /**
+   * Enable adaptive roadmap extension
+   */
+  enableAdaptiveRoadmap?: boolean;
+
+  /**
+   * Enable context manager for task execution
+   */
+  enableContextManager?: boolean;
+
+  /**
+   * Enable quality trends analysis
+   */
+  enableQualityTrends?: boolean;
+
+  /**
+   * Workspace root for file operations
+   */
+  workspaceRoot?: string;
 }
 
 interface HealthSummarySnapshot {
@@ -218,6 +242,13 @@ export class OrchestratorLoop extends EventEmitter {
   private mode: 'active' | 'monitoring' = 'active';
   private lastHealthReview = 0;
   private lastActivityAt = Date.now();
+
+  // Intelligence components
+  private adaptiveRoadmap?: AdaptiveRoadmap;
+  private contextManager?: ContextManager;
+  private qualityTrends?: QualityTrendsAnalyzer;
+  private lastRoadmapExtension = 0;
+  private readonly ROADMAP_EXTENSION_INTERVAL = 5 * 60 * 1000; // 5 minutes
   private lastImmediateSignal = 0;
   private lastHealthSummary?: HealthSummarySnapshot;
   private monitoringStabilityScore = 0;
@@ -277,12 +308,64 @@ export class OrchestratorLoop extends EventEmitter {
       enableTelemetry: options.enableTelemetry ?? true,
       healthCheckInterval,
       immediateSignalDebounceMs,
+      enableAdaptiveRoadmap: options.enableAdaptiveRoadmap ?? false,
+      enableContextManager: options.enableContextManager ?? false,
+      enableQualityTrends: options.enableQualityTrends ?? false,
+      workspaceRoot: options.workspaceRoot ?? process.cwd(),
     };
     this.currentTickInterval = this.clampInterval(this.options.tickInterval);
     this.currentMonitoringInterval = this.clampInterval(this.options.monitoringTickInterval);
     this.monitoringStabilityScore = 0;
     this.lastHealthReview = Date.now();
     this.lastActivityAt = Date.now();
+
+    // Initialize intelligence components based on feature flags
+    const workspaceRoot = this.options.workspaceRoot || process.cwd();
+
+    if (this.options.enableAdaptiveRoadmap) {
+      try {
+        const contextAssembler = new ContextAssembler(
+          stateMachine,
+          workspaceRoot
+        );
+        this.adaptiveRoadmap = new AdaptiveRoadmap(stateMachine, contextAssembler);
+        logInfo('AdaptiveRoadmap initialized');
+      } catch (error) {
+        logError('Failed to initialize AdaptiveRoadmap', { error: String(error) });
+      }
+    }
+
+    if (this.options.enableContextManager) {
+      try {
+        this.contextManager = new ContextManager(workspaceRoot);
+        logInfo('ContextManager initialized');
+      } catch (error) {
+        logError('Failed to initialize ContextManager', { error: String(error) });
+      }
+    }
+
+    if (this.options.enableQualityTrends) {
+      try {
+        this.qualityTrends = new QualityTrendsAnalyzer(stateMachine, workspaceRoot);
+        logInfo('QualityTrends initialized');
+
+        // Hook into quality monitor events
+        this.qualityMonitor.on('quality:evaluated', async (result: any) => {
+          if (this.qualityTrends) {
+            await this.qualityTrends.recordScore({
+              taskId: result.taskId,
+              score: result.score,
+              timestamp: Date.now(),
+              agentType: result.agentType || 'unknown',
+              category: this.categorizeTask(result.task),
+              metadata: result.metadata
+            });
+          }
+        });
+      } catch (error) {
+        logError('Failed to initialize QualityTrends', { error: String(error) });
+      }
+    }
 
     this.stateMachine.on('task:created', this.boundTaskCreated);
     this.stateMachine.on('task:transition', this.boundTaskTransition);
@@ -378,6 +461,9 @@ export class OrchestratorLoop extends EventEmitter {
     });
 
     await this.runHealthReviewIfDue(startTime);
+
+    // Run intelligence features
+    await this.runIntelligenceFeatures();
 
     try {
       // 1. Get current system state
@@ -554,6 +640,27 @@ export class OrchestratorLoop extends EventEmitter {
     // Mark task as in progress
     await this.stateMachine.transition(task.id, 'in_progress');
 
+    // Assemble context if ContextManager is enabled
+    let context = null;
+    if (this.contextManager) {
+      try {
+        const complexity = this.assessTaskComplexity(task);
+        const contextComplexity = complexity === 'simple' ? 'minimal' :
+                                  complexity === 'medium' ? 'detailed' : 'comprehensive';
+
+        context = this.contextManager.assembleContext(task, contextComplexity);
+
+        logInfo('Context assembled for task', {
+          taskId: task.id,
+          complexity: contextComplexity,
+          contextSize: context.contextSize
+        });
+      } catch (error) {
+        logError('Failed to assemble context', { error: String(error) });
+        // Continue without context
+      }
+    }
+
     // Integrate with actual task executor
     // We use a simple simulation here since the UnifiedOrchestrator handles actual execution
     // In production, this would call UnifiedOrchestrator.executeTask() or use AgentPool
@@ -567,7 +674,8 @@ export class OrchestratorLoop extends EventEmitter {
       logInfo(`Simulating task execution`, {
         taskId: task.id,
         complexity,
-        estimatedTime: executionTime
+        estimatedTime: executionTime,
+        hasContext: !!context
       });
 
       // Simulate work being done
@@ -920,6 +1028,75 @@ export class OrchestratorLoop extends EventEmitter {
 
   private clampInterval(value: number): number {
     return Math.max(this.options.minTickInterval, Math.min(value, this.options.maxTickInterval));
+  }
+
+  /**
+   * Categorize a task for quality trends analysis
+   */
+  private categorizeTask(task: Task | { title?: string; type?: string }): 'code' | 'test' | 'docs' | 'review' | 'other' {
+    const title = task.title?.toLowerCase() || '';
+    const type = (task as any).type?.toLowerCase() || '';
+
+    if (title.includes('test') || type.includes('test')) {
+      return 'test';
+    }
+    if (title.includes('doc') || title.includes('readme') || type.includes('doc')) {
+      return 'docs';
+    }
+    if (title.includes('review') || title.includes('pr') || type.includes('review')) {
+      return 'review';
+    }
+    if (title.includes('implement') || title.includes('fix') || title.includes('refactor') || type.includes('code')) {
+      return 'code';
+    }
+    return 'other';
+  }
+
+  /**
+   * Run intelligence features during tick cycle
+   */
+  private async runIntelligenceFeatures(): Promise<void> {
+    try {
+      // 1. Check and extend roadmap if needed
+      if (this.adaptiveRoadmap) {
+        const now = Date.now();
+        if (now - this.lastRoadmapExtension > this.ROADMAP_EXTENSION_INTERVAL) {
+          const extended = await this.adaptiveRoadmap.checkAndExtend();
+          if (extended) {
+            logInfo('Roadmap extended with new tasks');
+            this.lastRoadmapExtension = now;
+          }
+        }
+      }
+
+      // 2. Check quality trends for degradation
+      if (this.qualityTrends) {
+        const alerts = await this.qualityTrends.checkForDegradation();
+        if (alerts.length > 0) {
+          for (const alert of alerts) {
+            logWarning('Quality alert', {
+              severity: alert.severity,
+              message: alert.message,
+              suggestions: alert.suggestions
+            });
+          }
+        }
+      }
+
+      // 3. Analyze trends periodically
+      if (this.qualityTrends && this.tickCount % 10 === 0) {
+        const trends = await this.qualityTrends.analyzeTrends('daily');
+        logInfo('Quality trends', {
+          averageScore: trends.averageScore.toFixed(3),
+          trend: trends.trend,
+          sampleCount: trends.sampleCount
+        });
+      }
+
+    } catch (error) {
+      logError('Error in intelligence features', { error: String(error) });
+      // Don't fail the tick, just log the error
+    }
   }
 
   private setCurrentTickInterval(value: number): void {
