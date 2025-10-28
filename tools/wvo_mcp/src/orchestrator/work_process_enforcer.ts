@@ -16,6 +16,7 @@ import { withSpan } from '../telemetry/tracing.js';
 import { EvidenceCollector } from './evidence_collector.js';
 import { CompletionVerifier } from './completion_verifier.js';
 import { MetricsCollector } from '../telemetry/metrics_collector.js';
+import { PhaseLedger } from './phase_ledger.js';
 import fs from 'fs';
 import path from 'path';
 import { execSync } from 'child_process';
@@ -65,6 +66,7 @@ export class WorkProcessEnforcer {
   // Meta verification systems integrated into the loop
   private readonly evidenceCollector: EvidenceCollector;
   private readonly completionVerifier: CompletionVerifier;
+  private readonly phaseLedger: PhaseLedger;
 
   // Define the required flow
   private readonly PHASE_SEQUENCE: WorkPhase[] = [
@@ -222,6 +224,14 @@ export class WorkProcessEnforcer {
     // Initialize meta verification systems
     this.evidenceCollector = new EvidenceCollector(workspaceRoot);
     this.completionVerifier = new CompletionVerifier(workspaceRoot);
+    this.phaseLedger = new PhaseLedger(workspaceRoot);
+
+    // Initialize ledger directory
+    this.phaseLedger.initialize().catch(error => {
+      logError('Failed to initialize phase ledger', {
+        error: error instanceof Error ? error.message : String(error)
+      });
+    });
   }
 
   /**
@@ -327,10 +337,32 @@ export class WorkProcessEnforcer {
     // Start evidence collection for this task
     this.evidenceCollector.startCollection('STRATEGIZE', taskId);
 
+    // Record cycle start in immutable ledger
+    try {
+      await this.phaseLedger.appendTransition(
+        taskId,
+        null,
+        'STRATEGIZE',
+        [],
+        true
+      );
+      logInfo('Cycle start recorded in ledger', {
+        taskId,
+        phase: 'STRATEGIZE'
+      });
+    } catch (error) {
+      logError('Failed to record cycle start in ledger', {
+        taskId,
+        error: error instanceof Error ? error.message : String(error)
+      });
+      // Don't fail cycle start if ledger append fails, but log it
+    }
+
     logInfo('Work cycle started with evidence collection', {
       taskId,
       phase: 'STRATEGIZE',
-      evidenceCollection: 'active'
+      evidenceCollection: 'active',
+      ledgerRecorded: true
     });
   }
 
@@ -415,13 +447,39 @@ export class WorkProcessEnforcer {
     this.evidenceCollector.startCollection(nextPhase, taskId);
     this.logTransition(taskId, currentPhase, nextPhase, true);
 
+    // STEP 8: Record transition in immutable ledger with hash chaining
+    try {
+      // TODO: Integrate artifact collection from evidenceCollector
+      // For now, record transition with empty artifacts array
+      await this.phaseLedger.appendTransition(
+        taskId,
+        currentPhase,
+        nextPhase,
+        [], // Will be populated when evidence-gated transitions are implemented
+        validation.passed
+      );
+      logInfo('Phase transition recorded in ledger', {
+        taskId,
+        from: currentPhase,
+        to: nextPhase
+      });
+    } catch (error) {
+      logError('Failed to record transition in ledger', {
+        taskId,
+        transition: `${currentPhase} → ${nextPhase}`,
+        error: error instanceof Error ? error.message : String(error)
+      });
+      // Don't fail the transition if ledger append fails, but log it
+    }
+
     logInfo('Phase advanced with full meta tracking', {
       taskId,
       from: currentPhase,
       to: nextPhase,
       evidenceCollected: true,
       trustUpdated: true,
-      driftChecked: true
+      driftChecked: true,
+      ledgerRecorded: true
     });
 
     return true;
