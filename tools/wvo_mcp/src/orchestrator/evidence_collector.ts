@@ -13,6 +13,7 @@ import path from 'path';
 import crypto from 'crypto';
 import { execSync } from 'child_process';
 import { logInfo, logWarning, logError } from '../telemetry/logger.js';
+import { SemanticValidator } from './semantic_validator.js';
 
 export interface ExecutableEvidence {
   timestamp: number;
@@ -96,8 +97,10 @@ export class EvidenceCollector {
   private activePhase: string | null = null;
   private activeTaskId: string | null = null;
   private startTime: number = 0;
+  private readonly semanticValidator: SemanticValidator;
 
   constructor(private readonly workspaceRoot: string) {
+    this.semanticValidator = new SemanticValidator(workspaceRoot);
     this.evidencePath = path.join(workspaceRoot, 'state/evidence');
     this.proofScriptsPath = path.join(workspaceRoot, 'state/evidence/proofs');
 
@@ -340,7 +343,7 @@ export class EvidenceCollector {
   /**
    * Finalize evidence collection and generate bundle
    */
-  finalizeCollection(): EvidenceBundle {
+  async finalizeCollection(): Promise<EvidenceBundle> {
     if (!this.activePhase || !this.activeTaskId) {
       throw new Error('No active collection to finalize');
     }
@@ -371,8 +374,19 @@ export class EvidenceCollector {
       .flatMap(e => e.evidence.artifacts || [])
       .filter((v, i, a) => a.indexOf(v) === i);  // Unique
 
+    // Semantic validation: Check artifacts have meaningful content
+    const semanticValidation = await this.semanticValidator.validateArtifacts(
+      artifactsCreated,
+      this.activePhase
+    );
+
     // Determine what's missing
     const missingEvidence: string[] = [];
+
+    // Add semantic validation failures
+    if (!semanticValidation.valid) {
+      missingEvidence.push(...semanticValidation.failures.map(f => `Semantic validation failed: ${f}`));
+    }
 
     if (realMCPCalls === 0 && mockedMCPCalls > 0) {
       missingEvidence.push('All MCP calls were mocked - need real integration');

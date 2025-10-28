@@ -547,7 +547,7 @@ export class WorkProcessEnforcer {
     let evidenceValidated = false;
 
     try {
-      evidenceBundle = this.evidenceCollector.finalizeCollection();
+      evidenceBundle = await this.evidenceCollector.finalizeCollection();
 
       // Check if evidence meets completion criteria
       if (!evidenceBundle.meetsCompletionCriteria) {
@@ -1822,7 +1822,7 @@ export class WorkProcessEnforcer {
     logInfo('Running final completion verification', { taskId });
 
     // Finalize evidence collection
-    const evidenceBundle = this.evidenceCollector.finalizeCollection();
+    const evidenceBundle = await this.evidenceCollector.finalizeCollection();
 
     // Check if evidence meets basic criteria
     if (!evidenceBundle.meetsCompletionCriteria) {
