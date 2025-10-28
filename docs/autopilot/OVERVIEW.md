@@ -3,7 +3,7 @@
 The Unified Autopilot assembles Codex 5 and Claude 4.5 agents into a single production workflow that plans, implements, verifies, and monitors features across the WeatherVane stack. It enforces locked-provider routing, guards against prompt drift, and keeps every state observable with checkpoints, coverage data, and journals.
 
 ## Operating Model
-- **States:** Specify → Plan → (Thinker) → Implement → Verify → Review → PR → Monitor with automatic plan-delta and duplicate patch detection.
+- **States:** STRATEGIZE → SPEC → PLAN → THINK → IMPLEMENT → VERIFY → REVIEW → PR → MONITOR with automatic plan-delta and duplicate patch detection. (“Specify” terminology in legacy docs maps directly to SPEC.)
 - **Agents:** Planner, Thinker, Implementer, Verifier, Reviewer, Critical, Supervisor. Each receives a scoped Local Context Pack (LCP) before acting.
 - **Guardrails:** Tests + lint + type + security + license + changed-lines coverage. Verify failures trigger a resolution playbook instead of stalling.
 - **Memory:** Run-ephemeral memory for local hints, project index for symbols/files, KB resources for style/DoD, decision journal snapshots per state.
@@ -38,7 +38,9 @@ graph TD
 
 ## Observability & Governance
 - **Decision journal:** `resources://runs/<id>/journal.md` captures assumptions, plan deltas, and review outcomes.
-- **Atlas manifest:** `docs/autopilot/MANIFEST.yml` ties components/policies/tools to hashes for drift detection.
+- **Immutable phase ledger:** Append-only `state/process/ledger.jsonl` records every STRATEGIZE→MONITOR transition with hash chaining; orchestrator verifies the previous hash before accepting new work.
+- **Deterministic phase leases:** Scheduler issues per-phase leases; next-state dispatch is blocked until the current lease closes with required evidence attached to the ledger entry.
+- **Atlas manifest:** `docs/autopilot/MANIFEST.yml` ties components/policies/tools to hashes for drift detection, including prompt-header attestation.
 - **Atlas CI:** `.github/workflows/atlas.yml` rebuilds/validates Atlas on every PR and blocks merges on drift or broken links.
 
 Use this overview alongside the Agent README and Briefing Pack to bootstrap any Codex/Claude agent without rereading the entire codebase.

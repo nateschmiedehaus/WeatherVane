@@ -53,9 +53,9 @@
 
 ## Execution Protocol
 
-### 🚨 MANDATORY WORK PROCESS - ENFORCED BY SYSTEM
+### 🚨 MANDATORY WORK PROCESS - ENFORCED EVERYWHERE
 
-**EVERY task MUST follow this exact sequence:**
+**EVERY task MUST follow this exact sequence (inside or outside the Unified Autopilot loop):**
 **STRATEGIZE → SPEC → PLAN → THINK → IMPLEMENT → VERIFY → REVIEW → PR → MONITOR**
 
 **ENFORCEMENT IS ACTIVE:**
@@ -63,6 +63,8 @@
 - Skipping ANY phase = IMMEDIATE TASK FAILURE
 - Starting with IMPLEMENT = REJECTED
 - Claiming done without VERIFY = REJECTED
+- VERIFY/REVIEW/PR/MONITOR findings that reveal gaps force a return to the earliest affected phase (often IMPLEMENT or earlier); all downstream phases must be re-run with fresh evidence.
+- Independent Codex agents (outside of MCP orchestration) must still execute the full STRATEGIZE→MONITOR loop, produce the same artifacts/checklists, and record evidence before claiming completion.
 - All violations logged to metrics and decision journal
 
 ### Complete-Finish Policy

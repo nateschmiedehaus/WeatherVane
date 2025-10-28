@@ -77,6 +77,16 @@ components:
         - docs/autopilot/ROADMAP_OPS.md
       schema_refs:
         - state/roadmap.yaml
+  -
+      id: prompt-enforcement
+      card: docs/autopilot/COMPONENT_CARDS/prompt-enforcement.md
+      code_refs:
+        -
+          path: tools/wvo_mcp/src/utils/prompt_headers.ts
+          sha256: ce784aeb043644a3d37ab293d3b5ebf2697da82898245d1ddd72f84893b7737c
+      doc_refs:
+        - docs/autopilot/SYSTEM_PROMPT_ENFORCEMENT.md
+      schema_refs: []
 prompts:
   -
       id: dod_pr
@@ -142,7 +152,9 @@ docs:
   - docs/autopilot/AGENT_README.md
   - docs/autopilot/ROADMAP_OPS.md
   - docs/autopilot/CONTEXT_FABRIC.md
+  - docs/autopilot/Observability-OTel-GenAI.md
   - docs/autopilot/SECURITY.md
   - docs/autopilot/QUALITY_BAR.md
   - docs/autopilot/GOVERNANCE.md
   - docs/autopilot/DSD.md
+  - docs/autopilot/SYSTEM_PROMPT_ENFORCEMENT.md

@@ -441,6 +441,64 @@ export class WorkProcessEnforcer {
       }
     }
 
+    // STEP 6.5: Finalize evidence bundle and validate completion criteria
+    let evidenceBundle;
+    let artifactPaths: string[] = [];
+    let evidenceValidated = false;
+
+    try {
+      evidenceBundle = this.evidenceCollector.finalizeCollection();
+
+      // Check if evidence meets completion criteria
+      if (!evidenceBundle.meetsCompletionCriteria) {
+        logError('EVIDENCE VALIDATION FAILED - Cannot advance phase', {
+          taskId,
+          phase: currentPhase,
+          missingEvidence: evidenceBundle.missingEvidence
+        });
+
+        // Record evidence gate failure
+        if (this.metricsCollector) {
+          await this.metricsCollector.recordCounter('evidence_gate_failed', 1, {
+            taskId,
+            phase: currentPhase,
+            missingEvidence: evidenceBundle.missingEvidence
+          });
+        }
+
+        // Reset phase to allow retry after evidence is collected
+        this.currentPhase.set(taskId, currentPhase);
+        this.evidenceCollector.startCollection(currentPhase, taskId);
+
+        return false;
+      }
+
+      // Extract artifact paths from evidence
+      artifactPaths = evidenceBundle.evidence
+        .flatMap(e => e.evidence.artifacts || [])
+        .filter((v, i, a) => a.indexOf(v) === i);  // Unique paths
+
+      evidenceValidated = true;
+
+      logInfo('Evidence validation passed', {
+        taskId,
+        phase: currentPhase,
+        artifactsCollected: artifactPaths.length,
+        realMCPCalls: evidenceBundle.proven.realMCPCalls,
+        testsRun: evidenceBundle.proven.testsRun
+      });
+
+    } catch (error) {
+      logWarning('Evidence finalization skipped (non-blocking)', {
+        taskId,
+        phase: currentPhase,
+        error: error instanceof Error ? error.message : String(error)
+      });
+      // Evidence collection is supplementary - don't block on errors
+      // But mark as not validated
+      evidenceValidated = false;
+    }
+
     // STEP 7: Transition to next phase with fresh evidence collection
     const nextPhase = this.PHASE_SEQUENCE[currentIndex + 1];
     this.currentPhase.set(taskId, nextPhase);
@@ -449,19 +507,18 @@ export class WorkProcessEnforcer {
 
     // STEP 8: Record transition in immutable ledger with hash chaining
     try {
-      // TODO: Integrate artifact collection from evidenceCollector
-      // For now, record transition with empty artifacts array
       await this.phaseLedger.appendTransition(
         taskId,
         currentPhase,
         nextPhase,
-        [], // Will be populated when evidence-gated transitions are implemented
-        validation.passed
+        artifactPaths,  // Real artifact paths from evidence bundle
+        evidenceValidated && validation.passed
       );
       logInfo('Phase transition recorded in ledger', {
         taskId,
         from: currentPhase,
-        to: nextPhase
+        to: nextPhase,
+        artifactsRecorded: artifactPaths.length
       });
     } catch (error) {
       logError('Failed to record transition in ledger', {

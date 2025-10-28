@@ -30,11 +30,11 @@ risks:
   - "Serving stale data if generator not run"
 links:
   code:
-    - tools/wvo_mcp/src/atlas/atlas_service.ts
+    - src/atlas/atlas_service.ts
   docs:
-    - docs/autopilot/OVERVIEW.md
+    - ../../docs/autopilot/OVERVIEW.md
   schema:
-    - docs/autopilot/DATA_SCHEMAS/atlas_manifest.schema.json
+    - ../../docs/autopilot/DATA_SCHEMAS/atlas_manifest.schema.json
 ---
 
 Provides self-describing metadata so any agent can introspect the Autopilot environment in one hop.

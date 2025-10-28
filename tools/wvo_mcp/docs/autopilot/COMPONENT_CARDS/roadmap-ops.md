@@ -27,10 +27,10 @@ risks:
   - "Drift between roadmap and GitHub"
 links:
   code:
-    - tools/wvo_mcp/src/state/roadmap_store.ts
-    - tools/wvo_mcp/src/planner/planner_engine.ts
+    - src/state/roadmap_store.ts
+    - src/planner/planner_engine.ts
   docs:
-    - docs/autopilot/ROADMAP_OPS.md
+    - ../../docs/autopilot/ROADMAP_OPS.md
   schema:
     - state/roadmap.yaml
 ---

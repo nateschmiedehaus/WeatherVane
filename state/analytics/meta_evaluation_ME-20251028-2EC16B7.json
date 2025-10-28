@@ -1,0 +1,59 @@
+{
+  "timestamp": "2025-10-28T10:36:02.628782",
+  "evaluation_id": "ME-20251028-2EC16B7",
+  "metrics": {
+    "model_pass_rate": 0.0,
+    "mean_r2": 0.11,
+    "mean_mape": 35.0,
+    "quality_score": 45.0
+  },
+  "criteria": {
+    "data_integrity": {
+      "score": 85.0,
+      "findings": []
+    },
+    "model_performance": {
+      "score": 0.0,
+      "findings": [
+        "Validation results missing model entries"
+      ]
+    },
+    "robustness": {
+      "score": 60.0,
+      "findings": [
+        "Cross-validation results missing R\u00b2 column",
+        "Synthetic data validation missing weather correlation metrics"
+      ]
+    },
+    "observability": {
+      "score": 50.0,
+      "findings": [
+        "Missing execution telemetry"
+      ]
+    },
+    "responsible_ai": {
+      "score": 30.0,
+      "findings": [
+        "Missing bias analysis documentation",
+        "Missing feature importance documentation"
+      ]
+    }
+  },
+  "conclusion": {
+    "overall_status": "at_risk",
+    "key_risks": [
+      {
+        "risk": "Models failing to meet minimum performance thresholds",
+        "severity": "critical",
+        "mitigation": "Review feature engineering and model architecture"
+      }
+    ],
+    "recommendations": [
+      {
+        "action": "Comprehensive model performance review",
+        "priority": "p0",
+        "expected_impact": "Identify and fix core modeling issues"
+      }
+    ]
+  }
+}

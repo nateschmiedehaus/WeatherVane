@@ -24,10 +24,10 @@ risks:
   - "Cost explosion"
 links:
   code:
-    - tools/wvo_mcp/src/orchestrator/model_router.ts
-    - tools/wvo_mcp/src/orchestrator/model_policy.yaml
+    - src/orchestrator/model_router.ts
+    - src/orchestrator/model_policy.yaml
   docs:
-    - docs/MODEL_ROUTING_POLICY.md
+    - ../../docs/MODEL_ROUTING_POLICY.md
   schema: []
 ---
 

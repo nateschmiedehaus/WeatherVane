@@ -30,9 +30,9 @@ export const COMPONENT_SOURCES: AtlasComponentSource[] = [
     summary:
       "Controls state transitions, collects thinker insights, tracks duplicate patches, and orchestrates Verify/Review/PR/Monitor sequencing.",
     links: {
-      code: ["tools/wvo_mcp/src/orchestrator/state_graph.ts"],
-      docs: ["docs/autopilot/OVERVIEW.md"],
-      schema: ["docs/autopilot/DATA_SCHEMAS/atlas_manifest.schema.json"],
+      code: ["src/orchestrator/state_graph.ts"],
+      docs: ["../../docs/autopilot/OVERVIEW.md"],
+      schema: ["../../docs/autopilot/DATA_SCHEMAS/atlas_manifest.schema.json"],
     },
   },
   {
@@ -52,12 +52,12 @@ export const COMPONENT_SOURCES: AtlasComponentSource[] = [
       "Combines budgeting, navigator, and persistence utilities to keep context pointer-first and within token budgets.",
     links: {
       code: [
-        "tools/wvo_mcp/src/context/context_assembler.ts",
-        "tools/wvo_mcp/src/context/context_budgeting.ts",
-        "tools/wvo_mcp/src/context/knowledge_navigator.ts",
+        "src/context/context_assembler.ts",
+        "src/context/context_budgeting.ts",
+        "src/context/knowledge_navigator.ts",
       ],
-      docs: ["docs/autopilot/CONTEXT_FABRIC.md"],
-      schema: ["docs/autopilot/DATA_SCHEMAS/local_context_pack.schema.json"],
+      docs: ["../../docs/autopilot/CONTEXT_FABRIC.md"],
+      schema: ["../../docs/autopilot/DATA_SCHEMAS/local_context_pack.schema.json"],
     },
   },
   {
@@ -76,10 +76,10 @@ export const COMPONENT_SOURCES: AtlasComponentSource[] = [
     summary: "Chooses codex/claude variants per capability tag and records auditing metadata.",
     links: {
       code: [
-        "tools/wvo_mcp/src/orchestrator/model_router.ts",
-        "tools/wvo_mcp/src/orchestrator/model_policy.yaml",
+        "src/orchestrator/model_router.ts",
+        "src/orchestrator/model_policy.yaml",
       ],
-      docs: ["docs/MODEL_ROUTING_POLICY.md"],
+      docs: ["../../docs/MODEL_ROUTING_POLICY.md"],
     },
   },
   {
@@ -97,8 +97,8 @@ export const COMPONENT_SOURCES: AtlasComponentSource[] = [
     risks: ["Policies drifting from docs"],
     summary: "Bridges governance prompts with runtime enforcement, halting PR flow when guardrails trip.",
     links: {
-      code: ["tools/wvo_mcp/src/orchestrator/policy_controller.ts"],
-      docs: ["docs/AUTOPILOT_STATUS.md"],
+      code: ["src/orchestrator/policy_controller.ts"],
+      docs: ["../../docs/AUTOPILOT_STATUS.md"],
     },
   },
   {
@@ -116,9 +116,9 @@ export const COMPONENT_SOURCES: AtlasComponentSource[] = [
     risks: ["Serving stale data if generator not run"],
     summary: "Provides self-describing metadata so any agent can introspect the Autopilot environment in one hop.",
     links: {
-      code: ["tools/wvo_mcp/src/atlas/atlas_service.ts"],
-      docs: ["docs/autopilot/OVERVIEW.md"],
-      schema: ["docs/autopilot/DATA_SCHEMAS/atlas_manifest.schema.json"],
+      code: ["src/atlas/atlas_service.ts"],
+      docs: ["../../docs/autopilot/OVERVIEW.md"],
+      schema: ["../../docs/autopilot/DATA_SCHEMAS/atlas_manifest.schema.json"],
     },
   },
   {
@@ -137,10 +137,10 @@ export const COMPONENT_SOURCES: AtlasComponentSource[] = [
     summary: "Transactional API for manipulating roadmap hierarchy with governance + shadow-plan hooks.",
     links: {
       code: [
-        "tools/wvo_mcp/src/state/roadmap_store.ts",
-        "tools/wvo_mcp/src/planner/planner_engine.ts",
+        "src/state/roadmap_store.ts",
+        "src/planner/planner_engine.ts",
       ],
-      docs: ["docs/autopilot/ROADMAP_OPS.md"],
+      docs: ["../../docs/autopilot/ROADMAP_OPS.md"],
       schema: ["state/roadmap.yaml"],
     },
   },
@@ -150,7 +150,7 @@ export const TOOL_SOURCES: AtlasToolSource[] = [
   {
     name: "plan_next",
     description: "Fetch prioritized roadmap tasks (with clusters).",
-    path: "tools/wvo_mcp/src/worker/tool_router.ts",
+    path: "src/worker/tool_router.ts",
     preconditions: ["Roadmap synced", "Worker available"],
     postconditions: ["Returns tasks array", "Records correlation id"],
     examples: [
@@ -163,7 +163,7 @@ export const TOOL_SOURCES: AtlasToolSource[] = [
   {
     name: "autopilot_status",
     description: "Report autopilot consensus metrics and staffing guidance.",
-    path: "tools/wvo_mcp/src/worker/tool_router.ts",
+    path: "src/worker/tool_router.ts",
     preconditions: [],
     postconditions: ["Returns recommendation string", "Includes staffing guidance"],
     examples: [
@@ -176,7 +176,7 @@ export const TOOL_SOURCES: AtlasToolSource[] = [
   {
     name: "self_describe",
     description: "Return mission, versions, core components, policy hashes.",
-    path: "tools/wvo_mcp/src/atlas/atlas_service.ts",
+    path: "src/atlas/atlas_service.ts",
     preconditions: ["Atlas manifest present"],
     postconditions: ["JSON description referencing docs"],
     examples: [
@@ -189,7 +189,7 @@ export const TOOL_SOURCES: AtlasToolSource[] = [
   {
     name: "self_list_tools",
     description: "Enumerate MCP tools with schema references and examples.",
-    path: "tools/wvo_mcp/src/atlas/atlas_service.ts",
+    path: "src/atlas/atlas_service.ts",
     preconditions: [],
     postconditions: ["Array of tools"],
     examples: [
@@ -202,7 +202,7 @@ export const TOOL_SOURCES: AtlasToolSource[] = [
   {
     name: "self_get_schema",
     description: "Return JSON schema by id.",
-    path: "tools/wvo_mcp/src/atlas/atlas_service.ts",
+    path: "src/atlas/atlas_service.ts",
     preconditions: ["Schema exists"],
     postconditions: ["Raw schema JSON"] ,
     examples: [
@@ -215,26 +215,26 @@ export const TOOL_SOURCES: AtlasToolSource[] = [
   {
     name: "self_get_prompt",
     description: "Return canonical prompt text by registry id.",
-    path: "tools/wvo_mcp/src/atlas/atlas_service.ts",
+    path: "src/atlas/atlas_service.ts",
     preconditions: ["Prompt registered"],
     postconditions: ["Prompt text + hash"],
     examples: [
       {
         input: { id: "dod_pr" },
-        output: { id: "dod_pr", path: "tools/wvo_mcp/prompts/dod_pr.md" },
+        output: { id: "dod_pr", path: "prompts/dod_pr.md" },
       },
     ],
   },
   {
     name: "self_briefing_pack",
     description: "Return path + hash for Agent Briefing Pack.",
-    path: "tools/wvo_mcp/src/atlas/atlas_service.ts",
+    path: "src/atlas/atlas_service.ts",
     preconditions: [],
     postconditions: ["Briefing pack metadata"],
     examples: [
       {
         input: {},
-        output: { pack: "docs/autopilot/AGENT_BRIEFING_PACK.json" },
+        output: { pack: "../../docs/autopilot/AGENT_BRIEFING_PACK.json" },
       },
     ],
   },
@@ -244,109 +244,109 @@ export const PROMPT_SOURCES: AtlasPromptSource[] = [
   {
     id: "dod_pr",
     version: "v2025-10-23",
-    path: "tools/wvo_mcp/prompts/dod_pr.md",
+    path: "prompts/dod_pr.md",
     summary: "Definition of Done + PR checklist",
   },
   {
     id: "reviewer_rubric",
     version: "v2025-10-23",
-    path: "tools/wvo_mcp/prompts/reviewer_rubric.md",
+    path: "prompts/reviewer_rubric.md",
     summary: "Reviewer rubric JSON",
   },
   {
     id: "context_system",
     version: "v2025-10-23",
-    path: "docs/CONTEXT_SYSTEM.md",
+    path: "../../docs/CONTEXT_SYSTEM.md",
     summary: "Context ladder + budgets",
   },
   {
     id: "atlas_kit",
     version: ATLAS_VERSION,
-    path: "docs/autopilot/AGENT_README.md",
+    path: "../../docs/autopilot/AGENT_README.md",
     summary: "Atlas onboarding instructions",
   },
 ];
 
 export const SCHEMA_SOURCES: AtlasSchemaSource[] = [
-  { id: "lcp", path: "docs/autopilot/DATA_SCHEMAS/local_context_pack.schema.json" },
-  { id: "atlas_manifest", path: "docs/autopilot/DATA_SCHEMAS/atlas_manifest.schema.json" },
+  { id: "lcp", path: "../../docs/autopilot/DATA_SCHEMAS/local_context_pack.schema.json" },
+  { id: "atlas_manifest", path: "../../docs/autopilot/DATA_SCHEMAS/atlas_manifest.schema.json" },
 ];
 
 export const DOC_SOURCES: AtlasDocSource[] = [
-  { id: "overview", path: "docs/autopilot/OVERVIEW.md" },
-  { id: "history", path: "docs/autopilot/HISTORY.md" },
-  { id: "glossary", path: "docs/autopilot/GLOSSARY.md" },
-  { id: "faq", path: "docs/autopilot/FAQ.md" },
-  { id: "toolbox", path: "docs/autopilot/TOOLBOX.md" },
-  { id: "prompt_registry", path: "docs/autopilot/PROMPT_REGISTRY.md" },
-  { id: "agent_readme", path: "docs/autopilot/AGENT_README.md" },
-  { id: "roadmap_ops", path: "docs/autopilot/ROADMAP_OPS.md" },
-  { id: "context_fabric", path: "docs/autopilot/CONTEXT_FABRIC.md" },
-  { id: "security", path: "docs/autopilot/SECURITY.md" },
-  { id: "quality_bar", path: "docs/autopilot/QUALITY_BAR.md" },
-  { id: "governance", path: "docs/autopilot/GOVERNANCE.md" },
-  { id: "dsd", path: "docs/autopilot/DSD.md" },
+  { id: "overview", path: "../../docs/autopilot/OVERVIEW.md" },
+  { id: "history", path: "../../docs/autopilot/HISTORY.md" },
+  { id: "glossary", path: "../../docs/autopilot/GLOSSARY.md" },
+  { id: "faq", path: "../../docs/autopilot/FAQ.md" },
+  { id: "toolbox", path: "../../docs/autopilot/TOOLBOX.md" },
+  { id: "prompt_registry", path: "../../docs/autopilot/PROMPT_REGISTRY.md" },
+  { id: "agent_readme", path: "../../docs/autopilot/AGENT_README.md" },
+  { id: "roadmap_ops", path: "../../docs/autopilot/ROADMAP_OPS.md" },
+  { id: "context_fabric", path: "../../docs/autopilot/CONTEXT_FABRIC.md" },
+  { id: "security", path: "../../docs/autopilot/SECURITY.md" },
+  { id: "quality_bar", path: "../../docs/autopilot/QUALITY_BAR.md" },
+  { id: "governance", path: "../../docs/autopilot/GOVERNANCE.md" },
+  { id: "dsd", path: "../../docs/autopilot/DSD.md" },
 ];
 
 export const QNA_SOURCES: AtlasQuestion[] = [
   {
     id: "verify-gate",
     question: "What gates must pass in Verify?",
-    pointer: "docs/autopilot/OVERVIEW.md",
+    pointer: "../../docs/autopilot/OVERVIEW.md",
     expectation: "Tests + lint + type + security + license + changed-lines coverage",
   },
   {
     id: "roadmap-decompose",
     question: "Where is roadmap.decompose documented?",
-    pointer: "docs/autopilot/ROADMAP_OPS.md",
+    pointer: "../../docs/autopilot/ROADMAP_OPS.md",
     expectation: "add/decompose/replace/move/split/etc.",
   },
   {
     id: "prompt-location",
     question: "How do I find the reviewer rubric prompt?",
-    pointer: "docs/autopilot/PROMPT_REGISTRY.md",
+    pointer: "../../docs/autopilot/PROMPT_REGISTRY.md",
     expectation: "`reviewer_rubric`",
   },
   {
     id: "context-budget",
     question: "How are context budgets determined?",
-    pointer: "docs/autopilot/CONTEXT_FABRIC.md",
+    pointer: "../../docs/autopilot/CONTEXT_FABRIC.md",
     expectation: "context_budgeting.ts",
   },
   {
     id: "router-lock",
     question: "Which models are allowed?",
-    pointer: "docs/autopilot/OVERVIEW.md",
+    pointer: "../../docs/autopilot/OVERVIEW.md",
     expectation: "Codex 5 and Claude 4.5",
   },
   {
     id: "atlas-generator",
     question: "How do I regenerate the manifest?",
-    pointer: "docs/autopilot/AGENT_README.md",
-    expectation: "tools/wvo_mcp/src/atlas/generate_atlas.ts",
+    pointer: "../../docs/autopilot/AGENT_README.md",
+    expectation: "src/atlas/generate_atlas.ts",
   },
   {
     id: "briefing-pack",
     question: "Where is the Briefing Pack stored?",
-    pointer: "docs/autopilot/AGENT_README.md",
+    pointer: "../../docs/autopilot/AGENT_README.md",
     expectation: "docs/autopilot/AGENT_BRIEFING_PACK.json",
   },
   {
     id: "team-panel",
     question: "Where do assumptions/open questions live?",
-    pointer: "docs/autopilot/CONTEXT_FABRIC.md",
+    pointer: "../../docs/autopilot/CONTEXT_FABRIC.md",
     expectation: "Team Panel",
   },
   {
     id: "history",
     question: "When was Context Fabric shipped?",
-    pointer: "docs/autopilot/HISTORY.md",
+    pointer: "../../docs/autopilot/HISTORY.md",
     expectation: "2025-10-15",
   },
   {
     id: "glossary",
     question: "What is an Attestation Guard?",
-    pointer: "docs/autopilot/GLOSSARY.md",
+    pointer: "../../docs/autopilot/GLOSSARY.md",
     expectation: "hash comparison of manifest + prompt_registry",
   },
 ];

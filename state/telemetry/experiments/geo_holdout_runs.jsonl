@@ -206,3 +206,13 @@
 {"tenant_id": "tenant-123", "timestamp": "2025-10-27T19:59:58.659061", "event": "holdout_insufficient_geo", "geo_count": 0}
 {"tenant_id": "tenant-123", "timestamp": "2025-10-27T20:02:48.239770", "event": "holdout_insufficient_geo", "geo_count": 0}
 {"tenant_id": "tenant-123", "timestamp": "2025-10-27T20:02:48.284377", "event": "holdout_insufficient_geo", "geo_count": 0}
+{"tenant_id": "tenant-123", "timestamp": "2025-10-28T15:36:00.995984", "event": "holdout_insufficient_geo", "geo_count": 0}
+{"tenant_id": "tenant-123", "timestamp": "2025-10-28T15:36:01.005292", "event": "holdout_insufficient_geo", "geo_count": 0}
+{"tenant_id": "tenant-123", "timestamp": "2025-10-28T15:38:13.116602", "event": "holdout_insufficient_geo", "geo_count": 0}
+{"tenant_id": "tenant-123", "timestamp": "2025-10-28T15:38:13.126564", "event": "holdout_insufficient_geo", "geo_count": 0}
+{"tenant_id": "tenant-123", "timestamp": "2025-10-28T18:00:40.880010", "event": "holdout_insufficient_geo", "geo_count": 0}
+{"tenant_id": "tenant-123", "timestamp": "2025-10-28T18:00:40.954612", "event": "holdout_insufficient_geo", "geo_count": 0}
+{"tenant_id": "tenant-123", "timestamp": "2025-10-28T18:24:04.072381", "event": "holdout_insufficient_geo", "geo_count": 0}
+{"tenant_id": "tenant-123", "timestamp": "2025-10-28T18:24:04.104252", "event": "holdout_insufficient_geo", "geo_count": 0}
+{"tenant_id": "tenant-123", "timestamp": "2025-10-28T18:25:49.706288", "event": "holdout_insufficient_geo", "geo_count": 0}
+{"tenant_id": "tenant-123", "timestamp": "2025-10-28T18:25:49.752977", "event": "holdout_insufficient_geo", "geo_count": 0}

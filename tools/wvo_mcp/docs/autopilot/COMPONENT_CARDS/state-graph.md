@@ -30,11 +30,11 @@ risks:
   - "Missing checkpoints leads to lost retries"
 links:
   code:
-    - tools/wvo_mcp/src/orchestrator/state_graph.ts
+    - src/orchestrator/state_graph.ts
   docs:
-    - docs/autopilot/OVERVIEW.md
+    - ../../docs/autopilot/OVERVIEW.md
   schema:
-    - docs/autopilot/DATA_SCHEMAS/atlas_manifest.schema.json
+    - ../../docs/autopilot/DATA_SCHEMAS/atlas_manifest.schema.json
 ---
 
 Controls state transitions, collects thinker insights, tracks duplicate patches, and orchestrates Verify/Review/PR/Monitor sequencing.

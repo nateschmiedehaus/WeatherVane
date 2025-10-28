@@ -25,7 +25,7 @@ This guide crystallizes the unified spec we owe Codex/Claude (and future agents)
 
 ## 3. Recovery Plan (Phases)
 
-The table merges Opus’ “Perfect Unified Autopilot” blueprint with our RECOVERY_PLAYBOOK slices. Every item must run through **Specify → Plan → (Think) → Implement → Verify → Review → PR → Monitor**, with artifacts recorded under `resources://runs/<id>/`.
+The table merges Opus’ “Perfect Unified Autopilot” blueprint with our RECOVERY_PLAYBOOK slices. Every item must run through **STRATEGIZE → SPEC → PLAN → THINK → IMPLEMENT → VERIFY → REVIEW → PR → MONITOR** (legacy “Specify” language maps to SPEC), with artifacts recorded under `resources://runs/<id>/`.
 
 | Phase | Target Outcomes | Key Tasks |
 | --- | --- | --- |
@@ -40,14 +40,17 @@ The table merges Opus’ “Perfect Unified Autopilot” blueprint with our RECO
 
 ## 4. Execution Protocol (Agents & Tools)
 
-1. **Specify** – Restate goal + acceptance criteria quoting this doc + RECOVERY_PLAYBOOK. Save in `resources://runs/<id>/journal.md`.
-2. **Plan** – Break work into ≤3 verifiable steps per slice; record plan hash and reference impacted files.
-3. **Think (optional)** – Required for ambiguous slices (anything hitting Phase 2+). Document open questions, assumptions, spike proposals; store in Task Thread (journal “### Team Panel”).
-4. **Implement** – Emit minimal diffs, including tests/docs. For autopilot code, run `node tools/oss_autopilot/scripts/run_vitest.mjs --scope=autopilot`. For docs/policy changes, run atlas generator + validator.
-5. **Verify** – Execute the mandated gates (`tests.run`, `lint.run`, `typecheck.run`, `security.scan`, `license.check`, `scripts/app_smoke_e2e.sh` when applicable). Attach `resources://` artifact paths.
-6. **Review** – Use reviewer rubric JSON; cite file+line references; include risk & rollback plan.
-7. **PR** – Summarize changes, evidence, risks. Link to RECOVERY plan phase you closed/advanced.
-8. **Monitor** – Run Monitor smoke or equivalent; log outputs + metrics. If smoke fails, file plan-delta before merging.
+1. **STRATEGIZE** – Identify the problem, select an approach, and connect the work to WeatherVane’s purpose. Persist the decision in `resources://runs/<id>/journal.md` and ensure the phase ledger records the entry.
+2. **SPEC** – Restate acceptance criteria, success metrics, and definition of done quoting this doc + RECOVERY_PLAYBOOK. Store the artifact (e.g., `docs/autopilot/spec.md`) and link it in the ledger entry.
+3. **PLAN** – Break work into ≤3 verifiable steps per slice; record plan hash, dependencies, and impacted files in the journal + ledger.
+4. **THINK (optional)** – Mandatory for ambiguous or high-risk slices. Document open questions, assumptions, spike proposals in the Task Thread (journal “### Team Panel”) and capture the decision in the ledger.
+5. **IMPLEMENT** – Emit minimal diffs with tests/docs. For autopilot code, run `node tools/oss_autopilot/scripts/run_vitest.mjs --scope=autopilot`; ensure unit tests target changed symbols.
+6. **VERIFY** – Execute all mandated gates (`tests.run`, `lint.run`, `typecheck.run`, `security.scan`, `license.check`, Playwright UI tests where applicable, `scripts/app_smoke_e2e.sh`). Attach signed outputs to `resources://` paths and reference them in the ledger.
+7. **REVIEW** – Use reviewer rubric JSON; cite file+line references; include risk & rollback plan. The reviewer verdict is stored alongside the ledger entry.
+8. **PR** – Summarize changes, evidence, risks, and link to the RECOVERY phase advanced. Include prompt-header attestation + phase ledger hashes in the evidence bundle.
+9. **MONITOR** – Run Monitor smoke or equivalent; log outputs + metrics. If smoke fails, file plan-delta before merging and keep the lease open until resolved.
+
+**Rework loops:** If VERIFY, REVIEW, PR, or MONITOR uncover defects or missing evidence, the task must return to the earliest impacted phase (often IMPLEMENT or PLAN), redo the work, and then re-run every downstream phase with fresh ledger entries, leases, and artifacts. No phase may be skipped during re-entry.
 
 ### Tool & Context Notes
 - Always run `plan_next` (minimal) before picking a new slice. If MCP tools are unavailable, log the outage in `state/autopilot_execution.md`.

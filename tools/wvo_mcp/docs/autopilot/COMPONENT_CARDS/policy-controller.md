@@ -23,9 +23,9 @@ risks:
   - "Policies drifting from docs"
 links:
   code:
-    - tools/wvo_mcp/src/orchestrator/policy_controller.ts
+    - src/orchestrator/policy_controller.ts
   docs:
-    - docs/AUTOPILOT_STATUS.md
+    - ../../docs/AUTOPILOT_STATUS.md
   schema: []
 ---
 

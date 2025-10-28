@@ -1,0 +1,36 @@
+{
+  "version": "v2025-10-25",
+  "mission": "WeatherVane Unified Autopilot builds, verifies, and monitors app-core tasks autonomously.",
+  "architecture": {
+    "diagram": "docs/autopilot/OVERVIEW.md#architecture",
+    "components": [
+      "state-graph",
+      "context-fabric",
+      "model-router",
+      "policy-controller",
+      "atlas-introspection",
+      "roadmap-ops"
+    ]
+  },
+  "how_to_use": "docs/autopilot/AGENT_README.md",
+  "tools": "docs/autopilot/TOOLBOX.md",
+  "prompts": "docs/autopilot/PROMPT_REGISTRY.md",
+  "policies": [
+    "docs/autopilot/SECURITY.md",
+    "docs/autopilot/QUALITY_BAR.md",
+    "docs/autopilot/GOVERNANCE.md"
+  ],
+  "schemas": "docs/autopilot/DATA_SCHEMAS/",
+  "roadmap_ops": "docs/autopilot/ROADMAP_OPS.md",
+  "context_fabric": "docs/autopilot/CONTEXT_FABRIC.md",
+  "control_plane": "docs/autopilot/DSD.md",
+  "history": "docs/autopilot/HISTORY.md",
+  "faq": "docs/autopilot/FAQ.md",
+  "glossary": "docs/autopilot/GLOSSARY.md",
+  "manifest": "docs/autopilot/MANIFEST.yml",
+  "hash": "f69d89a8ff6851ac6895a737d03fd6971515b024e8a58f2f9c59df4f0d3cfc8a",
+  "attestation": {
+    "manifest_sha": "b1384ebad578c2bd7ef5e146e48ef5b8a0bda0c73a7e57e4ed79d2420f8771ce",
+    "prompt_registry_sha": "2f3d723c6979e17e272753b3a7381139c608c567596f860f265d64be8c873358"
+  }
+}

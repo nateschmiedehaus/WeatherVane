@@ -17,6 +17,6 @@ describe('app smoke e2e', () => {
       },
     });
     expect(result.status).toBe(0);
-    expect(result.stdout).toContain('[app-smoke]');
+    expect(result.stdout).toContain('[SMOKE]');
   });
 });

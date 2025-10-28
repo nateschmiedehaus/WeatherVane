@@ -29,13 +29,13 @@ risks:
   - "Stale anchors if hashes ignored"
 links:
   code:
-    - tools/wvo_mcp/src/context/context_assembler.ts
-    - tools/wvo_mcp/src/context/context_budgeting.ts
-    - tools/wvo_mcp/src/context/knowledge_navigator.ts
+    - src/context/context_assembler.ts
+    - src/context/context_budgeting.ts
+    - src/context/knowledge_navigator.ts
   docs:
-    - docs/autopilot/CONTEXT_FABRIC.md
+    - ../../docs/autopilot/CONTEXT_FABRIC.md
   schema:
-    - docs/autopilot/DATA_SCHEMAS/local_context_pack.schema.json
+    - ../../docs/autopilot/DATA_SCHEMAS/local_context_pack.schema.json
 ---
 
 Combines budgeting, navigator, and persistence utilities to keep context pointer-first and within token budgets.

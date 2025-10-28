@@ -36,7 +36,7 @@
 
 **Start every loop** by calling MCP tools `plan_next --minimal` and `autopilot_status`. If either fails, run `./autopilot/scripts/restart_mcp.sh` and log to `state/analytics/health_checks.jsonl`.
 
-**🚨 MANDATORY PROCESS - NO EXCEPTIONS:**
+**🚨 MANDATORY PROCESS - NO EXCEPTIONS (AUTOPILOT OR SOLO CLAUDE SESSIONS):**
 **STRATEGIZE → SPEC → PLAN → THINK → IMPLEMENT → VERIFY → REVIEW → PR → MONITOR**
 
 **Enforcement is ACTIVE:**
@@ -45,6 +45,8 @@
 - Claiming done without VERIFY = REJECTED
 - WorkProcessEnforcer will BLOCK violating tasks
 - Violations are logged and tracked in metrics
+- If VERIFY/REVIEW/PR/MONITOR expose gaps, you must loop back to the earliest impacted phase (often IMPLEMENT or earlier) and rerun every downstream phase with new evidence.
+- When operating outside the Unified Autopilot, you must still execute the full STRATEGIZE→MONITOR sequence, capture the same artifacts/checklists, and provide verifiable evidence before declaring the task complete.
 
 **Finish in one loop:** No partials; build=0 errors; all tests pass; docs done.
 

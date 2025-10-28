@@ -195,16 +195,18 @@ export class QualityGateOrchestrator {
       type: 'task',
       created_at: Date.now(),
       metadata: {
-        estimated_complexity: plan.estimatedComplexity === 'simple' ? 2 :
-                           plan.estimatedComplexity === 'medium' ? 5 : 8,
+        estimated_complexity: plan.estimatedComplexity === 'simple' ? 4 :  // Ensure simple uses STANDARD tier
+                           plan.estimatedComplexity === 'medium' ? 6 : 8,
         files_affected: plan.filesAffected
       }
     };
 
     // Select model based on task complexity
     const modelSelection = selectModelForTask(task, 'claude');
-    const modelTier: ModelTier = modelSelection.tier.name === 'powerful' ? 'POWERFUL' :
-                                modelSelection.tier.name === 'standard' ? 'STANDARD' : 'FAST';
+    // Map tier names to ModelTier enum properly
+    const modelTier: ModelTier =
+      modelSelection.tier.name.includes('sonnet') && modelSelection.tier.name.includes('reasoning') ? 'POWERFUL' :
+      modelSelection.tier.name.includes('sonnet') ? 'STANDARD' : 'FAST';
 
     logInfo('Pre-task review using model', {
       taskId,
