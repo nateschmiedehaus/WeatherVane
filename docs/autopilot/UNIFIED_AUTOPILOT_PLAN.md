@@ -40,13 +40,13 @@ The table merges Opus’ “Perfect Unified Autopilot” blueprint with our RECO
 
 ## 4. Execution Protocol (Agents & Tools)
 
-1. **STRATEGIZE** – Identify the problem, select an approach, and connect the work to WeatherVane’s purpose. Persist the decision in `resources://runs/<id>/journal.md` and ensure the phase ledger records the entry.
-2. **SPEC** – Restate acceptance criteria, success metrics, and definition of done quoting this doc + RECOVERY_PLAYBOOK. Store the artifact (e.g., `docs/autopilot/spec.md`) and link it in the ledger entry.
-3. **PLAN** – Break work into ≤3 verifiable steps per slice; record plan hash, dependencies, and impacted files in the journal + ledger.
-4. **THINK (optional)** – Mandatory for ambiguous or high-risk slices. Document open questions, assumptions, spike proposals in the Task Thread (journal “### Team Panel”) and capture the decision in the ledger.
+1. **STRATEGIZE** – Identify the problem, select an approach, and connect the work to WeatherVane’s purpose **and the specific Autopilot functionality (agent behavior, user workflow, or quality gate) the change serves or protects**. Persist the decision in `resources://runs/<id>/journal.md` and ensure the phase ledger records the entry.
+2. **SPEC** – Restate acceptance criteria, success metrics, and definition of done quoting this doc + RECOVERY_PLAYBOOK. Include the Autopilot scenarios or workflows that must continue to function after the change. Store the artifact (e.g., `docs/autopilot/spec.md`) and link it in the ledger entry.
+3. **PLAN** – Break work into ≤3 verifiable steps per slice; map each step to concrete Autopilot components (state runners, tools, prompts, dashboards) and identify the functional checks required. Record the plan hash, dependencies, and impacted files in the journal + ledger.
+4. **THINK (optional)** – Mandatory for ambiguous or high-risk slices. Document open questions, assumptions, spike proposals in the Task Thread (journal “### Team Panel”), and explicitly analyze functional risks (e.g., “Will planner dispatch still operate?”). Capture the decision and mitigation strategy in the ledger.
 5. **IMPLEMENT** – Emit minimal diffs with tests/docs. For autopilot code, run `node tools/oss_autopilot/scripts/run_vitest.mjs --scope=autopilot`; ensure unit tests target changed symbols.
 6. **VERIFY** – Execute all mandated gates (`tests.run`, `lint.run`, `typecheck.run`, `security.scan`, `license.check`, Playwright UI tests where applicable, `scripts/app_smoke_e2e.sh`). Attach signed outputs to `resources://` paths and reference them in the ledger.
-7. **REVIEW** – Use reviewer rubric JSON; cite file+line references; include risk & rollback plan. The reviewer verdict is stored alongside the ledger entry.
+7. **REVIEW** – Use reviewer rubric JSON; cite file+line references; include risk & rollback plan. Reviewers must confirm the Autopilot functionality identified in STRATEGIZE/PLAN/THINK still works (link evidence: smoke runs, manual walkthroughs, telemetry). Store the verdict alongside the ledger entry.
 8. **PR** – Summarize changes, evidence, risks, and link to the RECOVERY phase advanced. Include prompt-header attestation + phase ledger hashes in the evidence bundle.
 9. **MONITOR** – Run Monitor smoke or equivalent; log outputs + metrics. If smoke fails, file plan-delta before merging and keep the lease open until resolved.
 

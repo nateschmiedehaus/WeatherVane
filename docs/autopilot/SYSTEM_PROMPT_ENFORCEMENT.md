@@ -27,6 +27,7 @@ Every task MUST proceed through these phases IN ORDER:
 - Try to jump from SPEC directly to IMPLEMENT
 - Attempt to bypass quality gates
 - Ignore required rework loops (e.g., fail to return to SPEC/PLAN/THINK/IMPLEMENT when VERIFY, REVIEW, PR, or MONITOR expose gaps)
+- Disconnect the work from Autopilot functionality (e.g., STRATEGIZE/PLAN/THINK omit which agent workflow or safeguard is impacted, or REVIEW lacks proof that functionality still works)
 
 ### Violations Are Tracked
 

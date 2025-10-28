@@ -17,6 +17,7 @@ import { EvidenceCollector } from './evidence_collector.js';
 import { CompletionVerifier } from './completion_verifier.js';
 import { MetricsCollector } from '../telemetry/metrics_collector.js';
 import { PhaseLedger } from './phase_ledger.js';
+import { PhaseLeaseManager } from './phase_lease.js';
 import fs from 'fs';
 import path from 'path';
 import { execSync } from 'child_process';
@@ -67,6 +68,7 @@ export class WorkProcessEnforcer {
   private readonly evidenceCollector: EvidenceCollector;
   private readonly completionVerifier: CompletionVerifier;
   private readonly phaseLedger: PhaseLedger;
+  private readonly phaseLeaseManager: PhaseLeaseManager;
 
   // Define the required flow
   private readonly PHASE_SEQUENCE: WorkPhase[] = [
@@ -225,6 +227,10 @@ export class WorkProcessEnforcer {
     this.evidenceCollector = new EvidenceCollector(workspaceRoot);
     this.completionVerifier = new CompletionVerifier(workspaceRoot);
     this.phaseLedger = new PhaseLedger(workspaceRoot);
+    this.phaseLeaseManager = new PhaseLeaseManager(workspaceRoot, {
+      leaseDuration: 300,  // 5 minutes
+      maxRenewals: 10
+    });
 
     // Initialize ledger directory
     this.phaseLedger.initialize().catch(error => {
@@ -331,6 +337,28 @@ export class WorkProcessEnforcer {
       throw new Error(`Task ${taskId} already in cycle at phase ${this.currentPhase.get(taskId)}`);
     }
 
+    // STEP 1: Acquire phase lease for STRATEGIZE (multi-agent safety)
+    const leaseResult = await this.phaseLeaseManager.acquireLease(taskId, 'STRATEGIZE');
+    if (!leaseResult.acquired) {
+      logWarning('Cannot start cycle - phase lease held by another agent', {
+        taskId,
+        phase: 'STRATEGIZE',
+        holder: leaseResult.holder,
+        expiresIn: leaseResult.expiresIn
+      });
+
+      // Record lease contention
+      if (this.metricsCollector) {
+        await this.metricsCollector.recordCounter('phase_lease_contention', 1, {
+          taskId,
+          phase: 'STRATEGIZE',
+          holder: leaseResult.holder
+        });
+      }
+
+      throw new Error(`Phase lease already held by ${leaseResult.holder} (expires in ${leaseResult.expiresIn}s)`);
+    }
+
     this.currentPhase.set(taskId, 'STRATEGIZE');
     this.logTransition(taskId, null, 'STRATEGIZE', true);
 
@@ -429,7 +457,7 @@ export class WorkProcessEnforcer {
       // Run comprehensive final verification with all meta systems
       const finalVerification = await this.runComprehensiveFinalVerification(taskId);
       if (finalVerification) {
-        this.completeCycle(taskId);
+        await this.completeCycle(taskId);
         return true;
       } else {
         logError('FINAL VERIFICATION FAILED - Cannot mark complete', {
@@ -504,6 +532,65 @@ export class WorkProcessEnforcer {
     this.currentPhase.set(taskId, nextPhase);
     this.evidenceCollector.startCollection(nextPhase, taskId);
     this.logTransition(taskId, currentPhase, nextPhase, true);
+
+    // STEP 7.5: Release lease for current phase and acquire for next phase
+    try {
+      // Release current phase lease
+      await this.phaseLeaseManager.releaseLease(taskId, currentPhase);
+      logInfo('Phase lease released', {
+        taskId,
+        phase: currentPhase
+      });
+
+      // Acquire lease for next phase
+      const nextLeaseResult = await this.phaseLeaseManager.acquireLease(taskId, nextPhase);
+      if (!nextLeaseResult.acquired) {
+        logError('Cannot advance to next phase - lease held by another agent', {
+          taskId,
+          currentPhase,
+          nextPhase,
+          holder: nextLeaseResult.holder,
+          expiresIn: nextLeaseResult.expiresIn
+        });
+
+        // Record contention
+        if (this.metricsCollector) {
+          await this.metricsCollector.recordCounter('phase_lease_contention', 1, {
+            taskId,
+            phase: nextPhase,
+            holder: nextLeaseResult.holder
+          });
+        }
+
+        // Rollback: reacquire current phase lease and reset state
+        this.currentPhase.set(taskId, currentPhase);
+        await this.phaseLeaseManager.acquireLease(taskId, currentPhase);
+        this.evidenceCollector.startCollection(currentPhase, taskId);
+
+        logWarning('Phase transition rolled back due to lease contention', {
+          taskId,
+          attemptedTransition: `${currentPhase} → ${nextPhase}`,
+          rollbackTo: currentPhase
+        });
+
+        return false;
+      }
+
+      logInfo('Phase lease acquired for next phase', {
+        taskId,
+        phase: nextPhase,
+        leaseId: nextLeaseResult.lease?.lease_id
+      });
+
+    } catch (error) {
+      logError('Phase lease management failed', {
+        taskId,
+        transition: `${currentPhase} → ${nextPhase}`,
+        error: error instanceof Error ? error.message : String(error)
+      });
+      // Don't fail the transition if lease management fails, but log it
+      // This allows single-agent mode to continue without lease infrastructure
+    }
 
     // STEP 8: Record transition in immutable ledger with hash chaining
     try {
@@ -1522,7 +1609,24 @@ export class WorkProcessEnforcer {
   /**
    * Complete the work cycle
    */
-  private completeCycle(taskId: string): void {
+  private async completeCycle(taskId: string): Promise<void> {
+    // Release all leases for this task
+    try {
+      const currentPhase = this.currentPhase.get(taskId);
+      if (currentPhase) {
+        await this.phaseLeaseManager.releaseLease(taskId, currentPhase);
+        logInfo('Phase lease released on cycle completion', {
+          taskId,
+          phase: currentPhase
+        });
+      }
+    } catch (error) {
+      logWarning('Failed to release lease on cycle completion', {
+        taskId,
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+
     this.currentPhase.delete(taskId);
 
     logInfo('Work cycle completed', {

@@ -65,6 +65,7 @@
 - Claiming done without VERIFY = REJECTED
 - VERIFY/REVIEW/PR/MONITOR findings that reveal gaps force a return to the earliest affected phase (often IMPLEMENT or earlier); all downstream phases must be re-run with fresh evidence.
 - Independent Codex agents (outside of MCP orchestration) must still execute the full STRATEGIZE→MONITOR loop, produce the same artifacts/checklists, and record evidence before claiming completion.
+- Strategy/Plan/Think must identify which Autopilot functionality (agent workflow, guardrail, or user journey) the work touches, and Review must confirm that functionality still operates (cite smoke runs, telemetry, or manual walkthroughs).
 - All violations logged to metrics and decision journal
 
 ### Complete-Finish Policy

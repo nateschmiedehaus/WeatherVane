@@ -102,7 +102,7 @@
     }
   },
   "date_column": null,
-  "generated_at": "2025-10-28T18:26:44.629982+00:00",
+  "generated_at": "2025-10-28T19:34:10.740789+00:00",
   "issues": [
     "volume:row_count_below_min:1",
     "completeness:missing_ratio:precip_mm_lag1:1.000",

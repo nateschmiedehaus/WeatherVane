@@ -3,6 +3,8 @@
 ## The Mandatory Process
 STRATEGIZE → SPEC → PLAN → THINK → IMPLEMENT → VERIFY → REVIEW → PR → MONITOR
 
+For every task, tie the work back to real Autopilot behavior: STRATEGIZE must state which agent workflow or guardrail the change affects; SPEC and PLAN must enumerate the user journeys and autonomy capabilities you will protect; THINK must analyze functional risks/regressions; REVIEW must confirm the identified Autopilot functionality still works (attach smoke tests, telemetry, or manual evidence).
+
 ## Example: Implementing Observer Agent
 
 ### STRATEGIZE

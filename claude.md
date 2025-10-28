@@ -47,6 +47,7 @@
 - Violations are logged and tracked in metrics
 - If VERIFY/REVIEW/PR/MONITOR expose gaps, you must loop back to the earliest impacted phase (often IMPLEMENT or earlier) and rerun every downstream phase with new evidence.
 - When operating outside the Unified Autopilot, you must still execute the full STRATEGIZE→MONITOR sequence, capture the same artifacts/checklists, and provide verifiable evidence before declaring the task complete.
+- Strategy, Plan, and Think must explicitly tie the work to Autopilot functionality (which agent behavior, guardrail, or workflow you’re changing), and Review must prove that functionality still works (e.g., smoke runs, telemetry, manual checks).
 
 **Finish in one loop:** No partials; build=0 errors; all tests pass; docs done.
 
