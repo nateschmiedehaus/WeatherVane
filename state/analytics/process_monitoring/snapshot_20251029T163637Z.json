@@ -1,0 +1,15 @@
+{
+  "timestamp": "20251029T163637Z",
+  "version": "1.0.0",
+  "metrics": {
+    "phase_skips": 0,
+    "backtracks": 0,
+    "process_violations": 0,
+    "tasks_completed": 8,
+    "drift_detections": 0
+  },
+  "sources": {
+    "phase_ledger": "tools/wvo_mcp/state/phase_ledger.jsonl",
+    "evidence_dir": "state/evidence"
+  }
+}

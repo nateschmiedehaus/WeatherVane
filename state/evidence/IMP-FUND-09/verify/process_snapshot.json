@@ -1,0 +1,14 @@
+{
+  "timestamp_utc": "2025-10-29T02:06:06Z",
+  "metrics": {
+    "phase_skips_attempted": 0,
+    "phase_validations_failed": 0,
+    "evidence_gate_failed": 0,
+    "prompt_drift_detected": 0,
+    "phase_backtracks": 0
+  },
+  "ledger": {
+    "total_entries": 0,
+    "unique_tasks": 0
+  }
+}

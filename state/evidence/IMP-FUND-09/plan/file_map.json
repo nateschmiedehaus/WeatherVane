@@ -1,0 +1,5 @@
+{
+  "scripts/create_process_snapshot.py": "Process metrics snapshot script",
+  "scripts/create_process_snapshot.sh": "Shell wrapper",
+  ".github/workflows/process-monitoring.yml": "Daily monitoring workflow"
+}
