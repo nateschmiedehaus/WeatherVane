@@ -44,6 +44,37 @@ The quality graph tracks completed tasks as 384-dimensional TF-IDF embeddings, e
 - `state/quality_graph/task_vectors.jsonl` - Task vectors (one JSON object per line)
 - `state/quality_graph/schema.json` - JSON schema definition
 
+## Installation
+
+### Python Dependencies
+
+Quality graph requires Python 3.8+ with the following packages:
+
+```bash
+# Install pinned dependencies
+pip3 install -r tools/wvo_mcp/scripts/quality_graph/requirements.txt
+```
+
+**Pinned versions** (see `requirements.txt` for rationale):
+- `numpy==1.26.4`
+- `scikit-learn==1.5.0`
+- `pydantic==2.12.0`
+
+**Recommended:** Use a virtual environment to avoid conflicts:
+```bash
+python3 -m venv .venv
+source .venv/bin/activate  # On macOS/Linux
+pip3 install -r tools/wvo_mcp/scripts/quality_graph/requirements.txt
+```
+
+### TypeScript Dependencies
+
+Automatically installed with the main project:
+```bash
+cd tools/wvo_mcp
+npm install
+```
+
 ## Usage
 
 ### Automatic Recording (MONITOR Phase)
@@ -317,7 +348,10 @@ python3 tools/wvo_mcp/scripts/quality_graph/record_task_vector.py . "TEST" \
 ```
 
 **Common Causes:**
-- Python dependencies not installed (`pip3 install scikit-learn numpy pydantic`)
+- Python dependencies not installed:
+  ```bash
+  pip3 install -r tools/wvo_mcp/scripts/quality_graph/requirements.txt
+  ```
 - Workspace root path incorrect
 - No metadata (title, description, or files) provided
 
@@ -356,7 +390,10 @@ ls -la resources/runs/*/resolution/
 
 **Common Causes:**
 - No historical tasks found (check resolution directories exist)
-- Python dependencies not installed
+- Python dependencies not installed:
+  ```bash
+  pip3 install -r tools/wvo_mcp/scripts/quality_graph/requirements.txt
+  ```
 - Resolution JSON files malformed
 
 ## Performance Targets

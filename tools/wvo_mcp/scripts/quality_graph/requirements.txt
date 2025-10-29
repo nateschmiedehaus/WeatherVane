@@ -1,0 +1,18 @@
+# Quality Graph Python Dependencies
+#
+# These are the direct dependencies for quality_graph embedding generation
+# and task vector recording/querying scripts.
+#
+# Installation:
+#   pip3 install -r requirements.txt
+#
+# Version Rationale (2025-10-29):
+# - numpy 1.26.4: Stable release, universal wheel support
+# - scikit-learn 1.5.0: Latest stable with TF-IDF improvements
+# - pydantic 2.12.0: V2 API with better performance
+#
+# Minimum Python Version: 3.8+
+
+numpy==1.26.4
+scikit-learn==1.5.0
+pydantic==2.12.0
