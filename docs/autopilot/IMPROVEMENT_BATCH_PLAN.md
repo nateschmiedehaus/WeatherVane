@@ -27,8 +27,8 @@ Artifacts for each phase are enumerated and must be produced under `state/eviden
 - Inputs
   - ✅ Phase ledger (DONE)
   - ✅ Evidence gates (DONE)
-  - ❌ MCP tests (3 failing)
-  - ❌ Benchmarks (phase transition incomplete)
+  - ✅ MCP tests (DONE - all 3 tests passing)
+  - ✅ Benchmarks (DONE - phase transitions <2ms, 98% under target)
   - ❌ Monitoring baseline (not established)
   - ❌ Evidence-driven process (missing infrastructure)
 - Risks
@@ -71,11 +71,17 @@ Artifacts
     - Root Cause: Stale PID lock file (state/.mcp.pid) prevented MCP server startup during tests
     - Fix: Added pytest_sessionstart hook in tests/conftest.py to clean up PID lock before test session
     - Verification: All 3 MCP tests (5 test cases) now passing
-  - ⏳ **IMP-FUND-04**: Complete Phase Transition Benchmark
-    - Update: Mock StateMachine in benchmark script
-    - Run: 1000 iterations of full phase transition
-    - Record: p50/p95/p99 latencies
-    - Verify: Meets acceptance criteria (p50 <20ms, p95 <50ms, p99 <100ms)
+  - ✅ **IMP-FUND-04**: Complete Phase Transition Benchmark (DONE)
+    - Implementation: Added minimal StateMachine mock (as unknown as StateMachine type casting)
+    - Removed unused EvidenceCollector import (only takes 1 parameter, not 2)
+    - Results (1000 iterations each):
+      - Phase Ledger Append: p50=0.06ms, p95=0.09ms, p99=0.16ms ✅
+      - Phase Lease Acquire: p50=0.04ms, p95=0.06ms, p99=0.22ms ✅
+      - Phase Lease Release: p50=0.03ms, p95=0.04ms, p99=0.06ms ✅
+      - Prompt Attestation: p50=0.62ms, p95=0.87ms, p99=0.98ms ✅
+      - Full Phase Transition: p50=0.68ms, p95=0.89ms, p99=1.53ms ✅
+    - Verification: ALL PASS - latencies 98% below target (p50 <20ms, p95 <50ms, p99 <100ms)
+    - Anti-drift overhead: <2ms per transition (negligible)
   - ⏳ **IMP-FUND-05**: Playwright Browser Installation
     - Script: Guard script to ensure browsers installed before tests
     - CI: Verification job

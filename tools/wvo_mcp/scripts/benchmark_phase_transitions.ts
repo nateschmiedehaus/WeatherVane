@@ -18,13 +18,25 @@
 
 import { WorkProcessEnforcer } from '../src/orchestrator/work_process_enforcer.js';
 import { MetricsCollector } from '../src/telemetry/metrics_collector.js';
-import { EvidenceCollector } from '../src/orchestrator/evidence_collector.js';
 import { PhaseLedger } from '../src/orchestrator/phase_ledger.js';
 import { PhaseLeaseManager } from '../src/orchestrator/phase_lease.js';
 import { PromptAttestationManager } from '../src/orchestrator/prompt_attestation.js';
+import type { StateMachine } from '../src/orchestrator/state_machine.js';
 import path from 'path';
 import fs from 'fs';
 import os from 'os';
+
+/**
+ * Minimal StateMachine mock for benchmark testing
+ * WorkProcessEnforcer only uses stateMachine.transition() method
+ */
+function createMockStateMachine(): StateMachine {
+  return {
+    transition: () => {
+      // No-op for benchmark testing
+    }
+  } as unknown as StateMachine;
+}
 
 interface BenchmarkResult {
   operation: string;
@@ -324,13 +336,11 @@ async function main() {
     results.push(attestationResult);
 
     // Benchmark 4: Full Phase Transition (integration test)
-    // SKIPPED: WorkProcessEnforcer constructor changed to require StateMachine
-    // TODO: Update benchmark to properly mock StateMachine
-    // const metricsCollector = new MetricsCollector(workspaceRoot);
-    // const evidenceCollector = new EvidenceCollector(workspaceRoot, metricsCollector);
-    // const enforcer = new WorkProcessEnforcer(stateMachine, workspaceRoot, metricsCollector);
-    // const transitionResult = await benchmarkPhaseTransition(enforcer, 1000);
-    // results.push(transitionResult);
+    const mockStateMachine = createMockStateMachine();
+    const metricsCollector = new MetricsCollector(workspaceRoot);
+    const enforcer = new WorkProcessEnforcer(mockStateMachine, workspaceRoot, metricsCollector);
+    const transitionResult = await benchmarkPhaseTransition(enforcer, 1000);
+    results.push(transitionResult);
 
     // Display results
     console.log('\n=== Benchmark Results ===\n');

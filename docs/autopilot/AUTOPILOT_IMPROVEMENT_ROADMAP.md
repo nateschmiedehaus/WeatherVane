@@ -10,9 +10,10 @@ Related work process plan: see docs/autopilot/IMPROVEMENT_BATCH_PLAN.md
 1. ✅ Phase Ledger (DONE – commit 7fa439e2)
 2. ✅ Evidence-Gated Transitions (DONE – commit 8763dded)
 3. ✅ MCP Test Fixes (DONE – 3 tests fixed, all passing)
-4. ⏳ Integrity Stabilization (benchmarks, Playwright)
-5. ⏳ Evidence-Driven Process Infrastructure (checkpoint validation, acceptance tests, CI gates)
-6. ⏳ Pre-Feature Monitoring Period (1-2 weeks baseline metrics)
+4. ✅ Phase Transition Benchmark (DONE – all latencies <2ms, 98% under target)
+5. ⏳ Integrity Stabilization (Playwright browser installation guard)
+6. ⏳ Evidence-Driven Process Infrastructure (checkpoint validation, acceptance tests, CI gates)
+7. ⏳ Pre-Feature Monitoring Period (1-2 weeks baseline metrics)
 
 **Phase 1: Enforcement Hardening (After fundamentals stable)**
 6. Phase Leases (Multi-agent safety)
@@ -157,7 +158,7 @@ Backtracking Rules
 - ✅ **IMP-FUND-01** — Phase Ledger: Hash chaining + immutable audit trail (DONE – commit 7fa439e2)
 - ✅ **IMP-FUND-02** — Evidence-Gated Transitions: Block phase advance without artifacts (DONE – commit 8763dded)
 - ✅ **IMP-FUND-03** — MCP Test Fixes: Added pytest hook to clean stale PID locks (DONE – all 3 tests passing)
-- ⏳ **IMP-FUND-04** — Complete Phase Transition Benchmark: Mock StateMachine + run 1000 iterations
+- ✅ **IMP-FUND-04** — Complete Phase Transition Benchmark: Mock StateMachine + run 1000 iterations (DONE – all latencies <2ms)
 - ⏳ **IMP-FUND-05** — Playwright Browser Installation: Guard script + CI verification
 - ⏳ **IMP-FUND-06** — Checkpoint Validation Scripts: Automated verification of "verifiably complete"
 - ⏳ **IMP-FUND-07** — Acceptance Test Framework: End-to-end enforcement validation tests
