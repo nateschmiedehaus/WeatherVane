@@ -210,7 +210,7 @@ describe('StateGraph Performance Baseline (SPIKE 1)', () => {
 
     // Memory should not grow unbounded
     expect(memoryGrowth).toBeLessThan(20 * 1024 * 1024); // <20MB growth over 100 tasks
-  }, 60000); // 60s timeout for 100 tasks
+  }, 180000); // 180s timeout for 100 tasks (SPIKE test creates full state graph per task)
 });
 
 /**

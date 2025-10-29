@@ -35,6 +35,7 @@ describe('OrchestratorLoop - Critic Approval Integration', () => {
       dryRun: false,
       tickInterval: 100,
       enableTelemetry: true,
+      workspaceRoot: workspaceRoot,
     });
   });
 
