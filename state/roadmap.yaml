@@ -250,6 +250,27 @@ epics:
             required_tools:
               - fs_read
               - cmd_run
+          - id: ROADMAP-PROMPTS
+            title: 'Update Work Process Prompts for Roadmap v2.0 Structure'
+            status: pending
+            dependencies:
+              depends_on:
+                - ROADMAP-STRUCT
+            exit_criteria:
+              - prose: CLAUDE.md updated to reference v2.0 structure
+              - prose: AGENTS.md updated with v2.0 examples
+              - prose: MCP tool descriptions updated (plan_next, plan_update)
+              - test: 'grep -r "dependencies: \\[\\]" docs/autopilot/'
+                expect: 'no matches'
+            domain: mcp
+            description: >
+              Update work process docs and system prompts to reflect roadmap v2.0 structure. Replace v1
+              examples (flat dependencies, prose criteria) with v2.0 (typed dependencies, structured criteria).
+            complexity_score: 3
+            effort_hours: 2
+            required_tools:
+              - fs_read
+              - fs_write
           - id: TOOL-EVAL-META
             title: MCP Tool Ecosystem Evaluation and Enhancement
             status: pending
