@@ -28,9 +28,9 @@
   "faq": "docs/autopilot/FAQ.md",
   "glossary": "docs/autopilot/GLOSSARY.md",
   "manifest": "docs/autopilot/MANIFEST.yml",
-  "hash": "d362db67a5a84fdceea4897788b54709eb547d5bd1ffe7f135e4d4b72abf0385",
+  "hash": "cf572c3238ccd604c40e5c41fbe47dd97859bd5f744cb6435894e6c84386c290",
   "attestation": {
-    "manifest_sha": "24b3f86a2d61ba21ce5159334c823b7def0bd5109e7751ebc53f84068db69e7a",
+    "manifest_sha": "7a697003edef7446a949226b4ffb0160e5b02034fefda32811fea92725a12a96",
     "prompt_registry_sha": "2f3d723c6979e17e272753b3a7381139c608c567596f860f265d64be8c873358"
   }
 }

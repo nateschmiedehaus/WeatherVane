@@ -1,5 +1,5 @@
 version: v2025-10-25
-generated_at: 2025-10-29T16:30:02.029Z
+generated_at: 2025-10-29T17:34:06.146Z
 components:
   -
       id: state-graph
@@ -7,7 +7,7 @@ components:
       code_refs:
         -
           path: src/orchestrator/state_graph.ts
-          sha256: edacf3901a002313187de6ba1e4a2b80019c50ca30601e95031c0817706829c9
+          sha256: 49e0ef07cdc8d0bafb35551b5be87008bd5b04ef73e668ee8385b14346baa956
       doc_refs:
         - ../../docs/autopilot/OVERVIEW.md
       schema_refs:
