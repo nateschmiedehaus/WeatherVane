@@ -1,0 +1,74 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "TaskVector",
+  "description": "Vector representation of a task for similarity search in quality graph",
+  "type": "object",
+  "required": ["task_id", "embedding", "timestamp", "outcome"],
+  "properties": {
+    "task_id": {
+      "type": "string",
+      "description": "Unique task identifier",
+      "minLength": 1
+    },
+    "embedding": {
+      "type": "array",
+      "description": "Dense vector embedding (TF-IDF, normalized to unit length)",
+      "items": {
+        "type": "number"
+      },
+      "minItems": 384,
+      "maxItems": 384
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When this vector was recorded (ISO 8601)"
+    },
+    "outcome": {
+      "type": "object",
+      "required": ["status"],
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": ["success", "failure", "abandoned"],
+          "description": "Task completion status"
+        },
+        "reason": {
+          "type": "string",
+          "description": "Optional reason for failure/abandonment"
+        }
+      }
+    },
+    "title": {
+      "type": "string",
+      "description": "Task title"
+    },
+    "description": {
+      "type": "string",
+      "description": "Task description (optional)"
+    },
+    "files_touched": {
+      "type": "array",
+      "description": "Files modified during task",
+      "items": {
+        "type": "string"
+      }
+    },
+    "complexity_score": {
+      "type": "number",
+      "description": "Task complexity estimate (0-100)",
+      "minimum": 0,
+      "maximum": 100
+    },
+    "duration_ms": {
+      "type": "number",
+      "description": "Task duration in milliseconds",
+      "minimum": 0
+    },
+    "quality": {
+      "type": "string",
+      "enum": ["high", "medium", "low"],
+      "description": "Embedding quality based on available metadata"
+    }
+  }
+}

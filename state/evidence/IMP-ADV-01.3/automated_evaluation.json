@@ -1,0 +1,862 @@
+[
+  {
+    "query_id": 1,
+    "query_task_id": "IMP-API-01",
+    "query_title": "Add GET /api/v1/users endpoint with cursor-based pagination",
+    "judgments": [
+      {
+        "task_id": "CRIT-UI-01",
+        "title": "Fix React form losing data on validation error (state management bug)",
+        "similarity": 0.5294810619785162,
+        "relevance": 0.5,
+        "relevant": true
+      },
+      {
+        "task_id": "IMP-UI-02",
+        "title": "Implement dark mode with CSS custom properties and system preference detection",
+        "similarity": 0.5244419895249567,
+        "relevance": 0.5,
+        "relevant": true
+      },
+      {
+        "task_id": "IMP-DB-01",
+        "title": "Add Postgres migration for user_preferences JSONB column",
+        "similarity": 0.5121639604735129,
+        "relevance": 0.0,
+        "relevant": false
+      },
+      {
+        "task_id": "IMP-PERF-01",
+        "title": "Implement Redis caching layer with TTL and cache invalidation",
+        "similarity": 0.5106723538614579,
+        "relevance": 0.5,
+        "relevant": true
+      },
+      {
+        "task_id": "DOC-02",
+        "title": "Generate OpenAPI 3.1 specification with request/response examples",
+        "similarity": 0.506892282599123,
+        "relevance": 1.0,
+        "relevant": true
+      }
+    ],
+    "precision": 0.8
+  },
+  {
+    "query_id": 2,
+    "query_task_id": "IMP-API-02",
+    "query_title": "Implement JWT access/refresh token authentication with Redis",
+    "judgments": [
+      {
+        "task_id": "CRIT-UI-01",
+        "title": "Fix React form losing data on validation error (state management bug)",
+        "similarity": 0.5479098601998265,
+        "relevance": 1.0,
+        "relevant": true
+      },
+      {
+        "task_id": "CRIT-API-01",
+        "title": "Fix SQL injection vulnerability in search endpoint",
+        "similarity": 0.5285800874423546,
+        "relevance": 0.5,
+        "relevant": true
+      },
+      {
+        "task_id": "IMP-OBS-02",
+        "title": "Build Grafana dashboard for application health with Prometheus metrics",
+        "similarity": 0.49153274414624387,
+        "relevance": 0.5,
+        "relevant": true
+      },
+      {
+        "task_id": "DOC-02",
+        "title": "Generate OpenAPI 3.1 specification with request/response examples",
+        "similarity": 0.4835299851296618,
+        "relevance": 1.0,
+        "relevant": true
+      },
+      {
+        "task_id": "IMP-API-01",
+        "title": "Add GET /api/v1/users endpoint with cursor-based pagination",
+        "similarity": 0.478177013295565,
+        "relevance": 0.5,
+        "relevant": true
+      }
+    ],
+    "precision": 1.0
+  },
+  {
+    "query_id": 3,
+    "query_task_id": "CRIT-API-01",
+    "query_title": "Fix SQL injection vulnerability in search endpoint",
+    "judgments": [
+      {
+        "task_id": "CRIT-UI-01",
+        "title": "Fix React form losing data on validation error (state management bug)",
+        "similarity": 0.5986898274193144,
+        "relevance": 0.5,
+        "relevant": true
+      },
+      {
+        "task_id": "CRIT-DB-01",
+        "title": "Fix N+1 query causing 2000+ database roundtrips on orders page",
+        "similarity": 0.5582172843983969,
+        "relevance": 0.5,
+        "relevant": true
+      },
+      {
+        "task_id": "IMP-OBS-02",
+        "title": "Build Grafana dashboard for application health with Prometheus metrics",
+        "similarity": 0.5450198710921413,
+        "relevance": 0.0,
+        "relevant": false
+      },
+      {
+        "task_id": "IMP-API-02",
+        "title": "Implement JWT access/refresh token authentication with Redis",
+        "similarity": 0.5285800874423546,
+        "relevance": 0.5,
+        "relevant": true
+      },
+      {
+        "task_id": "CRIT-OBS-01",
+        "title": "Fix memory leak in background job processor (25GB heap growth over 24h)",
+        "similarity": 0.5213532819676842,
+        "relevance": 0.5,
+        "relevant": true
+      }
+    ],
+    "precision": 0.8
+  },
+  {
+    "query_id": 4,
+    "query_task_id": "IMP-DB-01",
+    "query_title": "Add Postgres migration for user_preferences JSONB column",
+    "judgments": [
+      {
+        "task_id": "CRIT-UI-01",
+        "title": "Fix React form losing data on validation error (state management bug)",
+        "similarity": 0.5247366128089127,
+        "relevance": 0.5,
+        "relevant": true
+      },
+      {
+        "task_id": "IMP-API-01",
+        "title": "Add GET /api/v1/users endpoint with cursor-based pagination",
+        "similarity": 0.5121639604735129,
+        "relevance": 0.0,
+        "relevant": false
+      },
+      {
+        "task_id": "CRIT-API-01",
+        "title": "Fix SQL injection vulnerability in search endpoint",
+        "similarity": 0.5020312629897923,
+        "relevance": 1.0,
+        "relevant": true
+      },
+      {
+        "task_id": "DOC-01",
+        "title": "Write comprehensive production deployment guide with blue-green strategy",
+        "similarity": 0.4804112682356673,
+        "relevance": 0.0,
+        "relevant": false
+      },
+      {
+        "task_id": "IMP-API-02",
+        "title": "Implement JWT access/refresh token authentication with Redis",
+        "similarity": 0.46793790534071983,
+        "relevance": 0.0,
+        "relevant": false
+      }
+    ],
+    "precision": 0.4
+  },
+  {
+    "query_id": 5,
+    "query_task_id": "CRIT-DB-01",
+    "query_title": "Fix N+1 query causing 2000+ database roundtrips on orders page",
+    "judgments": [
+      {
+        "task_id": "CRIT-API-01",
+        "title": "Fix SQL injection vulnerability in search endpoint",
+        "similarity": 0.5582172843983969,
+        "relevance": 0.5,
+        "relevant": true
+      },
+      {
+        "task_id": "IMP-API-01",
+        "title": "Add GET /api/v1/users endpoint with cursor-based pagination",
+        "similarity": 0.49979297681858964,
+        "relevance": 0.5,
+        "relevant": true
+      },
+      {
+        "task_id": "IMP-UI-01",
+        "title": "Build responsive navigation with mobile hamburger menu (Material UI)",
+        "similarity": 0.4781630231730234,
+        "relevance": 1.0,
+        "relevant": true
+      },
+      {
+        "task_id": "IMP-UI-02",
+        "title": "Implement dark mode with CSS custom properties and system preference detection",
+        "similarity": 0.43252673734224734,
+        "relevance": 1.0,
+        "relevant": true
+      },
+      {
+        "task_id": "CRIT-UI-01",
+        "title": "Fix React form losing data on validation error (state management bug)",
+        "similarity": 0.42748204524313776,
+        "relevance": 0.5,
+        "relevant": true
+      }
+    ],
+    "precision": 1.0
+  },
+  {
+    "query_id": 6,
+    "query_task_id": "IMP-UI-01",
+    "query_title": "Build responsive navigation with mobile hamburger menu (Material UI)",
+    "judgments": [
+      {
+        "task_id": "IMP-OBS-02",
+        "title": "Build Grafana dashboard for application health with Prometheus metrics",
+        "similarity": 0.6504772334073105,
+        "relevance": 0.0,
+        "relevant": false
+      },
+      {
+        "task_id": "IMP-OBS-01",
+        "title": "Instrument API layer with OpenTelemetry distributed tracing to Jaeger",
+        "similarity": 0.5510216367324134,
+        "relevance": 0.0,
+        "relevant": false
+      },
+      {
+        "task_id": "DOC-02",
+        "title": "Generate OpenAPI 3.1 specification with request/response examples",
+        "similarity": 0.5393362919795819,
+        "relevance": 0.0,
+        "relevant": false
+      },
+      {
+        "task_id": "CRIT-UI-01",
+        "title": "Fix React form losing data on validation error (state management bug)",
+        "similarity": 0.5251816220249899,
+        "relevance": 1.0,
+        "relevant": true
+      },
+      {
+        "task_id": "IMP-TEST-01",
+        "title": "Add Playwright E2E tests for complete user registration flow",
+        "similarity": 0.5183226885090317,
+        "relevance": 0.5,
+        "relevant": true
+      }
+    ],
+    "precision": 0.4
+  },
+  {
+    "query_id": 7,
+    "query_task_id": "IMP-UI-02",
+    "query_title": "Implement dark mode with CSS custom properties and system preference detection",
+    "judgments": [
+      {
+        "task_id": "IMP-OBS-02",
+        "title": "Build Grafana dashboard for application health with Prometheus metrics",
+        "similarity": 0.5259500109510178,
+        "relevance": 0.0,
+        "relevant": false
+      },
+      {
+        "task_id": "IMP-API-01",
+        "title": "Add GET /api/v1/users endpoint with cursor-based pagination",
+        "similarity": 0.5244419895249567,
+        "relevance": 0.5,
+        "relevant": true
+      },
+      {
+        "task_id": "IMP-UI-01",
+        "title": "Build responsive navigation with mobile hamburger menu (Material UI)",
+        "similarity": 0.5161140628656594,
+        "relevance": 1.0,
+        "relevant": true
+      },
+      {
+        "task_id": "CRIT-API-01",
+        "title": "Fix SQL injection vulnerability in search endpoint",
+        "similarity": 0.45926788071108027,
+        "relevance": 0.0,
+        "relevant": false
+      },
+      {
+        "task_id": "CRIT-UI-01",
+        "title": "Fix React form losing data on validation error (state management bug)",
+        "similarity": 0.4567078115523203,
+        "relevance": 1.0,
+        "relevant": true
+      }
+    ],
+    "precision": 0.6
+  },
+  {
+    "query_id": 8,
+    "query_task_id": "CRIT-UI-01",
+    "query_title": "Fix React form losing data on validation error (state management bug)",
+    "judgments": [
+      {
+        "task_id": "IMP-OBS-02",
+        "title": "Build Grafana dashboard for application health with Prometheus metrics",
+        "similarity": 0.6595042571419562,
+        "relevance": 0.5,
+        "relevant": true
+      },
+      {
+        "task_id": "REFACTOR-02",
+        "title": "Migrate callback-based file upload to async/await with streaming",
+        "similarity": 0.616588849833146,
+        "relevance": 0.5,
+        "relevant": true
+      },
+      {
+        "task_id": "CRIT-API-01",
+        "title": "Fix SQL injection vulnerability in search endpoint",
+        "similarity": 0.5986898274193144,
+        "relevance": 0.5,
+        "relevant": true
+      },
+      {
+        "task_id": "DOC-02",
+        "title": "Generate OpenAPI 3.1 specification with request/response examples",
+        "similarity": 0.5788556795104318,
+        "relevance": 1.0,
+        "relevant": true
+      },
+      {
+        "task_id": "IMP-API-02",
+        "title": "Implement JWT access/refresh token authentication with Redis",
+        "similarity": 0.5479098601998265,
+        "relevance": 1.0,
+        "relevant": true
+      }
+    ],
+    "precision": 1.0
+  },
+  {
+    "query_id": 9,
+    "query_task_id": "IMP-TEST-01",
+    "query_title": "Add Playwright E2E tests for complete user registration flow",
+    "judgments": [
+      {
+        "task_id": "IMP-OBS-02",
+        "title": "Build Grafana dashboard for application health with Prometheus metrics",
+        "similarity": 0.5542033497567636,
+        "relevance": 0.0,
+        "relevant": false
+      },
+      {
+        "task_id": "DOC-02",
+        "title": "Generate OpenAPI 3.1 specification with request/response examples",
+        "similarity": 0.5363887392981296,
+        "relevance": 0.5,
+        "relevant": true
+      },
+      {
+        "task_id": "IMP-UI-01",
+        "title": "Build responsive navigation with mobile hamburger menu (Material UI)",
+        "similarity": 0.5183226885090317,
+        "relevance": 0.5,
+        "relevant": true
+      },
+      {
+        "task_id": "IMP-OBS-01",
+        "title": "Instrument API layer with OpenTelemetry distributed tracing to Jaeger",
+        "similarity": 0.5038708720936244,
+        "relevance": 0.5,
+        "relevant": true
+      },
+      {
+        "task_id": "CRIT-UI-01",
+        "title": "Fix React form losing data on validation error (state management bug)",
+        "similarity": 0.4900016727444803,
+        "relevance": 1.0,
+        "relevant": true
+      }
+    ],
+    "precision": 0.8
+  },
+  {
+    "query_id": 10,
+    "query_task_id": "IMP-TEST-02",
+    "query_title": "Increase payment processing unit test coverage to 95% (focus edge cases)",
+    "judgments": [
+      {
+        "task_id": "IMP-INFRA-01",
+        "title": "Set up GitHub Actions CI/CD with automated testing and blue-green deployment",
+        "similarity": 0.6854532551949154,
+        "relevance": 0.5,
+        "relevant": true
+      },
+      {
+        "task_id": "IMP-OBS-02",
+        "title": "Build Grafana dashboard for application health with Prometheus metrics",
+        "similarity": 0.584534234444763,
+        "relevance": 1.0,
+        "relevant": true
+      },
+      {
+        "task_id": "DOC-02",
+        "title": "Generate OpenAPI 3.1 specification with request/response examples",
+        "similarity": 0.565895782859834,
+        "relevance": 0.5,
+        "relevant": true
+      },
+      {
+        "task_id": "CRIT-OBS-01",
+        "title": "Fix memory leak in background job processor (25GB heap growth over 24h)",
+        "similarity": 0.5495113232460563,
+        "relevance": 1.0,
+        "relevant": true
+      },
+      {
+        "task_id": "REFACTOR-01",
+        "title": "Extract email/phone/password validators into shared @company/validators package",
+        "similarity": 0.53782011355656,
+        "relevance": 0.5,
+        "relevant": true
+      }
+    ],
+    "precision": 1.0
+  },
+  {
+    "query_id": 11,
+    "query_task_id": "IMP-OBS-01",
+    "query_title": "Instrument API layer with OpenTelemetry distributed tracing to Jaeger",
+    "judgments": [
+      {
+        "task_id": "IMP-OBS-02",
+        "title": "Build Grafana dashboard for application health with Prometheus metrics",
+        "similarity": 0.6256189349924621,
+        "relevance": 1.0,
+        "relevant": true
+      },
+      {
+        "task_id": "IMP-UI-01",
+        "title": "Build responsive navigation with mobile hamburger menu (Material UI)",
+        "similarity": 0.5510216367324134,
+        "relevance": 0.0,
+        "relevant": false
+      },
+      {
+        "task_id": "IMP-INFRA-01",
+        "title": "Set up GitHub Actions CI/CD with automated testing and blue-green deployment",
+        "similarity": 0.5307487828240403,
+        "relevance": 1.0,
+        "relevant": true
+      },
+      {
+        "task_id": "DOC-02",
+        "title": "Generate OpenAPI 3.1 specification with request/response examples",
+        "similarity": 0.5266043417213624,
+        "relevance": 0.5,
+        "relevant": true
+      },
+      {
+        "task_id": "CRIT-PERF-01",
+        "title": "Optimize landing page load time from 8s to <3s (Core Web Vitals)",
+        "similarity": 0.5086115674797661,
+        "relevance": 1.0,
+        "relevant": true
+      }
+    ],
+    "precision": 0.8
+  },
+  {
+    "query_id": 12,
+    "query_task_id": "IMP-OBS-02",
+    "query_title": "Build Grafana dashboard for application health with Prometheus metrics",
+    "judgments": [
+      {
+        "task_id": "DOC-02",
+        "title": "Generate OpenAPI 3.1 specification with request/response examples",
+        "similarity": 0.6653934995226963,
+        "relevance": 0.5,
+        "relevant": true
+      },
+      {
+        "task_id": "CRIT-UI-01",
+        "title": "Fix React form losing data on validation error (state management bug)",
+        "similarity": 0.6595042571419562,
+        "relevance": 0.5,
+        "relevant": true
+      },
+      {
+        "task_id": "IMP-INFRA-01",
+        "title": "Set up GitHub Actions CI/CD with automated testing and blue-green deployment",
+        "similarity": 0.6563739313660778,
+        "relevance": 0.5,
+        "relevant": true
+      },
+      {
+        "task_id": "IMP-UI-01",
+        "title": "Build responsive navigation with mobile hamburger menu (Material UI)",
+        "similarity": 0.6504772334073105,
+        "relevance": 0.0,
+        "relevant": false
+      },
+      {
+        "task_id": "IMP-OBS-01",
+        "title": "Instrument API layer with OpenTelemetry distributed tracing to Jaeger",
+        "similarity": 0.6256189349924621,
+        "relevance": 1.0,
+        "relevant": true
+      }
+    ],
+    "precision": 0.8
+  },
+  {
+    "query_id": 13,
+    "query_task_id": "CRIT-OBS-01",
+    "query_title": "Fix memory leak in background job processor (25GB heap growth over 24h)",
+    "judgments": [
+      {
+        "task_id": "IMP-INFRA-01",
+        "title": "Set up GitHub Actions CI/CD with automated testing and blue-green deployment",
+        "similarity": 0.5694650446175011,
+        "relevance": 0.5,
+        "relevant": true
+      },
+      {
+        "task_id": "IMP-TEST-02",
+        "title": "Increase payment processing unit test coverage to 95% (focus edge cases)",
+        "similarity": 0.5495113232460563,
+        "relevance": 1.0,
+        "relevant": true
+      },
+      {
+        "task_id": "IMP-OBS-02",
+        "title": "Build Grafana dashboard for application health with Prometheus metrics",
+        "similarity": 0.5379380581365059,
+        "relevance": 1.0,
+        "relevant": true
+      },
+      {
+        "task_id": "DOC-02",
+        "title": "Generate OpenAPI 3.1 specification with request/response examples",
+        "similarity": 0.5306011953832475,
+        "relevance": 0.5,
+        "relevant": true
+      },
+      {
+        "task_id": "CRIT-API-01",
+        "title": "Fix SQL injection vulnerability in search endpoint",
+        "similarity": 0.5213532819676842,
+        "relevance": 0.5,
+        "relevant": true
+      }
+    ],
+    "precision": 1.0
+  },
+  {
+    "query_id": 14,
+    "query_task_id": "REFACTOR-01",
+    "query_title": "Extract email/phone/password validators into shared @company/validators package",
+    "judgments": [
+      {
+        "task_id": "IMP-OBS-02",
+        "title": "Build Grafana dashboard for application health with Prometheus metrics",
+        "similarity": 0.5770252167864781,
+        "relevance": 0.5,
+        "relevant": true
+      },
+      {
+        "task_id": "IMP-TEST-02",
+        "title": "Increase payment processing unit test coverage to 95% (focus edge cases)",
+        "similarity": 0.53782011355656,
+        "relevance": 0.5,
+        "relevant": true
+      },
+      {
+        "task_id": "DOC-02",
+        "title": "Generate OpenAPI 3.1 specification with request/response examples",
+        "similarity": 0.5016467484092081,
+        "relevance": 1.0,
+        "relevant": true
+      },
+      {
+        "task_id": "IMP-INFRA-01",
+        "title": "Set up GitHub Actions CI/CD with automated testing and blue-green deployment",
+        "similarity": 0.4920321471712705,
+        "relevance": 0.0,
+        "relevant": false
+      },
+      {
+        "task_id": "CRIT-PERF-01",
+        "title": "Optimize landing page load time from 8s to <3s (Core Web Vitals)",
+        "similarity": 0.48836809030489775,
+        "relevance": 0.0,
+        "relevant": false
+      }
+    ],
+    "precision": 0.6
+  },
+  {
+    "query_id": 15,
+    "query_task_id": "REFACTOR-02",
+    "query_title": "Migrate callback-based file upload to async/await with streaming",
+    "judgments": [
+      {
+        "task_id": "CRIT-UI-01",
+        "title": "Fix React form losing data on validation error (state management bug)",
+        "similarity": 0.616588849833146,
+        "relevance": 0.5,
+        "relevant": true
+      },
+      {
+        "task_id": "IMP-UI-01",
+        "title": "Build responsive navigation with mobile hamburger menu (Material UI)",
+        "similarity": 0.47574624906153345,
+        "relevance": 0.0,
+        "relevant": false
+      },
+      {
+        "task_id": "IMP-TEST-01",
+        "title": "Add Playwright E2E tests for complete user registration flow",
+        "similarity": 0.45624562623525183,
+        "relevance": 0.5,
+        "relevant": true
+      },
+      {
+        "task_id": "IMP-API-01",
+        "title": "Add GET /api/v1/users endpoint with cursor-based pagination",
+        "similarity": 0.45315356767905557,
+        "relevance": 0.0,
+        "relevant": false
+      },
+      {
+        "task_id": "IMP-OBS-02",
+        "title": "Build Grafana dashboard for application health with Prometheus metrics",
+        "similarity": 0.4499488526474336,
+        "relevance": 0.5,
+        "relevant": true
+      }
+    ],
+    "precision": 0.6
+  },
+  {
+    "query_id": 16,
+    "query_task_id": "DOC-01",
+    "query_title": "Write comprehensive production deployment guide with blue-green strategy",
+    "judgments": [
+      {
+        "task_id": "IMP-PERF-01",
+        "title": "Implement Redis caching layer with TTL and cache invalidation",
+        "similarity": 0.5223141257233569,
+        "relevance": 0.5,
+        "relevant": true
+      },
+      {
+        "task_id": "IMP-DB-01",
+        "title": "Add Postgres migration for user_preferences JSONB column",
+        "similarity": 0.4804112682356673,
+        "relevance": 0.0,
+        "relevant": false
+      },
+      {
+        "task_id": "CRIT-PERF-01",
+        "title": "Optimize landing page load time from 8s to <3s (Core Web Vitals)",
+        "similarity": 0.4717368854247181,
+        "relevance": 0.0,
+        "relevant": false
+      },
+      {
+        "task_id": "IMP-API-01",
+        "title": "Add GET /api/v1/users endpoint with cursor-based pagination",
+        "similarity": 0.4046758629692656,
+        "relevance": 0.5,
+        "relevant": true
+      },
+      {
+        "task_id": "DOC-02",
+        "title": "Generate OpenAPI 3.1 specification with request/response examples",
+        "similarity": 0.38086046793620715,
+        "relevance": 1.0,
+        "relevant": true
+      }
+    ],
+    "precision": 0.6
+  },
+  {
+    "query_id": 17,
+    "query_task_id": "DOC-02",
+    "query_title": "Generate OpenAPI 3.1 specification with request/response examples",
+    "judgments": [
+      {
+        "task_id": "IMP-OBS-02",
+        "title": "Build Grafana dashboard for application health with Prometheus metrics",
+        "similarity": 0.6653934995226963,
+        "relevance": 0.5,
+        "relevant": true
+      },
+      {
+        "task_id": "IMP-INFRA-01",
+        "title": "Set up GitHub Actions CI/CD with automated testing and blue-green deployment",
+        "similarity": 0.638298299868388,
+        "relevance": 0.5,
+        "relevant": true
+      },
+      {
+        "task_id": "CRIT-UI-01",
+        "title": "Fix React form losing data on validation error (state management bug)",
+        "similarity": 0.5788556795104318,
+        "relevance": 1.0,
+        "relevant": true
+      },
+      {
+        "task_id": "IMP-TEST-02",
+        "title": "Increase payment processing unit test coverage to 95% (focus edge cases)",
+        "similarity": 0.565895782859834,
+        "relevance": 0.5,
+        "relevant": true
+      },
+      {
+        "task_id": "IMP-UI-01",
+        "title": "Build responsive navigation with mobile hamburger menu (Material UI)",
+        "similarity": 0.5393362919795819,
+        "relevance": 0.0,
+        "relevant": false
+      }
+    ],
+    "precision": 0.8
+  },
+  {
+    "query_id": 18,
+    "query_task_id": "CRIT-PERF-01",
+    "query_title": "Optimize landing page load time from 8s to <3s (Core Web Vitals)",
+    "judgments": [
+      {
+        "task_id": "IMP-OBS-02",
+        "title": "Build Grafana dashboard for application health with Prometheus metrics",
+        "similarity": 0.53338438844126,
+        "relevance": 0.5,
+        "relevant": true
+      },
+      {
+        "task_id": "IMP-INFRA-01",
+        "title": "Set up GitHub Actions CI/CD with automated testing and blue-green deployment",
+        "similarity": 0.5161707442371986,
+        "relevance": 1.0,
+        "relevant": true
+      },
+      {
+        "task_id": "DOC-02",
+        "title": "Generate OpenAPI 3.1 specification with request/response examples",
+        "similarity": 0.513958494343147,
+        "relevance": 0.0,
+        "relevant": false
+      },
+      {
+        "task_id": "IMP-TEST-02",
+        "title": "Increase payment processing unit test coverage to 95% (focus edge cases)",
+        "similarity": 0.5129584020000703,
+        "relevance": 0.0,
+        "relevant": false
+      },
+      {
+        "task_id": "IMP-OBS-01",
+        "title": "Instrument API layer with OpenTelemetry distributed tracing to Jaeger",
+        "similarity": 0.5086115674797661,
+        "relevance": 1.0,
+        "relevant": true
+      }
+    ],
+    "precision": 0.6
+  },
+  {
+    "query_id": 19,
+    "query_task_id": "IMP-PERF-01",
+    "query_title": "Implement Redis caching layer with TTL and cache invalidation",
+    "judgments": [
+      {
+        "task_id": "DOC-01",
+        "title": "Write comprehensive production deployment guide with blue-green strategy",
+        "similarity": 0.5223141257233569,
+        "relevance": 0.5,
+        "relevant": true
+      },
+      {
+        "task_id": "IMP-API-01",
+        "title": "Add GET /api/v1/users endpoint with cursor-based pagination",
+        "similarity": 0.5106723538614579,
+        "relevance": 0.5,
+        "relevant": true
+      },
+      {
+        "task_id": "CRIT-PERF-01",
+        "title": "Optimize landing page load time from 8s to <3s (Core Web Vitals)",
+        "similarity": 0.4769311113939369,
+        "relevance": 1.0,
+        "relevant": true
+      },
+      {
+        "task_id": "DOC-02",
+        "title": "Generate OpenAPI 3.1 specification with request/response examples",
+        "similarity": 0.4740345689443898,
+        "relevance": 0.5,
+        "relevant": true
+      },
+      {
+        "task_id": "IMP-OBS-02",
+        "title": "Build Grafana dashboard for application health with Prometheus metrics",
+        "similarity": 0.4621619464681832,
+        "relevance": 1.0,
+        "relevant": true
+      }
+    ],
+    "precision": 1.0
+  },
+  {
+    "query_id": 20,
+    "query_task_id": "IMP-INFRA-01",
+    "query_title": "Set up GitHub Actions CI/CD with automated testing and blue-green deployment",
+    "judgments": [
+      {
+        "task_id": "IMP-TEST-02",
+        "title": "Increase payment processing unit test coverage to 95% (focus edge cases)",
+        "similarity": 0.6854532551949154,
+        "relevance": 0.5,
+        "relevant": true
+      },
+      {
+        "task_id": "IMP-OBS-02",
+        "title": "Build Grafana dashboard for application health with Prometheus metrics",
+        "similarity": 0.6563739313660778,
+        "relevance": 0.5,
+        "relevant": true
+      },
+      {
+        "task_id": "DOC-02",
+        "title": "Generate OpenAPI 3.1 specification with request/response examples",
+        "similarity": 0.638298299868388,
+        "relevance": 0.5,
+        "relevant": true
+      },
+      {
+        "task_id": "CRIT-OBS-01",
+        "title": "Fix memory leak in background job processor (25GB heap growth over 24h)",
+        "similarity": 0.5694650446175011,
+        "relevance": 0.5,
+        "relevant": true
+      },
+      {
+        "task_id": "IMP-OBS-01",
+        "title": "Instrument API layer with OpenTelemetry distributed tracing to Jaeger",
+        "similarity": 0.5307487828240403,
+        "relevance": 1.0,
+        "relevant": true
+      }
+    ],
+    "precision": 1.0
+  }
+]

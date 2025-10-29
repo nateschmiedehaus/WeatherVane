@@ -1,0 +1,9 @@
+{
+  "mean_precision": 0.78,
+  "stddev_precision": 0.20416711421361616,
+  "min_precision": 0.4,
+  "max_precision": 1.0,
+  "queries_evaluated": 20,
+  "total_relevant": 78,
+  "total_judged": 100
+}
