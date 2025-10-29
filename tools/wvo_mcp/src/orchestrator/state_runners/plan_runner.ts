@@ -11,6 +11,7 @@
  */
 
 import type { PlannerAgent } from '../planner_agent.js';
+import type { LiveFlagsReader } from '../live_flags.js';
 
 import type { RunnerContext, RunnerResult } from './runner_types.js';
 import { getPlanningHints } from '../../quality_graph/hints.js';
@@ -19,6 +20,7 @@ import { logInfo, logWarning } from '../../telemetry/logger.js';
 export interface PlanRunnerDeps {
   planner: PlannerAgent;
   workspaceRoot?: string; // For quality graph queries
+  liveFlags?: LiveFlagsReader; // For feature flag checks
 }
 
 export interface PlanRunnerContext extends RunnerContext {
@@ -54,8 +56,17 @@ export async function runPlan(
   let similarTasksCount = 0;
 
   if (deps.workspaceRoot) {
-    try {
-      logInfo('Querying quality graph for similar tasks', { taskId: task.id });
+    // Check feature flag
+    const hintsMode = deps.liveFlags?.getValue('QUALITY_GRAPH_HINTS_INJECTION') ?? 'observe';
+
+    if (hintsMode === 'off') {
+      logInfo('Quality graph hints disabled by feature flag', {
+        taskId: task.id,
+        flagValue: hintsMode
+      });
+    } else {
+      try {
+        logInfo('Querying quality graph for similar tasks', { taskId: task.id });
 
       qualityGraphHints = await getPlanningHints(
         deps.workspaceRoot,
@@ -76,31 +87,33 @@ export async function runPlan(
         const matches = qualityGraphHints.match(/###\s+\d+\./g);
         similarTasksCount = matches ? matches.length : 0;
 
-        logInfo('Quality graph hints retrieved', {
+        logInfo('Quality graph hints retrieved and stored', {
           taskId: task.id,
           similarTasksCount,
           hintsLength: qualityGraphHints.length,
+          hintsStored: true,
         });
       } else {
         logInfo('No similar tasks found in quality graph', { taskId: task.id });
       }
-    } catch (error) {
-      // Graceful degradation: log warning but continue planning
-      const errorMsg = error instanceof Error ? error.message : String(error);
-      logWarning('Quality graph query failed (non-blocking)', {
-        taskId: task.id,
-        error: errorMsg,
-      });
+      } catch (error) {
+        // Graceful degradation: log warning but continue planning
+        const errorMsg = error instanceof Error ? error.message : String(error);
+        logWarning('Quality graph query failed (non-blocking)', {
+          taskId: task.id,
+          error: errorMsg,
+        });
+      }
     }
   }
 
   // Call planner to create implementation plan
-  // TODO: Extend PlannerAgent to accept hints parameter and inject into prompt
   const planResult = await deps.planner.run({
     task,
     attempt: attemptNumber,
     requireDelta: requirePlanDelta ?? false,
     modelSelection, // Pass ComplexityRouter selection
+    qualityGraphHints,  // Pass hints for storage in context pack
   });
 
   // If plan delta was required, verify hash changed

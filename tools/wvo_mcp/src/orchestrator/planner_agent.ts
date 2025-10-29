@@ -22,6 +22,20 @@ export interface PlannerAgentInput {
   attempt: number;
   requireDelta: boolean;
   modelSelection?: ModelSelection; // From ComplexityRouter
+  /**
+   * Quality graph hints from similar tasks (optional)
+   *
+   * Hints are stored in context pack for future prompt compiler (IMP-21).
+   * Currently used for observability/telemetry only.
+   *
+   * Format: Markdown list of similar tasks with summaries
+   * Example:
+   *   ### 1. IMP-API-02 (similarity: 0.87)
+   *   Implement JWT authentication...
+   *
+   * @see tools/wvo_mcp/src/quality_graph/hints.ts - getPlanningHints()
+   */
+  qualityGraphHints?: string;
 }
 
 export interface ProofRequirement {
@@ -147,6 +161,7 @@ export class PlannerAgent {
       summary: `Context pack for ${input.task.id}`,
       coverageTarget,
       proofMetadata,  // Include proof metadata in context
+      qualityGraphHints: input.qualityGraphHints,  // Store hints for prompt compiler
     };
     this.deps.memory.set(input.task.id, 'planner', 'context_pack', contextPack);
 

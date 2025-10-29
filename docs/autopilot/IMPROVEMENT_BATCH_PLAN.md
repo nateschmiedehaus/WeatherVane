@@ -6,6 +6,25 @@ Artifacts for each phase are enumerated and must be produced under `state/eviden
 
 ---
 
+## Status Summary (Live)
+Last updated: 2025-10-29
+- Fundamentals (IMP‑FUND‑01..09): COMPLETE — see Current Progress; evidence scattered under `state/evidence/IMP-FUND-*/`.
+- Observability:
+  - IMP‑OBS‑01 (OTel Spans): COMPLETE — `state/evidence/IMP-OBS-01/verify/`
+  - IMP‑OBS‑02 (OTel Counters): COMPLETE — `state/evidence/IMP-OBS-02/verify/`
+  - IMP‑OBS‑03 (JSONL Sinks): COMPLETE — `state/evidence/IMP-OBS-03/verify/`
+  - IMP‑OBS‑04 (Alert Scaffolding): COMPLETE — `state/evidence/IMP-OBS-04/verify/`
+  - IMP‑OBS‑05 (Metrics Dashboard): COMPLETE — `state/evidence/IMP-OBS-05/verify/`
+  - IMP‑OBS‑06 (Observer Agent): COMPLETE — `state/evidence/IMP-OBS-06/verify/`
+- Prompting:
+  - IMP‑21..26 (compiler/persona/overlays/stategraph/tools/variants): PLANNED — flag‑gated; see “Prompting Improvements — Production Slices”
+  - IMP‑35 (eval harness + gates), IMP‑36 (verifiers), IMP‑37 (groundedness): PLANNED
+- Advanced Features:
+  - IMP‑ADV‑01 (Quality Graph baseline): COMPLETE — `state/evidence/IMP-ADV-01/`
+  - IMP‑ADV‑01.1..01.7: PLANNED/DEFERRED — see Roadmap
+
+For detailed per‑item status and evidence, see “Roadmap Status Index (Live)” below.
+
 ## STRATEGIZE
 - Problem
   - **Reality Check**: Phase ledger and evidence gates ALREADY COMPLETE (commits 7fa439e2, 8763dded)
@@ -42,6 +61,7 @@ Artifacts for each phase are enumerated and must be produced under `state/eviden
 
 Artifacts
 - `state/evidence/IMP-PHASE-0/strategize/strategy.md` (this section)
+- `state/evidence/IMP-PHASE-0/strategize/worthiness.md` (epic/KPI/alternative/kill‑trigger)
 
 ---
 
@@ -54,16 +74,25 @@ Artifacts
   - Leases prevent concurrent access to the same task+phase; contention logged.
   - OTel spans for state transitions and verify; metrics JSONL for violations and backtracks.
   - Integrity script finishes green with artifacts attached to journal (or all failures triaged with evidence).
+  - Prompting quality gates: compiled prompt hashes recorded in the ledger per phase; persona/tool allowlists enforced when enabled; prompt evaluations must meet acceptance KPIs before rollout.
+  - Autonomy promotion gates: autonomy mode can only advance (shadow → observe → canary → enforce) when autonomy KPIs meet thresholds over a rolling baseline window (see Autonomy Track section) and no critical violations occur.
 - KPIs
   - Success ≥95%, loop ≤2%, tool MTTR ≤30s (observability SLOs recorded).
   - phase_skips_attempted: 0; tasks_rejected_for_process_violation: ≥1 if tests inject skips (proves guard works).
+  - Prompting (when enabled): success_rate_golden ≥ baseline+Δ; groundedness_score non‑decreasing; injection_success_rate ≤ threshold; prompt_drift_rate = 0 unless approved migration; cost_per_success and p95 latency within budget; false_block_rate ≤0.5% on benign evals.
+  - Autonomy (when enabled): autonomy_completion_rate ≥ target; hitl_intervention_rate ≤ target; rollback_rate ≤ target; violation_rate ≈ 0; p95 latency/cost within budget; incident_count = 0 for promotion window.
 
 Artifacts
-- `state/evidence/IMP/spec/spec.md` (criteria + KPIs)
+- `state/evidence/IMP/spec/spec.md` (criteria + KPIs + verification mapping table)
 
 ---
 
 ## PLAN
+- Change Budget (Phase 0)
+  - Allowed files: <list>
+  - Max diff lines: <N>; retry/time ceilings: <values>; prohibited ops: <notes>
+- Rollback
+  - Sentence: “Revert commit X; flip FLAG=off; clear cache Y”; Preconditions: <A,B>
 - Work Breakdown (**Phase 0 ONLY** - fundamentals first)
   - ✅ **IMP-FUND-01**: Phase Ledger (DONE – commit 7fa439e2)
   - ✅ **IMP-FUND-02**: Evidence-Gated Transitions (DONE – commit 8763dded)
@@ -82,27 +111,29 @@ Artifacts
       - Full Phase Transition: p50=0.68ms, p95=0.89ms, p99=1.53ms ✅
     - Verification: ALL PASS - latencies 98% below target (p50 <20ms, p95 <50ms, p99 <100ms)
     - Anti-drift overhead: <2ms per transition (negligible)
-  - ⏳ **IMP-FUND-05**: Playwright Browser Installation
-    - Script: Guard script to ensure browsers installed before tests
-    - CI: Verification job
-    - Docs: Update test running instructions
-  - ⏳ **IMP-FUND-06**: Checkpoint Validation Scripts
-    - Script: `scripts/validate_checkpoint.sh` - verify "verifiably complete" criteria
-    - Checks: All tests pass, build succeeds, no TODOs in production code, evidence docs up-to-date
-    - Integration: Run in CI after each phase completion claim
-  - ⏳ **IMP-FUND-07**: Acceptance Test Framework
-    - Tests: End-to-end enforcement validation (inject phase skips, verify rejection)
-    - Framework: `tests/acceptance/` directory structure
-    - Coverage: All enforcement mechanisms validated end-to-end
-  - ⏳ **IMP-FUND-08**: Daily Evidence Update Automation
-    - CI job: Update evidence docs daily based on git activity
-    - Detection: Identify changed files → update corresponding evidence docs
-    - Verification: Evidence docs never more than 24h stale
-  - ⏳ **IMP-FUND-09**: Pre-Feature Monitoring Period
-    - Duration: 1-2 weeks
-    - Metrics: phase_skips_attempted, phase_backtracks, prompt_drift_detected, evidence_gate_failed
-    - Baseline: Establish normal operating ranges
-    - Decision: Only proceed to Phase 1 if metrics stable
+  - ✅ **IMP-FUND-05**: Playwright Browser Installation
+    - Script: `scripts/ensure_playwright_browsers.sh` (idempotent guard)
+    - Integration: `apps/web/scripts/run_playwright.sh` invokes guard automatically (logs captured)
+    - Evidence: `state/evidence/IMP-FUND-05-playwright-guard/implement/{ensure.log,run_help.log}`
+    - Follow-up: Ensure npm dependencies installed before guard in CI to suppress warnings
+  - ✅ **IMP-FUND-06**: Checkpoint Validation Scripts
+    - Script: `scripts/validate_checkpoint.sh` (fail-closed checkpoint gate)
+    - Checks: integrity suite (default), TODO/FIXME/HACK/XXX scan with allowlist enforcement, evidence verification per phase when `--task-id` supplied
+    - Flags: `--skip-integrity`, `--skip-todo-scan`, `--skip-evidence`, `--require-phase <name>`
+    - Artifacts: legacy markers captured in `config/checkpoint_todo_allowlist.txt`; evidence stored under `state/evidence/IMP-FUND-06/`
+    - Integration: CI must run without `--skip-integrity` before advancing a task; local fast mode supported for iteration
+  - ✅ **IMP-FUND-07**: Acceptance Test Framework (initial scenarios)
+    - Tests: `work_process_acceptance.test.ts` exercises phase skip and missing evidence gates
+    - Framework: Lives in autopilot vitest scope with deterministic mocks (no external commands)
+    - Coverage: Core enforcement behaviors; extend to leases/backtracking in future phases
+  - ✅ **IMP-FUND-08**: Daily Evidence Update Automation
+    - Script: `scripts/check_evidence_staleness.py` (configurable threshold, optional bypass)
+    - Automation: `.github/workflows/evidence-staleness.yml` runs daily @06:00 UTC + manual dispatch
+    - Outcome: Fails fast when evidence >24h old; developers can run locally via wrapper
+  - ✅ **IMP-FUND-09**: Pre-Feature Monitoring Period Setup
+    - Snapshot script: `scripts/create_process_snapshot.py` writes JSON under `state/analytics/process_monitoring/`
+    - Workflow: `.github/workflows/process-monitoring.yml` scheduled daily @06:15 UTC
+    - Baseline: Initial snapshot captured; review logs weekly for 1-2 weeks before Phase 1 kickoff
 
 - Dependencies
   - **Sequential**: FUND-03 → FUND-04 → FUND-05 (test fixes before benchmarks before browser setup)
@@ -110,6 +141,174 @@ Artifacts
   - **Blocking**: ALL Phase 0 tasks MUST complete before ANY Phase 1 work
 
 - Estimates
+
+### Prompting Improvements — Production Slices (Phase 1+; staged, not a single block)
+- Goal: measurably improve task success and robustness while preserving anti‑drift guarantees.
+- Principle: ship in `observe` mode, collect evidence, then promote to `enforce`.
+- Integration: compiler/persona/overlays feed attestation and the ledger; VERIFY adds prompt eval gates; telemetry captures variants.
+- Each slice defines dependencies, flags, acceptance/KPIs, evidence, and a rollback.
+
+- IMP‑21 — Prompt Compiler (skeleton + canonicalization)
+  - Scope: programmatic assembly with typed slots (core header, phase role, domain overlays, skill packs, rubric injection), canonicalization, and stable hash; golden tests.
+  - Files (planned): `tools/wvo_mcp/src/prompt/compiler.ts`, `tools/wvo_mcp/src/prompt/templates/{system,phase,domain}.md`.
+  - Rollout: FLAG `prompt.compiler=observe` → `=enforce` post‑verify.
+  - Dependencies: FUND‑gates complete; THINK rubric integration ready; none runtime‑breaking.
+  - Acceptance: deterministic canonicalization (identical hash across runs/restarts), golden compile tests pass, no change in baseline behavior with neutral overlays.
+  - Evidence: `state/evidence/IMP-21/implement/git_diff.patch`, `compiler_golden_tests.json`, `compiler_hash_consistency.log`.
+  - Rollback: set `prompt.compiler=off` (falls back to legacy header assembly); no data migration required.
+  - Integration Notes:
+    - **Quality Graph Hints** (IMP-ADV-01.2): Compiler will read hints from context pack (`planner.context_pack.qualityGraphHints`) and inject into typed slot (e.g., overlay `quality_graph_hints`); zero code changes needed in planner/plan_runner (already storing hints in context pack)
+    - **Hint Injection Pattern**: When `QUALITY_GRAPH_HINTS_INJECTION=observe|enforce`, compiler checks context pack for hints and includes in prompt assembly; attestation records compiled hash including hints
+
+- IMP‑22 — PersonaSpec canonicalize/hash + attestation integration
+  - Scope: typed PersonaSpec, canonicalization + hash, ledger/attestation fields; default neutral persona.
+  - Files (planned): `tools/wvo_mcp/src/prompt/persona.ts`, ledger additions.
+  - Rollout: FLAG `prompt.persona=observe`.
+  - Dependencies: IMP‑21 optional; ledger writable.
+  - Acceptance: persona canonicalization stable; default neutral persona preserves outputs; persona_hash recorded in attestation and ledger for ≥95% transitions.
+  - Evidence: `state/evidence/IMP-22/implement/persona_examples.json`, `attestation_persona_hash.log`.
+  - Rollback: set `prompt.persona=off`; attestation keeps field optional.
+  - Related: IMP‑25 (tool allowlists are derived from PersonaSpec); IMP‑26 (variant/telemetry attributes include persona hash).
+
+- IMP‑23 — Domain overlays library
+  - Scope: curated overlay packs for orchestrator/web/ml/api/security; rubric injection from `docs/ACTIVE_RESPONSE_AND_DYNAMIC_RUBRICS.md`.
+  - Files (planned): `tools/wvo_mcp/src/prompt/templates/domain/*.md`.
+  - Rollout: FLAG `prompt.overlays=observe`.
+  - Dependencies: IMP‑21.
+  - Acceptance: overlays compile without drift; rubric injection tested; no degradation on golden baseline with overlays off; with overlays on, improvements are measured under IMP‑35.
+  - Evidence: `state/evidence/IMP-23/implement/overlay_catalog.md`.
+  - Rollback: set `prompt.overlays=off`.
+  - Related: IMP‑21 (compiler consumes overlays); IMP‑24 (attestation records overlay‑affected prompt hash); IMP‑37 (groundedness constraints can be implemented as overlays).
+
+- IMP‑24 — StateGraph hook to compile/attach prompt per phase
+  - Scope: compile prompt before each runner; record `prompt_hash` and `persona_hash` to attestation + ledger + decision journal.
+  - Files (planned): `tools/wvo_mcp/src/orchestrator/state_graph.ts` (hook), `tools/wvo_mcp/src/orchestrator/work_process_enforcer.ts` (attestation wiring).
+  - Rollout: FLAG `prompt.attest=observe` → `=enforce` for VERIFY/REVIEW/MONITOR.
+  - Dependencies: IMP‑21 (compiler) and IMP‑22 (persona) to maximize coverage.
+  - Acceptance: prompt_hash and persona_hash recorded for ≥99% of transitions; drift WARNs in normal phases and ERRORs in VERIFY/REVIEW/MONITOR when policy demands.
+  - Evidence: `state/evidence/IMP-24/implement/ledger_prompt_hash.log`, `journal_prompt_entries.md`.
+  - Rollback: set `prompt.attest=off` (only disables enforcement; ledger writes may remain).
+  - Related: IMP‑21 (compiler), IMP‑22 (persona), IMP‑35 (evals referenced by attestation), IMP‑ADV‑01.2 (hints must be inside compiled/attested prompt).
+
+- IMP‑25 — Tool allowlists from PersonaSpec in tool router
+  - Scope: map PersonaSpec→tool allowlists; reject out‑of‑allowlist tool calls with structured errors + metrics.
+  - Files (planned): `tools/wvo_mcp/src/worker/tool_router.ts`.
+  - Rollout: FLAG `prompt.persona.tools=enforce` with escape hatch for READ‑only tools.
+  - Dependencies: IMP‑22.
+  - Acceptance: out‑of‑allowlist calls are blocked with correct error/metric; false‑block rate ≤0.5% on benign evals; READ‑only tools allowed when configured.
+  - Evidence: `state/evidence/IMP-25/verify/tool_router_allowlist_tests.json`.
+  - Rollback: set `prompt.persona.tools=off`.
+  - Related: IMP‑22 (PersonaSpec); ensure quality graph hint injection (IMP‑ADV‑01.2) does not implicitly widen tool access.
+
+- IMP‑26 — Flags/telemetry for persona variants and sampling
+  - Scope: record variant IDs in ledger/spans; add metrics for `prompt_drift_detected`, `prompt_variant`, `persona_hash`.
+  - Files (planned): metrics/telemetry surfaces; ledger schema extension.
+  - Rollout: FLAG `prompt.variants=observe`.
+  - Dependencies: IMP‑24 (ledger hook), telemetry sinks.
+  - Acceptance: variant IDs and persona hashes appear in traces/metrics; overhead ≤1ms per transition; no logging gaps.
+  - Evidence: `state/evidence/IMP-26/verify/telemetry_snapshot.jsonl`.
+  - Rollback: set `prompt.variants=off`.
+  - Related: IMP‑21/24 (record variant and prompt hashes); IMP‑ADV‑01.2 (mark when hints are injected); IMP‑35 (tie eval results to variant IDs).
+
+- IMP‑35 — Prompt Eval Harness + Gates
+  - Scope: golden tasks + robustness (injection) corpus; promptfoo/garak runner; gates in VERIFY to block regressions.
+  - Files (planned): `tools/wvo_mcp/scripts/run_prompt_evals.sh`, `tools/wvo_mcp/evals/prompts/{golden,robustness}/*.jsonl`, `tools/wvo_mcp/src/verify/validators/prompt_eval_gate.ts`.
+  - Rollout: FLAG `gate.prompt_evals=observe` → `=enforce` when KPIs met.
+  - Acceptance: success_rate_golden +5–10% relative over baseline; injection_success_rate ≤1% and non‑increasing; groundedness non‑decreasing; budget respected.
+  - Evidence: `state/evidence/IMP-35/verify/{prompt_eval_baseline.json,prompt_eval_results.json,robustness_eval.json}`.
+  - Dependencies: IMP‑21 (compiler) for consistent assembly; telemetry sinks.
+  - Rollback: set `gate.prompt_evals=off` (gates disabled, harness can still run in CI optional mode).
+  - Related: IMP‑24 (attestation must match compiled prompt used in eval); IMP‑26 (record variant IDs in eval outputs); IMP‑37 (groundedness checks part of evals); IMP‑ADV‑01.2 (evaluate hint injection variants explicitly).
+
+- IMP‑36 — Test‑time verifiers (self‑consistency + chain‑of‑verification)
+  - Scope: enable for “hard” task classes with budget caps; rerank via verifier; log `extra_compute_rate`, `consistency_gain`, `verification_block_rate`.
+  - Rollout: FLAG `prompt.verifiers=observe` per task class.
+  - Evidence: `state/evidence/IMP-36/verify/verifier_ablation.json` (lift vs cost/latency).
+  - Dependencies: IMP‑35 (eval harness) to measure lift; cost/latency budgets established.
+  - Acceptance: measurable lift on hard subset with p95 latency/cost within caps; hallucination/groundedness non‑degrading.
+  - Rollback: set `prompt.verifiers=off`.
+
+- IMP‑37 — RAG grounding & citation enforcement
+  - Scope: RAG‑first prompts with citation slots; reviewer/verifier cross‑checks claims against sources; enforce citations ≥98% when sources available.
+  - Rollout: FLAG `prompt.grounded=observe` → `=enforce`.
+  - Evidence: `state/evidence/IMP-37/verify/groundedness_report.json`.
+  - Dependencies: retrieval stack available; IMP‑35 to score groundedness.
+  - Acceptance: citations present ≥98% when sources exist; no drop in success_rate_golden; clear failure reasons on missing provenance.
+  - Rollback: set `prompt.grounded=off`.
+  - Related: IMP‑ADV‑01.2 (only inject grounded hints or mark as non‑grounded); IMP‑21/24 (compiler/attestation include citation slots when sources exist); IMP‑35 (eval groundedness).
+
+### Advanced Features — Quality Graph (Phase 1+; staged follow-ons to IMP-ADV-01)
+- Guiding principle: IMP-ADV-01 (vector-based task similarity) is complete with 9/10 AC met; these follow-ons depend on Phase 1 infrastructure or are future enhancements.
+
+- ✅ IMP‑ADV‑01 — Quality Graph Integration (baseline implementation)
+  - Status: COMPLETE (commit 87cd87b0)
+  - Scope: TF-IDF embeddings + cosine similarity, MONITOR recording, PLAN hints, backfill scripts
+  - Acceptance: 9/10 AC met (AC7 deferred), 96.5% test pass rate, all performance targets met
+  - Evidence: `state/evidence/IMP-ADV-01/{spec,plan,think,implement,verify,review,pr}/`
+
+- IMP‑ADV‑01.1 — Observer Baseline Integration (AC7 from IMP-ADV-01)
+  - Status: DEFERRED (blocked by IMP-OBS infrastructure incomplete)
+  - Scope: Query similar tasks in observer agent; compute baseline metrics (mean ± 2σ); flag anomalies in observer report
+  - Dependencies: IMP-OBS-* complete (Observer agent/module, observer phase in state machine, metrics collection)
+  - Effort: 3-4 hours after IMP-OBS complete
+  - Rollout: Integrate after IMP-OBS monitoring period
+  - Evidence: `state/evidence/IMP-ADV-01.1/implement/observer_integration.md`, `verify/baseline_metrics.json`
+  - Documented: IMP-ADV-01 README:264-278
+
+- IMP‑ADV‑01.2 — Inject Hints into Planner Prompt
+  - Status: ✅ COMPLETE (2025-10-29)
+  - Scope: Store quality graph hints in planner context pack for future prompt compiler (IMP-21) consumption; defer actual LLM prompt injection to IMP-21
+  - Implementation: Hints retrieved from quality graph and passed to PlannerAgent, stored in context pack, attached to plan result for observability; feature flag controls hint retrieval (off/observe/enforce)
+  - Effort: 2-3 hours (actual: 2.5 hours)
+  - Rollout: FLAG `QUALITY_GRAPH_HINTS_INJECTION=observe` (default, hints retrieved and stored)
+  - Integration with Prompting Roadmap:
+    - **IMP-21** (Prompt Compiler): Will read hints from context pack and inject into typed slot (e.g., overlay `quality_graph_hints`)
+    - **IMP-24** (Attestation): Will record compiled prompt hash including hints (when IMP-21 injects them)
+    - **IMP-35** (Prompt Eval Gate): Will A/B test hint effectiveness vs. baseline before promotion
+    - **IMP-26** (Variants/Telemetry): Will record variant IDs when hints are injected
+    - **IMP-37** (Groundedness): Will validate hints are grounded before injection
+  - Forward Compatibility: Zero code changes needed when IMP-21 lands - hints already in context pack, prompt compiler can consume immediately
+  - Evidence: `state/evidence/IMP-ADV-01.2/{strategize,spec,plan,think,implement,verify,review}/` (complete 9-phase evidence)
+  - Future Improvements (to be added as follow-on tasks):
+    - Add stemming: 'caching' → 'cache' (normalize word forms)
+    - Expand synonyms: JWT/OAuth, Redis/Memcached (cross-technology matching)
+    - Upgrade to neural embeddings (IMP-ADV-01.6): Expected 0.78 → 0.85+ precision@5
+    - Re-evaluate with real corpus when available (need 500+ tasks for reliable metrics)
+
+- IMP‑ADV‑01.3 — Manual Similarity Evaluation (KPI #1 validation)
+  - Status: READY (no blockers)
+  - Scope: Evaluate top-K similarity for 20 sample tasks; verify precision ≥60%; establish baseline for future embeddings upgrades
+  - Effort: 2 hours
+  - Evidence: `state/evidence/IMP-ADV-01.3/verify/manual_evaluation.json` (task pairs, human judgments, precision score)
+
+- IMP‑ADV‑01.4 — Corpus Size Monitoring
+  - Status: READY (no blockers)
+  - Scope: Add telemetry metric `quality_graph_corpus_size`; alert when approaching 2000 vectors (auto-prune limit); prevent performance degradation
+  - Effort: 30 minutes
+  - Rollout: Add to metrics_collector.ts; wire to MONITOR phase
+  - Evidence: `state/evidence/IMP-ADV-01.4/verify/corpus_metric_snapshot.json`
+
+- IMP‑ADV‑01.5 — Pin Python Dependencies
+  - Status: READY (no blockers)
+  - Scope: Create `tools/wvo_mcp/scripts/quality_graph/requirements.txt` with pinned versions (numpy, scikit-learn, pydantic); ensure reproducibility; add to CI
+  - Effort: 15 minutes
+  - Evidence: `requirements.txt`, CI run with pinned versions
+
+- IMP‑ADV‑01.6 — Neural Embeddings Upgrade (future enhancement)
+  - Status: DEFERRED (nice-to-have after baseline proven)
+  - Scope: Replace TF-IDF with sentence-transformers (all-MiniLM-L6-v2 or similar); maintain 384D dimension; compare precision vs TF-IDF baseline
+  - Effort: 4-6 hours
+  - Dependencies: IMP-ADV-01.3 (manual evaluation baseline)
+  - Rollout: FLAG `quality_graph.embeddings=neural` with A/B comparison period
+  - Evidence: `state/evidence/IMP-ADV-01.6/verify/neural_vs_tfidf_ablation.json`
+
+- IMP‑ADV‑01.7 — Vector Database Migration (future enhancement)
+  - Status: DEFERRED (only needed if corpus >10k vectors)
+  - Scope: Replace JSONL with Pinecone/Weaviate/Qdrant; maintain API compatibility; add approximate nearest neighbors (ANN) for sub-10ms queries at scale
+  - Effort: 8-12 hours
+  - Trigger: Corpus size metric consistently >8000 vectors OR query latency >100ms
+  - Evidence: `state/evidence/IMP-ADV-01.7/verify/vector_db_migration_plan.md`, performance comparison
+
   - FUND-03: 4-8h (depends on MCP issue complexity)
   - FUND-04: 2-3h (straightforward mock + benchmark run)
   - FUND-05: 1-2h (script + CI integration)
@@ -127,6 +326,8 @@ Artifacts
 Artifacts
 - `state/evidence/IMP-PHASE-0/plan/plan.md` (this section)
 - `state/evidence/IMP-PHASE-0/plan/file_map.json` (test files, benchmark scripts, CI configs)
+- `state/evidence/IMP-PHASE-0/plan/change_budget.json` (allowed files, max diff)
+- `state/evidence/IMP-PHASE-0/plan/rollback.md` (when/how; preconditions)
 
 ---
 
@@ -138,6 +339,10 @@ Artifacts
   - Attestation upgrades: intentional prompt/version change process.
   - Tool context propagation: ensure task/phase is available to router.
   - Integrity flake: ensure Playwright browsers install in CI and locally.
+- Worthiness & Alternatives
+  - ROI quick test: “Does this move KPI K by ≥ T at cost ≤ B?”
+  - Duplication scan: existing patterns/tools that cover ≥80% (link)
+  - Not‑do decision: record rationale if deferring/simplifying and link to epic/roadmap
 - Mitigations
   - Backtracking support added to enforcer; metrics `phase_backtracks`.
   - Validators fail with structured reasons; enforcer logs and halts forward advance.
@@ -145,8 +350,17 @@ Artifacts
   - `updateAttestation`/baseline reset flow; severity by phase.
   - Router guard with coherent error + metric; fall back to safer read‑only tools when context missing.
 
+- Prompting (bleeding‑edge practices to apply)
+  - Compiler‑driven canonicalization with typed slots and overlays; signed header; stable hashes for attestation + rollback.
+  - Tool‑integrated prompting (ReAct/PAL) and “program‑of‑thought” where execution replaces long scratchpads.
+  - Test‑time compute allocation: self‑consistency with verifier reranking; chain‑of‑verification for factuality; strict budget caps per task class.
+  - Groundedness discipline: RAG‑first with citations; cross‑check claims; penalize unsupported statements.
+  - Automated prompt optimization under eval gates (population search/evol‑instruct) only in observe mode, keep if statistically better.
+  - Safety/injection resilience: input sanitization, instruction hierarchy, canaries; weekly red‑team runs via garak/promptfoo.
+
 Artifacts
 - `state/evidence/IMP/think/edge_cases.md`
+- `state/evidence/IMP/think/alternatives.md` (ROI, duplication scan, not‑do rationale)
 
 ---
 
@@ -158,8 +372,19 @@ Artifacts
   - IMP‑04: Lease tests and metrics; ensure fail‑open path documented.
   - IMP‑05: Elevate attestation policy; add severity handling; add versioned update path.
   - Update docs: Observability, Governance, MANIFEST.
+  - Prompting slices:
+    - IMP‑21: `src/prompt/compiler.ts` + templates; golden tests; canonicalization + hash recording.
+    - IMP‑22: `src/prompt/persona.ts`; persona hash in attestation + ledger.
+    - IMP‑23: Domain overlay templates; rubric injection glue from `docs/ACTIVE_RESPONSE_AND_DYNAMIC_RUBRICS.md`.
+    - IMP‑24: StateGraph hook to compile/attach prompt per phase; write `prompt_hash`/`persona_hash` to ledger and journal.
+    - IMP‑25: Tool router enforce PersonaSpec allowlists (read‑only fallback); counters for violations.
+    - IMP‑26: Variant flags + telemetry attributes.
+    - IMP‑35: Eval harness script + gate; CI wiring in VERIFY.
+    - IMP‑36: Verifier loop with budget caps behind flags.
+    - IMP‑37: Groundedness/citation enforcement wiring in VERIFY/REVIEW.
 - Evidence to capture
   - Diffs, test outputs, metrics snapshots, ledger entries for injected skips/backtracks.
+  - Prompting: compiler golden outputs, hash consistency logs, persona/tool allowlist tests, eval baselines/results, robustness reports, verifier ablations, groundedness reports.
 
 Artifacts
 - `state/evidence/IMP/implement/git_diff.patch`, `modified_files.json`
@@ -167,26 +392,35 @@ Artifacts
 ---
 
 ## VERIFY
-- Programmatic Checks (examples)
+- Programmatic Checks (Phase 0 core + semantic)
   - Integrity: `bash tools/wvo_mcp/scripts/run_integrity_tests.sh`
   - Phase skip injection test: simulate SPEC→IMPLEMENT jump and assert rejection + metric increment.
   - Tool guard test: call `git_commit` during PLAN; expect structured error + counter.
   - Evidence gate: remove `test_results.json` then attempt VERIFY→REVIEW; expect block.
-  - Attestation drift: mutate headers; expect detection; policy by phase.
-  - Lease contention: spawn dual workers targeting same task+phase; assert one blocked.
   - Telemetry: confirm `state/telemetry/{traces,metrics}.jsonl` contain expected spans and counters.
+  - Semantic scan: parse stdout/stderr → `warning_count`/`warning_rate`; fail if critical warnings present; attach excerpts to spans as events
+  - Assertion audit: compute assertion counts per suite; flag zero‑assert suites; record `trivial_test_suspects_total`
+  - Prompt eval harness (when enabled): run `tools/wvo_mcp/scripts/run_prompt_evals.sh`; assert success_rate_golden ≥ baseline+Δ, injection_success_rate ≤ threshold, groundedness non‑decreasing; record cost/latency.
+  - Quality Graph precision gate (when enabled): compute precision@5 on eval set; enforce precision@5 ≥ 0.60 and no regression vs baseline; attach `metrics.json` to evidence.
+  - Verifier/compute budgets (when enabled): ensure `extra_compute_rate` ≤ cap; positive `consistency_gain`; bounded p95 latency increase on hard subsets.
+  - Attestation: verify compiled `prompt_hash` and `persona_hash` recorded; drift events WARN except ERROR in VERIFY/REVIEW/MONITOR per policy.
 
 Artifacts
 - `state/evidence/IMP/verify/test_results.json`, `build_output.log`, `coverage_report.json`
+- `state/evidence/IMP/verify/semantic_scan.json` (warning/exit/assertion summary)
+ - `state/evidence/IMP/verify/prompt_eval_baseline.json`, `prompt_eval_results.json`, `robustness_eval.json`
+ - `state/evidence/IMP/verify/verifier_ablation.json`, `groundedness_report.json`
 
 ---
 
 ## REVIEW
-- Rubric (readability, maintainability, perf, security, governance)
-  - Evidence‑gated transitions complete
-  - No out‑of‑phase tool routes
-  - Spans/metrics attached and intelligible
+- Rubric (readability, maintainability, perf, security, governance, portfolio)
+  - Worthiness note present (epic/KPI/kill/pivot), aligns with Strategy/Think
+  - Evidence‑gated transitions complete; spans/metrics attached and intelligible
+  - No out‑of‑phase tool routes; change budget respected; rollback sentence adequate
+  - Semantic meaning: no “false green” (tests only ran); logs lack unaddressed warnings/errors
   - Docs updated; MANIFEST entries present
+  - Prompting (when applicable): eval gates met; no regressions vs baseline; attestation migrations documented; rollback path clear; persona/tool allowlists correct and non‑over‑blocking.
 - Deliverables
   - `review_rubric.json` with pass/fail per dimension
   - Critical notes on edge cases and false‑positive risks
@@ -201,6 +435,7 @@ Artifacts
   - Draft PR with summary of enforcement/observability, risks, rollback.
   - Attach evidence: ledger excerpts, metrics snapshots, test artifacts.
   - Ensure CI green.
+  - Prompting (when applicable): attach `prompt_eval_results.json`, `robustness_eval.json`, attestation diffs (prompt/persona hashes), and verifier ablations.
 - Artifacts
   - `pr_url.txt`, `pr_template_filled.md`, `ci_results.json`
 
@@ -208,9 +443,12 @@ Artifacts
 
 ## MONITOR
 - What to watch
-  - `phase_skips_attempted`, `phase_validations_failed`, `phase_backtracks`, `prompt_drift_detected` trends
+  - `phase_skips_attempted`, `phase_validations_failed`, `phase_backtracks`
   - Verify success rate, loop rate, tool MTTR
+  - Semantic drift: `warning_count`, `warning_rate` trends; open incidents when thresholds are exceeded
   - Discrepancy rate for Cross‑Check when enabled
+  - Prompting: `success_rate_golden`, `groundedness_score`, `injection_success_rate`, `prompt_drift_rate`, `cost_per_success`, `latency_p95`, `extra_compute_rate`, `consistency_gain`, `verification_block_rate`.
+  - Autonomy: `autonomy_completion_rate`, `hitl_intervention_rate`, `rollback_rate`, `auto_merge_rate` (qualified), `incident_count`, `time_to_recover`, `shadow_to_enforce_promotion_count`.
 - Escalation
   - If violations recur ≥3 times or no progress >90m, create loop diary, escalate to Supervisor; roll back gating if necessary.
 - Artifacts
@@ -268,22 +506,23 @@ Outcome for this batch: Illegal phase skips are impossible, forward transitions 
 
 Priority implementation order (anti‑drift core → visibility)
 1. ✅ Phase Ledger (DONE – commit 7fa439e2)
-2. Evidence‑Gated Transitions (block forward progress without artifacts; ledger records paths)
+2. ✅ Evidence‑Gated Transitions (DONE – commit 8763dded)
 3. Phase Leases (multi‑agent safety; WAL; contention metrics)
 4. Prompt Attestation (header/prompt drift detection; severity policy; versioning)
-5. OTEL Integration (state transition spans, verify/process.violation spans; JSONL sinks)
-6. Quality Graph Integration (minimal vectors; observer hints)
+5. ✅ OTEL Integration (DONE – IMP-OBS-01, IMP-OBS-03; state transition spans, verify/process.violation spans; JSONL sinks)
+6. ✅ Quality Graph Integration baseline (DONE – commit 87cd87b0; TF-IDF embeddings, MONITOR recording, PLAN hints; follow-ons: IMP-ADV-01.1 through IMP-ADV-01.7)
 7. Atlas Integration (manifest hash; change‑impact → test hints)
 8. Context Fabric (per‑phase context chain; hashes; link spans/artifacts)
 9. Metrics Dashboard (aggregate enforcement metrics; alert scaffolding)
 
-Persona routing and multivariate prompting (Phase 4 adds)
+Prompting improvements staged (Phase 1–4)
 - IMP‑21: Prompt Compiler skeleton + golden tests
 - IMP‑22: PersonaSpec canonicalize/hash + attestation integration
 - IMP‑23: Domain overlays library (orchestrator/web/ml/api/security)
 - IMP‑24: StateGraph hook to compile/attach prompt per phase; record prompt hash in attestation + journal
-- IMP‑25: Tool allowlists enforced from PersonaSpec in tool router
+- IMP‑35: Prompt Eval Harness + Gates (observe → enforce)
 - IMP‑26: Flags/telemetry for persona variants and sampling (metrics + spans)
+- IMP‑25: Tool allowlists enforced from PersonaSpec in tool router
 
 Standalone Autopilot (vendor‑neutral) follow‑ons (separate tranche)
 - IMP‑27: Contracts & schema validators (ProblemSpec/Plan/ChangeSet/PRSummary/RiskReport)
@@ -312,13 +551,182 @@ Acceptance points to verify (hard checks)
 - IMP‑FUND‑02 — Evidence‑Gated Transitions: DONE
 - IMP‑FUND‑03 — MCP Test Fixes / Integrity Stabilization (initial tranche): DONE
 - IMP‑FUND‑04 — Phase Transition Benchmark (latency sanity): DONE
-- Next up:
-  - IMP‑FUND‑05 — Playwright browser installation guard and CI verification
-  - IMP‑FUND‑06 — Checkpoint validation scripts and acceptance test wiring
-  - IMP‑FUND‑07 — End‑to‑end enforcement validation tests
-  - IMP‑FUND‑09 — Baseline monitoring window (after 05–07 are green)
+- ✅ IMP‑FUND‑05 — Playwright browser installation guard verified (logs captured)
+- ✅ IMP‑FUND‑06 — Checkpoint validation script + TODO allowlist + evidence enforcement
+- **Mandatory follow-ups before closing Phase 0:**
+  - Run `scripts/validate_checkpoint.sh --task-id <task>` **without** `--skip-integrity` in CI to exercise the full suite.
+  - Review `config/checkpoint_todo_allowlist.txt` each cycle; shrink it as legacy TODOs are resolved.
+  - Wire the script into the phase-completion CI workflow so every task proves evidence before advancing (STRATEGIZE→MONITOR).
+- ✅ IMP‑FUND‑07 — Acceptance tests for enforcement gates (phase skip + missing evidence)
+- ✅ IMP‑FUND‑08 — Daily evidence staleness automation (script + scheduled workflow)
+- ✅ IMP‑FUND‑09 — Pre-feature monitoring automation (daily process snapshots)
+- ✅ IMP‑OBS‑03 — Telemetry sinks verification complete (integration tests + verification script; evidence in `state/evidence/IMP-OBS-03/verify/`)
+- ✅ IMP‑OBS‑01 — StateGraph + WorkProcess tracing instrumentation (spans with result/violation metrics; evidence in `state/evidence/IMP-OBS-01/verify/`)
+- ✅ IMP‑ADV‑01 — Quality Graph Integration baseline complete (commit 87cd87b0; 9/10 AC met, AC7 deferred pending IMP-OBS completion)
+- **Quality Graph Follow-ons** (Phase 1+):
+  - ⏳ IMP‑ADV‑01.1 — Observer baseline integration (blocked by IMP-OBS)
+  - 🔜 IMP‑ADV‑01.2 — Inject hints into planner prompt (ready, 2-3h)
+  - 🔜 IMP‑ADV‑01.3 — Manual similarity evaluation (ready, 2h)
+  - 🔜 IMP‑ADV‑01.4 — Corpus size monitoring (ready, 30min)
+  - 🔜 IMP‑ADV‑01.5 — Pin Python dependencies (ready, 15min)
+  - 🚀 IMP‑ADV‑01.6 — Neural embeddings upgrade (future, 4-6h)
+  - 🚀 IMP‑ADV‑01.7 — Vector database migration (future, 8-12h, triggered by scale)
+- Next up: Phase 1 readiness review after monitoring window completes
 
 Notes: Verify artifacts (test logs/benchmarks) are stored under `state/evidence/IMP/verify/` and linked in the decision journal.
+
+---
+
+## Essential Reliability Additions (Quality/Vectorized Graph)
+
+Purpose: only what’s necessary to improve reliability for autonomous execution; everything else deferred.
+
+- IMP‑QG‑01 — Quality Graph: Stable embeddings + observe‑mode hints + VERIFY precision gate
+  - Scope: replace per‑call TF‑IDF fit with a stable feature space (HashingVectorizer or persisted TF‑IDF+projection); add reindex CLI; disable prompt injection of hints by default; compute precision@5 in VERIFY and block regressions vs baseline.
+  - Flags: `quality_graph.hints_injection=off` (default), `quality_graph.eval_gate=observe → enforce`.
+  - Acceptance: precision@5 ≥ 0.60 on eval set; no degradation in plan/test outcomes; hints not injected until gate green.
+  - Evidence: `state/evidence/IMP-QG-01/verify/metrics.json`, `state/evidence/IMP-QG-01/implement/reindex_plan.md`.
+
+- IMP‑VEC‑01 — Vectorized Graph: Grounded retrieval integration (observe‑only)
+  - Scope: intersect neighbor candidates with code‑graph reachability before surfacing; attach retrieval audits; no new gates or predictive blocking yet.
+  - Flags: `vectorized_graph.grounded_retrieval=observe`.
+  - Acceptance: groundedness ≥ 95% when hints are surfaced; zero policy/gate bypass; clear audit trail.
+  - Evidence: `state/evidence/IMP-VEC-01/verify/retrieval_audit.json`.
+
+Notes: These are the only Quality/Vectorized Graph items included for reliability. All non‑essential enhancements (reviewer routing, ANN, predictive gates, neural embeddings) remain deferred.
+
+---
+
+## Cross‑Item Integration (Roadmap Awareness)
+
+Goal: ensure related roadmap items are built with mutual awareness and validated together (cutting‑edge integration discipline without adding fragility).
+
+- IMP‑ROAD‑01 — Roadmap Dependency Graph + Linter + CI Gate
+  - Scope: add `state/roadmap.dependencies.yaml` (items, produces/consumes, related, contracts). CLI `scripts/roadmap_lint.py` validates: missing links, broken IDs, contract drift; CI fails on violations (observe→enforce).
+  - Contracts: every item touching prompts, quality graph, vectorized graph, or tool router must declare Related/DependsOn to the core items (compiler, attestation, evals, groundedness, tool allowlists) with version/contract names.
+  - Acceptance: zero missing critical relationships; no unknown producers/consumers; drift reports attached to decision journal.
+  - Evidence: `state/evidence/IMP-ROAD-01/verify/lint_report.json`, `state/roadmap.dependencies.yaml`.
+
+- IMP‑ROAD‑02 — Integration Contracts (Typed Interfaces + Rubric)
+  - Scope: define typed integration contracts for cross‑item interfaces (e.g., PromptCompilerSlots, AttestationRecord, EvalVariantId, GroundedCitation) in TS/Zod and Python/Pydantic; add REVIEW rubric “Cross‑Item Integration” (must cite Related items + contract versions, include integration tests/ablation refs).
+  - Acceptance: all prompt‑family items list Related (IMP‑21/22/23/24/25/26/35/36/37/ADV‑01.2); contracts imported not duplicated; integration rubric passes.
+  - Evidence: `state/evidence/IMP-ROAD-02/review/integration_rubric.json`.
+
+- IMP‑ROAD‑03 — Cross‑Item Integration Gate (VERIFY/REVIEW)
+  - Scope: VERIFY runs `scripts/roadmap_integration_check.sh` to ensure touched items updated their Related blocks, contracts, and tests; REVIEW uses rubric to confirm cross‑item docs/links.
+  - Acceptance: gate passes on every PR changing prompt/graph/router families; drift opens incident.
+  - Evidence: `state/evidence/IMP-ROAD-03/verify/integration_check.json`.
+
+Notes: This system complements Context Fabric and Attestation. It enforces awareness without blocking iteration: start in observe, promote to enforce once green for 2 weeks.
+
+---
+
+## Roadmap ↔ Batch Plan Mapping (Aliases)
+
+- Persona routing
+  - Roadmap IMP‑PERSONA‑01 ↔ Batch Plan IMP‑21 (Prompt Compiler)
+  - Roadmap IMP‑PERSONA‑02 ↔ Batch Plan IMP‑22 (PersonaSpec canonicalize/hash)
+  - Roadmap IMP‑PERSONA‑03 ↔ Batch Plan IMP‑23 (Domain overlays library)
+  - Roadmap IMP‑PERSONA‑04 ↔ Batch Plan IMP‑24 (StateGraph hook to compile/attach prompts)
+  - Roadmap IMP‑PERSONA‑05 ↔ Batch Plan IMP‑25 (Tool allowlists from PersonaSpec)
+  - Roadmap IMP‑PERSONA‑06 ↔ Batch Plan IMP‑26 (Flags/telemetry for variants)
+
+- Observability
+  - Roadmap IMP‑OBS‑01..06 ↔ Batch Plan uses the same IDs; see status below and evidence under `state/evidence/IMP-OBS-*/`.
+
+- Enforcement
+  - Roadmap IMP‑ENF‑01 (Phase Leases) ↔ Batch Plan IMP‑04 (lease tests/metrics)
+  - Roadmap IMP‑ENF‑02 (Prompt Attestation) ↔ Batch Plan IMP‑05 (attestation policy)
+  - Roadmap IMP‑ENF‑03 (Tool Router Guards) ↔ Batch Plan IMP‑02 (tool router phase guard)
+  - Roadmap IMP‑ENF‑04 (State Machine Guards) ↔ Covered by WorkProcessEnforcer + Evidence‑Gated Transitions
+  - Roadmap IMP‑ENF‑05 (Lease Burst Test) ↔ Batch Plan IMP‑04 (test coverage)
+  - Roadmap IMP‑ENF‑06 (Prompt Drift Injection Test) ↔ Batch Plan IMP‑35 (prompt eval harness + attestation)
+
+---
+
+## Roadmap Status Index (Live)
+
+- Fundamentals (Phase 0)
+  - IMP‑FUND‑01..09: COMPLETE in this batch (see Current Progress above).
+
+- Observability (Phase 2)
+  - IMP‑OBS‑01 (OTel Spans): COMPLETE — evidence in `state/evidence/IMP-OBS-01/verify/`
+  - IMP‑OBS‑03 (JSONL Sinks): COMPLETE — evidence in `state/evidence/IMP-OBS-03/verify/`
+  - IMP‑OBS‑02 (OTel Counters): COMPLETE — evidence in `state/evidence/IMP-OBS-02/verify/`
+  - IMP‑OBS‑04 (Alert Scaffolding): COMPLETE — evidence in `state/evidence/IMP-OBS-04/verify/`
+  - IMP‑OBS‑05 (Metrics Dashboard): COMPLETE — evidence in `state/evidence/IMP-OBS-05/verify/`
+  - IMP‑OBS‑06 (Observer Agent, Phase 1): COMPLETE — evidence in `state/evidence/IMP-OBS-06/verify/`
+
+- Enforcement (Phase 1)
+  - IMP‑ENF‑01 (Phase Leases): PARTIAL — covered by IMP‑04 tests/metrics; full hardening pending
+  - IMP‑ENF‑02 (Prompt Attestation): PLANNED — policy defined; enforcement to wire via IMP‑05/IMP‑24
+  - IMP‑ENF‑03 (Tool Router Guards): PLANNED — to implement via IMP‑02
+  - IMP‑ENF‑04 (State Machine Guards): COMPLETE — WorkProcessEnforcer + Evidence Gates active
+  - IMP‑ENF‑05 (Lease Burst Test): PLANNED — extend IMP‑04 tests
+  - IMP‑ENF‑06 (Prompt Drift Injection Test): PLANNED — via IMP‑35 eval harness
+
+- Persona/Prompting (Phase 4 in Roadmap; Phase 1+ staged here)
+  - Order of rollout (observe→enforce where applicable):
+    - IMP‑21 (Compiler), IMP‑22 (PersonaSpec), IMP‑23 (Overlays), IMP‑24 (StateGraph hook)
+    - IMP‑35 (Eval harness + gates), IMP‑26 (Flags/telemetry), IMP‑25 (Tool allowlists)
+    - IMP‑36 (Verifiers), IMP‑37 (Groundedness)
+  - Status: PLANNED — behind flags; see “Prompting Improvements — Production Slices” for acceptance and evidence
+
+- Advanced Features
+  - IMP‑ADV‑01 (Quality Graph baseline): COMPLETE — evidence under `state/evidence/IMP-ADV-01/`
+  - IMP‑ADV‑01.1..01.7: SEE Roadmap — status varies (blocked/ready/future); not part of Phase 0 fundamentals
+  - IMP‑QG‑01: PLANNED — stable embeddings + observe‑mode hints + VERIFY precision gate
+  - IMP‑VEC‑01: PLANNED — grounded retrieval integration (observe‑only)
+
+- Autonomy Track (enablement)
+  - IMP‑AUTO‑01..07: PLANNED — see Autonomy Track section for milestones, acceptance, and evidence
+
+Notes
+- Roadmap remains the strategic index; this status block is the live, evidence-backed view for the current batch.
+
+---
+
+## Autonomy Track — Milestones and Readiness Gates
+
+Objective: Safely progress from supervised runs to production autonomy with measurable gains and no critical incidents.
+
+Milestones (A‑levels)
+- A0: Supervised execution (manual driver)
+  - Mode: observe only; agents run locally under gates; no self‑advance without HITL.
+  - Evidence: end‑to‑end smoke under HITL; no violations.
+- A1: Semi‑autonomous (HITL required for medium/high risk)
+  - Mode: shadow/canary; low‑risk tasks can propose changes; HITL approves merges.
+  - KPIs (2‑week window): autonomy_completion_rate ≥ 60% on low‑risk; hitl_intervention_rate ≤ 30%; rollback_rate ≤ 2%.
+- A2: Low‑risk autonomy (auto‑merge with gates)
+  - Mode: enforce for low‑risk lanes; auto‑merge when all gates green and policies allow.
+  - KPIs (2‑week window): autonomy_completion_rate ≥ 80% low‑risk; intervention ≤ 10%; rollback ≤ 1%; incidents = 0.
+- A3: Expanded autonomy (moderate risk lanes)
+  - Mode: canary + gradual expand; strict rollback and alerting.
+  - KPIs: maintain A2 levels on expanded scope; incidents = 0.
+
+Enablement Tasks (IMP‑AUTO)
+- IMP‑AUTO‑01 — Risk Classifier: Tag tasks low/med/high; inputs: scope change, migrations, secrets, blast radius.
+- IMP‑AUTO‑02 — Autonomy Flags/Rollout: `autonomy.mode` = {shadow, observe, canary, enforce} per lane; scopes and allowlists.
+- IMP‑AUTO‑03 — HITL Policy Integration: Require approval for risk≥medium; integrate with HITL panel (see IMP‑32).
+- IMP‑AUTO‑04 — Rollback/Abort Automation: Playbooks + scripts; idempotent outbox for external effects.
+- IMP‑AUTO‑05 — E2E Autopilot Smokes: Programmatic repo exercises with evidence; failure classification.
+- IMP‑AUTO‑06 — Resumption/Recovery: Resume runs after crash; enforce idempotency; ledger continuity.
+- IMP‑AUTO‑07 — Autonomy Telemetry/Dashboard: Track autonomy KPIs and promotion decisions.
+
+Acceptance (promotion gates)
+- A0→A1: All gates green in shadow; 0 critical violations; baseline KPIs recorded.
+- A1→A2: KPIs meet A2 thresholds for two consecutive weeks; no incidents; rollback tested.
+- A2→A3: Canaries in moderate‑risk lanes meet A2 thresholds for one week; zero incidents.
+
+Artifacts
+- `state/evidence/IMP-AUTO-*/{strategize,spec,plan,implement,verify}/...`
+- `state/telemetry/autonomy_metrics.jsonl` (KPIs and promotion decisions)
+
+Flags
+- `autonomy.mode` per lane; `autonomy.allow_merge` for low‑risk when gates green; HITL enforced for higher risk.
+
+Notes
+- This track composes existing gates (evidence, attestation, tool/router, observability) into an autonomy rollout that is measurable and reversible.
 
 ---
 

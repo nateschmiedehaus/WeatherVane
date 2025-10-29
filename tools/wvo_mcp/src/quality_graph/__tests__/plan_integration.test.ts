@@ -239,6 +239,56 @@ describe('Plan Integration', () => {
     expect(result.nextState).toBe('thinker');
     expect(result.requireThinker).toBe(true);
   });
+
+  it('respects feature flag to disable hints', async () => {
+    const context: RunnerContext = {
+      task: {
+        id: 'TEST-PLAN-6',
+        title: 'Test with hints disabled',
+      },
+      attemptNumber: 1,
+      modelSelection: {
+        model: 'claude-sonnet-4',
+        provider: 'anthropic',
+        capabilityTags: ['fast_code'],
+        source: 'policy',
+        reason: 'test',
+      },
+    };
+
+    const mockPlanner = {
+      run: vi.fn().mockResolvedValue({
+        planHash: 'flagoff123',
+        requiresThinker: false,
+        summary: 'Test plan',
+        planDeltaToken: 'deltaflag',
+        coverageTarget: 80,
+      }),
+    };
+
+    const mockLiveFlags = {
+      get: vi.fn(),
+      getValue: vi.fn().mockReturnValue('off'), // Feature flag OFF
+    };
+
+    const result = await runPlan(context, {
+      planner: mockPlanner as any,
+      workspaceRoot: TEST_WORKSPACE,
+      liveFlags: mockLiveFlags as any,
+    });
+
+    // Planning should succeed
+    expect(result.success).toBe(true);
+    expect(result.nextState).toBe('implement');
+
+    // Hints should be empty (not retrieved)
+    const plan = result.artifacts.plan as any;
+    expect(plan.qualityGraphHints).toBe('');
+    expect(plan.similarTasksCount).toBe(0);
+
+    // Verify planner was still called
+    expect(mockPlanner.run).toHaveBeenCalled();
+  });
 });
 
 describe('Hints Module', () => {
@@ -272,12 +322,12 @@ describe('Hints Module', () => {
     expect(hints).toContain('## Similar Past Tasks');
     expect(hints).toContain('### 1. Add user authentication (high confidence)');
     expect(hints).toContain('### 2. Implement JWT tokens (high confidence)');
-    expect(hints).toContain('Similarity: 85.0%');
-    expect(hints).toContain('Similarity: 72.0%');
-    expect(hints).toContain('Outcome: success');
-    expect(hints).toContain('Quality: high');
-    expect(hints).toContain('Duration: 2.0h');
-    expect(hints).toContain('Files: src/auth.ts, src/middleware.ts');
+    expect(hints).toContain('**Similarity**: 85.0%');
+    expect(hints).toContain('**Similarity**: 72.0%');
+    expect(hints).toContain('**Outcome**: success');
+    expect(hints).toContain('**Quality**: high');
+    expect(hints).toContain('**Duration**: 2.0h');
+    expect(hints).toContain('**Files**: src/auth.ts, src/middleware.ts');
   });
 
   it('returns empty string for no similar tasks', async () => {

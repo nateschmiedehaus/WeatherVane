@@ -98,7 +98,7 @@ const result = await runMonitor(context, {
 
 ### Automatic Hints (PLAN Phase)
 
-Similar tasks are queried before planning:
+Similar tasks are queried before planning and stored in planner context:
 
 ```typescript
 // In state machine PLAN phase
@@ -107,10 +107,25 @@ const result = await runPlan(context, {
   workspaceRoot,  // Enables quality graph queries
 });
 
-// Hints attached to plan result:
+// Hints stored in planner context pack:
+// - Accessible to future prompt compiler (IMP-21)
+// - Logged to telemetry for observability
+// - Controlled by feature flag: QUALITY_GRAPH_HINTS_INJECTION
+
+// Also attached to plan result:
 // result.artifacts.plan.qualityGraphHints
 // result.artifacts.plan.similarTasksCount
 ```
+
+**Feature Flag**:
+- `QUALITY_GRAPH_HINTS_INJECTION=off` - Hints not retrieved
+- `QUALITY_GRAPH_HINTS_INJECTION=observe` - Hints retrieved and stored (default)
+- `QUALITY_GRAPH_HINTS_INJECTION=enforce` - Same as observe (future: enforce usage)
+
+**When will hints be used?**
+- **Current** (IMP-ADV-01.2): Hints retrieved and stored in context pack (observability)
+- **IMP-21**: Prompt compiler will inject hints into planner LLM prompt
+- **IMP-35**: A/B testing to measure hint effectiveness vs. baseline
 
 ### Manual Recording
 
@@ -292,20 +307,21 @@ Before planning, queries similar tasks:
 - Attaches hints to plan result
 - Non-blocking: planning works without hints
 
-### Observer Phase (Baseline) **[FUTURE]**
+### Observer Phase (Baseline)
 
-**File:** TBD (waiting for IMP-OBS completion)
+**File:** `orchestrator/observer_agent.ts`
+**Line:** ~80-220
 
-Compares task metrics vs similar tasks:
-- Query similar tasks for current task
-- Compute baseline (mean ± 2σ) from historical data
-- Flag anomalies (e.g., "3x longer than similar tasks")
-- Include in observer report
+After VERIFY (cadence-controlled), observer agent:
+- Calls `querySimilarTasks` (≤5) for title/description context
+- Computes duration baseline via `computeBaselineStats` (mean ± 2σ)
+- Classifies current task duration as `within` / `above_upper` / `below_lower`
+- Appends baseline payload + anomaly recommendations to `observer.jsonl`
 
 **Dependencies:**
-- Observer agent/module must exist
-- Observer phase in state machine
-- Metrics collection infrastructure
+- Observer feature flags (`OBSERVER_AGENT_ENABLED`, cadence, timeout, model)
+- Quality graph corpus with success outcomes + duration metadata
+- Python embedding tooling (`scripts/quality_graph/query_similar_tasks.py`)
 
 ## Testing
 
@@ -412,13 +428,13 @@ ls -la resources/runs/*/resolution/
 1. **Neural Embeddings**: Replace TF-IDF with sentence-transformers
 2. **Vector Database**: Use Pinecone/Weaviate for >10k corpus
 3. **Prompt Integration**: Inject hints directly into planner LLM prompt
-4. **Observer Baseline**: Complete integration (waiting for IMP-OBS)
+4. **Observer Baseline**: ✅ Integrated via IMP-ADV-01.1 (extend to multi-metric baselines next)
 5. **Semantic Clustering**: Group similar tasks for analysis
 6. **Quality Prediction**: Predict task quality from similarity to past tasks
 
 ## References
 
-- **Spec:** `state/evidence/IMP-ADV-01/spec/spec.md`
-- **Plan:** `state/evidence/IMP-ADV-01/plan/plan.md`
-- **Think:** `state/evidence/IMP-ADV-01/think/edge_cases.md`
-- **Implementation:** `state/evidence/IMP-ADV-01/implement/implementation_summary.md`
+- **Spec:** `state/evidence/IMP-ADV-01.1/spec/spec.md`
+- **Plan:** `state/evidence/IMP-ADV-01.1/plan/plan.md`
+- **Think:** `state/evidence/IMP-ADV-01.1/think/analysis.md`
+- **Implementation:** `state/evidence/IMP-ADV-01.1/implement/notes.md`
