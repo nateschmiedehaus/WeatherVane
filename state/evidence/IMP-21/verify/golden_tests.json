@@ -1,0 +1,103 @@
+{
+  "test_suite": "prompt_compiler_golden_tests",
+  "date": "2025-10-29",
+  "total_tests": 5,
+  "passed": 5,
+  "failed": 0,
+  "pass_rate": "100%",
+  "tests": [
+    {
+      "name": "STRATEGIZE baseline",
+      "input": {
+        "system": "You are Claude, an AI assistant for software engineering.",
+        "phase": "STRATEGIZE: Define objective, identify top 2 risks, set KPIs, and link to purpose.",
+        "context": "Task: IMP-21 - Prompt Compiler"
+      },
+      "expected": {
+        "contains": ["STRATEGIZE", "objective", "IMP-21"],
+        "hash_pattern": "[0-9a-f]{64}"
+      },
+      "result": "PASS",
+      "hash_valid": true,
+      "content_valid": true
+    },
+    {
+      "name": "SPEC baseline",
+      "input": {
+        "system": "You are Claude, an AI assistant for software engineering.",
+        "phase": "SPEC: Define acceptance criteria, IO schemas, and verification mapping.",
+        "rubric": "All acceptance criteria must be verifiable with automated tests."
+      },
+      "expected": {
+        "contains": ["SPEC", "acceptance criteria", "Rubric: All acceptance criteria"],
+        "hash_pattern": "[0-9a-f]{64}"
+      },
+      "result": "PASS",
+      "hash_valid": true,
+      "content_valid": true
+    },
+    {
+      "name": "IMPLEMENT baseline",
+      "input": {
+        "system": "You are Claude, an AI assistant for software engineering.",
+        "phase": "IMPLEMENT: Build the solution according to SPEC and PLAN.",
+        "domain": "api",
+        "skills": "TypeScript, Node.js, Vitest"
+      },
+      "expected": {
+        "contains": ["IMPLEMENT", "Domain: api", "Skills: TypeScript, Node.js, Vitest"],
+        "hash_pattern": "[0-9a-f]{64}"
+      },
+      "result": "PASS",
+      "hash_valid": true,
+      "content_valid": true
+    },
+    {
+      "name": "VERIFY baseline",
+      "input": {
+        "system": "You are Claude, an AI assistant for software engineering.",
+        "phase": "VERIFY: Run all tests, benchmarks, and validate acceptance criteria.",
+        "rubric": "All tests must pass, performance budgets must be met."
+      },
+      "expected": {
+        "contains": ["VERIFY", "tests", "Rubric: All tests must pass"],
+        "hash_pattern": "[0-9a-f]{64}"
+      },
+      "result": "PASS",
+      "hash_valid": true,
+      "content_valid": true
+    },
+    {
+      "name": "Minimal baseline",
+      "input": {
+        "system": "You are Claude, an AI assistant.",
+        "phase": "General purpose task."
+      },
+      "expected": {
+        "text": "You are Claude, an AI assistant.\\n\\nGeneral purpose task.",
+        "hash_pattern": "[0-9a-f]{64}"
+      },
+      "result": "PASS",
+      "hash_valid": true,
+      "content_valid": true
+    }
+  ],
+  "additional_tests": {
+    "hash_stability": {
+      "name": "100-run hash consistency",
+      "runs": 100,
+      "unique_hashes": 1,
+      "expected_unique": 1,
+      "result": "PASS"
+    },
+    "key_order_independence": {
+      "name": "Object key order doesn't affect hash",
+      "result": "PASS"
+    },
+    "different_inputs_different_hashes": {
+      "name": "Different inputs produce different hashes",
+      "result": "PASS"
+    }
+  },
+  "verdict": "ALL GOLDEN TESTS PASS"
+}

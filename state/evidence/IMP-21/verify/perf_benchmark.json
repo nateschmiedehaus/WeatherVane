@@ -1,0 +1,23 @@
+{
+  "test": "prompt_compilation_latency",
+  "iterations": 1000,
+  "input_size": 194,
+  "results": {
+    "p50_ms": 0.004,
+    "p95_ms": 0.007,
+    "p99_ms": 0.015,
+    "max_ms": 0.339
+  },
+  "budgets": {
+    "p50_target_ms": 5,
+    "p95_target_ms": 10,
+    "p99_target_ms": 20
+  },
+  "verdict": {
+    "p50_pass": true,
+    "p95_pass": true,
+    "p99_pass": true,
+    "overall": true
+  },
+  "timestamp": "2025-10-29T19:39:40.315Z"
+}
