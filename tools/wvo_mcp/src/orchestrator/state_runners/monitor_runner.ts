@@ -12,6 +12,7 @@
 
 import type { SmokeCommandResult } from '../smoke_command.js';
 import type { SupervisorAgent } from '../supervisor.js';
+import type { FeatureGatesReader } from '../feature_gates.js';
 
 import type { RunnerContext, RunnerResult } from './runner_types.js';
 import { recordTaskVector, extractRecordingMetadata } from '../../quality_graph/recorder.js';
@@ -26,6 +27,7 @@ export interface MonitorRunnerDeps {
   workspaceRoot: string; // For quality graph recording
   artifacts?: Record<string, unknown>; // For extracting metadata
   startTime?: number; // For computing duration
+  featureGates?: FeatureGatesReader;
 }
 
 /**
@@ -81,7 +83,11 @@ export async function runMonitor(context: RunnerContext, deps: MonitorRunnerDeps
 
     logInfo('Recording task vector to quality graph', { taskId: task.id });
 
-    const recordingResult = await recordTaskVector(deps.workspaceRoot, metadata);
+    const embeddingMode = deps.featureGates?.getQualityGraphEmbeddingMode();
+
+    const recordingResult = await recordTaskVector(deps.workspaceRoot, metadata, {
+      embeddingMode,
+    });
 
     if (recordingResult.success) {
       recordingNotes.push('Task vector recorded to quality graph.');

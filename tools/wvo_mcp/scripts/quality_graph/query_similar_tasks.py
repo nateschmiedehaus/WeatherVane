@@ -39,7 +39,11 @@ from pathlib import Path
 from typing import List, Optional, Dict, Any
 
 # Import from sibling modules
-from embeddings import compute_task_embedding
+from embeddings import (
+    EmbeddingComputationError,
+    EmbeddingConfigurationError,
+    compute_task_embedding,
+)
 from schema import TaskVector
 
 # Configure logging
@@ -110,6 +114,14 @@ def parse_args() -> argparse.Namespace:
         action='store_true',
         default=True,
         help='Exclude abandoned tasks (default: true)',
+    )
+
+    parser.add_argument(
+        '--embedding-mode',
+        type=str,
+        choices=['tfidf', 'neural'],
+        default=None,
+        help='Override embedding backend (default: env/flag)',
     )
 
     return parser.parse_args()
@@ -273,12 +285,20 @@ def main() -> int:
 
         # Compute query embedding
         logger.info('Computing query embedding...')
-        query_embedding = compute_task_embedding(
-            title=args.title,
-            description=args.description,
-            files_touched=files_touched,
-        )
-        query_embedding = query_embedding.tolist()
+        try:
+            query_embedding_array = compute_task_embedding(
+                title=args.title,
+                description=args.description,
+                files_touched=files_touched,
+                mode=args.embedding_mode,
+            )
+        except EmbeddingConfigurationError as error:
+            logger.error('Embedding configuration error: %s', error)
+            return 1
+        except EmbeddingComputationError as error:
+            logger.error('Embedding computation error: %s', error)
+            return 1
+        query_embedding = query_embedding_array.tolist()
         logger.info(f'Query embedding computed: {len(query_embedding)} dimensions')
 
         # Load corpus

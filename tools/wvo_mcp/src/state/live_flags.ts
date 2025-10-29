@@ -38,6 +38,7 @@ export const LIVE_FLAG_KEYS = [
   'OBSERVER_AGENT_TIMEOUT_MS',
   'OBSERVER_AGENT_MODEL',
   'QUALITY_GRAPH_HINTS_INJECTION',
+  'QUALITY_GRAPH_EMBEDDINGS',
 ] as const;
 
 export type LiveFlagKey = (typeof LIVE_FLAG_KEYS)[number];
@@ -77,6 +78,7 @@ export const DEFAULT_LIVE_FLAGS: LiveFlagSnapshot = {
   OBSERVER_AGENT_TIMEOUT_MS: '30000',
   OBSERVER_AGENT_MODEL: 'gpt-5.1-high',
   QUALITY_GRAPH_HINTS_INJECTION: 'observe',
+  QUALITY_GRAPH_EMBEDDINGS: 'tfidf',
 };
 
 export function isLiveFlagKey(value: string): value is LiveFlagKey {
@@ -173,6 +175,10 @@ export function normalizeLiveFlagValue<K extends LiveFlagKey>(
       if (stringValue === 'enforce') return 'enforce' as LiveFlagSnapshot[K];
       if (stringValue === 'off') return 'off' as LiveFlagSnapshot[K];
       return 'observe' as LiveFlagSnapshot[K];  // default
+    }
+    case 'QUALITY_GRAPH_EMBEDDINGS': {
+      if (stringValue === 'neural') return 'neural' as LiveFlagSnapshot[K];
+      return 'tfidf' as LiveFlagSnapshot[K];
     }
     default: {
       return DEFAULT_LIVE_FLAGS[key] as LiveFlagSnapshot[K];

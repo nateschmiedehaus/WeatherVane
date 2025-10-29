@@ -21,6 +21,7 @@ import { spawn } from 'node:child_process';
 import path from 'node:path';
 import { logInfo, logWarning, logError } from '../telemetry/logger.js';
 import { withSpan } from '../telemetry/tracing.js';
+import { ensureQualityGraphPython } from './python_env.js';
 
 /**
  * Similar task from quality graph
@@ -157,15 +158,34 @@ export async function querySimilarTasks(
       args.push('--exclude-abandoned');
     }
 
+    let pythonExecutable = opts.pythonPath;
+
+    if (!options.pythonPath || options.pythonPath === DEFAULT_OPTIONS.pythonPath) {
+      try {
+        pythonExecutable = await ensureQualityGraphPython(workspaceRoot);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        logWarning('Quality graph Python environment unavailable for hints', {
+          title: task.title,
+          error: message,
+        });
+        span?.setAttribute('error', message);
+        return [];
+      }
+    }
+
+    span?.setAttribute('pythonPath', pythonExecutable);
+
     logInfo('Querying similar tasks', {
       title: task.title,
       k: opts.k,
       minSimilarity: opts.minSimilarity,
+      pythonPath: pythonExecutable,
     });
 
     // Execute Python script
     return new Promise<SimilarTask[]>((resolve) => {
-      const proc = spawn(opts.pythonPath, args, {
+      const proc = spawn(pythonExecutable ?? opts.pythonPath, args, {
         cwd: workspaceRoot,
         timeout: opts.timeoutMs,
         stdio: ['ignore', 'pipe', 'pipe'],

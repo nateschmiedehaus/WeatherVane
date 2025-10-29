@@ -40,7 +40,12 @@ from pathlib import Path
 from typing import List, Optional
 
 # Import from sibling module
-from embeddings import TaskEmbedder, compute_task_embedding, verify_embedding
+from embeddings import (
+    EmbeddingComputationError,
+    EmbeddingConfigurationError,
+    compute_task_embedding,
+    verify_embedding,
+)
 from schema import TaskVector, TaskOutcome
 
 # Configure logging
@@ -122,6 +127,14 @@ def parse_args() -> argparse.Namespace:
         help='Complexity score 0.0-1.0 (optional)',
     )
 
+    parser.add_argument(
+        '--embedding-mode',
+        type=str,
+        choices=['tfidf', 'neural'],
+        default=None,
+        help='Override embedding backend (default: env/flag)',
+    )
+
     return parser.parse_args()
 
 
@@ -148,6 +161,7 @@ def compute_and_validate_embedding(
     title: Optional[str],
     description: Optional[str],
     files_touched: Optional[List[str]],
+    embedding_mode: Optional[str],
 ) -> List[float]:
     """
     Compute task embedding and validate it
@@ -168,7 +182,12 @@ def compute_and_validate_embedding(
             title=title,
             description=description,
             files_touched=files_touched,
+            mode=embedding_mode,
         )
+    except EmbeddingConfigurationError as e:
+        raise ValueError(f'Embedding configuration error: {e}') from e
+    except EmbeddingComputationError as e:
+        raise ValueError(f'Embedding computation error: {e}') from e
     except Exception as e:
         raise ValueError(f'Failed to compute embedding: {e}') from e
 
@@ -277,6 +296,7 @@ def main() -> int:
             title=args.title,
             description=args.description,
             files_touched=files_touched,
+            embedding_mode=args.embedding_mode,
         )
         logger.info(f'Embedding computed: {len(embedding)} dimensions')
 

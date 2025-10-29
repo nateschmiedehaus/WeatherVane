@@ -11,12 +11,20 @@ Verification coverage:
 - Edge cases
 """
 
-import pytest
+from typing import Optional
+
 import numpy as np
+import pytest
+
 from ..embeddings import (
+    EMBEDDING_DIM,
+    EmbeddingComputationError,
+    EmbeddingConfigurationError,
+    NeuralBackend,
     TaskEmbedder,
-    compute_task_embedding,
     assess_embedding_quality,
+    compute_task_embedding,
+    resolve_embedding_mode,
     verify_embedding,
 )
 
@@ -29,7 +37,7 @@ class TestTaskEmbedder:
         embedder = TaskEmbedder()
         embedding = embedder.compute_embedding(title="Test task")
 
-        assert embedding.shape == (384,), f"Expected (384,), got {embedding.shape}"
+        assert embedding.shape == (EMBEDDING_DIM,), f"Expected ({EMBEDDING_DIM},), got {embedding.shape}"
 
     def test_embedding_normalized(self):
         """Verify embedding has unit L2 norm"""
@@ -48,23 +56,13 @@ class TestTaskEmbedder:
 
     def test_different_tasks_different_embeddings(self):
         """Verify different tasks produce different embeddings"""
-        embedder = TaskEmbedder(max_features=100)
-
-        # Need to fit on corpus first for meaningful comparison
+        embedder = TaskEmbedder()
         corpus = [
             "Add API endpoint",
             "Fix authentication bug",
             "Update documentation",
         ]
-        embedder.vectorizer.fit(corpus)
-        embedder.is_fitted = True
-
-        # Initialize projection
-        vocab_size = len(embedder.vectorizer.vocabulary_)
-        np.random.seed(42)
-        embedder.projection = np.random.randn(vocab_size, embedder.target_dims)
-        embedder.projection = embedder.projection / np.linalg.norm(embedder.projection, axis=0)
-
+        embedder.compute_embedding(title="Warm start", corpus=corpus)
         emb1 = embedder.compute_embedding(title="Add API endpoint")
         emb2 = embedder.compute_embedding(title="Fix authentication bug")
 
@@ -172,7 +170,7 @@ class TestEdgeCases:
         embedding = embedder.compute_embedding(title=title)
 
         # Should still produce valid embedding
-        assert embedding.shape == (384,)
+        assert embedding.shape == (EMBEDDING_DIM,)
         assert np.all(np.isfinite(embedding))
 
     def test_special_characters(self):
@@ -181,7 +179,7 @@ class TestEdgeCases:
         title = "Fix @#$%^&*() bug !!! ???"
         embedding = embedder.compute_embedding(title=title)
 
-        assert embedding.shape == (384,)
+        assert embedding.shape == (EMBEDDING_DIM,)
 
     def test_only_code_snippets(self):
         """Verify task with only code snippets"""
@@ -189,7 +187,7 @@ class TestEdgeCases:
         title = "`foo()` `bar()` `baz()`"
         embedding = embedder.compute_embedding(title=title)
 
-        assert embedding.shape == (384,)
+        assert embedding.shape == (EMBEDDING_DIM,)
 
 
 class TestReproducibility:
@@ -223,7 +221,7 @@ class TestConvenienceFunctions:
 
         embedding = compute_task_embedding(metadata)
 
-        assert embedding.shape == (384,)
+        assert embedding.shape == (EMBEDDING_DIM,)
         assert abs(np.linalg.norm(embedding) - 1.0) < 0.01
 
     def test_assess_embedding_quality_high(self):
@@ -258,7 +256,7 @@ class TestConvenienceFunctions:
 
     def test_verify_embedding_valid(self):
         """Test embedding verification: valid"""
-        embedding = np.random.randn(384)
+        embedding = np.random.randn(EMBEDDING_DIM)
         embedding = embedding / np.linalg.norm(embedding)
 
         result = verify_embedding(embedding)
@@ -270,11 +268,71 @@ class TestConvenienceFunctions:
 
     def test_verify_embedding_invalid(self):
         """Test embedding verification: invalid"""
-        embedding = np.array([np.nan] * 384)
+        embedding = np.array([np.nan] * EMBEDDING_DIM)
 
         result = verify_embedding(embedding)
 
         assert not result['finite']
+
+
+class StubSentenceTransformer:
+    """Minimal stub for sentence-transformer encode."""
+
+    def __init__(self, vector: Optional[np.ndarray] = None):
+        self.vector = (
+            vector
+            if vector is not None
+            else np.full((EMBEDDING_DIM,), 1.0 / np.sqrt(EMBEDDING_DIM), dtype=np.float32)
+        )
+
+    def encode(self, text: str, show_progress_bar: bool, convert_to_numpy: bool, normalize_embeddings: bool):
+        assert convert_to_numpy is True
+        assert normalize_embeddings is True
+        return self.vector
+
+
+class TestNeuralBackend:
+    """Neural backend behaviour."""
+
+    def test_compute_with_stub_model(self, monkeypatch):
+        backend = NeuralBackend()
+        monkeypatch.setattr(backend, '_ensure_model', lambda: StubSentenceTransformer())
+
+        embedding = backend.compute_embedding(title="Neural test", description="Check stub")
+
+        assert embedding.shape == (EMBEDDING_DIM,)
+        assert abs(np.linalg.norm(embedding) - 1.0) < 1e-6
+
+    def test_missing_metadata_raises(self, monkeypatch):
+        backend = NeuralBackend()
+        monkeypatch.setattr(backend, '_ensure_model', lambda: StubSentenceTransformer())
+
+        with pytest.raises(EmbeddingComputationError):
+            backend.compute_embedding()
+
+    def test_missing_model_configuration_surfaces_error(self, monkeypatch):
+        monkeypatch.delenv('QUALITY_GRAPH_EMBED_MODEL_PATH', raising=False)
+        monkeypatch.delenv('QUALITY_GRAPH_EMBED_ALLOW_DOWNLOAD', raising=False)
+        embedder = TaskEmbedder(mode='neural')
+
+        with pytest.raises(EmbeddingConfigurationError):
+            embedder.compute_embedding(title="Requires model")
+
+
+class TestResolveEmbeddingMode:
+    """Mode resolution helper."""
+
+    def test_explicit_param_wins(self, monkeypatch):
+        monkeypatch.setenv('QUALITY_GRAPH_EMBEDDINGS', 'tfidf')
+        assert resolve_embedding_mode('neural') == 'neural'
+
+    def test_env_override(self, monkeypatch):
+        monkeypatch.setenv('QUALITY_GRAPH_EMBEDDINGS', 'neural')
+        assert resolve_embedding_mode(None) == 'neural'
+
+    def test_unknown_mode_falls_back(self, monkeypatch):
+        monkeypatch.setenv('QUALITY_GRAPH_EMBEDDINGS', 'gibberish')
+        assert resolve_embedding_mode(None) == 'tfidf'
 
 
 if __name__ == '__main__':

@@ -4,7 +4,7 @@ Vector-based task similarity search for WeatherVane autopilot.
 
 ## Overview
 
-The quality graph tracks completed tasks as 384-dimensional TF-IDF embeddings, enabling:
+The quality graph tracks completed tasks as 384-dimensional embeddings (TF-IDF by default, neural MiniLM optional), enabling:
 - **Similar task discovery**: Find past tasks similar to current work
 - **Planning hints**: Provide context from successful similar tasks
 - **Anomaly detection**: Compare task metrics vs historical baseline (future)
@@ -36,7 +36,7 @@ The quality graph tracks completed tasks as 384-dimensional TF-IDF embeddings, e
 
 **Python Scripts** (`scripts/quality_graph/`):
 - `schema.py` - Pydantic models
-- `embeddings.py` - TF-IDF embedding generation
+- `embeddings.py` - Embedding backends (TF-IDF + neural MiniLM)
 - `record_task_vector.py` - CLI for recording tasks
 - `query_similar_tasks.py` - CLI for querying similar tasks
 
@@ -59,6 +59,14 @@ pip3 install -r tools/wvo_mcp/scripts/quality_graph/requirements.txt
 - `numpy==1.26.4`
 - `scikit-learn==1.5.0`
 - `pydantic==2.12.0`
+- `torch==2.2.2` (CPU wheels supported)
+- `transformers==4.44.2`
+- `accelerate==0.34.2`
+- `sentence-transformers==2.7.0`
+
+> **Model bootstrap**: Download `sentence-transformers/all-MiniLM-L6-v2` ahead of time and point
+> `QUALITY_GRAPH_EMBED_MODEL_PATH` to the extracted directory. If offline, ensure the folder
+> contains `config.json`, `model.safetensors`, and tokenizer files before running neural mode.
 
 **Recommended:** Use a virtual environment to avoid conflicts:
 ```bash
@@ -74,6 +82,26 @@ Automatically installed with the main project:
 cd tools/wvo_mcp
 npm install
 ```
+
+### Embedding Modes
+
+Quality graph supports two interchangeable embedding backends:
+
+| Mode    | Dimensions | Backend                         | Strengths                                  |
+|---------|------------|---------------------------------|--------------------------------------------|
+| `tfidf` | 384        | TF-IDF + random projection      | Lightweight, no model download required    |
+| `neural`| 384        | `sentence-transformers/all-MiniLM-L6-v2` | Captures semantic similarity, better recall |
+
+- **Selecting a mode**
+  - Global default: live flag `QUALITY_GRAPH_EMBEDDINGS` (values: `tfidf` / `neural`, default `tfidf`)
+  - Local override: environment variable `QUALITY_GRAPH_EMBEDDINGS`
+  - CLI override: `--embedding-mode tfidf|neural`
+- **Model artifacts (neural mode)**
+  - Preferred: download `sentence-transformers/all-MiniLM-L6-v2` and set `QUALITY_GRAPH_EMBED_MODEL_PATH=/path/to/model`
+  - Optional: set `QUALITY_GRAPH_EMBED_ALLOW_DOWNLOAD=1` to permit automatic HuggingFace download (requires network access)
+  - Model output is normalized to unit vectors; dimension checks enforce 384d compatibility.
+
+If model weights are unavailable, scripts emit a descriptive error instructing how to bootstrap the model before retrying.
 
 ## Usage
 
@@ -138,7 +166,8 @@ python3 tools/wvo_mcp/scripts/quality_graph/record_task_vector.py . "TASK-123" \
   --files "src/auth.ts,src/middleware.ts" \
   --outcome success \
   --duration_ms 7200000 \
-  --quality high
+  --quality high \
+  --embedding-mode neural
 ```
 
 ### Manual Query
@@ -149,8 +178,11 @@ Query similar tasks:
 python3 tools/wvo_mcp/scripts/quality_graph/query_similar_tasks.py . \
   --title "Implement OAuth login" \
   --k 5 \
-  --min-similarity 0.3
+  --min-similarity 0.3 \
+  --embedding-mode neural
 ```
+
+> Omit `--embedding-mode` to rely on the configured live flag or environment default.
 
 Output:
 ```json
@@ -371,6 +403,27 @@ After VERIFY (cadence-controlled), observer agent:
 - Observer feature flags (`OBSERVER_AGENT_ENABLED`, cadence, timeout, model)
 - Quality graph corpus with success outcomes + duration metadata
 - Python embedding tooling (`scripts/quality_graph/query_similar_tasks.py`)
+
+## Python Environment
+
+Quality-graph scripts run inside an isolated virtualenv under `state/quality_graph/.venv`. The helper `ensureQualityGraphPython(workspaceRoot)`:
+
+- Creates the venv if missing (`python3 -m venv state/quality_graph/.venv`).
+- Installs pinned packages from `tools/wvo_mcp/scripts/quality_graph/requirements.txt` and stores a SHA-256 hash in `.requirements.hash` for drift detection.
+- Uses pre-downloaded wheels in `tools/wvo_mcp/scripts/quality_graph/wheels/` when present (otherwise falls back to PyPI via `pip`).
+- Understands environment overrides:
+  - `QUALITY_GRAPH_SKIP_BOOTSTRAP=1` → skip setup (useful in tests).
+  - `QUALITY_GRAPH_PYTHON` → force a specific interpreter.
+  - `QUALITY_GRAPH_BOOTSTRAP_PYTHON` → alternate bootstrap interpreter.
+  - `QUALITY_GRAPH_PIP_ARGS` → append custom pip flags (e.g., additional `--find-links`).
+
+To support offline installs, populate the wheel cache once:
+
+```bash
+mkdir -p tools/wvo_mcp/scripts/quality_graph/wheels
+pip download -r tools/wvo_mcp/scripts/quality_graph/requirements.txt \
+  -d tools/wvo_mcp/scripts/quality_graph/wheels
+```
 
 ## Testing
 

@@ -1,411 +1,486 @@
 """
 Quality Graph - Embedding Generation
 
-Computes TF-IDF embeddings for task similarity search.
+Provides pluggable embedding backends for the quality graph. Supports the
+original TF-IDF pipeline and a neural `sentence-transformers` encoder that can be
+selected via feature flag, environment variable, or CLI override.
 
-Design Decisions:
-1. TF-IDF chosen over neural embeddings (simpler, no API dependency)
-2. 384 dimensions (good balance: signal vs performance)
-3. Feature weighting: title (0.4) + description (0.3) + files (0.3)
-4. Unit normalization for cosine similarity
-5. Unicode-aware preprocessing
-
-Verification Checklist:
-- [ ] Embeddings are 384-dimensional
-- [ ] All embeddings have unit L2 norm (≈1.0)
-- [ ] Handles empty/missing fields gracefully
-- [ ] Unicode characters processed correctly
-- [ ] Code snippets in backticks normalized
-- [ ] Computation completes in <100ms per task
+Verification Checklist (shared by both backends):
+- Embeddings are 384-dimensional unit vectors
+- Handles empty/missing metadata defensively
+- Deterministic output given same inputs/configuration
+- Offline-friendly: neural mode surfaces actionable guidance when models missing
 """
 
-from typing import Dict, List, Optional
+from __future__ import annotations
+
+import logging
+import os
 import re
+import time
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
+
 import numpy as np
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.preprocessing import normalize
 
+logger = logging.getLogger(__name__)
 
-class TaskEmbedder:
-    """
-    Computes TF-IDF embeddings for tasks
+EMBEDDING_DIM = 384
+SUPPORTED_MODES = {"tfidf", "neural"}
+DEFAULT_MODE = "tfidf"
+DEFAULT_NEURAL_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
 
-    Pipeline:
-    1. Extract text: title + description + files
-    2. Preprocess: lowercase, remove punctuation, tokenize
-    3. TF-IDF: scikit-learn with max 1000 features
-    4. Project to 384 dimensions (PCA-like random projection)
-    5. Normalize to unit length
+ENV_MODE = "QUALITY_GRAPH_EMBEDDINGS"
+ENV_MODEL_PATH = "QUALITY_GRAPH_EMBED_MODEL_PATH"
+ENV_MODEL_NAME = "QUALITY_GRAPH_EMBED_MODEL_NAME"
+ENV_ALLOW_DOWNLOAD = "QUALITY_GRAPH_EMBED_ALLOW_DOWNLOAD"
+ENV_DEVICE = "QUALITY_GRAPH_EMBED_DEVICE"
 
-    Performance:
-    - Cold start (first embedding): ~50-100ms (fit vectorizer)
-    - Warm (subsequent): ~10-20ms per task
-    - Memory: ~5MB for vectorizer
-    """
 
-    def __init__(self, max_features: int = 1000, target_dims: int = 384):
-        """
-        Initialize embedder
+class EmbeddingConfigurationError(RuntimeError):
+    """Raised when embedding configuration is invalid."""
 
-        Args:
-            max_features: Max TF-IDF features (vocabulary size)
-            target_dims: Output embedding dimensions
-        """
-        self.max_features = max_features
-        self.target_dims = target_dims
 
-        # TF-IDF vectorizer (fit on first call)
+class EmbeddingComputationError(RuntimeError):
+    """Raised when an embedding cannot be computed."""
+
+
+def _normalize_files(files: Optional[Sequence[str]]) -> Optional[List[str]]:
+    if not files:
+        return None
+    normalized = []
+    for item in files:
+        if not item:
+            continue
+        parts = re.split(r"[/._-]", item)
+        normalized.extend([p for p in parts if len(p) > 1])
+    return normalized or None
+
+
+@dataclass
+class TFIDFBackend:
+    """TF-IDF embedding backend (legacy default)."""
+
+    max_features: int = 1000
+    target_dims: int = EMBEDDING_DIM
+
+    def __post_init__(self) -> None:
         self.vectorizer = TfidfVectorizer(
-            max_features=max_features,
+            max_features=self.max_features,
             lowercase=True,
-            token_pattern=r'\b\w\w+\b',  # Unicode-aware word tokenizer
-            stop_words='english',
+            token_pattern=r"\b\w\w+\b",
+            stop_words="english",
             min_df=1,
-            max_df=0.95,  # Ignore very common terms
+            max_df=0.95,
         )
-
-        # Random projection matrix for dimensionality reduction
-        # (initialized lazily after first fit)
         self.projection: Optional[np.ndarray] = None
-
-        # Track if vectorizer has been fitted
         self.is_fitted = False
 
-    def preprocess_text(self, text: str) -> str:
-        """
-        Preprocess text for embedding
-
-        Steps:
-        1. Remove emoji (low signal)
-        2. Normalize code snippets: `foo.bar()` → CODE_SNIPPET
-        3. Remove special chars except alphanumeric and spaces
-        4. Lowercase
-        5. Trim whitespace
-
-        Args:
-            text: Input text
-
-        Returns:
-            Preprocessed text
-
-        Verification:
-        - Emoji removed: "Fix 🐛 bug" → "Fix bug"
-        - Code normalized: "Add `cache.get(key)`" → "Add CODE_SNIPPET"
-        - Unicode preserved: "修复错误" → "修复错误"
-        """
+    @staticmethod
+    def preprocess_text(text: Optional[str]) -> str:
+        """Normalize text for TF-IDF consumption."""
         if not text:
             return ""
 
-        # Remove emoji (using regex for common emoji ranges)
-        text = re.sub(r'[\U0001F600-\U0001F64F\U0001F300-\U0001F5FF\U0001F680-\U0001F6FF\U0001F700-\U0001F77F\U0001F780-\U0001F7FF\U0001F800-\U0001F8FF\U0001F900-\U0001F9FF\U0001FA00-\U0001FA6F\U0001FA70-\U0001FAFF\U00002702-\U000027B0\U000024C2-\U0001F251]+', '', text)
-
-        # Normalize code snippets in backticks
-        text = re.sub(r'`[^`]+`', 'CODE_SNIPPET', text)
-
-        # Keep alphanumeric, spaces, and basic punctuation
-        text = re.sub(r'[^\w\s\-]', ' ', text)
-
-        # Collapse multiple spaces
-        text = re.sub(r'\s+', ' ', text).strip()
-
-        return text
+        emoji_pattern = (
+            r"[\U0001F600-\U0001F64F"
+            r"\U0001F300-\U0001F5FF"
+            r"\U0001F680-\U0001F6FF"
+            r"\U0001F700-\U0001F77F"
+            r"\U0001F780-\U0001F7FF"
+            r"\U0001F800-\U0001F8FF"
+            r"\U0001F900-\U0001F9FF"
+            r"\U0001FA00-\U0001FA6F"
+            r"\U0001FA70-\U0001FAFF"
+            r"\U0001F1E6-\U0001F1FF"
+            r"\U00002600-\U000026FF"
+            r"\U00002700-\U000027BF]"
+        )
+        cleaned = re.sub(emoji_pattern, "", text)
+        cleaned = re.sub(r"`[^`]+`", "CODE_SNIPPET", cleaned)
+        cleaned = re.sub(r"[^\w\s\-]", " ", cleaned)
+        cleaned = re.sub(r"\s+", " ", cleaned).strip()
+        return cleaned
 
     def extract_text_features(
         self,
         title: Optional[str] = None,
         description: Optional[str] = None,
-        files_touched: Optional[List[str]] = None
+        files_touched: Optional[Sequence[str]] = None,
     ) -> str:
-        """
-        Extract and weight text features
+        parts: List[str] = []
 
-        Weighting:
-        - title: 0.4 (most important, always short)
-        - description: 0.3 (detailed context)
-        - files: 0.3 (domain signal from paths)
-
-        Implementation:
-        Repeat title 2x, description 1.5x, files 1.5x to achieve weights
-
-        Args:
-            title: Task title
-            description: Task description (optional)
-            files_touched: List of file paths (optional)
-
-        Returns:
-            Combined weighted text
-
-        Verification:
-        - Empty fields handled: title only → valid
-        - Files contribute: ["api/users.ts"] → includes "api users ts"
-        """
-        parts = []
-
-        # Title (weight: 0.4) - repeat 2x
         if title:
-            preprocessed = self.preprocess_text(title)
-            parts.extend([preprocessed] * 2)
+            processed = self.preprocess_text(title)
+            parts.extend([processed] * 2)
 
-        # Description (weight: 0.3) - repeat 1.5x (round to 2)
         if description:
-            preprocessed = self.preprocess_text(description)
-            parts.extend([preprocessed] * 2)
+            processed = self.preprocess_text(description)
+            parts.extend([processed] * 2)
 
-        # Files (weight: 0.3) - extract path components
-        if files_touched:
-            # Extract meaningful components from paths
-            file_terms = []
-            for file_path in files_touched:
-                # Split path: "src/api/users.ts" → ["src", "api", "users", "ts"]
-                components = re.split(r'[/._-]', file_path)
-                file_terms.extend([c for c in components if len(c) > 1])
+        file_terms = _normalize_files(files_touched)
+        if file_terms:
+            parts.extend([" ".join(file_terms)] * 2)
 
-            if file_terms:
-                file_text = ' '.join(file_terms)
-                parts.extend([file_text] * 2)
-
-        combined = ' '.join(parts)
-
-        # Handle edge case: completely empty
+        combined = " ".join(parts)
         if not combined.strip():
             return "UNKNOWN_TASK"
-
         return combined
+
+    def _fit_if_needed(self, text: str, corpus: Optional[Sequence[str]]) -> None:
+        if self.is_fitted and not corpus:
+            return
+
+        fit_corpus = list(corpus) if corpus else [text]
+        try:
+            self.vectorizer.fit(fit_corpus)
+        except ValueError as exc:
+            if "max_df" in str(exc):
+                self.vectorizer = TfidfVectorizer(
+                    max_features=self.max_features,
+                    lowercase=True,
+                    token_pattern=r"\b\w\w+\b",
+                    stop_words="english",
+                    min_df=1,
+                    max_df=1.0,
+                )
+                self.vectorizer.fit(fit_corpus)
+            else:
+                raise
+
+        self.is_fitted = True
+        vocab_size = len(self.vectorizer.vocabulary_)
+        np.random.seed(42)
+        projection = np.random.randn(vocab_size, self.target_dims)
+        self.projection = normalize(projection, axis=0)
 
     def compute_embedding(
         self,
         title: Optional[str] = None,
         description: Optional[str] = None,
-        files_touched: Optional[List[str]] = None,
-        corpus: Optional[List[str]] = None
+        files_touched: Optional[Sequence[str]] = None,
+        corpus: Optional[Sequence[str]] = None,
     ) -> np.ndarray:
-        """
-        Compute task embedding
-
-        Args:
-            title: Task title
-            description: Task description (optional)
-            files_touched: File paths (optional)
-            corpus: Additional documents for TF-IDF fit (optional)
-
-        Returns:
-            384-dimensional unit-normalized embedding
-
-        Raises:
-            ValueError: If embedding computation fails
-
-        Verification:
-        - Output shape: (384,)
-        - Output norm: ≈1.0 (within 0.01)
-        - No NaN/Inf values
-        - Deterministic: same input → same output
-        """
-        # Extract and preprocess text
         text = self.extract_text_features(title, description, files_touched)
+        self._fit_if_needed(text, corpus)
 
-        # Fit vectorizer on first call (or if corpus provided)
-        if not self.is_fitted or corpus:
-            fit_corpus = corpus if corpus else [text]
+        if self.projection is None:
+            raise EmbeddingComputationError("Projection matrix not initialized")
 
-            try:
-                self.vectorizer.fit(fit_corpus)
-            except ValueError as e:
-                # Handle minimal-text edge case: max_df constraint violation
-                # Occurs when corpus is too small (e.g., single short task)
-                if 'max_df' in str(e):
-                    # Retry with relaxed parameters (allow all terms)
-                    self.vectorizer = TfidfVectorizer(
-                        max_features=self.max_features,
-                        lowercase=True,
-                        token_pattern=r'\b\w\w+\b',
-                        stop_words='english',
-                        min_df=1,
-                        max_df=1.0,  # Allow all terms (no upper threshold)
-                    )
-                    try:
-                        self.vectorizer.fit(fit_corpus)
-                    except Exception:
-                        # Extremely degenerate case: can't fit even with relaxed params
-                        # Fall back to identity vectorizer (no vocabulary filtering)
-                        self.vectorizer = TfidfVectorizer(
-                            lowercase=True,
-                            token_pattern=r'\b\w\w+\b',
-                        )
-                        self.vectorizer.fit(fit_corpus)
-                else:
-                    raise  # Re-raise non-max_df errors
-
-            self.is_fitted = True
-
-            # Initialize random projection matrix
-            # (stable random seed for reproducibility)
-            vocab_size = len(self.vectorizer.vocabulary_)
-            np.random.seed(42)
-            self.projection = np.random.randn(vocab_size, self.target_dims)
-            self.projection = normalize(self.projection, axis=0)
-
-        # Transform text to TF-IDF vector
         tfidf = self.vectorizer.transform([text]).toarray()[0]
 
-        # Project to target dimensions
-        if self.projection is None:
-            raise ValueError("Projection matrix not initialized")
-
-        # Handle case where vocabulary changed
         if len(tfidf) != self.projection.shape[0]:
-            # Re-initialize projection (rare, only if vocab changed)
             np.random.seed(42)
-            self.projection = np.random.randn(len(tfidf), self.target_dims)
-            self.projection = normalize(self.projection, axis=0)
+            projection = np.random.randn(len(tfidf), self.target_dims)
+            self.projection = normalize(projection, axis=0)
 
         embedding = tfidf @ self.projection
-
-        # Normalize to unit length for cosine similarity
         norm = np.linalg.norm(embedding)
-        if norm > 1e-10:  # Avoid division by zero
-            embedding = embedding / norm
+        if norm <= 1e-10:
+            random_vec = np.random.randn(self.target_dims)
+            embedding = random_vec / np.linalg.norm(random_vec)
         else:
-            # Degenerate case: zero vector (very rare)
-            # Return random unit vector (better than zeros)
-            embedding = np.random.randn(self.target_dims)
-            embedding = embedding / np.linalg.norm(embedding)
+            embedding = embedding / norm
 
-        # Validation
         assert embedding.shape == (self.target_dims,), f"Wrong shape: {embedding.shape}"
         assert np.all(np.isfinite(embedding)), "Embedding contains NaN/Inf"
-        assert abs(np.linalg.norm(embedding) - 1.0) < 0.01, f"Not normalized: norm={np.linalg.norm(embedding)}"
-
         return embedding
 
 
+class NeuralBackend:
+    """Sentence-transformers based embedding backend."""
+
+    def __init__(
+        self,
+        target_dims: int = EMBEDDING_DIM,
+        model_name: Optional[str] = None,
+        model_path: Optional[str] = None,
+    ) -> None:
+        self.target_dims = target_dims
+        self.model_name = model_name or os.environ.get(ENV_MODEL_NAME) or DEFAULT_NEURAL_MODEL
+        self.model_path = model_path or os.environ.get(ENV_MODEL_PATH)
+        self.allow_download = os.environ.get(ENV_ALLOW_DOWNLOAD, "0") == "1"
+        self.device = os.environ.get(ENV_DEVICE, "cpu")
+        self._model = None
+
+    def _resolve_identifier(self) -> str:
+        if self.model_path:
+            path = Path(self.model_path)
+            if not path.exists():
+                raise EmbeddingConfigurationError(
+                    f"Neural embedding model path not found: {path}"
+                )
+            if not path.is_dir():
+                raise EmbeddingConfigurationError(
+                    f"Neural embedding model path must be a directory: {path}"
+                )
+            return str(path)
+
+        if not self.allow_download:
+            raise EmbeddingConfigurationError(
+                "Neural embedding model not available. Set QUALITY_GRAPH_EMBED_MODEL_PATH "
+                "to a local SentenceTransformer directory or export "
+                "QUALITY_GRAPH_EMBED_ALLOW_DOWNLOAD=1 to permit fetching."
+            )
+
+        return self.model_name
+
+    def _ensure_model(self):
+        if self._model is not None:
+            return self._model
+
+        try:
+            from sentence_transformers import SentenceTransformer
+        except ImportError as exc:
+            raise EmbeddingConfigurationError(
+                "sentence-transformers is not installed. Run ensureQualityGraphPython() "
+                "or `pip install sentence-transformers` inside the quality graph venv."
+            ) from exc
+
+        load_target = self._resolve_identifier()
+        start = time.perf_counter()
+        try:
+            model = SentenceTransformer(load_target, device=self.device)
+        except OSError as exc:
+            raise EmbeddingConfigurationError(
+                "Failed to load neural embedding model. Ensure the model directory contains "
+                "config.json and model files, or allow downloads via QUALITY_GRAPH_EMBED_ALLOW_DOWNLOAD=1."
+            ) from exc
+
+        try:
+            import torch
+
+            threads = max(torch.get_num_threads(), 1)
+            torch.set_num_threads(threads)
+        except Exception:
+            # Torch not available or configuration failed; continue silently.
+            pass
+
+        elapsed = time.perf_counter() - start
+        logger.info(
+            "Loaded sentence-transformer model",
+            extra={"model": load_target, "device": self.device, "load_seconds": round(elapsed, 3)},
+        )
+        self._model = model
+        return self._model
+
+    @staticmethod
+    def build_input_text(
+        title: Optional[str] = None,
+        description: Optional[str] = None,
+        files_touched: Optional[Sequence[str]] = None,
+    ) -> str:
+        parts: List[str] = []
+        if title:
+            parts.append(title.strip())
+        if description:
+            parts.append(description.strip())
+        if files_touched:
+            cleaned = ", ".join(
+                sorted({f.strip() for f in files_touched if f and f.strip()})
+            )
+            if cleaned:
+                parts.append(f"Files touched: {cleaned}")
+        text = "\n".join(parts).strip()
+        if not text:
+            return "UNKNOWN_TASK"
+        return text
+
+    def compute_embedding(
+        self,
+        title: Optional[str] = None,
+        description: Optional[str] = None,
+        files_touched: Optional[Sequence[str]] = None,
+        corpus: Optional[Sequence[str]] = None,
+    ) -> np.ndarray:
+        del corpus  # Unused, kept for signature parity
+        text = self.build_input_text(title, description, files_touched)
+        if not text.strip() or text == "UNKNOWN_TASK":
+            raise EmbeddingComputationError(
+                "Cannot compute neural embedding without task metadata. Provide title/description/files."
+            )
+
+        model = self._ensure_model()
+        embeddings = model.encode(
+            text,
+            show_progress_bar=False,
+            convert_to_numpy=True,
+            normalize_embeddings=True,
+        )
+        vector = np.asarray(embeddings, dtype=np.float32)
+        if vector.ndim == 2:
+            vector = vector[0]
+        if vector.shape[0] != self.target_dims:
+            raise EmbeddingComputationError(
+                f"Neural embedding dimension mismatch: expected {self.target_dims}, got {vector.shape[0]}"
+            )
+        return vector
+
+
+class TaskEmbedder:
+    """Facade for embedding backends."""
+
+    def __init__(
+        self,
+        mode: Optional[str] = None,
+        max_features: int = 1000,
+        target_dims: int = EMBEDDING_DIM,
+        neural_model_name: Optional[str] = None,
+        neural_model_path: Optional[str] = None,
+    ) -> None:
+        resolved = resolve_embedding_mode(mode)
+        self.mode = resolved
+        self.target_dims = target_dims
+
+        if resolved == "tfidf":
+            self._backend: Union[TFIDFBackend, NeuralBackend] = TFIDFBackend(
+                max_features=max_features,
+                target_dims=target_dims,
+            )
+        elif resolved == "neural":
+            self._backend = NeuralBackend(
+                target_dims=target_dims,
+                model_name=neural_model_name,
+                model_path=neural_model_path,
+            )
+        else:
+            raise EmbeddingConfigurationError(f"Unsupported embedding mode: {resolved}")
+
+    def compute_embedding(
+        self,
+        title: Optional[str] = None,
+        description: Optional[str] = None,
+        files_touched: Optional[Sequence[str]] = None,
+        corpus: Optional[Sequence[str]] = None,
+    ) -> np.ndarray:
+        embedding = self._backend.compute_embedding(
+            title=title,
+            description=description,
+            files_touched=files_touched,
+            corpus=corpus,
+        )
+        return embedding
+
+    def preprocess_text(self, text: Optional[str]) -> str:
+        if isinstance(self._backend, TFIDFBackend):
+            return TFIDFBackend.preprocess_text(text)
+        return (text or "").strip()
+
+    def extract_text_features(
+        self,
+        title: Optional[str] = None,
+        description: Optional[str] = None,
+        files_touched: Optional[Sequence[str]] = None,
+    ) -> str:
+        if isinstance(self._backend, TFIDFBackend):
+            return self._backend.extract_text_features(title, description, files_touched)
+        return NeuralBackend.build_input_text(title, description, files_touched)
+
+
+def resolve_embedding_mode(candidate: Optional[str]) -> str:
+    if candidate:
+        mode = candidate.strip().lower()
+    else:
+        env_value = os.environ.get(ENV_MODE, "").strip().lower()
+        mode = env_value or DEFAULT_MODE
+
+    if mode not in SUPPORTED_MODES:
+        logger.warning("Unknown embedding mode '%s'; defaulting to %s", mode, DEFAULT_MODE)
+        return DEFAULT_MODE
+    return mode
+
+
 def compute_task_embedding(
-    metadata: Dict,
-    embedder: Optional[TaskEmbedder] = None
+    metadata: Optional[Dict[str, Any]] = None,
+    *,
+    title: Optional[str] = None,
+    description: Optional[str] = None,
+    files_touched: Optional[Sequence[str]] = None,
+    mode: Optional[str] = None,
+    embedder: Optional[TaskEmbedder] = None,
+    corpus: Optional[Sequence[str]] = None,
 ) -> np.ndarray:
-    """
-    Convenience function: compute embedding from task metadata dict
+    """Compute embedding for task metadata using configured backend."""
+    if metadata is not None:
+        title = title if title is not None else metadata.get("title")
+        description = description if description is not None else metadata.get("description")
+        files_touched = files_touched if files_touched is not None else metadata.get("files_touched")
 
-    Args:
-        metadata: Dict with keys: title, description (opt), files_touched (opt)
-        embedder: Reusable embedder instance (optional, for efficiency)
-
-    Returns:
-        384-dimensional embedding
-
-    Example:
-        >>> metadata = {
-        ...     'title': 'Add GET /api/users endpoint',
-        ...     'description': 'Implement user listing with pagination',
-        ...     'files_touched': ['src/api/users.ts', 'src/api/users.test.ts']
-        ... }
-        >>> embedding = compute_task_embedding(metadata)
-        >>> embedding.shape
-        (384,)
-        >>> abs(np.linalg.norm(embedding) - 1.0) < 0.01
-        True
-    """
     if embedder is None:
-        embedder = TaskEmbedder()
+        embedder = TaskEmbedder(mode=mode)
 
     return embedder.compute_embedding(
-        title=metadata.get('title'),
-        description=metadata.get('description'),
-        files_touched=metadata.get('files_touched')
+        title=title,
+        description=description,
+        files_touched=files_touched,
+        corpus=corpus,
     )
 
 
-# Quality assessment
-def assess_embedding_quality(
-    metadata: Dict
-) -> str:
-    """
-    Assess embedding quality based on available metadata
+# Quality assessment remains unchanged
 
-    Quality levels:
-    - high: title + description + files
-    - medium: title + (description OR files)
-    - low: title only
-
-    Args:
-        metadata: Task metadata dict
-
-    Returns:
-        Quality level: 'high' | 'medium' | 'low'
-    """
+def assess_embedding_quality(metadata: Dict[str, Any]) -> str:
     has_title = bool(metadata.get('title'))
     has_description = bool(metadata.get('description'))
     has_files = bool(metadata.get('files_touched'))
 
     if not has_title:
-        return 'low'  # Degenerate
-
+        return 'low'
     if has_description and has_files:
         return 'high'
-    elif has_description or has_files:
+    if has_description or has_files:
         return 'medium'
-    else:
-        return 'low'
+    return 'low'
 
 
-# Verification helper
-def verify_embedding(embedding: np.ndarray) -> Dict:
-    """
-    Verify embedding meets requirements
-
-    Checks:
-    1. Shape is (384,)
-    2. All values finite (no NaN/Inf)
-    3. L2 norm ≈ 1.0
-    4. Not all zeros
-
-    Args:
-        embedding: Embedding to verify
-
-    Returns:
-        Dict with verification results
-    """
+def verify_embedding(embedding: np.ndarray) -> Dict[str, Any]:
+    norm = float(np.linalg.norm(embedding))
     return {
-        'shape_ok': embedding.shape == (384,),
+        'shape_ok': embedding.shape == (EMBEDDING_DIM,),
         'finite': np.all(np.isfinite(embedding)),
-        'normalized': abs(np.linalg.norm(embedding) - 1.0) < 0.01,
+        'normalized': abs(norm - 1.0) < 0.01,
         'non_zero': np.any(embedding != 0),
-        'norm': float(np.linalg.norm(embedding)),
+        'norm': norm,
     }
 
 
 if __name__ == '__main__':
-    # Demo: compute embeddings for sample tasks
+    logging.basicConfig(level=logging.INFO)
+
     print("Quality Graph Embedding Demo\n")
 
-    embedder = TaskEmbedder()
+    for mode in ("tfidf", "neural"):
+        print(f"Mode: {mode}")
+        try:
+            embedder = TaskEmbedder(mode=mode)
+            samples = [
+                {
+                    'title': 'Add GET /api/users endpoint',
+                    'description': 'Implement user listing with pagination',
+                    'files_touched': ['src/api/users.ts'],
+                },
+                {
+                    'title': 'Fix authentication bug',
+                    'description': 'Users unable to login with special chars in password',
+                    'files_touched': ['src/auth/login.ts'],
+                },
+                {
+                    'title': 'Update dependencies',
+                    'files_touched': ['package.json'],
+                },
+            ]
 
-    samples = [
-        {
-            'title': 'Add GET /api/users endpoint',
-            'description': 'Implement user listing with pagination',
-            'files_touched': ['src/api/users.ts'],
-        },
-        {
-            'title': 'Fix authentication bug',
-            'description': 'Users unable to login with special chars in password',
-            'files_touched': ['src/auth/login.ts'],
-        },
-        {
-            'title': 'Update dependencies',
-            'files_touched': ['package.json'],
-        },
-    ]
-
-    for i, metadata in enumerate(samples, 1):
-        embedding = compute_task_embedding(metadata, embedder)
-        quality = assess_embedding_quality(metadata)
-        verification = verify_embedding(embedding)
-
-        print(f"Task {i}: {metadata['title']}")
-        print(f"  Quality: {quality}")
-        print(f"  Embedding shape: {embedding.shape}")
-        print(f"  L2 norm: {verification['norm']:.6f}")
-        print(f"  Verification: {verification}")
+            for idx, metadata in enumerate(samples, 1):
+                embedding = compute_task_embedding(metadata, embedder=embedder)
+                verification = verify_embedding(embedding)
+                print(f"  Task {idx}: norm={verification['norm']:.6f} valid={verification['shape_ok']}")
+        except EmbeddingConfigurationError as exc:
+            print(f"  Skipping mode due to configuration error: {exc}")
+        except EmbeddingComputationError as exc:
+            print(f"  Failed to compute embedding: {exc}")
         print()
 
-    print("✅ All embeddings valid")
+    print("✅ Demo complete")

@@ -21,6 +21,7 @@ import { spawn } from 'node:child_process';
 import path from 'node:path';
 import { logInfo, logWarning, logError } from '../telemetry/logger.js';
 import { withSpan } from '../telemetry/tracing.js';
+import { ensureQualityGraphPython } from './python_env.js';
 
 /**
  * Task metadata for recording
@@ -74,15 +75,18 @@ export interface RecordingOptions {
 
   /** Python executable (default: 'python3') */
   pythonPath?: string;
+
+  /** Embedding backend override (default: live flag/env) */
+  embeddingMode?: 'tfidf' | 'neural';
 }
 
 /**
  * Default options
  */
-const DEFAULT_OPTIONS: Required<RecordingOptions> = {
+const DEFAULT_OPTIONS = {
   timeoutMs: 30000,
   pythonPath: 'python3',
-};
+} as const;
 
 /**
  * Record a completed task as a vector in the quality graph
@@ -140,6 +144,24 @@ export async function recordTaskVector(
       return { success: false, error };
     }
 
+    let pythonExecutable = opts.pythonPath;
+
+    if (!options.pythonPath || options.pythonPath === DEFAULT_OPTIONS.pythonPath) {
+      try {
+        pythonExecutable = await ensureQualityGraphPython(workspaceRoot);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        logWarning('Quality graph Python environment unavailable', {
+          taskId: metadata.taskId,
+          error: message,
+        });
+        span?.setAttribute('error', message);
+        return { success: false, error: message };
+      }
+    }
+
+    span?.setAttribute('pythonPath', pythonExecutable);
+
     // Build Python script path
     const scriptPath = path.join(
       workspaceRoot,
@@ -148,6 +170,10 @@ export async function recordTaskVector(
 
     // Build arguments
     const args = [scriptPath, workspaceRoot, metadata.taskId, '--outcome', metadata.outcome];
+
+    if (opts.embeddingMode) {
+      args.push('--embedding-mode', opts.embeddingMode);
+    }
 
     if (metadata.title) {
       args.push('--title', metadata.title);
@@ -176,12 +202,13 @@ export async function recordTaskVector(
     logInfo('Recording task vector', {
       taskId: metadata.taskId,
       outcome: metadata.outcome,
+      pythonPath: pythonExecutable,
       scriptPath,
     });
 
     // Execute Python script
     return new Promise<RecordingResult>((resolve) => {
-      const proc = spawn(opts.pythonPath, args, {
+      const proc = spawn(pythonExecutable ?? opts.pythonPath, args, {
         cwd: workspaceRoot,
         timeout: opts.timeoutMs,
         stdio: ['ignore', 'pipe', 'pipe'],

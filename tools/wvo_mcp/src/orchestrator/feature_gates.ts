@@ -25,6 +25,13 @@ export interface FeatureGatesReader {
   isAdminToolsEnabled(): boolean;
   isUpgradeToolsEnabled(): boolean;
   isRoutingToolsEnabled(): boolean;
+  getObserverConfig(): {
+    enabled: boolean;
+    cadence: number;
+    timeoutMs: number;
+    model: string;
+  };
+  getQualityGraphEmbeddingMode(): 'tfidf' | 'neural';
 }
 
 export interface FeatureGatesConfig {
@@ -107,6 +114,27 @@ export class FeatureGates implements FeatureGatesReader {
       }),
       globalMinTasks: this.parsePositiveIntFlag('HOLISTIC_REVIEW_GLOBAL_MIN_TASKS', 6, { max: 100 }),
     };
+  }
+
+  getObserverConfig(): {
+    enabled: boolean;
+    cadence: number;
+    timeoutMs: number;
+    model: string;
+  } {
+    const enabled = this.liveFlags.getValue('OBSERVER_AGENT_ENABLED') === '1';
+    const cadence = this.parsePositiveIntFlag('OBSERVER_AGENT_CADENCE', 5, { max: 1000 });
+    const timeoutMs = this.parsePositiveIntFlag('OBSERVER_AGENT_TIMEOUT_MS', 30000, {
+      min: 1000,
+      max: 300000,
+    });
+    const model = this.liveFlags.getValue('OBSERVER_AGENT_MODEL') || 'gpt-5.1-high';
+    return { enabled, cadence, timeoutMs, model };
+  }
+
+  getQualityGraphEmbeddingMode(): 'tfidf' | 'neural' {
+    const value = this.liveFlags.getValue('QUALITY_GRAPH_EMBEDDINGS');
+    return value === 'neural' ? 'neural' : 'tfidf';
   }
 
   private parsePositiveIntFlag(

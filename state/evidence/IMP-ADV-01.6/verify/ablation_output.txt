@@ -1,0 +1,19 @@
+2025-10-29T13:09:18 [INFO] Load pretrained SentenceTransformer: sentence-transformers/all-MiniLM-L6-v2
+/Volumes/BigSSD4/nathanielschmiedehaus/miniforge3/lib/python3.10/site-packages/transformers/tokenization_utils_base.py:1601: FutureWarning: `clean_up_tokenization_spaces` was not set. It will be set to `True` by default. This behavior will be depracted in transformers v4.45, and will be then set to `False` by default. For more details check this issue: https://github.com/huggingface/transformers/issues/31884
+  warnings.warn(
+2025-10-29T13:09:19 [INFO] Loaded sentence-transformer model
+{
+  "tfidf": {
+    "precision_at_k": 0.19000000000000003,
+    "map": 0.30828004978624174,
+    "mean_embedding_latency_ms": 1.0781813034554943,
+    "evaluated_queries": 20
+  },
+  "neural": {
+    "precision_at_k": 0.2700000000000001,
+    "map": 0.3641434592525924,
+    "mean_embedding_latency_ms": 148.47434379844344,
+    "evaluated_queries": 20
+  }
+}
+Ablation written to /Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/state/evidence/IMP-ADV-01.6/verify/neural_vs_tfidf_ablation.json

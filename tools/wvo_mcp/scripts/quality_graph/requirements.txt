@@ -6,13 +6,21 @@
 # Installation:
 #   pip3 install -r requirements.txt
 #
-# Version Rationale (2025-10-29):
+# Version Rationale (2025-11-02):
 # - numpy 1.26.4: Stable release, universal wheel support
 # - scikit-learn 1.5.0: Latest stable with TF-IDF improvements
 # - pydantic 2.12.0: V2 API with better performance
+# - torch 2.2.2: CPU wheels available; compatible with Python 3.8+ and sentence-transformers
+# - transformers 4.44.2: Matches sentence-transformers 2.7 series
+# - accelerate 0.34.2: Ensures deterministic CPU inference
+# - sentence-transformers 2.7.0: Provides MiniLM-L6-v2 encoder (384d)
 #
 # Minimum Python Version: 3.8+
 
 numpy==1.26.4
 scikit-learn==1.5.0
 pydantic==2.12.0
+torch==2.2.2
+transformers==4.44.2
+accelerate==0.34.2
+sentence-transformers==2.7.0

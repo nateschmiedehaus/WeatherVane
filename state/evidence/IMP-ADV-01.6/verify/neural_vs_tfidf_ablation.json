@@ -1,0 +1,1441 @@
+{
+  "k": 5,
+  "modes": {
+    "tfidf": {
+      "precision_at_k": 0.19000000000000003,
+      "map": 0.30828004978624174,
+      "mean_embedding_latency_ms": 3.7342292001994792,
+      "evaluated_queries": 20
+    },
+    "neural": {
+      "precision_at_k": 0.2700000000000001,
+      "map": 0.3641434592525924,
+      "mean_embedding_latency_ms": 219.46745424866094,
+      "evaluated_queries": 20
+    }
+  },
+  "per_query": [
+    {
+      "query_task_id": "IMP-API-01",
+      "modes": {
+        "tfidf": {
+          "mode": "tfidf",
+          "precision_at_k": 0.2,
+          "average_precision": 0.41880341880341887,
+          "top_results": [
+            {
+              "task_id": "DOC-02",
+              "similarity": 0.3200211524963379,
+              "relevant": true
+            },
+            {
+              "task_id": "DOC-01",
+              "similarity": 0.21888026595115662,
+              "relevant": false
+            },
+            {
+              "task_id": "CRIT-API-01",
+              "similarity": 0.13807328045368195,
+              "relevant": false
+            },
+            {
+              "task_id": "CRIT-DB-01",
+              "similarity": 0.13250258564949036,
+              "relevant": false
+            },
+            {
+              "task_id": "IMP-DB-01",
+              "similarity": 0.11301715672016144,
+              "relevant": false
+            }
+          ],
+          "relevant_total": 4
+        },
+        "neural": {
+          "mode": "neural",
+          "precision_at_k": 0.4,
+          "average_precision": 0.4442982456140351,
+          "top_results": [
+            {
+              "task_id": "DOC-02",
+              "similarity": 0.473549485206604,
+              "relevant": true
+            },
+            {
+              "task_id": "CRIT-API-01",
+              "similarity": 0.3633500039577484,
+              "relevant": false
+            },
+            {
+              "task_id": "CRIT-DB-01",
+              "similarity": 0.3447161614894867,
+              "relevant": false
+            },
+            {
+              "task_id": "IMP-OBS-01",
+              "similarity": 0.3041396141052246,
+              "relevant": false
+            },
+            {
+              "task_id": "IMP-PERF-01",
+              "similarity": 0.2830691933631897,
+              "relevant": true
+            }
+          ],
+          "relevant_total": 4
+        }
+      }
+    },
+    {
+      "query_task_id": "IMP-API-02",
+      "modes": {
+        "tfidf": {
+          "mode": "tfidf",
+          "precision_at_k": 0.4,
+          "average_precision": 0.3860606060606061,
+          "top_results": [
+            {
+              "task_id": "IMP-PERF-01",
+              "similarity": 0.24920938909053802,
+              "relevant": false
+            },
+            {
+              "task_id": "DOC-02",
+              "similarity": 0.16779080033302307,
+              "relevant": true
+            },
+            {
+              "task_id": "IMP-INFRA-01",
+              "similarity": 0.15484961867332458,
+              "relevant": false
+            },
+            {
+              "task_id": "IMP-OBS-01",
+              "similarity": 0.15359026193618774,
+              "relevant": false
+            },
+            {
+              "task_id": "CRIT-UI-01",
+              "similarity": 0.1316331923007965,
+              "relevant": true
+            }
+          ],
+          "relevant_total": 5
+        },
+        "neural": {
+          "mode": "neural",
+          "precision_at_k": 0.2,
+          "average_precision": 0.3699494949494949,
+          "top_results": [
+            {
+              "task_id": "IMP-PERF-01",
+              "similarity": 0.5800685882568359,
+              "relevant": false
+            },
+            {
+              "task_id": "DOC-02",
+              "similarity": 0.48738715052604675,
+              "relevant": true
+            },
+            {
+              "task_id": "IMP-OBS-01",
+              "similarity": 0.4330107569694519,
+              "relevant": false
+            },
+            {
+              "task_id": "IMP-TEST-01",
+              "similarity": 0.2843894362449646,
+              "relevant": false
+            },
+            {
+              "task_id": "IMP-INFRA-01",
+              "similarity": 0.2668789029121399,
+              "relevant": false
+            }
+          ],
+          "relevant_total": 5
+        }
+      }
+    },
+    {
+      "query_task_id": "CRIT-API-01",
+      "modes": {
+        "tfidf": {
+          "mode": "tfidf",
+          "precision_at_k": 0.2,
+          "average_precision": 0.4784090909090909,
+          "top_results": [
+            {
+              "task_id": "CRIT-DB-01",
+              "similarity": 0.23404136300086975,
+              "relevant": true
+            },
+            {
+              "task_id": "IMP-PERF-01",
+              "similarity": 0.1640762984752655,
+              "relevant": false
+            },
+            {
+              "task_id": "IMP-API-01",
+              "similarity": 0.13807328045368195,
+              "relevant": false
+            },
+            {
+              "task_id": "DOC-01",
+              "similarity": 0.13192513585090637,
+              "relevant": false
+            },
+            {
+              "task_id": "DOC-02",
+              "similarity": 0.1271367222070694,
+              "relevant": false
+            }
+          ],
+          "relevant_total": 4
+        },
+        "neural": {
+          "mode": "neural",
+          "precision_at_k": 0.2,
+          "average_precision": 0.2537878787878788,
+          "top_results": [
+            {
+              "task_id": "IMP-API-01",
+              "similarity": 0.3633500039577484,
+              "relevant": false
+            },
+            {
+              "task_id": "IMP-PERF-01",
+              "similarity": 0.30173641443252563,
+              "relevant": false
+            },
+            {
+              "task_id": "CRIT-DB-01",
+              "similarity": 0.29746028780937195,
+              "relevant": true
+            },
+            {
+              "task_id": "IMP-DB-01",
+              "similarity": 0.22710874676704407,
+              "relevant": false
+            },
+            {
+              "task_id": "DOC-02",
+              "similarity": 0.2150820791721344,
+              "relevant": false
+            }
+          ],
+          "relevant_total": 4
+        }
+      }
+    },
+    {
+      "query_task_id": "IMP-DB-01",
+      "modes": {
+        "tfidf": {
+          "mode": "tfidf",
+          "precision_at_k": 0.0,
+          "average_precision": 0.09728506787330317,
+          "top_results": [
+            {
+              "task_id": "IMP-UI-02",
+              "similarity": 0.1384214460849762,
+              "relevant": false
+            },
+            {
+              "task_id": "DOC-02",
+              "similarity": 0.11416885256767273,
+              "relevant": false
+            },
+            {
+              "task_id": "IMP-API-01",
+              "similarity": 0.11301715672016144,
+              "relevant": false
+            },
+            {
+              "task_id": "CRIT-PERF-01",
+              "similarity": 0.093879833817482,
+              "relevant": false
+            },
+            {
+              "task_id": "CRIT-DB-01",
+              "similarity": 0.09226096421480179,
+              "relevant": false
+            }
+          ],
+          "relevant_total": 2
+        },
+        "neural": {
+          "mode": "neural",
+          "precision_at_k": 0.0,
+          "average_precision": 0.18333333333333335,
+          "top_results": [
+            {
+              "task_id": "DOC-02",
+              "similarity": 0.28563547134399414,
+              "relevant": false
+            },
+            {
+              "task_id": "IMP-API-01",
+              "similarity": 0.2808155417442322,
+              "relevant": false
+            },
+            {
+              "task_id": "IMP-UI-02",
+              "similarity": 0.2656055688858032,
+              "relevant": false
+            },
+            {
+              "task_id": "IMP-PERF-01",
+              "similarity": 0.2639089822769165,
+              "relevant": false
+            },
+            {
+              "task_id": "IMP-API-02",
+              "similarity": 0.23410265147686005,
+              "relevant": false
+            }
+          ],
+          "relevant_total": 2
+        }
+      }
+    },
+    {
+      "query_task_id": "CRIT-DB-01",
+      "modes": {
+        "tfidf": {
+          "mode": "tfidf",
+          "precision_at_k": 0.4,
+          "average_precision": 0.49302373581011344,
+          "top_results": [
+            {
+              "task_id": "CRIT-API-01",
+              "similarity": 0.23404136300086975,
+              "relevant": true
+            },
+            {
+              "task_id": "IMP-OBS-01",
+              "similarity": 0.14308404922485352,
+              "relevant": false
+            },
+            {
+              "task_id": "IMP-API-01",
+              "similarity": 0.13250258564949036,
+              "relevant": true
+            },
+            {
+              "task_id": "DOC-01",
+              "similarity": 0.12483011931180954,
+              "relevant": false
+            },
+            {
+              "task_id": "CRIT-OBS-01",
+              "similarity": 0.09497582912445068,
+              "relevant": false
+            }
+          ],
+          "relevant_total": 5
+        },
+        "neural": {
+          "mode": "neural",
+          "precision_at_k": 0.4,
+          "average_precision": 0.31719040247678015,
+          "top_results": [
+            {
+              "task_id": "IMP-PERF-01",
+              "similarity": 0.37339356541633606,
+              "relevant": false
+            },
+            {
+              "task_id": "IMP-API-01",
+              "similarity": 0.3447161614894867,
+              "relevant": true
+            },
+            {
+              "task_id": "CRIT-PERF-01",
+              "similarity": 0.3250078558921814,
+              "relevant": false
+            },
+            {
+              "task_id": "CRIT-OBS-01",
+              "similarity": 0.2999519407749176,
+              "relevant": false
+            },
+            {
+              "task_id": "CRIT-API-01",
+              "similarity": 0.29746028780937195,
+              "relevant": true
+            }
+          ],
+          "relevant_total": 5
+        }
+      }
+    },
+    {
+      "query_task_id": "IMP-UI-01",
+      "modes": {
+        "tfidf": {
+          "mode": "tfidf",
+          "precision_at_k": 0.2,
+          "average_precision": 0.26666666666666666,
+          "top_results": [
+            {
+              "task_id": "IMP-OBS-02",
+              "similarity": 0.0939674973487854,
+              "relevant": false
+            },
+            {
+              "task_id": "IMP-INFRA-01",
+              "similarity": 0.08680874109268188,
+              "relevant": false
+            },
+            {
+              "task_id": "CRIT-UI-01",
+              "similarity": 0.08390443027019501,
+              "relevant": true
+            },
+            {
+              "task_id": "REFACTOR-02",
+              "similarity": 0.08127570897340775,
+              "relevant": false
+            },
+            {
+              "task_id": "REFACTOR-01",
+              "similarity": 0.07800794392824173,
+              "relevant": false
+            }
+          ],
+          "relevant_total": 2
+        },
+        "neural": {
+          "mode": "neural",
+          "precision_at_k": 0.0,
+          "average_precision": 0.17142857142857143,
+          "top_results": [
+            {
+              "task_id": "IMP-UI-02",
+              "similarity": 0.3434266448020935,
+              "relevant": false
+            },
+            {
+              "task_id": "CRIT-PERF-01",
+              "similarity": 0.21148017048835754,
+              "relevant": false
+            },
+            {
+              "task_id": "IMP-API-01",
+              "similarity": 0.1763736605644226,
+              "relevant": false
+            },
+            {
+              "task_id": "IMP-OBS-02",
+              "similarity": 0.10806472599506378,
+              "relevant": false
+            },
+            {
+              "task_id": "IMP-PERF-01",
+              "similarity": 0.07815053313970566,
+              "relevant": false
+            }
+          ],
+          "relevant_total": 2
+        }
+      }
+    },
+    {
+      "query_task_id": "IMP-UI-02",
+      "modes": {
+        "tfidf": {
+          "mode": "tfidf",
+          "precision_at_k": 0.4,
+          "average_precision": 0.3213675213675214,
+          "top_results": [
+            {
+              "task_id": "IMP-DB-01",
+              "similarity": 0.1384214460849762,
+              "relevant": false
+            },
+            {
+              "task_id": "CRIT-PERF-01",
+              "similarity": 0.10482193529605865,
+              "relevant": false
+            },
+            {
+              "task_id": "CRIT-UI-01",
+              "similarity": 0.0733184665441513,
+              "relevant": true
+            },
+            {
+              "task_id": "IMP-INFRA-01",
+              "similarity": 0.03363722190260887,
+              "relevant": false
+            },
+            {
+              "task_id": "IMP-UI-01",
+              "similarity": 0.03200707957148552,
+              "relevant": true
+            }
+          ],
+          "relevant_total": 3
+        },
+        "neural": {
+          "mode": "neural",
+          "precision_at_k": 0.4,
+          "average_precision": 0.5435897435897435,
+          "top_results": [
+            {
+              "task_id": "IMP-UI-01",
+              "similarity": 0.3434266448020935,
+              "relevant": true
+            },
+            {
+              "task_id": "IMP-DB-01",
+              "similarity": 0.2656055688858032,
+              "relevant": false
+            },
+            {
+              "task_id": "IMP-API-02",
+              "similarity": 0.20035004615783691,
+              "relevant": false
+            },
+            {
+              "task_id": "IMP-PERF-01",
+              "similarity": 0.17893213033676147,
+              "relevant": false
+            },
+            {
+              "task_id": "CRIT-UI-01",
+              "similarity": 0.1617455780506134,
+              "relevant": true
+            }
+          ],
+          "relevant_total": 3
+        }
+      }
+    },
+    {
+      "query_task_id": "CRIT-UI-01",
+      "modes": {
+        "tfidf": {
+          "mode": "tfidf",
+          "precision_at_k": 0.2,
+          "average_precision": 0.27865384615384614,
+          "top_results": [
+            {
+              "task_id": "IMP-TEST-01",
+              "similarity": 0.2415771186351776,
+              "relevant": false
+            },
+            {
+              "task_id": "CRIT-OBS-01",
+              "similarity": 0.17631293833255768,
+              "relevant": false
+            },
+            {
+              "task_id": "IMP-API-02",
+              "similarity": 0.1316331923007965,
+              "relevant": true
+            },
+            {
+              "task_id": "IMP-PERF-01",
+              "similarity": 0.1216166615486145,
+              "relevant": false
+            },
+            {
+              "task_id": "CRIT-PERF-01",
+              "similarity": 0.11657808721065521,
+              "relevant": false
+            }
+          ],
+          "relevant_total": 5
+        },
+        "neural": {
+          "mode": "neural",
+          "precision_at_k": 0.4,
+          "average_precision": 0.4459663865546218,
+          "top_results": [
+            {
+              "task_id": "REFACTOR-02",
+              "similarity": 0.316203773021698,
+              "relevant": true
+            },
+            {
+              "task_id": "REFACTOR-01",
+              "similarity": 0.27246934175491333,
+              "relevant": false
+            },
+            {
+              "task_id": "IMP-TEST-01",
+              "similarity": 0.24534782767295837,
+              "relevant": false
+            },
+            {
+              "task_id": "CRIT-OBS-01",
+              "similarity": 0.20120203495025635,
+              "relevant": false
+            },
+            {
+              "task_id": "IMP-API-02",
+              "similarity": 0.20088717341423035,
+              "relevant": true
+            }
+          ],
+          "relevant_total": 5
+        }
+      }
+    },
+    {
+      "query_task_id": "IMP-TEST-01",
+      "modes": {
+        "tfidf": {
+          "mode": "tfidf",
+          "precision_at_k": 0.2,
+          "average_precision": 0.4873376623376623,
+          "top_results": [
+            {
+              "task_id": "CRIT-UI-01",
+              "similarity": 0.2415771186351776,
+              "relevant": true
+            },
+            {
+              "task_id": "REFACTOR-01",
+              "similarity": 0.166307270526886,
+              "relevant": false
+            },
+            {
+              "task_id": "CRIT-OBS-01",
+              "similarity": 0.1484014391899109,
+              "relevant": false
+            },
+            {
+              "task_id": "IMP-OBS-02",
+              "similarity": 0.14222079515457153,
+              "relevant": false
+            },
+            {
+              "task_id": "IMP-API-01",
+              "similarity": 0.11275529861450195,
+              "relevant": false
+            }
+          ],
+          "relevant_total": 4
+        },
+        "neural": {
+          "mode": "neural",
+          "precision_at_k": 0.2,
+          "average_precision": 0.2936720142602495,
+          "top_results": [
+            {
+              "task_id": "REFACTOR-01",
+              "similarity": 0.35500186681747437,
+              "relevant": false
+            },
+            {
+              "task_id": "IMP-TEST-02",
+              "similarity": 0.3430681824684143,
+              "relevant": false
+            },
+            {
+              "task_id": "DOC-02",
+              "similarity": 0.2845304608345032,
+              "relevant": true
+            },
+            {
+              "task_id": "IMP-API-02",
+              "similarity": 0.2843894362449646,
+              "relevant": false
+            },
+            {
+              "task_id": "IMP-INFRA-01",
+              "similarity": 0.25698286294937134,
+              "relevant": false
+            }
+          ],
+          "relevant_total": 4
+        }
+      }
+    },
+    {
+      "query_task_id": "IMP-TEST-02",
+      "modes": {
+        "tfidf": {
+          "mode": "tfidf",
+          "precision_at_k": 0.4,
+          "average_precision": 0.31719040247678015,
+          "top_results": [
+            {
+              "task_id": "IMP-OBS-01",
+              "similarity": 0.17611849308013916,
+              "relevant": false
+            },
+            {
+              "task_id": "REFACTOR-01",
+              "similarity": 0.1574283391237259,
+              "relevant": true
+            },
+            {
+              "task_id": "REFACTOR-02",
+              "similarity": 0.13496947288513184,
+              "relevant": false
+            },
+            {
+              "task_id": "CRIT-API-01",
+              "similarity": 0.10711827874183655,
+              "relevant": false
+            },
+            {
+              "task_id": "IMP-OBS-02",
+              "similarity": 0.09292985498905182,
+              "relevant": true
+            }
+          ],
+          "relevant_total": 5
+        },
+        "neural": {
+          "mode": "neural",
+          "precision_at_k": 0.4,
+          "average_precision": 0.38189393939393945,
+          "top_results": [
+            {
+              "task_id": "IMP-TEST-01",
+              "similarity": 0.3430681824684143,
+              "relevant": false
+            },
+            {
+              "task_id": "IMP-OBS-02",
+              "similarity": 0.33476799726486206,
+              "relevant": true
+            },
+            {
+              "task_id": "CRIT-DB-01",
+              "similarity": 0.23712867498397827,
+              "relevant": false
+            },
+            {
+              "task_id": "IMP-API-02",
+              "similarity": 0.2195677012205124,
+              "relevant": false
+            },
+            {
+              "task_id": "IMP-INFRA-01",
+              "similarity": 0.21896380186080933,
+              "relevant": true
+            }
+          ],
+          "relevant_total": 5
+        }
+      }
+    },
+    {
+      "query_task_id": "IMP-OBS-01",
+      "modes": {
+        "tfidf": {
+          "mode": "tfidf",
+          "precision_at_k": 0.0,
+          "average_precision": 0.15659722222222222,
+          "top_results": [
+            {
+              "task_id": "IMP-TEST-02",
+              "similarity": 0.17611849308013916,
+              "relevant": false
+            },
+            {
+              "task_id": "IMP-API-02",
+              "similarity": 0.15359026193618774,
+              "relevant": false
+            },
+            {
+              "task_id": "CRIT-DB-01",
+              "similarity": 0.14308404922485352,
+              "relevant": false
+            },
+            {
+              "task_id": "DOC-01",
+              "similarity": 0.132664754986763,
+              "relevant": false
+            },
+            {
+              "task_id": "CRIT-UI-01",
+              "similarity": 0.10432657599449158,
+              "relevant": false
+            }
+          ],
+          "relevant_total": 4
+        },
+        "neural": {
+          "mode": "neural",
+          "precision_at_k": 0.6,
+          "average_precision": 0.5875,
+          "top_results": [
+            {
+              "task_id": "IMP-OBS-02",
+              "similarity": 0.48258304595947266,
+              "relevant": true
+            },
+            {
+              "task_id": "IMP-PERF-01",
+              "similarity": 0.44476354122161865,
+              "relevant": false
+            },
+            {
+              "task_id": "IMP-API-02",
+              "similarity": 0.4330107569694519,
+              "relevant": false
+            },
+            {
+              "task_id": "DOC-02",
+              "similarity": 0.3845551908016205,
+              "relevant": true
+            },
+            {
+              "task_id": "IMP-INFRA-01",
+              "similarity": 0.34240713715553284,
+              "relevant": true
+            }
+          ],
+          "relevant_total": 4
+        }
+      }
+    },
+    {
+      "query_task_id": "IMP-OBS-02",
+      "modes": {
+        "tfidf": {
+          "mode": "tfidf",
+          "precision_at_k": 0.2,
+          "average_precision": 0.2554047259929613,
+          "top_results": [
+            {
+              "task_id": "DOC-01",
+              "similarity": 0.14350664615631104,
+              "relevant": false
+            },
+            {
+              "task_id": "IMP-TEST-01",
+              "similarity": 0.14222079515457153,
+              "relevant": false
+            },
+            {
+              "task_id": "IMP-INFRA-01",
+              "similarity": 0.13147765398025513,
+              "relevant": true
+            },
+            {
+              "task_id": "REFACTOR-01",
+              "similarity": 0.0989619717001915,
+              "relevant": false
+            },
+            {
+              "task_id": "IMP-PERF-01",
+              "similarity": 0.0962841659784317,
+              "relevant": false
+            }
+          ],
+          "relevant_total": 4
+        },
+        "neural": {
+          "mode": "neural",
+          "precision_at_k": 0.4,
+          "average_precision": 0.5317982456140351,
+          "top_results": [
+            {
+              "task_id": "IMP-OBS-01",
+              "similarity": 0.48258304595947266,
+              "relevant": true
+            },
+            {
+              "task_id": "IMP-TEST-02",
+              "similarity": 0.33476799726486206,
+              "relevant": false
+            },
+            {
+              "task_id": "DOC-02",
+              "similarity": 0.29806429147720337,
+              "relevant": true
+            },
+            {
+              "task_id": "DOC-01",
+              "similarity": 0.2966918349266052,
+              "relevant": false
+            },
+            {
+              "task_id": "IMP-PERF-01",
+              "similarity": 0.27957627177238464,
+              "relevant": false
+            }
+          ],
+          "relevant_total": 4
+        }
+      }
+    },
+    {
+      "query_task_id": "CRIT-OBS-01",
+      "modes": {
+        "tfidf": {
+          "mode": "tfidf",
+          "precision_at_k": 0.0,
+          "average_precision": 0.24720418470418473,
+          "top_results": [
+            {
+              "task_id": "REFACTOR-02",
+              "similarity": 0.21580985188484192,
+              "relevant": false
+            },
+            {
+              "task_id": "CRIT-UI-01",
+              "similarity": 0.17631293833255768,
+              "relevant": false
+            },
+            {
+              "task_id": "IMP-PERF-01",
+              "similarity": 0.17315176129341125,
+              "relevant": false
+            },
+            {
+              "task_id": "IMP-TEST-01",
+              "similarity": 0.1484014391899109,
+              "relevant": false
+            },
+            {
+              "task_id": "DOC-01",
+              "similarity": 0.10953810811042786,
+              "relevant": false
+            }
+          ],
+          "relevant_total": 5
+        },
+        "neural": {
+          "mode": "neural",
+          "precision_at_k": 0.2,
+          "average_precision": 0.3148018648018648,
+          "top_results": [
+            {
+              "task_id": "CRIT-PERF-01",
+              "similarity": 0.3989909887313843,
+              "relevant": false
+            },
+            {
+              "task_id": "CRIT-DB-01",
+              "similarity": 0.2999519407749176,
+              "relevant": false
+            },
+            {
+              "task_id": "IMP-OBS-01",
+              "similarity": 0.29342275857925415,
+              "relevant": false
+            },
+            {
+              "task_id": "IMP-OBS-02",
+              "similarity": 0.2739616930484772,
+              "relevant": true
+            },
+            {
+              "task_id": "IMP-PERF-01",
+              "similarity": 0.272258460521698,
+              "relevant": false
+            }
+          ],
+          "relevant_total": 5
+        }
+      }
+    },
+    {
+      "query_task_id": "REFACTOR-01",
+      "modes": {
+        "tfidf": {
+          "mode": "tfidf",
+          "precision_at_k": 0.2,
+          "average_precision": 0.42063492063492064,
+          "top_results": [
+            {
+              "task_id": "IMP-TEST-01",
+              "similarity": 0.166307270526886,
+              "relevant": false
+            },
+            {
+              "task_id": "IMP-TEST-02",
+              "similarity": 0.1574283391237259,
+              "relevant": true
+            },
+            {
+              "task_id": "IMP-API-02",
+              "similarity": 0.1301196813583374,
+              "relevant": false
+            },
+            {
+              "task_id": "REFACTOR-02",
+              "similarity": 0.11010226607322693,
+              "relevant": false
+            },
+            {
+              "task_id": "CRIT-UI-01",
+              "similarity": 0.10717366635799408,
+              "relevant": false
+            }
+          ],
+          "relevant_total": 3
+        },
+        "neural": {
+          "mode": "neural",
+          "precision_at_k": 0.2,
+          "average_precision": 0.373015873015873,
+          "top_results": [
+            {
+              "task_id": "IMP-TEST-01",
+              "similarity": 0.35500186681747437,
+              "relevant": false
+            },
+            {
+              "task_id": "DOC-02",
+              "similarity": 0.29941534996032715,
+              "relevant": true
+            },
+            {
+              "task_id": "CRIT-UI-01",
+              "similarity": 0.27246934175491333,
+              "relevant": false
+            },
+            {
+              "task_id": "REFACTOR-02",
+              "similarity": 0.25244107842445374,
+              "relevant": false
+            },
+            {
+              "task_id": "IMP-INFRA-01",
+              "similarity": 0.22822515666484833,
+              "relevant": false
+            }
+          ],
+          "relevant_total": 3
+        }
+      }
+    },
+    {
+      "query_task_id": "REFACTOR-02",
+      "modes": {
+        "tfidf": {
+          "mode": "tfidf",
+          "precision_at_k": 0.0,
+          "average_precision": 0.17456427015250545,
+          "top_results": [
+            {
+              "task_id": "CRIT-OBS-01",
+              "similarity": 0.21580985188484192,
+              "relevant": false
+            },
+            {
+              "task_id": "IMP-TEST-02",
+              "similarity": 0.13496947288513184,
+              "relevant": false
+            },
+            {
+              "task_id": "DOC-02",
+              "similarity": 0.1344321370124817,
+              "relevant": false
+            },
+            {
+              "task_id": "IMP-API-02",
+              "similarity": 0.12101341784000397,
+              "relevant": false
+            },
+            {
+              "task_id": "DOC-01",
+              "similarity": 0.11599846184253693,
+              "relevant": false
+            }
+          ],
+          "relevant_total": 3
+        },
+        "neural": {
+          "mode": "neural",
+          "precision_at_k": 0.2,
+          "average_precision": 0.48333333333333334,
+          "top_results": [
+            {
+              "task_id": "CRIT-UI-01",
+              "similarity": 0.316203773021698,
+              "relevant": true
+            },
+            {
+              "task_id": "IMP-OBS-01",
+              "similarity": 0.2938690781593323,
+              "relevant": false
+            },
+            {
+              "task_id": "REFACTOR-01",
+              "similarity": 0.25244107842445374,
+              "relevant": false
+            },
+            {
+              "task_id": "CRIT-PERF-01",
+              "similarity": 0.2476334422826767,
+              "relevant": false
+            },
+            {
+              "task_id": "CRIT-OBS-01",
+              "similarity": 0.2431022822856903,
+              "relevant": false
+            }
+          ],
+          "relevant_total": 3
+        }
+      }
+    },
+    {
+      "query_task_id": "DOC-01",
+      "modes": {
+        "tfidf": {
+          "mode": "tfidf",
+          "precision_at_k": 0.2,
+          "average_precision": 0.3106060606060606,
+          "top_results": [
+            {
+              "task_id": "IMP-INFRA-01",
+              "similarity": 0.28779155015945435,
+              "relevant": false
+            },
+            {
+              "task_id": "IMP-API-01",
+              "similarity": 0.21888026595115662,
+              "relevant": true
+            },
+            {
+              "task_id": "IMP-OBS-02",
+              "similarity": 0.14350664615631104,
+              "relevant": false
+            },
+            {
+              "task_id": "IMP-OBS-01",
+              "similarity": 0.132664754986763,
+              "relevant": false
+            },
+            {
+              "task_id": "CRIT-API-01",
+              "similarity": 0.13192513585090637,
+              "relevant": false
+            }
+          ],
+          "relevant_total": 3
+        },
+        "neural": {
+          "mode": "neural",
+          "precision_at_k": 0.4,
+          "average_precision": 0.3111111111111111,
+          "top_results": [
+            {
+              "task_id": "IMP-INFRA-01",
+              "similarity": 0.4983562231063843,
+              "relevant": false
+            },
+            {
+              "task_id": "IMP-OBS-01",
+              "similarity": 0.3229314982891083,
+              "relevant": false
+            },
+            {
+              "task_id": "DOC-02",
+              "similarity": 0.31562501192092896,
+              "relevant": true
+            },
+            {
+              "task_id": "IMP-OBS-02",
+              "similarity": 0.2966918349266052,
+              "relevant": false
+            },
+            {
+              "task_id": "IMP-PERF-01",
+              "similarity": 0.24266813695430756,
+              "relevant": true
+            }
+          ],
+          "relevant_total": 3
+        }
+      }
+    },
+    {
+      "query_task_id": "DOC-02",
+      "modes": {
+        "tfidf": {
+          "mode": "tfidf",
+          "precision_at_k": 0.0,
+          "average_precision": 0.16939484126984128,
+          "top_results": [
+            {
+              "task_id": "IMP-API-01",
+              "similarity": 0.3200211524963379,
+              "relevant": false
+            },
+            {
+              "task_id": "IMP-API-02",
+              "similarity": 0.16779080033302307,
+              "relevant": false
+            },
+            {
+              "task_id": "REFACTOR-02",
+              "similarity": 0.1344321370124817,
+              "relevant": false
+            },
+            {
+              "task_id": "CRIT-API-01",
+              "similarity": 0.1271367222070694,
+              "relevant": false
+            },
+            {
+              "task_id": "IMP-DB-01",
+              "similarity": 0.11416885256767273,
+              "relevant": false
+            }
+          ],
+          "relevant_total": 4
+        },
+        "neural": {
+          "mode": "neural",
+          "precision_at_k": 0.2,
+          "average_precision": 0.2338235294117647,
+          "top_results": [
+            {
+              "task_id": "IMP-API-02",
+              "similarity": 0.48738715052604675,
+              "relevant": false
+            },
+            {
+              "task_id": "IMP-API-01",
+              "similarity": 0.473549485206604,
+              "relevant": false
+            },
+            {
+              "task_id": "IMP-OBS-01",
+              "similarity": 0.3845551908016205,
+              "relevant": false
+            },
+            {
+              "task_id": "IMP-INFRA-01",
+              "similarity": 0.33890262246131897,
+              "relevant": true
+            },
+            {
+              "task_id": "IMP-PERF-01",
+              "similarity": 0.3207686245441437,
+              "relevant": false
+            }
+          ],
+          "relevant_total": 4
+        }
+      }
+    },
+    {
+      "query_task_id": "CRIT-PERF-01",
+      "modes": {
+        "tfidf": {
+          "mode": "tfidf",
+          "precision_at_k": 0.2,
+          "average_precision": 0.24314574314574314,
+          "top_results": [
+            {
+              "task_id": "IMP-PERF-01",
+              "similarity": 0.1884332299232483,
+              "relevant": false
+            },
+            {
+              "task_id": "CRIT-UI-01",
+              "similarity": 0.11657808721065521,
+              "relevant": false
+            },
+            {
+              "task_id": "IMP-INFRA-01",
+              "similarity": 0.10814998298883438,
+              "relevant": true
+            },
+            {
+              "task_id": "IMP-UI-02",
+              "similarity": 0.10482193529605865,
+              "relevant": false
+            },
+            {
+              "task_id": "IMP-DB-01",
+              "similarity": 0.093879833817482,
+              "relevant": false
+            }
+          ],
+          "relevant_total": 3
+        },
+        "neural": {
+          "mode": "neural",
+          "precision_at_k": 0.0,
+          "average_precision": 0.19266381766381765,
+          "top_results": [
+            {
+              "task_id": "CRIT-OBS-01",
+              "similarity": 0.3989909887313843,
+              "relevant": false
+            },
+            {
+              "task_id": "CRIT-DB-01",
+              "similarity": 0.3250078558921814,
+              "relevant": false
+            },
+            {
+              "task_id": "IMP-PERF-01",
+              "similarity": 0.2563099265098572,
+              "relevant": false
+            },
+            {
+              "task_id": "REFACTOR-02",
+              "similarity": 0.2476334422826767,
+              "relevant": false
+            },
+            {
+              "task_id": "IMP-TEST-02",
+              "similarity": 0.21623557806015015,
+              "relevant": false
+            }
+          ],
+          "relevant_total": 3
+        }
+      }
+    },
+    {
+      "query_task_id": "IMP-PERF-01",
+      "modes": {
+        "tfidf": {
+          "mode": "tfidf",
+          "precision_at_k": 0.2,
+          "average_precision": 0.3727272727272727,
+          "top_results": [
+            {
+              "task_id": "IMP-API-02",
+              "similarity": 0.24920938909053802,
+              "relevant": false
+            },
+            {
+              "task_id": "CRIT-PERF-01",
+              "similarity": 0.1884332299232483,
+              "relevant": true
+            },
+            {
+              "task_id": "CRIT-OBS-01",
+              "similarity": 0.17315176129341125,
+              "relevant": false
+            },
+            {
+              "task_id": "CRIT-API-01",
+              "similarity": 0.1640762984752655,
+              "relevant": false
+            },
+            {
+              "task_id": "CRIT-UI-01",
+              "similarity": 0.1216166615486145,
+              "relevant": false
+            }
+          ],
+          "relevant_total": 5
+        },
+        "neural": {
+          "mode": "neural",
+          "precision_at_k": 0.2,
+          "average_precision": 0.35844155844155845,
+          "top_results": [
+            {
+              "task_id": "IMP-API-02",
+              "similarity": 0.5800685882568359,
+              "relevant": false
+            },
+            {
+              "task_id": "IMP-OBS-01",
+              "similarity": 0.44476354122161865,
+              "relevant": false
+            },
+            {
+              "task_id": "CRIT-DB-01",
+              "similarity": 0.37339356541633606,
+              "relevant": false
+            },
+            {
+              "task_id": "DOC-02",
+              "similarity": 0.3207686245441437,
+              "relevant": true
+            },
+            {
+              "task_id": "CRIT-API-01",
+              "similarity": 0.30173641443252563,
+              "relevant": false
+            }
+          ],
+          "relevant_total": 5
+        }
+      }
+    },
+    {
+      "query_task_id": "IMP-INFRA-01",
+      "modes": {
+        "tfidf": {
+          "mode": "tfidf",
+          "precision_at_k": 0.2,
+          "average_precision": 0.27052373581011346,
+          "top_results": [
+            {
+              "task_id": "DOC-01",
+              "similarity": 0.28779155015945435,
+              "relevant": false
+            },
+            {
+              "task_id": "IMP-API-02",
+              "similarity": 0.15484961867332458,
+              "relevant": false
+            },
+            {
+              "task_id": "IMP-OBS-02",
+              "similarity": 0.13147765398025513,
+              "relevant": true
+            },
+            {
+              "task_id": "CRIT-PERF-01",
+              "similarity": 0.10814998298883438,
+              "relevant": false
+            },
+            {
+              "task_id": "IMP-PERF-01",
+              "similarity": 0.09428106993436813,
+              "relevant": false
+            }
+          ],
+          "relevant_total": 5
+        },
+        "neural": {
+          "mode": "neural",
+          "precision_at_k": 0.4,
+          "average_precision": 0.4912698412698412,
+          "top_results": [
+            {
+              "task_id": "DOC-01",
+              "similarity": 0.4983562231063843,
+              "relevant": false
+            },
+            {
+              "task_id": "IMP-OBS-01",
+              "similarity": 0.34240713715553284,
+              "relevant": true
+            },
+            {
+              "task_id": "DOC-02",
+              "similarity": 0.33890262246131897,
+              "relevant": true
+            },
+            {
+              "task_id": "IMP-API-02",
+              "similarity": 0.2668789029121399,
+              "relevant": false
+            },
+            {
+              "task_id": "IMP-PERF-01",
+              "similarity": 0.25969940423965454,
+              "relevant": false
+            }
+          ],
+          "relevant_total": 5
+        }
+      }
+    }
+  ],
+  "workspace_root": "/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane",
+  "generated_at": "2025-10-29T18:10:36Z"
+}
