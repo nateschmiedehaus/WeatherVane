@@ -276,6 +276,73 @@ describe('PromptCompiler', () => {
       expect(input).toEqual(inputCopy);
     });
   });
+
+  describe('Persona Slot (IMP-22 Integration)', () => {
+    it('should compile with persona slot', () => {
+      const input: PromptInput = {
+        system: 'You are Claude.',
+        phase: 'STRATEGIZE',
+        persona: 'Role: expert-planner | Skills: typescript'
+      };
+
+      const compiler = new PromptCompiler();
+      const compiled = compiler.compile(input);
+
+      expect(compiled.text).toContain('Persona: Role: expert-planner');
+      expect(compiled.text).toContain('typescript');
+      expect(compiled.hash).toMatch(/^[0-9a-f]{64}$/);
+    });
+
+    it('should compile without persona slot (backward compat)', () => {
+      const input: PromptInput = {
+        system: 'You are Claude.',
+        phase: 'STRATEGIZE'
+      };
+
+      const compiler = new PromptCompiler();
+      const compiled = compiler.compile(input);
+
+      expect(compiled.text).not.toContain('Persona:');
+      expect(compiled.text).toBe('You are Claude.\n\nSTRATEGIZE');
+      expect(compiled.hash).toMatch(/^[0-9a-f]{64}$/);
+    });
+
+    it('should change hash when persona changes', () => {
+      const compiler = new PromptCompiler();
+
+      const hash1 = compiler.compile({
+        system: 'You are Claude.',
+        phase: 'STRATEGIZE',
+        persona: 'Role: planner'
+      }).hash;
+
+      const hash2 = compiler.compile({
+        system: 'You are Claude.',
+        phase: 'STRATEGIZE',
+        persona: 'Role: reviewer'
+      }).hash;
+
+      expect(hash1).not.toBe(hash2);
+    });
+
+    it('should maintain hash stability with persona', () => {
+      const input: PromptInput = {
+        system: 'You are Claude.',
+        phase: 'STRATEGIZE',
+        persona: 'Role: expert'
+      };
+
+      const compiler = new PromptCompiler();
+      const hashes: string[] = [];
+
+      for (let i = 0; i < 10; i++) {
+        hashes.push(compiler.compile(input).hash);
+      }
+
+      const unique = new Set(hashes);
+      expect(unique.size).toBe(1); // All identical
+    });
+  });
 });
 
 describe('Feature Flag', () => {

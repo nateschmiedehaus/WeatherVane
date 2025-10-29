@@ -8,6 +8,7 @@ import { createHash } from 'crypto';
  * @property domain - Domain context (e.g., 'api', 'web', 'ml') (OPTIONAL)
  * @property skills - Available methods/tools (OPTIONAL)
  * @property rubric - Quality criteria (OPTIONAL)
+ * @property persona - Persona content (serialized from PersonaSpec) (OPTIONAL)
  * @property context - Task-specific context anchors (OPTIONAL)
  */
 export interface PromptInput {
@@ -16,6 +17,7 @@ export interface PromptInput {
   domain?: string;
   skills?: string;
   rubric?: string;
+  persona?: string;
   context?: string;
 }
 
@@ -134,7 +136,7 @@ export class PromptCompiler {
     }
 
     // Check optional slots have correct types if provided
-    const optionalSlots = ['domain', 'skills', 'rubric', 'context'] as const;
+    const optionalSlots = ['domain', 'skills', 'rubric', 'persona', 'context'] as const;
     for (const slot of optionalSlots) {
       const value = input[slot];
       if (value !== undefined && typeof value !== 'string') {
@@ -160,6 +162,7 @@ export class PromptCompiler {
     if (input.domain) parts.push(`Domain: ${input.domain}`);
     if (input.skills) parts.push(`Skills: ${input.skills}`);
     if (input.rubric) parts.push(`Rubric: ${input.rubric}`);
+    if (input.persona) parts.push(`Persona: ${input.persona}`);
     if (input.context) parts.push(`Context: ${input.context}`);
 
     return parts.join('\n\n');

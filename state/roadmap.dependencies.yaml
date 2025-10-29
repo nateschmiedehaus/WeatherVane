@@ -1,0 +1,60 @@
+# Roadmap Dependencies and Integration Relationships
+#
+# Purpose: Track cross-item integration to ensure changes work in context
+# See: docs/autopilot/WORK_PROCESS.md (Cross-Item Integration section)
+#
+# Format:
+#   task_id:
+#     related: [tasks this coordinates with]
+#     depends_on: [prerequisites that must be complete]
+#     produces: [outputs/contracts this provides]
+#     consumes: [inputs/contracts this requires]
+
+IMP-21:
+  related: []
+  depends_on: []
+  produces:
+    - PromptCompiler with typed slots (system, phase, domain, skills, rubric, context)
+    - SHA-256 hash for prompt attestation
+    - CompiledPrompt interface
+  consumes: []
+  status: complete
+  commit: 0ac0efea
+
+IMP-21-22-SYNC:
+  related:
+    - IMP-21  # Extends compiler with persona slot
+    - IMP-22  # Coordinates persona interface
+  depends_on:
+    - IMP-21  # Needs compiler implementation complete
+  produces:
+    - persona slot in PromptInput interface (string type)
+    - PersonaSpec interface (stub for IMP-22)
+    - formatPersonaForCompiler() adapter function (stub)
+    - Integration test coverage (6 tests)
+  consumes:
+    - PromptCompiler from IMP-21
+    - CompiledPrompt interface from IMP-21
+  status: in_progress
+  notes: |
+    Coordination task to align IMP-21 (Prompt Compiler) with IMP-22 (PersonaSpec).
+    Adds persona slot to compiler, creates stub adapter for IMP-22 to replace.
+    Maintains backward compatibility (persona is optional).
+
+IMP-22:
+  related:
+    - IMP-21-22-SYNC  # Requires persona slot interface
+  depends_on:
+    - IMP-21-22-SYNC  # Cannot proceed without persona slot in compiler
+  produces:
+    - PersonaSpec canonicalization (replaces stub)
+    - Persona hashing (deterministic, sorted keys)
+    - Full formatPersonaForCompiler() implementation
+  consumes:
+    - persona slot interface from IMP-21-22-SYNC
+    - PersonaSpec stub interface from IMP-21-22-SYNC
+  status: blocked
+  notes: |
+    Blocked until IMP-21-22-SYNC completes.
+    Will replace stub adapter with full canonicalization logic.
+    Planned by Codex, implementation pending.
