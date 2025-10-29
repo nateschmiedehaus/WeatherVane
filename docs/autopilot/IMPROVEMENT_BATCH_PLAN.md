@@ -306,6 +306,22 @@ Acceptance points to verify (hard checks)
 
 ---
 
+## Current Progress (as of latest Claude session)
+
+- IMP‑FUND‑01 — Phase Ledger: DONE
+- IMP‑FUND‑02 — Evidence‑Gated Transitions: DONE
+- IMP‑FUND‑03 — MCP Test Fixes / Integrity Stabilization (initial tranche): DONE
+- IMP‑FUND‑04 — Phase Transition Benchmark (latency sanity): DONE
+- Next up:
+  - IMP‑FUND‑05 — Playwright browser installation guard and CI verification
+  - IMP‑FUND‑06 — Checkpoint validation scripts and acceptance test wiring
+  - IMP‑FUND‑07 — End‑to‑end enforcement validation tests
+  - IMP‑FUND‑09 — Baseline monitoring window (after 05–07 are green)
+
+Notes: Verify artifacts (test logs/benchmarks) are stored under `state/evidence/IMP/verify/` and linked in the decision journal.
+
+---
+
 ## What’s Excellent (Baseline Strengths)
 
 - State graph with gated edges and watchdog.

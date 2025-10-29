@@ -12,6 +12,13 @@ if [[ ! -x "${PLAYWRIGHT_BIN}" ]]; then
   exit 1
 fi
 
+# Ensure Playwright browsers are installed
+echo "[playwright] Ensuring browsers are installed..."
+"${REPO_ROOT}/scripts/ensure_playwright_browsers.sh" || {
+  echo "Failed to ensure Playwright browsers are installed" >&2
+  exit 1
+}
+
 EXPORT_DIR="${APP_ROOT}/playwright-export"
 DEFAULT_OUT="${APP_ROOT}/out"
 
