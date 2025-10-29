@@ -56,7 +56,7 @@
 ### 🚨 MANDATORY WORK PROCESS - ENFORCED EVERYWHERE
 
 **EVERY task MUST follow this exact sequence (inside or outside the Unified Autopilot loop):**
-**STRATEGIZE → SPEC → PLAN → THINK → IMPLEMENT → VERIFY → REVIEW → PR → MONITOR**
+**STRATEGIZE → SPEC → PLAN → THINK → IMPLEMENT → VERIFY → REVIEW → PR → MONITOR** (see `docs/autopilot/WORK_PROCESS.md` for the future‑proof stage contracts, artifacts, and fitness functions)
 
 - **ENFORCEMENT IS ACTIVE:**
   - WorkProcessEnforcer BLOCKS tasks that skip phases
@@ -77,6 +77,44 @@
 - Meet every acceptance criterion; builds must be clean (0 errors/warnings) and all tests must pass with no skips.
 - Document as you go; never schedule documentation as a follow-up.
 - Catch insufficient tokens or oversized tasks during Plan and escalate before starting.
+
+### Gap Remediation Protocol (MANDATORY)
+**Policy:** Gaps found in REVIEW (or any late phase) are BLOCKERS, not backlog items. Fix them NOW.
+
+**Rules:**
+1. **NO deferring to follow-up tasks** - Gaps must be fixed in the current work process loop
+2. **Loop back immediately** - Return to the earliest impacted phase (typically IMPLEMENT, sometimes earlier)
+3. **Re-run all downstream phases** - VERIFY → REVIEW → PR → MONITOR must all be re-executed with gap fixes
+4. **Only exception** - Gaps explicitly marked "out of scope" in the SPEC acceptance criteria
+5. **Update evidence** - All evidence documents must reflect the gap fixes
+
+**Example Violation:**
+- ❌ REVIEW finds: "Missing error handling" → Recommendation: "Add in follow-up task TASK-456"
+- ✅ REVIEW finds: "Missing error handling" → Action: Loop back to IMPLEMENT, add error handling, re-run VERIFY/REVIEW/PR/MONITOR
+
+**What counts as a gap:**
+- Missing implementation details (validation, error handling, edge cases)
+- Incomplete documentation (troubleshooting, examples, migration guides)
+- Unverified assumptions (performance without benchmarks, compatibility without tests)
+- Design flaws (tight coupling, no graceful degradation, missing rollback)
+
+**What is NOT a gap (can be deferred):**
+- Items explicitly listed as "out of scope" in SPEC
+- Follow-up features that are separate user stories (not in current acceptance criteria)
+- Nice-to-have improvements beyond core functionality
+- Performance optimizations beyond stated requirements
+
+**Process:**
+1. REVIEW identifies gaps → List each gap with severity
+2. For each gap NOT explicitly out-of-scope in SPEC:
+   - Determine earliest impacted phase (usually IMPLEMENT)
+   - Loop back to that phase
+   - Fix the gap with implementation changes
+   - Update all affected evidence documents
+3. Re-run VERIFY → REVIEW → PR → MONITOR
+4. If new gaps found, repeat (should be rare with thorough THINK phase)
+
+**See:** Added 2025-10-28 after session where gaps were incorrectly deferred to follow-up tasks.
 
 ### Codex Call Stability
 - Pin requests to the designated Codex build (e.g., `o4-mini-YYYYMMDD` or `gpt-4.x-YYYYMMDD`) when provided.
