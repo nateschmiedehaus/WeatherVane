@@ -15,6 +15,7 @@ import type { SupervisorAgent } from '../supervisor.js';
 
 import type { RunnerContext, RunnerResult } from './runner_types.js';
 import { recordTaskVector, extractRecordingMetadata } from '../../quality_graph/recorder.js';
+import { getCorpusSize } from '../../quality_graph/corpus_metrics.js';
 import { logInfo, logWarning } from '../../telemetry/logger.js';
 
 export interface MonitorRunnerDeps {
@@ -99,6 +100,19 @@ export async function runMonitor(context: RunnerContext, deps: MonitorRunnerDeps
       error: errorMsg,
     });
     recordingNotes.push(`Quality graph recording error: ${errorMsg}`);
+  }
+
+  // Emit corpus size metric (non-blocking)
+  try {
+    const corpusSize = await getCorpusSize(deps.workspaceRoot);
+    logInfo('Quality graph corpus size', { corpusSize, taskId: task.id });
+  } catch (error) {
+    // Graceful degradation: log warning but don't fail task
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    logWarning('Failed to get quality graph corpus size (non-blocking)', {
+      taskId: task.id,
+      error: errorMsg,
+    });
   }
 
   // Clear task and complete

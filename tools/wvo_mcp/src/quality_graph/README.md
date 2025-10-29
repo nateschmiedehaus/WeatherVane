@@ -283,6 +283,55 @@ similarity(v1, v2) = v1 · v2  (for unit-normalized vectors)
 - Auto-prune when corpus exceeds threshold
 - Call `pruneOldVectors(workspaceRoot, keepRecent=2000)`
 
+## Corpus Size Monitoring
+
+**Metric**: `quality_graph_corpus_size`
+
+The quality graph emits a corpus size metric after each task completion to monitor corpus health and prevent performance degradation.
+
+### Metric Details
+
+- **Name**: `quality_graph_corpus_size`
+- **Type**: Gauge (current value)
+- **Unit**: vectors
+- **Emitted**: After task vector recorded in MONITOR phase
+- **Frequency**: 1-5 times per day (per task completion)
+- **Logged**: `state/telemetry/metrics.jsonl` and autopilot logs
+
+### Alert Thresholds
+
+- **Nominal**: <1800 vectors (normal operation)
+- **Warning**: ≥1800 vectors (90% of prune limit) - Review growth rate, prepare for prune
+- **Critical**: ≥2000 vectors (prune limit) - Manual prune needed, investigate why auto-prune didn't trigger
+- **Excessive**: ≥2100 vectors (emergency) - Performance likely degraded
+
+**Recommended Action**: When warning threshold reached:
+1. Review corpus growth rate (is it expected?)
+2. Manually prune if needed: Call `pruneOldVectors(workspaceRoot, keepRecent=2000)`
+3. Investigate if growth rate unexpectedly high
+
+### Manual Inspection
+
+Check corpus size manually:
+```bash
+# Count vectors
+wc -l state/quality_graph/task_vectors.jsonl
+
+# Check most recent vectors
+tail -5 state/quality_graph/task_vectors.jsonl
+
+# Check oldest vectors (will be pruned first)
+head -5 state/quality_graph/task_vectors.jsonl
+```
+
+### Performance Expectations
+
+- **Query Latency**: <100ms for corpus <2000 vectors
+- **Memory Usage**: ~1-2MB for 2000 vectors (loaded during query)
+- **Pruning Behavior**: Auto-prune keeps most recent 2000 vectors
+
+**Note**: If corpus exceeds 2000, performance may degrade. Pruning should be triggered before this threshold.
+
 ## Integration Points
 
 ### MONITOR Phase (Recording)
