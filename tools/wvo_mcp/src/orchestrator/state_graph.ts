@@ -1,4 +1,5 @@
 import path from 'node:path';
+import { promises as fs } from 'node:fs';
 
 import { ContextAssembler } from '../context/context_assembler.js';
 import { DecisionJournal } from '../memory/decision_journal.js';
@@ -27,6 +28,14 @@ import { Verifier, type VerifierResult } from './verifier.js';
 import { ReviewerAgent } from './reviewer_agent.js';
 import { SupervisorAgent } from './supervisor.js';
 import type { TaskEnvelope } from './task_envelope.js';
+import type { FeatureGatesReader } from './feature_gates.js';
+import { ObserverAgent, type ObserverObservation } from './observer_agent.js';
+import { PromptCompiler, shouldUseCompiler, type PromptInput, type CompiledPrompt } from '../prompt/compiler.js';
+import { standardPromptHeader } from '../utils/prompt_headers.js';
+import { extractPersonaSignals } from '../persona_router/feature_extractor.js';
+import { computePersonaSpec } from '../persona_router/routing_rules.js';
+import { formatPersonaForCompiler, hashPersonaSpec, type PersonaSpec as AdapterPersonaSpec } from '../persona_router/compiler_adapter.js';
+import type { PersonaSpec as RouterPersonaSpec } from '../persona_router/persona_spec.js';
 
 
 
@@ -45,7 +54,7 @@ import { runPr } from './state_runners/pr_runner.js';
 import { runMonitor } from './state_runners/monitor_runner.js';
 import { SmokeCommand, type SmokeCommandResult } from './smoke_command.js';
 import { ResolutionMetricsStore } from './resolution_metrics_store.js';
-import type { WorkPhase } from './work_process_enforcer.js';
+import type { WorkPhase, PhaseAdvanceMetadata } from './work_process_enforcer.js';
 import type { RunnerResult } from './state_runners/runner_types.js';
 
 
@@ -61,6 +70,74 @@ const RETRY_LIMITS: Record<AutopilotState, number> = {
   pr: 1,
   monitor: 1,
 };
+
+const STATE_TO_PHASE: Record<AutopilotState, WorkPhase> = {
+  specify: 'SPEC',
+  plan: 'PLAN',
+  thinker: 'THINK',
+  implement: 'IMPLEMENT',
+  verify: 'VERIFY',
+  review: 'REVIEW',
+  pr: 'PR',
+  monitor: 'MONITOR',
+};
+
+const PHASE_INSTRUCTIONS: Record<WorkPhase, string> = {
+  STRATEGIZE: 'STRATEGIZE: Define objective, KPIs, risks, and alignment with roadmap.',
+  SPEC: 'SPEC: Translate objectives into measurable acceptance criteria and constraints.',
+  PLAN: 'PLAN: Produce file/test map, minimal viable diff, and risk mitigations.',
+  THINK: 'THINK: Explore alternatives, failure modes, and edge cases prior to coding.',
+  IMPLEMENT: 'IMPLEMENT: Produce minimal patch with tests/docs while respecting scope.',
+  VERIFY: 'VERIFY: Run tests, lint, type, security, and report artifacts with zero skips.',
+  REVIEW: 'REVIEW: Apply rubric, cite issues, and confirm acceptance criteria coverage.',
+  PR: 'PR: Package summary, risks, rollback, and attach required evidence for merge.',
+  MONITOR: 'MONITOR: Execute post-merge smokes, capture telemetry, and detect regressions.',
+};
+
+const PHASE_INTENT: Record<WorkPhase, 'execute' | 'review' | 'remediation'> = {
+  STRATEGIZE: 'execute',
+  SPEC: 'execute',
+  PLAN: 'execute',
+  THINK: 'execute',
+  IMPLEMENT: 'execute',
+  VERIFY: 'execute',
+  REVIEW: 'review',
+  PR: 'review',
+  MONITOR: 'execute',
+};
+
+const PERSONA_SPEC_RELATIVE_DIR = path.join('state', 'process', 'persona_specs');
+
+interface PersonaSpecPhaseSnapshot {
+  hash?: string;
+  summary?: string;
+  allowlist: string[];
+  spec: RouterPersonaSpec;
+  updatedAt: string;
+}
+
+interface PersonaSpecFileSnapshot {
+  taskId: string;
+  updatedAt: string;
+  phases: Partial<Record<WorkPhase, PersonaSpecPhaseSnapshot>>;
+}
+
+interface ComposePromptParams {
+  phase: WorkPhase;
+  task: StateGraphTaskContext;
+  attempt: number;
+  planResult?: PlannerAgentResult;
+  thinkerInsights?: string[];
+  implementResult?: ImplementerAgentResult;
+  verifierResult?: VerifierResult;
+  integrityReport?: IntegrityReport;
+  qualityGraphHints?: string;
+  fileHints: string[];
+}
+
+interface BuildPhaseMetadataParams extends ComposePromptParams {
+  state: AutopilotState;
+}
 
 type ContextAssemblerContract = {
   emit: ContextAssembler['emit'];
@@ -83,6 +160,8 @@ export interface StateGraphDependencies {
   currentStateTracker?: CurrentStateTracker;
   checkpoint?: CheckpointClient;
   workProcessEnforcer?: import('./work_process_enforcer.js').WorkProcessEnforcer;
+  featureGates?: FeatureGatesReader;
+  observer?: ObserverAgent;
 }
 
 export interface StateGraphOptions {
@@ -123,6 +202,8 @@ export class StateGraph {
   private readonly runId: string;
   private readonly incidentReporter?: IncidentReporter;
   private readonly resolutionMetrics: ResolutionMetricsStore;
+  private observerCounter = 0;
+  private readonly promptCompiler = new PromptCompiler();
 
   constructor(private readonly deps: StateGraphDependencies, options: StateGraphOptions) {
     this.workspaceRoot = options.workspaceRoot;
@@ -147,6 +228,7 @@ export class StateGraph {
     let implementResult: ImplementerAgentResult | undefined;
     let verifierResult: VerifierResult | undefined;
     let integrityReport: IntegrityReport | undefined;
+    let planQualityHints: string | undefined;
 
     const routerDecisions: Array<{ state: AutopilotState; selection: ModelSelection }> = [];
     const resolutionTrace: ResolutionResult[] = [];
@@ -224,7 +306,23 @@ export class StateGraph {
           }
           case 'plan': {
             // CRITICAL: Validate and advance work process phase
-            await this.advanceWorkPhase(task.id, state, span);
+            const phaseMetadata = this.buildPhaseMetadata({
+              state,
+              phase: STATE_TO_PHASE[state],
+              task,
+              attempt: attemptNumber,
+              planResult,
+              thinkerInsights,
+              implementResult,
+              verifierResult,
+              integrityReport,
+              qualityGraphHints: planQualityHints,
+              fileHints,
+            });
+            await this.persistPersonaSpec(task.id, STATE_TO_PHASE[state], phaseMetadata.persona);
+            await this.advanceWorkPhase(task, state, span, phaseMetadata);
+            this.appendPhaseNotes(notes, STATE_TO_PHASE[state], phaseMetadata);
+            this.appendPhaseNotes(notes, STATE_TO_PHASE[state], phaseMetadata);
 
             await this.ensureRetryBudget(task, state);
             const modelSelection = this.selectModelForState(task, complexity);
@@ -260,7 +358,9 @@ export class StateGraph {
                 { originalError: error }
               );
             }
-            planResult = result.artifacts.plan as PlannerAgentResult;
+            const planArtifact = result.artifacts.plan as PlannerAgentResult & { qualityGraphHints?: string };
+            planResult = planArtifact;
+            planQualityHints = planArtifact.qualityGraphHints;
             Object.assign(artifacts, result.artifacts);
             notes.push(...result.notes);
             // Update StateGraph internal state
@@ -296,7 +396,22 @@ export class StateGraph {
           }
           case 'thinker': {
             // CRITICAL: Validate and advance work process phase
-            await this.advanceWorkPhase(task.id, state, span);
+            const phaseMetadata = this.buildPhaseMetadata({
+              state,
+              phase: STATE_TO_PHASE[state],
+              task,
+              attempt: attemptNumber,
+              planResult,
+              thinkerInsights,
+              implementResult,
+              verifierResult,
+              integrityReport,
+              qualityGraphHints: planQualityHints,
+              fileHints,
+            });
+            await this.persistPersonaSpec(task.id, STATE_TO_PHASE[state], phaseMetadata.persona);
+            await this.advanceWorkPhase(task, state, span, phaseMetadata);
+            this.appendPhaseNotes(notes, STATE_TO_PHASE[state], phaseMetadata);
 
             if (!planResult) {
               span?.setAttribute('result', 'error');
@@ -345,7 +460,22 @@ export class StateGraph {
           }
           case 'implement': {
             // CRITICAL: Validate and advance work process phase
-            await this.advanceWorkPhase(task.id, state, span);
+            const phaseMetadata = this.buildPhaseMetadata({
+              state,
+              phase: STATE_TO_PHASE[state],
+              task,
+              attempt: attemptNumber,
+              planResult,
+              thinkerInsights,
+              implementResult,
+              verifierResult,
+              integrityReport,
+              qualityGraphHints: planQualityHints,
+              fileHints,
+            });
+            await this.persistPersonaSpec(task.id, STATE_TO_PHASE[state], phaseMetadata.persona);
+            await this.advanceWorkPhase(task, state, span, phaseMetadata);
+            this.appendPhaseNotes(notes, STATE_TO_PHASE[state], phaseMetadata);
 
             if (!planResult) {
               span?.setAttribute('result', 'error');
@@ -412,7 +542,22 @@ export class StateGraph {
           }
           case 'verify': {
             // CRITICAL: Validate and advance work process phase
-            await this.advanceWorkPhase(task.id, state, span);
+            const phaseMetadata = this.buildPhaseMetadata({
+              state,
+              phase: STATE_TO_PHASE[state],
+              task,
+              attempt: attemptNumber,
+              planResult,
+              thinkerInsights,
+              implementResult,
+              verifierResult,
+              integrityReport,
+              qualityGraphHints: planQualityHints,
+              fileHints,
+            });
+            await this.persistPersonaSpec(task.id, STATE_TO_PHASE[state], phaseMetadata.persona);
+            await this.advanceWorkPhase(task, state, span, phaseMetadata);
+            this.appendPhaseNotes(notes, STATE_TO_PHASE[state], phaseMetadata);
 
             if (!implementResult) {
               span?.setAttribute('result', 'error');
@@ -485,6 +630,13 @@ export class StateGraph {
               riskNotes: verifierResult.success ? [] : ['Gate failure detected'],
             });
             await this.checkpoint(task.id, state, this.checkpointPayload(verifierResult));
+            if (result.success && verifierResult) {
+              const observation = await this.maybeRunObserver(task, verifierResult, attemptNumber);
+              if (observation) {
+                artifacts.observer = observation;
+                notes.push('Observer agent recorded advisory notes.');
+              }
+            }
             span?.addEvent('agent.state.transition.complete', {
               nextState: result.nextState,
               success: result.success,
@@ -495,7 +647,22 @@ export class StateGraph {
           }
           case 'review': {
             // CRITICAL: Validate and advance work process phase
-            await this.advanceWorkPhase(task.id, state, span);
+            const phaseMetadata = this.buildPhaseMetadata({
+              state,
+              phase: STATE_TO_PHASE[state],
+              task,
+              attempt: attemptNumber,
+              planResult,
+              thinkerInsights,
+              implementResult,
+              verifierResult,
+              integrityReport,
+              qualityGraphHints: planQualityHints,
+              fileHints,
+            });
+            await this.persistPersonaSpec(task.id, STATE_TO_PHASE[state], phaseMetadata.persona);
+            await this.advanceWorkPhase(task, state, span, phaseMetadata);
+            this.appendPhaseNotes(notes, STATE_TO_PHASE[state], phaseMetadata);
 
             if (!implementResult || !verifierResult) {
               span?.setAttribute('result', 'error');
@@ -549,7 +716,22 @@ export class StateGraph {
           }
           case 'pr': {
             // CRITICAL: Validate and advance work process phase
-            await this.advanceWorkPhase(task.id, state, span);
+            const phaseMetadata = this.buildPhaseMetadata({
+              state,
+              phase: STATE_TO_PHASE[state],
+              task,
+              attempt: attemptNumber,
+              planResult,
+              thinkerInsights,
+              implementResult,
+              verifierResult,
+              integrityReport,
+              qualityGraphHints: planQualityHints,
+              fileHints,
+            });
+            await this.persistPersonaSpec(task.id, STATE_TO_PHASE[state], phaseMetadata.persona);
+            await this.advanceWorkPhase(task, state, span, phaseMetadata);
+            this.appendPhaseNotes(notes, STATE_TO_PHASE[state], phaseMetadata);
 
             const modelSelection = this.selectModelForState(task, complexity);
             const result = await runPr(
@@ -584,7 +766,21 @@ export class StateGraph {
           }
           case 'monitor': {
             // CRITICAL: Validate and advance work process phase
-            await this.advanceWorkPhase(task.id, state, span);
+            const phaseMetadata = this.buildPhaseMetadata({
+              state,
+              phase: STATE_TO_PHASE[state],
+              task,
+              attempt: attemptNumber,
+              planResult,
+              thinkerInsights,
+              implementResult,
+              verifierResult,
+              integrityReport,
+              qualityGraphHints: planQualityHints,
+              fileHints,
+            });
+            await this.persistPersonaSpec(task.id, STATE_TO_PHASE[state], phaseMetadata.persona);
+            await this.advanceWorkPhase(task, state, span, phaseMetadata);
 
             const modelSelection = this.selectModelForState(task, complexity);
             const result = await runMonitor(
@@ -601,6 +797,7 @@ export class StateGraph {
                 workspaceRoot: this.workspaceRoot,
                 artifacts,
                 startTime,
+                featureGates: this.deps.featureGates,
               }
             );
             const monitorResult = result.artifacts.monitor as any;
@@ -826,29 +1023,316 @@ export class StateGraph {
     });
   }
 
+  private buildPhaseMetadata(params: BuildPhaseMetadataParams): PhaseAdvanceMetadata {
+    const { input, contextSummary } = this.composePromptInput(params);
+    const personaMeta = this.buildPersonaMetadata(params, input);
+
+    if (!shouldUseCompiler()) {
+      return {
+        prompt: {
+          compilerEnabled: false,
+          input,
+          contextSummary,
+          personaHash: personaMeta?.hash,
+          personaSummary: personaMeta?.summary,
+        },
+        persona: personaMeta,
+      };
+    }
+
+    try {
+      const compiled = this.promptCompiler.compile(input);
+      return {
+        prompt: {
+          compiled,
+          input,
+          contextSummary,
+          compilerEnabled: true,
+          personaHash: personaMeta?.hash,
+          personaSummary: personaMeta?.summary,
+        },
+        persona: personaMeta,
+      };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      logWarning('Prompt compilation failed', {
+        taskId: params.task.id,
+        phase: params.phase,
+        state: params.state,
+        error: message,
+      });
+      return {
+        prompt: {
+          compilerEnabled: true,
+          failureReason: message,
+          input,
+          contextSummary,
+          personaHash: personaMeta?.hash,
+          personaSummary: personaMeta?.summary,
+        },
+        persona: personaMeta,
+      };
+    }
+  }
+
+  private composePromptInput(params: ComposePromptParams): { input: PromptInput; contextSummary: string } {
+    const {
+      phase,
+      task,
+      attempt,
+      planResult,
+      thinkerInsights,
+      implementResult,
+      verifierResult,
+      integrityReport,
+      qualityGraphHints,
+      fileHints: _fileHints,
+    } = params;
+
+    const intent = PHASE_INTENT[phase] ?? 'execute';
+    const system = standardPromptHeader({
+      projectName: 'WeatherVane Unified Autopilot',
+      projectPhase: phase,
+      environment: 'workspace',
+      promptMode: 'compact',
+      agentType: 'codex',
+      agentRole: phase.toLowerCase(),
+      intent,
+    });
+
+    const contextParts: string[] = [];
+    contextParts.push(`Task ${task.id}: ${task.title}`);
+    contextParts.push(`Attempt: ${attempt}`);
+
+    if (task.description) {
+      contextParts.push(`Description: ${this.truncate(task.description, 220)}`);
+    }
+
+    if (task.labels && task.labels.length > 0) {
+      contextParts.push(`Labels: ${task.labels.join(', ')}`);
+    }
+
+    if (planResult?.summary) {
+      contextParts.push(`Plan: ${this.truncate(planResult.summary, 200)}`);
+    }
+    if (typeof planResult?.coverageTarget === 'number') {
+      contextParts.push(`Coverage target: ${(planResult.coverageTarget * 100).toFixed(1)}%`);
+    }
+
+    if (qualityGraphHints) {
+      const summary = this.truncate(qualityGraphHints.replace(/\s+/g, ' ').trim(), 180);
+      if (summary.length > 0) {
+        contextParts.push(`Quality graph hints: ${summary}`);
+      }
+    }
+
+    if (thinkerInsights && thinkerInsights.length > 0) {
+      contextParts.push(`Thinker insights: ${this.truncate(thinkerInsights.slice(0, 3).join(' | '), 200)}`);
+    }
+
+    if (implementResult) {
+      if (implementResult.notes?.length) {
+        contextParts.push(`Implement notes: ${this.truncate(implementResult.notes.slice(0, 2).join(' | '), 200)}`);
+      }
+      if (implementResult.changedFiles?.length) {
+        contextParts.push(`Changed files: ${implementResult.changedFiles.length}`);
+      }
+    }
+
+    if (verifierResult) {
+      contextParts.push(
+        `Verifier coverage delta: ${(verifierResult.coverageDelta * 100).toFixed(1)}% (target ${(verifierResult.coverageTarget * 100).toFixed(1)}%)`,
+      );
+      const failing = verifierResult.gateResults
+        .filter((gate) => !gate.success)
+        .map((gate) => gate.name);
+      if (failing.length > 0) {
+        contextParts.push(`Failing gates: ${failing.join(', ')}`);
+      }
+    }
+
+    if (integrityReport) {
+      const issues = [
+        ...(integrityReport.skippedTestsFound ?? []),
+        ...(integrityReport.placeholdersFound ?? []),
+        ...(integrityReport.noOpSuspicion ?? []),
+      ];
+      if (issues.length > 0) {
+        contextParts.push(`Integrity issues: ${this.truncate(issues.join('; '), 180)}`);
+      }
+    }
+
+    const contextSummary = this.truncate(contextParts.join('\n'), 700);
+
+    const input: PromptInput = {
+      system,
+      phase: PHASE_INSTRUCTIONS[phase],
+      domain: this.extractDomain(task),
+      context: contextSummary,
+    };
+
+    return { input, contextSummary };
+  }
+
+  private extractDomain(task: StateGraphTaskContext): string | undefined {
+    const domainLabel = task.labels?.find((label) => label.toLowerCase().startsWith('domain:'));
+    if (!domainLabel) {
+      return undefined;
+    }
+    const [, value] = domainLabel.split(':', 2);
+    return value?.trim() || undefined;
+  }
+
+  private truncate(value: string, max = 400): string {
+    if (value.length <= max) {
+      return value;
+    }
+    return `${value.slice(0, max - 3)}...`;
+  }
+
+  private buildPersonaMetadata(
+    params: BuildPhaseMetadataParams,
+    input: PromptInput
+  ): PhaseAdvanceMetadata['persona'] {
+    try {
+      const linesChangedEstimate =
+        (params.implementResult?.changedFiles?.length ?? 0) * 20;
+      const signals = extractPersonaSignals({
+        phase: params.phase.toLowerCase(),
+        filePaths: params.fileHints,
+        labels: params.task.labels,
+        linesChanged: linesChangedEstimate,
+      });
+      const spec = computePersonaSpec(signals);
+      const adapterSpec = spec as unknown as AdapterPersonaSpec;
+      const formattedPersona = formatPersonaForCompiler(adapterSpec);
+      const hash = hashPersonaSpec(adapterSpec);
+      input.persona = formattedPersona;
+      const allowlist = Array.from(new Set(spec.toolAllowlist ?? [])).sort();
+
+      return {
+        hash,
+        summary: this.formatPersonaSummary(spec),
+        allowlist,
+        spec: spec as unknown as Record<string, unknown>,
+      };
+    } catch (error) {
+      logWarning('Persona spec computation failed', {
+        taskId: params.task.id,
+        phase: params.phase,
+        state: params.state,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      return undefined;
+    }
+  }
+
+  private formatPersonaSummary(spec: RouterPersonaSpec): string {
+    const overlays =
+      spec.domainOverlays?.map((overlay) => `${overlay.domain}:${Math.round(overlay.weight * 100)}%`) ??
+      [];
+    const overlayText = overlays.length > 0 ? overlays.join(', ') : 'none';
+    return `role=${spec.phaseRole}; overlays=${overlayText}; scope=${spec.scope}; tools=${spec.toolAllowlist?.length ?? 0}`;
+  }
+
+  private appendPhaseNotes(notes: string[], phase: WorkPhase, metadata?: PhaseAdvanceMetadata): void {
+    const compiled = metadata?.prompt?.compiled;
+    if (compiled) {
+      notes.push(`Prompt hash [${phase}]: ${compiled.hash.slice(0, 12)}`);
+    } else if (metadata?.prompt?.failureReason) {
+      notes.push(`Prompt compiler warning [${phase}]: ${metadata.prompt.failureReason}`);
+    }
+
+    if (metadata?.persona?.hash) {
+      notes.push(`Persona hash [${phase}]: ${metadata.persona.hash.slice(0, 12)}`);
+    }
+    if (metadata?.persona?.summary) {
+      notes.push(`Persona summary [${phase}]: ${metadata.persona.summary}`);
+    }
+  }
+
+  private async persistPersonaSpec(
+    taskId: string,
+    phase: WorkPhase,
+    persona?: PhaseAdvanceMetadata['persona']
+  ): Promise<void> {
+    if (!persona?.spec) {
+      return;
+    }
+
+    try {
+      const dir = path.join(this.workspaceRoot, PERSONA_SPEC_RELATIVE_DIR);
+      await fs.mkdir(dir, { recursive: true });
+      const filePath = path.join(dir, `${taskId}.json`);
+
+      let snapshot: PersonaSpecFileSnapshot = {
+        taskId,
+        updatedAt: new Date().toISOString(),
+        phases: {},
+      };
+
+      try {
+        const existing = await fs.readFile(filePath, 'utf8');
+        const parsed = JSON.parse(existing) as PersonaSpecFileSnapshot;
+        if (parsed && typeof parsed === 'object') {
+          snapshot = {
+            taskId: parsed.taskId ?? taskId,
+            updatedAt: parsed.updatedAt ?? snapshot.updatedAt,
+            phases: parsed.phases ?? {},
+          };
+        }
+      } catch (error) {
+        const err = error as NodeJS.ErrnoException;
+        if (err?.code !== 'ENOENT') {
+          logWarning('Failed to read existing persona spec snapshot', {
+            taskId,
+            phase,
+            error: err?.message ?? String(error),
+          });
+        }
+      }
+
+      const updatedAt = new Date().toISOString();
+      const allowlist = Array.from(new Set(persona.allowlist ?? [])).sort();
+      const phaseSnapshot: PersonaSpecPhaseSnapshot = {
+        hash: persona.hash,
+        summary: persona.summary,
+        allowlist,
+        spec: persona.spec as unknown as RouterPersonaSpec,
+        updatedAt,
+      };
+
+      snapshot.phases[phase] = phaseSnapshot;
+      snapshot.updatedAt = updatedAt;
+
+      await fs.writeFile(filePath, JSON.stringify(snapshot, null, 2));
+    } catch (error) {
+      logWarning('Failed to persist persona spec snapshot', {
+        taskId,
+        phase,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
+
   /**
    * Validate and advance work process phase before state transition
    * CRITICAL: Enforces STRATEGIZE→SPEC→PLAN→THINK→IMPLEMENT→VERIFY→REVIEW→PR→MONITOR sequence
    * Throws StateGraphError on illegal phase skips
    */
-  private async advanceWorkPhase(taskId: string, nextState: AutopilotState, parentSpan?: SpanHandle): Promise<void> {
+  private async advanceWorkPhase(
+    task: StateGraphTaskContext,
+    nextState: AutopilotState,
+    parentSpan?: SpanHandle,
+    metadata?: PhaseAdvanceMetadata
+  ): Promise<void> {
+    const taskId = task.id;
     if (!this.deps.workProcessEnforcer) {
       return; // Enforcer not configured, allow transition
     }
 
     try {
-      const phaseMap: Record<AutopilotState, WorkPhase> = {
-        specify: 'SPEC',
-        plan: 'PLAN',
-        thinker: 'THINK',
-        implement: 'IMPLEMENT',
-        verify: 'VERIFY',
-        review: 'REVIEW',
-        pr: 'PR',
-        monitor: 'MONITOR'
-      };
-
-      const desiredPhase = phaseMap[nextState];
+      const desiredPhase = STATE_TO_PHASE[nextState];
 
       if (!desiredPhase) {
         parentSpan?.setAttribute('phaseValidation', 'error');
@@ -865,7 +1349,7 @@ export class StateGraph {
 
       // Advance to next phase in work process
       // This validates evidence and checks for phase skips
-      const advanced = await this.deps.workProcessEnforcer.advancePhase(taskId, desiredPhase);
+      const advanced = await this.deps.workProcessEnforcer.advancePhase(taskId, desiredPhase, metadata);
 
       if (!advanced) {
         parentSpan?.setAttribute('phaseValidation', 'failed');
@@ -1163,6 +1647,49 @@ export class StateGraph {
         taskId: task.id,
         error: error instanceof Error ? error.message : String(error),
       });
+    }
+  }
+
+  private async maybeRunObserver(
+    task: TaskEnvelope,
+    verifierResult: VerifierResult,
+    attemptNumber: number
+  ): Promise<ObserverObservation | null> {
+    const observer = this.deps.observer;
+    const featureGates = this.deps.featureGates;
+    if (!observer || !featureGates) {
+      return null;
+    }
+
+    const config = featureGates.getObserverConfig();
+    if (!config.enabled) {
+      return null;
+    }
+
+    const cadence = Math.max(1, config.cadence);
+    this.observerCounter += 1;
+    if (this.observerCounter % cadence !== 0) {
+      return null;
+    }
+
+    try {
+      return await observer.observe({
+        task,
+        verifierResult,
+        attempt: attemptNumber,
+        runId: this.runId,
+        config,
+      });
+    } catch (error) {
+      await this.deps.metricsCollector?.recordCounter('observer_failures', 1, {
+        taskId: task.id,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      logWarning('ObserverAgent observation failed', {
+        taskId: task.id,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      return null;
     }
   }
 }
