@@ -300,17 +300,27 @@ Artifacts
   - Evidence: `tools/wvo_mcp/scripts/quality_graph/requirements.txt` exists with pinned versions and rationale comments
 
 - IMP‑ADV‑01.6 — Neural Embeddings Upgrade
-  - Status: ✅ COMPLETE (2025-10-29)
+  - Status: ✅ FUNCTIONALLY COMPLETE (2025-10-29) - ⚠️ NEEDS OPTIMIZATION (IMP-ADV-01.6.1)
   - Scope: Pluggable embedding backend with sentence-transformers (all-MiniLM-L6-v2); preserves 384D vectors; feature-flagged rollout with offline bootstrap guidance
   - Implementation: TFIDFBackend + NeuralBackend classes, CLI flag support, 28 comprehensive unit tests, ablation comparison tool
-  - Result: **Neural shows 42% precision@5 improvement** (0.270 vs 0.190) with 148ms latency trade-off
+  - Result: **Neural shows 42% precision@5 improvement** (0.270 vs 0.190) but 59x slower (219ms vs 3.7ms)
   - Effort: 5 hours (actual)
   - Dependencies: IMP-ADV-01.3 (manual evaluation baseline for ablation)
   - Rollout: Live flag `QUALITY_GRAPH_EMBEDDINGS` (`tfidf` default, `neural` opt-in) plus CLI/env overrides
   - Evidence: `state/evidence/IMP-ADV-01.6/{strategize,spec,plan,think,implement,verify,review,pr,monitor}/` (complete 9-phase evidence)
   - Tests: 28 Python unit tests + 116 integration test files passing
   - Quality Score: 95/100 (APPROVE recommendation)
-  - Commit: `bce792bb`
+  - Commit: `bce792bb`, `5161f601`
+  - **Performance Gap**: No batch API - single embeddings only. Requires IMP-ADV-01.6.1 for production scale.
+
+- IMP‑ADV‑01.6.1 — Batch Embeddings API for Performance
+  - Status: PENDING (follow-up to IMP-ADV-01.6)
+  - Scope: Add `compute_embeddings_batch()` method; achieve ≥10x speedup (≤20ms/task @ batch_size=32) vs current 219ms/task
+  - Effort: 2-3 hours
+  - Dependencies: IMP-ADV-01.6 (neural embeddings backend)
+  - Target: Make neural embeddings production-ready at scale (1000 tasks in ≤40 seconds vs current 219 seconds)
+  - Evidence: `state/evidence/IMP-ADV-01.6.1/` (to be created)
+  - Acceptance: Batch API ≥10x faster than sequential, CLI integration, backward compatible, benchmarked
 
 - IMP‑ADV‑01.7 — Vector Database Migration (future enhancement)
   - Status: DEFERRED (only needed if corpus >10k vectors)
@@ -860,3 +870,32 @@ Notes
 - Gate 3: Enforce tests‑for‑src‑changes, changed‑lines coverage intent, migration/flag safety, rollback plan.
 - Gate 4: Hermetic CI (no net), coverage non‑decreasing, SBOM+vuln scan, license compliance.
 - Gate 5: Code‑owner approvals, labels, risk‑class HITL; auto‑merge only if policies green.
+
+---
+
+## Meta Tasks (Process Improvements)
+
+Tasks that improve the work process itself, prevent recurring issues, and strengthen quality systems.
+
+### META-VERIFY-01 — Pre-Commit Verification Protocol
+- Status: IN PROGRESS (2025-10-29)
+- Scope: Mandatory checklist before marking ANY task complete or creating PR commit
+- Trigger: Gap discovered in IMP-ADV-01.6 (marked complete without running code, critically evaluating 59x slowdown, or identifying missing batch API)
+- Root Cause: VERIFY phase relied on pre-existing documents without actually running/testing implementation
+- Prevention: 6-point mandatory checklist (build, tests, end-to-end, performance, integration, docs)
+- Impact: Prevents premature task completion, catches gaps before commit, enforces critical thinking about trade-offs
+- Effort: 1-2 hours (documentation updates)
+- Evidence: `state/evidence/META-VERIFY-01/spec/spec.md` (created)
+- Acceptance Criteria:
+  1. ✅ Checklist template created in docs/autopilot/templates/
+  2. ⏳ VERIFY phase docs updated to mandate checklist
+  3. ⏳ CLAUDE.md updated with pre-commit verification protocol
+  4. ⏳ At least 1 task completes using this checklist
+  5. ⏳ Evidence shows checklist caught a gap
+- Related: Learning 5 (CLAUDE.md) - Guarantee Verification Gap protocol
+
+### Future Meta Tasks (Examples)
+- META-PERF-01: Performance regression detection in CI
+- META-DOC-01: Automated README example validation
+- META-TEST-01: Test coverage threshold enforcement
+- META-BATCH-01: Batch operation pattern guidelines for ML workloads
