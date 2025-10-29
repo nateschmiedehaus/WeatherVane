@@ -173,13 +173,13 @@ def find_historical_tasks(
                 with open(resolution_file, 'r') as f:
                     data = json.load(f)
 
-                # Extract task metadata
-                task_id = data.get('task_id')
+                # Extract task metadata (handle both snake_case and camelCase)
+                task_id = data.get('task_id') or data.get('taskId')
                 if not task_id:
                     continue
 
-                # Check timestamp
-                timestamp_str = data.get('timestamp')
+                # Check timestamp (handle both 'timestamp' and 'createdAt')
+                timestamp_str = data.get('timestamp') or data.get('createdAt')
                 if timestamp_str:
                     try:
                         timestamp = datetime.fromisoformat(timestamp_str.replace('Z', '+00:00'))
@@ -218,7 +218,8 @@ def find_historical_tasks(
                 with open(resolution_file, 'r') as f:
                     data = json.load(f)
 
-                task_id = data.get('task_id')
+                # Handle both snake_case and camelCase
+                task_id = data.get('task_id') or data.get('taskId')
                 if not task_id:
                     continue
 
@@ -267,12 +268,13 @@ def backfill_task(
         True if successful, False otherwise
     """
     try:
-        # Compute embedding
-        embedding = compute_task_embedding(
-            title=task.get('title'),
-            description=task.get('description'),
-            files_touched=task.get('files_touched'),
-        )
+        # Compute embedding (pass metadata dict)
+        metadata = {
+            'title': task.get('title'),
+            'description': task.get('description'),
+            'files_touched': task.get('files_touched'),
+        }
+        embedding = compute_task_embedding(metadata)
 
         if dry_run:
             logger.debug(f'[DRY RUN] Would backfill: {task["task_id"]}')
