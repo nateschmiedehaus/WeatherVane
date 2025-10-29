@@ -9,6 +9,12 @@ Artifacts for each phase are enumerated and must be produced under `state/eviden
 ## Status Summary (Live)
 Last updated: 2025-10-29
 - Fundamentals (IMP‑FUND‑01..09): COMPLETE — see Current Progress; evidence scattered under `state/evidence/IMP-FUND-*/`.
+- Roadmap Infrastructure:
+  - ROADMAP‑STRUCT Phase 1 (Schema Definition): COMPLETE — `state/evidence/ROADMAP-STRUCT-P1/verify/`
+  - ROADMAP‑STRUCT Phase 2 (Validation Script): COMPLETE — `state/evidence/ROADMAP-STRUCT-P2/verify/`
+  - ROADMAP‑STRUCT Phase 3 (Roadmap Migration): COMPLETE — `state/evidence/ROADMAP-STRUCT-P3/verify/`
+  - ROADMAP‑STRUCT Phase 4 (plan_next Enhancement): PENDING
+  - ROADMAP‑STRUCT Phase 5 (CI Integration): PENDING
 - Observability:
   - IMP‑OBS‑01 (OTel Spans): COMPLETE — `state/evidence/IMP-OBS-01/verify/`
   - IMP‑OBS‑02 (OTel Counters): COMPLETE — `state/evidence/IMP-OBS-02/verify/`
@@ -210,6 +216,75 @@ Artifacts
   - Rollback: set `prompt.variants=off`.
   - Related: IMP‑21/24 (record variant and prompt hashes); IMP‑ADV‑01.2 (mark when hints are injected); IMP‑35 (tie eval results to variant IDs).
 
+- IMP‑27 — Prompt Extensibility: N-Dimensional Prompting
+  - Scope: Extend PromptInput to support N-dimensional prompt configuration beyond current 7 slots; support subject matter expertise, cognitive style, experience level, communication style, etc. PLUS: Investigate optimal prompt sizing, speed/size trade-offs, and diminishing returns.
+  - Problem: Current design (domain, persona, skills, rubric, context) may not capture all nuances needed for optimal agent prompting; users may need meteorology expertise + cautious cognitive style + senior experience level, etc.
+  - **Critical Investigations** (THINK phase):
+    1. **Prompt Size Limitations**: At what size do prompts degrade LLM performance?
+       - Measure: Task success rate vs prompt size (1KB, 5KB, 10KB, 20KB, 50KB)
+       - Hypothesis: Performance peaks at optimal size, then degrades (U-shaped curve)
+       - Related: IMP-23 used 2KB limit for overlays - is this empirically justified?
+    2. **Speed vs Size Trade-offs**: How does prompt size affect inference time/cost?
+       - Measure: Latency (p50, p95, p99) vs prompt size
+       - Measure: Cost (tokens * price) vs prompt size
+       - Measure: Quality (task success) vs prompt size
+       - Find: Pareto frontier (optimal size for given latency/cost/quality constraints)
+    3. **Information Density**: Is more context always better?
+       - Test: Verbose prompts (20KB) vs concise prompts (2KB) with same information
+       - Test: Redundant information (repeated patterns) vs unique information
+       - Hypothesis: Diminishing returns after optimal density threshold
+    4. **Context Window Utilization**: How much of context window should prompts use?
+       - Current: ~0.5% (2KB prompt / 200K context window)
+       - Test: 1%, 5%, 10% utilization
+       - Risk: Prompt bloat crowds out task context
+    5. **Composition Overhead**: How many dimensions before diminishing returns?
+       - Test: 3 dimensions (domain + subject + style) vs 7 dimensions vs 15 dimensions
+       - Measure: Marginal improvement per dimension added
+       - Find: Optimal N (where N+1 dimensions < 1% improvement)
+  - Design Options:
+    1. Add explicit slots (subjectMatter, cognitiveStyle, experienceLevel) - type-safe but not extensible
+    2. Hierarchical domains (compose multiple domains) - flexible but complex merge logic
+    3. Generic metadata field (Record<string, string>) - infinitely extensible but not type-safe
+    4. **Budget-aware composition** (new): Dynamically select dimensions based on budget
+       - Low budget: Only critical dimensions (domain + persona)
+       - Medium budget: Add subject matter
+       - High budget: Add cognitive style + experience + communication
+  - Files (planned):
+    - `src/prompt/compiler.ts` (extend PromptInput)
+    - `src/prompt/overlays/` (hierarchical overlays)
+    - `state/evidence/IMP-27/think/prompt_size_experiments.md` (empirical data)
+    - `state/evidence/IMP-27/think/tradeoff_analysis.md` (Pareto frontiers)
+    - `state/evidence/IMP-27/spec/composition_budget_policy.md` (budget thresholds)
+    - tests for composition/metadata
+  - Rollout: FLAG `prompt.extended_dimensions=observe` → `=enforce` after validation
+  - Acceptance:
+    - Support at least 3 additional dimensions (subject matter, cognitive style, experience)
+    - Backward compatible with existing 7-slot design
+    - Performance <10ms overhead for complex compositions
+    - IMP-35 eval shows no degradation (or +5% improvement)
+    - **NEW**: Empirical justification for size limits (e.g., 2KB/5KB/10KB thresholds)
+    - **NEW**: Documented Pareto frontier (size vs latency vs quality)
+    - **NEW**: Budget-aware composition policy (auto-select dimensions based on constraints)
+  - Evidence:
+    - `state/evidence/IMP-27/spec/dimensions_catalog.md`
+    - `state/evidence/IMP-27/think/prompt_size_experiments.md` (500-1000 iterations per size)
+    - `state/evidence/IMP-27/think/tradeoff_analysis.md` (Pareto curves)
+    - `verify/composition_tests.json`
+    - `review/extensibility_analysis.md`
+  - Dependencies: IMP-21 (Prompt Compiler baseline), IMP-23 (Domain Overlays as foundation), IMP-35 (eval harness to measure impact)
+  - Rollback: set `prompt.extended_dimensions=off` (falls back to current 7-slot design)
+  - Related:
+    - IMP-22 (PersonaSpec may incorporate cognitive style)
+    - IMP-23 (domain composition builds on overlay system; validate 2KB limit empirically)
+    - IMP-35 (measure if additional dimensions improve task success)
+    - IMP-36 (verifiers may need larger prompts for chain-of-verification)
+  - Priority: MEDIUM (nice-to-have, not blocking current features; evaluate after IMP-35 A/B test shows overlays work)
+  - **Key Questions to Answer**:
+    - Is IMP-23's 2KB limit optimal, too strict, or too loose?
+    - At what prompt size does cost outweigh quality improvement?
+    - How many dimensions can we compose before hitting diminishing returns?
+    - Should we budget-constrain dimension selection dynamically?
+
 - IMP‑35 — Prompt Eval Harness + Gates
   - Scope: golden tasks + robustness (injection) corpus; promptfoo/garak runner; gates in VERIFY to block regressions.
   - Files (planned): `tools/wvo_mcp/scripts/run_prompt_evals.sh`, `tools/wvo_mcp/evals/prompts/{golden,robustness}/*.jsonl`, `tools/wvo_mcp/src/verify/validators/prompt_eval_gate.ts`.
@@ -385,6 +460,7 @@ Artifacts
 Artifacts
 - `state/evidence/IMP/think/edge_cases.md`
 - `state/evidence/IMP/think/alternatives.md` (ROI, duplication scan, not‑do rationale)
+ - `state/evidence/IMP/think/risk_oracle_map.json` (risk→oracle mapping used by VERIFY)
 
 ---
 
@@ -406,9 +482,10 @@ Artifacts
     - IMP‑35: Eval harness script + gate; CI wiring in VERIFY.
     - IMP‑36: Verifier loop with budget caps behind flags.
     - IMP‑37: Groundedness/citation enforcement wiring in VERIFY/REVIEW.
-- Evidence to capture
+  - Evidence to capture
   - Diffs, test outputs, metrics snapshots, ledger entries for injected skips/backtracks.
   - Prompting: compiler golden outputs, hash consistency logs, persona/tool allowlist tests, eval baselines/results, robustness reports, verifier ablations, groundedness reports.
+  - Determinism notes: seeds/timeouts/wait‑for signals implemented per Think Pack; attach `determinism_notes.md`.
 
 Artifacts
 - `state/evidence/IMP/implement/git_diff.patch`, `modified_files.json`
@@ -426,6 +503,9 @@ Artifacts
   - Assertion audit: compute assertion counts per suite; flag zero‑assert suites; record `trivial_test_suspects_total`
   - Prompt eval harness (when enabled): run `tools/wvo_mcp/scripts/run_prompt_evals.sh`; assert success_rate_golden ≥ baseline+Δ, injection_success_rate ≤ threshold, groundedness non‑decreasing; record cost/latency.
   - Quality Graph precision gate (when enabled): compute precision@5 on eval set; enforce precision@5 ≥ 0.60 and no regression vs baseline; attach `metrics.json` to evidence.
+  - Determinism check: verify seeds/timeouts/wait‑for signals present; attach `determinism_check.json`.
+  - Structural policy gate: check changed nodes have a test edge (OPA/script); attach `structural_policy_report.json`.
+  - Oracle coverage: ensure every risk→oracle in Think Pack executed and passed; attach `oracle_coverage.json`.
   - Redundancy checks (when enabled by risk/policy):
     - Dual‑Runner Parity: run host+container; require parity; attach `parity_report.json`.
     - N‑Version Quorum: run meta‑evaluator; abstain on disagreement; attach `quorum_report.json`.
@@ -465,8 +545,10 @@ Artifacts
   - Attach evidence: ledger excerpts, metrics snapshots, test artifacts.
   - Ensure CI green.
   - Prompting (when applicable): attach `prompt_eval_results.json`, `robustness_eval.json`, attestation diffs (prompt/persona hashes), and verifier ablations.
+  - Include a one‑sentence “Why now” rationale and a computed risk label (from classifier or manual), recorded as artifacts.
 - Artifacts
   - `pr_url.txt`, `pr_template_filled.md`, `ci_results.json`
+  - `why_now.txt`, `pr_risk_label.txt`
 
 ---
 
@@ -477,11 +559,53 @@ Artifacts
   - Semantic drift: `warning_count`, `warning_rate` trends; open incidents when thresholds are exceeded
   - Discrepancy rate for Cross‑Check when enabled
   - Prompting: `success_rate_golden`, `groundedness_score`, `injection_success_rate`, `prompt_drift_rate`, `cost_per_success`, `latency_p95`, `extra_compute_rate`, `consistency_gain`, `verification_block_rate`.
+  - Negative oracles: monitor post‑merge negative checks (no regressions triggered); attach findings.
   - Autonomy: `autonomy_completion_rate`, `hitl_intervention_rate`, `rollback_rate`, `auto_merge_rate` (qualified), `incident_count`, `time_to_recover`, `shadow_to_enforce_promotion_count`.
 - Escalation
   - If violations recur ≥3 times or no progress >90m, create loop diary, escalate to Supervisor; roll back gating if necessary.
 - Artifacts
-  - `smoke_test_results.json`, `deployment_status.json`
+  - `smoke_test_results.json`, `deployment_status.json`, `negative_oracles.json`
+
+---
+
+## Work Process Alignment (Safety & Determinism)
+
+Focused tasks to instantiate Work Process requirements that weren’t fully operationalized.
+
+- IMP‑DET‑01 — Determinism & De‑Flaking Instrumentation
+  - Scope: standardize seeds, timeouts, and wait‑for signals for critical paths; add Think→Implement notes; add VERIFY check to assert presence.
+  - In-flight (2025-10-29): shared test helper (`src/tests/determinism.ts`) applied to work_process_acceptance/observer/tool-router suites; tracing smoke now accepts `--seed/--timeout-ms` and logs configuration.
+  - New VERIFY gate: `node tools/wvo_mcp/scripts/check_determinism.ts` parses counters/traces twice in a temp workspace to ensure deterministic outputs and writes `determinism_check.json`.
+  - Acceptance: `determinism_notes.md` attached; `determinism_check.json` green; no flaky waits.
+  - Evidence: `state/evidence/IMP-DET-01/{implement/determinism_notes.md, verify/determinism_check.json}`.
+
+- IMP‑POL‑01 — Structural Graph Policy Gate
+  - Scope: implement simple structural check (changed node must have a test edge) via script or OPA; wire into VERIFY; attach report.
+  - In-flight (2025-10-29): new CLI `tools/wvo_mcp/scripts/check_structural_policy.ts` analyzes git diff, verifies companion test existence, supports allowlist, and emits structured JSON report. Vitest coverage for pass/fail/allowlist scenarios.
+  - CI integration: `.github/workflows/ci.yml` now runs structural policy enforcement after determinism gate.
+  - Acceptance: `structural_policy_report.json` present and green; violations block.
+  - Evidence: `state/evidence/IMP-POL-01/verify/structural_policy_report.json`.
+
+- IMP‑ORC‑01 — Risk→Oracle Mapping & Coverage Enforcement
+  - Scope: create Think artifact `risk_oracle_map.json`; VERIFY computes coverage via `check_risk_oracle_coverage.ts` and blocks missing oracles.
+  - Status: in flight — coverage checker CLI + unit tests implemented; CI runs enforcement after structural policy gate.
+  - Acceptance: 100% of risks mapped and executed; `oracle_coverage.json` green.
+  - Evidence: `state/evidence/IMP-ORC-01/{think/risk_oracle_map.json, verify/oracle_coverage.json}`.
+
+- IMP‑PR‑01 — PR “Why Now” + Risk Label
+  - Scope: extend PR template and tooling to include a one‑sentence “Why now” and computed/manual risk label.
+  - Acceptance: `why_now.txt` and `pr_risk_label.txt` attached for all PRs.
+  - Evidence: `state/evidence/IMP-PR-01/pr/{why_now.txt, pr_risk_label.txt}`.
+
+- IMP‑MON‑01 — Negative Oracles Monitor
+  - Scope: after merge, run negative oracles checks; collect and track in `negative_oracles.json`; open incidents if triggered.
+  - Acceptance: artifact present; incidents opened on violations.
+  - Evidence: `state/evidence/IMP-MON-01/monitor/negative_oracles.json`.
+
+- IMP‑RED‑05 — Telemetry Parity (OTel vs JSONL)
+  - Scope: extend Dual‑Runner parity to verify parity across telemetry sinks for critical tasks; include in parity report.
+  - Acceptance: `parity_report.json` includes telemetry parity; divergences block.
+  - Evidence: `state/evidence/IMP-RED-05/verify/parity_report.json`.
 
 ---
 
@@ -582,7 +706,7 @@ Acceptance points to verify (hard checks)
 - IMP‑FUND‑04 — Phase Transition Benchmark (latency sanity): DONE
 - ✅ IMP‑FUND‑05 — Playwright browser installation guard verified (logs captured)
 - ✅ IMP‑FUND‑06 — Checkpoint validation script + TODO allowlist + evidence enforcement
-- **Mandatory follow-ups before closing Phase 0:**
+- **Mandatory follow-ups before closing Phase 0:** (each item must exist as an explicit roadmap task if still outstanding)
   - Run `scripts/validate_checkpoint.sh --task-id <task>` **without** `--skip-integrity` in CI to exercise the full suite.
   - Review `config/checkpoint_todo_allowlist.txt` each cycle; shrink it as legacy TODOs are resolved.
   - Wire the script into the phase-completion CI workflow so every task proves evidence before advancing (STRATEGIZE→MONITOR).
@@ -597,9 +721,10 @@ Acceptance points to verify (hard checks)
   - ✅ IMP‑ADV‑01.2 — Inject hints into planner prompt (COMPLETE - 2.5h actual)
   - ✅ IMP‑ADV‑01.3 — Manual similarity evaluation (COMPLETE - precision@5=0.780 EXCELLENT)
   - ✅ IMP‑ADV‑01.4 — Corpus size monitoring (COMPLETE - 30min actual, 5/5 tests)
-  - ✅ IMP‑ADV‑01.5 — Pin Python dependencies (COMPLETE - pre-existing)
-  - 🚀 IMP‑ADV‑01.6 — Neural embeddings upgrade (DEFERRED - future enhancement, 4-6h)
-  - 🚀 IMP‑ADV‑01.7 — Vector database migration (DEFERRED - scale-triggered, 8-12h)
+- ✅ IMP‑ADV‑01.5 — Pin Python dependencies (COMPLETE - pre-existing)
+- 🚀 IMP‑ADV‑01.6 — Neural embeddings upgrade (DEFERRED - future enhancement, 4-6h)
+- 🚀 IMP‑ADV‑01.7 — Vector database migration (DEFERRED - scale-triggered, 8-12h)
+- 🔄 IMP‑05 — Prompt attestation hardening: severity-aware gating active and baseline update CLI shipped; prompt compiler/state graph hook pending (IMP‑24).
 - Next up: Phase 1 readiness review after monitoring window completes
 
 Notes: Verify artifacts (test logs/benchmarks) are stored under `state/evidence/IMP/verify/` and linked in the decision journal.
@@ -657,6 +782,106 @@ Goal: add simple, high‑leverage redundancy patterns for medium/high‑risk ite
 Selection policy: if `risk>=medium` or item in prompt/guardrail/autonomy families, enable IMP‑RED‑01 and IMP‑RED‑03 (enforce) and IMP‑RED‑02/04 (observe→enforce after 2 stable weeks).
 
 ---
+
+## Lightweight Epic Grouping (Charter + Testpack)
+
+Purpose: risk‑adaptive epic hygiene that reuses existing gates. Applies when `risk>=medium`.
+
+- IMP‑EPIC‑01 — Epic Charter (template + tagging)
+  - Scope: add `docs/templates/epic_charter.yaml` and store charters in `state/epics/<EPIC-ID>/charter.yaml`; tasks tag `epic_id` in their envelope/metadata.
+  - Acceptance: for epic tasks, charter exists and includes why_now, KPIs/thresholds, kill/pivot_triggers, related/depends_on, risk_class, canary_window, verify_gates.
+  - Evidence: `state/epics/<EPIC-ID>/charter.yaml`.
+
+- IMP‑EPIC‑02 — Charter Lint (observe→enforce)
+  - Scope: add `scripts/epics/validate_epic_charter.py`; VERIFY runs it when `epic_id` is set; CI observe→enforce.
+  - Acceptance: report ok=true for epic tasks; missing/invalid fields block when enforced.
+  - Evidence: `state/evidence/<EPIC-ID>/verify/charter_lint.json` (or stdout capture).
+
+- IMP‑EPIC‑03 — Group Testpack (optional)
+  - Scope: allow a tiny testpack under `tests/epics/<EPIC-ID>/` (2–3 checks max); run via `scripts/epics/run_epic_testpack.sh` in VERIFY.
+  - Acceptance: if present, testpack passes; otherwise OK.
+  - Evidence: `state/evidence/<EPIC-ID>/verify/epic_testpack_report.json`.
+
+- IMP‑EPIC‑04 — Hierarchical Groups (levels + rollup)
+  - Scope: support `level` (task_group|epic|super_epic) and optional `parent_id` in charters; for super_epic, define KPI rollups; lint for valid levels.
+  - Acceptance: charters include valid `level`; super_epic has `rollup` defined; validator passes.
+  - Evidence: `state/epics/<GROUP-ID>/charter.yaml`, validator report.
+
+- IMP‑EPIC‑05 — Rollup & Canary Aggregation (super‑epics)
+  - Scope: compute rollup KPIs across child groups; drive Canary Judge promotion/rollback using aggregated metrics.
+  - Acceptance: rollup metrics computed and used by canary gate; incidents open on threshold violation.
+  - Evidence: `state/evidence/<SUPER-ID>/monitor/rollup_metrics.json`, `canary_judge.json`.
+
+Notes: Canary promotions (IMP‑RED‑04) and kill/pivot triggers use the charter’s thresholds; integration lint remains required via IMP‑ROAD‑01/02/03.
+
+---
+
+## Operational Safety Essentials (Enforce)
+
+Minimal, high‑leverage safeguards required for reliable autonomy.
+
+- IMP‑COST‑01 — Cost/Latency Budgets + Stop‑Loss
+  - Scope: add per‑phase token/time budgets to Context Fabric (LCP); VERIFY enforces stop‑loss when budgets are exceeded; record stop reason and rollback.
+  - Acceptance: LCP contains `budgets.{tokens,time}` per phase; `budget_enforcement.json` recorded; stop‑loss halts on breach.
+  - Evidence: `resources://runs/<id>/context/*` (budgets), `state/evidence/IMP-COST-01/verify/budget_enforcement.json`.
+
+- IMP‑PII‑01 — PII/Secrets Hygiene in Context Fabric
+  - Scope: scrub PII and secrets from LCPs (masking/redaction); VERIFY runs a lightweight scan and blocks on leaks.
+  - Acceptance: `pii_scan.json` present and green; violations block.
+  - Evidence: `state/evidence/IMP-PII-01/verify/pii_scan.json`.
+
+- IMP‑SCHED‑01 — Scheduling/Back‑Pressure + Cancellation
+  - Scope: add queue caps and admission control; expose `queue_depth` and `abort` signals; enforce timeouts; prevent loop storms.
+  - Acceptance: scheduler config present; `queue_metrics.jsonl` shows back‑pressure; abort honored.
+  - Evidence: `state/evidence/IMP-SCHED-01/verify/scheduler_config.yaml`, `state/telemetry/queue_metrics.jsonl`.
+
+- IMP‑FLAG‑01 — Flag Hygiene + Audit
+  - Scope: snapshot active flags per task; lint for unused/conflicting flags; attach to PR/VERIFY artifacts.
+  - Acceptance: `flags_snapshot.json` + `flags_lint.json` attached; conflicts block.
+  - Evidence: `state/evidence/IMP-FLAG-01/{verify/flags_lint.json, pr/flags_snapshot.json}`.
+
+- IMP‑EVAL‑01 — Eval Dataset Governance
+  - Scope: version and track eval datasets; maintain change logs; detect drift/leakage; block on leakage.
+  - Acceptance: `eval_dataset_manifest.json` present; `eval_drift_report.json` green; no leakage.
+  - Evidence: `state/evidence/IMP-EVAL-01/{verify/eval_drift_report.json, datasets/eval_dataset_manifest.json}`.
+
+---
+
+## Attention Layer (Observe Mode)
+
+Lightweight attention controls to improve focus without blocking.
+
+- IMP‑ATT‑01 — Risk‑Adaptive Attention Budgets (observe)
+  - Scope: tie Context Fabric token budgets to risk class and group level (task_group/epic/super_epic); emit per‑phase budget breakdown into the LCP; no gating.
+  - Acceptance: budget breakdown present; budgets reflect risk/level.
+  - Evidence: `resources://runs/<id>/context/*` (LCP with `attention.budget` fields), `state/evidence/IMP-ATT-01/verify/budget_snapshot.json`.
+
+- IMP‑ATT‑02 — Saliency Filter + Irrelevance Metric (observe)
+  - Scope: score anchors/hints by saliency (dependency proximity, epic relatedness, KPI linkage); retain top‑K; record `irrelevance_ratio` (pruned/non‑pruned) per phase; do not gate yet.
+  - Acceptance: `irrelevance_ratio.json` written; median ≤0.20 (target); monitor over time.
+  - Evidence: `state/evidence/IMP-ATT-02/verify/irrelevance_ratio.json`.
+
+Notes: Focus mode and watchlist are deferred; record metrics first before adding gates.
+
+---
+
+## Priority Order (Next 10 Days)
+
+Enforce now
+- IMP‑QG‑01 (stable embeddings + precision eval OFF for now; hint injection OFF)
+- IMP‑DET‑01, IMP‑POL‑01, IMP‑ORC‑01, IMP‑PR‑01, IMP‑MON‑01 (determinism, structural policy, oracle coverage, PR why‑now+risk, negative oracles)
+- IMP‑RED‑01, IMP‑RED‑03 (dual‑runner parity + double attestation) for prompt/guardrail edits
+- IMP‑EPIC‑01, IMP‑EPIC‑02 (charter + lint) for risk≥medium groups
+- IMP‑COST‑01, IMP‑PII‑01, IMP‑SCHED‑01, IMP‑FLAG‑01, IMP‑EVAL‑01 (budgets/stop‑loss, scrubbing, back‑pressure, flag audit, eval governance)
+
+Observe now (promote if clean after 2 weeks)
+- IMP‑VEC‑01 (grounded retrieval)
+- IMP‑EPIC‑03 (group testpack) for 1 pilot epic
+- IMP‑RED‑02, IMP‑RED‑04 (N‑version + canary judge) for high‑risk lanes
+- IMP‑ATT‑01, IMP‑ATT‑02 (attention budgets + saliency/irrelevance metrics)
+
+Defer (documented out‑of‑scope)
+- Neural embeddings/ANN, reviewer routing, predictive gating, focus mode/watchlist
 
 ## Cross‑Item Integration (Roadmap Awareness)
 
@@ -720,10 +945,10 @@ Notes: This system complements Context Fabric and Attestation. It enforces aware
 
 - Enforcement (Phase 1)
   - IMP‑ENF‑01 (Phase Leases): PARTIAL — covered by IMP‑04 tests/metrics; full hardening pending
-  - IMP‑ENF‑02 (Prompt Attestation): PLANNED — policy defined; enforcement to wire via IMP‑05/IMP‑24
-  - IMP‑ENF‑03 (Tool Router Guards): PLANNED — to implement via IMP‑02
+  - IMP‑ENF‑02 (Prompt Attestation): PARTIAL — high-severity drift gating + audited baseline update CLI (IMP‑05) complete; prompt compiler/state graph hook tracks under IMP‑24
+  - IMP-ENF-03 (Tool Router Guards): COMPLETE — phase allowlists enforced, fallbacks/rejections now emit counters (`tool_phase_guard_fallback` / `tool_phase_guard_rejection`) plus CI follow-up registry integration
   - IMP‑ENF‑04 (State Machine Guards): COMPLETE — WorkProcessEnforcer + Evidence Gates active
-  - IMP‑ENF‑05 (Lease Burst Test): PLANNED — extend IMP‑04 tests
+  - IMP‑ENF‑05 (Lease Burst Test): ✅ COMPLETE — burst contention tests + metric failure handling (`state/evidence/IMP-ENF-05/`)
   - IMP‑ENF‑06 (Prompt Drift Injection Test): PLANNED — via IMP‑35 eval harness
 
 - Persona/Prompting (Phase 4 in Roadmap; Phase 1+ staged here)
@@ -900,8 +1125,44 @@ Tasks that improve the work process itself, prevent recurring issues, and streng
 - Commit: b6f0b789
 - Related: Learning 5 (CLAUDE.md) - Guarantee Verification Gap protocol
 
+### META-POLICY-02 — Delta Note → Task Automation
+- Status: ✅ COMPLETE (2025-10-29)
+- Scope: Ensure any outstanding Task Delta Note automatically becomes its own roadmap task (no informal follow-up lists).
+- Deliverables:
+  - `tools/wvo_mcp/scripts/check_delta_notes.ts` scans `state/evidence/**/monitor/plan.md`, writes JSON/log reports, and exits non-zero when unresolved notes remain.
+  - Documentation updates (work process, AGENTS.md) instruct agents to run the checker and convert residual notes into tasks.
+- Evidence: `state/automation/delta_notes_report.json`, script source, IMP-05/IMP-22 delta notes marked complete.
+
+### META-POLICY-02.1 — CI integration for delta note enforcement
+- Status: ✅ COMPLETE (2025-10-29)
+- Scope: run `tools/wvo_mcp/scripts/check_delta_notes.ts` inside integrity/meta CI so unresolved notes fail the build automatically.
+- Dependencies: META-POLICY-02 (script + docs).
+- Deliverables: `.github/workflows/ci.yml` delta-note enforcement step, updated monitor plans, checker run exiting 0 with clean delta notes.
+- Evidence: workflow diff, local script output, `state/automation/delta_notes_report.json` showing zero unresolved entries.
+
+### META-POLICY-03 — Follow-up Trigger Classification
+- Status: ✅ COMPLETE (2025-10-29)
+- Scope: Detect follow-up notes (e.g., "next steps", "monitor") across evidence phases, classify them (`immediate_fix`, `scheduled_improvement`, `research_spike`, `monitoring_watch`, `external_dependency`), and require either task creation or documented deferment.
+- Deliverables:
+  - `tools/wvo_mcp/src/automation/follow_up_classifier.ts` with CLI wrapper `scripts/classify_follow_ups.ts`; outputs registry (`state/automation/follow_up_registry.jsonl`) and report (`follow_up_report.json`).
+  - CI/meta integration step that fails when unresolved follow-ups exist.
+  - Documentation updates (AGENTS.md, WORK_PROCESS.md/ENFORCEMENT.md) describing taxonomy, tags, and resolution workflow.
+- Evidence: `state/evidence/META-POLICY-03/{strategize,spec,plan,think,implement,verify,review,pr,monitor}/` plus `state/automation/follow_up_report.json`.
+
+### META-PERF-01 — Performance Regression Detection in CI
+- Status: ✅ COMPLETE (2025-10-29)
+- Scope: Detect regressions in key performance metrics (duration, token cost) using telemetry artifacts; fail CI when thresholds exceeded.
+- Deliverables:
+  - `tools/wvo_mcp/scripts/perf_utils.js` and CLI `check_performance_regressions.ts` emitting `state/automation/perf_regression_report.json` and managing baselines in `perf_baselines.json`.
+  - CI integration step enforcing tolerance; `--update-baseline` flag for intentional resets with evidence.
+  - Documentation updates (AGENTS.md, WORK_PROCESS.md/ENFORCEMENT.md) describing workflow.
+- Evidence: `state/evidence/META-PERF-01/{strategize,spec,plan,think,implement,verify,review,pr,monitor}/`, `state/automation/perf_baselines.json`, `state/automation/perf_regression_report.json`.
+
+### AUTO-FU Queue (Automatically Generated Follow-ups)
+- `AUTO-FU-586258D98CCE` — Track `tool_phase_guard_fallback` warnings to ensure current-state telemetry remains healthy; weekly monitoring until counters land. Classification `monitoring_watch`; source `state/evidence/IMP-ENF-03/monitor/plan.md#L5`.
+- `AUTO-FU-991B7801640B` — Review `tool_phase_guard_rejection` logs to confirm violations stay rare and actionable; escalate or widen guard map as needed. Classification `monitoring_watch`; source `state/evidence/IMP-ENF-03/monitor/plan.md#L6`.
+
 ### Future Meta Tasks (Examples)
-- META-PERF-01: Performance regression detection in CI
 - META-DOC-01: Automated README example validation
 - META-TEST-01: Test coverage threshold enforcement
 - META-BATCH-01: Batch operation pattern guidelines for ML workloads

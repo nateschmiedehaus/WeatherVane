@@ -23,7 +23,10 @@
     "register:claude": "claude mcp add weathervane -- node dist/index-claude.js --workspace ../../..",
     "auto:codex": "npm run build && npm run register:codex && codex session --profile weathervane_orchestrator",
     "auto:claude": "npm run build && npm run register:claude && claude chat --mcp weathervane",
-    "providers:smoke": "npm run build && node dist/providers/provider_smoke_test.js"
+    "providers:smoke": "npm run build && node dist/providers/provider_smoke_test.js",
+    "update:prompt-baseline": "node ./dist/scripts/update_prompt_baseline.js",
+    "validate:roadmap": "npx tsx scripts/validate_roadmap.ts",
+    "migrate:roadmap": "npx tsx scripts/migrate_roadmap.ts"
   },
   "author": "",
   "license": "MIT",
