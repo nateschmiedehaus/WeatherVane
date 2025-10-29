@@ -4,6 +4,7 @@ import { ContextAssembler } from '../context/context_assembler.js';
 import { DecisionJournal } from '../memory/decision_journal.js';
 import { RunEphemeralMemory } from '../memory/run_ephemeral.js';
 import { CurrentStateTracker } from '../telemetry/current_state_tracker.js';
+import { withSpan, type SpanHandle } from '../telemetry/tracing.js';
 import { logWarning, logError, logInfo } from '../telemetry/logger.js';
 import {
   MetricsCollector,
@@ -44,6 +45,7 @@ import { runMonitor } from './state_runners/monitor_runner.js';
 import { SmokeCommand, type SmokeCommandResult } from './smoke_command.js';
 import { ResolutionMetricsStore } from './resolution_metrics_store.js';
 import type { WorkPhase } from './work_process_enforcer.js';
+import type { RunnerResult } from './state_runners/runner_types.js';
 
 
 export type AutopilotState = RouterState;
@@ -180,13 +182,21 @@ export class StateGraph {
           await this.deps.currentStateTracker.updateStage(task.id, current);
         }
 
-        switch (current) {
+        const state = current as AutopilotState;
+        const attemptNumber = this.getAttempt(task.id, state);
+
+        const transitionResult = await withSpan<StateGraphResult | void>(
+          'agent.state.transition',
+          async (span) => {
+            span?.setAttribute('taskId', task.id);
+            span?.setAttribute('state', state);
+            span?.setAttribute('attempt', attemptNumber);
+            span?.setAttribute('runId', this.runId);
+
+            switch (state) {
           case 'specify': {
             const modelSelection = this.selectModelForState(task, complexity);
-            const result = await runSpecify(
-              { task, attemptNumber: this.getAttempt(task.id, current), modelSelection },
-              { supervisor: this.deps.supervisor }
-            );
+            const result = await runSpecify({ task, attemptNumber, modelSelection }, { supervisor: this.deps.supervisor });
             const specify = result.artifacts.specify as any;
             Object.assign(artifacts, result.artifacts);
             notes.push(...result.notes);
@@ -201,36 +211,51 @@ export class StateGraph {
               testHints,
               riskNotes: specify.initialRisks,
             });
-            await this.checkpoint(task.id, current, this.checkpointPayload(specify));
+            await this.checkpoint(task.id, state, this.checkpointPayload(specify));
             recordRouterDecision('specify', result.modelSelection ?? modelSelection);
+            span?.addEvent('agent.state.transition.complete', {
+              nextState: result.nextState,
+              success: result.success,
+            });
+            this.recordTransitionOutcome(span, result);
             current = result.nextState;
             break;
           }
           case 'plan': {
             // CRITICAL: Validate and advance work process phase
-            await this.advanceWorkPhase(task.id, current);
+            await this.advanceWorkPhase(task.id, state, span);
 
-            await this.ensureRetryBudget(task, current);
+            await this.ensureRetryBudget(task, state);
             const modelSelection = this.selectModelForState(task, complexity);
             let result;
             try {
               result = await runPlan(
                 {
                   task,
-                  attemptNumber: this.getAttempt(task.id, current),
+                  attemptNumber,
                   modelSelection,
                   requirePlanDelta: this.planDeltaRequired.has(task.id),
                   previousPlanHash: this.planHashes.get(task.id),
                   pendingThinker: this.pendingThinker.has(task.id),
                   spikeBranch: this.spikeBranches.get(task.id),
                 },
-                { planner: this.deps.planner }
+                {
+                  planner: this.deps.planner,
+                  workspaceRoot: this.workspaceRoot, // For quality graph queries
+                }
               );
             } catch (error) {
               // Convert runner errors to StateGraphError for consistent error handling
+              const message = error instanceof Error ? error.message : String(error);
+              span?.setAttribute('result', 'error');
+              span?.setStatus('error', message);
+              span?.addEvent('agent.state.transition.error', {
+                reason: 'plan_runner_failed',
+                message,
+              });
               throw new StateGraphError(
-                error instanceof Error ? error.message : String(error),
-                current,
+                message,
+                state,
                 { originalError: error }
               );
             }
@@ -258,23 +283,34 @@ export class StateGraph {
               openQuestions: planResult.requiresThinker ? ['Ambiguity flagged by planner'] : [],
               nextActions: ['Finalize file/function targets'],
             });
-            await this.checkpoint(task.id, current, this.checkpointPayload(planResult));
+            await this.checkpoint(task.id, state, this.checkpointPayload(planResult));
             recordRouterDecision('plan', result.modelSelection ?? modelSelection);
+            span?.addEvent('agent.state.transition.complete', {
+              nextState: result.nextState,
+              success: result.success,
+            });
+            this.recordTransitionOutcome(span, result);
             current = result.nextState;
             break;
           }
           case 'thinker': {
             // CRITICAL: Validate and advance work process phase
-            await this.advanceWorkPhase(task.id, current);
+            await this.advanceWorkPhase(task.id, state, span);
 
             if (!planResult) {
-              throw new StateGraphError('Thinker requires plan result', current);
+              span?.setAttribute('result', 'error');
+              span?.setStatus('error', 'missing_plan_result');
+              span?.addEvent('agent.state.transition.error', {
+                reason: 'missing_plan_result',
+                state,
+              });
+              throw new StateGraphError('Thinker requires plan result', state);
             }
             const modelSelection = this.selectModelForState(task, complexity);
             const result = await runThinker(
               {
                 task,
-                attemptNumber: this.getAttempt(task.id, current),
+                attemptNumber,
                 modelSelection,
                 planHash: planResult.planHash,
               },
@@ -296,24 +332,35 @@ export class StateGraph {
               openQuestions: reflection.insights,
               riskNotes: reflection.escalationRecommended ? ['Requires closer supervision'] : [],
             });
-            await this.checkpoint(task.id, current, this.checkpointPayload(reflection));
+            await this.checkpoint(task.id, state, this.checkpointPayload(reflection));
             recordRouterDecision('thinker', result.modelSelection ?? modelSelection);
+            span?.addEvent('agent.state.transition.complete', {
+              nextState: result.nextState,
+              success: result.success,
+            });
+            this.recordTransitionOutcome(span, result);
             current = result.nextState;
             break;
           }
           case 'implement': {
             // CRITICAL: Validate and advance work process phase
-            await this.advanceWorkPhase(task.id, current);
+            await this.advanceWorkPhase(task.id, state, span);
 
             if (!planResult) {
-              throw new StateGraphError('Implement requires plan result', current);
+              span?.setAttribute('result', 'error');
+              span?.setStatus('error', 'missing_plan_result');
+              span?.addEvent('agent.state.transition.error', {
+                reason: 'missing_plan_result',
+                state,
+              });
+              throw new StateGraphError('Implement requires plan result', state);
             }
-            await this.ensureRetryBudget(task, current);
+            await this.ensureRetryBudget(task, state);
             const modelSelection = this.selectModelForState(task, complexity);
             const result = await runImplement(
               {
                 task,
-                attemptNumber: this.getAttempt(task.id, current),
+                attemptNumber,
                 modelSelection,
                 planHash: planResult.planHash,
                 insights: thinkerInsights,
@@ -323,8 +370,13 @@ export class StateGraph {
             );
             if (!result.success) {
               this.requirePlanDelta(task.id);
-              await this.checkpoint(task.id, current, { status: 'failed' });
+              await this.checkpoint(task.id, state, { status: 'failed' });
               notes.push(...result.notes);
+              span?.addEvent('agent.state.transition.complete', {
+                nextState: result.nextState,
+                success: result.success,
+              });
+              this.recordTransitionOutcome(span, result);
               current = result.nextState;
               break;
             }
@@ -347,25 +399,36 @@ export class StateGraph {
               testHints,
               nextActions: ['Produce minimal diff', 'Update/extend tests'],
             });
-            await this.checkpoint(task.id, current, this.checkpointPayload(implementResult));
+            await this.checkpoint(task.id, state, this.checkpointPayload(implementResult));
             recordRouterDecision('implement', result.modelSelection ?? modelSelection);
+            span?.addEvent('agent.state.transition.complete', {
+              nextState: result.nextState,
+              success: result.success,
+            });
+            this.recordTransitionOutcome(span, result);
             current = result.nextState;
             break;
           }
           case 'verify': {
             // CRITICAL: Validate and advance work process phase
-            await this.advanceWorkPhase(task.id, current);
+            await this.advanceWorkPhase(task.id, state, span);
 
             if (!implementResult) {
-              throw new StateGraphError('Verify requires implementation result', current);
+              span?.setAttribute('result', 'error');
+              span?.setStatus('error', 'missing_implementation');
+              span?.addEvent('agent.state.transition.error', {
+                reason: 'missing_implementation',
+                state,
+              });
+              throw new StateGraphError('Verify requires implementation result', state);
             }
-            await this.ensureRetryBudget(task, current);
+            await this.ensureRetryBudget(task, state);
             const modelSelection = this.selectModelForState(task, complexity);
             const coverageTarget = planResult?.coverageTarget ?? this.deps.verifier.getCoverageThreshold();
             const result = await runVerify(
               {
                 task,
-                attemptNumber: this.getAttempt(task.id, current),
+                attemptNumber,
                 modelSelection,
                 patchHash: implementResult.patchHash,
                 coverageHint: implementResult.coverageHint,
@@ -402,7 +465,7 @@ export class StateGraph {
               const resolution = result.artifacts.resolution as ResolutionResult;
               await this.resolutionMetrics.recordAttempt({
                 taskId: task.id,
-                attempt: this.getAttempt(task.id, current),
+                attempt: attemptNumber,
                 timestamp: new Date().toISOString(),
                 runId: this.runId,
                 label: resolution.label,
@@ -420,23 +483,34 @@ export class StateGraph {
               testHints,
               riskNotes: verifierResult.success ? [] : ['Gate failure detected'],
             });
-            await this.checkpoint(task.id, current, this.checkpointPayload(verifierResult));
+            await this.checkpoint(task.id, state, this.checkpointPayload(verifierResult));
+            span?.addEvent('agent.state.transition.complete', {
+              nextState: result.nextState,
+              success: result.success,
+            });
+            this.recordTransitionOutcome(span, result);
             current = result.nextState;
             break;
           }
           case 'review': {
             // CRITICAL: Validate and advance work process phase
-            await this.advanceWorkPhase(task.id, current);
+            await this.advanceWorkPhase(task.id, state, span);
 
             if (!implementResult || !verifierResult) {
-              throw new StateGraphError('Review requires implementation and verification artifacts', current);
+              span?.setAttribute('result', 'error');
+              span?.setStatus('error', 'missing_verification_artifacts');
+              span?.addEvent('agent.state.transition.error', {
+                reason: 'missing_verification_artifacts',
+                state,
+              });
+              throw new StateGraphError('Review requires implementation and verification artifacts', state);
             }
-            await this.ensureRetryBudget(task, current);
+            await this.ensureRetryBudget(task, state);
             const modelSelection = this.selectModelForState(task, complexity);
             const result = await runReview(
               {
                 task,
-                attemptNumber: this.getAttempt(task.id, current),
+                attemptNumber,
                 modelSelection,
                 patchHash: implementResult.patchHash,
                 coverageDelta: verifierResult.coverageDelta,
@@ -462,18 +536,23 @@ export class StateGraph {
               riskNotes: review.approved ? [] : ['Reviewer blocked'],
               openQuestions: critical.issues,
             });
-            await this.checkpoint(task.id, current, artifacts.review as Record<string, unknown>);
+            await this.checkpoint(task.id, state, artifacts.review as Record<string, unknown>);
             recordRouterDecision('review', result.modelSelection ?? modelSelection);
+            span?.addEvent('agent.state.transition.complete', {
+              nextState: result.nextState,
+              success: result.success,
+            });
+            this.recordTransitionOutcome(span, result);
             current = result.nextState;
             break;
           }
           case 'pr': {
             // CRITICAL: Validate and advance work process phase
-            await this.advanceWorkPhase(task.id, current);
+            await this.advanceWorkPhase(task.id, state, span);
 
             const modelSelection = this.selectModelForState(task, complexity);
             const result = await runPr(
-              { task, attemptNumber: this.getAttempt(task.id, current), modelSelection },
+              { task, attemptNumber, modelSelection },
               { supervisor: this.deps.supervisor }
             );
             const prResult = result.artifacts.pr as any;
@@ -492,20 +571,25 @@ export class StateGraph {
               fileHints,
               testHints,
             });
-            await this.checkpoint(task.id, current, this.checkpointPayload(prResult));
+            await this.checkpoint(task.id, state, this.checkpointPayload(prResult));
             recordRouterDecision('pr', result.modelSelection ?? modelSelection);
+            span?.addEvent('agent.state.transition.complete', {
+              nextState: result.nextState,
+              success: result.success,
+            });
+            this.recordTransitionOutcome(span, result);
             current = result.nextState;
             break;
           }
           case 'monitor': {
             // CRITICAL: Validate and advance work process phase
-            await this.advanceWorkPhase(task.id, current);
+            await this.advanceWorkPhase(task.id, state, span);
 
             const modelSelection = this.selectModelForState(task, complexity);
             const result = await runMonitor(
               {
                 task,
-                attemptNumber: this.getAttempt(task.id, current),
+                attemptNumber,
                 modelSelection,
               },
               {
@@ -513,6 +597,9 @@ export class StateGraph {
                 runAppSmoke: (input) => this.runAppSmoke(input.taskId, input.attempt),
                 clearMemory: (id) => this.deps.memory.clearTask(id),
                 clearRouter: (id) => this.deps.router.clearTask(id),
+                workspaceRoot: this.workspaceRoot,
+                artifacts,
+                startTime,
               }
             );
             const monitorResult = result.artifacts.monitor as any;
@@ -531,10 +618,15 @@ export class StateGraph {
               fileHints,
               testHints,
             });
-            await this.checkpoint(task.id, current, artifacts.monitor as Record<string, unknown>);
+            await this.checkpoint(task.id, state, artifacts.monitor as Record<string, unknown>);
             recordRouterDecision('monitor', result.modelSelection ?? modelSelection);
             // Monitor is terminal - attach final artifacts
             if (!result.success) {
+              span?.addEvent('agent.state.transition.complete', {
+                nextState: result.nextState,
+                success: result.success,
+              });
+              this.recordTransitionOutcome(span, result);
               current = result.nextState;
               break;
             }
@@ -551,10 +643,36 @@ export class StateGraph {
             }
             this.attachContextPackArtifacts(task.id, artifacts);
             taskResult = { success: true, finalState: 'monitor', notes, artifacts };
+            span?.addEvent('agent.state.transition.complete', {
+              nextState: result.nextState,
+              success: result.success,
+            });
+            this.recordTransitionOutcome(span, result);
             return taskResult;
           }
           default:
-            throw new StateGraphError(`Unknown state ${current}`, current);
+            span?.setAttribute('result', 'error');
+            span?.setStatus('error', 'unknown_state');
+            span?.addEvent('agent.state.transition.error', {
+              reason: 'unknown_state',
+              state,
+            });
+            throw new StateGraphError(`Unknown state ${state}`, state);
+        }
+        return undefined;
+      },
+      {
+        attributes: {
+          taskId: task.id,
+          state,
+          attempt: attemptNumber,
+          runId: this.runId,
+        },
+      },
+    );
+
+        if (transitionResult) {
+          return transitionResult;
         }
       }
     } catch (error) {
@@ -601,6 +719,17 @@ export class StateGraph {
     const key = `${taskId}:${state}`;
     const next = (this.attemptCounter.get(key) ?? 0) + 1;
     this.attemptCounter.set(key, next);
+  }
+
+  private recordTransitionOutcome(span: SpanHandle | undefined, result: Pick<RunnerResult, 'success' | 'nextState'>): void {
+    if (!span) {
+      return;
+    }
+    span.setAttribute('result', result.success ? 'success' : 'failure');
+    span.setAttribute('nextState', result.nextState ?? null);
+    if (!result.success) {
+      span.setStatus('error', 'state_transition_failed');
+    }
   }
 
   private async ensureRetryBudget(task: TaskEnvelope, state: AutopilotState): Promise<void> {
@@ -701,7 +830,7 @@ export class StateGraph {
    * CRITICAL: Enforces STRATEGIZE→SPEC→PLAN→THINK→IMPLEMENT→VERIFY→REVIEW→PR→MONITOR sequence
    * Throws StateGraphError on illegal phase skips
    */
-  private async advanceWorkPhase(taskId: string, nextState: AutopilotState): Promise<void> {
+  private async advanceWorkPhase(taskId: string, nextState: AutopilotState, parentSpan?: SpanHandle): Promise<void> {
     if (!this.deps.workProcessEnforcer) {
       return; // Enforcer not configured, allow transition
     }
@@ -721,6 +850,11 @@ export class StateGraph {
       const desiredPhase = phaseMap[nextState];
 
       if (!desiredPhase) {
+        parentSpan?.setAttribute('phaseValidation', 'error');
+        parentSpan?.addEvent('agent.state.transition.phase_error', {
+          reason: 'unknown_desired_phase',
+          state: nextState,
+        });
         throw new StateGraphError(
           `phase_skip: Unknown desired phase for state ${nextState}`,
           nextState,
@@ -733,6 +867,10 @@ export class StateGraph {
       const advanced = await this.deps.workProcessEnforcer.advancePhase(taskId, desiredPhase);
 
       if (!advanced) {
+        parentSpan?.setAttribute('phaseValidation', 'failed');
+        parentSpan?.addEvent('agent.state.transition.phase_blocked', {
+          desiredPhase,
+        });
         // Phase advancement was rejected (e.g., missing evidence, drift detected)
         throw new StateGraphError(
           `phase_skip: Cannot advance to ${nextState} - work process enforcement blocked transition`,
@@ -750,6 +888,10 @@ export class StateGraph {
         nextState,
         enforcement: 'pass'
       });
+      parentSpan?.setAttribute('phaseValidation', 'passed');
+      parentSpan?.addEvent('agent.state.transition.phase_validated', {
+        desiredPhase,
+      });
     } catch (error) {
       if (error instanceof StateGraphError) {
         throw error;
@@ -760,6 +902,12 @@ export class StateGraph {
         taskId,
         nextState,
         error: error instanceof Error ? error.message : String(error)
+      });
+      parentSpan?.setAttribute('phaseValidation', 'error');
+      parentSpan?.addEvent('agent.state.transition.phase_error', {
+        reason: 'enforcer_exception',
+        state: nextState,
+        message: error instanceof Error ? error.message : String(error),
       });
 
       throw new StateGraphError(

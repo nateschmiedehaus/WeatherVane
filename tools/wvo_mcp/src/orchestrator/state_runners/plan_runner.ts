@@ -2,14 +2,23 @@
  * Plan State Runner
  *
  * Handles the "plan" state: creates implementation plan and determines if thinker is needed.
+ *
+ * Quality Graph Integration:
+ * - Queries similar tasks before planning
+ * - Provides hints from past similar tasks
+ * - Non-blocking: planning works without hints
+ * - Logs hints for observability
  */
 
 import type { PlannerAgent } from '../planner_agent.js';
 
 import type { RunnerContext, RunnerResult } from './runner_types.js';
+import { getPlanningHints } from '../../quality_graph/hints.js';
+import { logInfo, logWarning } from '../../telemetry/logger.js';
 
 export interface PlanRunnerDeps {
   planner: PlannerAgent;
+  workspaceRoot?: string; // For quality graph queries
 }
 
 export interface PlanRunnerContext extends RunnerContext {
@@ -25,8 +34,13 @@ export interface PlanRunnerContext extends RunnerContext {
  * Calls planner to create implementation plan, checks for plan hash changes,
  * and determines if thinker exploration is needed.
  *
+ * Quality Graph Integration:
+ * - Queries similar tasks before planning (non-blocking)
+ * - Logs hints for observability
+ * - Attaches hints to plan result for future use
+ *
  * @param context - Runner context with task and flags
- * @param deps - Dependencies (planner agent)
+ * @param deps - Dependencies (planner agent, workspace root)
  * @returns Result with nextState='thinker' or 'implement'
  */
 export async function runPlan(
@@ -35,7 +49,53 @@ export async function runPlan(
 ): Promise<RunnerResult> {
   const { task, attemptNumber, modelSelection, requirePlanDelta, previousPlanHash, pendingThinker, spikeBranch } = context;
 
+  // Query similar tasks from quality graph (non-blocking)
+  let qualityGraphHints = '';
+  let similarTasksCount = 0;
+
+  if (deps.workspaceRoot) {
+    try {
+      logInfo('Querying quality graph for similar tasks', { taskId: task.id });
+
+      qualityGraphHints = await getPlanningHints(
+        deps.workspaceRoot,
+        {
+          title: task.title,
+          description: task.description,
+        },
+        {
+          k: 5,
+          minSimilarity: 0.3,
+          successOnly: false,
+          excludeAbandoned: true,
+        }
+      );
+
+      if (qualityGraphHints) {
+        // Count similar tasks from hints
+        const matches = qualityGraphHints.match(/###\s+\d+\./g);
+        similarTasksCount = matches ? matches.length : 0;
+
+        logInfo('Quality graph hints retrieved', {
+          taskId: task.id,
+          similarTasksCount,
+          hintsLength: qualityGraphHints.length,
+        });
+      } else {
+        logInfo('No similar tasks found in quality graph', { taskId: task.id });
+      }
+    } catch (error) {
+      // Graceful degradation: log warning but continue planning
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      logWarning('Quality graph query failed (non-blocking)', {
+        taskId: task.id,
+        error: errorMsg,
+      });
+    }
+  }
+
   // Call planner to create implementation plan
+  // TODO: Extend PlannerAgent to accept hints parameter and inject into prompt
   const planResult = await deps.planner.run({
     task,
     attempt: attemptNumber,
@@ -52,6 +112,10 @@ export async function runPlan(
   const notes: string[] = [];
   notes.push(`Plan hash ${planResult.planHash.slice(0, 8)} recorded.`);
 
+  if (similarTasksCount > 0) {
+    notes.push(`Quality graph: Found ${similarTasksCount} similar task(s) for context.`);
+  }
+
   if (spikeBranch) {
     notes.push(`Spike branch active: ${spikeBranch}`);
   }
@@ -67,7 +131,11 @@ export async function runPlan(
     success: true,
     nextState,
     artifacts: {
-      plan: planResult,
+      plan: {
+        ...planResult,
+        qualityGraphHints, // Attach hints for future use
+        similarTasksCount,
+      },
     },
     notes,
     requirePlanDelta: false, // Clear flag after successful plan

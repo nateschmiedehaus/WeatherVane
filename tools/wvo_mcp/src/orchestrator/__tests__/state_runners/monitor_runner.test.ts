@@ -62,6 +62,7 @@ describe('MonitorRunner - Behavior Tests', () => {
       runAppSmoke,
       clearMemory,
       clearRouter,
+      workspaceRoot: '/tmp/test-workspace',
     };
   });
 
