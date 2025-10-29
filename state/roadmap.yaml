@@ -418,8 +418,8 @@ epics:
               failures discovered late - need proactive, aggressive failure detection. Multi-layered:
               Prevention (pre-flight checks), Detection (CI/watch), Hunting (daily scans), Triage
               (auto-create tasks), Culture (zero-skip mandate). Target: detect <5min, fix <30min.
-            complexity_score: 8
-            effort_hours: 12
+            complexity_score: 10
+            effort_hours: 16
             required_tools:
               - cmd_run
               - fs_read
