@@ -106,6 +106,7 @@ export interface SystemHealthMetrics {
   circuitBreakerTripped: boolean;
   queueDepth?: number;
   tokenBudgetRemaining?: number;
+  qualityGraphCorpusSize?: number; // Number of task vectors in corpus
 }
 
 /**
@@ -162,6 +163,39 @@ export function inferTaskType(task: TaskEnvelope): {
 
   // Fallback: unknown
   return { taskType: 'unknown', confidence: 0.0 };
+}
+
+/**
+ * Get current size of quality graph corpus
+ *
+ * Counts lines in task_vectors.jsonl to track corpus growth.
+ * Used for monitoring when corpus approaches pruning limit (2000 vectors).
+ *
+ * @param workspaceRoot - Root directory containing state/quality_graph
+ * @returns Number of vectors in corpus (0 if file doesn't exist)
+ */
+export async function getQualityGraphCorpusSize(workspaceRoot: string): Promise<number> {
+  try {
+    const vectorsPath = path.join(workspaceRoot, 'state', 'quality_graph', 'task_vectors.jsonl');
+
+    // File doesn't exist yet (first task before any vectors)
+    try {
+      await fs.access(vectorsPath);
+    } catch {
+      return 0;
+    }
+
+    // Read file and count non-empty lines
+    const content = await fs.readFile(vectorsPath, 'utf-8');
+    const lines = content.split('\n').filter((line) => line.trim().length > 0);
+
+    return lines.length;
+  } catch (error) {
+    logWarning('Failed to get quality graph corpus size', {
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return 0; // Graceful degradation
+  }
 }
 
 /**
@@ -236,14 +270,28 @@ export class MetricsCollector {
     }
 
     try {
+      const timestamp = new Date().toISOString();
+
+      await fs.mkdir(path.dirname(this.metricsPath), { recursive: true });
+
+      const metricsRecord = {
+        timestamp,
+        type: 'counter',
+        metric: counterName,
+        value,
+        metadata: metadata ?? {},
+      };
+
+      await fs.appendFile(this.metricsPath, JSON.stringify(metricsRecord) + '\n');
+
       const counterPath = path.join(this.workspaceRoot, 'state', 'telemetry', 'counters.jsonl');
       await fs.mkdir(path.dirname(counterPath), { recursive: true });
 
       const record = {
-        timestamp: new Date().toISOString(),
+        timestamp,
         counter: counterName,
         value,
-        metadata: metadata ?? {}
+        metadata: metadata ?? {},
       };
 
       await fs.appendFile(counterPath, JSON.stringify(record) + '\n');

@@ -9,6 +9,7 @@ import { logWarning, logError, logInfo } from '../telemetry/logger.js';
 import {
   MetricsCollector,
   inferTaskType,
+  getQualityGraphCorpusSize,
   type MetricsTags,
   type QualityMetrics,
   type EfficiencyMetrics,
@@ -1147,10 +1148,12 @@ export class StateGraph {
       const learning: LearningMetrics = {};
 
       // System health metrics
+      const qualityGraphCorpusSize = await getQualityGraphCorpusSize(this.workspaceRoot);
       const systemHealth: SystemHealthMetrics = {
         providerAvailable: true,
         rateLimitHit: false,
         circuitBreakerTripped: false,
+        qualityGraphCorpusSize,
       };
 
       await this.deps.metricsCollector.recordTask(tags, quality, efficiency, learning, systemHealth);
