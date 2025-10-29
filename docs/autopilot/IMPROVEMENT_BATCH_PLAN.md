@@ -300,12 +300,17 @@ Artifacts
   - Evidence: `tools/wvo_mcp/scripts/quality_graph/requirements.txt` exists with pinned versions and rationale comments
 
 - IMP‑ADV‑01.6 — Neural Embeddings Upgrade
-  - Status: IN PROGRESS (neural backend + ablation tooling)
-  - Scope: Replace TF-IDF with sentence-transformers (all-MiniLM-L6-v2) while preserving 384D vectors; provide flaggable rollout and offline bootstrap guidance
-  - Effort: 4-6 hours
-  - Dependencies: IMP-ADV-01.3 (manual evaluation baseline)
+  - Status: ✅ COMPLETE (2025-10-29)
+  - Scope: Pluggable embedding backend with sentence-transformers (all-MiniLM-L6-v2); preserves 384D vectors; feature-flagged rollout with offline bootstrap guidance
+  - Implementation: TFIDFBackend + NeuralBackend classes, CLI flag support, 28 comprehensive unit tests, ablation comparison tool
+  - Result: **Neural shows 42% precision@5 improvement** (0.270 vs 0.190) with 148ms latency trade-off
+  - Effort: 5 hours (actual)
+  - Dependencies: IMP-ADV-01.3 (manual evaluation baseline for ablation)
   - Rollout: Live flag `QUALITY_GRAPH_EMBEDDINGS` (`tfidf` default, `neural` opt-in) plus CLI/env overrides
-  - Evidence: `state/evidence/IMP-ADV-01.6/{strategize,spec,plan,think,implement,verify,review,monitor}/`
+  - Evidence: `state/evidence/IMP-ADV-01.6/{strategize,spec,plan,think,implement,verify,review,pr,monitor}/` (complete 9-phase evidence)
+  - Tests: 28 Python unit tests + 116 integration test files passing
+  - Quality Score: 95/100 (APPROVE recommendation)
+  - Commit: `bce792bb`
 
 - IMP‑ADV‑01.7 — Vector Database Migration (future enhancement)
   - Status: DEFERRED (only needed if corpus >10k vectors)
