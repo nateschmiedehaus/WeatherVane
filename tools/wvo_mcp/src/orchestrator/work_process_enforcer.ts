@@ -599,28 +599,92 @@ export class WorkProcessEnforcer {
       evidenceValidated = false;
     }
 
-    // STEP 7: Transition to next phase with fresh evidence collection
+    // STEP 7: Transition handling — forward advance or corrective backtrack
     const expectedNextPhase = this.PHASE_SEQUENCE[currentIndex + 1];
 
-    if (desiredPhase && expectedNextPhase && desiredPhase !== expectedNextPhase) {
-      logError('Phase advancement rejected - desired phase does not match sequence', {
-        taskId,
-        currentPhase,
-        desiredPhase,
-        expectedNextPhase
-      });
+    // Allow corrective backtracking from later phases to earlier ones when runners request it
+    if (desiredPhase) {
+      const desiredIdx = this.PHASE_SEQUENCE.indexOf(desiredPhase);
+      // If runner is asking to go backwards (e.g., REVIEW → IMPLEMENT), allow with audit trail
+      if (desiredIdx !== -1 && desiredIdx < currentIndex) {
+        logWarning('Corrective backtrack requested by state machine', {
+          taskId,
+          from: currentPhase,
+          to: desiredPhase
+        });
 
-      if (this.metricsCollector) {
-        await this.metricsCollector.recordCounter('phase_skips_attempted', 1, {
+        // Record backtrack metric
+        if (this.metricsCollector) {
+          await this.metricsCollector.recordCounter('phase_backtracks', 1, {
+            taskId,
+            from: currentPhase,
+            to: desiredPhase
+          });
+        }
+
+        // Release current lease and acquire target phase lease
+        try {
+          await this.phaseLeaseManager.releaseLease(taskId, currentPhase);
+          const lease = await this.phaseLeaseManager.acquireLease(taskId, desiredPhase);
+          if (!lease.acquired) {
+            logError('Cannot backtrack - lease held by another agent', {
+              taskId,
+              from: currentPhase,
+              to: desiredPhase,
+              holder: lease.holder,
+              expiresIn: lease.expiresIn
+            });
+            return false;
+          }
+        } catch (e) {
+          logWarning('Backtrack lease management failed (continuing in single-agent mode)', {
+            error: e instanceof Error ? e.message : String(e)
+          });
+        }
+
+        // Set phase, start evidence collection for the earlier phase, and ledger the backtrack
+        this.currentPhase.set(taskId, desiredPhase);
+        this.evidenceCollector.startCollection(desiredPhase, taskId);
+        this.logTransition(taskId, currentPhase, desiredPhase, true);
+        try {
+          await this.phaseLedger.appendTransition(
+            taskId,
+            currentPhase,
+            desiredPhase,
+            [],
+            true,
+          );
+        } catch (e) {
+          logWarning('Ledger append failed for backtrack', {
+            taskId,
+            from: currentPhase,
+            to: desiredPhase,
+            error: e instanceof Error ? e.message : String(e)
+          });
+        }
+
+        return true;
+      }
+
+      // If runner proposes a forward phase that is not the immediate next, reject as skip
+      if (expectedNextPhase && desiredPhase !== expectedNextPhase) {
+        logError('Phase advancement rejected - desired phase does not match sequence', {
           taskId,
           currentPhase,
           desiredPhase,
-          expectedNextPhase,
-          reason: 'sequence_mismatch'
+          expectedNextPhase
         });
+        if (this.metricsCollector) {
+          await this.metricsCollector.recordCounter('phase_skips_attempted', 1, {
+            taskId,
+            currentPhase,
+            desiredPhase,
+            expectedNextPhase,
+            reason: 'sequence_mismatch'
+          });
+        }
+        return false;
       }
-
-      return false;
     }
 
     if (!expectedNextPhase) {

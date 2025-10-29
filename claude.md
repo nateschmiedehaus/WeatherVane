@@ -39,15 +39,19 @@
 **🚨 MANDATORY PROCESS - NO EXCEPTIONS (AUTOPILOT OR SOLO CLAUDE SESSIONS):**
 **STRATEGIZE → SPEC → PLAN → THINK → IMPLEMENT → VERIFY → REVIEW → PR → MONITOR**
 
-**Enforcement is ACTIVE:**
-- Skipping ANY phase = IMMEDIATE TASK FAILURE
-- Starting with IMPLEMENT = REJECTED
-- Claiming done without VERIFY = REJECTED
-- WorkProcessEnforcer will BLOCK violating tasks
-- Violations are logged and tracked in metrics
-- If VERIFY/REVIEW/PR/MONITOR expose gaps, you must loop back to the earliest impacted phase (often IMPLEMENT or earlier) and rerun every downstream phase with new evidence.
-- When operating outside the Unified Autopilot, you must still execute the full STRATEGIZE→MONITOR sequence, capture the same artifacts/checklists, and provide verifiable evidence before declaring the task complete.
-- Strategy, Plan, and Think must explicitly tie the work to Autopilot functionality (which agent behavior, guardrail, or workflow you’re changing), and Review must prove that functionality still works (e.g., smoke runs, telemetry, manual checks).
+- **Enforcement is ACTIVE:**
+  - Skipping ANY phase = IMMEDIATE TASK FAILURE
+  - Starting with IMPLEMENT = REJECTED
+  - Claiming done without VERIFY = REJECTED
+  - WorkProcessEnforcer will BLOCK violating tasks
+  - Violations are logged and tracked in metrics
+  - Corrective backtracking is supported and required: if gaps are found late, return to the earliest impacted phase (often IMPLEMENT or earlier); the enforcer records backtracks and restarts evidence collection, and all downstream phases must be re-run.
+  - Anti-drift controls: immutable phase ledger, evidence-gated transitions, phase leases for deterministic sequencing, and prompt attestation of headers are in force.
+  - If VERIFY/REVIEW/PR/MONITOR expose gaps, you must loop back to the earliest impacted phase (often IMPLEMENT or earlier) and rerun every downstream phase with new evidence.
+  - When operating outside the Unified Autopilot, you must still execute the full STRATEGIZE→MONITOR sequence, capture the same artifacts/checklists, and provide verifiable evidence before declaring the task complete.
+  - Strategy, Plan, and Think must explicitly tie the work to Autopilot functionality (which agent behavior, guardrail, or workflow you’re changing), and Review must prove that functionality still works (e.g., smoke runs, telemetry, manual checks).
+  - **Reality check before claiming success:** confirm the changes exist in the repository (git status/diff), that automated evidence (tests, telemetry artifacts, ledger entries) is present, and that outstanding gaps called out in specs are either resolved or clearly marked as follow-up tasks. Do not rely on summaries or assumptions—inspect the repo state directly and link the proof in outputs.
+  - **“Do now” protocol:** treat any “do now” request as shorthand for running the full STRATEGIZE→MONITOR workflow. Break the problem into Strategy, Spec, Plan, and Think steps first, then proceed through Implement/Verify/Review/PR/Monitor with evidence at each stage. Never jump straight to coding.
 
 **Finish in one loop:** No partials; build=0 errors; all tests pass; docs done.
 

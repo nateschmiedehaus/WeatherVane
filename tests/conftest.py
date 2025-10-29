@@ -66,3 +66,18 @@ def pytest_configure(config):
     """Hook that runs before test collection starts - this is the right hook for pythonpath."""
     _configure_sys_path()
     _ensure_root_shared_package()
+
+
+def pytest_sessionstart(session):
+    """Remove stale MCP PID lock file before test session starts.
+
+    The MCP server uses state/.mcp.pid to prevent multiple instances.
+    Stale locks from previous runs can cause MCP tests to fail with
+    "MCP process exited unexpectedly" errors.
+    """
+    pid_lock_path = PROJECT_ROOT / "state" / ".mcp.pid"
+    if pid_lock_path.exists():
+        try:
+            pid_lock_path.unlink()
+        except Exception:
+            pass  # Non-critical if cleanup fails

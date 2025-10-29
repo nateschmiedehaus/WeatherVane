@@ -12,7 +12,7 @@
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { WorkProcessEnforcer, WorkPhase } from '../work_process_enforcer.js';
-import { Task, TaskStatus } from '../orchestrator_types.js';
+import { Task, TaskStatus } from '../state_machine.js';
 import { StateMachine } from '../state_machine.js';
 import path from 'path';
 import os from 'os';
@@ -44,13 +44,10 @@ describe('WorkProcessEnforcer - Phase -1 Validation', () => {
         id: 'TEST-VIOLATION-001',
         title: 'Task that skips STRATEGIZE',
         description: 'This task should be blocked',
+        type: 'task',
         status: 'in_progress' as TaskStatus,
-        priority: 1,
-        domain: 'mcp' as const,
         created_at: Date.now(),
-        updated_at: Date.now(),
-        metadata: {},
-        dependencies: []
+        metadata: {}
       };
 
       // Validate - should reject
@@ -70,13 +67,10 @@ describe('WorkProcessEnforcer - Phase -1 Validation', () => {
         id: 'TEST-VIOLATION-002',
         title: 'Task claiming done without process',
         description: 'This task should be blocked',
+        type: 'task',
         status: 'done' as TaskStatus,
-        priority: 1,
-        domain: 'mcp' as const,
         created_at: Date.now(),
-        updated_at: Date.now(),
-        metadata: {},
-        dependencies: []
+        metadata: {}
       };
 
       const result = await enforcer.validatePhaseSequence(violatingTask);
@@ -91,13 +85,10 @@ describe('WorkProcessEnforcer - Phase -1 Validation', () => {
         id: 'TEST-LEGIT-001',
         title: 'Task not yet started',
         description: 'This task should be allowed',
+        type: 'task',
         status: 'pending' as TaskStatus,
-        priority: 1,
-        domain: 'mcp' as const,
         created_at: Date.now(),
-        updated_at: Date.now(),
-        metadata: {},
-        dependencies: []
+        metadata: {}
       };
 
       const result = await enforcer.validatePhaseSequence(legitimateTask);
@@ -113,13 +104,10 @@ describe('WorkProcessEnforcer - Phase -1 Validation', () => {
         id: 'TEST-DETAIL-001',
         title: 'Task for detailed validation',
         description: 'Testing validation details',
+        type: 'task',
         status: 'in_progress' as TaskStatus,
-        priority: 1,
-        domain: 'mcp' as const,
         created_at: Date.now(),
-        updated_at: Date.now(),
-        metadata: {},
-        dependencies: []
+        metadata: {}
       };
 
       const result = await enforcer.validatePhaseSequence(task);
@@ -142,13 +130,10 @@ describe('WorkProcessEnforcer - Phase -1 Validation', () => {
         id: 'TEST-VALID-001',
         title: 'Properly queued task',
         description: 'This task follows the process',
+        type: 'task',
         status: 'pending' as TaskStatus,
-        priority: 1,
-        domain: 'mcp' as const,
         created_at: Date.now(),
-        updated_at: Date.now(),
-        metadata: {},
-        dependencies: []
+        metadata: {}
       };
 
       const result = await enforcer.validatePhaseSequence(task);
@@ -165,13 +150,10 @@ describe('WorkProcessEnforcer - Phase -1 Validation', () => {
         id: 'TEST-INTEGRATION-001',
         title: 'Integration test task',
         description: 'Testing orchestrator integration',
+        type: 'task',
         status: 'in_progress' as TaskStatus, // Violates process
-        priority: 1,
-        domain: 'mcp' as const,
         created_at: Date.now(),
-        updated_at: Date.now(),
-        metadata: {},
-        dependencies: []
+        metadata: {}
       };
 
       const validation = await enforcer.validatePhaseSequence(task);
@@ -199,13 +181,10 @@ describe('WorkProcessEnforcer - Phase -1 Validation', () => {
         id: 'PROOF-001',
         title: 'Proof of enforcement',
         description: 'Attempting to skip STRATEGIZE',
+        type: 'task',
         status: 'in_progress' as TaskStatus,
-        priority: 1,
-        domain: 'mcp' as const,
         created_at: Date.now(),
-        updated_at: Date.now(),
-        metadata: {},
-        dependencies: []
+        metadata: {}
       };
 
       const violationResult = await enforcer.validatePhaseSequence(violatingTask);
@@ -217,13 +196,10 @@ describe('WorkProcessEnforcer - Phase -1 Validation', () => {
         id: 'PROOF-002',
         title: 'Proper process task',
         description: 'Not started yet',
+        type: 'task',
         status: 'pending' as TaskStatus,
-        priority: 1,
-        domain: 'mcp' as const,
         created_at: Date.now(),
-        updated_at: Date.now(),
-        metadata: {},
-        dependencies: []
+        metadata: {}
       };
 
       const properResult = await enforcer.validatePhaseSequence(properTask);

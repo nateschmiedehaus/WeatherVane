@@ -58,14 +58,18 @@
 **EVERY task MUST follow this exact sequence (inside or outside the Unified Autopilot loop):**
 **STRATEGIZE → SPEC → PLAN → THINK → IMPLEMENT → VERIFY → REVIEW → PR → MONITOR**
 
-**ENFORCEMENT IS ACTIVE:**
-- WorkProcessEnforcer BLOCKS tasks that skip phases
-- Skipping ANY phase = IMMEDIATE TASK FAILURE
-- Starting with IMPLEMENT = REJECTED
-- Claiming done without VERIFY = REJECTED
-- VERIFY/REVIEW/PR/MONITOR findings that reveal gaps force a return to the earliest affected phase (often IMPLEMENT or earlier); all downstream phases must be re-run with fresh evidence.
-- Independent Codex agents (outside of MCP orchestration) must still execute the full STRATEGIZE→MONITOR loop, produce the same artifacts/checklists, and record evidence before claiming completion.
-- Strategy/Plan/Think must identify which Autopilot functionality (agent workflow, guardrail, or user journey) the work touches, and Review must confirm that functionality still operates (cite smoke runs, telemetry, or manual walkthroughs).
+- **ENFORCEMENT IS ACTIVE:**
+  - WorkProcessEnforcer BLOCKS tasks that skip phases
+  - Skipping ANY phase = IMMEDIATE TASK FAILURE
+  - Starting with IMPLEMENT = REJECTED
+  - Claiming done without VERIFY = REJECTED
+  - Backtracking is supported and required: VERIFY/REVIEW/PR/MONITOR may return the workflow to the earliest impacted phase (often IMPLEMENT or earlier). The enforcer and state graph now allow corrective backtracks and will re-run downstream phases with fresh evidence.
+  - Anti-drift controls are on by default: immutable phase ledger (hash chain), evidence-gated transitions, phase leases for deterministic sequencing, and prompt attestation for header drift.
+  - VERIFY/REVIEW/PR/MONITOR findings that reveal gaps force a return to the earliest affected phase (often IMPLEMENT or earlier); all downstream phases must be re-run with fresh evidence.
+  - Independent Codex agents (outside of MCP orchestration) must still execute the full STRATEGIZE→MONITOR loop, produce the same artifacts/checklists, and record evidence before claiming completion.
+  - Strategy/Plan/Think must identify which Autopilot functionality (agent workflow, guardrail, or user journey) the work touches, and Review must confirm that functionality still operates (cite smoke runs, telemetry, or manual walkthroughs).
+  - **Reality check requirement:** before declaring a phase (or task) complete, inspect the repository state (git status/diff), ensure artifacts/tests/telemetry referenced in your summary actually exist, and explicitly note any remaining gaps as follow-up work. Never assume previous summaries are accurate—validate with real evidence.
+  - **“Do now” protocol:** interpret any “do now” request as an instruction to run the entire STRATEGIZE→MONITOR flow. Break the work into Strategy, Spec, Plan, and Think chunks first, then continue through Implement/Verify/Review/PR/Monitor with evidence at each step—never jump straight to coding.
 - All violations logged to metrics and decision journal
 
 ### Complete-Finish Policy

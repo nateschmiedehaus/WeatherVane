@@ -5,7 +5,8 @@
  * at each node, enabling multi-dimensional quality assessment and pattern learning.
  */
 
-import { Task, WorkPhase } from './state_machine.js';
+import { Task } from './state_machine.js';
+import { WorkPhase } from './work_process_enforcer.js';
 import { ModelRouter } from './model_router.js';
 import { logInfo, logWarning } from '../telemetry/logger.js';
 
@@ -223,7 +224,8 @@ export class QualityGraphEnforcer {
     ]);
 
     // Aggregate assessments into final vector
-    this.aggregateAssessments(vector, assessments);
+    // Cast to Float32Array[] since methods return Float32Array despite Partial type annotation
+    this.aggregateAssessments(vector, assessments as Float32Array[]);
 
     return vector;
   }
@@ -551,7 +553,8 @@ export class QualityPredictor {
     const issues: PredictedIssue[] = [];
 
     // Find similar patterns
-    const enforcer = new QualityGraphEnforcer(new ModelRouter());
+    // Note: ModelRouter requires workspaceRoot - using process.cwd() as fallback
+    const enforcer = new QualityGraphEnforcer(new ModelRouter({ workspaceRoot: process.cwd() }));
     const similar = enforcer.findSimilarPatterns(graph);
 
     if (similar.length === 0) {

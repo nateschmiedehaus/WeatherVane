@@ -74,7 +74,7 @@ async function benchmarkPhaseTransition(
     const start = performance.now();
 
     // Advance through one phase
-    const advanced = await enforcer.advancePhase(taskId, 'STRATEGIZE', 'SPEC');
+    const advanced = await enforcer.advancePhase(taskId, 'SPEC');
 
     const elapsed = performance.now() - start;
     timings.push(elapsed);
@@ -84,7 +84,7 @@ async function benchmarkPhaseTransition(
     }
 
     // Reset for next iteration
-    await enforcer.advancePhase(taskId, 'SPEC', 'STRATEGIZE');
+    await enforcer.advancePhase(taskId, 'STRATEGIZE');
 
     // Progress indicator
     if ((i + 1) % 100 === 0) {
