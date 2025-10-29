@@ -10,6 +10,24 @@ STRATEGIZE → SPEC → PLAN → THINK → IMPLEMENT → VERIFY → REVIEW → P
 - Claiming done without VERIFY = rejected
 - Backtracking allowed/required when late gaps are found (rerun downstream phases with fresh evidence)
 
+## Cross‑Item Integration (Mandatory)
+
+Purpose: ensure every change works in context by declaring and validating relationships between related roadmap items (e.g., prompt compiler/attestation/evals/router, quality graph, vectorized retrieval).
+
+- Declare relationships early
+  - In STRATEGIZE/SPEC, list Related · DependsOn · Produces · Consumes for this task in `state/roadmap.dependencies.yaml` (create/update as needed).
+  - Prompt/graph/router changes MUST relate to: IMP‑21/22/23/24/25/26/35/36/37; and, when applicable, IMP‑ADV‑01.2 (hint injection), IMP‑QG‑01, IMP‑VEC‑01.
+- Plan/Think integration
+  - PLAN must state how outputs integrate with Related items (contracts/slots/gates/telemetry), with a verification map.
+  - THINK must enumerate integration risks/oracles (attestation alignment, eval variant IDs, grounded citations, tool allowlists).
+- Verify and Review together
+  - VERIFY must run roadmap linter and integration check (observe→enforce):
+    - `scripts/roadmap_lint.py` validates `state/roadmap.dependencies.yaml` (no missing links, no contract drift)
+    - `scripts/roadmap_integration_check.sh` confirms attestation/eval/telemetry/tool router alignment and no gate bypass
+    - run end‑to‑end smokes to prove context‑wide correctness
+  - REVIEW rubric requires explicit Related links + contract versions and attaches linter/integration reports.
+
+
 ## Gap Remediation Protocol (MANDATORY)
 
 **Core Principle:** Gaps found in REVIEW or late phases are BLOCKERS, not backlog items. Fix them NOW within the current work process loop.
@@ -108,6 +126,29 @@ STRATEGIZE → SPEC → PLAN → THINK → IMPLEMENT → VERIFY → REVIEW → P
 - Safe rollout (flags, canary/shadow, rollback plans)
 - Learning loop (incidents → tests/gates/docs updates)
 
+## Time‑Box Policy (Guidance, Not Hard Caps)
+- The listed time limits are defaults for typical, low‑risk work. They focus attention; they do not relax gates or acceptance criteria.
+- Extend the box when risk/novelty/impact is higher. Record justification + new cap in the decision journal.
+- If a box expires with high‑severity items unresolved, do not proceed to Implement. Either:
+  - escalate to THINK (deepen analysis), or
+  - split the task in PLAN, or
+  - add a supervisor review.
+- Time‑boxes never override Complete‑Finish; all artifacts and gates remain mandatory. Use them to prevent over‑analysis, not to shorten the process.
+- Recommended multipliers for high‑risk work: Strategy×2, Spec×2, Plan×2, Think×2 (tune with supervisor).
+
+## Worthiness & Alignment Gate (Portfolio‑Aware)
+- At Strategy, Think, and Review: explicitly answer “Is this worth doing now?”
+- Requirements:
+  - Link to a task group/epic and Autopilot objective (why it matters)
+  - State the success KPI and expected delta (leading + lagging)
+  - Identify duplication/alternatives (simpler path, deferral, or not‑do)
+  - Record a kill/pivot trigger (pre‑mortem signal to stop)
+- Evidence: add a brief “Worthiness” note to the decision journal with epic ID, KPI, and kill trigger
+
+## Method Toolkits Are Living
+- The stage toolkits are not exhaustive. They should be expanded, pruned, and reorganized as we learn which methods deliver the best signal.
+- Add new methods to `docs/autopilot/STAGE_TOOLKITS.md` with when‑to‑use signals, steps, and explicit evidence mapping (gate/metric/span/journal). Keep them persona‑agnostic and short.
+
 ## Canonical Artifacts
 - Think Pack (versioned): edge cases, failure modes, oracles, observability, constraints, assumptions, determinism settings
 - Evolution Plan: compatibility matrix, deprecation schedule, migration/rollback
@@ -118,13 +159,22 @@ STRATEGIZE → SPEC → PLAN → THINK → IMPLEMENT → VERIFY → REVIEW → P
 
 ### STRATEGIZE
 - Outcome: razor‑clear objective, linked to purpose and long‑lived invariants
+- **MANDATORY FIRST STEP: Priority Alignment Check**
+  - [ ] **Read docs/autopilot/IMPROVEMENT_BATCH_PLAN.md**: What is current phase (0, 1, 2+)?
+  - [ ] **Verify task in active phase**: Is this task listed in current phase priorities?
+  - [ ] **Check autopilot commands**: `mcp__weathervane__command_autopilot --action list`
+  - [ ] **Verify alignment**: Task matches command filter (if "EXCLUSIVELY" → MUST match)
+  - [ ] **Check dependencies**: All prerequisite tasks COMPLETE (not in_progress/blocked)
+  - [ ] **If NOT aligned**: STOP and ask user before proceeding
 - Checklist (≤5 mins):
   - One‑sentence objective + success KPI (add a leading indicator for short feedback)
   - Two invariants you will not break (e.g., phase order; no ungated writes)
-  - Top 2 risks with “revisit by” and an explicit risk appetite (low/med/high)
-  - Scope guardrails (what’s out) and a clear “abort if” trigger (blast‑radius limiter)
-- Artifacts: objective brief, north‑star invariants, risk register (with dates)
-- Acceptance: objective/KPI, invariants, risks, and scope guards recorded
+  - Top 2 risks with "revisit by" and an explicit risk appetite (low/med/high)
+  - Scope guardrails (what's out) and a clear "abort if" trigger (blast‑radius limiter)
+- Artifacts: **priority_alignment_check.md** (MANDATORY), objective brief, north‑star invariants, risk register (with dates)
+- Acceptance: priority alignment verified AND objective/KPI, invariants, risks, and scope guards recorded
+- Method toolkit: see `docs/autopilot/STAGE_TOOLKITS.md#strategy-toolkit`
+- **GATE**: Cannot proceed to SPEC without priority alignment check passing
 
 ### SPEC
 - Outcome: contracts that survive change; explicit compat and budgets
@@ -136,6 +186,7 @@ STRATEGIZE → SPEC → PLAN → THINK → IMPLEMENT → VERIFY → REVIEW → P
   - Map every spec item → gate/metric (what proves it, where it runs)
 - Artifacts: JSON Schemas + error semantics; compat note; budgets; obs spec
 - Acceptance: every spec requirement has a proving step defined (used by Plan)
+- Method toolkit: see `docs/autopilot/STAGE_TOOLKITS.md#spec-toolkit`
 
 ### PLAN
 - Outcome: smallest change that integrates at seams and can be rolled back
@@ -146,6 +197,8 @@ STRATEGIZE → SPEC → PLAN → THINK → IMPLEMENT → VERIFY → REVIEW → P
   - Verification map: spec→gate/test owners and locations; single‑session feasible (or split)
 - Artifacts: plan hash; change budget; migration/rollback note; verification map
 - Acceptance: single‑session feasible; rollback clear; spec→proof map complete
+- Method toolkit: see `docs/autopilot/STAGE_TOOLKITS.md#plan-toolkit`
+ - Integration: declare/update Related · DependsOn · Produces · Consumes in `state/roadmap.dependencies.yaml`; include an integration verification map (which contracts/gates/telemetry are touched and how they’ll be proven).
 
 ### THINK
 - Outcome: ambiguity resolved; risks, oracles, observability, and constraints defined
@@ -156,6 +209,8 @@ STRATEGIZE → SPEC → PLAN → THINK → IMPLEMENT → VERIFY → REVIEW → P
   - Determinism plan (seed/timeouts/wait‑for) + tiny instrumentation note (what span/counter proves behavior)
 - Artifacts: Think Pack vN (edge‑case ledger; failure‑mode notes; oracles; determinism)
 - Exit: at least one oracle per high‑risk path; no high×high open; constraints clarified
+- Method toolkit: see `docs/autopilot/STAGE_TOOLKITS.md#think-toolkit`
+ - Integration: list two integration risks and their oracles (e.g., attestation alignment with compiled prompt, eval variant IDs present, grounded citations recorded, tool allowlists unchanged); note any cross‑item contract updates needed.
 
 ### IMPLEMENT
 - Outcome: minimal diff that satisfies oracles; spans/counters inserted
@@ -164,23 +219,39 @@ STRATEGIZE → SPEC → PLAN → THINK → IMPLEMENT → VERIFY → REVIEW → P
 - Evidence: record Think Pack/spec version in journal; scoped commit title (what + why)
 
 ### VERIFY
-- Outcome: all oracles mapped and green; gates pass; integrity clean
+- Outcome: all oracles mapped and green; gates pass; integrity clean; outputs semantically correct
 - Gates: tests, lint, type, security, license, changed‑lines coverage; (optional) pilot a tiny variance check on flaky‑suspect subset
+- Semantic validation:
+  - Parse stdout/stderr for warning/error/regression signals; treat non‑empty critical warnings as failures unless explicitly allowed
+  - Require non‑zero assertion counts for key suites; flag trivial tests (no asserts, catch‑all try/catch)
+  - Normalize and check exit codes; missing/ignored exit codes are failures
 - Policies: start with one structural graph policy (changed node must have a test edge)
+ - Integration checks: run `scripts/roadmap_lint.py` and `scripts/roadmap_integration_check.sh`; attach reports; run end‑to‑end smokes to prove in‑context behavior.
 - Failure: attach failing gate and minimal logs; return to earliest impacted phase; require plan‑delta if implementation path is exhausted
 
 ### REVIEW
-- Outcome: approve only if future‑proof criteria met
+- Outcome: approve only if future‑proof criteria met and outputs mean what they should
+- **MANDATORY: Strategic Alignment Verification**
+  - [ ] Task still aligns with priorities (no strategy shifts during implementation)
+  - [ ] Implementation serves stated goals from STRATEGIZE
+  - [ ] No higher-priority work delayed by this task
+  - [ ] Opportunity cost was justified (best use of time vs. alternatives)
+  - [ ] Follow-up work is scoped and tracked
+  - [ ] **If misalignment discovered**: Document what changed, consider discarding/pivoting work
 - Rubric: contracts versioned; seams/flags present; budgets respected; tests prove oracles; observability present; non‑goals respected
+- Semantic review: verify that logs/results indicate success without hidden warnings; detect "false green" (tests that only run, not assert)
+- Portfolio alignment: confirm Worthiness note exists (epic, KPI link, kill/pivot criteria)
 - Optional: dual lightweight reviews; surface only disagreements
+- **GATE**: Cannot approve if strategic misalignment detected (loop back to STRATEGIZE)
 
 ### PR
 - Outcome: PR with evidence chain and attested prompts/manifests; CI green; rollback plan linked
 - Include one‑sentence “why now” and a computed risk label
 
 ### MONITOR
-- Outcome: post‑merge checks validate SLOs and negative oracles; drift detectors and deprecation telemetry in place; learnings captured
+- Outcome: post‑merge checks validate SLOs and negative oracles; drift detectors and deprecation telemetry in place; learnings captured; warnings remain near zero
 - Run tiny BATs/smokes; 24–72h watch for negative oracles; alert on phase‑skip counter > 0 or rising cross‑check discrepancies; capture short learnings if triggered
+- Semantic drift: scan logs for warning/error patterns; track `warning_count` and `warning_rate`; open incidents when thresholds are exceeded
 
 ## Observability Contract (minimal set)
 - Spans: agent.state.transition, agent.verify, agent.cross_check, process.validation (+ process.violation events)

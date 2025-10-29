@@ -6,6 +6,36 @@
 
 ---
 
+## 0. Priority Alignment Verification (CHECK THIS FIRST!)
+
+**Purpose**: Verify this task was the right thing to work on and still aligns with priorities.
+
+**Checklist**:
+- [ ] **Task in IMPROVEMENT_BATCH_PLAN.md**: Verified this task is listed in current phase priorities
+- [ ] **Autopilot commands checked**: No conflicting commands (e.g., "REMEDIATION only" when working on non-REMEDIATION task)
+- [ ] **No higher-priority blockers**: Confirmed no critical issues emerged that should have been addressed first
+- [ ] **Dependencies complete**: All prerequisite tasks finished before starting this one
+- [ ] **Timing appropriate**: Not waiting for monitoring period or blocked by external factors
+
+**If misaligned**: STOP. Ask user if this task should continue or be abandoned for higher-priority work.
+
+**Red Flags**:
+- 🚩 Task NOT in IMPROVEMENT_BATCH_PLAN.md current phase
+- 🚩 Autopilot command says "EXCLUSIVELY work on X" but this task is Y
+- 🚩 Critical blocker exists that delays this task's value
+- 🚩 Prerequisites incomplete (building on unstable foundation)
+
+**Alignment verification** (fill this out):
+```
+Task: [TASK-ID]
+In IMPROVEMENT_BATCH_PLAN.md Phase: [YES/NO]
+Autopilot command conflicts: [NONE/YES with details]
+Higher-priority work delayed: [NONE/YES with details]
+Verdict: [ALIGNED / MISALIGNED / NEEDS USER APPROVAL]
+```
+
+---
+
 ## 1. Build Verification
 
 **Run these commands**:

@@ -436,6 +436,123 @@ If ANY item fails:
 
 ---
 
+## 7.7) Priority Alignment Gates (MANDATORY)
+
+**Policy**: Before starting ANY task, verify it aligns with current priorities. Before completing ANY task, verify it still serves the right goals.
+
+### STRATEGIZE Phase: Pre-Work Alignment Check (MANDATORY)
+
+**Trigger**: BEFORE creating SPEC, PLAN, or any implementation artifacts
+
+**Checklist** (ALL must pass before proceeding):
+
+1. **Autopilot Command Alignment**
+   - [ ] Check active autopilot commands: `mcp__weathervane__command_autopilot --action list`
+   - [ ] If command has task_filter (e.g., "REMEDIATION"), verify this task matches the filter
+   - [ ] If command says "EXCLUSIVELY", do NOT work on non-matching tasks
+
+2. **Roadmap Priority Alignment** (PRIMARY SOURCE OF TRUTH)
+   - [ ] **Read docs/autopilot/IMPROVEMENT_BATCH_PLAN.md**: What is the current phase status?
+   - [ ] **Verify task is in active phase**: Is this task listed in current phase priorities?
+   - [ ] **Check phase gates**: Are all prerequisites for this phase complete?
+   - [ ] **Cross-reference roadmap.yaml**: Does task epic_id align with IMPROVEMENT_BATCH_PLAN?
+   - [ ] **If task NOT in IMPROVEMENT_BATCH_PLAN**: Get explicit user approval before proceeding
+
+**Note**: IMPROVEMENT_BATCH_PLAN.md is the canonical source for autopilot infrastructure priorities. If a task isn't listed there, question why you're working on it.
+
+3. **Dependency Verification**
+   - [ ] All prerequisite tasks are COMPLETE (not in_progress or blocked)
+   - [ ] No blocking issues exist for this task
+   - [ ] Required monitoring/baseline periods are complete
+
+4. **Timing Appropriateness**
+   - [ ] Not waiting for monitoring period to complete
+   - [ ] Not blocked by external dependencies
+   - [ ] Sequencing is correct (foundation before features)
+
+**GATE**: If ANY check fails → STOP and ask user:
+- "This task doesn't align with [X]. Should I work on it anyway, or switch to [Y]?"
+- Document the misalignment in strategize evidence
+- Get explicit approval before proceeding
+
+**Example Violations**:
+- ❌ Working on CRIT-PERF-GLOBAL-9dfa06.2 (critics framework) when it's NOT in IMPROVEMENT_BATCH_PLAN.md
+- ❌ Working on E-GENERAL task when autopilot command says "REMEDIATION only"
+- ❌ Starting Phase 2 features when Phase 1 monitoring period incomplete
+- ❌ Implementing task X when prerequisite task Y is blocked
+- ❌ Working on prompting improvements when fundamentals phase not complete
+
+**Real Violation from 2025-10-29**:
+Started implementing CRIT-PERF-GLOBAL-9dfa06.2 without checking:
+- Task NOT in IMPROVEMENT_BATCH_PLAN.md Phase 0-1 priorities ❌
+- Autopilot command says work EXCLUSIVELY on REMEDIATION tasks ❌
+- Should have asked user before spending 3 hours on STRATEGIZE/SPEC/PLAN ❌
+
+**Correct behavior**: Check IMPROVEMENT_BATCH_PLAN.md FIRST, see task not listed, STOP and ask user.
+
+---
+
+### REVIEW Phase: Post-Work Alignment Verification (MANDATORY)
+
+**Trigger**: During REVIEW phase, before approving implementation
+
+**Checklist** (ALL must pass before APPROVE):
+
+1. **Strategic Alignment Check**
+   - [ ] Task still aligns with priorities (no strategy shifts during work)
+   - [ ] Implementation actually serves the stated goals in STRATEGIZE
+   - [ ] No higher-priority work was delayed by this task
+   - [ ] Timing is still appropriate (priorities haven't changed)
+
+2. **Opportunity Cost Analysis**
+   - [ ] This work was the best use of time vs. alternatives
+   - [ ] No critical blockers emerged that should have been addressed first
+   - [ ] Effort spent aligns with value delivered
+
+3. **Follow-Up Impact**
+   - [ ] Follow-up work is scoped and tracked
+   - [ ] Dependencies on this work are unblocked appropriately
+   - [ ] No unexpected downstream blockers created
+
+**GATE**: If strategic misalignment discovered → Document in REVIEW:
+- What changed during implementation?
+- Should this work be discarded/pivoted?
+- What should be done instead?
+
+**Example Discoveries**:
+- ⚠️ "Implemented feature X, but monitoring shows users need Y instead"
+- ⚠️ "Built infrastructure for 33 critics, but only 3 are actually used"
+- ⚠️ "Optimization saved 10ms, but critical bug took 10 hours to work around"
+
+---
+
+### Enforcement
+
+**How to Enforce**:
+1. STRATEGIZE evidence MUST include "Priority Alignment Check" section
+2. REVIEW evidence MUST include "Strategic Alignment Verification" section
+3. WorkProcessEnforcer should check for these sections (future automation)
+4. PR commits should reference alignment verification in evidence
+
+**Consequences of Violation**:
+- Task is rejected in REVIEW phase → loop back to STRATEGIZE
+- Wasted implementation effort (hours/days of misdirected work)
+- Erosion of trust in work process
+- Critical work delayed while working on wrong priorities
+
+---
+
+### When to Override
+
+**Rare exceptions** (require explicit user approval):
+1. Emergency hotfix for production incident
+2. User explicitly requests specific task despite misalignment
+3. Strategic pivot documented and approved mid-task
+
+**Never skip alignment check** - even for small tasks. Small misalignments compound.
+
+---
+
 ## 8) The Complete Protocol
 
 **Strategize** → **Spec** → **Plan** → **Think** → **Implement** → **Verify** → **Review** → **PR** → **Monitor**
