@@ -271,6 +271,110 @@ epics:
             required_tools:
               - fs_read
               - fs_write
+          - id: ROADMAP-EVIDENCE
+            title: 'Integrate Evidence Tracking with Roadmap v2.0 Structure'
+            status: pending
+            dependencies:
+              depends_on:
+                - ROADMAP-STRUCT
+            exit_criteria:
+              - prose: 'Schema extended with evidence_path and work_process_phases fields'
+              - prose: 'Migration script adds evidence paths to existing tasks'
+              - prose: 'MCP tools auto-create evidence directories (strategize/, spec/, plan/, think/, implement/, verify/, review/, pr/, monitor/)'
+              - prose: 'Exit criteria include evidence file checks'
+              - test: 'npm run validate:roadmap-evidence'
+                expect: 'all tasks with status=done have complete evidence'
+              - file: 'state/evidence/{task_id}/verify/verification.md'
+                expect: 'exists for all done tasks'
+            domain: mcp
+            description: >
+              Integrate work process evidence tracking directly into roadmap v2.0 structure. Currently,
+              evidence directories exist (state/evidence/{task_id}/) but are not referenced in roadmap.yaml.
+              Need bidirectional integration: roadmap → evidence paths, evidence → phase completion tracking.
+
+              Problem: Tasks complete work process (STRATEGIZE→MONITOR) and create evidence, but roadmap.yaml
+              doesn't track which phases are complete or where evidence is stored. This makes it hard to:
+              - Verify all phases completed for a task
+              - Find evidence for a given task
+              - Automate evidence validation
+              - Enforce work process compliance
+
+              Solution: Extend v2.0 schema with evidence tracking fields and integrate with MCP tools.
+
+              Schema Changes:
+              ```typescript
+              interface TaskSchema {
+                // ... existing fields ...
+                evidence_path?: string;  // e.g., "state/evidence/ROADMAP-STRUCT"
+                work_process_phases?: {
+                  strategize?: { completed: boolean; path: string; date?: string };
+                  spec?: { completed: boolean; path: string; date?: string };
+                  plan?: { completed: boolean; path: string; date?: string };
+                  think?: { completed: boolean; path: string; date?: string };
+                  implement?: { completed: boolean; path: string; date?: string };
+                  verify?: { completed: boolean; path: string; date?: string };
+                  review?: { completed: boolean; path: string; date?: string };
+                  pr?: { completed: boolean; path: string; date?: string };
+                  monitor?: { completed: boolean; path: string; date?: string };
+                };
+              }
+              ```
+
+              MCP Tool Integration:
+              1. **plan_update**: When task moves to in_progress, auto-create evidence directory
+              2. **context_write**: When writing to section "STRATEGIZE", mark phase as started
+              3. **fs_write**: When writing to state/evidence/{task_id}/verify/*, mark verify phase complete
+              4. **plan_next**: Filter tasks by phase completeness (e.g., only show tasks with verify done)
+              5. **critics_run**: Check evidence completeness before marking task done
+
+              Exit Criteria Integration:
+              ```yaml
+              exit_criteria:
+                - file: "state/evidence/ROADMAP-STRUCT/strategize/strategy.md"
+                  expect: "exists"
+                - file: "state/evidence/ROADMAP-STRUCT/verify/verification.md"
+                  expect: "exists"
+                - prose: "All 9 phases completed with evidence"
+              ```
+
+              Migration Strategy:
+              1. Add fields to schema (backwards compatible - optional fields)
+              2. Scan state/evidence/* directories and populate evidence_path
+              3. Detect which phases completed by checking directory contents
+              4. Update existing tasks with evidence paths
+              5. Add validation script (validate:roadmap-evidence)
+
+              Benefits:
+              - Automated work process compliance checking
+              - Easy discovery of evidence for any task
+              - Phase completion dashboard (e.g., "80% of tasks have verify done")
+              - Better task filtering (show only tasks ready for review)
+              - Historical tracking (when did each phase complete?)
+
+              Enforcement:
+              - Tasks cannot be marked "done" without complete evidence
+              - Each phase directory must contain required artifacts
+              - WorkProcessEnforcer validates evidence before transitions
+
+              Example Enhanced Task:
+              ```yaml
+              - id: ROADMAP-STRUCT
+                status: done
+                evidence_path: "state/evidence/ROADMAP-STRUCT"
+                work_process_phases:
+                  strategize: { completed: true, path: "strategize/strategy.md", date: "2025-10-29" }
+                  spec: { completed: true, path: "spec/spec.md", date: "2025-10-29" }
+                  # ... all 9 phases
+                exit_criteria:
+                  - file: "state/evidence/ROADMAP-STRUCT/verify/verification.md"
+                    expect: "exists"
+              ```
+            complexity_score: 6
+            effort_hours: 6
+            required_tools:
+              - fs_read
+              - fs_write
+              - plan_update
           - id: TOOL-EVAL-META
             title: MCP Tool Ecosystem Evaluation and Enhancement
             status: pending
