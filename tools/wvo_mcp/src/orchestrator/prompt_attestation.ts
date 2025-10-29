@@ -81,6 +81,9 @@ export interface DriftAnalysis {
   driftDetails?: string;
   severity: 'none' | 'low' | 'medium' | 'high';
   recommendation?: string;
+  // IMP-22: Persona drift information
+  personaDrift?: boolean;
+  personaDetails?: string;
 }
 
 interface BaselineRecord {
@@ -253,13 +256,25 @@ export class PromptAttestationManager {
 
       await this.recordAttestation(attestation);
 
+      // IMP-22: Build persona drift details if detected
+      let personaDetails: string | undefined;
+      if (personaDrift && spec.personaHash && baselineRecord?.personaHash) {
+        personaDetails = `Persona changed from ${baselineRecord.personaHash.slice(0, 16)}... to ${spec.personaHash.slice(0, 16)}...`;
+        if (spec.personaSummary) {
+          personaDetails += ` (${spec.personaSummary})`;
+        }
+      }
+
       return {
         hasDrift,
         baselineHash,
         currentHash,
         driftDetails,
         severity,
-        recommendation: this.getRecommendation(severity)
+        recommendation: this.getRecommendation(severity),
+        // IMP-22: Persona drift information
+        personaDrift,
+        personaDetails
       };
 
     } catch (error) {
@@ -273,7 +288,8 @@ export class PromptAttestationManager {
       return {
         hasDrift: false,
         currentHash: '',
-        severity: 'none'
+        severity: 'none',
+        personaDrift: false  // IMP-22
       };
     }
   }
@@ -549,6 +565,7 @@ export class PromptAttestationManager {
         hash: record.hash ?? '',
         version: record.version ?? 1,
         updatedAt: record.updatedAt ?? new Date().toISOString(),
+        personaHash: record.personaHash,  // IMP-22: Preserve persona hash
         updatedBy: record.updatedBy,
         reason: record.reason,
         versionTag: record.versionTag,

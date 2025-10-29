@@ -1,12 +1,12 @@
 # Persona Router Module
 
-**Purpose**: Provides adapter between PersonaSpec (persona_router) and PromptCompiler (prompt).
+**Purpose**: Provides PersonaSpec canonicalization, hashing, and adapter for PromptCompiler integration.
 
-**Related Tasks**: IMP-21-22-SYNC, IMP-22
+**Related Tasks**: IMP-21-22-SYNC (handshake), IMP-22 (full implementation)
 
 ---
 
-## Compiler Adapter (IMP-21-22-SYNC)
+## Compiler Adapter (IMP-22)
 
 ### PersonaSpec Interface
 
@@ -19,25 +19,41 @@ export interface PersonaSpec {
 }
 ```
 
-### formatPersonaForCompiler()
+### Canonicalization and Hashing
 
-Formats PersonaSpec for the PromptCompiler persona slot.
-
-**Stub Implementation** (IMP-21-22-SYNC): Simple pipe-separated string format.
-
-**Future Implementation** (IMP-22): Proper canonicalization with sorted keys.
+**Full Implementation** (IMP-22): Deterministic canonicalization with sorted keys and SHA-256 hashing.
 
 ```typescript
-import { formatPersonaForCompiler } from './compiler_adapter';
+import {
+  canonicalizePersonaSpec,
+  hashPersonaSpec,
+  formatPersonaForCompiler
+} from './compiler_adapter';
 
-const spec = {
+const spec: PersonaSpec = {
   phase_role: 'expert-planner',
   domain_overlays: ['api', 'web']
 };
 
+// 1. Canonical JSON string (deterministic, sorted keys)
+const canonical = canonicalizePersonaSpec(spec);
+// Returns: '{"domain_overlays":["api","web"],"phase_role":"expert-planner"}'
+
+// 2. SHA-256 hash for drift detection
+const hash = hashPersonaSpec(spec);
+// Returns: '4e07408562bedb8b...' (64-char hex)
+
+// 3. Format for compiler persona slot (same as canonical)
 const personaString = formatPersonaForCompiler(spec);
-// Returns: "Role: expert-planner | Overlays: api, web"
+// Returns: '{"domain_overlays":["api","web"],"phase_role":"expert-planner"}'
 ```
+
+### Key Properties
+
+- **Deterministic**: Same input → same output (regardless of key order, array order, or execution context)
+- **Stable Hash**: SHA-256 of canonical form, used for persona drift detection
+- **Backward Compatible**: All fields optional, gracefully handles partial specs
+- **No External Deps**: Built on Node.js crypto module
 
 ---
 
@@ -65,7 +81,11 @@ Run tests:
 npm test -- src/persona_router/__tests__/compiler_adapter.test.ts
 ```
 
-**Test Coverage**: 6 integration tests (3 formatter + 3 compiler integration)
+**Test Coverage**: 18 comprehensive tests
+- 6 canonicalization tests (determinism, key order, array order, empty/partial specs)
+- 6 hashing tests (SHA-256 format, stability, independence, hash differences)
+- 3 formatter tests
+- 3 compiler integration tests (persona slot, hash differences, stability)
 
 ---
 

@@ -254,6 +254,24 @@ export class WorkProcessEnforcer {
     });
   }
 
+  private async recordCounter(
+    counter: string,
+    metadata?: Record<string, unknown>
+  ): Promise<void> {
+    if (!this.metricsCollector) {
+      return;
+    }
+    try {
+      await this.metricsCollector.recordCounter(counter, 1, metadata);
+    } catch (error) {
+      logWarning('Metrics counter recording failed', {
+        counter,
+        metadata,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
+
   /**
    * Validate that a task can proceed based on phase sequence
    * Returns validation result for orchestrator enforcement
@@ -272,13 +290,11 @@ export class WorkProcessEnforcer {
       // Check if trying to skip to later phase
       if (task.status === 'in_progress' || task.status === 'done') {
         // CRITICAL: Record phase skip violation metric
-        if (this.metricsCollector) {
-          await this.metricsCollector.recordCounter('phase_skips_attempted', 1, {
-            taskId: task.id,
-            violation: 'skipped_strategize',
-            status: task.status
-          });
-        }
+        await this.recordCounter('phase_skips_attempted', {
+          taskId: task.id,
+          violation: 'skipped_strategize',
+          status: task.status
+        });
 
         return {
           valid: false,
@@ -326,6 +342,7 @@ export class WorkProcessEnforcer {
             violations: result.violations,
             requiredPhase: result.requiredPhase ?? null,
             actualPhase: result.actualPhase ?? null,
+            taskId: task.id,
           });
           logWarning('WorkProcessEnforcer violation', {
             taskId: task.id,
@@ -364,13 +381,11 @@ export class WorkProcessEnforcer {
       });
 
       // Record lease contention
-      if (this.metricsCollector) {
-        await this.metricsCollector.recordCounter('phase_lease_contention', 1, {
-          taskId,
-          phase: 'STRATEGIZE',
-          holder: leaseResult.holder
-        });
-      }
+      await this.recordCounter('phase_lease_contention', {
+        taskId,
+        phase: 'STRATEGIZE',
+        holder: leaseResult.holder
+      });
 
       throw new Error(`Phase lease already held by ${leaseResult.holder} (expires in ${leaseResult.expiresIn}s)`);
     }
@@ -388,7 +403,11 @@ export class WorkProcessEnforcer {
         null,
         'STRATEGIZE',
         [],
-        true
+        true,
+        {
+          agentType: 'work_process_enforcer',
+          personaHash: undefined  // IMP-22: Will be populated when persona router integrated
+        }
       );
       logInfo('Cycle start recorded in ledger', {
         taskId,
@@ -415,10 +434,24 @@ export class WorkProcessEnforcer {
    * ORDERING: Collect → Validate → Check Drift → Update Trust → Transition
    */
   async advancePhase(taskId: string, desiredPhase?: WorkPhase): Promise<boolean> {
-    await this.waitForInitialization();
+    return withSpan(
+      'process.validation',
+      async (span) => {
+        await this.waitForInitialization();
+        span?.setAttribute('taskId', taskId);
+        if (desiredPhase) {
+          span?.setAttribute('phase.desired', desiredPhase);
+        }
+        span?.setAttribute('validation.result', 'pending');
 
     const currentPhase = this.currentPhase.get(taskId);
+    span?.setAttribute('phase.current', currentPhase ?? 'UNASSIGNED');
     if (!currentPhase) {
+      span?.setStatus('error', 'task_not_in_cycle');
+      span?.addEvent('process.violation', {
+        reason: 'task_not_in_cycle',
+        taskId,
+      });
       throw new Error(`Task ${taskId} not in work cycle`);
     }
 
@@ -452,6 +485,11 @@ export class WorkProcessEnforcer {
         qualityGates: this.PHASE_VALIDATIONS[currentPhase].qualityGates.map(g => g.name),
         artifacts: this.PHASE_VALIDATIONS[currentPhase].artifacts,
         contextSummary: 'Phase enforcement context',  // Could extract from task context if available
+        // IMP-22: Persona hash and summary (placeholder - proper wiring TBD)
+        // TODO: Extract persona from task context when persona router integrated
+        // Feature flag: PERSONA_HASHING_MODE (off/observe/enforce) in config.ts
+        personaHash: undefined,  // Will be populated when persona router active & flag enabled
+        personaSummary: undefined,
         agentType: 'work_process_enforcer',
         modelVersion: 'claude-sonnet-4'  // Could be parameterized
       };
@@ -469,22 +507,48 @@ export class WorkProcessEnforcer {
         });
 
         // Record prompt drift metric
-        if (this.metricsCollector) {
-          await this.metricsCollector.recordCounter('prompt_drift_detected', 1, {
+        await this.recordCounter('prompt_drift_detected', {
+          taskId,
+          phase: currentPhase,
+          severity: driftAnalysis.severity
+        });
+
+        // IMP-22: Check for persona drift and record separately
+        if (driftAnalysis.personaDrift) {
+          await this.recordCounter('prompt_drift_detected', {
             taskId,
             phase: currentPhase,
-            severity: driftAnalysis.severity
+            dimension: 'persona'  // Distinguish persona drift from prompt drift
+          });
+
+          logWarning('PERSONA DRIFT DETECTED', {
+            taskId,
+            phase: currentPhase,
+            details: driftAnalysis.personaDetails
           });
         }
 
         // Add warning to validation (but don't block - just log)
         // High severity drift could be made blocking in future
         if (driftAnalysis.severity === 'high') {
+          await this.recordCounter('prompt_drift_high', {
+            taskId,
+            phase: currentPhase,
+          });
+
           logError('HIGH SEVERITY PROMPT DRIFT - Review immediately', {
             taskId,
             phase: currentPhase,
             details: driftAnalysis.driftDetails
           });
+
+          const failureMessage = `High severity prompt drift (${driftAnalysis.recommendation ?? 'review immediately'})`;
+          validation.errors.push(failureMessage);
+          validation.passed = false;
+
+          const rollbackPhase: WorkPhase = 'PLAN';
+          this.currentPhase.set(taskId, rollbackPhase);
+          this.logTransition(taskId, currentPhase, rollbackPhase, false, validation.errors);
         }
       }
     } catch (error) {
@@ -498,6 +562,13 @@ export class WorkProcessEnforcer {
 
     // STEP 5: Handle validation failure with learning capture
     if (!validation.passed) {
+      span?.setStatus('error', 'validation_failed');
+      span?.setAttribute('validation.result', 'failed');
+      span?.addEvent('process.violation', {
+        phase: currentPhase,
+        reason: 'validation_failed',
+        errors: validation.errors,
+      });
       logWarning('Phase validation failed', {
         taskId,
         phase: currentPhase,
@@ -506,13 +577,11 @@ export class WorkProcessEnforcer {
       });
 
       // CRITICAL: Record phase validation failure metric
-      if (this.metricsCollector) {
-        await this.metricsCollector.recordCounter('phase_validations_failed', 1, {
-          taskId,
-          phase: currentPhase,
-          errors: validation.errors
-        });
-      }
+      await this.recordCounter('phase_validations_failed', {
+        taskId,
+        phase: currentPhase,
+        errors: validation.errors
+      });
 
       // Trigger automatic learning capture
       this.captureLearning(taskId, currentPhase, validation.errors);
@@ -520,6 +589,9 @@ export class WorkProcessEnforcer {
       // Record failure in evidence
       this.evidenceCollector.collectVerificationFailure(currentPhase, validation.errors);
 
+      await this.recordProcessRejection(taskId, currentPhase, 'validation_failed', {
+        errors: validation.errors,
+      });
       return false;
     }
 
@@ -530,13 +602,26 @@ export class WorkProcessEnforcer {
       const finalVerification = await this.runComprehensiveFinalVerification(taskId);
       if (finalVerification) {
         await this.completeCycle(taskId);
+        span?.setAttribute('validation.result', 'passed');
+        span?.addEvent('process.validation.ok', {
+          phase: currentPhase,
+          nextPhase: null,
+          terminal: true,
+        });
         return true;
       } else {
+        span?.setStatus('error', 'final_verification_failed');
+        span?.setAttribute('validation.result', 'failed');
+        span?.addEvent('process.violation', {
+          phase: currentPhase,
+          reason: 'final_verification_failed',
+        });
         logError('FINAL VERIFICATION FAILED - Cannot mark complete', {
           taskId,
           phase: currentPhase,
           reason: 'Meta verification systems rejected completion'
         });
+        await this.recordProcessRejection(taskId, currentPhase, 'final_verification_failed');
         return false;
       }
     }
@@ -550,26 +635,34 @@ export class WorkProcessEnforcer {
       evidenceBundle = await this.evidenceCollector.finalizeCollection();
 
       // Check if evidence meets completion criteria
-      if (!evidenceBundle.meetsCompletionCriteria) {
-        logError('EVIDENCE VALIDATION FAILED - Cannot advance phase', {
+        if (!evidenceBundle.meetsCompletionCriteria) {
+        span?.setStatus('error', 'missing_evidence');
+        span?.setAttribute('validation.result', 'failed');
+        span?.addEvent('process.violation', {
+          phase: currentPhase,
+          reason: 'missing_evidence',
+          missingEvidence: evidenceBundle.missingEvidence,
+        });
+         logError('EVIDENCE VALIDATION FAILED - Cannot advance phase', {
+           taskId,
+           phase: currentPhase,
+           missingEvidence: evidenceBundle.missingEvidence
+         });
+
+        // Record evidence gate failure
+        await this.recordCounter('evidence_gate_failed', {
           taskId,
           phase: currentPhase,
           missingEvidence: evidenceBundle.missingEvidence
         });
 
-        // Record evidence gate failure
-        if (this.metricsCollector) {
-          await this.metricsCollector.recordCounter('evidence_gate_failed', 1, {
-            taskId,
-            phase: currentPhase,
-            missingEvidence: evidenceBundle.missingEvidence
-          });
-        }
-
         // Reset phase to allow retry after evidence is collected
         this.currentPhase.set(taskId, currentPhase);
         this.evidenceCollector.startCollection(currentPhase, taskId);
 
+        await this.recordProcessRejection(taskId, currentPhase, 'missing_evidence', {
+          missingEvidence: evidenceBundle.missingEvidence,
+        });
         return false;
       }
 
@@ -614,25 +707,35 @@ export class WorkProcessEnforcer {
         });
 
         // Record backtrack metric
-        if (this.metricsCollector) {
-          await this.metricsCollector.recordCounter('phase_backtracks', 1, {
-            taskId,
-            from: currentPhase,
-            to: desiredPhase
-          });
-        }
+        await this.recordCounter('phase_backtracks', {
+          taskId,
+          from: currentPhase,
+          to: desiredPhase
+        });
 
         // Release current lease and acquire target phase lease
         try {
           await this.phaseLeaseManager.releaseLease(taskId, currentPhase);
           const lease = await this.phaseLeaseManager.acquireLease(taskId, desiredPhase);
           if (!lease.acquired) {
+            span?.setStatus('error', 'backtrack_lease_conflict');
+            span?.setAttribute('validation.result', 'failed');
+            span?.addEvent('process.violation', {
+              phase: currentPhase,
+              reason: 'backtrack_lease_conflict',
+              desiredPhase,
+              holder: lease.holder,
+            });
             logError('Cannot backtrack - lease held by another agent', {
               taskId,
               from: currentPhase,
               to: desiredPhase,
               holder: lease.holder,
               expiresIn: lease.expiresIn
+            });
+            await this.recordProcessRejection(taskId, currentPhase, 'backtrack_lease_conflict', {
+              desiredPhase,
+              holder: lease.holder,
             });
             return false;
           }
@@ -653,6 +756,10 @@ export class WorkProcessEnforcer {
             desiredPhase,
             [],
             true,
+            {
+              agentType: 'work_process_enforcer',
+              personaHash: undefined  // IMP-22: Will be populated when persona router integrated
+            }
           );
         } catch (e) {
           logWarning('Ledger append failed for backtrack', {
@@ -663,35 +770,62 @@ export class WorkProcessEnforcer {
           });
         }
 
+        span?.setAttribute('validation.result', 'passed');
+        span?.addEvent('process.validation.ok', {
+          phase: currentPhase,
+          nextPhase: desiredPhase,
+          backtrack: true,
+        });
+
         return true;
       }
 
       // If runner proposes a forward phase that is not the immediate next, reject as skip
       if (expectedNextPhase && desiredPhase !== expectedNextPhase) {
+        span?.setStatus('error', 'sequence_mismatch');
+        span?.setAttribute('validation.result', 'failed');
+        span?.addEvent('process.violation', {
+          phase: currentPhase,
+          reason: 'sequence_mismatch',
+          desiredPhase,
+          expectedNextPhase,
+        });
         logError('Phase advancement rejected - desired phase does not match sequence', {
           taskId,
           currentPhase,
           desiredPhase,
           expectedNextPhase
         });
-        if (this.metricsCollector) {
-          await this.metricsCollector.recordCounter('phase_skips_attempted', 1, {
-            taskId,
-            currentPhase,
-            desiredPhase,
-            expectedNextPhase,
-            reason: 'sequence_mismatch'
-          });
-        }
+        await this.recordCounter('phase_skips_attempted', {
+          taskId,
+          currentPhase,
+          desiredPhase,
+          expectedNextPhase,
+          reason: 'sequence_mismatch'
+        });
+        await this.recordProcessRejection(taskId, currentPhase, 'sequence_mismatch', {
+          desiredPhase,
+          expectedNextPhase,
+        });
         return false;
       }
     }
 
     if (!expectedNextPhase) {
+      span?.setStatus('error', 'no_next_phase');
+      span?.setAttribute('validation.result', 'failed');
+      span?.addEvent('process.violation', {
+        phase: currentPhase,
+        reason: 'no_next_phase',
+        desiredPhase: desiredPhase ?? null,
+      });
       logError('Phase advancement rejected - no next phase in sequence', {
         taskId,
         currentPhase,
         desiredPhase
+      });
+      await this.recordProcessRejection(taskId, currentPhase, 'no_next_phase', {
+        desiredPhase,
       });
       return false;
     }
@@ -713,6 +847,13 @@ export class WorkProcessEnforcer {
       // Acquire lease for next phase
       const nextLeaseResult = await this.phaseLeaseManager.acquireLease(taskId, nextPhase);
       if (!nextLeaseResult.acquired) {
+        span?.setStatus('error', 'phase_lease_contention');
+        span?.setAttribute('validation.result', 'failed');
+        span?.addEvent('process.violation', {
+          phase: nextPhase,
+          reason: 'phase_lease_contention',
+          holder: nextLeaseResult.holder,
+        });
         logError('Cannot advance to next phase - lease held by another agent', {
           taskId,
           currentPhase,
@@ -722,13 +863,15 @@ export class WorkProcessEnforcer {
         });
 
         // Record contention
-        if (this.metricsCollector) {
-          await this.metricsCollector.recordCounter('phase_lease_contention', 1, {
-            taskId,
-            phase: nextPhase,
-            holder: nextLeaseResult.holder
-          });
-        }
+        await this.recordCounter('phase_lease_contention', {
+          taskId,
+          phase: nextPhase,
+          holder: nextLeaseResult.holder
+        });
+        await this.recordProcessRejection(taskId, currentPhase, 'lease_contention', {
+          nextPhase,
+          holder: nextLeaseResult.holder,
+        });
 
         // Rollback: reacquire current phase lease and reset state
         this.currentPhase.set(taskId, currentPhase);
@@ -767,7 +910,11 @@ export class WorkProcessEnforcer {
         currentPhase,
         nextPhase,
         artifactPaths,  // Real artifact paths from evidence bundle
-        evidenceValidated && validation.passed
+        evidenceValidated && validation.passed,
+        {
+          agentType: 'work_process_enforcer',
+          personaHash: undefined  // IMP-22: Will be populated when persona router integrated
+        }
       );
       logInfo('Phase transition recorded in ledger', {
         taskId,
@@ -784,17 +931,27 @@ export class WorkProcessEnforcer {
       // Don't fail the transition if ledger append fails, but log it
     }
 
-    logInfo('Phase advanced with full meta tracking', {
-      taskId,
-      from: currentPhase,
-      to: nextPhase,
-      evidenceCollected: true,
-      trustUpdated: true,
-      driftChecked: true,
-      ledgerRecorded: true
-    });
+        logInfo('Phase advanced with full meta tracking', {
+          taskId,
+          from: currentPhase,
+          to: nextPhase,
+          evidenceCollected: true,
+          trustUpdated: true,
+          driftChecked: true,
+          ledgerRecorded: true
+        });
 
-    return true;
+        span?.setAttribute('validation.result', 'passed');
+        span?.addEvent('process.validation.ok', {
+          phase: currentPhase,
+          nextPhase,
+          backtrack: false,
+        });
+
+        return true;
+      },
+      { attributes: { component: 'work_process_enforcer' } },
+    );
   }
 
   /**
@@ -973,6 +1130,20 @@ export class WorkProcessEnforcer {
 
     // Save updated trust scores
     fs.writeFileSync(trustPath, JSON.stringify(trustScores, null, 2));
+  }
+
+  private async recordProcessRejection(
+    taskId: string,
+    phase: WorkPhase,
+    reason: string,
+    extra?: Record<string, unknown>
+  ): Promise<void> {
+    await this.recordCounter('tasks_rejected_for_process_violation', {
+      taskId,
+      phase,
+      reason,
+      ...(extra ?? {}),
+    });
   }
 
   /**

@@ -112,6 +112,10 @@ Compiler uses typed slots with deterministic canonicalization:
 - `skills` (string): Available methods/tools
   Example: `"TypeScript, Node.js, Vitest"` - Future work (IMP-25) will derive from PersonaSpec
 
+- `persona` (string): Persona specification (IMP-22)
+  Example: `{"phase_role":"expert-planner","domain_overlays":["api"]}` - Canonical JSON from PersonaSpec
+  See `src/persona_router/compiler_adapter.ts` for canonicalization and hashing
+
 - `rubric` (string): Quality criteria
   Example: `"All code must be tested and documented"` - Future work (IMP-23) will inject rubrics
 
@@ -156,6 +160,7 @@ interface PromptInput {
   phase: string;       // REQUIRED
   domain?: string;     // OPTIONAL
   skills?: string;     // OPTIONAL
+  persona?: string;    // OPTIONAL (IMP-22: PersonaSpec canonical JSON)
   rubric?: string;     // OPTIONAL
   context?: string;    // OPTIONAL
 }
@@ -247,40 +252,49 @@ return createHash('sha256')
   .digest('hex'); // 64-char hex string
 ```
 
-## Adding New Slots (Future Work)
+## Persona Integration (IMP-22)
 
-To add a new slot (e.g., `persona` for IMP-22):
+The persona slot is now integrated with PersonaSpec canonicalization and hashing:
 
-1. **Update `PromptInput` interface**:
+1. **PersonaSpec Canonicalization**:
    ```typescript
-   export interface PromptInput {
-     system: string;
-     phase: string;
-     persona?: string; // NEW SLOT
-     // ...
-   }
+   import { formatPersonaForCompiler, hashPersonaSpec } from '../persona_router/compiler_adapter';
+
+   const spec = {
+     phase_role: 'expert-planner',
+     domain_overlays: ['api', 'web']
+   };
+
+   // Canonical JSON string (deterministic)
+   const personaStr = formatPersonaForCompiler(spec);
+   // Returns: '{"domain_overlays":["api","web"],"phase_role":"expert-planner"}'
+
+   // SHA-256 hash for drift detection
+   const hash = hashPersonaSpec(spec);
+   // Returns: '4e07408562bedb8b...' (64-char hex)
    ```
 
-2. **Update `assembleText()` method**:
+2. **Compile with Persona**:
    ```typescript
-   if (input.persona) parts.push(`Persona: ${input.persona}`);
-   ```
-
-3. **Add golden test**:
-   ```typescript
-   it('should compile prompt with persona slot', () => {
-     const compiled = compiler.compile({
-       system: 'You are Claude.',
-       phase: 'STRATEGIZE',
-       persona: 'expert-planner'
-     });
-     expect(compiled.text).toContain('Persona: expert-planner');
+   const compiled = compiler.compile({
+     system: 'You are Claude.',
+     phase: 'STRATEGIZE',
+     persona: personaStr // Canonical JSON from formatPersonaForCompiler()
    });
+
+   // Persona appears in compiled text
+   expect(compiled.text).toContain('Persona: {"domain_overlays"');
    ```
 
-4. **Verify hash stability**:
-   - Run existing hash stability test (100 runs)
-   - Should still produce identical hashes
+3. **Drift Detection**:
+   - Persona hash tracked in `PromptAttestationManager`
+   - Persona drift logged separately from prompt drift
+   - Feature flag: `PERSONA_HASHING_MODE` (off/observe/enforce)
+   - See `state/process/prompt_attestations.jsonl` for drift logs
+
+4. **Future: Adding More Slots**:
+   - Follow same pattern: Update interface → Update assembleText() → Add tests
+   - Example: `rubric` slot for IMP-23
 
 ## Performance
 
@@ -486,16 +500,17 @@ Tests verify:
 npm test -- src/prompt/
 ```
 
-## Integration (Future Work)
+## Integration Status
 
-IMP-21 is a **standalone library**. Integration happens in later tasks:
+IMP-21 started as a **standalone library**. Integration progress:
 
-- **IMP-22 (PersonaSpec)**: Add persona slot, populate from persona definitions
-- **IMP-23 (Domain Overlays)**: Populate domain/rubric slots from overlay catalog
-- **IMP-24 (StateGraph Hook)**: Call compiler before each runner, wire to attestation
-- **IMP-05 (Attestation)**: Use hash for prompt drift detection
-
-For IMP-21, the compiler is just a library with tests. No production integration yet.
+- **IMP-22 (PersonaSpec)**: ✅ Persona slot added, canonicalization and hashing implemented
+  - Persona hash tracked in attestation and ledger
+  - Feature flag: `PERSONA_HASHING_MODE` (default: off)
+  - Ready for persona router integration
+- **IMP-23 (Domain Overlays)**: ⏳ Populate domain/rubric slots from overlay catalog
+- **IMP-24 (StateGraph Hook)**: ⏳ Call compiler before each runner, wire to attestation
+- **IMP-05 (Attestation)**: ⏳ Use hash for prompt drift detection
 
 ## Design Decisions
 

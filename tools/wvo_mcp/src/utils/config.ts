@@ -44,3 +44,29 @@ export function shouldLimitHeavyOps(profile: CodexProfile): boolean {
 export function shouldEnableExtendedCritics(profile: CodexProfile): boolean {
   return profile === "high";
 }
+
+/**
+ * IMP-22: Feature flag for persona hashing and drift detection
+ *
+ * Controls whether PersonaSpec hashing is enabled for prompt attestation.
+ * Modes:
+ * - 'off': Persona hashing disabled (default until IMP-21 integration validated)
+ * - 'observe': Persona hashing enabled, drift logged but not blocking
+ * - 'enforce': Persona hashing enabled, high drift may block transitions (future)
+ *
+ * @returns Current persona hashing mode
+ */
+export function getPersonaHashingMode(): 'off' | 'observe' | 'enforce' {
+  const mode = process.env.PERSONA_HASHING_MODE?.toLowerCase();
+  if (mode === 'observe' || mode === 'enforce') {
+    return mode;
+  }
+  return 'off'; // Default: off until validated
+}
+
+/**
+ * Check if persona hashing is enabled (observe or enforce mode)
+ */
+export function isPersonaHashingEnabled(): boolean {
+  return getPersonaHashingMode() !== 'off';
+}
