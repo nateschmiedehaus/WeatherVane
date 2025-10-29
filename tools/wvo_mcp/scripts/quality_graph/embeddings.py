@@ -319,6 +319,70 @@ class NeuralBackend:
             )
         return vector
 
+    def compute_embeddings_batch(
+        self,
+        tasks: Sequence[dict],
+        batch_size: int = 32,
+        show_progress: bool = False,
+    ) -> np.ndarray:
+        """
+        Compute embeddings for multiple tasks in batches.
+
+        Args:
+            tasks: List of dicts with 'title', 'description', 'files_touched' keys
+            batch_size: Number of tasks to process in each batch (default: 32)
+            show_progress: Whether to show progress bar (default: False)
+
+        Returns:
+            np.ndarray of shape (len(tasks), target_dims) with unit-normalized vectors
+
+        Raises:
+            EmbeddingComputationError: If any task has invalid metadata
+        """
+        if not tasks:
+            return np.empty((0, self.target_dims), dtype=np.float32)
+
+        # Build input texts for all tasks
+        texts = []
+        for i, task in enumerate(tasks):
+            text = self.build_input_text(
+                title=task.get("title"),
+                description=task.get("description"),
+                files_touched=task.get("files_touched"),
+            )
+            if not text.strip() or text == "UNKNOWN_TASK":
+                raise EmbeddingComputationError(
+                    f"Cannot compute neural embedding for task {i}: missing title/description/files"
+                )
+            texts.append(text)
+
+        # Batch encode with sentence-transformers
+        model = self._ensure_model()
+        embeddings = model.encode(
+            texts,
+            batch_size=batch_size,
+            show_progress_bar=show_progress,
+            convert_to_numpy=True,
+            normalize_embeddings=True,
+        )
+
+        # Validate shape
+        embeddings = np.asarray(embeddings, dtype=np.float32)
+        if embeddings.ndim != 2:
+            raise EmbeddingComputationError(
+                f"Expected 2D array from batch encoding, got shape {embeddings.shape}"
+            )
+        if embeddings.shape[1] != self.target_dims:
+            raise EmbeddingComputationError(
+                f"Neural embedding dimension mismatch: expected {self.target_dims}, got {embeddings.shape[1]}"
+            )
+        if embeddings.shape[0] != len(tasks):
+            raise EmbeddingComputationError(
+                f"Expected {len(tasks)} embeddings, got {embeddings.shape[0]}"
+            )
+
+        return embeddings
+
 
 class TaskEmbedder:
     """Facade for embedding backends."""

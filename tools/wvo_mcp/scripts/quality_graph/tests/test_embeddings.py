@@ -319,6 +319,108 @@ class TestNeuralBackend:
             embedder.compute_embedding(title="Requires model")
 
 
+class TestNeuralBackendBatch:
+    """Batch embedding tests for NeuralBackend."""
+
+    def test_batch_empty_list(self, monkeypatch):
+        """Test batch encoding with empty list"""
+        backend = NeuralBackend()
+        monkeypatch.setattr(backend, '_ensure_model', lambda: StubSentenceTransformerBatch())
+
+        result = backend.compute_embeddings_batch([])
+
+        assert result.shape == (0, EMBEDDING_DIM)
+
+    def test_batch_single_task(self, monkeypatch):
+        """Test batch encoding with single task"""
+        backend = NeuralBackend()
+        monkeypatch.setattr(backend, '_ensure_model', lambda: StubSentenceTransformerBatch())
+
+        tasks = [{'title': 'Task 1', 'description': 'Description 1'}]
+        result = backend.compute_embeddings_batch(tasks)
+
+        assert result.shape == (1, EMBEDDING_DIM)
+        assert abs(np.linalg.norm(result[0]) - 1.0) < 1e-6
+
+    def test_batch_multiple_tasks(self, monkeypatch):
+        """Test batch encoding with multiple tasks"""
+        backend = NeuralBackend()
+        monkeypatch.setattr(backend, '_ensure_model', lambda: StubSentenceTransformerBatch())
+
+        tasks = [
+            {'title': 'Task 1', 'description': 'Description 1'},
+            {'title': 'Task 2', 'description': 'Description 2'},
+            {'title': 'Task 3', 'description': 'Description 3'},
+        ]
+        result = backend.compute_embeddings_batch(tasks, batch_size=2)
+
+        assert result.shape == (3, EMBEDDING_DIM)
+        for i in range(3):
+            assert abs(np.linalg.norm(result[i]) - 1.0) < 1e-6
+
+    def test_batch_missing_metadata_raises(self, monkeypatch):
+        """Test batch encoding with invalid task raises error"""
+        backend = NeuralBackend()
+        monkeypatch.setattr(backend, '_ensure_model', lambda: StubSentenceTransformerBatch())
+
+        tasks = [
+            {'title': 'Task 1', 'description': 'Description 1'},
+            {},  # Missing required fields
+        ]
+
+        with pytest.raises(EmbeddingComputationError):
+            backend.compute_embeddings_batch(tasks)
+
+    def test_batch_vs_sequential_consistency(self, monkeypatch):
+        """Test batch results match sequential results"""
+        backend = NeuralBackend()
+        stub = StubSentenceTransformerBatch()
+        monkeypatch.setattr(backend, '_ensure_model', lambda: stub)
+
+        tasks = [
+            {'title': 'Task A', 'description': 'Description A'},
+            {'title': 'Task B', 'description': 'Description B'},
+        ]
+
+        # Batch mode
+        batch_result = backend.compute_embeddings_batch(tasks)
+
+        # Sequential mode
+        sequential_result = np.array([
+            backend.compute_embedding(title=t['title'], description=t['description'])
+            for t in tasks
+        ])
+
+        # Should be identical (same stub model)
+        np.testing.assert_array_almost_equal(batch_result, sequential_result, decimal=6)
+
+
+class StubSentenceTransformerBatch:
+    """Stub for batch sentence-transformer encode."""
+
+    def encode(
+        self,
+        text,
+        batch_size=None,
+        show_progress_bar=False,
+        convert_to_numpy=True,
+        normalize_embeddings=True,
+    ):
+        assert convert_to_numpy is True
+        assert normalize_embeddings is True
+
+        # Handle both single string and list of strings
+        if isinstance(text, str):
+            # Single embedding
+            vec = np.full((EMBEDDING_DIM,), 1.0 / np.sqrt(EMBEDDING_DIM), dtype=np.float32)
+            return vec
+        else:
+            # Batch of embeddings
+            n = len(text)
+            vecs = np.full((n, EMBEDDING_DIM), 1.0 / np.sqrt(EMBEDDING_DIM), dtype=np.float32)
+            return vecs
+
+
 class TestResolveEmbeddingMode:
     """Mode resolution helper."""
 
