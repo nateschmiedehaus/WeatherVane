@@ -1,18 +1,20 @@
 /**
- * Compiler adapter for PersonaSpec integration (IMP-21-22-SYNC)
+ * Compiler adapter for PersonaSpec integration (IMP-22)
  *
- * This module provides a bridge between PersonaSpec (persona_router)
- * and PromptCompiler (prompt). It formats PersonaSpec data for the
- * compiler's persona slot.
+ * This module provides canonicalization, hashing, and compiler integration
+ * for PersonaSpec. It ensures deterministic serialization for stable hashing
+ * and drift detection.
  *
  * @module compiler_adapter
  */
 
+import { createHash } from 'crypto';
+
 /**
- * PersonaSpec structure (from persona_router/persona_spec.ts)
+ * PersonaSpec structure for persona-aware prompt compilation.
  *
- * NOTE: This is a simplified interface for the stub.
- * IMP-22 will use the full PersonaSpec from persona_spec.ts.
+ * All fields are optional to support partial persona specifications.
+ * Arrays are sorted deterministically during canonicalization.
  */
 export interface PersonaSpec {
   phase_role?: string;           // Role for this phase (e.g., 'expert-planner')
@@ -22,16 +24,87 @@ export interface PersonaSpec {
 }
 
 /**
+ * Canonicalizes PersonaSpec into deterministic JSON string.
+ *
+ * Ensures stable serialization by:
+ * 1. Sorting all object keys alphabetically
+ * 2. Sorting all array elements alphabetically
+ * 3. Removing undefined fields
+ * 4. Using JSON.stringify for consistent output
+ *
+ * Same input → same canonical string → same hash.
+ *
+ * @param spec - PersonaSpec to canonicalize
+ * @returns Canonical JSON string
+ *
+ * @example
+ * ```typescript
+ * const spec1 = { domain_overlays: ['web', 'api'], phase_role: 'planner' };
+ * const spec2 = { phase_role: 'planner', domain_overlays: ['api', 'web'] };
+ *
+ * canonicalizePersonaSpec(spec1) === canonicalizePersonaSpec(spec2); // true
+ * ```
+ */
+export function canonicalizePersonaSpec(spec: PersonaSpec): string {
+  // Deep clone and sort to prevent mutation
+  const sorted: any = {};
+
+  // Add fields in alphabetical order (sorted keys)
+  const keys = Object.keys(spec).sort();
+
+  for (const key of keys) {
+    const value = spec[key as keyof PersonaSpec];
+
+    // Skip undefined values
+    if (value === undefined) {
+      continue;
+    }
+
+    // Sort arrays deterministically
+    if (Array.isArray(value)) {
+      sorted[key] = [...value].sort();
+    } else {
+      sorted[key] = value;
+    }
+  }
+
+  // Deterministic JSON stringify
+  return JSON.stringify(sorted);
+}
+
+/**
+ * Computes SHA-256 hash of PersonaSpec.
+ *
+ * Uses canonicalization to ensure stable hash across:
+ * - Different key orders
+ * - Different array orders
+ * - Different processes/restarts
+ *
+ * @param spec - PersonaSpec to hash
+ * @returns 64-character hex string (SHA-256)
+ *
+ * @example
+ * ```typescript
+ * const spec = { phase_role: 'expert-planner', domain_overlays: ['api'] };
+ * const hash = hashPersonaSpec(spec);
+ * console.log(hash); // e4d909c290347e2ef4a8...
+ * ```
+ */
+export function hashPersonaSpec(spec: PersonaSpec): string {
+  const canonical = canonicalizePersonaSpec(spec);
+  return createHash('sha256')
+    .update(canonical, 'utf8')
+    .digest('hex');
+}
+
+/**
  * Formats PersonaSpec for prompt compiler persona slot.
  *
- * **STUB IMPLEMENTATION**: This is a minimal stub for IMP-21-22-SYNC.
- * IMP-22 will replace with proper canonicalization (sorted keys, stable hash).
- *
- * Current behavior: Simple pipe-separated string format.
- * IMP-22 behavior: Deterministic canonicalization with sorted keys.
+ * **IMP-22 IMPLEMENTATION**: Replaced stub with canonicalization.
+ * Uses canonical JSON format for stable hashing and drift detection.
  *
  * @param spec - PersonaSpec to format
- * @returns Serialized string for compiler persona slot
+ * @returns Canonical JSON string for compiler persona slot
  *
  * @example
  * ```typescript
@@ -41,7 +114,7 @@ export interface PersonaSpec {
  *   skill_packs: ['typescript']
  * };
  * const personaString = formatPersonaForCompiler(spec);
- * // Returns: "Role: expert-planner | Overlays: api | Skills: typescript"
+ * // Returns: '{"capabilities":[],"domain_overlays":["api"],"phase_role":"expert-planner","skill_packs":["typescript"]}'
  *
  * const compiler = new PromptCompiler();
  * const compiled = compiler.compile({
@@ -52,26 +125,5 @@ export interface PersonaSpec {
  * ```
  */
 export function formatPersonaForCompiler(spec: PersonaSpec): string {
-  const parts: string[] = [];
-
-  // Format each field if present
-  if (spec.phase_role) {
-    parts.push(`Role: ${spec.phase_role}`);
-  }
-
-  if (spec.domain_overlays && spec.domain_overlays.length > 0) {
-    parts.push(`Overlays: ${spec.domain_overlays.join(', ')}`);
-  }
-
-  if (spec.skill_packs && spec.skill_packs.length > 0) {
-    parts.push(`Skills: ${spec.skill_packs.join(', ')}`);
-  }
-
-  if (spec.capabilities && spec.capabilities.length > 0) {
-    parts.push(`Capabilities: ${spec.capabilities.join(', ')}`);
-  }
-
-  // Join with pipe separator
-  // IMP-22 will replace this with canonicalized JSON
-  return parts.join(' | ');
+  return canonicalizePersonaSpec(spec);
 }

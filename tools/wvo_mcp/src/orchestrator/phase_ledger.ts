@@ -40,6 +40,9 @@ export interface LedgerEntry {
   evidence_artifacts: string[];  // Paths to required artifacts
   evidence_validated: boolean;   // Did evidence pass validation?
 
+  // Persona (IMP-22)
+  persona_hash?: string;         // SHA-256 hash of PersonaSpec for this phase
+
   // Metadata
   agent_type?: string;           // Which agent executed the phase
   duration_ms?: number;          // Time spent in previous phase
@@ -154,6 +157,7 @@ export class PhaseLedger {
     metadata?: {
       agentType?: string;
       durationMs?: number;
+      personaHash?: string;  // IMP-22: Persona hash for this phase
     }
   ): Promise<LedgerEntry> {
     try {
@@ -167,6 +171,7 @@ export class PhaseLedger {
         to_phase: toPhase,
         evidence_artifacts: evidenceArtifacts,
         evidence_validated: evidenceValidated,
+        persona_hash: metadata?.personaHash,  // IMP-22
         agent_type: metadata?.agentType,
         duration_ms: metadata?.durationMs
       };

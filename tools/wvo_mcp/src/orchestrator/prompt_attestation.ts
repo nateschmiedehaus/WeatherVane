@@ -37,6 +37,10 @@ export interface PromptSpec {
   // Context (truncated to prevent hash volatility)
   contextSummary: string;  // First 500 chars of context
 
+  // Persona (IMP-22)
+  personaHash?: string;      // SHA-256 hash of PersonaSpec
+  personaSummary?: string;   // Human-readable persona summary for logs
+
   // Metadata
   agentType?: string;
   modelVersion?: string;
@@ -55,9 +59,16 @@ export interface PromptAttestation {
   drift_details?: string;
   timestamp: string;
 
+  // Persona (IMP-22)
+  persona_hash?: string;      // SHA-256 hash of PersonaSpec
+  persona_summary?: string;   // Human-readable persona summary
+  persona_drift?: boolean;    // True if persona changed from baseline
+
   // Metadata for analysis
   prompt_version?: string;
   agent_type?: string;
+  severity?: DriftAnalysis['severity'];
+  baseline_version?: number;
 }
 
 /**
@@ -72,6 +83,28 @@ export interface DriftAnalysis {
   recommendation?: string;
 }
 
+interface BaselineRecord {
+  hash: string;
+  version: number;
+  updatedAt: string;
+  personaHash?: string;    // IMP-22: Persona hash for drift detection
+  updatedBy?: string;
+  reason?: string;
+  versionTag?: string;
+}
+
+interface BaselineUpdateRecord extends BaselineRecord {
+  taskId: string;
+  phase: WorkPhase;
+}
+
+export interface BaselineUpdateOptions {
+  updatedBy?: string;
+  reason?: string;
+  versionTag?: string;
+  timestamp?: string;
+}
+
 /**
  * Prompt Attestation Manager
  *
@@ -80,12 +113,14 @@ export interface DriftAnalysis {
 export class PromptAttestationManager {
   private readonly attestationPath: string;
   private readonly baselinePath: string;
+  private readonly baselineUpdatesPath: string;
 
   constructor(
     private readonly workspaceRoot: string
   ) {
     this.attestationPath = path.join(workspaceRoot, 'state/process/prompt_attestations.jsonl');
     this.baselinePath = path.join(workspaceRoot, 'state/process/prompt_baselines.json');
+    this.baselineUpdatesPath = path.join(workspaceRoot, 'state/process/prompt_baseline_updates.jsonl');
   }
 
   /**
@@ -99,6 +134,10 @@ export class PromptAttestationManager {
       // Initialize baselines file if not exists
       if (!await this.fileExists(this.baselinePath)) {
         await fs.writeFile(this.baselinePath, JSON.stringify({}, null, 2));
+      }
+      // Ensure baseline updates log exists
+      if (!await this.fileExists(this.baselineUpdatesPath)) {
+        await fs.writeFile(this.baselineUpdatesPath, '');
       }
 
       logInfo('Prompt attestation initialized', {
@@ -138,7 +177,8 @@ export class PromptAttestationManager {
       // Load baselines
       const baselines = await this.loadBaselines();
       const baselineKey = `${spec.taskId}:${spec.phase}`;
-      const baselineHash = baselines[baselineKey];
+      let baselineRecord = baselines[baselineKey];
+      const baselineHash = baselineRecord?.hash;
 
       // Check for drift
       let hasDrift = false;
@@ -160,7 +200,14 @@ export class PromptAttestationManager {
         });
       } else if (!baselineHash) {
         // First attestation - establish baseline
-        baselines[baselineKey] = currentHash;
+        const record: BaselineRecord = {
+          hash: currentHash,
+          version: 1,
+          updatedAt: new Date().toISOString(),
+          personaHash: spec.personaHash,  // IMP-22: Store persona hash in baseline
+        };
+        baselines[baselineKey] = record;
+        baselineRecord = record;
         await this.saveBaselines(baselines);
 
         logInfo('Prompt baseline established', {
@@ -168,6 +215,21 @@ export class PromptAttestationManager {
           phase: spec.phase,
           hash: currentHash.slice(0, 16)
         });
+      }
+
+      // Check for persona drift (IMP-22)
+      let personaDrift = false;
+      if (spec.personaHash && baselineRecord?.personaHash) {
+        personaDrift = spec.personaHash !== baselineRecord.personaHash;
+        if (personaDrift) {
+          logWarning('PERSONA DRIFT DETECTED', {
+            taskId: spec.taskId,
+            phase: spec.phase,
+            baselinePersona: baselineRecord.personaHash.slice(0, 16),
+            currentPersona: spec.personaHash.slice(0, 16),
+            personaSummary: spec.personaSummary
+          });
+        }
       }
 
       // Record attestation
@@ -180,8 +242,13 @@ export class PromptAttestationManager {
         drift_detected: hasDrift,
         drift_details: driftDetails,
         timestamp: new Date().toISOString(),
+        persona_hash: spec.personaHash,        // IMP-22
+        persona_summary: spec.personaSummary,  // IMP-22
+        persona_drift: personaDrift,           // IMP-22
         agent_type: spec.agentType,
-        prompt_version: spec.modelVersion
+        prompt_version: spec.modelVersion,
+        severity,
+        baseline_version: baselineRecord?.version ?? 1,
       };
 
       await this.recordAttestation(attestation);
@@ -224,6 +291,7 @@ export class PromptAttestationManager {
       qualityGates: spec.qualityGates.sort(),
       artifacts: spec.artifacts.sort(),
       contextSummary: spec.contextSummary,
+      personaHash: spec.personaHash,  // IMP-22: Include persona hash
       agentType: spec.agentType,
       modelVersion: spec.modelVersion
     };
@@ -288,10 +356,15 @@ export class PromptAttestationManager {
   /**
    * Load prompt baselines from disk
    */
-  private async loadBaselines(): Promise<Record<string, string>> {
+  private async loadBaselines(): Promise<Record<string, BaselineRecord>> {
     try {
       const content = await fs.readFile(this.baselinePath, 'utf-8');
-      return JSON.parse(content);
+      const raw = JSON.parse(content) as Record<string, unknown>;
+      const normalized: Record<string, BaselineRecord> = {};
+      for (const [key, value] of Object.entries(raw)) {
+        normalized[key] = this.normalizeBaselineRecord(value);
+      }
+      return normalized;
     } catch {
       return {};
     }
@@ -300,9 +373,13 @@ export class PromptAttestationManager {
   /**
    * Save prompt baselines to disk
    */
-  private async saveBaselines(baselines: Record<string, string>): Promise<void> {
+  private async saveBaselines(baselines: Record<string, BaselineRecord>): Promise<void> {
     try {
-      await fs.writeFile(this.baselinePath, JSON.stringify(baselines, null, 2));
+      const serialized: Record<string, BaselineRecord> = {};
+      for (const [key, value] of Object.entries(baselines)) {
+        serialized[key] = value;
+      }
+      await fs.writeFile(this.baselinePath, JSON.stringify(serialized, null, 2));
     } catch (error) {
       logError('Failed to save prompt baselines', {
         error: error instanceof Error ? error.message : String(error)
@@ -383,12 +460,17 @@ export class PromptAttestationManager {
 
       const driftDetections = attestations.filter(a => a.drift_detected).length;
       const driftRate = attestations.length > 0 ? driftDetections / attestations.length : 0;
+      const severityCounts = attestations.reduce<Record<string, number>>((acc, att) => {
+        const key = att.severity ?? (att.drift_detected ? 'unknown' : 'none');
+        acc[key] = (acc[key] ?? 0) + 1;
+        return acc;
+      }, {});
 
       return {
         totalAttestations: attestations.length,
         driftDetections,
         driftRate,
-        severityCounts: {}  // Would need to store severity in attestation
+        severityCounts
       };
 
     } catch (error) {
@@ -409,18 +491,39 @@ export class PromptAttestationManager {
    * Reset baseline for a task/phase
    * (Use when intentional prompt change is made)
    */
-  async resetBaseline(taskId: string, phase: WorkPhase, newHash: string): Promise<void> {
+  async resetBaseline(taskId: string, phase: WorkPhase, newHash: string, options: BaselineUpdateOptions = {}): Promise<void> {
     try {
       const baselines = await this.loadBaselines();
       const baselineKey = `${taskId}:${phase}`;
+      const current = baselines[baselineKey];
+      const nextVersion = (current?.version ?? 0) + 1;
+      const timestamp = options.timestamp ?? new Date().toISOString();
+      const record: BaselineRecord = {
+        hash: newHash,
+        version: nextVersion,
+        updatedAt: timestamp,
+        updatedBy: options.updatedBy,
+        reason: options.reason,
+        versionTag: options.versionTag,
+      };
 
-      baselines[baselineKey] = newHash;
+      baselines[baselineKey] = record;
       await this.saveBaselines(baselines);
+
+      await this.recordBaselineUpdate({
+        taskId,
+        phase,
+        ...record,
+      });
 
       logInfo('Prompt baseline reset', {
         taskId,
         phase,
-        newHash: newHash.slice(0, 16)
+        newHash: newHash.slice(0, 16),
+        version: nextVersion,
+        updatedBy: options.updatedBy,
+        reason: options.reason,
+        versionTag: options.versionTag
       });
 
     } catch (error) {
@@ -428,6 +531,46 @@ export class PromptAttestationManager {
         taskId,
         phase,
         error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  }
+
+  private normalizeBaselineRecord(value: unknown): BaselineRecord {
+    if (typeof value === 'string') {
+      return {
+        hash: value,
+        version: 1,
+        updatedAt: new Date().toISOString(),
+      };
+    }
+    if (value && typeof value === 'object') {
+      const record = value as Partial<BaselineRecord>;
+      return {
+        hash: record.hash ?? '',
+        version: record.version ?? 1,
+        updatedAt: record.updatedAt ?? new Date().toISOString(),
+        updatedBy: record.updatedBy,
+        reason: record.reason,
+        versionTag: record.versionTag,
+      };
+    }
+    return {
+      hash: '',
+      version: 1,
+      updatedAt: new Date().toISOString(),
+    };
+  }
+
+  private async recordBaselineUpdate(entry: BaselineUpdateRecord): Promise<void> {
+    try {
+      const lockPath = this.baselineUpdatesPath + '.lock';
+      await withFileLock(lockPath, async () => {
+        await fs.appendFile(this.baselineUpdatesPath, JSON.stringify(entry) + '\n');
+      });
+    } catch (error) {
+      logWarning('Failed to record baseline update', {
+        entry,
+        error: error instanceof Error ? error.message : String(error),
       });
     }
   }
