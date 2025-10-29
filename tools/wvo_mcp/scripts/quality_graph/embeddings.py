@@ -206,7 +206,35 @@ class TaskEmbedder:
         # Fit vectorizer on first call (or if corpus provided)
         if not self.is_fitted or corpus:
             fit_corpus = corpus if corpus else [text]
-            self.vectorizer.fit(fit_corpus)
+
+            try:
+                self.vectorizer.fit(fit_corpus)
+            except ValueError as e:
+                # Handle minimal-text edge case: max_df constraint violation
+                # Occurs when corpus is too small (e.g., single short task)
+                if 'max_df' in str(e):
+                    # Retry with relaxed parameters (allow all terms)
+                    self.vectorizer = TfidfVectorizer(
+                        max_features=self.max_features,
+                        lowercase=True,
+                        token_pattern=r'\b\w\w+\b',
+                        stop_words='english',
+                        min_df=1,
+                        max_df=1.0,  # Allow all terms (no upper threshold)
+                    )
+                    try:
+                        self.vectorizer.fit(fit_corpus)
+                    except Exception:
+                        # Extremely degenerate case: can't fit even with relaxed params
+                        # Fall back to identity vectorizer (no vocabulary filtering)
+                        self.vectorizer = TfidfVectorizer(
+                            lowercase=True,
+                            token_pattern=r'\b\w\w+\b',
+                        )
+                        self.vectorizer.fit(fit_corpus)
+                else:
+                    raise  # Re-raise non-max_df errors
+
             self.is_fitted = True
 
             # Initialize random projection matrix
