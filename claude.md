@@ -35,9 +35,11 @@
 ## 1) Rapid Orientation (read first)
 
 **Start every loop** by calling MCP tools `plan_next --minimal` and `autopilot_status`. If either fails, run `./autopilot/scripts/restart_mcp.sh` and log to `state/analytics/health_checks.jsonl`.
+- Run `bash tools/wvo_mcp/scripts/run_integrity_tests.sh` before declaring a task finished. Follow it with `node tools/wvo_mcp/scripts/check_work_process_artifacts.mjs --task <TASK_ID>` for each task you touched (use `--all` for a full sweep) to fail fast if any STRATEGIZE→MONITOR artifacts are missing; fix gaps immediately.
 
 **🚨 MANDATORY PROCESS - NO EXCEPTIONS (AUTOPILOT OR SOLO CLAUDE SESSIONS):**
-**STRATEGIZE → SPEC → PLAN → THINK → IMPLEMENT → VERIFY → REVIEW → PR → MONITOR**
+**STRATEGIZE → SPEC → PLAN → THINK → IMPLEMENT → VERIFY → REVIEW → PR → MONITOR**  
+See `docs/autopilot/WORK_PROCESS.md` for stage contracts (Think Pack, observability, fitness functions) and future‑proof enforcement. Time‑boxed stage checklists are defaults for typical tasks; extend with justification for high‑risk/novel work. Gates and acceptance criteria remain mandatory.
 
 - **Enforcement is ACTIVE:**
   - Skipping ANY phase = IMMEDIATE TASK FAILURE
@@ -58,6 +60,57 @@
 **Respect consensus:** Failed-quorum decisions spawn follow-ups for Atlas/Dana—use them instead of bypassing.
 
 **Token hygiene:** Keep `state/context.md` ≲ 1,000 words; overflows are auto-backed up in `state/backups/context/`.
+
+---
+
+### Cross‑Item Integration (Mandatory)
+
+- Before IMPLEMENT: declare Related · DependsOn · Produces · Consumes for this task in `state/roadmap.dependencies.yaml`. For prompt/graph/router work, Related MUST include IMP‑21/22/23/24/25/26/35/36/37 and, when applicable, IMP‑ADV‑01.2 (hint injection), IMP‑QG‑01, IMP‑VEC‑01.
+- PLAN/THINK: specify how the change integrates with Related items (compiler slots, attestation coverage, eval variant IDs, grounded citations, tool allowlists) and define oracles.
+- IMPLEMENT: update shared typed integration contracts (TS/Zod, Python/Pydantic) vs duplicating interfaces; keep attestation/eval/telemetry in sync.
+- VERIFY: run roadmap linter and integration check (observe→enforce) and end‑to‑end smokes to prove context‑wide behavior; attach reports to evidence.
+- REVIEW/PR: include "Cross‑Item Integration" rubric with explicit links to Related items + contract versions; attach linter/integration artifacts.
+
+---
+
+### Gap Remediation Protocol (MANDATORY)
+
+**Policy:** Gaps found in REVIEW (or any late phase) are BLOCKERS, not backlog items. Fix them NOW.
+
+**Rules:**
+1. **NO deferring to follow-up tasks** - Gaps must be fixed in the current work process loop
+2. **Loop back immediately** - Return to the earliest impacted phase (typically IMPLEMENT, sometimes earlier)
+3. **Re-run all downstream phases** - VERIFY → REVIEW → PR → MONITOR must all be re-executed with gap fixes
+4. **Only exception** - Gaps explicitly marked "out of scope" in the SPEC acceptance criteria
+5. **Update evidence** - All evidence documents must reflect the gap fixes
+
+**Example Violation:**
+- ❌ REVIEW finds: "Missing schema versioning field" → Recommendation: "Add in follow-up task PROJ-123"
+- ✅ REVIEW finds: "Missing schema versioning field" → Action: Loop back to IMPLEMENT, add schema_version field, re-run VERIFY/REVIEW/PR/MONITOR
+
+**What counts as a gap:**
+- Missing implementation details (schema fields, error handling, edge cases)
+- Incomplete documentation (troubleshooting guides, examples, migration docs)
+- Unverified assumptions (performance claims without benchmarks, compatibility without tests)
+- Design flaws (tight coupling, missing graceful degradation, no rollback plan)
+
+**What is NOT a gap (can be deferred):**
+- Items explicitly listed as "out of scope" in SPEC (e.g., "No PoC for research task")
+- Follow-up features that are separate user stories (not part of current acceptance criteria)
+- Nice-to-have improvements that don't affect core functionality
+- Performance optimizations beyond stated requirements
+
+**Process:**
+1. REVIEW identifies gaps → List each gap with severity
+2. For each gap NOT explicitly out-of-scope in SPEC:
+   - Determine earliest impacted phase (usually IMPLEMENT)
+   - Loop back to that phase
+   - Fix the gap with implementation changes
+   - Update all affected evidence documents
+3. Re-run VERIFY → REVIEW → PR → MONITOR
+4. If new gaps found, repeat (should be rare with thorough THINK phase)
+
+**See:** This protocol was added 2025-10-28 after session where gaps were incorrectly deferred to follow-up tasks.
 
 ---
 
@@ -109,7 +162,9 @@
 
 **SLOs:** success ≥95%, loop ≤2%, planner→tool p95 ≤1.5s, tool MTTR ≤30s.
 
-**See:** [docs/autopilot/Observability-OTel-GenAI.md](docs/autopilot/Observability-OTel-GenAI.md)
+**See:** [docs/autopilot/Observability-OTel-GenAI.md](docs/autopilot/Observability-OTel-GenAI.md) and method toolkits at [docs/autopilot/STAGE_TOOLKITS.md](docs/autopilot/STAGE_TOOLKITS.md) for Strategy/Spec/Plan/Think. Choose only the methods that fit the task risk, and map each to an oracle, gate, or artifact. The toolkit is a living document; propose additions with when‑to‑use, steps, and evidence mapping.
+
+**Semantic evaluation mandate:** In VERIFY/REVIEW/MONITOR, interpret output meaning, not just presence. Reject "it ran" if logs show warnings/errors or trivial tests (no assertions). Treat warnings in critical paths as failures unless Spec explicitly allows them.
 
 ---
 
@@ -295,6 +350,92 @@ grep "workspaceRoot" src/path/to/file.ts              # No process.cwd() usage
 
 ---
 
+## 7.6) Pre-Commit Verification Protocol (MANDATORY)
+
+**Trigger**: BEFORE marking ANY task complete in MONITOR phase OR creating PR commit.
+
+**Purpose**: Prevent premature completion, catch gaps before commit, ensure critical thinking about implementation.
+
+### Mandatory 6-Point Checklist
+
+Use template: `docs/autopilot/templates/verify/verification_checklist.md`
+
+#### 1. Build Verification
+- ✅ `npm run build` → 0 errors
+- ✅ `npm run lint` → 0 errors or documented warnings
+- ✅ `npm run typecheck` → 0 errors
+
+**Gate**: If build fails, task is NOT complete. Return to IMPLEMENT.
+
+#### 2. Test Verification
+- ✅ Full test suite passes
+- ✅ Related tests for modified modules pass
+- ✅ Integration/smoke tests pass (if applicable)
+- ✅ No unexplained skipped tests
+
+**Gate**: If tests fail, task is NOT complete. Return to IMPLEMENT.
+
+#### 3. End-to-End Functional Verification
+- ✅ **Actually ran the code** with realistic data (NOT just reading documents)
+- ✅ **Verified outputs are correct** (not just "no errors")
+- ✅ **Tested error cases** and edge cases
+- ✅ **Error messages are actionable**
+
+**Examples**:
+```bash
+# For neural embeddings, must actually run:
+QUALITY_GRAPH_EMBEDDINGS=neural python3 scripts/quality_graph/record_task_vector.py <workspace> <task-id>
+# And verify: output has 384D vectors, similarity scores make sense
+```
+
+**Gate**: If functionality doesn't work, task is NOT complete.
+
+#### 4. Performance Validation (for performance-sensitive changes)
+- ✅ **Measured actual latency** with realistic data (not estimated)
+- ✅ **Critically evaluated trade-offs**: Is Nx slower acceptable? For what use case?
+- ✅ **Identified missing optimizations**: Batching, caching, GPU, parallelization
+- ✅ **Documented performance characteristics**
+
+**Red Flags**:
+- 🚩 >10x slower without clear justification
+- 🚩 >100ms latency for frequent operations
+- 🚩 No batch API for ML model inference
+- 🚩 CPU-only when GPU available
+- 🚩 Re-loading models/resources on every call
+
+**Gate**: If performance is unacceptable, create optimization task OR implement now.
+
+#### 5. Integration Verification
+- ✅ Upstream callers still work
+- ✅ Downstream consumers can use new feature
+- ✅ Feature flags tested (all values: on/off/invalid)
+- ✅ Rollback path verified
+
+**Gate**: If integration breaks, task is NOT complete.
+
+#### 6. Documentation Verification
+- ✅ README examples actually work (run them yourself)
+- ✅ Performance claims are measured (not guessed)
+- ✅ Trade-offs honestly documented
+
+**Gate**: If docs are wrong, update them BEFORE committing.
+
+### Enforcement
+
+**MONITOR phase MUST verify checklist complete** before creating completion.md.
+
+If ANY item fails:
+1. Mark task status as "BLOCKED - verification failed"
+2. Return to earliest impacted phase (usually IMPLEMENT)
+3. Fix the gap
+4. Re-run VERIFY → REVIEW → PR → MONITOR
+
+**See**: `docs/autopilot/templates/verify/verification_checklist.md` for full template with examples.
+
+**See**: META-VERIFY-01 (state/evidence/META-VERIFY-01/) for rationale and learnings.
+
+---
+
 ## 8) The Complete Protocol
 
 **Strategize** → **Spec** → **Plan** → **Think** → **Implement** → **Verify** → **Review** → **PR** → **Monitor**
@@ -305,6 +446,8 @@ grep "workspaceRoot" src/path/to/file.ts              # No process.cwd() usage
 - **Stress Testing:** [Stress-Testing.md](docs/autopilot/Stress-Testing.md) - 7 categories with targets
 - **Review:** [Adversarial-Review.md](docs/autopilot/Adversarial-Review.md) - Adversarial questioning framework
 - **Modularization:** [Modularization-Policy.md](docs/autopilot/Modularization-Policy.md) - File size thresholds
+
+**IMPORTANT**: See section 7.6 for Pre-Commit Verification Protocol (MANDATORY before MONITOR phase)
 
 **See:** [docs/autopilot/ClaudeCouncil-Core.md](docs/autopilot/ClaudeCouncil-Core.md) for condensed core protocols
 
