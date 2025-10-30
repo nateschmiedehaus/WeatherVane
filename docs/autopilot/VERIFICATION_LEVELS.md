@@ -2,9 +2,13 @@
 
 **Purpose**: Define 4 clear verification levels to prevent false completion claims
 
+**Scope**: These standards apply to **all code changes** regardless of workflow (autopilot, manual Claude sessions, CI/CD, scripts, etc.). Whether you're working within the structured autopilot process or in a one-off manual session, these levels define the minimum quality gates for any code that may reach production.
+
 **Problem**: "Tests pass" means different things - from "code compiles" to "production users validated it"
 
 **Solution**: Explicit levels with sharp boundaries
+
+**For Manual Sessions**: If you're working outside the autopilot workflow, see [MANUAL_SESSION_VERIFICATION.md](docs/autopilot/MANUAL_SESSION_VERIFICATION.md) for a lightweight checklist that applies these same standards without requiring full STRATEGIZE→MONITOR evidence.
 
 ---
 

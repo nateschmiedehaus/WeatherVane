@@ -1,6 +1,10 @@
 # Unified Work Process (Future‑Proof)
 
-This document is the single source of truth for the Autopilot work process across Strategy, Spec, Plan, Think, Implement, Verify, Review, PR, and Monitor. It defines stable contracts, artifacts, fitness functions, and enforcement so the process remains durable as the system evolves.
+This document is the single source of truth for the **Autopilot work process** across Strategy, Spec, Plan, Think, Implement, Verify, Review, PR, and Monitor. It defines stable contracts, artifacts, fitness functions, and enforcement so the process remains durable as the system evolves.
+
+**Scope**: This document describes the structured autopilot workflow (the full STRATEGIZE→MONITOR process). If you're working in a **manual Claude session** (outside autopilot), see [MANUAL_SESSION_VERIFICATION.md](docs/autopilot/MANUAL_SESSION_VERIFICATION.md) for a lightweight verification checklist.
+
+**Universal Standards**: The verification levels (Level 1-4) and quality gates defined here apply to **all code changes** regardless of workflow. The STRATEGIZE→MONITOR *process* is autopilot-specific, but the *quality standards* are universal.
 
 ## Sequence (Mandatory)
 STRATEGIZE → SPEC → PLAN → THINK → IMPLEMENT → VERIFY → REVIEW → PR → MONITOR
