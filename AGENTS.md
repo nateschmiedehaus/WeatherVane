@@ -13,7 +13,7 @@
 - Before you call a task complete, run `node tools/wvo_mcp/scripts/check_work_process_artifacts.mjs --task <TASK_ID>` for each task you touched (add `--all` for a full sweep) to confirm the STRATEGIZE→MONITOR artifacts exist. Treat any failure as a blocked task until fixed.
 - Run `npm run validate:roadmap-evidence -- --json > state/evidence/<TASK_ID>/verify/roadmap_evidence_report.json` to keep roadmap metadata and filesystem artifacts aligned; warnings highlight legacy tasks that still lack full evidence.
 - Enforce delta-note policy: run `node tools/wvo_mcp/scripts/check_delta_notes.ts` and ensure it passes (or that new tasks are created) before closing your loop. Unresolved notes must become explicit roadmap tasks (see META-POLICY-02).
-- Run `node tools/wvo_mcp/scripts/classify_follow_ups.ts` and resolve any pending follow-ups by creating tasks or recording deferments. The checker auto-writes `AUTO-FU-*` entries to `state/automation/auto_follow_up_tasks.jsonl`; review or ingest them before closing a loop, and only suppress a bullet with `[ #auto-task=skip ]` when the deferment is documented (META-POLICY-03/04).
+- Run `node tools/wvo_mcp/scripts/classify_follow_ups.ts --enforce` and resolve any pending follow-ups by creating tasks or recording deferments. The checker now auto-ingests `AUTO-FU-*` tasks into roadmap epic `E-AUTO-FOLLOWUPS` and writes `state/automation/auto_follow_up_tasks.jsonl`; only suppress a bullet with `[ #auto-task=skip ]` when the deferment is documented (META-POLICY-03/05). Use report mode (no flag) for local audits.
 - Run `node tools/wvo_mcp/scripts/check_performance_regressions.ts` to ensure key performance metrics have not regressed; update baselines intentionally with `--update-baseline` only after verifying improvements (META-PERF-01).
 - Run `node tools/wvo_mcp/scripts/check_determinism.ts --task <TASK_ID> --output state/evidence/<TASK_ID>/verify/determinism_check.json` to prove seeds/timeouts are in place and tracing smokes are deterministic (IMP-DET-01). Treat failures as blockers.
 - Run `node tools/wvo_mcp/scripts/check_structural_policy.ts --task <TASK_ID> --output state/evidence/<TASK_ID>/verify/structural_policy_report.json` to ensure changed source files retain companion tests or documented allowlist entries (IMP-POL-01).
@@ -28,6 +28,7 @@ Always author roadmap entries using the new schema:
 - `dependencies` exposes a `depends_on` array (legacy flat arrays are invalid).
 - `exit_criteria` is a list of structured objects (include `prose` or `test`/`expect` pairs).
 - `complexity_score`, `effort_hours`, and `required_tools` are required metadata fields.
+- `evidence_path`, `work_process_phases`, and `evidence_enforcement` keep roadmap entries aligned with STRATEGIZE→MONITOR artifacts.
 
 Example task:
 
@@ -50,6 +51,18 @@ Example task:
     type: quality
     severity: medium
     gap: "Smoke suite lacked parity coverage"
+  evidence_path: state/evidence/FIX-QUALITY-Example
+  work_process_phases:
+    - strategize
+    - spec
+    - plan
+    - think
+    - implement
+    - verify
+    - review
+    - pr
+    - monitor
+  evidence_enforcement: enforce
 ```
 
 ## System-Level Architecture Snapshot
@@ -349,5 +362,6 @@ See `state/evidence/IMP-COST-01/strategize/strategy.md` for example of deep stra
 - Policies: `docs/autopilot/SECURITY.md`, `docs/autopilot/QUALITY_BAR.md`, `docs/autopilot/GOVERNANCE.md`
 - Integration standards: `docs/autopilot/Integration-Verification.md`
 - Complete-finish policy: `docs/autopilot/Complete-Finish-Policy.md`
+- **Verification Levels: `docs/autopilot/VERIFICATION_LEVELS.md` - REQUIRED READING** - 4-level taxonomy preventing false completion (Level 1: Compilation, Level 2: Smoke Testing, Level 3: Integration, Level 4: Production)
 - Observability: `docs/autopilot/Observability-OTel-GenAI.md`
 - Run `node tools/wvo_mcp/scripts/check_risk_oracle_coverage.ts --task <TASK_ID> --output state/evidence/<TASK_ID>/verify/oracle_coverage.json` to confirm every risk in `risk_oracle_map.json` has executing oracles before advancing (IMP-ORC-01).

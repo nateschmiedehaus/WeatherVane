@@ -139,7 +139,7 @@ Downstream gates (VERIFY/REVIEW/PR/MONITOR) often surface additional work—extr
 - **Entry format:** include timestamp (UTC ISO), phase that discovered the requirement, summary of the new deliverable, owner, and status (`pending` → `in_progress` → `complete`). Link to evidence (test logs, docs, telemetry) once fulfilled.
 - **Blocking rule:** a task cannot exit the work process until every delta note is marked `complete` or SPEC explicitly exempts it. REVIEW must fail if open delta notes remain.
 - **Automation:** supervisors/scripts must convert any outstanding delta notes into explicit roadmap tasks if they cannot be completed inside the current loop. No informal follow-up lists; every residual requirement is tracked as its own task ID.
-- **Follow-up classifier:** run `node tools/wvo_mcp/scripts/classify_follow_ups.ts` to ensure every "next step"/follow-up note in implement/verify/review/monitor evidence is classified (`immediate_fix`, `scheduled_improvement`, `research_spike`, `monitoring_watch`, `external_dependency`) and either linked to a roadmap task (`status: task_created`) or documented with deferment metadata (`owner`, `defer_until`, `rationale`). The run emits auto-created `AUTO-FU-*` entries to `state/automation/auto_follow_up_tasks.jsonl`; review/import them, and only opt out with `[ #auto-task=skip ]` when the deferment is justified in evidence. CI fails while pending follow-ups remain.
+- **Follow-up classifier (META-POLICY-05):** run `node tools/wvo_mcp/scripts/classify_follow_ups.ts --enforce` during VERIFY/CI to classify every "next step" note. The tool auto-creates roadmap tasks (under `E-AUTO-FOLLOWUPS`) for unresolved items and fails CI until each entry is either resolved, recorded as a roadmap task, or explicitly deferred with `[ #auto-task=skip ]` plus rationale. Use report mode (omit `--enforce` or pass `--report`) for local audits. Reports live in `state/automation/follow_up_report.json`.
 - **Determinism audit:** run `node tools/wvo_mcp/scripts/check_determinism.ts --task <TASK-ID> --output state/evidence/<TASK-ID>/verify/determinism_check.json` to confirm shared seeds/timeouts are active and tracing smokes produce stable spans/counters (IMP-DET-01). Any failure blocks advancement.
 - **Structural policy gate:** run `node tools/wvo_mcp/scripts/check_structural_policy.ts --task <TASK-ID> --output state/evidence/<TASK-ID>/verify/structural_policy_report.json`; address any missing test coverage or document allowlist entries before continuing (IMP-POL-01).
 - **Risk→oracle coverage:** run `node tools/wvo_mcp/scripts/check_risk_oracle_coverage.ts --task <TASK-ID> --output state/evidence/<TASK-ID>/verify/oracle_coverage.json` to prove every risk in the THINK map has passing oracles (IMP-ORC-01).
@@ -281,22 +281,49 @@ Downstream gates (VERIFY/REVIEW/PR/MONITOR) often surface additional work—extr
 
 ### IMPLEMENT
 - Outcome: minimal diff that satisfies oracles; spans/counters inserted
+- **Verification Level Requirement: Level 1 (Compilation)** before proceeding to VERIFY
+  - [ ] Code compiles with 0 errors (`npm run build` or equivalent)
+  - [ ] Type checking passes (`npm run typecheck`)
+  - [ ] Linting passes or warnings documented and justified
+  - [ ] Build artifacts present in expected locations (e.g., `dist/`)
+  - **GATE**: If build fails → Stay in IMPLEMENT, do not proceed to VERIFY
 - Rules: stay inside edit window; warn at 80% of diff budget, block at 100% unless Plan updated
 - Tests: add the two risk tests and the two spans per Spec; keep patch small and focused
 - Evidence: record Think Pack/spec version in journal; scoped commit title (what + why)
+- See: [VERIFICATION_LEVELS.md](VERIFICATION_LEVELS.md#level-1-compilation) for Level 1 details
 
 ### VERIFY
 - Outcome: all oracles mapped and green; gates pass; integrity clean; outputs semantically correct
+- **Verification Level Requirement: Level 2 (Smoke Testing)** before proceeding to REVIEW
+  - [ ] Tests exist that validate core logic with known inputs
+  - [ ] Tests execute successfully (not just present, but RUN)
+  - [ ] Tests pass with meaningful assertions (no trivial tests)
+  - [ ] Core functionality validated (comparison logic, calculations, transformations)
+  - [ ] Edge cases covered (boundary conditions, error cases)
+  - [ ] **Document honestly what IS and IS NOT tested**:
+    ```markdown
+    ## What Was Tested (Level 2 ✅)
+    - Core logic with known inputs
+    - Edge cases: X, Y, Z
+
+    ## What Was NOT Tested (Level 3 ⏳)
+    - Real API calls (requires auth)
+    - Integration with system X
+    - End-to-end workflow
+    ```
+  - **GATE**: If smoke tests fail → Return to IMPLEMENT, do not proceed to REVIEW
 - Gates: tests, lint, type, security, license, changed‑lines coverage; (optional) pilot a tiny variance check on flaky‑suspect subset
 - Semantic validation:
   - Parse stdout/stderr for warning/error/regression signals; treat non-empty critical warnings as failures unless explicitly allowed
   - Require non-zero assertion counts for key suites; flag trivial tests (no asserts, catch-all try/catch)
   - Normalize and check exit codes; missing/ignored exit codes are failures
+  - **NEVER accept "it ran" as validation** - outputs must be semantically correct
 - Policies: start with one structural graph policy (changed node must have a test edge)
 - Integration checks: run `scripts/roadmap_lint.py` and `scripts/roadmap_integration_check.sh`; attach reports; run end-to-end smokes to prove in-context behavior.
-- Telemetry parity: run `node --loader ./tools/wvo_mcp/node_modules/ts-node/esm.mjs tools/wvo_mcp/scripts/check_telemetry_parity.ts --workspace-root . --report state/evidence/<TASK-ID>/verify/telemetry_parity_report.json`; fail closed if OTEL snapshots diverge from JSONL sinks.
+- Telemetry parity: run `node --import tsx tools/wvo_mcp/scripts/check_telemetry_parity.ts --workspace-root . --report state/evidence/<TASK-ID>/verify/telemetry_parity_report.json`; fail closed if OTEL snapshots diverge from JSONL sinks.
 - Delta notes: if VERIFY uncovers new commands/tests/artifacts, create/update the Task Delta Note in `monitor/plan.md` and link the produced evidence before leaving this phase.
 - Failure: attach failing gate and minimal logs; return to earliest impacted phase; require plan-delta if implementation path is exhausted
+- See: [VERIFICATION_LEVELS.md](VERIFICATION_LEVELS.md#level-2-smoke-testing) for Level 2 details and common pitfalls
 
 ### REVIEW
 - Outcome: approve only if future‑proof criteria met and outputs mean what they should
@@ -307,11 +334,32 @@ Downstream gates (VERIFY/REVIEW/PR/MONITOR) often surface additional work—extr
   - [ ] Opportunity cost was justified (best use of time vs. alternatives)
   - [ ] Follow-up work is scoped and tracked
   - [ ] **If misalignment discovered**: Document what changed, consider discarding/pivoting work
+- **Verification Level Assessment: Level 3 (Integration Testing)** or acceptable deferral
+  - [ ] **Assess integration criticality**: Does this require real dependencies (APIs, auth, DBs)?
+  - [ ] **If critical for integration**:
+    - Level 3 achieved: Real integration tested (actual APIs, CLI auth, end-to-end workflow)
+    - OR explicitly deferred with valid justification (see below)
+  - [ ] **If Level 3 deferred, require explicit justification**:
+    ```markdown
+    ## Level 3 Integration: DEFERRED ⏳
+
+    **Reason**: [Valid reason - e.g., "Requires production credentials not available in dev"]
+
+    **Validation plan**: [How will it be validated - e.g., "User will test with prod creds"]
+
+    **Risk**: [What could go wrong - e.g., "Auth integration may fail in prod"]
+
+    **Mitigation**: [Risk reduction - e.g., "Followed existing patterns, documented auth flow"]
+    ```
+  - **Valid deferral reasons**: Prod credentials unavailable, external API down, depends on incomplete task
+  - **Invalid deferral reasons**: "Don't have time", "Probably works", "Will test later"
+  - **GATE**: If integration critical AND not tested AND no valid deferral → Return to IMPLEMENT/VERIFY
 - Rubric: contracts versioned; seams/flags present; budgets respected; tests prove oracles; observability present; non‑goals respected
 - Semantic review: verify that logs/results indicate success without hidden warnings; detect "false green" (tests that only run, not assert)
 - Portfolio alignment: confirm Worthiness note exists (epic, KPI link, kill/pivot criteria)
 - Optional: dual lightweight reviews; surface only disagreements
 - **GATE**: Cannot approve if strategic misalignment detected (loop back to STRATEGIZE)
+- See: [VERIFICATION_LEVELS.md](VERIFICATION_LEVELS.md#level-3-integration-testing) for Level 3 details and deferral guidelines
 
 ### STRATEGIZE
 - Outcome: decide whether to do, defer, pivot, or kill the task based on evidence and portfolio fit (it is valid to remove or completely rewrite a task at this stage).
@@ -332,8 +380,18 @@ Downstream gates (VERIFY/REVIEW/PR/MONITOR) often surface additional work—extr
 
 ### MONITOR
 - Outcome: post‑merge checks validate SLOs and negative oracles; drift detectors and deprecation telemetry in place; learnings captured; warnings remain near zero
+- **Verification Level Tracking: Level 4 (Production Validation)** - ongoing monitoring
+  - [ ] Track real usage: Feature used successfully by users (not just deployed)
+  - [ ] Collect telemetry: Success metrics, error rates, performance data
+  - [ ] User feedback: No critical bugs reported, workflows complete successfully
+  - [ ] **User testing counts as Level 4 validation** when:
+    - User completes workflow successfully
+    - Telemetry shows successful usage patterns
+    - No blocking issues encountered
+  - **Level 4 is tracked, not blocking**: Task can be complete without Level 4, but track validation status
 - Run tiny BATs/smokes; 24–72h watch for negative oracles; alert on phase‑skip counter > 0 or rising cross‑check discrepancies; capture short learnings if triggered
 - Semantic drift: scan logs for warning/error patterns; track `warning_count` and `warning_rate`; open incidents when thresholds are exceeded
+- See: [VERIFICATION_LEVELS.md](VERIFICATION_LEVELS.md#level-4-production-validation) for Level 4 details
 
 ## Observability Contract (minimal set)
 - Spans: agent.state.transition, agent.verify, agent.cross_check, process.validation (+ process.violation events)
