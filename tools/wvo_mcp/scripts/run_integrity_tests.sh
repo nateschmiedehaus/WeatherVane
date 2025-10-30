@@ -106,6 +106,20 @@ run_stage "Python test suite" env PYTHONPATH=".deps:." "$PYTHON_BIN" -m pytest a
 
 run_stage "Autopilot vitest suite" node tools/oss_autopilot/scripts/run_vitest.mjs --run --scope=autopilot
 
+run_stage "Tracing smoke (telemetry)" node tools/wvo_mcp/scripts/tracing_smoke.mjs
+
+run_stage "Telemetry parity check" node --import tsx ./tools/wvo_mcp/scripts/check_telemetry_parity.ts --quiet --workspace-root "$ROOT_DIR"
+
+run_stage "Telemetry alert evaluation" node scripts/evaluate_alerts.mjs --workspace-root "$ROOT_DIR"
+
+run_stage "Telemetry metrics dashboard" node scripts/render_metrics_dashboard.mjs --workspace-root "$ROOT_DIR" --json-only --output state/telemetry/dashboard.json
+
+run_stage "Quality graph health check" node --import tsx ./tools/wvo_mcp/scripts/check_quality_graph.ts --workspace-root "$ROOT_DIR"
+
+run_stage "Quality graph precision" node --import tsx ./tools/wvo_mcp/scripts/check_quality_graph_precision.ts --workspace-root "$ROOT_DIR" --min-corpus 50 --report "$ROOT_DIR/state/automation/quality_graph_precision_report.json" --quiet
+
+run_stage "Improvement review audit" node --import tsx ./tools/wvo_mcp/scripts/run_review_audit.ts --workspace-root "$ROOT_DIR" --quiet
+
 run_stage "Web vitest suite" node tools/oss_autopilot/scripts/run_vitest.mjs --run --scope=web
 
 run_stage "MCP metrics sanity check" "$PYTHON_BIN" -m shared.observability.metrics --base-dir tmp/metrics

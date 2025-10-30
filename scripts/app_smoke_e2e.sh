@@ -50,6 +50,7 @@ smoke_build() {
     return 0
   fi
   cd "$WVO_MCP_DIR"
+  rm -rf dist
   npm run build || return 1
   log_info "✅ Build passed"
 }

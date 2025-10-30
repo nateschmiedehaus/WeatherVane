@@ -23,7 +23,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 
 import numpy as np
-from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.feature_extraction.text import HashingVectorizer
 from sklearn.preprocessing import normalize
 
 logger = logging.getLogger(__name__)
@@ -60,24 +60,31 @@ def _normalize_files(files: Optional[Sequence[str]]) -> Optional[List[str]]:
     return normalized or None
 
 
+HASH_FEATURES = 4096
+
+
 @dataclass
 class TFIDFBackend:
-    """TF-IDF embedding backend (legacy default)."""
+    """Deterministic hashing backend (legacy-compatible default)."""
 
-    max_features: int = 1000
+    max_features: int = HASH_FEATURES
     target_dims: int = EMBEDDING_DIM
 
     def __post_init__(self) -> None:
-        self.vectorizer = TfidfVectorizer(
-            max_features=self.max_features,
+        # Stateless hashing vectorizer yields stable feature space without fitting.
+        self.n_features = self.max_features
+        self.vectorizer = HashingVectorizer(
+            n_features=self.n_features,
+            alternate_sign=False,
             lowercase=True,
             token_pattern=r"\b\w\w+\b",
             stop_words="english",
-            min_df=1,
-            max_df=0.95,
+            norm=None,
         )
-        self.projection: Optional[np.ndarray] = None
-        self.is_fitted = False
+        # Deterministic projection -> 384 dims
+        rng = np.random.default_rng(42)
+        projection = rng.standard_normal((self.n_features, self.target_dims))
+        self.projection = normalize(projection, axis=0)
 
     @staticmethod
     def preprocess_text(text: Optional[str]) -> str:
@@ -130,33 +137,6 @@ class TFIDFBackend:
             return "UNKNOWN_TASK"
         return combined
 
-    def _fit_if_needed(self, text: str, corpus: Optional[Sequence[str]]) -> None:
-        if self.is_fitted and not corpus:
-            return
-
-        fit_corpus = list(corpus) if corpus else [text]
-        try:
-            self.vectorizer.fit(fit_corpus)
-        except ValueError as exc:
-            if "max_df" in str(exc):
-                self.vectorizer = TfidfVectorizer(
-                    max_features=self.max_features,
-                    lowercase=True,
-                    token_pattern=r"\b\w\w+\b",
-                    stop_words="english",
-                    min_df=1,
-                    max_df=1.0,
-                )
-                self.vectorizer.fit(fit_corpus)
-            else:
-                raise
-
-        self.is_fitted = True
-        vocab_size = len(self.vectorizer.vocabulary_)
-        np.random.seed(42)
-        projection = np.random.randn(vocab_size, self.target_dims)
-        self.projection = normalize(projection, axis=0)
-
     def compute_embedding(
         self,
         title: Optional[str] = None,
@@ -165,29 +145,26 @@ class TFIDFBackend:
         corpus: Optional[Sequence[str]] = None,
     ) -> np.ndarray:
         text = self.extract_text_features(title, description, files_touched)
-        self._fit_if_needed(text, corpus)
+        # HashingVectorizer ignores corpus; keep parameter for API compatibility.
+        hashed = self.vectorizer.transform([text]).toarray()[0].astype(np.float32)
 
-        if self.projection is None:
-            raise EmbeddingComputationError("Projection matrix not initialized")
+        if hashed.shape[0] != self.projection.shape[0]:
+            raise EmbeddingComputationError(
+                f"Hashing feature dimension mismatch: expected {self.projection.shape[0]}, got {hashed.shape[0]}"
+            )
 
-        tfidf = self.vectorizer.transform([text]).toarray()[0]
-
-        if len(tfidf) != self.projection.shape[0]:
-            np.random.seed(42)
-            projection = np.random.randn(len(tfidf), self.target_dims)
-            self.projection = normalize(projection, axis=0)
-
-        embedding = tfidf @ self.projection
+        embedding = hashed @ self.projection
         norm = np.linalg.norm(embedding)
         if norm <= 1e-10:
-            random_vec = np.random.randn(self.target_dims)
-            embedding = random_vec / np.linalg.norm(random_vec)
+            # Deterministic fallback: set first component to 1.0
+            embedding = np.zeros(self.target_dims, dtype=np.float32)
+            embedding[0] = 1.0
         else:
             embedding = embedding / norm
 
         assert embedding.shape == (self.target_dims,), f"Wrong shape: {embedding.shape}"
         assert np.all(np.isfinite(embedding)), "Embedding contains NaN/Inf"
-        return embedding
+        return embedding.astype(np.float32)
 
 
 class NeuralBackend:
@@ -390,7 +367,7 @@ class TaskEmbedder:
     def __init__(
         self,
         mode: Optional[str] = None,
-        max_features: int = 1000,
+        max_features: int = HASH_FEATURES,
         target_dims: int = EMBEDDING_DIM,
         neural_model_name: Optional[str] = None,
         neural_model_path: Optional[str] = None,

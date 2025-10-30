@@ -28,8 +28,10 @@ if ! command -v npx &>/dev/null; then
   exit 1
 fi
 
-if ! npx playwright --version &>/dev/null; then
-  echo "ERROR: Playwright CLI not found. Run 'npm install' first." >&2
+PLAYWRIGHT_DIR="apps/web"
+
+if ! npx --yes --prefix "${PLAYWRIGHT_DIR}" playwright --version &>/dev/null; then
+  echo "ERROR: Playwright CLI not found in ${PLAYWRIGHT_DIR}. Run 'npm install' there first." >&2
   exit 1
 fi
 
@@ -37,7 +39,7 @@ echo "[playwright-guard] Ensuring browsers are installed..."
 
 # Playwright handles idempotency internally - it will skip if browsers already installed
 # Run installation (no-op if browsers already present)
-if npx playwright install chromium webkit --with-deps; then
+if npx --yes --prefix "${PLAYWRIGHT_DIR}" playwright install chromium webkit --with-deps; then
   echo "[playwright-guard] ✓ Browsers ready"
 else
   EXIT_CODE=$?

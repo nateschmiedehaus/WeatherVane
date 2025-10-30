@@ -110,7 +110,13 @@ function parseCliArguments(argv) {
 }
 
 function createServer(workspaceRoot, entryPath) {
-  return spawn("node", [entryPath, "--workspace", workspaceRoot], {
+  const absoluteEntry = path.resolve(entryPath);
+  const args = [absoluteEntry, "--workspace", workspaceRoot];
+  const isDistEntry = absoluteEntry.includes(`${path.sep}dist${path.sep}`);
+  if (isDistEntry) {
+    args.push("--lazy-runtime");
+  }
+  return spawn("node", args, {
     stdio: ["pipe", "pipe", "pipe"],
   });
 }
