@@ -1,0 +1,66 @@
+# Phase Budget Configuration
+# Dynamic budgets based on complexity, importance, and phase stage
+
+base_budgets:
+  # Token and latency budgets for Medium complexity, Medium importance
+  STRATEGIZE:
+    tokens: 3000
+    latency_ms: 60000  # 60 seconds
+  SPEC:
+    tokens: 1500
+    latency_ms: 40000
+  PLAN:
+    tokens: 2000
+    latency_ms: 50000
+  THINK:
+    tokens: 4000
+    latency_ms: 90000  # Highest - exploration phase
+  IMPLEMENT:
+    tokens: 3500
+    latency_ms: 120000
+  VERIFY:
+    tokens: 2500
+    latency_ms: 60000
+  REVIEW:
+    tokens: 2000
+    latency_ms: 50000
+  PR:
+    tokens: 1500
+    latency_ms: 30000
+  MONITOR:
+    tokens: 1000
+    latency_ms: 20000  # Lowest - mechanical phase
+
+complexity_multipliers:
+  # Based on ScopeClass from context_budgeting.ts
+  Tiny: 0.5
+  Small: 0.8
+  Medium: 1.0  # Baseline
+  Large: 1.5
+
+importance_multipliers:
+  # Task priority tiers
+  low: 0.7
+  medium: 1.0  # Baseline
+  high: 1.5
+  critical: 2.0
+
+phase_weights:
+  # Stage-specific resource intensity
+  STRATEGIZE: 1.5  # Research-heavy
+  SPEC: 1.0
+  PLAN: 1.2  # Analysis
+  THINK: 1.5  # Exploration (highest)
+  IMPLEMENT: 1.0
+  VERIFY: 0.8  # Mechanical
+  REVIEW: 1.0
+  PR: 0.6  # Minimal
+  MONITOR: 0.6  # Mechanical (lowest)
+
+stop_loss:
+  # Enforcement thresholds
+  enabled: true
+  cumulative_token_threshold: 1.2  # Block at 120% of total budget
+  cumulative_latency_threshold: 1.2
+  per_phase_threshold: 1.5  # Warn at 150% of phase budget
+  allow_completion_threshold: 1.1  # If usage <110% and only PR+MONITOR remain, allow

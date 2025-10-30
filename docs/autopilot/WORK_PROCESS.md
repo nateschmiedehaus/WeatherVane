@@ -10,12 +10,61 @@ STRATEGIZE → SPEC → PLAN → THINK → IMPLEMENT → VERIFY → REVIEW → P
 - Claiming done without VERIFY = rejected
 - Backtracking allowed/required when late gaps are found (rerun downstream phases with fresh evidence)
 
+## STRATEGIZE Phase: Deep Strategic Thinking (MANDATORY)
+
+**CRITICAL: Strategy is About Finding Elegant Solutions, Not Just Following Requirements**
+
+**Philosophy:**
+- STRATEGIZE is not "write down what user asked for" - it's **"find the best possible solution"**
+- Question assumptions, reframe problems, explore alternatives
+- The problem statement might be wrong - your job is to find the real problem
+- Optimize for long-term elegance, not short-term implementation speed
+
+**Deep Strategic Thinking Process (REQUIRED):**
+
+1. **Question the Problem**:
+   - Is this the right problem to solve?
+   - What's the root cause vs symptoms?
+   - Could we solve this more fundamentally?
+
+2. **Reframe the Goals**:
+   - What are we actually trying to achieve? (not just "what feature to build")
+   - What's the value proposition?
+   - What outcomes matter most?
+
+3. **Explore Alternatives**:
+   - What are 3-5 different approaches? (not just the obvious one)
+   - What's the elegant long-term solution?
+   - What's the MVP that provides baseline data for better solutions?
+
+4. **Consider Long-Term**:
+   - What's the solution that scales?
+   - What infrastructure enables better solutions later?
+   - How does this integrate with existing systems?
+
+5. **Challenge Requirements**:
+   - Can we solve this more fundamentally?
+   - Question the "how", focus on the "why"
+   - Is there a better abstraction?
+
+**Example of Deep vs Surface Thinking:**
+- ❌ **Surface**: "User wants per-phase budgets" → implement per-phase budgets
+- ✅ **Deep**: "Why budgets? To prevent waste. What causes waste? Lack of progress signal. Real solution: progress-based resource management + static budgets as MVP for data collection."
+
+**Artifacts:**
+- `state/evidence/<TASK-ID>/strategize/strategy.md` with Problem Reframing section
+- Alternative approaches analysis (3-5 options with tradeoffs)
+- Phased approach recommendation (MVP → elegant solution)
+- Integration points with existing systems
+
+See `state/evidence/IMP-COST-01/strategize/strategy.md` for comprehensive example.
+
 ## Cross‑Item Integration (Mandatory)
 
 Purpose: ensure every change works in context by declaring and validating relationships between related roadmap items (e.g., prompt compiler/attestation/evals/router, quality graph, vectorized retrieval).
 
 - Declare relationships early
-  - In STRATEGIZE/SPEC, list Related · DependsOn · Produces · Consumes for this task in `state/roadmap.dependencies.yaml` (create/update as needed).
+  - In STRATEGIZE/SPEC, list Related · DependsOn · Produces · Consumes for this task in `state/roadmap.yaml` using the v2 schema (`dependencies.depends_on`, structured `exit_criteria`, required metadata).
   - Prompt/graph/router changes MUST relate to: IMP‑21/22/23/24/25/26/35/36/37; and, when applicable, IMP‑ADV‑01.2 (hint injection), IMP‑QG‑01, IMP‑VEC‑01.
 - Plan/Think integration
   - PLAN must state how outputs integrate with Related items (contracts/slots/gates/telemetry), with a verification map.
@@ -77,9 +126,27 @@ Purpose: ensure every change works in context by declaring and validating relati
    - Re-run MONITOR phase: update completion summary with gap remediation notes
 
 5. **Acceptance**
-   - Task complete ONLY when REVIEW shows no unresolved gaps (or all gaps are explicitly out-of-scope)
-   - All evidence documents updated and consistent
-   - Build passes, tests pass, documentation complete
+- Task complete ONLY when REVIEW shows no unresolved gaps (or all gaps are explicitly out-of-scope)
+- All evidence documents updated and consistent
+- Build passes, tests pass, documentation complete
+
+## Task Delta Notes (MANDATORY)
+
+Downstream gates (VERIFY/REVIEW/PR/MONITOR) often surface additional work—extra tests, docs, telemetry, scripts—that was not declared earlier in the loop. Every time this happens, capture it with a **Task Delta Note** so the requirement is enforceable and auditable.
+
+- **When to create one:** any new verification command, benchmark, documentation deliverable, telemetry capture, or artifact discovered after SPEC/PLAN. If VERIFY needs a new test, or REVIEW requests a doc addition, log it.
+- **Where to record:** append an entry to `state/evidence/<TASK-ID>/monitor/plan.md` under a `## Delta Notes` heading (create the file/heading if missing).
+- **Entry format:** include timestamp (UTC ISO), phase that discovered the requirement, summary of the new deliverable, owner, and status (`pending` → `in_progress` → `complete`). Link to evidence (test logs, docs, telemetry) once fulfilled.
+- **Blocking rule:** a task cannot exit the work process until every delta note is marked `complete` or SPEC explicitly exempts it. REVIEW must fail if open delta notes remain.
+- **Automation:** supervisors/scripts must convert any outstanding delta notes into explicit roadmap tasks if they cannot be completed inside the current loop. No informal follow-up lists; every residual requirement is tracked as its own task ID.
+- **Follow-up classifier:** run `node tools/wvo_mcp/scripts/classify_follow_ups.ts` to ensure every "next step"/follow-up note in implement/verify/review/monitor evidence is classified (`immediate_fix`, `scheduled_improvement`, `research_spike`, `monitoring_watch`, `external_dependency`) and either linked to a roadmap task (`status: task_created`) or documented with deferment metadata (`owner`, `defer_until`, `rationale`). The run emits auto-created `AUTO-FU-*` entries to `state/automation/auto_follow_up_tasks.jsonl`; review/import them, and only opt out with `[ #auto-task=skip ]` when the deferment is justified in evidence. CI fails while pending follow-ups remain.
+- **Determinism audit:** run `node tools/wvo_mcp/scripts/check_determinism.ts --task <TASK-ID> --output state/evidence/<TASK-ID>/verify/determinism_check.json` to confirm shared seeds/timeouts are active and tracing smokes produce stable spans/counters (IMP-DET-01). Any failure blocks advancement.
+- **Structural policy gate:** run `node tools/wvo_mcp/scripts/check_structural_policy.ts --task <TASK-ID> --output state/evidence/<TASK-ID>/verify/structural_policy_report.json`; address any missing test coverage or document allowlist entries before continuing (IMP-POL-01).
+- **Risk→oracle coverage:** run `node tools/wvo_mcp/scripts/check_risk_oracle_coverage.ts --task <TASK-ID> --output state/evidence/<TASK-ID>/verify/oracle_coverage.json` to prove every risk in the THINK map has passing oracles (IMP-ORC-01).
+- **PR metadata:** run `node tools/wvo_mcp/scripts/check_pr_metadata.ts --task <TASK-ID> --output state/evidence/<TASK-ID>/verify/pr_metadata_report.json` and ensure `pr/why_now.txt` + `pr/pr_risk_label.txt` exist with valid data (IMP-PR-01).
+- **Performance regressions (META-PERF-01):** run `node tools/wvo_mcp/scripts/check_performance_regressions.ts` to compare current telemetry averages against stored baselines. Address regressions immediately or update baselines with `--update-baseline` only after documenting the improvement and evidence.
+- **Tooling:** run `node tools/wvo_mcp/scripts/check_delta_notes.ts` before declaring a task done; treat a non-zero exit as a blocker until each note is resolved or promoted to a new roadmap task.
+- **Ledger link:** when looping back to an earlier phase, reference the delta note in the ledger entry so auditors can trace remediation to execution.
 
 **Example Scenarios:**
 
@@ -222,12 +289,14 @@ Purpose: ensure every change works in context by declaring and validating relati
 - Outcome: all oracles mapped and green; gates pass; integrity clean; outputs semantically correct
 - Gates: tests, lint, type, security, license, changed‑lines coverage; (optional) pilot a tiny variance check on flaky‑suspect subset
 - Semantic validation:
-  - Parse stdout/stderr for warning/error/regression signals; treat non‑empty critical warnings as failures unless explicitly allowed
-  - Require non‑zero assertion counts for key suites; flag trivial tests (no asserts, catch‑all try/catch)
+  - Parse stdout/stderr for warning/error/regression signals; treat non-empty critical warnings as failures unless explicitly allowed
+  - Require non-zero assertion counts for key suites; flag trivial tests (no asserts, catch-all try/catch)
   - Normalize and check exit codes; missing/ignored exit codes are failures
 - Policies: start with one structural graph policy (changed node must have a test edge)
- - Integration checks: run `scripts/roadmap_lint.py` and `scripts/roadmap_integration_check.sh`; attach reports; run end‑to‑end smokes to prove in‑context behavior.
-- Failure: attach failing gate and minimal logs; return to earliest impacted phase; require plan‑delta if implementation path is exhausted
+- Integration checks: run `scripts/roadmap_lint.py` and `scripts/roadmap_integration_check.sh`; attach reports; run end-to-end smokes to prove in-context behavior.
+- Telemetry parity: run `node --loader ./tools/wvo_mcp/node_modules/ts-node/esm.mjs tools/wvo_mcp/scripts/check_telemetry_parity.ts --workspace-root . --report state/evidence/<TASK-ID>/verify/telemetry_parity_report.json`; fail closed if OTEL snapshots diverge from JSONL sinks.
+- Delta notes: if VERIFY uncovers new commands/tests/artifacts, create/update the Task Delta Note in `monitor/plan.md` and link the produced evidence before leaving this phase.
+- Failure: attach failing gate and minimal logs; return to earliest impacted phase; require plan-delta if implementation path is exhausted
 
 ### REVIEW
 - Outcome: approve only if future‑proof criteria met and outputs mean what they should
@@ -243,6 +312,19 @@ Purpose: ensure every change works in context by declaring and validating relati
 - Portfolio alignment: confirm Worthiness note exists (epic, KPI link, kill/pivot criteria)
 - Optional: dual lightweight reviews; surface only disagreements
 - **GATE**: Cannot approve if strategic misalignment detected (loop back to STRATEGIZE)
+
+### STRATEGIZE
+- Outcome: decide whether to do, defer, pivot, or kill the task based on evidence and portfolio fit (it is valid to remove or completely rewrite a task at this stage).
+- Checklist (≤10 mins):
+  - Why now: problem statement tied to metrics/incidents/user demand; cite evidence (links to telemetry/incidents/requests).
+  - Value hypothesis + KPI: expected impact (e.g., success_rate, groundedness, loop_rate), target delta, and cost envelope (time, tokens, risk class).
+  - Alternatives considered: Do Nothing (status quo), Simpler/cheaper path, Policy/process fix; include opportunity cost and cost‑of‑delay.
+  - Worthiness test: if impact/effort ratio < threshold, propose kill or defer; include explicit kill/pivot triggers (what evidence cancels work).
+  - Duplication scan: search repo/roadmap for similar/overlapping work; prefer integration/extension over duplication.
+  - Integration awareness: declare Related · DependsOn · Produces · Consumes in `state/roadmap.dependencies.yaml` (or note “none” with rationale).
+  - Risk classification: low/medium/high; list compliance/data/safety considerations; note required redundancy patterns if risk≥medium.
+- Artifacts: Strategy note with links to evidence; Worthiness/Alternatives doc; Kill/Pivot triggers; dependency entry or “none” note.
+- Acceptance: a clear “Go / Pivot / Kill / Defer” decision with rationale; it is acceptable to kill the task here and return to the backlog with a note.
 
 ### PR
 - Outcome: PR with evidence chain and attested prompts/manifests; CI green; rollback plan linked

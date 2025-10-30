@@ -10,8 +10,47 @@
 - Keep `state/context.md` under 1,000 words; consult backups in `state/backups/context/` only when necessary.
 - Use Atlas or Director Dana follow-ups for any consensus-created tasks; do not bypass review gates.
 - Run `bash tools/wvo_mcp/scripts/run_integrity_tests.sh` so TestsCritic records the real pass/fail state before declaring a task finished.
+- Before you call a task complete, run `node tools/wvo_mcp/scripts/check_work_process_artifacts.mjs --task <TASK_ID>` for each task you touched (add `--all` for a full sweep) to confirm the STRATEGIZE→MONITOR artifacts exist. Treat any failure as a blocked task until fixed.
+- Run `npm run validate:roadmap-evidence -- --json > state/evidence/<TASK_ID>/verify/roadmap_evidence_report.json` to keep roadmap metadata and filesystem artifacts aligned; warnings highlight legacy tasks that still lack full evidence.
+- Enforce delta-note policy: run `node tools/wvo_mcp/scripts/check_delta_notes.ts` and ensure it passes (or that new tasks are created) before closing your loop. Unresolved notes must become explicit roadmap tasks (see META-POLICY-02).
+- Run `node tools/wvo_mcp/scripts/classify_follow_ups.ts` and resolve any pending follow-ups by creating tasks or recording deferments. The checker auto-writes `AUTO-FU-*` entries to `state/automation/auto_follow_up_tasks.jsonl`; review or ingest them before closing a loop, and only suppress a bullet with `[ #auto-task=skip ]` when the deferment is documented (META-POLICY-03/04).
+- Run `node tools/wvo_mcp/scripts/check_performance_regressions.ts` to ensure key performance metrics have not regressed; update baselines intentionally with `--update-baseline` only after verifying improvements (META-PERF-01).
+- Run `node tools/wvo_mcp/scripts/check_determinism.ts --task <TASK_ID> --output state/evidence/<TASK_ID>/verify/determinism_check.json` to prove seeds/timeouts are in place and tracing smokes are deterministic (IMP-DET-01). Treat failures as blockers.
+- Run `node tools/wvo_mcp/scripts/check_structural_policy.ts --task <TASK_ID> --output state/evidence/<TASK_ID>/verify/structural_policy_report.json` to ensure changed source files retain companion tests or documented allowlist entries (IMP-POL-01).
+- Run `node tools/wvo_mcp/scripts/check_risk_oracle_coverage.ts --task <TASK_ID> --output state/evidence/<TASK_ID>/verify/oracle_coverage.json` to confirm every risk in `risk_oracle_map.json` has executing oracles before advancing (IMP-ORC-01).
 
 ---
+
+### Roadmap Task Schema (v2.0)
+
+Always author roadmap entries using the new schema:
+
+- `dependencies` exposes a `depends_on` array (legacy flat arrays are invalid).
+- `exit_criteria` is a list of structured objects (include `prose` or `test`/`expect` pairs).
+- `complexity_score`, `effort_hours`, and `required_tools` are required metadata fields.
+
+Example task:
+
+```yaml
+- id: FIX-QUALITY-Example
+  title: "Harden WorkProcessEnforcer smoke coverage"
+  status: pending
+  dependencies:
+    depends_on: []
+  exit_criteria:
+    - prose: "Smoke suite updated and passing"
+    - test: "npm run test -- work_process_acceptance"
+      expect: "exit 0"
+  domain: mcp
+  complexity_score: 5
+  effort_hours: 2
+  required_tools: []
+  auto_created: true
+  source_issue:
+    type: quality
+    severity: medium
+    gap: "Smoke suite lacked parity coverage"
+```
 
 ## System-Level Architecture Snapshot
 
@@ -56,7 +95,7 @@
 ### 🚨 MANDATORY WORK PROCESS - ENFORCED EVERYWHERE
 
 **EVERY task MUST follow this exact sequence (inside or outside the Unified Autopilot loop):**
-**STRATEGIZE → SPEC → PLAN → THINK → IMPLEMENT → VERIFY → REVIEW → PR → MONITOR** (see `docs/autopilot/WORK_PROCESS.md` for the future‑proof stage contracts, artifacts, and fitness functions)
+**STRATEGIZE → SPEC → PLAN → THINK → IMPLEMENT → VERIFY → REVIEW → PR → MONITOR** (see `docs/autopilot/WORK_PROCESS.md` for the future‑proof stage contracts, artifacts, and fitness functions). Time‑boxed checklists in that doc are guidance for typical tasks; extend them with justification for high‑risk or novel work. Quality gates and acceptance criteria are never relaxed.
 
 - **ENFORCEMENT IS ACTIVE:**
   - WorkProcessEnforcer BLOCKS tasks that skip phases
@@ -66,11 +105,48 @@
   - Backtracking is supported and required: VERIFY/REVIEW/PR/MONITOR may return the workflow to the earliest impacted phase (often IMPLEMENT or earlier). The enforcer and state graph now allow corrective backtracks and will re-run downstream phases with fresh evidence.
   - Anti-drift controls are on by default: immutable phase ledger (hash chain), evidence-gated transitions, phase leases for deterministic sequencing, and prompt attestation for header drift.
   - VERIFY/REVIEW/PR/MONITOR findings that reveal gaps force a return to the earliest affected phase (often IMPLEMENT or earlier); all downstream phases must be re-run with fresh evidence.
-  - Independent Codex agents (outside of MCP orchestration) must still execute the full STRATEGIZE→MONITOR loop, produce the same artifacts/checklists, and record evidence before claiming completion.
+- Independent Codex agents (outside of MCP orchestration) must still execute the full STRATEGIZE→MONITOR loop, produce the same artifacts/checklists, and record evidence before claiming completion. When choosing methods in Strategy/Spec/Plan/Think, consult `docs/autopilot/STAGE_TOOLKITS.md` and pick only what fits the task risk; every chosen method must tie to an oracle, gate, or artifact. The toolkit is a living document—propose new methods via PR with evidence mapping and tags.
+  - Verify/Review/Monitor must perform semantic evaluation of outputs: do not accept "ran and finished" as success if warnings/errors were emitted or if tests are trivial (no assertions). Treat non‑zero warnings in critical paths as failures unless explicitly allowed by Spec.
   - Strategy/Plan/Think must identify which Autopilot functionality (agent workflow, guardrail, or user journey) the work touches, and Review must confirm that functionality still operates (cite smoke runs, telemetry, or manual walkthroughs).
   - **Reality check requirement:** before declaring a phase (or task) complete, inspect the repository state (git status/diff), ensure artifacts/tests/telemetry referenced in your summary actually exist, and explicitly note any remaining gaps as follow-up work. Never assume previous summaries are accurate—validate with real evidence.
   - **“Do now” protocol:** interpret any “do now” request as an instruction to run the entire STRATEGIZE→MONITOR flow. Break the work into Strategy, Spec, Plan, and Think chunks first, then continue through Implement/Verify/Review/PR/Monitor with evidence at each step—never jump straight to coding.
 - All violations logged to metrics and decision journal
+
+### Cross‑Item Integration (Mandatory)
+
+- Declare Related · DependsOn · Produces · Consumes for the task before IMPLEMENT in `state/roadmap.yaml` using the v2 schema (`dependencies.depends_on`, structured `exit_criteria`, required metadata). For prompt/graph/router work, Related MUST include the prompt family (IMP‑21/22/23/24/25/26/35/36/37) and, when applicable, IMP‑ADV‑01.2 (hint injection), IMP‑QG‑01, IMP‑VEC‑01.
+- PLAN/THINK must state how the change integrates with those items (compiler slots, attestation coverage, eval variants, grounded citations, tool allowlists) and define oracles.
+- IMPLEMENT must update shared typed contracts (TS/Zod or Python/Pydantic) instead of duplicating interfaces; keep attestation/eval/telemetry aligned.
+- VERIFY must run roadmap linter and integration check (observe→enforce) and end‑to‑end smokes to prove context‑wide behavior; attach reports to evidence.
+- REVIEW/PR must include a "Cross‑Item Integration" rubric note with explicit Related links and contract versions; attach linter/integration artifacts.
+
+### Strategic Worthiness Gate (Mandatory)
+- STRATEGIZE must justify "Why now" with evidence and consider Alternatives and Kill/Pivot triggers; it is valid to kill or rewrite a task here.
+- REVIEW must challenge worthiness; if better options exist or evidence is weak, send the task back to STRATEGIZE or mark Kill/Defer.
+
+### Deep Strategic Thinking (MANDATORY)
+
+**CRITICAL: Strategy is About Finding Elegant Solutions, Not Just Following Requirements**
+
+**Philosophy:**
+- STRATEGIZE is not "write down what user asked for" - it's **"find the best possible solution"**
+- Question assumptions, reframe problems, explore alternatives
+- The problem statement might be wrong - your job is to find the real problem
+- Optimize for long-term elegance, not short-term implementation speed
+
+**Deep Strategic Thinking (REQUIRED):**
+1. **Question the Problem**: Is this the right problem to solve? What's the root cause?
+2. **Reframe the Goals**: What are we actually trying to achieve? (not just "what feature to build")
+3. **Explore Alternatives**: What are 3-5 different approaches? (not just the obvious one)
+4. **Consider Long-Term**: What's the elegant solution that scales? (not just "meets immediate need")
+5. **Challenge Requirements**: Can we solve this more fundamentally? (question the "how", focus on the "why")
+
+**Example:**
+- ❌ **Surface thinking**: "User wants per-phase budgets" → implement per-phase budgets
+- ✅ **Deep thinking**: "Why do we need budgets? To prevent waste. What causes waste? Lack of progress signal.
+  Real solution: progress-based resource management, not just limits."
+
+See `state/evidence/IMP-COST-01/strategize/strategy.md` for example of deep strategic thinking.
 
 ### Complete-Finish Policy
 - Finish every task within the active loop—no partial completions or deferred fixes.
@@ -274,3 +350,4 @@
 - Integration standards: `docs/autopilot/Integration-Verification.md`
 - Complete-finish policy: `docs/autopilot/Complete-Finish-Policy.md`
 - Observability: `docs/autopilot/Observability-OTel-GenAI.md`
+- Run `node tools/wvo_mcp/scripts/check_risk_oracle_coverage.ts --task <TASK_ID> --output state/evidence/<TASK_ID>/verify/oracle_coverage.json` to confirm every risk in `risk_oracle_map.json` has executing oracles before advancing (IMP-ORC-01).
