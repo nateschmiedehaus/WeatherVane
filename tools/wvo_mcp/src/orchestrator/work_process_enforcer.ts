@@ -21,6 +21,10 @@ import { PhaseLedger } from './phase_ledger.js';
 import { PhaseLeaseManager } from './phase_lease.js';
 import { PromptAttestationManager, type PromptSpec } from './prompt_attestation.js';
 import { VerificationLevelDetector } from '../quality/verification_level_detector.js';
+import {
+  WorkProcessQualityIntegration,
+  type QualityCheckConfig,
+} from './work_process_quality_integration.js';
 import fs from 'fs';
 import path from 'path';
 import { execSync, spawn } from 'child_process';
@@ -115,6 +119,9 @@ export class WorkProcessEnforcer {
 
   // Gaming detection configuration
   private gamingDetectionConfig: GamingDetectionConfig;
+
+  // Quality integration (optional)
+  private qualityIntegration?: WorkProcessQualityIntegration;
 
   // Define the required flow
   private readonly PHASE_SEQUENCE: WorkPhase[] = [
@@ -260,7 +267,10 @@ export class WorkProcessEnforcer {
     private readonly stateMachine: StateMachine,
     private readonly workspaceRoot: string,
     private readonly metricsCollector?: MetricsCollector,
-    config?: { gamingDetection?: Partial<GamingDetectionConfig> }
+    config?: {
+      gamingDetection?: Partial<GamingDetectionConfig>;
+      qualityChecks?: Partial<QualityCheckConfig>;
+    }
   ) {
     this.logPath = path.join(workspaceRoot, 'state/logs/work_process.jsonl');
 
@@ -273,6 +283,26 @@ export class WorkProcessEnforcer {
       agentType: 'unknown',
       ...config?.gamingDetection
     };
+
+    // Initialize quality integration if configured
+    if (config?.qualityChecks && metricsCollector) {
+      try {
+        this.qualityIntegration = new WorkProcessQualityIntegration(
+          config.qualityChecks,
+          workspaceRoot,
+          metricsCollector
+        );
+        logInfo('[WorkProcessEnforcer] Quality integration enabled', {
+          mode: config.qualityChecks.mode ?? 'shadow',
+        });
+      } catch (error) {
+        logWarning('[WorkProcessEnforcer] Quality integration initialization failed', {
+          error: error instanceof Error ? error.message : String(error),
+        });
+        // Quality integration is optional - don't fail constructor
+        this.qualityIntegration = undefined;
+      }
+    }
 
     // Ensure log directory exists
     const logDir = path.dirname(this.logPath);
@@ -1099,6 +1129,130 @@ export class WorkProcessEnforcer {
     if (currentPhase === 'VERIFY' && nextPhase === 'REVIEW') {
       const taskEvidencePath = path.join(this.workspaceRoot, 'state/evidence', taskId);
       await this.runGamingDetectionHook(taskId, taskEvidencePath);
+    }
+
+    // STEP 7.3: Run quality checks before phase transition (FIX-INTEGRATION-WorkProcessEnforcer)
+    if (this.qualityIntegration) {
+      try {
+        let qualityResult;
+
+        // Pre-flight checks before IMPLEMENT
+        if (nextPhase === 'IMPLEMENT') {
+          logInfo('[WorkProcessEnforcer] Running pre-flight checks before IMPLEMENT', { taskId });
+          qualityResult = await this.qualityIntegration.runPreflightChecks(taskId);
+
+          if (qualityResult.blockTransition) {
+            const errorMsg = `Pre-flight checks failed: ${qualityResult.details.failures.join(', ')}`;
+            logError('[WorkProcessEnforcer] Pre-flight check failure blocks transition', {
+              taskId,
+              transition: `${currentPhase} → ${nextPhase}`,
+              failures: qualityResult.details.failures,
+            });
+            span?.setStatus('error', 'preflight_check_failed');
+            span?.addEvent('quality_check.failure', {
+              checkType: 'preflight',
+              failures: qualityResult.details.failures,
+            });
+            await this.recordProcessRejection(taskId, currentPhase, 'preflight_check_failed', {
+              failures: qualityResult.details.failures,
+            });
+            throw new Error(errorMsg);
+          }
+
+          if (!qualityResult.passed) {
+            logWarning('[WorkProcessEnforcer] Pre-flight checks failed but not blocking (shadow/observe mode)', {
+              taskId,
+              mode: 'shadow/observe',
+              failures: qualityResult.details.failures,
+            });
+          }
+        }
+
+        // Quality gates before VERIFY
+        if (nextPhase === 'VERIFY') {
+          logInfo('[WorkProcessEnforcer] Running quality gates before VERIFY', { taskId });
+          qualityResult = await this.qualityIntegration.runQualityGates(taskId);
+
+          if (qualityResult.blockTransition) {
+            const errorMsg = `Quality gates failed: ${qualityResult.details.failures.join(', ')}`;
+            logError('[WorkProcessEnforcer] Quality gate failure blocks transition', {
+              taskId,
+              transition: `${currentPhase} → ${nextPhase}`,
+              violations: qualityResult.details.failures,
+            });
+            span?.setStatus('error', 'quality_gate_failed');
+            span?.addEvent('quality_check.failure', {
+              checkType: 'quality_gates',
+              violations: qualityResult.details.failures,
+            });
+            await this.recordProcessRejection(taskId, currentPhase, 'quality_gate_failed', {
+              violations: qualityResult.details.failures,
+            });
+            throw new Error(errorMsg);
+          }
+
+          if (!qualityResult.passed) {
+            logWarning('[WorkProcessEnforcer] Quality gates failed but not blocking (shadow/observe mode)', {
+              taskId,
+              mode: 'shadow/observe',
+              violations: qualityResult.details.failures,
+            });
+          }
+        }
+
+        // Reasoning validation before MONITOR
+        if (nextPhase === 'MONITOR') {
+          logInfo('[WorkProcessEnforcer] Running reasoning validation before MONITOR', { taskId });
+          qualityResult = await this.qualityIntegration.runReasoningValidation(taskId);
+
+          if (qualityResult.blockTransition) {
+            const errorMsg = `Reasoning validation failed: ${qualityResult.details.failures.join(', ')}`;
+            logError('[WorkProcessEnforcer] Reasoning validation failure blocks completion', {
+              taskId,
+              transition: `${currentPhase} → ${nextPhase}`,
+              validationFailures: qualityResult.details.failures,
+            });
+            span?.setStatus('error', 'reasoning_validation_failed');
+            span?.addEvent('quality_check.failure', {
+              checkType: 'reasoning',
+              validationFailures: qualityResult.details.failures,
+            });
+            await this.recordProcessRejection(taskId, currentPhase, 'reasoning_validation_failed', {
+              validationFailures: qualityResult.details.failures,
+            });
+            throw new Error(errorMsg);
+          }
+
+          if (!qualityResult.passed) {
+            logWarning('[WorkProcessEnforcer] Reasoning validation failed but not blocking (shadow/observe mode)', {
+              taskId,
+              mode: 'shadow/observe',
+              validationFailures: qualityResult.details.failures,
+            });
+          }
+        }
+
+        // Record successful quality check (if ran and passed)
+        if (qualityResult && qualityResult.passed) {
+          logInfo('[WorkProcessEnforcer] Quality check passed', {
+            taskId,
+            checkType: qualityResult.checkType,
+            executionTimeMs: qualityResult.executionTimeMs,
+          });
+        }
+      } catch (error) {
+        // If quality check throws (and should block), re-throw
+        if (error instanceof Error && error.message.includes('failed:')) {
+          throw error;
+        }
+
+        // Otherwise, log error but don't block (fail-safe)
+        logWarning('[WorkProcessEnforcer] Quality check error (fail-safe: continuing)', {
+          taskId,
+          transition: `${currentPhase} → ${nextPhase}`,
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
     }
 
     this.currentPhase.set(taskId, nextPhase);
