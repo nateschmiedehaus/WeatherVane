@@ -16,12 +16,22 @@ import { withSpan } from '../telemetry/tracing.js';
 import { EvidenceCollector } from './evidence_collector.js';
 import { CompletionVerifier } from './completion_verifier.js';
 import { MetricsCollector } from '../telemetry/metrics_collector.js';
+import { PromptVariantRecorder } from '../telemetry/prompt_variants.js';
 import { PhaseLedger } from './phase_ledger.js';
 import { PhaseLeaseManager } from './phase_lease.js';
 import { PromptAttestationManager, type PromptSpec } from './prompt_attestation.js';
+import type { CompiledPrompt, PromptInput } from '../prompt/compiler.js';
+import { VerificationLevelDetector } from '../quality/verification_level_detector.js';
 import fs from 'fs';
 import path from 'path';
 import { execSync } from 'child_process';
+import {
+  getPromptVariantsMode,
+  type PromptVariantsMode,
+  getEnforcementLevel,
+  type EnforcementLevel,
+  type ViolationSeverity,
+} from '../utils/config.js';
 
 export type WorkPhase =
   | 'STRATEGIZE'
@@ -54,6 +64,31 @@ export interface PhaseValidation {
   }>;
 }
 
+interface PhasePromptMetadata {
+  compiled?: CompiledPrompt;
+  input?: PromptInput;
+  personaHash?: string;
+  personaSummary?: string;
+  contextSummary?: string;
+  compilerEnabled?: boolean;
+  failureReason?: string;
+  promptHash?: string;
+  variantId?: string;
+}
+
+interface PhasePersonaMetadata {
+  hash?: string;
+  summary?: string;
+  allowlist?: string[];
+  spec?: Record<string, unknown>;
+}
+
+export interface PhaseAdvanceMetadata {
+  prompt?: PhasePromptMetadata;
+  persona?: PhasePersonaMetadata;
+  variantMode?: PromptVariantsMode;
+}
+
 /**
  * Enforces the complete work process cycle with REAL quality gates
  * Integrates all meta verification systems into the work loop
@@ -71,6 +106,8 @@ export class WorkProcessEnforcer {
   private readonly phaseLedger: PhaseLedger;
   private readonly phaseLeaseManager: PhaseLeaseManager;
   private readonly promptAttestationManager: PromptAttestationManager;
+  private readonly promptVariantRecorder: PromptVariantRecorder;
+  private readonly verificationLevelDetector: VerificationLevelDetector;
   private readonly ledgerReady: Promise<void>;
   private readonly attestationReady: Promise<void>;
 
@@ -236,6 +273,8 @@ export class WorkProcessEnforcer {
       maxRenewals: 10
     });
     this.promptAttestationManager = new PromptAttestationManager(workspaceRoot);
+    this.promptVariantRecorder = new PromptVariantRecorder(workspaceRoot);
+    this.verificationLevelDetector = new VerificationLevelDetector();
 
     // Initialize ledger directory (awaited before use)
     this.ledgerReady = this.phaseLedger.initialize().catch(error => {
@@ -270,6 +309,105 @@ export class WorkProcessEnforcer {
         error: error instanceof Error ? error.message : String(error),
       });
     }
+  }
+
+  private async recordEnforcementDecision(
+    decision: 'allow' | 'block' | 'bypass',
+    context: {
+      taskId: string;
+      phase?: WorkPhase | 'UNKNOWN';
+      reason?: string;
+      severity?: ViolationSeverity;
+      desiredPhase?: WorkPhase;
+      nextPhase?: WorkPhase;
+      enforcementLevel?: EnforcementLevel;
+      bypassReason?: string | null;
+    }
+  ): Promise<void> {
+    if (!this.metricsCollector) {
+      return;
+    }
+    try {
+      await this.metricsCollector.recordEnforcementDecision(decision, {
+        taskId: context.taskId,
+        phase: context.phase ?? 'UNKNOWN',
+        reason: context.reason,
+        severity: context.severity,
+        desiredPhase: context.desiredPhase,
+        nextPhase: context.nextPhase,
+        enforcementLevel: context.enforcementLevel,
+        bypassReason: context.bypassReason ?? undefined,
+        blocked: decision === 'block',
+      });
+    } catch (error) {
+      logWarning('Failed to record enforcement decision', {
+        decision,
+        taskId: context.taskId,
+        phase: context.phase,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
+
+  private getSeverityForReason(reason: string): ViolationSeverity {
+    switch (reason) {
+      case 'validation_failed':
+      case 'sequence_mismatch':
+      case 'no_next_phase':
+      case 'final_verification_failed':
+      case 'task_not_in_cycle':
+        return 'critical';
+      case 'missing_evidence':
+      case 'backtrack_lease_conflict':
+      case 'lease_contention':
+        return 'medium';
+      default:
+        return 'low';
+    }
+  }
+
+  private async recordPromptVariantTelemetry(
+    mode: PromptVariantsMode,
+    phase: WorkPhase,
+    taskId: string,
+    promptMeta?: PhasePromptMetadata,
+    personaMeta?: PhasePersonaMetadata,
+  ): Promise<void> {
+    if (mode === 'off' || !promptMeta?.variantId) {
+      return;
+    }
+
+    const promptHash = promptMeta.promptHash ?? promptMeta.compiled?.hash;
+    const personaHash = personaMeta?.hash;
+
+    await this.recordCounter('prompt_variant_observed', {
+      taskId,
+      phase,
+      variantId: promptMeta.variantId,
+      promptHash,
+      personaHash,
+      mode,
+      personaPresent: Boolean(personaHash),
+    });
+
+    if (personaHash) {
+      await this.recordCounter('persona_variant_observed', {
+        taskId,
+        phase,
+        variantId: promptMeta.variantId,
+        personaHash,
+        mode,
+      });
+    }
+
+    await this.promptVariantRecorder.record({
+      taskId,
+      phase,
+      variantId: promptMeta.variantId,
+      promptHash,
+      personaHash,
+      mode,
+    });
   }
 
   /**
@@ -406,7 +544,8 @@ export class WorkProcessEnforcer {
         true,
         {
           agentType: 'work_process_enforcer',
-          personaHash: undefined  // IMP-22: Will be populated when persona router integrated
+          personaHash: undefined,
+          promptHash: undefined
         }
       );
       logInfo('Cycle start recorded in ledger', {
@@ -433,7 +572,11 @@ export class WorkProcessEnforcer {
    * Advance to next phase with SYSTEMATIC evidence collection and verification
    * ORDERING: Collect → Validate → Check Drift → Update Trust → Transition
    */
-  async advancePhase(taskId: string, desiredPhase?: WorkPhase): Promise<boolean> {
+  async advancePhase(
+    taskId: string,
+    desiredPhase?: WorkPhase,
+    metadata?: PhaseAdvanceMetadata
+  ): Promise<boolean> {
     return withSpan(
       'process.validation',
       async (span) => {
@@ -444,16 +587,76 @@ export class WorkProcessEnforcer {
         }
         span?.setAttribute('validation.result', 'pending');
 
-    const currentPhase = this.currentPhase.get(taskId);
-    span?.setAttribute('phase.current', currentPhase ?? 'UNASSIGNED');
-    if (!currentPhase) {
-      span?.setStatus('error', 'task_not_in_cycle');
-      span?.addEvent('process.violation', {
-        reason: 'task_not_in_cycle',
-        taskId,
-      });
-      throw new Error(`Task ${taskId} not in work cycle`);
-    }
+        const currentPhase = this.currentPhase.get(taskId);
+        span?.setAttribute('phase.current', currentPhase ?? 'UNASSIGNED');
+        const enforcementLevel = getEnforcementLevel();
+
+        const variantMode = metadata?.variantMode ?? getPromptVariantsMode();
+        const promptMeta = metadata?.prompt;
+        const personaMeta = metadata?.persona;
+
+        if (promptMeta?.compiled && !promptMeta.promptHash) {
+          promptMeta.promptHash = promptMeta.compiled.hash;
+        }
+
+        if (personaMeta?.hash) {
+          promptMeta && (promptMeta.personaHash = personaMeta.hash);
+          span?.setAttribute('persona.hash', personaMeta.hash);
+        }
+        if (personaMeta?.summary) {
+          promptMeta && (promptMeta.personaSummary = personaMeta.summary);
+          span?.setAttribute('persona.summary', personaMeta.summary);
+        }
+        if (promptMeta?.compiled) {
+          span?.setAttribute('prompt.hash', promptMeta.compiled.hash);
+          span?.setAttribute('prompt.compiler_enabled', promptMeta.compilerEnabled ?? true);
+        } else if (promptMeta?.failureReason) {
+          span?.setAttribute('prompt.compile_failure', promptMeta.failureReason);
+        }
+        span?.setAttribute('prompt.variant_mode', variantMode);
+        if (promptMeta?.variantId) {
+          span?.setAttribute('prompt.variant_id', promptMeta.variantId);
+        }
+
+        const personaPresence = personaMeta?.hash ? 'present' : 'missing';
+        if (promptMeta?.compiled) {
+          await this.recordCounter('prompt_compile_success', {
+            taskId,
+            phase: desiredPhase ?? currentPhase ?? 'UNKNOWN',
+            persona: personaPresence,
+            variantId: promptMeta.variantId ?? null,
+          });
+        } else if (promptMeta?.compilerEnabled) {
+          await this.recordCounter('prompt_compile_failure', {
+            taskId,
+            phase: desiredPhase ?? currentPhase ?? 'UNKNOWN',
+            reason: promptMeta.failureReason ?? 'unknown',
+            persona: personaPresence,
+            variantId: promptMeta?.variantId ?? null,
+          });
+        }
+
+        if (!currentPhase) {
+          span?.setStatus('error', 'task_not_in_cycle');
+          span?.addEvent('process.violation', {
+            reason: 'task_not_in_cycle',
+            taskId,
+          });
+          await this.recordCounter('phase_skips_attempted', {
+            taskId,
+            reason: 'task_not_in_cycle',
+            desiredPhase: desiredPhase ?? null,
+          });
+          await this.recordEnforcementDecision('block', {
+            taskId,
+            phase: 'UNKNOWN',
+            reason: 'task_not_in_cycle',
+            severity: this.getSeverityForReason('task_not_in_cycle'),
+            desiredPhase: desiredPhase,
+            enforcementLevel,
+          });
+          throw new Error(`Task ${taskId} not in work cycle`);
+        }
 
     // STEP 1: Systematic evidence collection for EVERY phase
     await this.collectPhaseEvidence(currentPhase, taskId);
@@ -477,6 +680,14 @@ export class WorkProcessEnforcer {
 
     // STEP 4.5: Attest to prompt specification to detect drift
     try {
+      if (!promptMeta?.compiled && promptMeta?.compilerEnabled) {
+        logWarning('Prompt compiler enabled but no compiled prompt provided', {
+          taskId,
+          phase: currentPhase,
+          reason: promptMeta.failureReason ?? 'unknown'
+        });
+      }
+
       const promptSpec: PromptSpec = {
         phase: currentPhase,
         taskId,
@@ -484,14 +695,14 @@ export class WorkProcessEnforcer {
         requirements: this.PHASE_VALIDATIONS[currentPhase].required,
         qualityGates: this.PHASE_VALIDATIONS[currentPhase].qualityGates.map(g => g.name),
         artifacts: this.PHASE_VALIDATIONS[currentPhase].artifacts,
-        contextSummary: 'Phase enforcement context',  // Could extract from task context if available
-        // IMP-22: Persona hash and summary (placeholder - proper wiring TBD)
-        // TODO: Extract persona from task context when persona router integrated
-        // Feature flag: PERSONA_HASHING_MODE (off/observe/enforce) in config.ts
-        personaHash: undefined,  // Will be populated when persona router active & flag enabled
-        personaSummary: undefined,
+        contextSummary: promptMeta?.contextSummary ?? 'Phase enforcement context',
+        personaHash: personaMeta?.hash ?? promptMeta?.personaHash,
+        personaSummary: personaMeta?.summary ?? promptMeta?.personaSummary,
+        promptHash: promptMeta?.compiled?.hash,
+        promptPreview: promptMeta?.compiled ? promptMeta.compiled.text.slice(0, 500) : undefined,
+        promptSlots: promptMeta?.compiled?.slots ?? promptMeta?.input,
         agentType: 'work_process_enforcer',
-        modelVersion: 'claude-sonnet-4'  // Could be parameterized
+        modelVersion: 'claude-sonnet-4'
       };
 
       const driftAnalysis = await this.promptAttestationManager.attest(promptSpec);
@@ -510,7 +721,9 @@ export class WorkProcessEnforcer {
         await this.recordCounter('prompt_drift_detected', {
           taskId,
           phase: currentPhase,
-          severity: driftAnalysis.severity
+          severity: driftAnalysis.severity,
+          variantId: promptMeta?.variantId ?? null,
+          variantMode
         });
 
         // IMP-22: Check for persona drift and record separately
@@ -518,7 +731,9 @@ export class WorkProcessEnforcer {
           await this.recordCounter('prompt_drift_detected', {
             taskId,
             phase: currentPhase,
-            dimension: 'persona'  // Distinguish persona drift from prompt drift
+            dimension: 'persona',  // Distinguish persona drift from prompt drift
+            variantId: promptMeta?.variantId ?? null,
+            variantMode
           });
 
           logWarning('PERSONA DRIFT DETECTED', {
@@ -534,6 +749,8 @@ export class WorkProcessEnforcer {
           await this.recordCounter('prompt_drift_high', {
             taskId,
             phase: currentPhase,
+            variantId: promptMeta?.variantId ?? null,
+            variantMode
           });
 
           logError('HIGH SEVERITY PROMPT DRIFT - Review immediately', {
@@ -597,7 +814,7 @@ export class WorkProcessEnforcer {
 
     // STEP 6: Check if we're at the end of the cycle
     const currentIndex = this.PHASE_SEQUENCE.indexOf(currentPhase);
-    if (currentIndex === this.PHASE_SEQUENCE.length - 1) {
+      if (currentIndex === this.PHASE_SEQUENCE.length - 1) {
       // Run comprehensive final verification with all meta systems
       const finalVerification = await this.runComprehensiveFinalVerification(taskId);
       if (finalVerification) {
@@ -607,6 +824,11 @@ export class WorkProcessEnforcer {
           phase: currentPhase,
           nextPhase: null,
           terminal: true,
+        });
+        await this.recordEnforcementDecision('allow', {
+          taskId,
+          phase: currentPhase,
+          enforcementLevel,
         });
         return true;
       } else {
@@ -758,8 +980,17 @@ export class WorkProcessEnforcer {
             true,
             {
               agentType: 'work_process_enforcer',
-              personaHash: undefined  // IMP-22: Will be populated when persona router integrated
+              personaHash: personaMeta?.hash,
+              promptHash: promptMeta?.promptHash ?? promptMeta?.compiled?.hash,
+              variantId: promptMeta?.variantId
             }
+          );
+          await this.recordPromptVariantTelemetry(
+            variantMode,
+            currentPhase,
+            taskId,
+            promptMeta,
+            personaMeta,
           );
         } catch (e) {
           logWarning('Ledger append failed for backtrack', {
@@ -775,6 +1006,12 @@ export class WorkProcessEnforcer {
           phase: currentPhase,
           nextPhase: desiredPhase,
           backtrack: true,
+        });
+        await this.recordEnforcementDecision('allow', {
+          taskId,
+          phase: currentPhase,
+          nextPhase: desiredPhase,
+          enforcementLevel,
         });
 
         return true;
@@ -831,6 +1068,17 @@ export class WorkProcessEnforcer {
     }
 
     const nextPhase = expectedNextPhase;
+
+    // STEP 7.1: Check verification level for this transition (Phase 1: observe mode)
+    const verificationCheck = await this.checkVerificationLevel(taskId, currentPhase, nextPhase);
+    if (verificationCheck.message) {
+      logInfo('Verification level check advisory', {
+        taskId,
+        transition: `${currentPhase} → ${nextPhase}`,
+        advisory: verificationCheck.message
+      });
+    }
+
     this.currentPhase.set(taskId, nextPhase);
     this.evidenceCollector.startCollection(nextPhase, taskId);
     this.logTransition(taskId, currentPhase, nextPhase, true);
@@ -913,8 +1161,17 @@ export class WorkProcessEnforcer {
         evidenceValidated && validation.passed,
         {
           agentType: 'work_process_enforcer',
-          personaHash: undefined  // IMP-22: Will be populated when persona router integrated
+          personaHash: personaMeta?.hash,
+          promptHash: promptMeta?.promptHash ?? promptMeta?.compiled?.hash,
+          variantId: promptMeta?.variantId
         }
+      );
+      await this.recordPromptVariantTelemetry(
+        variantMode,
+        currentPhase,
+        taskId,
+        promptMeta,
+        personaMeta,
       );
       logInfo('Phase transition recorded in ledger', {
         taskId,
@@ -946,6 +1203,12 @@ export class WorkProcessEnforcer {
           phase: currentPhase,
           nextPhase,
           backtrack: false,
+        });
+        await this.recordEnforcementDecision('allow', {
+          taskId,
+          phase: currentPhase,
+          nextPhase,
+          enforcementLevel,
         });
 
         return true;
@@ -1143,6 +1406,18 @@ export class WorkProcessEnforcer {
       phase,
       reason,
       ...(extra ?? {}),
+    });
+    const severity = this.getSeverityForReason(reason);
+    const desiredPhase = (extra?.desiredPhase ?? extra?.expectedNextPhase) as WorkPhase | undefined;
+    const nextPhase = (extra?.to ?? extra?.nextPhase) as WorkPhase | undefined;
+    await this.recordEnforcementDecision('block', {
+      taskId,
+      phase,
+      reason,
+      severity,
+      desiredPhase,
+      nextPhase,
+      enforcementLevel: getEnforcementLevel(),
     });
   }
 
@@ -2263,5 +2538,70 @@ export class WorkProcessEnforcer {
     } catch {
       throw new Error('Prompt attestation manager not initialized');
     }
+  }
+
+  /**
+   * Check verification level for phase transition (Phase 1: Observe mode)
+   *
+   * Detects what verification level was achieved and logs mismatches.
+   * Phase 1: Always allows transition, logs for analysis.
+   *
+   * Transitions:
+   * - IMPLEMENT → VERIFY: Require Level 1 (compilation)
+   * - VERIFY → REVIEW: Require Level 2 (smoke tests)
+   * - REVIEW → PR: Require Level 3 or explicit deferral
+   */
+  async checkVerificationLevel(
+    taskId: string,
+    fromPhase: WorkPhase,
+    toPhase: WorkPhase
+  ): Promise<{ allowed: boolean; message: string }> {
+    // Determine required level for this transition
+    let requiredLevel: 1 | 2 | 3 | null = null;
+    if (fromPhase === 'IMPLEMENT' && toPhase === 'VERIFY') {
+      requiredLevel = 1;  // Compilation required
+    } else if (fromPhase === 'VERIFY' && toPhase === 'REVIEW') {
+      requiredLevel = 2;  // Smoke tests required
+    } else if (fromPhase === 'REVIEW' && toPhase === 'PR') {
+      requiredLevel = 3;  // Integration or explicit deferral required
+    }
+
+    // If this transition doesn't require verification checking, allow it
+    if (requiredLevel === null) {
+      return { allowed: true, message: '' };
+    }
+
+    // Detect verification level from evidence
+    const evidencePath = path.join(this.workspaceRoot, 'state/evidence', taskId);
+    const result = this.verificationLevelDetector.detectLevel(evidencePath);
+
+    // Log detection result
+    logInfo('Verification level detected', {
+      taskId,
+      transition: `${fromPhase} → ${toPhase}`,
+      required: requiredLevel,
+      detected: result.level,
+      confidence: result.confidence,
+      evidence: result.evidence
+    });
+
+    // Check if requirement is met
+    const requirementMet = result.level !== null && result.level >= requiredLevel;
+
+    if (!requirementMet) {
+      logWarning('Verification level mismatch (observe mode - allowing)', {
+        taskId,
+        transition: `${fromPhase} → ${toPhase}`,
+        required: requiredLevel,
+        detected: result.level,
+        confidence: result.confidence
+      });
+    }
+
+    // Phase 1: Always allow, log mismatch for analysis
+    return {
+      allowed: true,
+      message: requirementMet ? '' : `Advisory: Detected Level ${result.level || 0}, expected Level ${requiredLevel}+`
+    };
   }
 }
