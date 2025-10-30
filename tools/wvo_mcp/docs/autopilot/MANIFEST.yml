@@ -1,5 +1,5 @@
 version: v2025-10-25
-generated_at: 2025-10-29T17:34:06.146Z
+generated_at: 2025-10-30T02:32:51.185Z
 components:
   -
       id: state-graph
@@ -7,7 +7,7 @@ components:
       code_refs:
         -
           path: src/orchestrator/state_graph.ts
-          sha256: 49e0ef07cdc8d0bafb35551b5be87008bd5b04ef73e668ee8385b14346baa956
+          sha256: 4e5a9243bfdba39b5967fe7d0358d1644a5cea6f0763bedcccf0067fcb8cf12d
       doc_refs:
         - ../../docs/autopilot/OVERVIEW.md
       schema_refs:
@@ -69,10 +69,10 @@ components:
       code_refs:
         -
           path: src/state/roadmap_store.ts
-          sha256: fa7b96ef80dc87bf46a3eadec689e68419d5c35679aa345c9f7c4ee2ca476e88
+          sha256: 8cd756acea12112f3035ed3f87919869df84d653fdc63e01d9662d8b18ff9a3a
         -
           path: src/planner/planner_engine.ts
-          sha256: 3e527b668c2eb3c5144125273e91c76365d467c3a403858f6d07f7b832fd2d5b
+          sha256: fce54bd119e70a84c3b9ec1d47cb5f18fce231f91816e54e041fe1a8e15882f8
       doc_refs:
         - ../../docs/autopilot/ROADMAP_OPS.md
       schema_refs:
