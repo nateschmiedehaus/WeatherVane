@@ -88,6 +88,7 @@ export interface GamingDetectionConfig {
   scriptPath: string;         // default: "scripts/detect_test_gaming.sh"
   timeoutMs: number;          // default: 5000
   telemetryEnabled: boolean;  // default: true
+  agentType?: string;         // default: "unknown" - agent type identifier (claude, codex, etc.)
 }
 
 /**
@@ -269,6 +270,7 @@ export class WorkProcessEnforcer {
       scriptPath: 'scripts/detect_test_gaming.sh',
       timeoutMs: 5000,
       telemetryEnabled: true,
+      agentType: 'unknown',
       ...config?.gamingDetection
     };
 
@@ -2644,6 +2646,8 @@ export class WorkProcessEnforcer {
     scriptPath: string,
     evidencePath: string
   ): Promise<GamingDetectionResult> {
+    const EXPECTED_SCHEMA_VERSION = '1.0'; // Schema version for script output
+
     return new Promise((resolve, reject) => {
       let stdout = '';
       let stderr = '';
@@ -2656,6 +2660,15 @@ export class WorkProcessEnforcer {
       const timeout = setTimeout(() => {
         timedOut = true;
         child.kill('SIGTERM');
+
+        // Escalate to SIGKILL after 1s if process hasn't responded to SIGTERM
+        // This handles hung processes that ignore SIGTERM (rare but possible)
+        setTimeout(() => {
+          if (!child.killed) {
+            child.kill('SIGKILL');
+          }
+        }, 1000);
+
         reject(new Error(`Gaming detection timed out after ${this.gamingDetectionConfig.timeoutMs}ms. Skipping detection.`));
       }, this.gamingDetectionConfig.timeoutMs);
 
@@ -2686,6 +2699,20 @@ export class WorkProcessEnforcer {
         // Parse JSON output
         try {
           const output = JSON.parse(stdout.trim());
+
+          // Validate schema version if present (backward compatible - version is optional)
+          if (output.schema_version) {
+            if (output.schema_version !== EXPECTED_SCHEMA_VERSION) {
+              console.warn(
+                `[WorkProcessEnforcer] Gaming detection schema version mismatch: ` +
+                `expected ${EXPECTED_SCHEMA_VERSION}, got ${output.schema_version}. ` +
+                `Script may have been updated. Proceeding with detection.`
+              );
+            }
+          }
+          // Note: Version field is optional for backward compatibility
+          // If missing, we skip validation and continue normally
+
           resolve({
             success: true,
             gaming_detected: code === 1,
@@ -2740,7 +2767,7 @@ export class WorkProcessEnforcer {
         pattern_count: result.pattern_count,
         patterns: result.patterns,
         execution_time_ms: result.execution_time_ms,
-        agent_type: 'claude',
+        agent_type: this.gamingDetectionConfig.agentType || 'unknown',
         workflow_type: 'autopilot'
       };
 

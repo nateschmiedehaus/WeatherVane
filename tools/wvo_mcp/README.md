@@ -171,7 +171,8 @@ const enforcer = new WorkProcessEnforcer(stateMachine, workspaceRoot, metricsCol
     enabled: true,                              // default: true
     scriptPath: 'scripts/detect_test_gaming.sh', // relative to workspaceRoot
     timeoutMs: 5000,                            // default: 5s
-    telemetryEnabled: true                      // default: true
+    telemetryEnabled: true,                     // default: true
+    agentType: 'claude'                         // default: 'unknown' - agent identifier
   }
 });
 ```
@@ -217,6 +218,15 @@ Gaming detection results are logged to `state/analytics/gaming_detections.jsonl`
 - ⚠️ Windows (requires Git Bash or WSL)
 
 If bash is not available, detection fails gracefully (warning logged, phase transition proceeds).
+
+### Enhancements (2025-10-30)
+
+**FIX-META-TEST-GAMING-ENHANCEMENTS**:
+- **Agent Type Configuration**: Added `agentType` field for accurate telemetry across agents (Claude, Codex, future agents)
+- **SIGKILL Escalation**: Process termination reliability improved with SIGTERM → SIGKILL escalation (1s grace period)
+- **Schema Version Validation**: Forward compatibility with optional schema_version validation (warning-only, fail-safe)
+
+All enhancements are backward compatible, non-breaking, and maintain fail-safe behavior.
 
 ### See Also
 
