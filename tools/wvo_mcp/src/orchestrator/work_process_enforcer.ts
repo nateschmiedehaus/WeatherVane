@@ -20,11 +20,10 @@ import { PromptVariantRecorder } from '../telemetry/prompt_variants.js';
 import { PhaseLedger } from './phase_ledger.js';
 import { PhaseLeaseManager } from './phase_lease.js';
 import { PromptAttestationManager, type PromptSpec } from './prompt_attestation.js';
-import type { CompiledPrompt, PromptInput } from '../prompt/compiler.js';
 import { VerificationLevelDetector } from '../quality/verification_level_detector.js';
 import fs from 'fs';
 import path from 'path';
-import { execSync } from 'child_process';
+import { execSync, spawn } from 'child_process';
 import {
   getPromptVariantsMode,
   type PromptVariantsMode,
@@ -32,17 +31,12 @@ import {
   type EnforcementLevel,
   type ViolationSeverity,
 } from '../utils/config.js';
-
-export type WorkPhase =
-  | 'STRATEGIZE'
-  | 'SPEC'
-  | 'PLAN'
-  | 'THINK'
-  | 'IMPLEMENT'
-  | 'VERIFY'
-  | 'REVIEW'
-  | 'PR'
-  | 'MONITOR';
+import type {
+  WorkPhase,
+  PhaseAdvanceMetadata,
+  PhasePersonaMetadata,
+  PhasePromptMetadata,
+} from '../types/work_process.js';
 
 export interface PhaseTransition {
   from: WorkPhase;
@@ -64,29 +58,36 @@ export interface PhaseValidation {
   }>;
 }
 
-interface PhasePromptMetadata {
-  compiled?: CompiledPrompt;
-  input?: PromptInput;
-  personaHash?: string;
-  personaSummary?: string;
-  contextSummary?: string;
-  compilerEnabled?: boolean;
-  failureReason?: string;
-  promptHash?: string;
-  variantId?: string;
+/**
+ * Gaming pattern detected by detection script
+ */
+export interface GamingPattern {
+  type: 'no_assertions' | 'mock_heavy' | 'missing_integration' | 'weak_deferral' | 'incomplete_deferral';
+  severity: 'high' | 'medium';
+  file: string;
+  message: string;
 }
 
-interface PhasePersonaMetadata {
-  hash?: string;
-  summary?: string;
-  allowlist?: string[];
-  spec?: Record<string, unknown>;
+/**
+ * Result of gaming detection script execution
+ */
+export interface GamingDetectionResult {
+  success: boolean;              // false if script error
+  gaming_detected: boolean;      // true if patterns found
+  pattern_count: number;         // number of gaming patterns
+  patterns: GamingPattern[];     // list of patterns
+  execution_time_ms: number;     // script execution time
+  error?: string;                // error message if script failed
 }
 
-export interface PhaseAdvanceMetadata {
-  prompt?: PhasePromptMetadata;
-  persona?: PhasePersonaMetadata;
-  variantMode?: PromptVariantsMode;
+/**
+ * Configuration for gaming detection
+ */
+export interface GamingDetectionConfig {
+  enabled: boolean;           // default: true
+  scriptPath: string;         // default: "scripts/detect_test_gaming.sh"
+  timeoutMs: number;          // default: 5000
+  telemetryEnabled: boolean;  // default: true
 }
 
 /**
@@ -110,6 +111,9 @@ export class WorkProcessEnforcer {
   private readonly verificationLevelDetector: VerificationLevelDetector;
   private readonly ledgerReady: Promise<void>;
   private readonly attestationReady: Promise<void>;
+
+  // Gaming detection configuration
+  private gamingDetectionConfig: GamingDetectionConfig;
 
   // Define the required flow
   private readonly PHASE_SEQUENCE: WorkPhase[] = [
@@ -254,9 +258,19 @@ export class WorkProcessEnforcer {
   constructor(
     private readonly stateMachine: StateMachine,
     private readonly workspaceRoot: string,
-    private readonly metricsCollector?: MetricsCollector
+    private readonly metricsCollector?: MetricsCollector,
+    config?: { gamingDetection?: Partial<GamingDetectionConfig> }
   ) {
     this.logPath = path.join(workspaceRoot, 'state/logs/work_process.jsonl');
+
+    // Initialize gaming detection configuration with defaults
+    this.gamingDetectionConfig = {
+      enabled: true,
+      scriptPath: 'scripts/detect_test_gaming.sh',
+      timeoutMs: 5000,
+      telemetryEnabled: true,
+      ...config?.gamingDetection
+    };
 
     // Ensure log directory exists
     const logDir = path.dirname(this.logPath);
@@ -1077,6 +1091,12 @@ export class WorkProcessEnforcer {
         transition: `${currentPhase} → ${nextPhase}`,
         advisory: verificationCheck.message
       });
+    }
+
+    // STEP 7.2: Run gaming detection hook for VERIFY → REVIEW transition (FIX-META-TEST-GAMING-INTEGRATION)
+    if (currentPhase === 'VERIFY' && nextPhase === 'REVIEW') {
+      const taskEvidencePath = path.join(this.workspaceRoot, 'state/evidence', taskId);
+      await this.runGamingDetectionHook(taskId, taskEvidencePath);
     }
 
     this.currentPhase.set(taskId, nextPhase);
@@ -2541,6 +2561,229 @@ export class WorkProcessEnforcer {
   }
 
   /**
+   * Detect gaming patterns in verification evidence (FIX-META-TEST-GAMING-INTEGRATION)
+   *
+   * @param taskId - Task ID for evidence path
+   * @param evidencePath - Path to evidence directory
+   * @returns Gaming detection result
+   */
+  async detectGaming(
+    taskId: string,
+    evidencePath: string
+  ): Promise<GamingDetectionResult> {
+    const startTime = Date.now();
+
+    // Check if detection is enabled
+    if (!this.gamingDetectionConfig.enabled) {
+      return {
+        success: true,
+        gaming_detected: false,
+        pattern_count: 0,
+        patterns: [],
+        execution_time_ms: Date.now() - startTime
+      };
+    }
+
+    // Validate evidence path exists
+    if (!fs.existsSync(evidencePath)) {
+      return {
+        success: false,
+        gaming_detected: false,
+        pattern_count: 0,
+        patterns: [],
+        execution_time_ms: Date.now() - startTime,
+        error: `Invalid evidence path: ${evidencePath}. Skipping detection.`
+      };
+    }
+
+    // Get absolute path to script
+    const scriptPath = path.resolve(this.workspaceRoot, this.gamingDetectionConfig.scriptPath);
+
+    // Check if script exists
+    if (!fs.existsSync(scriptPath)) {
+      return {
+        success: false,
+        gaming_detected: false,
+        pattern_count: 0,
+        patterns: [],
+        execution_time_ms: Date.now() - startTime,
+        error: `Gaming detection script not found: ${scriptPath}. Skipping detection.`
+      };
+    }
+
+    try {
+      // Spawn bash script
+      const result = await this.spawnGamingDetectionScript(scriptPath, evidencePath);
+      result.execution_time_ms = Date.now() - startTime;
+
+      // Log telemetry
+      await this.logGamingDetectionTelemetry(taskId, evidencePath, result);
+
+      return result;
+    } catch (error) {
+      const result: GamingDetectionResult = {
+        success: false,
+        gaming_detected: false,
+        pattern_count: 0,
+        patterns: [],
+        execution_time_ms: Date.now() - startTime,
+        error: error instanceof Error ? error.message : String(error)
+      };
+
+      // Log telemetry even for errors
+      await this.logGamingDetectionTelemetry(taskId, evidencePath, result);
+
+      return result;
+    }
+  }
+
+  /**
+   * Spawn gaming detection script as child process
+   */
+  private async spawnGamingDetectionScript(
+    scriptPath: string,
+    evidencePath: string
+  ): Promise<GamingDetectionResult> {
+    return new Promise((resolve, reject) => {
+      let stdout = '';
+      let stderr = '';
+      let timedOut = false;
+
+      // Spawn process
+      const child = spawn('bash', [scriptPath, '--evidence-path', evidencePath, '--format', 'json']);
+
+      // Set timeout
+      const timeout = setTimeout(() => {
+        timedOut = true;
+        child.kill('SIGTERM');
+        reject(new Error(`Gaming detection timed out after ${this.gamingDetectionConfig.timeoutMs}ms. Skipping detection.`));
+      }, this.gamingDetectionConfig.timeoutMs);
+
+      // Capture stdout
+      child.stdout.on('data', (data) => {
+        stdout += data.toString();
+      });
+
+      // Capture stderr
+      child.stderr.on('data', (data) => {
+        stderr += data.toString();
+      });
+
+      // Handle exit
+      child.on('exit', (code) => {
+        clearTimeout(timeout);
+
+        if (timedOut) {
+          return; // Already rejected by timeout
+        }
+
+        if (code === 2) {
+          // Script error
+          reject(new Error(`Gaming detection script error: ${stderr.trim()}`));
+          return;
+        }
+
+        // Parse JSON output
+        try {
+          const output = JSON.parse(stdout.trim());
+          resolve({
+            success: true,
+            gaming_detected: code === 1,
+            pattern_count: output.pattern_count || 0,
+            patterns: output.patterns || [],
+            execution_time_ms: 0 // Will be set by caller
+          });
+        } catch (error) {
+          reject(new Error(`Failed to parse gaming detection output: ${error instanceof Error ? error.message : String(error)}`));
+        }
+      });
+
+      // Handle spawn error
+      child.on('error', (error) => {
+        clearTimeout(timeout);
+        if (error.message.includes('EACCES')) {
+          reject(new Error(`Permission denied: ${scriptPath}. Skipping detection.`));
+        } else {
+          reject(error);
+        }
+      });
+    });
+  }
+
+  /**
+   * Log gaming detection result to telemetry
+   */
+  private async logGamingDetectionTelemetry(
+    taskId: string,
+    evidencePath: string,
+    result: GamingDetectionResult
+  ): Promise<void> {
+    if (!this.gamingDetectionConfig.telemetryEnabled) {
+      return; // Telemetry disabled
+    }
+
+    try {
+      const telemetryPath = path.resolve(this.workspaceRoot, 'state/analytics/gaming_detections.jsonl');
+
+      // Ensure directory exists
+      const dir = path.dirname(telemetryPath);
+      if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true });
+      }
+
+      // Create telemetry entry
+      const entry = {
+        timestamp: new Date().toISOString(),
+        task_id: taskId,
+        evidence_path: evidencePath,
+        gaming_detected: result.gaming_detected,
+        pattern_count: result.pattern_count,
+        patterns: result.patterns,
+        execution_time_ms: result.execution_time_ms,
+        agent_type: 'claude',
+        workflow_type: 'autopilot'
+      };
+
+      // Append to JSONL file
+      fs.appendFileSync(telemetryPath, JSON.stringify(entry) + '\n');
+    } catch (error) {
+      console.error(`Failed to write gaming detection telemetry: ${error instanceof Error ? error.message : String(error)}. Continuing.`);
+      // Non-fatal: telemetry failures should not block execution
+    }
+  }
+
+  /**
+   * Run gaming detection hook during VERIFY → REVIEW transition
+   */
+  private async runGamingDetectionHook(
+    taskId: string,
+    evidencePath: string
+  ): Promise<void> {
+    try {
+      const result = await this.detectGaming(taskId, evidencePath);
+
+      if (!result.success) {
+        // Script error - log and continue
+        console.error(`⚠️  Gaming detection error for task ${taskId}: ${result.error}`);
+        return;
+      }
+
+      if (result.gaming_detected) {
+        // Gaming detected - log warning and continue (observe mode)
+        console.warn(`⚠️  Gaming patterns detected for task ${taskId}:`);
+        result.patterns.forEach(pattern => {
+          console.warn(`  - [${pattern.severity.toUpperCase()}] ${pattern.type}: ${pattern.message} (${pattern.file})`);
+        });
+      }
+
+      // Always continue to REVIEW (observe mode, no blocking)
+    } catch (error) {
+      // Fail-safe: catch any unexpected errors
+      console.error(`⚠️  Unexpected error in gaming detection for task ${taskId}: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+
+  /**
    * Check verification level for phase transition (Phase 1: Observe mode)
    *
    * Detects what verification level was achieved and logs mismatches.
@@ -2605,3 +2848,10 @@ export class WorkProcessEnforcer {
     };
   }
 }
+
+export type {
+  WorkPhase,
+  PhaseAdvanceMetadata,
+  PhasePersonaMetadata,
+  PhasePromptMetadata,
+} from '../types/work_process.js';
