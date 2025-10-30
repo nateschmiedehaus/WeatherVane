@@ -13,8 +13,9 @@ Last updated: 2025-10-29
   - ROADMAP‑STRUCT Phase 1 (Schema Definition): COMPLETE — `state/evidence/ROADMAP-STRUCT-P1/verify/`
   - ROADMAP‑STRUCT Phase 2 (Validation Script): COMPLETE — `state/evidence/ROADMAP-STRUCT-P2/verify/`
   - ROADMAP‑STRUCT Phase 3 (Roadmap Migration): COMPLETE — `state/evidence/ROADMAP-STRUCT-P3/verify/`
-  - ROADMAP‑STRUCT Phase 4 (plan_next Enhancement): PENDING
-  - ROADMAP‑STRUCT Phase 5 (CI Integration): PENDING
+  - ROADMAP‑STRUCT Phase 4 (plan_next Enhancement): COMPLETE — `state/evidence/ROADMAP-STRUCT-P4/verify/`
+  - ROADMAP‑STRUCT Phase 5 (CI Integration): COMPLETE — `state/evidence/ROADMAP-STRUCT-P5/verify/`
+  - ROADMAP‑EVIDENCE (Schema metadata + validator): IN PROGRESS — evidence metadata/schema wiring & validator landing now; see `state/evidence/ROADMAP-EVIDENCE/`
 - Observability:
   - IMP‑OBS‑01 (OTel Spans): COMPLETE — `state/evidence/IMP-OBS-01/verify/`
   - IMP‑OBS‑02 (OTel Counters): COMPLETE — `state/evidence/IMP-OBS-02/verify/`
@@ -23,7 +24,12 @@ Last updated: 2025-10-29
   - IMP‑OBS‑05 (Metrics Dashboard): COMPLETE — `state/evidence/IMP-OBS-05/verify/`
   - IMP‑OBS‑06 (Observer Agent): COMPLETE — `state/evidence/IMP-OBS-06/verify/`
 - Prompting:
-  - IMP‑21..26 (compiler/persona/overlays/stategraph/tools/variants): PLANNED — flag‑gated; see “Prompting Improvements — Production Slices”
+  - IMP‑21 (Prompt Compiler): COMPLETE — `state/evidence/IMP-21/monitor/`
+  - IMP‑22 (PersonaSpec): COMPLETE — `state/evidence/IMP-22/monitor/`
+  - IMP‑23 (Domain overlays): COMPLETE — `state/evidence/IMP-23/monitor/`
+  - IMP‑24 (StateGraph hook): COMPLETE — `state/evidence/IMP-24/monitor/`
+  - IMP‑25 (Tool allowlists): COMPLETE — `state/evidence/IMP-25/monitor/`
+  - IMP‑26 (Prompt variants/telemetry): COMPLETE — `state/evidence/IMP-26/monitor/`
   - IMP‑35 (eval harness + gates), IMP‑36 (verifiers), IMP‑37 (groundedness): PLANNED
 - Advanced Features:
   - IMP‑ADV‑01 (Quality Graph baseline): COMPLETE — `state/evidence/IMP-ADV-01/`
@@ -335,7 +341,7 @@ Artifacts
   - Scope: Store quality graph hints in planner context pack for future prompt compiler (IMP-21) consumption; defer actual LLM prompt injection to IMP-21
   - Implementation: Hints retrieved from quality graph and passed to PlannerAgent, stored in context pack, attached to plan result for observability; feature flag controls hint retrieval (off/observe/enforce)
   - Effort: 2-3 hours (actual: 2.5 hours)
-  - Rollout: FLAG `QUALITY_GRAPH_HINTS_INJECTION=observe` (default, hints retrieved and stored)
+  - Rollout: FLAG `QUALITY_GRAPH_HINTS_INJECTION=off` (default); enable `observe` for experiments once precision gate is green
   - Integration with Prompting Roadmap:
     - **IMP-21** (Prompt Compiler): Will read hints from context pack and inject into typed slot (e.g., overlay `quality_graph_hints`)
     - **IMP-24** (Attestation): Will record compiled prompt hash including hints (when IMP-21 injects them)
@@ -603,9 +609,16 @@ Focused tasks to instantiate Work Process requirements that weren’t fully oper
   - Evidence: `state/evidence/IMP-MON-01/monitor/negative_oracles.json`.
 
 - IMP‑RED‑05 — Telemetry Parity (OTel vs JSONL)
-  - Scope: extend Dual‑Runner parity to verify parity across telemetry sinks for critical tasks; include in parity report.
-  - Acceptance: `parity_report.json` includes telemetry parity; divergences block.
-  - Evidence: `state/evidence/IMP-RED-05/verify/parity_report.json`.
+  - Scope: extend Dual-Runner parity to verify parity across telemetry sinks for critical tasks; include mirrored OTEL snapshots.
+  - Status: ✅ tracing smoke mirrors into `otel_traces.jsonl` / `otel_counters.jsonl`; parity checker CLI guards VERIFY/CI.
+  - Acceptance: `telemetry_parity_report.json` shows `summary.ok=true`; divergences block advancement.
+  - Evidence: `state/evidence/IMP-RED-05/verify/telemetry_parity_report.json`.
+
+- ROADMAP‑EVIDENCE — Roadmap ↔ Evidence Metadata
+  - Scope: extend roadmap schema with `evidence_path`, `work_process_phases`, and enforcement levels so STRATEGIZE→MONITOR artifacts are tracked centrally; add CLI validator + migration tooling.
+  - Status: 🚧 validator + migration landed (`npm run validate:roadmap-evidence`), roadmap metadata populated with enforcement tiers, warnings tracked for legacy tasks lacking artifacts.
+  - Acceptance: validator returns zero errors, roadmap docs/prompts updated, CI wire-up pending final warning burn-down.
+  - Evidence: `state/evidence/ROADMAP-EVIDENCE/{strategize/spec/plan/think/implement,verify/roadmap_evidence_report.json}`.
 
 ---
 
@@ -736,7 +749,7 @@ Notes: Verify artifacts (test logs/benchmarks) are stored under `state/evidence/
 Purpose: only what’s necessary to improve reliability for autonomous execution; everything else deferred.
 
 - IMP‑QG‑01 — Quality Graph: Stable embeddings + observe‑mode hints + VERIFY precision gate
-  - Scope: replace per‑call TF‑IDF fit with a stable feature space (HashingVectorizer or persisted TF‑IDF+projection); add reindex CLI; disable prompt injection of hints by default; compute precision@5 in VERIFY and block regressions vs baseline.
+  ‑ Scope: replace per‑call TF‑IDF fit with a stable feature space (HashingVectorizer), ship a reindex CLI (dry‑run/limit/backup), disable prompt injection of hints by default, and add a precision@5 VERIFY gate that fails when regressions exceed tolerance.
   - Flags: `quality_graph.hints_injection=off` (default), `quality_graph.eval_gate=observe → enforce`.
   - Acceptance: precision@5 ≥ 0.60 on eval set; no degradation in plan/test outcomes; hints not injected until gate green.
   - Evidence: `state/evidence/IMP-QG-01/verify/metrics.json`, `state/evidence/IMP-QG-01/implement/reindex_plan.md`.
@@ -935,6 +948,9 @@ Notes: This system complements Context Fabric and Attestation. It enforces aware
 - Fundamentals (Phase 0)
   - IMP‑FUND‑01..09: COMPLETE in this batch (see Current Progress above).
 
+- Process Improvements (Meta)
+  - META-TESTING-STANDARDS: PLANNED — Define "actually valuable testing" standards to prevent "build-without-validate" pattern identified in IMP-35. Update VERIFY phase requirements to enforce runtime validation, not just build passing. Create examples of good vs bad testing, update CLAUDE.md/AGENTS.md with testing checklist. Acceptance: Testing standards doc created, VERIFY checklist updated, smoke tests required before claiming completion. Evidence: `state/evidence/META-TESTING-STANDARDS/`
+
 - Observability (Phase 2)
   - IMP‑OBS‑01 (OTel Spans): COMPLETE — evidence in `state/evidence/IMP-OBS-01/verify/`
   - IMP‑OBS‑03 (JSONL Sinks): COMPLETE — evidence in `state/evidence/IMP-OBS-03/verify/`
@@ -944,7 +960,7 @@ Notes: This system complements Context Fabric and Attestation. It enforces aware
   - IMP‑OBS‑06 (Observer Agent, Phase 1): COMPLETE — evidence in `state/evidence/IMP-OBS-06/verify/`
 
 - Enforcement (Phase 1)
-  - IMP‑ENF‑01 (Phase Leases): PARTIAL — covered by IMP‑04 tests/metrics; full hardening pending
+  - IMP‑ENF‑01 (Phase Leases): ✅ COMPLETE — dedicated `state/process/phase_leases.db` with WAL, release history, and refreshed lease tests (`state/evidence/IMP-ENF-01/`)
   - IMP‑ENF‑02 (Prompt Attestation): PARTIAL — high-severity drift gating + audited baseline update CLI (IMP‑05) complete; prompt compiler/state graph hook tracks under IMP‑24
   - IMP-ENF-03 (Tool Router Guards): COMPLETE — phase allowlists enforced, fallbacks/rejections now emit counters (`tool_phase_guard_fallback` / `tool_phase_guard_rejection`) plus CI follow-up registry integration
   - IMP‑ENF‑04 (State Machine Guards): COMPLETE — WorkProcessEnforcer + Evidence Gates active
@@ -1148,6 +1164,15 @@ Tasks that improve the work process itself, prevent recurring issues, and streng
   - CI/meta integration step that fails when unresolved follow-ups exist.
   - Documentation updates (AGENTS.md, WORK_PROCESS.md/ENFORCEMENT.md) describing taxonomy, tags, and resolution workflow.
 - Evidence: `state/evidence/META-POLICY-03/{strategize,spec,plan,think,implement,verify,review,pr,monitor}/` plus `state/automation/follow_up_report.json`.
+
+### META-POLICY-05 — Follow-up Automation Parity (Codex)
+- Status: ✅ COMPLETE (2025-10-29)
+- Scope: Parity with Claude by automatically converting Codex follow-up bullets into roadmap tasks (or forcing immediate resolution) with CI enforcement.
+- Deliverables:
+  - Enhanced `classify_follow_ups.ts` that ingests auto follow-ups into roadmap epic `E-AUTO-FOLLOWUPS`, exposes explicit `--enforce` vs report modes, and emits blocking reports.
+  - Updated prompts/docs (CLAUDE.md, AGENTS.md, WORK_PROCESS.md) reflecting mandatory auto-task behaviour and enforced command usage.
+  - CI workflow step ensuring no unresolved follow-ups slip through (`--enforce` flag) plus regression tests covering CLI + ingestion flows.
+- Evidence: `state/evidence/META-POLICY-05/*`, `state/automation/follow_up_report.json`, `state/evidence/META-POLICY-05/verify/follow_up_report.json`, roadmap diff showing auto follow-up tasks.
 
 ### META-PERF-01 — Performance Regression Detection in CI
 - Status: ✅ COMPLETE (2025-10-29)
