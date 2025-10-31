@@ -8,6 +8,38 @@
 
 ---
 
+## Target Completion Tier (MANDATORY)
+
+**Declared Tier**: **Tier 2 (Production-Ready)**
+
+**Justification**:
+- **Why Tier 2?** This is infrastructure that will gate production prompt changes. Must be reliable, documented, and safe to rollback.
+- **Why NOT Tier 1?** Too critical for MVP quality - blocking broken evals would harm development velocity.
+- **Why NOT Tier 3?** Tier 2 is sufficient for Phase 1 - comprehensive testing, battle-hardening deferred to Phase 2 after observing usage patterns.
+
+**Tier 2 Requirements Applied to IMP-35**:
+- ✅ **Feature-complete**: All 10 ACs met (corpus, runner, gates, CI, docs)
+- ✅ **Documented**: README, policy docs, troubleshooting guide
+- ✅ **Reliable**: Quick/full modes tested, CI integration stable
+- ✅ **Safe Rollback**: Feature flag `gate.prompt_evals=off` disables cleanly
+- ✅ **Monitored**: Eval results logged, baseline captured
+- ⏸️ **NOT required** (Tier 3): Battle-hardened corpus (will iterate), extensive edge case coverage, production monitoring alignment
+
+**Exit Criteria for Tier 2**:
+- All 10 acceptance criteria pass
+- No CRITICAL or HIGH gaps remain
+- MEDIUM gaps either fixed or deferred with justification
+- Documentation complete and examples verified
+- Rollback tested successfully
+
+**Gaps Acceptable for Tier 2** (defer to follow-up):
+- UI dashboard (nice-to-have, not blocking)
+- Historical trend analysis (MONITOR phase)
+- Production eval alignment checks (observability enhancement)
+- Response caching (performance optimization)
+
+---
+
 ## Acceptance Criteria (ALL must pass)
 
 ### AC1: Golden Task Corpus Created
