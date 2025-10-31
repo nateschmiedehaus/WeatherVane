@@ -77,6 +77,7 @@ state/analytics/*_watch.json
 state/analytics/*_runtime.json
 state/analytics/orchestration_metrics.json
 state/analytics/worker_manager.json
+state/automation/evidence_backfill_report.json
 state/policy/
 state/autopilot_events.jsonl
 state/autopilot_loop_history.json

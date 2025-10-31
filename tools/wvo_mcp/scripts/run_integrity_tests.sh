@@ -4,6 +4,8 @@ set -euo pipefail
 ROOT_DIR="$(git rev-parse --show-toplevel)"
 cd "$ROOT_DIR"
 
+mkdir -p "$ROOT_DIR/state/automation"
+
 if [[ -z "${PYTHON_BIN:-}" ]]; then
   PYTHON_BIN="$(. "$ROOT_DIR/scripts/python_toolchain.sh")"
 fi
@@ -119,6 +121,14 @@ run_stage "Quality graph health check" node --import tsx ./tools/wvo_mcp/scripts
 run_stage "Quality graph precision" node --import tsx ./tools/wvo_mcp/scripts/check_quality_graph_precision.ts --workspace-root "$ROOT_DIR" --min-corpus 50 --report "$ROOT_DIR/state/automation/quality_graph_precision_report.json" --quiet
 
 run_stage "Improvement review audit" node --import tsx ./tools/wvo_mcp/scripts/run_review_audit.ts --workspace-root "$ROOT_DIR" --quiet
+
+run_stage "CI ts loader guard" node --import tsx ./tools/wvo_mcp/scripts/check_ci_ts_loader.ts --workflow "$ROOT_DIR/.github/workflows/ci.yml"
+
+run_stage "Structural policy enforcement" node --import tsx ./tools/wvo_mcp/scripts/check_structural_policy.ts --output "$ROOT_DIR/state/automation/structural_policy_report.json"
+
+run_stage "Risk-oracle coverage enforcement" node --import tsx ./tools/wvo_mcp/scripts/check_risk_oracle_coverage.ts --output "$ROOT_DIR/state/automation/oracle_coverage.json" --map "$ROOT_DIR/state/risk_oracle_map.json"
+
+run_stage "PR metadata enforcement" node --import tsx ./tools/wvo_mcp/scripts/check_pr_metadata.ts --output "$ROOT_DIR/state/automation/pr_metadata_report.json"
 
 run_stage "Web vitest suite" node tools/oss_autopilot/scripts/run_vitest.mjs --run --scope=web
 

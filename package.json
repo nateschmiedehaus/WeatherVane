@@ -9,7 +9,10 @@
     "test:autopilot": "node tools/oss_autopilot/scripts/run_vitest.mjs --run --scope=autopilot",
     "test:web": "node tools/oss_autopilot/scripts/run_vitest.mjs --run --scope=web",
     "test:ci": "CI=1 node tools/oss_autopilot/scripts/run_vitest.mjs --run",
-    "observability": "node --loader tsx tools/wvo_mcp/scripts/start_observability.ts"
+    "observability": "node --loader tsx tools/wvo_mcp/scripts/start_observability.ts",
+    "validate:roadmap": "node --import tsx tools/wvo_mcp/scripts/validate_roadmap.ts --file state/roadmap.yaml",
+    "validate:roadmap-evidence": "node --import tsx tools/wvo_mcp/scripts/validate_roadmap_evidence.ts --file state/roadmap.yaml",
+    "evidence:backfill": "node --import tsx tools/wvo_mcp/scripts/backfill_evidence_dirs.ts --workspace . --roadmap state/roadmap.yaml"
   },
   "devDependencies": {
     "tsx": "^4.11.0",
