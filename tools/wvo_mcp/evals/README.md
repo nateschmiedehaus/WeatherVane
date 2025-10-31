@@ -95,6 +95,19 @@ interface GoldenTask {
 
 ---
 
+## Authentication
+
+**IMPORTANT: This project uses monthly subscriptions, NOT API keys**
+
+- **Claude**: Monthly subscription via Claude Code CLI
+- **Codex**: Monthly subscription via OpenAI/GitHub Codex
+- **Credentials**: Stored in unified autopilot system (no API key exports needed)
+
+**DO NOT** set `ANTHROPIC_API_KEY` or `OPENAI_API_KEY` environment variables.
+The eval scripts will use the autopilot's stored subscription logins automatically.
+
+---
+
 ## Running Evaluations
 
 ### Quick Mode (Pre-Commit, ~2 min)

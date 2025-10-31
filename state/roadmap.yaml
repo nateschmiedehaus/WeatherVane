@@ -12,7 +12,7 @@ epics:
           - id: AT-GUARD-STRATEGIZE
             title: "STRATEGIZE: Define enforcement scope and link to Autopilot
               functionality"
-            status: pending
+            status: done
             description: >
               Capture the strategic framing for Phase -1: which Autopilot
               behaviours (state transitions, tool executions, evidence gates)
@@ -101,7 +101,7 @@ epics:
                   behavior
           - id: AT-GUARD-SPEC
             title: "SPEC: Evidence-gated enforcement requirements"
-            status: pending
+            status: done
             description: >
               Write spec.md enumerating acceptance criteria for
               WorkProcessEnforcer wiring, phase ledger persistence, prompt
@@ -118,7 +118,7 @@ epics:
                   attestation, and metrics defined and approved
           - id: AT-GUARD-PLAN
             title: "PLAN: Implementation breakdown for Phase -1"
-            status: pending
+            status: done
             description: >
               Create plan.md with sequenced tasks (code, tests, telemetry, docs)
               required to ship Phase -1 enforcement and to gather
@@ -134,7 +134,7 @@ epics:
                   verification strategy
           - id: AT-GUARD-THINK
             title: "THINK: Risk analysis for enforcement rollout"
-            status: pending
+            status: done
             description: >
               Document risks (multi-agent contention, ledger corruption, false
               positives, integrity flakiness) and mitigation steps before
@@ -22375,6 +22375,50 @@ epics:
               - prose: Integration call graph
               - prose: Examples of common workflows
               - prose: FAQ section
+          - id: FIX-DRIFT-DETECTION-IMP24
+            title: Automate attestation hash drift detection (IMP-35 follow-up)
+            status: pending
+            domain: mcp
+            complexity_score: 4
+            effort_hours: 3
+            auto_created: true
+            source_issue:
+              type: quality
+              severity: high
+              gap: "Prompt eval-production drift detection requires manual checking (from IMP-35)"
+            description: >
+              Automate comparison of attestation hashes between baseline and
+              current eval runs to detect when evals are testing different prompts
+              than production uses. Deferred from IMP-35 (Tier 2 accepts manual
+              checking; Tier 3 requires automation).
+            dependencies:
+              depends_on: []
+            required_tools:
+              - fs_read
+              - fs_write
+              - cmd_run
+            exit_criteria:
+              - prose: Load baseline attestation hashes from evals/results/baseline/
+              - prose: Load current eval attestation hashes from latest run
+              - prose: Compare hashes - alert if mismatch >10% of tasks
+              - prose: Document which specific tasks drifted
+              - prose: Recommend recapture baseline with justification
+              - test: bash tools/wvo_mcp/scripts/check_eval_drift.sh
+                expect: exit 0
+              - file: state/analytics/eval_drift_report.json
+                expect: exists
+            evidence_path: state/evidence/FIX-DRIFT-DETECTION-IMP24
+            work_process_phases:
+              - strategize
+              - spec
+              - plan
+              - think
+              - implement
+              - verify
+              - review
+              - pr
+              - monitor
+            evidence_enforcement: enforce
   - id: E-EVIDENCE-HYBRID
     title: Hybrid Execution-Based + Document-Based Evidence (Exploratory)
     description: >

@@ -246,22 +246,32 @@ if (evalHash !== productionHash) {
 
 ## User Validation Required (AC8)
 
+**IMPORTANT: Authentication via Unified Autopilot**
+
+This project uses monthly subscriptions to Codex and Claude Code (NOT raw API keys).
+Authentication credentials are stored in the unified autopilot system.
+
+**Testing should be done via autopilot**, which has the necessary logins configured.
+
 **What user must test**:
 
 ### Test 1: Baseline Capture
 
 ```bash
-export ANTHROPIC_API_KEY="your-key"
+# Run via autopilot (has stored logins)
 bash tools/wvo_mcp/scripts/run_integrated_evals.sh --mode full --output baseline.json
 ```
 
 **Expected**: baseline.json shows success_rate ≥0.50 (ideally ≥0.70)
+
+**Note**: No API key export needed - autopilot uses stored subscription logins
 
 ---
 
 ### Test 2: Overlay Effectiveness
 
 ```bash
+# Run via autopilot
 bash tools/wvo_mcp/scripts/run_integrated_evals.sh \
   --mode full \
   --test-variants \
@@ -276,6 +286,7 @@ bash tools/wvo_mcp/scripts/run_integrated_evals.sh \
 ### Test 3: Robustness
 
 ```bash
+# Run via autopilot
 bash tools/wvo_mcp/scripts/run_robustness_evals.sh
 ```
 
