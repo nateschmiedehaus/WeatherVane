@@ -1,0 +1,15 @@
+{
+  "timestamp": "2025-10-31T05:50:53.613Z",
+  "status": "passed",
+  "taskId": "FIX-ROLLBACK-QualityIntegration",
+  "checks": [
+    {
+      "name": "test_helper_imports",
+      "status": "passed"
+    },
+    {
+      "name": "tracing_smoke_determinism",
+      "status": "passed"
+    }
+  ]
+}

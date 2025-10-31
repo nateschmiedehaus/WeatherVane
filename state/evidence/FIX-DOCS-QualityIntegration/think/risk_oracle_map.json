@@ -1,0 +1,28 @@
+{
+  "risks": [
+    {
+      "risk_id": "docs_outdated",
+      "description": "Primary docs still describe quality rollout as pending, leading to misuse of enforcement flags.",
+      "phase": "REVIEW",
+      "oracle": ["tests"]
+    },
+    {
+      "risk_id": "missing_troubleshooting",
+      "description": "Troubleshooting guidance absent, causing agents to loop or bypass checks.",
+      "phase": "VERIFY",
+      "oracle": ["tests"]
+    },
+    {
+      "risk_id": "incorrect_config_guidance",
+      "description": "README instructions misconfigure enforcement, triggering safety monitor or bypassing audit logs.",
+      "phase": "IMPLEMENT",
+      "oracle": ["tests"]
+    },
+    {
+      "risk_id": "baseline_blind_spot",
+      "description": "Docs omit Phase 0 instrumentation usage, leading to stale baseline and degraded autonomy monitoring.",
+      "phase": "MONITOR",
+      "oracle": ["tests"]
+    }
+  ]
+}

@@ -1,0 +1,28 @@
+{
+  "risks": [
+    {
+      "risk_id": "preflight_too_slow",
+      "description": "Pre-flight check exceeds timeout causing false failures",
+      "oracle": ["tests"],
+      "phase": "IMPLEMENT"
+    },
+    {
+      "risk_id": "cache_stale_results",
+      "description": "Caching hides real regressions for enforce mode",
+      "oracle": ["tests"],
+      "phase": "VERIFY"
+    },
+    {
+      "risk_id": "benchmark_regression",
+      "description": "Benchmark script becomes outdated or fails silently",
+      "oracle": ["tests"],
+      "phase": "MONITOR"
+    },
+    {
+      "risk_id": "preflight_scope_mismatch",
+      "description": "Scope detection skips required checks leading to false green preflight",
+      "oracle": ["tests", "structural_policy"],
+      "phase": "VERIFY"
+    }
+  ]
+}

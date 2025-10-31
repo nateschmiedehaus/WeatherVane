@@ -1,0 +1,22 @@
+{
+  "risks": [
+    {
+      "risk_id": "harness_brittle",
+      "description": "Integration harness too complex, causing flaky or hard-to-maintain tests.",
+      "phase": "THINK",
+      "oracle": ["tests"]
+    },
+    {
+      "risk_id": "blocking_not_asserted",
+      "description": "Test fails to prove enforce mode actually blocks WorkProcessEnforcer transitions.",
+      "phase": "VERIFY",
+      "oracle": ["tests"]
+    },
+    {
+      "risk_id": "telemetry_unverified",
+      "description": "Telemetry propagation from enforcer to analytics not asserted, hiding regressions.",
+      "phase": "REVIEW",
+      "oracle": ["tests"]
+    }
+  ]
+}

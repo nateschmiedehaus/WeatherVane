@@ -1,0 +1,22 @@
+{
+  "risks": [
+    {
+      "risk_id": "quality_integration_toggle_regression",
+      "description": "Rollback CLI or dashboard stops working so operators cannot disable quality checks cleanly.",
+      "phase": "VERIFY",
+      "oracle": ["tests"]
+    },
+    {
+      "risk_id": "quality_gate_config_not_applied",
+      "description": "WorkProcessEnforcer ignores the override file and continues running guardrails when disabled.",
+      "phase": "IMPLEMENT",
+      "oracle": ["structural_policy", "tests"]
+    },
+    {
+      "risk_id": "quality_integration_determinism",
+      "description": "Toggle/override path introduces stateful flakiness across runs.",
+      "phase": "VERIFY",
+      "oracle": ["determinism_check"]
+    }
+  ]
+}

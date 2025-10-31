@@ -1,0 +1,8 @@
+[
+  {
+    "command": "npm --prefix tools/wvo_mcp run test -- orchestrator/__tests__/orchestrator_runtime_quality_integration.test.ts scripts/__tests__/preflight.test.ts utils/__tests__/quality_integration_config.test.ts scripts/__tests__/quality_integration_toggle.test.ts scripts/__tests__/quality_checks_dashboard.test.ts",
+    "timestamp": "2025-10-31T06:42:39Z",
+    "status": "passed",
+    "notes": "Covers runtime override wiring, scoped preflight helpers, cache utilities, toggle CLI, and dashboard status output." 
+  }
+]

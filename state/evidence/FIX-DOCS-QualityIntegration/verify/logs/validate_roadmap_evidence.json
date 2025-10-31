@@ -1,0 +1,79 @@
+{
+  "tasks_scanned": 431,
+  "error_count": 0,
+  "warning_count": 9,
+  "issues": [
+    {
+      "severity": "warning",
+      "code": "MISSING_EVIDENCE_PHASE",
+      "message": "Missing evidence directory for phase \"strategize\"",
+      "taskId": "FIX-META-TEST-GAMING-INTEGRATION",
+      "phase": "strategize",
+      "expectedPath": "state/evidence/FIX-META-TEST-GAMING-INTEGRATION/strategize"
+    },
+    {
+      "severity": "warning",
+      "code": "MISSING_EVIDENCE_PHASE",
+      "message": "Missing evidence directory for phase \"spec\"",
+      "taskId": "FIX-META-TEST-GAMING-INTEGRATION",
+      "phase": "spec",
+      "expectedPath": "state/evidence/FIX-META-TEST-GAMING-INTEGRATION/spec"
+    },
+    {
+      "severity": "warning",
+      "code": "MISSING_EVIDENCE_PHASE",
+      "message": "Missing evidence directory for phase \"plan\"",
+      "taskId": "FIX-META-TEST-GAMING-INTEGRATION",
+      "phase": "plan",
+      "expectedPath": "state/evidence/FIX-META-TEST-GAMING-INTEGRATION/plan"
+    },
+    {
+      "severity": "warning",
+      "code": "MISSING_EVIDENCE_PHASE",
+      "message": "Missing evidence directory for phase \"think\"",
+      "taskId": "FIX-META-TEST-GAMING-INTEGRATION",
+      "phase": "think",
+      "expectedPath": "state/evidence/FIX-META-TEST-GAMING-INTEGRATION/think"
+    },
+    {
+      "severity": "warning",
+      "code": "MISSING_EVIDENCE_PHASE",
+      "message": "Missing evidence directory for phase \"implement\"",
+      "taskId": "FIX-META-TEST-GAMING-INTEGRATION",
+      "phase": "implement",
+      "expectedPath": "state/evidence/FIX-META-TEST-GAMING-INTEGRATION/implement"
+    },
+    {
+      "severity": "warning",
+      "code": "MISSING_EVIDENCE_PHASE",
+      "message": "Missing evidence directory for phase \"verify\"",
+      "taskId": "FIX-META-TEST-GAMING-INTEGRATION",
+      "phase": "verify",
+      "expectedPath": "state/evidence/FIX-META-TEST-GAMING-INTEGRATION/verify"
+    },
+    {
+      "severity": "warning",
+      "code": "MISSING_EVIDENCE_PHASE",
+      "message": "Missing evidence directory for phase \"review\"",
+      "taskId": "FIX-META-TEST-GAMING-INTEGRATION",
+      "phase": "review",
+      "expectedPath": "state/evidence/FIX-META-TEST-GAMING-INTEGRATION/review"
+    },
+    {
+      "severity": "warning",
+      "code": "MISSING_EVIDENCE_PHASE",
+      "message": "Missing evidence directory for phase \"pr\"",
+      "taskId": "FIX-META-TEST-GAMING-INTEGRATION",
+      "phase": "pr",
+      "expectedPath": "state/evidence/FIX-META-TEST-GAMING-INTEGRATION/pr"
+    },
+    {
+      "severity": "warning",
+      "code": "MISSING_EVIDENCE_PHASE",
+      "message": "Missing evidence directory for phase \"monitor\"",
+      "taskId": "FIX-META-TEST-GAMING-INTEGRATION",
+      "phase": "monitor",
+      "expectedPath": "state/evidence/FIX-META-TEST-GAMING-INTEGRATION/monitor"
+    }
+  ]
+}

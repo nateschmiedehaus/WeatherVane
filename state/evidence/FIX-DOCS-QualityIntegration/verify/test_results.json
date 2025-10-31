@@ -1,0 +1,30 @@
+{
+  "checks": [
+    {
+      "name": "Enforcement status CLI",
+      "command": "npm --prefix tools/wvo_mcp run enforcement:status -- --json",
+      "evidence": "verify/logs/enforcement_status.json",
+      "status": "pass"
+    },
+    {
+      "name": "Docs link troubleshooting guide",
+      "command": "rg 'QUALITY_INTEGRATION_TROUBLESHOOTING' CLAUDE.md tools/wvo_mcp/README.md docs/autopilot/WORK_PROCESS.md",
+      "status": "pass"
+    },
+    {
+      "name": "Work process section present",
+      "command": "rg 'Quality Integration (Active Enforcement)' docs/autopilot/WORK_PROCESS.md",
+      "status": "pass"
+    },
+    {
+      "name": "Instrumentation commands documented",
+      "command": "rg 'collect_phase0_baseline' CLAUDE.md tools/wvo_mcp/README.md docs/autopilot/WORK_PROCESS.md docs/autopilot/QUALITY_INTEGRATION_TROUBLESHOOTING.md",
+      "status": "pass"
+    },
+    {
+      "name": "Baseline attestation guidance present",
+      "command": "rg 'baseline_attestation' docs/autopilot/QUALITY_INTEGRATION_TROUBLESHOOTING.md CLAUDE.md",
+      "status": "pass"
+    }
+  ]
+}

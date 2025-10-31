@@ -1,0 +1,10 @@
+{
+  "timestamp": "2025-10-31T06:35:44.659Z",
+  "status": "passed",
+  "summary": {
+    "checkedFiles": 40,
+    "violations": 0,
+    "allowlisted": 19
+  },
+  "violations": []
+}

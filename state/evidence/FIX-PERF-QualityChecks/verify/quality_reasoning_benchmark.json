@@ -1,0 +1,61 @@
+{
+  "timestamp": "2025-10-31T06:34:57.118Z",
+  "iterations": 1,
+  "taskId": "FIX-PERF-QualityChecks",
+  "checks": [
+    {
+      "name": "quality_gates",
+      "command": [
+        "bash",
+        "scripts/check_quality_gates.sh",
+        "--source",
+        "autopilot"
+      ],
+      "runs": [
+        {
+          "exitCode": 1,
+          "durationMs": 8862.000125,
+          "realSeconds": 8.83,
+          "userSeconds": 3.1,
+          "sysSeconds": 5.04,
+          "stdout": "\u001b[0;32m📊 Running quality gate checks...\u001b[0m\n\n\u001b[1;33m🏗  Architecture Quality\u001b[0m",
+          "stderr": ""
+        }
+      ],
+      "stats": {
+        "averageMs": 8830,
+        "minMs": 8830,
+        "maxMs": 8830,
+        "p95Ms": 8830
+      }
+    },
+    {
+      "name": "reasoning",
+      "command": [
+        "bash",
+        "scripts/check_reasoning.sh",
+        "--source",
+        "autopilot",
+        "--task",
+        "FIX-PERF-QualityChecks"
+      ],
+      "runs": [
+        {
+          "exitCode": 1,
+          "durationMs": 1074.019624999999,
+          "realSeconds": 1.05,
+          "userSeconds": 0.39,
+          "sysSeconds": 0.47,
+          "stdout": "\u001b[0;32m🧠 Running reasoning validation checks for task: FIX-PERF-QualityChecks\u001b[0m\n\n\u001b[1;33m💭 Assumption Validation\u001b[0m\n  \u001b[0;31m✗\u001b[0m register_exists: Assumptions register not found\n  \u001b[0;31m✗\u001b[0m register_substantive: No register to check\n  \u001b[0;31m✗\u001b[0m assumptions_documented: No register to check\n  \u001b[0;32m✓\u001b[0m no_undocumented\n\n\u001b[1;33m📋 Work Process Compliance\u001b[0m\n  \u001b[0;32m✓\u001b[0m evidence_dir\n  \u001b[0;32m✓\u001b[0m all_phases\n  \u001b[0;31m✗\u001b[0m evidence_quality: 5 phases have minimal content\n\n\u001b[1;33m🤔 Adversarial Review\u001b[0m\n  \u001b[0;31m✗\u001b[0m review_exists: Adversarial review not found\n  \u001b[0;31m✗\u001b[0m min_questions: No review file\n  \u001b[0;31m✗\u001b[0m gaps_identified: No review file\n\n\u001b[1;33m🔮 Pre-Mortem Check\u001b[0m\n  Task complexity: 0 (pre-mortem not required)\n  \u001b[0;32m✓\u001b[0m not_required\n\n\u001b[1;33m🎯 Decision Documentation\u001b[0m\n  \u001b[0;31m✗\u001b[0m alternatives: No alternatives section found\n  \u001b[0;31m✗\u001b[0m tradeoffs: No trade-off analysis found\n\n\u001b[1;33m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\u001b[0m\n\u001b[1;33mSummary\u001b[0m\n  Total checks: 13\n  \u001b[0;32mPassed: 4\u001b[0m\n  \u001b[0;31mFailed: 9\u001b[0m\n\n\u001b[0;31mViolations:\u001b[0m\n  • assumptions/register_exists: Assumptions register not found\n  • assumptions/register_substantive: No register to check\n  • assumptions/assumptions_documented: No register to check\n  • work_process/evidence_quality: 5 phases have minimal content\n  • adversarial_review/review_exists: Adversarial review not found\n  • adversarial_review/min_questions: No review file\n  • adversarial_review/gaps_identified: No review file\n  • decisions/alternatives: No alternatives section found\n  • decisions/tradeoffs: No trade-off analysis found\n\n\u001b[0;31m❌ Reasoning validation failed!\u001b[0m\n\nPlease address the violations above.\nReport saved to: /tmp/reasoning_report_FIX-PERF-QualityChecks_18279.json",
+          "stderr": ""
+        }
+      ],
+      "stats": {
+        "averageMs": 1050,
+        "minMs": 1050,
+        "maxMs": 1050,
+        "p95Ms": 1050
+      }
+    }
+  ]
+}

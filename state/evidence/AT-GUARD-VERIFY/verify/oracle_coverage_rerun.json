@@ -1,0 +1,12 @@
+{
+  "timestamp": "2025-10-31T11:29:05.995Z",
+  "status": "passed",
+  "summary": {
+    "totalRisks": 3,
+    "covered": 3,
+    "missing": 0,
+    "warnings": 0
+  },
+  "missing": [],
+  "warnings": []
+}

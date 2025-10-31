@@ -42,6 +42,14 @@ CODEX_TOOLS = frozenset(
         "lsp_definition",
         "lsp_references",
         "lsp_hover",
+        # Parity & capability toolkit (shared with Claude)
+        "wvo_status",
+        "state_save",
+        "state_metrics",
+        "state_prune",
+        "quality_standards",
+        "quality_checklist",
+        "quality_philosophy",
     }
     | NEW_SHARED_TOOLS
 )

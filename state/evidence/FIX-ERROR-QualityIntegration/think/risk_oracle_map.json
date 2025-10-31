@@ -1,0 +1,22 @@
+{
+  "risks": [
+    {
+      "risk_id": "missing_error_regression",
+      "description": "Quality integration fails silently when scripts missing or non-executable",
+      "oracle": ["tests"],
+      "phase": "VERIFY"
+    },
+    {
+      "risk_id": "telemetry_loss_enospc",
+      "description": "Disk full prevents telemetry logging and hides guard failures",
+      "oracle": ["tests"],
+      "phase": "MONITOR"
+    },
+    {
+      "risk_id": "timeout_unhandled",
+      "description": "Hung quality scripts block work process due to missing timeout handling",
+      "oracle": ["tests"],
+      "phase": "IMPLEMENT"
+    }
+  ]
+}

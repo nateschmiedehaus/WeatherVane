@@ -1,0 +1,17 @@
+{
+  "command": "npm --prefix tools/wvo_mcp run test -- work_process_quality_integration",
+  "exitCode": 0,
+  "timestamp": "2025-10-31T03:10:15.637922Z",
+  "tests": [
+    {
+      "file": "tools/wvo_mcp/src/orchestrator/__tests__/work_process_quality_integration.test.ts",
+      "status": "passed",
+      "scenarios": [
+        "constructor guidance for missing/non-executable scripts",
+        "timeout escalation",
+        "JSON parse failure",
+        "ENOSPC telemetry resilience"
+      ]
+    }
+  ]
+}

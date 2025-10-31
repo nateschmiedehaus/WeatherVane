@@ -1,0 +1,17 @@
+{
+  "command": "npm --prefix tools/wvo_mcp run test -- orchestrator/__tests__/quality_integration_e2e.test.ts",
+  "exitCode": 0,
+  "timestamp": "2025-10-31T03:12:12.997690Z",
+  "tests": [
+    {
+      "file": "tools/wvo_mcp/src/orchestrator/__tests__/quality_integration_e2e.test.ts",
+      "status": "passed",
+      "scenarios": [
+        "shadow-mode pass/fail coverage",
+        "enforce-mode blocking behaviour",
+        "fail-safe timeout + invalid JSON",
+        "phase execution telemetry + rejection logging"
+      ]
+    }
+  ]
+}

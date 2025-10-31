@@ -1,0 +1,87 @@
+{
+  "timestamp": "2025-10-31T03:25:51.766Z",
+  "iterations": 1,
+  "taskId": "FIX-E2E-QualityIntegration",
+  "checks": [
+    {
+      "name": "preflight",
+      "command": [
+        "bash",
+        "scripts/preflight_check.sh",
+        "--source",
+        "autopilot"
+      ],
+      "runs": [
+        {
+          "exitCode": 1,
+          "durationMs": 165020.188875,
+          "stdout": "\u001b[0;32m🚀 Running pre-flight checks...\u001b[0m\n\n\u001b[1;33m📋 Technical Checks\u001b[0m\n  \u001b[0;31m✗\u001b[0m build: Build failed\n  \u001b[0;32m✓\u001b[0m tests\n  \u001b[0;31m✗\u001b[0m typecheck: Type check failed\n  \u001b[0;31m✗\u001b[0m lint: Lint failed\n  \u001b[0;31m✗\u001b[0m git_status: Uncommitted changes found\n  \u001b[0;32m✓\u001b[0m dependencies\n\n\u001b[1;33m📊 Quality Checks (Basic)\u001b[0m\n  \u001b[0;32m✓\u001b[0m todos\n  \u001b[0;32m✓\u001b[0m file_size\n\n\u001b[1;33m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\u001b[0m\n\u001b[1;33mSummary\u001b[0m\n  Total checks: 8\n  \u001b[0;32mPassed: 4\u001b[0m\n  \u001b[0;31mFailed: 4\u001b[0m\n\n\u001b[0;31m❌ Pre-flight checks failed!\u001b[0m\n\nPlease fix the failing checks before proceeding.\nReport saved to: /tmp/preflight_report_74086.json",
+          "stderr": "",
+          "realSeconds": 165,
+          "userSeconds": 73.53,
+          "sysSeconds": 22.19
+        }
+      ],
+      "stats": {
+        "averageMs": 165000,
+        "minMs": 165000,
+        "maxMs": 165000,
+        "p95Ms": 165000
+      }
+    },
+    {
+      "name": "quality_gates",
+      "command": [
+        "bash",
+        "scripts/check_quality_gates.sh",
+        "--source",
+        "autopilot"
+      ],
+      "runs": [
+        {
+          "exitCode": 1,
+          "durationMs": 3183.622457999998,
+          "stdout": "\u001b[0;32m📊 Running quality gate checks...\u001b[0m\n\n\u001b[1;33m🏗  Architecture Quality\u001b[0m",
+          "stderr": "",
+          "realSeconds": 3.17,
+          "userSeconds": 1.31,
+          "sysSeconds": 1.91
+        }
+      ],
+      "stats": {
+        "averageMs": 3170,
+        "minMs": 3170,
+        "maxMs": 3170,
+        "p95Ms": 3170
+      }
+    },
+    {
+      "name": "reasoning",
+      "command": [
+        "bash",
+        "scripts/check_reasoning.sh",
+        "--source",
+        "autopilot",
+        "--task",
+        "FIX-E2E-QualityIntegration"
+      ],
+      "runs": [
+        {
+          "exitCode": 1,
+          "durationMs": 225.905167000019,
+          "stdout": "\u001b[0;32m🧠 Running reasoning validation checks for task: FIX-E2E-QualityIntegration\u001b[0m\n\n\u001b[1;33m💭 Assumption Validation\u001b[0m\n  \u001b[0;31m✗\u001b[0m register_exists: Assumptions register not found\n  \u001b[0;31m✗\u001b[0m register_substantive: No register to check\n  \u001b[0;31m✗\u001b[0m assumptions_documented: No register to check\n  \u001b[0;32m✓\u001b[0m no_undocumented\n\n\u001b[1;33m📋 Work Process Compliance\u001b[0m\n  \u001b[0;32m✓\u001b[0m evidence_dir\n  \u001b[0;32m✓\u001b[0m all_phases\n  \u001b[0;31m✗\u001b[0m evidence_quality: 9 phases have minimal content\n\n\u001b[1;33m🤔 Adversarial Review\u001b[0m\n  \u001b[0;31m✗\u001b[0m review_exists: Adversarial review not found\n  \u001b[0;31m✗\u001b[0m min_questions: No review file\n  \u001b[0;31m✗\u001b[0m gaps_identified: No review file\n\n\u001b[1;33m🔮 Pre-Mortem Check\u001b[0m\n  Task complexity: 0 (pre-mortem not required)\n  \u001b[0;32m✓\u001b[0m not_required\n\n\u001b[1;33m🎯 Decision Documentation\u001b[0m\n  \u001b[0;31m✗\u001b[0m alternatives: No alternatives section found\n  \u001b[0;32m✓\u001b[0m tradeoffs\n\n\u001b[1;33m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\u001b[0m\n\u001b[1;33mSummary\u001b[0m\n  Total checks: 13\n  \u001b[0;32mPassed: 5\u001b[0m\n  \u001b[0;31mFailed: 8\u001b[0m\n\n\u001b[0;31mViolations:\u001b[0m\n  • assumptions/register_exists: Assumptions register not found\n  • assumptions/register_substantive: No register to check\n  • assumptions/assumptions_documented: No register to check\n  • work_process/evidence_quality: 9 phases have minimal content\n  • adversarial_review/review_exists: Adversarial review not found\n  • adversarial_review/min_questions: No review file\n  • adversarial_review/gaps_identified: No review file\n  • decisions/alternatives: No alternatives section found\n\n\u001b[0;31m❌ Reasoning validation failed!\u001b[0m\n\nPlease address the violations above.\nReport saved to: /tmp/reasoning_report_FIX-E2E-QualityIntegration_78637.json",
+          "stderr": "",
+          "realSeconds": 0.22,
+          "userSeconds": 0.13,
+          "sysSeconds": 0.12
+        }
+      ],
+      "stats": {
+        "averageMs": 220,
+        "minMs": 220,
+        "maxMs": 220,
+        "p95Ms": 220
+      }
+    }
+  ]
+}

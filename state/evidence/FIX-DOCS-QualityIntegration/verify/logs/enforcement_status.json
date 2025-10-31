@@ -1,0 +1,409 @@
+
+> wvo-mcp-server@0.1.0 enforcement:status
+> node ./scripts/enforcement_rollout.mjs --status --json
+
+{
+  "workspaceRoot": "/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane",
+  "stateRoot": "/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/state",
+  "config": {
+    "level": "observe",
+    "updatedAt": "2025-10-30T22:47:48.211Z",
+    "operator": "codex",
+    "reason": "restore observe after verification"
+  },
+  "envLevel": null,
+  "effective": {
+    "level": "observe",
+    "source": "config"
+  },
+  "metrics": {
+    "windowMs": 86400000,
+    "windowSize": 5000,
+    "workProcess": {
+      "totalTransitions": 39,
+      "windowTransitions": 0,
+      "totalBlocks": 0,
+      "windowBlocks": 0
+    },
+    "learnings": {
+      "windowCount": 0
+    },
+    "rollouts": {
+      "total": 2,
+      "window": 2,
+      "last": {
+        "timestamp": "2025-10-30T22:47:48.211Z",
+        "action": "rollout",
+        "previousLevel": "soft",
+        "targetLevel": "observe",
+        "operator": "codex",
+        "reason": "restore observe after verification",
+        "dryRun": false,
+        "skipSmoke": true,
+        "smoke": null,
+        "metricsBefore": {
+          "windowMs": 86400000,
+          "windowSize": 5000,
+          "workProcess": {
+            "totalTransitions": 39,
+            "windowTransitions": 2,
+            "totalBlocks": 0,
+            "windowBlocks": 0
+          },
+          "learnings": {
+            "windowCount": 1
+          },
+          "rollouts": {
+            "total": 1,
+            "window": 1,
+            "last": {
+              "timestamp": "2025-10-30T22:47:39.681Z",
+              "action": "rollout",
+              "previousLevel": "observe",
+              "targetLevel": "soft",
+              "operator": "codex",
+              "reason": "verification soft rollout",
+              "dryRun": false,
+              "skipSmoke": true,
+              "smoke": null,
+              "metricsBefore": {
+                "windowMs": 86400000,
+                "windowSize": 5000,
+                "workProcess": {
+                  "totalTransitions": 39,
+                  "windowTransitions": 4,
+                  "totalBlocks": 0,
+                  "windowBlocks": 0
+                },
+                "learnings": {
+                  "windowCount": 2
+                },
+                "rollouts": {
+                  "total": 0,
+                  "window": 0,
+                  "last": null
+                },
+                "paths": {
+                  "workProcess": "/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/state/logs/work_process.jsonl",
+                  "learnings": "/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/state/logs/learnings.jsonl",
+                  "rolloutAudit": "/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/state/analytics/enforcement_rollout.jsonl"
+                }
+              },
+              "metricsAfter": {
+                "windowMs": 86400000,
+                "windowSize": 5000,
+                "workProcess": {
+                  "totalTransitions": 39,
+                  "windowTransitions": 4,
+                  "totalBlocks": 0,
+                  "windowBlocks": 0
+                },
+                "learnings": {
+                  "windowCount": 2
+                },
+                "rollouts": {
+                  "total": 0,
+                  "window": 0,
+                  "last": null
+                },
+                "paths": {
+                  "workProcess": "/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/state/logs/work_process.jsonl",
+                  "learnings": "/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/state/logs/learnings.jsonl",
+                  "rolloutAudit": "/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/state/analytics/enforcement_rollout.jsonl"
+                }
+              },
+              "preflightWarnings": [
+                "Roadmap shows 4 active task(s) (AT-GUARD-ROLLOUT, AT-GUARD-GAPS, META-GUARD-COMPLETE, CRIT-PERF-GLOBAL-9dfa06.2); consider pausing rollout or use --force."
+              ],
+              "status": "completed"
+            }
+          },
+          "paths": {
+            "workProcess": "/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/state/logs/work_process.jsonl",
+            "learnings": "/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/state/logs/learnings.jsonl",
+            "rolloutAudit": "/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/state/analytics/enforcement_rollout.jsonl"
+          }
+        },
+        "metricsAfter": {
+          "windowMs": 86400000,
+          "windowSize": 5000,
+          "workProcess": {
+            "totalTransitions": 39,
+            "windowTransitions": 2,
+            "totalBlocks": 0,
+            "windowBlocks": 0
+          },
+          "learnings": {
+            "windowCount": 1
+          },
+          "rollouts": {
+            "total": 1,
+            "window": 1,
+            "last": {
+              "timestamp": "2025-10-30T22:47:39.681Z",
+              "action": "rollout",
+              "previousLevel": "observe",
+              "targetLevel": "soft",
+              "operator": "codex",
+              "reason": "verification soft rollout",
+              "dryRun": false,
+              "skipSmoke": true,
+              "smoke": null,
+              "metricsBefore": {
+                "windowMs": 86400000,
+                "windowSize": 5000,
+                "workProcess": {
+                  "totalTransitions": 39,
+                  "windowTransitions": 4,
+                  "totalBlocks": 0,
+                  "windowBlocks": 0
+                },
+                "learnings": {
+                  "windowCount": 2
+                },
+                "rollouts": {
+                  "total": 0,
+                  "window": 0,
+                  "last": null
+                },
+                "paths": {
+                  "workProcess": "/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/state/logs/work_process.jsonl",
+                  "learnings": "/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/state/logs/learnings.jsonl",
+                  "rolloutAudit": "/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/state/analytics/enforcement_rollout.jsonl"
+                }
+              },
+              "metricsAfter": {
+                "windowMs": 86400000,
+                "windowSize": 5000,
+                "workProcess": {
+                  "totalTransitions": 39,
+                  "windowTransitions": 4,
+                  "totalBlocks": 0,
+                  "windowBlocks": 0
+                },
+                "learnings": {
+                  "windowCount": 2
+                },
+                "rollouts": {
+                  "total": 0,
+                  "window": 0,
+                  "last": null
+                },
+                "paths": {
+                  "workProcess": "/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/state/logs/work_process.jsonl",
+                  "learnings": "/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/state/logs/learnings.jsonl",
+                  "rolloutAudit": "/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/state/analytics/enforcement_rollout.jsonl"
+                }
+              },
+              "preflightWarnings": [
+                "Roadmap shows 4 active task(s) (AT-GUARD-ROLLOUT, AT-GUARD-GAPS, META-GUARD-COMPLETE, CRIT-PERF-GLOBAL-9dfa06.2); consider pausing rollout or use --force."
+              ],
+              "status": "completed"
+            }
+          },
+          "paths": {
+            "workProcess": "/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/state/logs/work_process.jsonl",
+            "learnings": "/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/state/logs/learnings.jsonl",
+            "rolloutAudit": "/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/state/analytics/enforcement_rollout.jsonl"
+          }
+        },
+        "preflightWarnings": [
+          "Roadmap shows 4 active task(s) (AT-GUARD-ROLLOUT, AT-GUARD-GAPS, META-GUARD-COMPLETE, CRIT-PERF-GLOBAL-9dfa06.2); consider pausing rollout or use --force."
+        ],
+        "status": "completed"
+      }
+    },
+    "paths": {
+      "workProcess": "/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/state/logs/work_process.jsonl",
+      "learnings": "/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/state/logs/learnings.jsonl",
+      "rolloutAudit": "/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/state/analytics/enforcement_rollout.jsonl"
+    }
+  },
+  "override": {
+    "enabled": false,
+    "reason": null
+  },
+  "lastAudit": {
+    "timestamp": "2025-10-30T22:47:48.211Z",
+    "action": "rollout",
+    "previousLevel": "soft",
+    "targetLevel": "observe",
+    "operator": "codex",
+    "reason": "restore observe after verification",
+    "dryRun": false,
+    "skipSmoke": true,
+    "smoke": null,
+    "metricsBefore": {
+      "windowMs": 86400000,
+      "windowSize": 5000,
+      "workProcess": {
+        "totalTransitions": 39,
+        "windowTransitions": 2,
+        "totalBlocks": 0,
+        "windowBlocks": 0
+      },
+      "learnings": {
+        "windowCount": 1
+      },
+      "rollouts": {
+        "total": 1,
+        "window": 1,
+        "last": {
+          "timestamp": "2025-10-30T22:47:39.681Z",
+          "action": "rollout",
+          "previousLevel": "observe",
+          "targetLevel": "soft",
+          "operator": "codex",
+          "reason": "verification soft rollout",
+          "dryRun": false,
+          "skipSmoke": true,
+          "smoke": null,
+          "metricsBefore": {
+            "windowMs": 86400000,
+            "windowSize": 5000,
+            "workProcess": {
+              "totalTransitions": 39,
+              "windowTransitions": 4,
+              "totalBlocks": 0,
+              "windowBlocks": 0
+            },
+            "learnings": {
+              "windowCount": 2
+            },
+            "rollouts": {
+              "total": 0,
+              "window": 0,
+              "last": null
+            },
+            "paths": {
+              "workProcess": "/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/state/logs/work_process.jsonl",
+              "learnings": "/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/state/logs/learnings.jsonl",
+              "rolloutAudit": "/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/state/analytics/enforcement_rollout.jsonl"
+            }
+          },
+          "metricsAfter": {
+            "windowMs": 86400000,
+            "windowSize": 5000,
+            "workProcess": {
+              "totalTransitions": 39,
+              "windowTransitions": 4,
+              "totalBlocks": 0,
+              "windowBlocks": 0
+            },
+            "learnings": {
+              "windowCount": 2
+            },
+            "rollouts": {
+              "total": 0,
+              "window": 0,
+              "last": null
+            },
+            "paths": {
+              "workProcess": "/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/state/logs/work_process.jsonl",
+              "learnings": "/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/state/logs/learnings.jsonl",
+              "rolloutAudit": "/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/state/analytics/enforcement_rollout.jsonl"
+            }
+          },
+          "preflightWarnings": [
+            "Roadmap shows 4 active task(s) (AT-GUARD-ROLLOUT, AT-GUARD-GAPS, META-GUARD-COMPLETE, CRIT-PERF-GLOBAL-9dfa06.2); consider pausing rollout or use --force."
+          ],
+          "status": "completed"
+        }
+      },
+      "paths": {
+        "workProcess": "/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/state/logs/work_process.jsonl",
+        "learnings": "/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/state/logs/learnings.jsonl",
+        "rolloutAudit": "/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/state/analytics/enforcement_rollout.jsonl"
+      }
+    },
+    "metricsAfter": {
+      "windowMs": 86400000,
+      "windowSize": 5000,
+      "workProcess": {
+        "totalTransitions": 39,
+        "windowTransitions": 2,
+        "totalBlocks": 0,
+        "windowBlocks": 0
+      },
+      "learnings": {
+        "windowCount": 1
+      },
+      "rollouts": {
+        "total": 1,
+        "window": 1,
+        "last": {
+          "timestamp": "2025-10-30T22:47:39.681Z",
+          "action": "rollout",
+          "previousLevel": "observe",
+          "targetLevel": "soft",
+          "operator": "codex",
+          "reason": "verification soft rollout",
+          "dryRun": false,
+          "skipSmoke": true,
+          "smoke": null,
+          "metricsBefore": {
+            "windowMs": 86400000,
+            "windowSize": 5000,
+            "workProcess": {
+              "totalTransitions": 39,
+              "windowTransitions": 4,
+              "totalBlocks": 0,
+              "windowBlocks": 0
+            },
+            "learnings": {
+              "windowCount": 2
+            },
+            "rollouts": {
+              "total": 0,
+              "window": 0,
+              "last": null
+            },
+            "paths": {
+              "workProcess": "/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/state/logs/work_process.jsonl",
+              "learnings": "/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/state/logs/learnings.jsonl",
+              "rolloutAudit": "/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/state/analytics/enforcement_rollout.jsonl"
+            }
+          },
+          "metricsAfter": {
+            "windowMs": 86400000,
+            "windowSize": 5000,
+            "workProcess": {
+              "totalTransitions": 39,
+              "windowTransitions": 4,
+              "totalBlocks": 0,
+              "windowBlocks": 0
+            },
+            "learnings": {
+              "windowCount": 2
+            },
+            "rollouts": {
+              "total": 0,
+              "window": 0,
+              "last": null
+            },
+            "paths": {
+              "workProcess": "/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/state/logs/work_process.jsonl",
+              "learnings": "/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/state/logs/learnings.jsonl",
+              "rolloutAudit": "/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/state/analytics/enforcement_rollout.jsonl"
+            }
+          },
+          "preflightWarnings": [
+            "Roadmap shows 4 active task(s) (AT-GUARD-ROLLOUT, AT-GUARD-GAPS, META-GUARD-COMPLETE, CRIT-PERF-GLOBAL-9dfa06.2); consider pausing rollout or use --force."
+          ],
+          "status": "completed"
+        }
+      },
+      "paths": {
+        "workProcess": "/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/state/logs/work_process.jsonl",
+        "learnings": "/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/state/logs/learnings.jsonl",
+        "rolloutAudit": "/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/state/analytics/enforcement_rollout.jsonl"
+      }
+    },
+    "preflightWarnings": [
+      "Roadmap shows 4 active task(s) (AT-GUARD-ROLLOUT, AT-GUARD-GAPS, META-GUARD-COMPLETE, CRIT-PERF-GLOBAL-9dfa06.2); consider pausing rollout or use --force."
+    ],
+    "status": "completed"
+  },
+  "configPath": "/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/state/config/enforcement_level.json",
+  "auditPath": "/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/state/analytics/enforcement_rollout.jsonl"
+}
