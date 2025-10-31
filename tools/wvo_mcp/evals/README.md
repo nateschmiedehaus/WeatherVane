@@ -106,6 +106,8 @@ interface GoldenTask {
 **DO NOT** set `ANTHROPIC_API_KEY` or `OPENAI_API_KEY` environment variables.
 The eval scripts will use the autopilot's stored subscription logins automatically.
 
+**Full Details**: See [../../docs/AUTHENTICATION.md](../../docs/AUTHENTICATION.md) for complete authentication documentation, troubleshooting, and token management.
+
 ---
 
 ## Running Evaluations
