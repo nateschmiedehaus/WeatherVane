@@ -165,6 +165,58 @@ bash scripts/run_robustness_evals.sh
 - Target: injection_success_rate ≤1% (AC2)
 - Results: `results/robustness/YYYY-MM-DD.json`
 
+### Drift Detection (FIX-DRIFT-DETECTION-IMP24)
+
+```bash
+bash scripts/check_drift.sh
+```
+
+**Purpose**: Detect when eval prompts differ from production prompts
+
+**How it works**:
+- Compares attestation hashes between baseline and current eval runs
+- Alerts if >10% of tasks have different prompt hashes
+- Prevents quality gates from using stale eval data
+
+**When to run**:
+- After PromptCompiler changes (IMP-21)
+- After persona updates (IMP-22)
+- After overlay changes (IMP-23)
+- Before trusting eval results for quality decisions
+
+**Options**:
+```bash
+# Use defaults (auto-detect latest run)
+bash scripts/check_drift.sh
+
+# Custom baseline or current run
+bash scripts/check_drift.sh --baseline /path/to/baseline.json --current /path/to/current.json
+
+# Custom threshold (default 10%)
+bash scripts/check_drift.sh --threshold 15
+
+# Show help
+bash scripts/check_drift.sh --help
+```
+
+**Output**:
+- ✅ **No drift**: All hashes match (exit code 0)
+- ⚠️ **Minor drift** (<10%): Some drift but within tolerance (exit code 0)
+- ❌ **Significant drift** (>10%): Prompts changed, recapture recommended (exit code 1)
+
+**What to do if drift detected**:
+```bash
+# Recapture baseline with current prompts
+bash scripts/run_integrated_evals.sh --mode full --baseline --runs 5
+```
+
+This resolves drift by updating baseline hashes to match current production prompts.
+
+**Troubleshooting**:
+- "Baseline not found" → Run: `bash scripts/run_integrated_evals.sh --baseline`
+- "No eval runs found" → Run: `bash scripts/run_integrated_evals.sh --mode full`
+- "Missing attestation hashes" → Compiler integration not enabled (IMP-21..26)
+
 ---
 
 ## Interpreting Results
