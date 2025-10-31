@@ -428,6 +428,166 @@ epics:
                 expect: all tasks with status=done have complete evidence
               - file: state/evidence/{task_id}/verify/verification.md
                 expect: exists
+          - id: AT-ARCH-DISCOVERY
+            title: Architecture Baseline & Change-Detection Strategy
+            status: pending
+            description: >
+              Establish a durable inventory of Autopilot architecture components
+              while acknowledging ongoing refactors and live task changes.
+              Document source directories, owners, telemetry hooks, and dynamic
+              signals that indicate architecture drift. Capture how the
+              discovery process will stay current as other tasks land in
+              parallel, with watchers or notifications that flag concurrent
+              modifications.
+            domain: mcp
+            complexity_score: 6
+            effort_hours: 4
+            required_tools:
+              - fs_read
+              - fs_write
+              - cmd_run
+            exit_criteria:
+              - prose: Architecture inventory catalogued with component owners, change signals,
+                  and integration points for concurrent work
+              - file: docs/autopilot/architecture/architecture_inventory.md
+                expect: exists
+              - prose: Change-detection plan defined covering live-update cadence, automation
+                  hooks, and escalation paths
+          - id: AT-ARCH-AUTO-DOC
+            title: Automate Architecture Documentation Pipeline
+            status: pending
+            description: >
+              Build an automated pipeline that synthesizes the live architecture
+              inventory into versioned docs and graphs, triggering on git
+              changes or roadmap events. Ensure the job gracefully handles
+              concurrent architecture edits by merging structural diffs and
+              surfacing conflicts for review before publish.
+            domain: mcp
+            complexity_score: 7
+            effort_hours: 6
+            required_tools:
+              - cmd_run
+              - fs_read
+              - fs_write
+            dependencies:
+              depends_on:
+                - AT-ARCH-DISCOVERY
+            exit_criteria:
+              - prose: Automated doc pipeline implemented with concurrency-aware diff handling
+              - test: node tools/wvo_mcp/scripts/update_architecture_docs.ts --dry-run
+                expect: exit 0
+              - file: docs/autopilot/architecture/architecture_snapshot.json
+                expect: exists
+          - id: AT-ARCH-AGENT-VIEW
+            title: Agent-Oriented Architecture Views & APIs
+            status: pending
+            description: >
+              Produce machine-consumable architecture representations (graphs,
+              schemas, prompts) tailored for agent workflows, including hooks
+              for plan_next, context fabric, and enforcement tooling. Integrate
+              the automated docs so agents ingest fresh architecture data even
+              as concurrent implementation tasks reshape the system.
+            domain: mcp
+            complexity_score: 6
+            effort_hours: 5
+            required_tools:
+              - fs_read
+              - fs_write
+              - cmd_run
+            dependencies:
+              depends_on:
+                - AT-ARCH-AUTO-DOC
+            exit_criteria:
+              - file: docs/autopilot/architecture/agent_view.json
+                expect: exists
+              - prose: Agent view documented with ingestion instructions for Codex and Claude
+                  parity, including live-update guarantees
+              - test: node tools/wvo_mcp/scripts/architecture_view_smoke.ts --target agent
+                expect: exit 0
+          - id: AT-ARCH-HUMAN-VIEW
+            title: Human-Centric Architecture Atlas
+            status: pending
+            description: >
+              Create a layered architecture atlas for human operators with
+              visuals, navigation aids, and narrative context that stays
+              synchronized with live system evolution. Align update hooks with
+              the automated pipeline so humans see fresh diagrams when
+              concurrent code changes land.
+            domain: mcp
+            complexity_score: 6
+            effort_hours: 5
+            required_tools:
+              - fs_read
+              - fs_write
+              - cmd_run
+            dependencies:
+              depends_on:
+                - AT-ARCH-AUTO-DOC
+            exit_criteria:
+              - file: docs/autopilot/architecture/human_atlas.md
+                expect: exists
+              - prose: Visual hierarchy and narrative updated programmatically or at PR phase,
+                  with documented concurrent-change workflow
+              - test: node tools/wvo_mcp/scripts/architecture_view_smoke.ts --target human
+                expect: exit 0
+          - id: AT-ARCH-CI-ENFORCE
+            title: Enforce Architecture Doc Freshness in CI & PR
+            status: pending
+            description: >
+              Wire CI and PR gates that verify architecture artifacts reflect
+              the latest code, considering concurrent tasks that may modify
+              structure between branch updates. Add guardrails that block merges
+              when docs or generated views fall behind and surface remediation
+              guidance.
+            domain: mcp
+            complexity_score: 7
+            effort_hours: 5
+            required_tools:
+              - cmd_run
+              - fs_read
+              - fs_write
+            dependencies:
+              depends_on:
+                - AT-ARCH-AGENT-VIEW
+                - AT-ARCH-HUMAN-VIEW
+            exit_criteria:
+              - test: node tools/wvo_mcp/scripts/check_architecture_docs.ts --enforce
+                expect: exit 0
+              - prose: CI/PR enforcement documented with concurrent-change exception handling
+                  and escalation policy
+              - metric: architecture_doc_staleness_minutes
+                expect: < 60
+          - id: AT-ARCH-WORKFLOW
+            title: Embed Architecture Awareness in Work Process & PR
+            status: pending
+            description: >
+              Update Autopilot and manual work process guidance so every
+              STRATEGIZE→MONITOR loop explicitly inspects architecture impacts,
+              plans doc deltas, and confirms architecture artifacts refresh at
+              PR. Ensure prompts, checklists, and Codex/Claude parity workflows
+              ingest the latest agent/human architecture views, even as
+              concurrent tasks reshape the system.
+            domain: mcp
+            complexity_score: 6
+            effort_hours: 4
+            required_tools:
+              - fs_read
+              - fs_write
+              - cmd_run
+            dependencies:
+              depends_on:
+                - AT-ARCH-AGENT-VIEW
+                - AT-ARCH-HUMAN-VIEW
+                - AT-ARCH-CI-ENFORCE
+            exit_criteria:
+              - prose: docs/autopilot/WORK_PROCESS.md updated with architecture impact checks
+                  across phases and PR-stage doc update requirements
+              - prose: docs/autopilot/MANUAL_SESSION_VERIFICATION.md and Complete-Finish policy
+                  incorporate architecture awareness checkpoints
+              - prose: Codex and Claude prompt packs load architecture views and require PR doc
+                  refresh evidence
+              - test: node tools/wvo_mcp/scripts/check_work_process_architecture.ts --enforce
+                expect: exit 0
           - id: WORK-PROCESS-FAILURES
             title: Comprehensive Failure Detection & Prevention System
             status: done
@@ -723,6 +883,54 @@ epics:
                 expect: exit 0
               - file: state/evidence/AT-GUARD-TS-LOADER/verify/verification.md
                 expect: exists
+          - id: AT-GUARD-TS-LOADER-RETRO
+            title: Close ts loader regression review gap
+            status: in_progress
+            description: >
+              Address reviewer findings that CI guardrail steps regressed to raw
+              TypeScript execution under Node 20. Reconfirm tsx loader usage,
+              document regression analysis, and capture evidence that integrity
+              harness and CI now share the same execution path.
+            domain: mcp
+            complexity_score: 2
+            effort_hours: 1
+            required_tools:
+              - fs_read
+              - fs_write
+              - cmd_run
+            dependencies:
+              depends_on:
+                - AT-GUARD-TS-LOADER
+              related_to:
+                - AT-GUARD-GAPS
+                - AT-GUARD-ROLLOUT
+                - AT-GUARD-VERIFY
+              produces:
+                - .github/workflows/ci.yml
+                - state/evidence/AT-GUARD-TS-LOADER-RETRO
+              consumes:
+                - state/evidence/AT-GUARD-TS-LOADER
+                - tools/wvo_mcp/scripts/run_integrity_tests.sh
+                - tools/wvo_mcp/scripts/run_review_audit.ts
+            exit_criteria:
+              - prose: Regression analysis recorded with timeline, root cause, and permanent
+                  guardrail notes
+              - test: >
+                  bash -lc "if rg -n 'run:[[:space:]]+node
+                  tools/wvo_mcp/scripts/.*[.]ts' .github/workflows/ci.yml; then
+                  exit 1; else exit 0; fi"
+                expect: exit 0
+              - test: rg -n "node --import tsx tools/wvo_mcp/scripts" .github/workflows/ci.yml
+                expect: exit 0
+              - test: node --import tsx tools/wvo_mcp/scripts/run_review_audit.ts --quiet
+                  --output
+                  state/evidence/AT-GUARD-TS-LOADER-RETRO/verify/audit_report.json
+                expect: exit 0
+              - test: node tools/wvo_mcp/scripts/check_work_process_artifacts.mjs --task
+                  AT-GUARD-TS-LOADER-RETRO
+                expect: exit 0
+              - file: state/evidence/AT-GUARD-TS-LOADER-RETRO/verify/results.md
+                expect: exists
           - id: AT-GUARD-NEEDS-REVIEW
             title: Clear needs_review guardrail backlog
             status: done
@@ -903,23 +1111,27 @@ epics:
                 expect: exists
       - id: E-AUTOPILOT-PHASE0
         title: Phase 0 Instrumentation
-        status: pending
+        status: done
         tasks:
           - id: AT-INST-STRATEGIZE
             title: "STRATEGIZE: Define instrumentation outcomes"
-            status: pending
+            status: done
             description: >
               Document why OTEL spans, metrics counters, and dashboards are
               required, including impacted Autopilot flows and success metrics.
             domain: product
             complexity_score: 5
             effort_hours: 2
+            dependencies:
+              related_to:
+                - AT-GUARD-ROLLOUT
+                - META-GUARD-COMPLETE
             exit_criteria:
               - prose: Strategy artifact links instrumentation goals to Autopilot observability
                   needs
           - id: AT-INST-SPEC
             title: "SPEC: Telemetry & dashboard requirements"
-            status: pending
+            status: done
             description: >
               Capture detailed specs for instrumentation and visualization
               deliverables.
@@ -929,12 +1141,15 @@ epics:
             dependencies:
               depends_on:
                 - AT-INST-STRATEGIZE
+              related_to:
+                - AT-GUARD-ROLLOUT
+                - IMP-OBS-01
             exit_criteria:
               - prose: Spec covers span names, attributes, counters, JSONL outputs,
                   dashboards/alerts
           - id: AT-INST-PLAN
             title: "PLAN: Implementation breakdown for instrumentation"
-            status: pending
+            status: done
             description: >
               Outline implementation steps for spans, metrics, telemetry
               writers, dashboards, evidence capture.
@@ -944,11 +1159,14 @@ epics:
             dependencies:
               depends_on:
                 - AT-INST-SPEC
+              related_to:
+                - AT-GUARD-ROLLOUT
+                - IMP-OBS-01
             exit_criteria:
               - prose: Plan with tasks, estimates, dependencies, verification steps
           - id: AT-INST-THINK
             title: "THINK: Risks & mitigations for instrumentation rollout"
-            status: pending
+            status: done
             description: >
               Analyze risks (performance, data volume, false positives) before
               coding.
@@ -958,12 +1176,15 @@ epics:
             dependencies:
               depends_on:
                 - AT-INST-PLAN
+              related_to:
+                - AT-GUARD-GAPS
+                - IMP-ORC-01
             exit_criteria:
               - prose: Edge cases logged (overhead, missing traces, noisy counters) with
                   mitigations
           - id: AT-INST-IMPLEMENT
             title: "IMPLEMENT: Add spans, counters, telemetry outputs"
-            status: pending
+            status: done
             description: >
               Implement OTEL spans, counters, telemetry writers, and ensure they
               integrate with enforcement.
@@ -973,11 +1194,15 @@ epics:
             dependencies:
               depends_on:
                 - AT-INST-THINK
+              related_to:
+                - AT-GUARD-ROLLOUT
+                - tools/wvo_mcp/scripts/enforcement_metrics.mjs
+                - tools/wvo_mcp/scripts/autopilot_status_line.py
             exit_criteria:
               - prose: Code merged with tests; traces/metrics JSONL generated in local run
           - id: AT-INST-VERIFY
             title: "VERIFY: Demonstrate instrumentation under load"
-            status: pending
+            status: done
             description: >
               Run validation suite and manual scenario to confirm
               instrumentation outputs.
@@ -987,11 +1212,14 @@ epics:
             dependencies:
               depends_on:
                 - AT-INST-IMPLEMENT
+              related_to:
+                - tools/wvo_mcp/scripts/run_integrity_tests.sh
+                - tools/wvo_mcp/scripts/check_work_process_artifacts.mjs
             exit_criteria:
               - prose: Tests and manual run produce traces/metrics; artefacts stored and linked
           - id: AT-INST-REVIEW
             title: "REVIEW: Evaluate instrumentation quality"
-            status: pending
+            status: done
             description: >
               Conduct review ensuring instrumentation meets quality bar and
               Autopilot functionality preserved.
@@ -1001,11 +1229,14 @@ epics:
             dependencies:
               depends_on:
                 - AT-INST-VERIFY
+              related_to:
+                - AT-GUARD-ROLLOUT
+                - META-GUARD-COMPLETE
             exit_criteria:
               - prose: Reviewer confirms coverage, evidence linked, documentation updated
           - id: AT-INST-PR
             title: "PR: Summarize Phase 0 instrumentation"
-            status: pending
+            status: done
             description: |
               Document instrumentation deliverables and evidence for PR.
             domain: product
@@ -1014,11 +1245,13 @@ epics:
             dependencies:
               depends_on:
                 - AT-INST-REVIEW
+              related_to:
+                - AT-GUARD-ROLLOUT
             exit_criteria:
               - prose: PR summary includes spans/metrics evidence, dashboards, ledger references
           - id: AT-INST-MONITOR
             title: "MONITOR: Ongoing telemetry validation"
-            status: pending
+            status: done
             description: >
               Operate the instrumentation post-deploy, verify dashboards, and
               log observations.
@@ -1028,6 +1261,9 @@ epics:
             dependencies:
               depends_on:
                 - AT-INST-PR
+              related_to:
+                - AT-GUARD-ROLLOUT
+                - IMP-OBS-01
             exit_criteria:
               - prose: Monitoring plan executed, dashboards reviewed, follow-ups logged
   - id: E-GENERAL
@@ -22377,22 +22613,15 @@ epics:
               - prose: FAQ section
           - id: FIX-DRIFT-DETECTION-IMP24
             title: Automate attestation hash drift detection (IMP-35 follow-up)
-            status: pending
+            status: done
+            description: >
+              Automate comparison of attestation hashes between baseline and
+              current eval runs to detect when evals are testing different
+              prompts than production uses. Deferred from IMP-35 (Tier 2 accepts
+              manual checking; Tier 3 requires automation).
             domain: mcp
             complexity_score: 4
             effort_hours: 3
-            auto_created: true
-            source_issue:
-              type: quality
-              severity: high
-              gap: "Prompt eval-production drift detection requires manual checking (from IMP-35)"
-            description: >
-              Automate comparison of attestation hashes between baseline and
-              current eval runs to detect when evals are testing different prompts
-              than production uses. Deferred from IMP-35 (Tier 2 accepts manual
-              checking; Tier 3 requires automation).
-            dependencies:
-              depends_on: []
             required_tools:
               - fs_read
               - fs_write
@@ -22407,18 +22636,6 @@ epics:
                 expect: exit 0
               - file: state/analytics/eval_drift_report.json
                 expect: exists
-            evidence_path: state/evidence/FIX-DRIFT-DETECTION-IMP24
-            work_process_phases:
-              - strategize
-              - spec
-              - plan
-              - think
-              - implement
-              - verify
-              - review
-              - pr
-              - monitor
-            evidence_enforcement: enforce
   - id: E-EVIDENCE-HYBRID
     title: Hybrid Execution-Based + Document-Based Evidence (Exploratory)
     description: >
@@ -22820,5 +23037,5 @@ epics:
                   structure)
               - prose: Examples show verification level documentation for manual work
               - prose: VERIFICATION_LEVELS.md introduction updated to clarify scope
-last_updated: 2025-10-30T22:47:27.120Z
-updated_by: auto_review_tasks
+last_updated: 2025-10-31T02:04:40.483Z
+updated_by: migrate_roadmap_evidence.ts
