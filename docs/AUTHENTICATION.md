@@ -19,6 +19,14 @@ This project uses **monthly subscriptions** (NOT raw API keys) for both Claude C
 
 ### Codex (OpenAI/ChatGPT Plus)
 
+**IMPORTANT**: This project has **TWO Codex logins** for different use cases.
+
+**Locations**:
+- **Client/Work**: `.accounts/codex/codex_client/auth.json` (primary for autopilot)
+- **Personal**: `.accounts/codex/codex_personal/auth.json` (backup/personal projects)
+
+**Primary Auth** (codex_client):
+
 **Location**: `.accounts/codex/codex_client/auth.json`
 
 **Contents**:
@@ -44,11 +52,26 @@ This project uses **monthly subscriptions** (NOT raw API keys) for both Claude C
 - **Subscription Active Until**: 2025-11-13 (auto-renews monthly)
 
 **How it works**:
-1. One-time login via `codex login` (completed)
+1. One-time login via `codex login` (completed for both accounts)
 2. OAuth flow creates JWT tokens
 3. Tokens stored in `auth.json`
 4. Auto-refreshes using `refresh_token`
 5. MCP server reads tokens from `auth.json`
+
+**Dual Login Strategy**:
+- **Client** (`codex_client`): Primary account for autopilot/production work
+- **Personal** (`codex_personal`): Backup account for personal projects or failover
+- Autopilot prioritizes `codex_client` by default
+- Can switch accounts via `CODEX_HOME` environment variable
+
+**Switching Accounts**:
+```bash
+# Use client account (default)
+export CODEX_HOME="$PWD/.accounts/codex/codex_client"
+
+# Use personal account
+export CODEX_HOME="$PWD/.accounts/codex/codex_personal"
+```
 
 ---
 
@@ -196,8 +219,8 @@ Session stored in `~/.claude/session.json`
 
 | Component | Path | Purpose |
 |-----------|------|---------|
-| Codex Auth (Client) | `.accounts/codex/codex_client/auth.json` | OAuth tokens |
-| Codex Auth (Personal) | `.accounts/codex/codex_personal/auth.json` | Personal OAuth tokens |
+| Codex Auth (Client) | `.accounts/codex/codex_client/auth.json` | OAuth tokens (PRIMARY) |
+| Codex Auth (Personal) | `.accounts/codex/codex_personal/auth.json` | OAuth tokens (BACKUP) |
 | Claude Session | `~/.claude/session.json` | Claude Code CLI session |
 | Claude Config | `~/.claude/config.json` | CLI configuration |
 | Auth Checker | `tools/wvo_mcp/src/utils/auth_checker.ts` | Validates both providers |
