@@ -150,7 +150,7 @@ epics:
                   ledger reference
           - id: AT-GUARD-IMPLEMENT
             title: "IMPLEMENT: Wire WorkProcessEnforcer, ledger, attestation, leases"
-            status: pending
+            status: done
             description: >
               Implement startCycle/advancePhase wiring, state graph and tool
               router guards, phase ledger, prompt attestation, artifact gating,
@@ -166,7 +166,7 @@ epics:
                   signature enforced
           - id: AT-GUARD-VERIFY
             title: "VERIFY: Integrity suite and enforcement telemetry"
-            status: pending
+            status: done
             description: >
               Run full integrity script, capture logs, coverage, ledger
               verification, and ensure metrics/traces are written.
@@ -181,7 +181,7 @@ epics:
                   counters
           - id: AT-GUARD-REVIEW
             title: "REVIEW: Confirm Autopilot functionality post-enforcement"
-            status: pending
+            status: done
             description: >
               Conduct structured review validating Autopilot workflows still
               operate (planner dispatch, tool execution, state transitions) with
@@ -225,6 +225,84 @@ epics:
             exit_criteria:
               - prose: Monitoring plan executed; metrics dashboard updated; discrepancies
                   addressed or logged
+          - id: FIX-TEST-MCP-Timeout
+            title: Fix MCP tool test timeouts
+            status: done
+            description: >
+              Fix test timeouts in
+              test_mcp_tools.py::test_mcp_tool_inventory_and_dry_run_parity and
+              test_worker_dry_run.py::test_worker_dry_run_enforces_read_only.
+              Both tests timeout waiting for MCP responses or fail with
+              RuntimeError.
+            domain: product
+            complexity_score: 6
+            effort_hours: 3
+            exit_criteria:
+              - prose: Both MCP tool tests pass without timeouts
+              - test: python -m pytest
+                  tests/test_mcp_tools.py::test_mcp_tool_inventory_and_dry_run_parity
+                  tests/test_worker_dry_run.py::test_worker_dry_run_enforces_read_only
+                  -v
+                expect: exit 0
+          - id: FIX-AUDIT-ImprovementReview
+            title: Fix improvement review audit failures
+            status: done
+            description: >
+              Fix improvement review audit failures detected in integrity test
+              suite. Review automation may have gaps that need addressing.
+            domain: product
+            complexity_score: 6
+            effort_hours: 3
+            exit_criteria:
+              - prose: Improvement review audit passes in integrity suite
+              - test: bash tools/wvo_mcp/scripts/run_integrity_tests.sh 2>&1 | grep 'Improvement
+                  review audit'
+                expect: contains '✅'
+          - id: FIX-ORACLE-Coverage
+            title: Complete risk-oracle coverage enforcement
+            status: done
+            description: >
+              Complete risk-oracle coverage enforcement. Current coverage is
+              incomplete and risk oracle mappings are missing.
+            domain: product
+            complexity_score: 6
+            effort_hours: 3
+            exit_criteria:
+              - prose: Risk-oracle coverage enforcement passes in integrity suite
+              - test: bash tools/wvo_mcp/scripts/run_integrity_tests.sh 2>&1 | grep 'Risk-oracle
+                  coverage'
+                expect: contains '✅'
+          - id: FIX-DEP-Python-Idna
+            title: Update Python dependency to idna 3.11
+            status: done
+            description: >
+              Update Python dependency lock file
+              (requirements/apple-silicon.lock) to use idna 3.11 instead of
+              3.10. Current version mismatch causes bootstrap failures.
+            domain: product
+            complexity_score: 2
+            effort_hours: 0.5
+            exit_criteria:
+              - prose: Python dependency bootstrap passes
+              - test: pip install -r requirements/apple-silicon.lock --dry-run 2>&1
+                expect: exit 0
+          - id: INVESTIGATE-VITEST-Failures
+            title: Investigate 69 failed vitest test cases
+            status: done
+            description: >
+              Investigate 69 failed vitest test cases identified in
+              AT-GUARD-REVIEW. Determine if these are regressions from
+              enforcement changes or expected failures from new functionality.
+              Includes verification_level_detector.test.ts and
+              work_process_quality_integration.test.ts failures.
+            domain: product
+            complexity_score: 7
+            effort_hours: 5
+            exit_criteria:
+              - prose: All vitest failures investigated; regressions fixed or documented as
+                  expected
+              - test: node tools/wvo_mcp/scripts/run_vitest.mjs
+                expect: exit 0 OR documented exceptions
           - id: ROADMAP-STRUCT
             title: Roadmap Structure Enhancement for Autopilot Efficiency
             status: pending
@@ -588,6 +666,152 @@ epics:
                   refresh evidence
               - test: node tools/wvo_mcp/scripts/check_work_process_architecture.ts --enforce
                 expect: exit 0
+          - id: AT-ARCH-NET-SCIENCE
+            title: Apply Network Science to Architecture Graph
+            status: done
+            description: >
+              Assess the Autopilot architecture relation graph using network
+              science techniques, determine which metrics materially improve
+              agent guidance, and integrate actionable outputs into the
+              automated architecture pipeline. Surface insights that help Codex
+              and Claude agents prioritise work, detect bottlenecks, and spot
+              resilience risks as the architecture evolves.
+            domain: mcp
+            complexity_score: 7
+            effort_hours: 5
+            required_tools:
+              - cmd_run
+              - fs_read
+              - fs_write
+            dependencies:
+              depends_on:
+                - AT-ARCH-AUTO-DOC
+                - AT-ARCH-AGENT-VIEW
+                - AT-ARCH-HUMAN-VIEW
+            exit_criteria:
+              - prose: docs/autopilot/architecture/network_analysis.md explains methodology,
+                  insights, and rollout plan
+              - test: node --import tsx tools/wvo_mcp/scripts/analyze_architecture_network.ts
+                  --write
+                expect: exit 0
+              - file: docs/autopilot/architecture/architecture_network_metrics.json
+                expect: exists
+              - prose: Agent and human architecture views reference network metrics and usage
+                  guidance
+          - id: AT-NETSCI-STRATEGY
+            title: Network Science Integration Strategy for Autopilot
+            status: pending
+            description: >
+              Define how network science insights extend beyond the architecture
+              graph into roadmap, risk, quality, and enforcement workflows.
+              Document which metrics matter for autonomous decision-making,
+              how Codex and Claude agents will consume them, and what safeguards
+              prevent drift or overfitting as the system evolves.
+            domain: mcp
+            complexity_score: 6
+            effort_hours: 4
+            required_tools:
+              - fs_read
+              - fs_write
+              - cmd_run
+            dependencies:
+              depends_on:
+                - AT-ARCH-NET-SCIENCE
+            evidence_path: state/evidence/AT-NETSCI-STRATEGY
+            work_process_phases:
+              - strategize
+              - spec
+              - plan
+              - think
+              - implement
+              - verify
+              - review
+              - pr
+              - monitor
+            evidence_enforcement: enforce
+            exit_criteria:
+              - prose: Strategy document maps architecture metrics to roadmap, risk, and work
+                  process touchpoints with Codex/Claude parity requirements
+              - file: state/evidence/AT-NETSCI-STRATEGY/spec/spec.md
+                expect: exists
+              - prose: Risk triggers and kill/pivot conditions defined for metric misuse or
+                  stale data
+          - id: AT-NETSCI-INTEGRATE
+            title: Implement Network Science Hooks Across Autopilot
+            status: pending
+            description: >
+              Build the automation that feeds network science metrics into
+              plan_next, WorkProcessEnforcer, critics, and context fabric.
+              Ensure heuristics degrade gracefully, provide deterministic
+              outputs, and keep Codex/Claude behaviour aligned while new
+              architecture changes land.
+            domain: mcp
+            complexity_score: 7
+            effort_hours: 6
+            required_tools:
+              - fs_read
+              - fs_write
+              - cmd_run
+            dependencies:
+              depends_on:
+                - AT-NETSCI-STRATEGY
+            evidence_path: state/evidence/AT-NETSCI-INTEGRATE
+            work_process_phases:
+              - strategize
+              - spec
+              - plan
+              - think
+              - implement
+              - verify
+              - review
+              - pr
+              - monitor
+            evidence_enforcement: enforce
+            exit_criteria:
+              - test: node tools/wvo_mcp/scripts/check_network_science_hooks.ts --enforce
+                expect: exit 0
+              - prose: plan_next, context fabric, and enforcement flow documented with metric
+                  consumption points and fallbacks
+              - file: state/evidence/AT-NETSCI-INTEGRATE/verify/verification.md
+                expect: exists
+          - id: AT-NETSCI-MONITOR
+            title: Monitor Network Science Signal Health & Drift
+            status: pending
+            description: >
+              Establish telemetry, CI checks, and remediation playbooks keeping
+              network science data fresh and trustworthy. Detect when topology
+              shifts invalidate heuristics, auto-create follow-up tasks, and
+              sync findings into roadmap evidence bundles for both agents and
+              human operators.
+            domain: mcp
+            complexity_score: 6
+            effort_hours: 4
+            required_tools:
+              - fs_read
+              - fs_write
+              - cmd_run
+            dependencies:
+              depends_on:
+                - AT-NETSCI-INTEGRATE
+            evidence_path: state/evidence/AT-NETSCI-MONITOR
+            work_process_phases:
+              - strategize
+              - spec
+              - plan
+              - think
+              - implement
+              - verify
+              - review
+              - pr
+              - monitor
+            evidence_enforcement: enforce
+            exit_criteria:
+              - test: node tools/wvo_mcp/scripts/check_network_science_health.ts --report
+                expect: exit 0
+              - prose: Telemetry dashboard or report documenting current metric health and
+                  drift thresholds
+              - file: state/evidence/AT-NETSCI-MONITOR/monitor/monitor.md
+                expect: exists
           - id: WORK-PROCESS-FAILURES
             title: Comprehensive Failure Detection & Prevention System
             status: done
@@ -808,7 +1032,7 @@ epics:
                 expect: exit 0
           - id: AT-GUARD-ROLLOUT
             title: Phase -1 Rollout & monitoring
-            status: in_progress
+            status: done
             description: Plan and execute observe→soft→strict rollout with monitoring and
               dashboards.
             domain: mcp
@@ -885,7 +1109,7 @@ epics:
                 expect: exists
           - id: AT-GUARD-TS-LOADER-RETRO
             title: Close ts loader regression review gap
-            status: in_progress
+            status: done
             description: >
               Address reviewer findings that CI guardrail steps regressed to raw
               TypeScript execution under Node 20. Reconfirm tsx loader usage,
@@ -975,7 +1199,7 @@ epics:
                 expect: exists
           - id: AT-GUARD-GAPS
             title: Resolve guardrail audit failures
-            status: in_progress
+            status: done
             description: >
               Fix structural policy violations, provide canonical risk-oracle
               map, seed PR metadata guard assets, and ensure review audit plus
@@ -1025,6 +1249,283 @@ epics:
                 expect: exists
               - file: state/evidence/AT-GUARD-GAPS/verify/results.md
                 expect: exists
+          - id: AT-GUARD-TS-LOADER-GATE
+            title: Enforce tsx loader usage in CI guardrail steps
+            status: done
+            description: >
+              Add an automated guard that fails CI whenever TypeScript
+              enforcement scripts run without the tsx loader under Node 20.
+              Align roadmap evidence so regression analysis, loader enforcement,
+              and guard outputs are recorded within the same work loop.
+            domain: mcp
+            complexity_score: 2
+            effort_hours: 1
+            required_tools:
+              - fs_read
+              - fs_write
+              - cmd_run
+            dependencies:
+              depends_on:
+                - AT-GUARD-TS-LOADER-RETRO
+              related_to:
+                - AT-GUARD-GAPS
+                - AT-GUARD-PLAN-CACHE
+              produces:
+                - tools/wvo_mcp/scripts/check_ci_ts_loader.ts
+                - state/evidence/AT-GUARD-TS-LOADER-GATE
+              consumes:
+                - .github/workflows/ci.yml
+                - state/evidence/AT-GUARD-TS-LOADER
+                - tools/wvo_mcp/scripts/run_integrity_tests.sh
+            exit_criteria:
+              - prose: Evidence captures loader regression analysis, guard design, and
+                  enforcement outputs for CI
+              - test: node --import tsx tools/wvo_mcp/scripts/check_ci_ts_loader.ts --workflow
+                  .github/workflows/ci.yml
+                expect: exit 0
+              - test: node tools/wvo_mcp/scripts/check_work_process_artifacts.mjs --task
+                  AT-GUARD-TS-LOADER-GATE
+                expect: exit 0
+              - file: state/evidence/AT-GUARD-TS-LOADER-GATE/verify/results.md
+                expect: exists
+          - id: AT-GUARD-ZERO-BACKLOG
+            title: Close guardrail enforcement backlog
+            status: pending
+            description: >
+              Resolve outstanding guardrail enforcement failures—structural
+              policy, risk-oracle coverage, PR metadata, review audit, and the
+              full integrity suite—and capture zero-deferral evidence inside the
+              originating loop.
+            domain: mcp
+            complexity_score: 4
+            effort_hours: 3
+            required_tools:
+              - fs_read
+              - fs_write
+              - cmd_run
+            dependencies:
+              depends_on:
+                - AT-GUARD-GAPS
+              related_to:
+                - META-GUARD-COMPLETE
+                - IMP-ORC-01
+              produces:
+                - state/evidence/AT-GUARD-ZERO-BACKLOG
+                - state/automation/structural_policy_report.json
+                - state/automation/oracle_coverage.json
+                - state/automation/pr_metadata_report.json
+                - state/automation/audit_report.json
+              consumes:
+                - tools/wvo_mcp/scripts/check_structural_policy.ts
+                - tools/wvo_mcp/scripts/check_risk_oracle_coverage.ts
+                - tools/wvo_mcp/scripts/check_pr_metadata.ts
+                - tools/wvo_mcp/scripts/run_review_audit.ts
+                - tools/wvo_mcp/scripts/run_integrity_tests.sh
+            exit_criteria:
+              - prose: Evidence shows every guardrail script exits cleanly with attached
+                  artifacts and zero deferrals
+              - test: node --import tsx tools/wvo_mcp/scripts/check_structural_policy.ts
+                  --output state/automation/structural_policy_report.json
+                expect: exit 0
+              - test: node --import tsx tools/wvo_mcp/scripts/check_risk_oracle_coverage.ts
+                  --output state/automation/oracle_coverage.json --map
+                  state/risk_oracle_map.json
+                expect: exit 0
+              - test: node --import tsx tools/wvo_mcp/scripts/check_pr_metadata.ts --output
+                  state/automation/pr_metadata_report.json
+                expect: exit 0
+              - test: node --import tsx tools/wvo_mcp/scripts/run_review_audit.ts --quiet
+                  --output state/automation/audit_report.json
+                expect: exit 0
+              - test: bash tools/wvo_mcp/scripts/run_integrity_tests.sh
+                expect: exit 0
+              - test: node tools/wvo_mcp/scripts/check_work_process_artifacts.mjs --task
+                  AT-GUARD-ZERO-BACKLOG
+                expect: exit 0
+              - file: state/evidence/AT-GUARD-ZERO-BACKLOG/verify/results.md
+                expect: exists
+          - id: AT-AUTOPILOT-CAPABILITIES
+            title: Establish provider capability review cadence
+            status: done
+            description: >
+              Build and operationalize an automated Claude/Codex capability
+              intelligence collector, document a twice-weekly review cadence,
+              and ensure roadmap integration for all provider-driven changes so
+              autonomy stays aligned with upstream releases.
+            domain: mcp
+            complexity_score: 4
+            effort_hours: 3
+            required_tools:
+              - cmd_run
+              - fs_read
+              - fs_write
+            evidence_path: state/evidence/AT-AUTOPILOT-CAPABILITIES
+            work_process_phases:
+              strategize:
+                completed: true
+                path: strategize/strategy.md
+              spec:
+                completed: true
+                path: spec/spec.md
+              plan:
+                completed: true
+                path: plan/plan.md
+              think:
+                completed: true
+                path: think/analysis.md
+              implement:
+                completed: true
+                path: implement/notes.md
+              verify:
+                completed: true
+                path: verify/results.md
+              review:
+                completed: true
+                path: review/review.md
+              pr:
+                completed: true
+                path: pr/summary.md
+              monitor:
+                completed: true
+                path: monitor/monitor.md
+            evidence_enforcement: enforce
+            dependencies:
+              depends_on:
+                - AT-GUARD-PR-STAGING
+              related_to:
+                - META-GUARD-SELF-CORRECT
+                - AT-GUARD-GAPS
+            exit_criteria:
+              - prose: Automated collector captures provider capability deltas with evidence stored under intel/ and JSONL report updated.
+              - test: node --import tsx tools/wvo_mcp/src/scripts/collect_capability_deltas.ts --providers anthropic_sdk_github,openai_sdk_github
+                expect: exit 0
+              - test: npm --prefix tools/wvo_mcp run test -- scripts/__tests__/collect_capability_deltas.test.ts
+                expect: exit 0
+              - test: node --import tsx tools/wvo_mcp/src/scripts/collect_capability_deltas.ts --providers anthropic_model_index,openai_model_index --dry-run
+                expect: exit 0
+              - file: docs/autopilot/AUTOPILOT_CAPABILITIES.md
+                expect: exists
+              - file: docs/autopilot/CAPABILITY_CADENCE.md
+                expect: exists
+              - prose: Roadmap follow-up process documented with dependencies.depends_on pointing to this task.
+          - id: AT-BUILD-MCP
+            title: Restore MCP TypeScript build pipeline
+            status: in_progress
+            description: >
+              Fix the TypeScript regressions preventing `npm --prefix tools/wvo_mcp run build`
+              from succeeding (missing config exports, metrics hooks, outdated tests), regenerate
+              dist artifacts, and re-enable MCP CLI tooling (`plan_next`, `autopilot_status`).
+            domain: mcp
+            complexity_score: 4
+            effort_hours: 3
+            required_tools:
+              - cmd_run
+              - fs_read
+              - fs_write
+            evidence_path: state/evidence/AT-BUILD-MCP
+            work_process_phases:
+              strategize:
+                completed: true
+                path: strategize/strategy.md
+              spec:
+                completed: false
+              plan:
+                completed: false
+              think:
+                completed: false
+              implement:
+                completed: false
+              verify:
+                completed: false
+              review:
+                completed: false
+              pr:
+                completed: false
+              monitor:
+                completed: false
+            evidence_enforcement: enforce
+            dependencies:
+              depends_on: []
+              related_to:
+                - META-GUARD-SELF-CORRECT
+                - AT-GUARD-GAPS
+            exit_criteria:
+              - test: npm --prefix tools/wvo_mcp run build
+                expect: exit 0
+              - test: npm --prefix tools/wvo_mcp run test -- orchestrator/__tests__/work_process_quality_integration.test.ts
+                expect: exit 0
+              - test: npm --prefix tools/wvo_mcp run test -- planner/__tests__/planner_engine_intelligence.test.ts
+                expect: exit 0
+              - test: node --import tsx tools/wvo_mcp/scripts/mcp_tool_cli.mjs plan_next '{"minimal":true}'
+                expect: exit 0
+              - file: state/evidence/AT-BUILD-MCP/verify/results.md
+                expect: exists
+          - id: AT-GUARD-PR-STAGING
+            title: Automate PR staging & clean worktree enforcement
+            status: in_progress
+            description: >
+              Establish a safe, automated process for staging pull requests in
+              shared workspaces so that multiple agents can collaborate without
+              leaving dirty worktrees or losing good local changes. Scope
+              includes documenting staging workflows, instrumenting detection of
+              dirty trees before PR creation, and providing tooling/CI guards
+              that snapshot and restore in-progress work when multiple PRs are
+              active.
+            domain: mcp
+            complexity_score: 6
+            effort_hours: 3
+            required_tools:
+              - cmd_run
+              - fs_read
+              - fs_write
+            evidence_path: state/evidence/AT-GUARD-PR-STAGING
+            work_process_phases:
+              strategize:
+                completed: true
+                path: strategize/strategy.md
+              spec:
+                completed: true
+                path: spec/spec.md
+              plan:
+                completed: true
+                path: plan/plan.md
+              think:
+                completed: true
+                path: think/analysis.md
+              implement:
+                completed: true
+                path: implement/notes.md
+              verify:
+                completed: true
+                path: verify/results.md
+              review:
+                completed: true
+                path: review/review.md
+              pr:
+                completed: true
+                path: pr/summary.md
+              monitor:
+                completed: true
+                path: monitor/monitor.md
+            evidence_enforcement: enforce
+            dependencies:
+              depends_on:
+                - AT-GUARD-TS-LOADER-GATE
+              related_to:
+                - AT-GUARD-GAPS
+                - META-GUARD-SELF-CORRECT
+            exit_criteria:
+              - prose: Strategy/spec documented in state/evidence/AT-GUARD-PR-STAGING outlining
+                  staging policy, automation design, and multi-agent safety
+              - test: node tools/wvo_mcp/scripts/check_work_process_artifacts.mjs --task
+                  AT-GUARD-PR-STAGING
+                expect: exit 0
+              - test: bash tools/wvo_mcp/scripts/run_integrity_tests.sh
+                expect: exit 0
+              - file: state/evidence/AT-GUARD-PR-STAGING/verify/results.md
+                expect: exists
+              - prose: Automation or CI guard reports dirty worktree violations with remediation
+                  guidance and preserves clean snapshots
           - id: AT-GUARD-PLAN-CACHE
             title: Fix plan_next stale cache
             status: done
@@ -1058,7 +1559,7 @@ epics:
                 expect: exit 0
           - id: META-GUARD-COMPLETE
             title: Guardrail completion policy & tooling
-            status: in_progress
+            status: done
             description: >
               Codify policy and reviewer tooling so tasks resolve guardrail
               failures within the same loop instead of deferring work. Update
@@ -1086,6 +1587,43 @@ epics:
                   enforcement notes
               - prose: Reviewer/verify checklist updated with guard completion step
               - file: state/evidence/META-GUARD-COMPLETE/verify/results.md
+                expect: exists
+          - id: META-GUARD-SELF-CORRECT
+            title: Embed no-deferral enforcement into guardrail playbooks
+            status: pending
+            description: >
+              Extend the work-process handbook, roadmap templates, and reviewer
+              automation so guardrail regressions are resolved within the
+              originating task. Document the policy and wire new CI guards into
+              the enforcement checklists.
+            domain: mcp
+            complexity_score: 3
+            effort_hours: 2
+            required_tools:
+              - fs_read
+              - fs_write
+              - cmd_run
+            dependencies:
+              depends_on:
+                - META-GUARD-COMPLETE
+                - AT-GUARD-ZERO-BACKLOG
+              related_to:
+                - META-POLICY-05
+                - ROADMAP-STRUCT
+              produces:
+                - docs/autopilot/WORK_PROCESS.md
+                - docs/autopilot/TOOLBOX.md
+                - state/evidence/META-GUARD-SELF-CORRECT
+              consumes:
+                - state/evidence/META-GUARD-COMPLETE
+                - state/evidence/AT-GUARD-ZERO-BACKLOG
+            exit_criteria:
+              - prose: Policy updates published detailing no-deferral enforcement with CI guard
+                  references
+              - test: node tools/wvo_mcp/scripts/check_work_process_artifacts.mjs --task
+                  META-GUARD-SELF-CORRECT
+                expect: exit 0
+              - file: state/evidence/META-GUARD-SELF-CORRECT/verify/results.md
                 expect: exists
           - id: IMP-COST-LEGACY
             title: Phase budget type consolidation
@@ -22348,13 +22886,16 @@ epics:
               - prose: Performance <10min total pipeline time
           - id: FIX-DOCS-QualityIntegration
             title: Update documentation for quality integration
-            status: pending
+            status: done
             domain: mcp
             complexity_score: 3
             effort_hours: 1
             dependencies:
               depends_on:
                 - FIX-INTEGRATION-WorkProcessEnforcer
+              related_to:
+                - AT-GUARD-ROLLOUT
+                - AT-INST-IMPLEMENT
             exit_criteria:
               - prose: CLAUDE.md Section 9 updated (mark autopilot integration complete)
               - prose: tools/wvo_mcp/README.md updated (config options, troubleshooting)
@@ -22391,13 +22932,16 @@ epics:
               - prose: Test coverage >80%
           - id: FIX-TEST-QualityIntegration
             title: Unit tests for WorkProcessQualityIntegration class
-            status: pending
+            status: done
             domain: mcp
             complexity_score: 4
             effort_hours: 2
             dependencies:
               depends_on:
                 - FIX-INTEGRATION-WorkProcessEnforcer
+              related_to:
+                - AT-GUARD-ROLLOUT
+                - AT-INST-IMPLEMENT
             exit_criteria:
               - prose: Test timeout handling (SIGTERM → SIGKILL escalation)
               - prose: Test error parsing (invalid JSON, script failures)
@@ -22407,7 +22951,7 @@ epics:
               - prose: Test coverage >80% for work_process_quality_integration.ts
           - id: FIX-E2E-QualityIntegration
             title: End-to-end integration tests for WorkProcessEnforcer + quality checks
-            status: pending
+            status: done
             domain: mcp
             complexity_score: 5
             effort_hours: 1.5
@@ -22424,7 +22968,7 @@ epics:
               - prose: E2E test passes in CI
           - id: FIX-ERROR-QualityIntegration
             title: Comprehensive error handling tests for quality integration
-            status: pending
+            status: done
             domain: mcp
             complexity_score: 4
             effort_hours: 1.5
@@ -22552,7 +23096,7 @@ epics:
               - prose: Score 0-1, require >0.8
           - id: FIX-PERF-QualityChecks
             title: Performance benchmarking and optimization for quality checks
-            status: pending
+            status: done
             domain: mcp
             complexity_score: 5
             effort_hours: 2
@@ -22569,7 +23113,7 @@ epics:
               - prose: Performance targets met (<30s preflight, <15s gates, <20s reasoning)
           - id: FIX-ROLLBACK-QualityIntegration
             title: Document and test rollback procedure for quality integration
-            status: pending
+            status: done
             domain: mcp
             complexity_score: 3
             effort_hours: 1
@@ -23037,5 +23581,5 @@ epics:
                   structure)
               - prose: Examples show verification level documentation for manual work
               - prose: VERIFICATION_LEVELS.md introduction updated to clarify scope
-last_updated: 2025-10-31T02:04:40.483Z
+last_updated: 2025-10-31T03:56:37.363Z
 updated_by: migrate_roadmap_evidence.ts
