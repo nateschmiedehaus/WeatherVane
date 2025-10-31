@@ -1,0 +1,22 @@
+{
+  "risks": [
+    {
+      "risk_id": "failsafe_misinterpret",
+      "description": "Unit tests expect enforce-mode blocking when fail-safe should prevent it.",
+      "phase": "IMPLEMENT",
+      "oracle": ["tests"]
+    },
+    {
+      "risk_id": "flaky_timeout",
+      "description": "Timeout tests are brittle and fail intermittently on CI.",
+      "phase": "VERIFY",
+      "oracle": ["tests", "determinism_check"]
+    },
+    {
+      "risk_id": "missing_telemetry_assertion",
+      "description": "Telemetry logging unverified, allowing regressions in analytics output.",
+      "phase": "REVIEW",
+      "oracle": ["tests"]
+    }
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "checks": [
+    {
+      "name": "Vitest suite",
+      "command": "npm --prefix tools/wvo_mcp run test -- orchestrator/__tests__/work_process_quality_integration.test.ts",
+      "status": "pass"
+    }
+  ]
+}

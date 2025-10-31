@@ -1,0 +1,15 @@
+{
+  "timestamp": "2025-10-31T02:36:22.199Z",
+  "status": "passed",
+  "taskId": "FIX-TEST-QualityIntegration",
+  "checks": [
+    {
+      "name": "test_helper_imports",
+      "status": "passed"
+    },
+    {
+      "name": "tracing_smoke_determinism",
+      "status": "passed"
+    }
+  ]
+}
