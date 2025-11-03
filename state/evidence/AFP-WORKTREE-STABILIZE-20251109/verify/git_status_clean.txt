@@ -1,0 +1,5 @@
+## main...origin/main
+ M state/limits/usage_log.json
+?? state/evidence/AFP-WORKTREE-STABILIZE-20251109/
+?? state/heartbeat
+?? vendor/

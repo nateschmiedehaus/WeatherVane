@@ -1,0 +1,6 @@
+exclude:
+  - state/tmp/**
+  - state/soak_runs/**
+  - state/archive/**
+  - node_modules/**
+  - .git/**

@@ -1,0 +1,400 @@
+{"level":"info","message":"Worker call slot acquired","timestamp":"2025-11-03T22:25:28.886Z","contextId":"ctx_1762208728886_ddhwe1vn6","taskId":"task-980","lane":"tool_call","globalConcurrency":1}
+{"level":"info","message":"Worker call slot released","timestamp":"2025-11-03T22:25:28.886Z","contextId":"ctx_1762208728886_ddhwe1vn6","taskId":"task-980","lane":"tool_call","durationMs":0,"success":true,"globalConcurrency":0}
+{"level":"info","message":"Worker call slot acquired","timestamp":"2025-11-03T22:25:28.886Z","contextId":"ctx_1762208728886_hdz2nskn8","taskId":"task-981","lane":"tool_call","globalConcurrency":1}
+{"level":"info","message":"Worker call slot released","timestamp":"2025-11-03T22:25:28.886Z","contextId":"ctx_1762208728886_hdz2nskn8","taskId":"task-981","lane":"tool_call","durationMs":0,"success":true,"globalConcurrency":0}
+{"level":"info","message":"Worker call slot acquired","timestamp":"2025-11-03T22:25:28.886Z","contextId":"ctx_1762208728886_v20h2fxza","taskId":"task-982","lane":"tool_call","globalConcurrency":1}
+{"level":"info","message":"Worker call slot released","timestamp":"2025-11-03T22:25:28.886Z","contextId":"ctx_1762208728886_v20h2fxza","taskId":"task-982","lane":"tool_call","durationMs":0,"success":true,"globalConcurrency":0}
+{"level":"info","message":"Worker call slot acquired","timestamp":"2025-11-03T22:25:28.886Z","contextId":"ctx_1762208728886_4736jnrww","taskId":"task-983","lane":"tool_call","globalConcurrency":1}
+{"level":"info","message":"Worker call slot released","timestamp":"2025-11-03T22:25:28.886Z","contextId":"ctx_1762208728886_4736jnrww","taskId":"task-983","lane":"tool_call","durationMs":0,"success":true,"globalConcurrency":0}
+{"level":"info","message":"Worker call slot acquired","timestamp":"2025-11-03T22:25:28.886Z","contextId":"ctx_1762208728886_bgklnx23f","taskId":"task-984","lane":"tool_call","globalConcurrency":1}
+{"level":"info","message":"Worker call slot released","timestamp":"2025-11-03T22:25:28.886Z","contextId":"ctx_1762208728886_bgklnx23f","taskId":"task-984","lane":"tool_call","durationMs":0,"success":true,"globalConcurrency":0}
+{"level":"info","message":"Worker call slot acquired","timestamp":"2025-11-03T22:25:28.886Z","contextId":"ctx_1762208728886_lv9pvqxbf","taskId":"task-985","lane":"tool_call","globalConcurrency":1}
+{"level":"info","message":"Worker call slot released","timestamp":"2025-11-03T22:25:28.886Z","contextId":"ctx_1762208728886_lv9pvqxbf","taskId":"task-985","lane":"tool_call","durationMs":0,"success":true,"globalConcurrency":0}
+{"level":"info","message":"Worker call slot acquired","timestamp":"2025-11-03T22:25:28.886Z","contextId":"ctx_1762208728886_3rgz899j0","taskId":"task-986","lane":"tool_call","globalConcurrency":1}
+{"level":"info","message":"Worker call slot released","timestamp":"2025-11-03T22:25:28.886Z","contextId":"ctx_1762208728886_3rgz899j0","taskId":"task-986","lane":"tool_call","durationMs":0,"success":true,"globalConcurrency":0}
+{"level":"info","message":"Worker call slot acquired","timestamp":"2025-11-03T22:25:28.886Z","contextId":"ctx_1762208728886_zf720knm3","taskId":"task-987","lane":"tool_call","globalConcurrency":1}
+{"level":"info","message":"Worker call slot released","timestamp":"2025-11-03T22:25:28.886Z","contextId":"ctx_1762208728886_zf720knm3","taskId":"task-987","lane":"tool_call","durationMs":0,"success":true,"globalConcurrency":0}
+{"level":"info","message":"Worker call slot acquired","timestamp":"2025-11-03T22:25:28.886Z","contextId":"ctx_1762208728886_ulkqngavk","taskId":"task-988","lane":"tool_call","globalConcurrency":1}
+{"level":"info","message":"Worker call slot released","timestamp":"2025-11-03T22:25:28.886Z","contextId":"ctx_1762208728886_ulkqngavk","taskId":"task-988","lane":"tool_call","durationMs":0,"success":true,"globalConcurrency":0}
+{"level":"info","message":"Worker call slot acquired","timestamp":"2025-11-03T22:25:28.886Z","contextId":"ctx_1762208728886_ejr2zgpez","taskId":"task-989","lane":"tool_call","globalConcurrency":1}
+{"level":"info","message":"Worker call slot released","timestamp":"2025-11-03T22:25:28.886Z","contextId":"ctx_1762208728886_ejr2zgpez","taskId":"task-989","lane":"tool_call","durationMs":0,"success":true,"globalConcurrency":0}
+{"level":"info","message":"Worker call slot acquired","timestamp":"2025-11-03T22:25:28.886Z","contextId":"ctx_1762208728886_g2xoccahe","taskId":"task-990","lane":"tool_call","globalConcurrency":1}
+{"level":"info","message":"Worker call slot released","timestamp":"2025-11-03T22:25:28.886Z","contextId":"ctx_1762208728886_g2xoccahe","taskId":"task-990","lane":"tool_call","durationMs":0,"success":true,"globalConcurrency":0}
+{"level":"info","message":"Worker call slot acquired","timestamp":"2025-11-03T22:25:28.886Z","contextId":"ctx_1762208728886_c2gxard9x","taskId":"task-991","lane":"tool_call","globalConcurrency":1}
+{"level":"info","message":"Worker call slot released","timestamp":"2025-11-03T22:25:28.886Z","contextId":"ctx_1762208728886_c2gxard9x","taskId":"task-991","lane":"tool_call","durationMs":0,"success":true,"globalConcurrency":0}
+{"level":"info","message":"Worker call slot acquired","timestamp":"2025-11-03T22:25:28.886Z","contextId":"ctx_1762208728886_sg0k8zcgo","taskId":"task-992","lane":"tool_call","globalConcurrency":1}
+{"level":"info","message":"Worker call slot released","timestamp":"2025-11-03T22:25:28.886Z","contextId":"ctx_1762208728886_sg0k8zcgo","taskId":"task-992","lane":"tool_call","durationMs":0,"success":true,"globalConcurrency":0}
+{"level":"info","message":"Worker call slot acquired","timestamp":"2025-11-03T22:25:28.886Z","contextId":"ctx_1762208728886_e0lcjp1ls","taskId":"task-993","lane":"tool_call","globalConcurrency":1}
+{"level":"info","message":"Worker call slot released","timestamp":"2025-11-03T22:25:28.886Z","contextId":"ctx_1762208728886_e0lcjp1ls","taskId":"task-993","lane":"tool_call","durationMs":0,"success":true,"globalConcurrency":0}
+{"level":"info","message":"Worker call slot acquired","timestamp":"2025-11-03T22:25:28.886Z","contextId":"ctx_1762208728886_h53wkbqq5","taskId":"task-994","lane":"tool_call","globalConcurrency":1}
+{"level":"info","message":"Worker call slot released","timestamp":"2025-11-03T22:25:28.886Z","contextId":"ctx_1762208728886_h53wkbqq5","taskId":"task-994","lane":"tool_call","durationMs":0,"success":true,"globalConcurrency":0}
+{"level":"info","message":"Worker call slot acquired","timestamp":"2025-11-03T22:25:28.886Z","contextId":"ctx_1762208728886_18pypo39b","taskId":"task-995","lane":"tool_call","globalConcurrency":1}
+{"level":"info","message":"Worker call slot released","timestamp":"2025-11-03T22:25:28.886Z","contextId":"ctx_1762208728886_18pypo39b","taskId":"task-995","lane":"tool_call","durationMs":0,"success":true,"globalConcurrency":0}
+{"level":"info","message":"Worker call slot acquired","timestamp":"2025-11-03T22:25:28.886Z","contextId":"ctx_1762208728886_qnjuyuh8y","taskId":"task-996","lane":"tool_call","globalConcurrency":1}
+{"level":"info","message":"Worker call slot released","timestamp":"2025-11-03T22:25:28.886Z","contextId":"ctx_1762208728886_qnjuyuh8y","taskId":"task-996","lane":"tool_call","durationMs":0,"success":true,"globalConcurrency":0}
+{"level":"info","message":"Worker call slot acquired","timestamp":"2025-11-03T22:25:28.886Z","contextId":"ctx_1762208728886_yuq6g9g3w","taskId":"task-997","lane":"tool_call","globalConcurrency":1}
+{"level":"info","message":"Worker call slot released","timestamp":"2025-11-03T22:25:28.886Z","contextId":"ctx_1762208728886_yuq6g9g3w","taskId":"task-997","lane":"tool_call","durationMs":0,"success":true,"globalConcurrency":0}
+{"level":"info","message":"Worker call slot acquired","timestamp":"2025-11-03T22:25:28.886Z","contextId":"ctx_1762208728886_5xk04tfl7","taskId":"task-998","lane":"tool_call","globalConcurrency":1}
+{"level":"info","message":"Worker call slot released","timestamp":"2025-11-03T22:25:28.886Z","contextId":"ctx_1762208728886_5xk04tfl7","taskId":"task-998","lane":"tool_call","durationMs":0,"success":true,"globalConcurrency":0}
+{"level":"info","message":"Worker call slot acquired","timestamp":"2025-11-03T22:25:28.886Z","contextId":"ctx_1762208728886_obtr7k4aa","taskId":"task-999","lane":"tool_call","globalConcurrency":1}
+{"level":"info","message":"Worker call slot released","timestamp":"2025-11-03T22:25:28.886Z","contextId":"ctx_1762208728886_obtr7k4aa","taskId":"task-999","lane":"tool_call","durationMs":0,"success":true,"globalConcurrency":0}
+{"level":"info","message":"Worker call slot acquired","timestamp":"2025-11-03T22:25:28.886Z","contextId":"ctx_1762208728886_b5rn5ov3n","taskId":"task-1000","lane":"tool_call","globalConcurrency":1}
+{"level":"info","message":"Worker call slot released","timestamp":"2025-11-03T22:25:28.886Z","contextId":"ctx_1762208728886_b5rn5ov3n","taskId":"task-1000","lane":"tool_call","durationMs":0,"success":true,"globalConcurrency":0}
+{"level":"info","message":"Worker call slot acquired","timestamp":"2025-11-03T22:25:28.886Z","contextId":"ctx_1762208728886_ui7v9lkiq","taskId":"task-1001","lane":"tool_call","globalConcurrency":1}
+{"level":"info","message":"Worker call slot released","timestamp":"2025-11-03T22:25:28.886Z","contextId":"ctx_1762208728886_ui7v9lkiq","taskId":"task-1001","lane":"tool_call","durationMs":0,"success":true,"globalConcurrency":0}
+{"level":"info","message":"Worker call slot acquired","timestamp":"2025-11-03T22:25:28.886Z","contextId":"ctx_1762208728886_gdbiqu0vl","taskId":"task-1002","lane":"tool_call","globalConcurrency":1}
+{"level":"info","message":"Worker call slot released","timestamp":"2025-11-03T22:25:28.886Z","contextId":"ctx_1762208728886_gdbiqu0vl","taskId":"task-1002","lane":"tool_call","durationMs":0,"success":true,"globalConcurrency":0}
+{"level":"info","message":"Worker call slot acquired","timestamp":"2025-11-03T22:25:28.886Z","contextId":"ctx_1762208728886_wjdnqfu91","taskId":"task-1003","lane":"tool_call","globalConcurrency":1}
+{"level":"info","message":"Worker call slot released","timestamp":"2025-11-03T22:25:28.886Z","contextId":"ctx_1762208728886_wjdnqfu91","taskId":"task-1003","lane":"tool_call","durationMs":0,"success":true,"globalConcurrency":0}
+{"level":"info","message":"Worker call slot acquired","timestamp":"2025-11-03T22:25:28.886Z","contextId":"ctx_1762208728886_mxx9br8bp","taskId":"task-1004","lane":"tool_call","globalConcurrency":1}
+{"level":"info","message":"Worker call slot released","timestamp":"2025-11-03T22:25:28.886Z","contextId":"ctx_1762208728886_mxx9br8bp","taskId":"task-1004","lane":"tool_call","durationMs":0,"success":true,"globalConcurrency":0}
+{"level":"info","message":"Worker call slot acquired","timestamp":"2025-11-03T22:25:28.886Z","contextId":"ctx_1762208728886_n1nnhrqkh","taskId":"task-1005","lane":"tool_call","globalConcurrency":1}
+{"level":"info","message":"Worker call slot released","timestamp":"2025-11-03T22:25:28.886Z","contextId":"ctx_1762208728886_n1nnhrqkh","taskId":"task-1005","lane":"tool_call","durationMs":0,"success":true,"globalConcurrency":0}
+{"level":"info","message":"Worker call slot acquired","timestamp":"2025-11-03T22:25:28.886Z","contextId":"ctx_1762208728886_bm5vcif79","taskId":"task-1006","lane":"tool_call","globalConcurrency":1}
+{"level":"info","message":"Worker call slot released","timestamp":"2025-11-03T22:25:28.886Z","contextId":"ctx_1762208728886_bm5vcif79","taskId":"task-1006","lane":"tool_call","durationMs":0,"success":true,"globalConcurrency":0}
+{"level":"info","message":"Worker call slot acquired","timestamp":"2025-11-03T22:25:28.886Z","contextId":"ctx_1762208728886_fn6y53u24","taskId":"task-1007","lane":"tool_call","globalConcurrency":1}
+{"level":"info","message":"Worker call slot released","timestamp":"2025-11-03T22:25:28.886Z","contextId":"ctx_1762208728886_fn6y53u24","taskId":"task-1007","lane":"tool_call","durationMs":0,"success":true,"globalConcurrency":0}
+{"level":"info","message":"Worker call slot acquired","timestamp":"2025-11-03T22:25:28.886Z","contextId":"ctx_1762208728886_hl5710k6x","taskId":"task-1008","lane":"tool_call","globalConcurrency":1}
+{"level":"info","message":"Worker call slot released","timestamp":"2025-11-03T22:25:28.886Z","contextId":"ctx_1762208728886_hl5710k6x","taskId":"task-1008","lane":"tool_call","durationMs":0,"success":true,"globalConcurrency":0}
+{"level":"info","message":"Worker call slot acquired","timestamp":"2025-11-03T22:25:28.886Z","contextId":"ctx_1762208728886_iogoe956b","taskId":"task-1009","lane":"tool_call","globalConcurrency":1}
+{"level":"info","message":"Worker call slot released","timestamp":"2025-11-03T22:25:28.886Z","contextId":"ctx_1762208728886_iogoe956b","taskId":"task-1009","lane":"tool_call","durationMs":0,"success":true,"globalConcurrency":0}
+{"level":"info","message":"Worker call slot acquired","timestamp":"2025-11-03T22:25:28.886Z","contextId":"ctx_1762208728886_h8u3mds9w","taskId":"task-1010","lane":"tool_call","globalConcurrency":1}
+{"level":"info","message":"Worker call slot released","timestamp":"2025-11-03T22:25:28.886Z","contextId":"ctx_1762208728886_h8u3mds9w","taskId":"task-1010","lane":"tool_call","durationMs":0,"success":true,"globalConcurrency":0}
+{"level":"info","message":"Worker call slot acquired","timestamp":"2025-11-03T22:25:28.886Z","contextId":"ctx_1762208728886_9n9hdyukd","taskId":"task-1011","lane":"tool_call","globalConcurrency":1}
+{"level":"info","message":"Worker call slot released","timestamp":"2025-11-03T22:25:28.886Z","contextId":"ctx_1762208728886_9n9hdyukd","taskId":"task-1011","lane":"tool_call","durationMs":0,"success":true,"globalConcurrency":0}
+{"level":"info","message":"Worker call slot acquired","timestamp":"2025-11-03T22:25:28.886Z","contextId":"ctx_1762208728886_j5jd8w8zv","taskId":"task-1012","lane":"tool_call","globalConcurrency":1}
+{"level":"info","message":"Worker call slot released","timestamp":"2025-11-03T22:25:28.886Z","contextId":"ctx_1762208728886_j5jd8w8zv","taskId":"task-1012","lane":"tool_call","durationMs":0,"success":true,"globalConcurrency":0}
+{"level":"info","message":"Worker call slot acquired","timestamp":"2025-11-03T22:25:28.886Z","contextId":"ctx_1762208728886_cfxwqyszk","taskId":"task-1013","lane":"tool_call","globalConcurrency":1}
+{"level":"info","message":"Worker call slot released","timestamp":"2025-11-03T22:25:28.886Z","contextId":"ctx_1762208728886_cfxwqyszk","taskId":"task-1013","lane":"tool_call","durationMs":0,"success":true,"globalConcurrency":0}
+{"level":"info","message":"Worker call slot acquired","timestamp":"2025-11-03T22:25:28.886Z","contextId":"ctx_1762208728886_d81d0c32x","taskId":"task-1014","lane":"tool_call","globalConcurrency":1}
+{"level":"info","message":"Worker call slot released","timestamp":"2025-11-03T22:25:28.886Z","contextId":"ctx_1762208728886_d81d0c32x","taskId":"task-1014","lane":"tool_call","durationMs":0,"success":true,"globalConcurrency":0}
+{"level":"info","message":"Worker call slot acquired","timestamp":"2025-11-03T22:25:28.886Z","contextId":"ctx_1762208728886_qxzqvj54n","taskId":"task-1015","lane":"tool_call","globalConcurrency":1}
+{"level":"info","message":"Worker call slot released","timestamp":"2025-11-03T22:25:28.886Z","contextId":"ctx_1762208728886_qxzqvj54n","taskId":"task-1015","lane":"tool_call","durationMs":0,"success":true,"globalConcurrency":0}
+{"level":"info","message":"Worker call slot acquired","timestamp":"2025-11-03T22:25:28.886Z","contextId":"ctx_1762208728886_ec7lvxljp","taskId":"task-1016","lane":"tool_call","globalConcurrency":1}
+{"level":"info","message":"Worker call slot released","timestamp":"2025-11-03T22:25:28.886Z","contextId":"ctx_1762208728886_ec7lvxljp","taskId":"task-1016","lane":"tool_call","durationMs":0,"success":true,"globalConcurrency":0}
+{"level":"info","message":"Worker call slot acquired","timestamp":"2025-11-03T22:25:28.886Z","contextId":"ctx_1762208728886_pg4onjj13","taskId":"task-1017","lane":"tool_call","globalConcurrency":1}
+{"level":"info","message":"Worker call slot released","timestamp":"2025-11-03T22:25:28.886Z","contextId":"ctx_1762208728886_pg4onjj13","taskId":"task-1017","lane":"tool_call","durationMs":0,"success":true,"globalConcurrency":0}
+{"level":"info","message":"Worker call slot acquired","timestamp":"2025-11-03T22:25:28.886Z","contextId":"ctx_1762208728886_slc1fs5kp","taskId":"task-1018","lane":"tool_call","globalConcurrency":1}
+{"level":"info","message":"Worker call slot released","timestamp":"2025-11-03T22:25:28.886Z","contextId":"ctx_1762208728886_slc1fs5kp","taskId":"task-1018","lane":"tool_call","durationMs":0,"success":true,"globalConcurrency":0}
+{"level":"info","message":"Worker call slot acquired","timestamp":"2025-11-03T22:25:28.886Z","contextId":"ctx_1762208728886_sxyb0toso","taskId":"task-1019","lane":"tool_call","globalConcurrency":1}
+{"level":"info","message":"Worker call slot released","timestamp":"2025-11-03T22:25:28.886Z","contextId":"ctx_1762208728886_sxyb0toso","taskId":"task-1019","lane":"tool_call","durationMs":0,"success":true,"globalConcurrency":0}
+{"level":"info","message":"Worker call slot acquired","timestamp":"2025-11-03T22:25:28.886Z","contextId":"ctx_1762208728886_qr1c2sy88","taskId":"task-1020","lane":"tool_call","globalConcurrency":1}
+{"level":"info","message":"Worker call slot released","timestamp":"2025-11-03T22:25:28.886Z","contextId":"ctx_1762208728886_qr1c2sy88","taskId":"task-1020","lane":"tool_call","durationMs":0,"success":true,"globalConcurrency":0}
+{"level":"info","message":"Worker call slot acquired","timestamp":"2025-11-03T22:25:28.886Z","contextId":"ctx_1762208728886_fe5hpmicn","taskId":"task-1021","lane":"tool_call","globalConcurrency":1}
+{"level":"info","message":"Worker call slot released","timestamp":"2025-11-03T22:25:28.886Z","contextId":"ctx_1762208728886_fe5hpmicn","taskId":"task-1021","lane":"tool_call","durationMs":0,"success":true,"globalConcurrency":0}
+{"level":"info","message":"Worker call slot acquired","timestamp":"2025-11-03T22:25:28.886Z","contextId":"ctx_1762208728886_sfrmrg098","taskId":"task-1022","lane":"tool_call","globalConcurrency":1}
+{"level":"info","message":"Worker call slot released","timestamp":"2025-11-03T22:25:28.886Z","contextId":"ctx_1762208728886_sfrmrg098","taskId":"task-1022","lane":"tool_call","durationMs":0,"success":true,"globalConcurrency":0}
+{"level":"info","message":"Worker call slot acquired","timestamp":"2025-11-03T22:25:28.886Z","contextId":"ctx_1762208728886_slunssw7u","taskId":"task-1023","lane":"tool_call","globalConcurrency":1}
+{"level":"info","message":"Worker call slot released","timestamp":"2025-11-03T22:25:28.886Z","contextId":"ctx_1762208728886_slunssw7u","taskId":"task-1023","lane":"tool_call","durationMs":0,"success":true,"globalConcurrency":0}
+{"level":"info","message":"Worker call slot acquired","timestamp":"2025-11-03T22:25:28.886Z","contextId":"ctx_1762208728886_0hpwktzca","taskId":"task-1024","lane":"tool_call","globalConcurrency":1}
+{"level":"info","message":"Worker call slot released","timestamp":"2025-11-03T22:25:28.886Z","contextId":"ctx_1762208728886_0hpwktzca","taskId":"task-1024","lane":"tool_call","durationMs":0,"success":true,"globalConcurrency":0}
+{"level":"info","message":"Worker call slot acquired","timestamp":"2025-11-03T22:25:28.886Z","contextId":"ctx_1762208728886_if3ueib2y","taskId":"task-1025","lane":"tool_call","globalConcurrency":1}
+{"level":"info","message":"Worker call slot released","timestamp":"2025-11-03T22:25:28.886Z","contextId":"ctx_1762208728886_if3ueib2y","taskId":"task-1025","lane":"tool_call","durationMs":0,"success":true,"globalConcurrency":0}
+{"level":"info","message":"Worker call slot acquired","timestamp":"2025-11-03T22:25:28.886Z","contextId":"ctx_1762208728886_264z4nfpv","taskId":"task-1026","lane":"tool_call","globalConcurrency":1}
+{"level":"info","message":"Worker call slot released","timestamp":"2025-11-03T22:25:28.886Z","contextId":"ctx_1762208728886_264z4nfpv","taskId":"task-1026","lane":"tool_call","durationMs":0,"success":true,"globalConcurrency":0}
+{"level":"info","message":"Worker call slot acquired","timestamp":"2025-11-03T22:25:28.886Z","contextId":"ctx_1762208728886_1oehmoe9j","taskId":"task-1027","lane":"tool_call","globalConcurrency":1}
+{"level":"info","message":"Worker call slot released","timestamp":"2025-11-03T22:25:28.886Z","contextId":"ctx_1762208728886_1oehmoe9j","taskId":"task-1027","lane":"tool_call","durationMs":0,"success":true,"globalConcurrency":0}
+{"level":"info","message":"Worker call slot acquired","timestamp":"2025-11-03T22:25:28.886Z","contextId":"ctx_1762208728886_9c52gvvs3","taskId":"task-1028","lane":"tool_call","globalConcurrency":1}
+{"level":"info","message":"Worker call slot released","timestamp":"2025-11-03T22:25:28.886Z","contextId":"ctx_1762208728886_9c52gvvs3","taskId":"task-1028","lane":"tool_call","durationMs":0,"success":true,"globalConcurrency":0}
+{"level":"info","message":"Worker call slot acquired","timestamp":"2025-11-03T22:25:28.886Z","contextId":"ctx_1762208728886_gbceh6lvt","taskId":"task-1029","lane":"tool_call","globalConcurrency":1}
+{"level":"info","message":"Worker call slot released","timestamp":"2025-11-03T22:25:28.887Z","contextId":"ctx_1762208728886_gbceh6lvt","taskId":"task-1029","lane":"tool_call","durationMs":0,"success":true,"globalConcurrency":0}
+{"level":"info","message":"Worker call slot acquired","timestamp":"2025-11-03T22:25:28.887Z","contextId":"ctx_1762208728887_4b1ln4tct","taskId":"task-1030","lane":"tool_call","globalConcurrency":1}
+{"level":"info","message":"Worker call slot released","timestamp":"2025-11-03T22:25:28.887Z","contextId":"ctx_1762208728887_4b1ln4tct","taskId":"task-1030","lane":"tool_call","durationMs":0,"success":true,"globalConcurrency":0}
+{"level":"info","message":"Worker call slot acquired","timestamp":"2025-11-03T22:25:28.887Z","contextId":"ctx_1762208728887_a45zq1l7p","taskId":"task-1031","lane":"tool_call","globalConcurrency":1}
+{"level":"info","message":"Worker call slot released","timestamp":"2025-11-03T22:25:28.887Z","contextId":"ctx_1762208728887_a45zq1l7p","taskId":"task-1031","lane":"tool_call","durationMs":0,"success":true,"globalConcurrency":0}
+{"level":"info","message":"Worker call slot acquired","timestamp":"2025-11-03T22:25:28.887Z","contextId":"ctx_1762208728887_ur2mxjuf7","taskId":"task-1032","lane":"tool_call","globalConcurrency":1}
+{"level":"info","message":"Worker call slot released","timestamp":"2025-11-03T22:25:28.887Z","contextId":"ctx_1762208728887_ur2mxjuf7","taskId":"task-1032","lane":"tool_call","durationMs":0,"success":true,"globalConcurrency":0}
+{"level":"info","message":"Worker call slot acquired","timestamp":"2025-11-03T22:25:28.887Z","contextId":"ctx_1762208728887_adrsb1jq9","taskId":"task-1033","lane":"tool_call","globalConcurrency":1}
+{"level":"info","message":"Worker call slot released","timestamp":"2025-11-03T22:25:28.887Z","contextId":"ctx_1762208728887_adrsb1jq9","taskId":"task-1033","lane":"tool_call","durationMs":0,"success":true,"globalConcurrency":0}
+{"level":"info","message":"Worker call slot acquired","timestamp":"2025-11-03T22:25:28.887Z","contextId":"ctx_1762208728887_gnfe1qejk","taskId":"task-1034","lane":"tool_call","globalConcurrency":1}
+{"level":"info","message":"Worker call slot released","timestamp":"2025-11-03T22:25:28.887Z","contextId":"ctx_1762208728887_gnfe1qejk","taskId":"task-1034","lane":"tool_call","durationMs":0,"success":true,"globalConcurrency":0}
+{"level":"info","message":"Worker call slot acquired","timestamp":"2025-11-03T22:25:28.887Z","contextId":"ctx_1762208728887_f0kviht7s","taskId":"task-1035","lane":"tool_call","globalConcurrency":1}
+{"level":"info","message":"Worker call slot released","timestamp":"2025-11-03T22:25:28.887Z","contextId":"ctx_1762208728887_f0kviht7s","taskId":"task-1035","lane":"tool_call","durationMs":0,"success":true,"globalConcurrency":0}
+{"level":"info","message":"Worker call slot acquired","timestamp":"2025-11-03T22:25:28.887Z","contextId":"ctx_1762208728887_25s5q7dq9","taskId":"task-1036","lane":"tool_call","globalConcurrency":1}
+{"level":"info","message":"Worker call slot released","timestamp":"2025-11-03T22:25:28.887Z","contextId":"ctx_1762208728887_25s5q7dq9","taskId":"task-1036","lane":"tool_call","durationMs":0,"success":true,"globalConcurrency":0}
+{"level":"info","message":"Worker call slot acquired","timestamp":"2025-11-03T22:25:28.887Z","contextId":"ctx_1762208728887_ya80vtt9w","taskId":"task-1037","lane":"tool_call","globalConcurrency":1}
+{"level":"info","message":"Worker call slot released","timestamp":"2025-11-03T22:25:28.887Z","contextId":"ctx_1762208728887_ya80vtt9w","taskId":"task-1037","lane":"tool_call","durationMs":0,"success":true,"globalConcurrency":0}
+{"level":"info","message":"Worker call slot acquired","timestamp":"2025-11-03T22:25:28.887Z","contextId":"ctx_1762208728887_dwc36dy4q","taskId":"task-1038","lane":"tool_call","globalConcurrency":1}
+{"level":"info","message":"Worker call slot released","timestamp":"2025-11-03T22:25:28.887Z","contextId":"ctx_1762208728887_dwc36dy4q","taskId":"task-1038","lane":"tool_call","durationMs":0,"success":true,"globalConcurrency":0}
+{"level":"info","message":"Worker call slot acquired","timestamp":"2025-11-03T22:25:28.887Z","contextId":"ctx_1762208728887_sk15m90x3","taskId":"task-1039","lane":"tool_call","globalConcurrency":1}
+{"level":"info","message":"Worker call slot released","timestamp":"2025-11-03T22:25:28.887Z","contextId":"ctx_1762208728887_sk15m90x3","taskId":"task-1039","lane":"tool_call","durationMs":0,"success":true,"globalConcurrency":0}
+{"level":"info","message":"Worker call slot acquired","timestamp":"2025-11-03T22:25:28.887Z","contextId":"ctx_1762208728887_x6klmn4ev","taskId":"task-1040","lane":"tool_call","globalConcurrency":1}
+{"level":"info","message":"Worker call slot released","timestamp":"2025-11-03T22:25:28.887Z","contextId":"ctx_1762208728887_x6klmn4ev","taskId":"task-1040","lane":"tool_call","durationMs":0,"success":true,"globalConcurrency":0}
+{"level":"info","message":"Worker call slot acquired","timestamp":"2025-11-03T22:25:28.887Z","contextId":"ctx_1762208728887_doz6a2qe3","taskId":"task-1041","lane":"tool_call","globalConcurrency":1}
+{"level":"info","message":"Worker call slot released","timestamp":"2025-11-03T22:25:28.887Z","contextId":"ctx_1762208728887_doz6a2qe3","taskId":"task-1041","lane":"tool_call","durationMs":0,"success":true,"globalConcurrency":0}
+{"level":"info","message":"Worker call slot acquired","timestamp":"2025-11-03T22:25:28.887Z","contextId":"ctx_1762208728887_12ujule0i","taskId":"task-1042","lane":"tool_call","globalConcurrency":1}
+{"level":"info","message":"Worker call slot released","timestamp":"2025-11-03T22:25:28.887Z","contextId":"ctx_1762208728887_12ujule0i","taskId":"task-1042","lane":"tool_call","durationMs":0,"success":true,"globalConcurrency":0}
+{"level":"info","message":"Worker call slot acquired","timestamp":"2025-11-03T22:25:28.887Z","contextId":"ctx_1762208728887_aopvo2afo","taskId":"task-1043","lane":"tool_call","globalConcurrency":1}
+{"level":"info","message":"Worker call slot released","timestamp":"2025-11-03T22:25:28.887Z","contextId":"ctx_1762208728887_aopvo2afo","taskId":"task-1043","lane":"tool_call","durationMs":0,"success":true,"globalConcurrency":0}
+{"level":"info","message":"Worker call slot acquired","timestamp":"2025-11-03T22:25:28.887Z","contextId":"ctx_1762208728887_t6ktp8bp1","taskId":"task-1044","lane":"tool_call","globalConcurrency":1}
+{"level":"info","message":"Worker call slot released","timestamp":"2025-11-03T22:25:28.887Z","contextId":"ctx_1762208728887_t6ktp8bp1","taskId":"task-1044","lane":"tool_call","durationMs":0,"success":true,"globalConcurrency":0}
+{"level":"info","message":"Worker call slot acquired","timestamp":"2025-11-03T22:25:28.887Z","contextId":"ctx_1762208728887_m924crmzs","taskId":"task-1045","lane":"tool_call","globalConcurrency":1}
+{"level":"info","message":"Worker call slot released","timestamp":"2025-11-03T22:25:28.887Z","contextId":"ctx_1762208728887_m924crmzs","taskId":"task-1045","lane":"tool_call","durationMs":0,"success":true,"globalConcurrency":0}
+{"level":"info","message":"Worker call slot acquired","timestamp":"2025-11-03T22:25:28.887Z","contextId":"ctx_1762208728887_y859ou6lw","taskId":"task-1046","lane":"tool_call","globalConcurrency":1}
+{"level":"info","message":"Worker call slot released","timestamp":"2025-11-03T22:25:28.887Z","contextId":"ctx_1762208728887_y859ou6lw","taskId":"task-1046","lane":"tool_call","durationMs":0,"success":true,"globalConcurrency":0}
+{"level":"info","message":"Worker call slot acquired","timestamp":"2025-11-03T22:25:28.887Z","contextId":"ctx_1762208728887_d3jum9vqu","taskId":"task-1047","lane":"tool_call","globalConcurrency":1}
+{"level":"info","message":"Worker call slot released","timestamp":"2025-11-03T22:25:28.887Z","contextId":"ctx_1762208728887_d3jum9vqu","taskId":"task-1047","lane":"tool_call","durationMs":0,"success":true,"globalConcurrency":0}
+{"level":"info","message":"Worker call slot acquired","timestamp":"2025-11-03T22:25:28.887Z","contextId":"ctx_1762208728887_di6jp9gn5","taskId":"task-1048","lane":"tool_call","globalConcurrency":1}
+{"level":"info","message":"Worker call slot released","timestamp":"2025-11-03T22:25:28.887Z","contextId":"ctx_1762208728887_di6jp9gn5","taskId":"task-1048","lane":"tool_call","durationMs":0,"success":true,"globalConcurrency":0}
+{"level":"info","message":"Worker call slot acquired","timestamp":"2025-11-03T22:25:28.887Z","contextId":"ctx_1762208728887_cgh7uwpuw","taskId":"task-1049","lane":"tool_call","globalConcurrency":1}
+{"level":"info","message":"Worker call slot released","timestamp":"2025-11-03T22:25:28.887Z","contextId":"ctx_1762208728887_cgh7uwpuw","taskId":"task-1049","lane":"tool_call","durationMs":0,"success":true,"globalConcurrency":0}
+{"level":"info","message":"Worker call slot acquired","timestamp":"2025-11-03T22:25:28.887Z","contextId":"ctx_1762208728887_1ghapkvn5","taskId":"task-1050","lane":"tool_call","globalConcurrency":1}
+{"level":"info","message":"Worker call slot released","timestamp":"2025-11-03T22:25:28.887Z","contextId":"ctx_1762208728887_1ghapkvn5","taskId":"task-1050","lane":"tool_call","durationMs":0,"success":true,"globalConcurrency":0}
+{"level":"info","message":"Worker call slot acquired","timestamp":"2025-11-03T22:25:28.887Z","contextId":"ctx_1762208728887_e0qsq3ne4","taskId":"task-1051","lane":"tool_call","globalConcurrency":1}
+{"level":"info","message":"Worker call slot released","timestamp":"2025-11-03T22:25:28.887Z","contextId":"ctx_1762208728887_e0qsq3ne4","taskId":"task-1051","lane":"tool_call","durationMs":0,"success":true,"globalConcurrency":0}
+{"level":"info","message":"Worker call slot acquired","timestamp":"2025-11-03T22:25:28.887Z","contextId":"ctx_1762208728887_r0bphjnwq","taskId":"task-1052","lane":"tool_call","globalConcurrency":1}
+{"level":"info","message":"Worker call slot released","timestamp":"2025-11-03T22:25:28.887Z","contextId":"ctx_1762208728887_r0bphjnwq","taskId":"task-1052","lane":"tool_call","durationMs":0,"success":true,"globalConcurrency":0}
+{"level":"info","message":"Worker call slot acquired","timestamp":"2025-11-03T22:25:28.887Z","contextId":"ctx_1762208728887_cp4yi65sb","taskId":"task-1053","lane":"tool_call","globalConcurrency":1}
+{"level":"info","message":"Worker call slot released","timestamp":"2025-11-03T22:25:28.887Z","contextId":"ctx_1762208728887_cp4yi65sb","taskId":"task-1053","lane":"tool_call","durationMs":0,"success":true,"globalConcurrency":0}
+{"level":"info","message":"Worker call slot acquired","timestamp":"2025-11-03T22:25:28.887Z","contextId":"ctx_1762208728887_gw9dav80f","taskId":"task-1054","lane":"tool_call","globalConcurrency":1}
+{"level":"info","message":"Worker call slot released","timestamp":"2025-11-03T22:25:28.887Z","contextId":"ctx_1762208728887_gw9dav80f","taskId":"task-1054","lane":"tool_call","durationMs":0,"success":true,"globalConcurrency":0}
+{"level":"info","message":"Worker call slot acquired","timestamp":"2025-11-03T22:25:28.887Z","contextId":"ctx_1762208728887_gyft88s3n","taskId":"task-1055","lane":"tool_call","globalConcurrency":1}
+{"level":"info","message":"Worker call slot released","timestamp":"2025-11-03T22:25:28.887Z","contextId":"ctx_1762208728887_gyft88s3n","taskId":"task-1055","lane":"tool_call","durationMs":0,"success":true,"globalConcurrency":0}
+{"level":"info","message":"Worker call slot acquired","timestamp":"2025-11-03T22:25:28.887Z","contextId":"ctx_1762208728887_9vgh5usoe","taskId":"task-1056","lane":"tool_call","globalConcurrency":1}
+{"level":"info","message":"Worker call slot released","timestamp":"2025-11-03T22:25:28.887Z","contextId":"ctx_1762208728887_9vgh5usoe","taskId":"task-1056","lane":"tool_call","durationMs":0,"success":true,"globalConcurrency":0}
+{"level":"info","message":"Worker call slot acquired","timestamp":"2025-11-03T22:25:28.887Z","contextId":"ctx_1762208728887_a1qzavzgs","taskId":"task-1057","lane":"tool_call","globalConcurrency":1}
+{"level":"info","message":"Worker call slot released","timestamp":"2025-11-03T22:25:28.887Z","contextId":"ctx_1762208728887_a1qzavzgs","taskId":"task-1057","lane":"tool_call","durationMs":0,"success":true,"globalConcurrency":0}
+{"level":"info","message":"Worker call slot acquired","timestamp":"2025-11-03T22:25:28.887Z","contextId":"ctx_1762208728887_j5esyz0kr","taskId":"task-1058","lane":"tool_call","globalConcurrency":1}
+{"level":"info","message":"Worker call slot released","timestamp":"2025-11-03T22:25:28.887Z","contextId":"ctx_1762208728887_j5esyz0kr","taskId":"task-1058","lane":"tool_call","durationMs":0,"success":true,"globalConcurrency":0}
+{"level":"info","message":"Worker call slot acquired","timestamp":"2025-11-03T22:25:28.887Z","contextId":"ctx_1762208728887_t3sefdmta","taskId":"task-1059","lane":"tool_call","globalConcurrency":1}
+{"level":"info","message":"Worker call slot released","timestamp":"2025-11-03T22:25:28.887Z","contextId":"ctx_1762208728887_t3sefdmta","taskId":"task-1059","lane":"tool_call","durationMs":0,"success":true,"globalConcurrency":0}
+{"level":"info","message":"Worker call slot acquired","timestamp":"2025-11-03T22:25:28.887Z","contextId":"ctx_1762208728887_9rbp6ywbt","taskId":"task-1060","lane":"tool_call","globalConcurrency":1}
+{"level":"info","message":"Worker call slot released","timestamp":"2025-11-03T22:25:28.887Z","contextId":"ctx_1762208728887_9rbp6ywbt","taskId":"task-1060","lane":"tool_call","durationMs":0,"success":true,"globalConcurrency":0}
+{"level":"info","message":"Worker call slot acquired","timestamp":"2025-11-03T22:25:28.887Z","contextId":"ctx_1762208728887_dssb1sbco","taskId":"task-1061","lane":"tool_call","globalConcurrency":1}
+{"level":"info","message":"Worker call slot released","timestamp":"2025-11-03T22:25:28.887Z","contextId":"ctx_1762208728887_dssb1sbco","taskId":"task-1061","lane":"tool_call","durationMs":0,"success":true,"globalConcurrency":0}
+{"level":"info","message":"Worker call slot acquired","timestamp":"2025-11-03T22:25:28.887Z","contextId":"ctx_1762208728887_v7ozxx81m","taskId":"task-1062","lane":"tool_call","globalConcurrency":1}
+{"level":"info","message":"Worker call slot released","timestamp":"2025-11-03T22:25:28.887Z","contextId":"ctx_1762208728887_v7ozxx81m","taskId":"task-1062","lane":"tool_call","durationMs":0,"success":true,"globalConcurrency":0}
+{"level":"info","message":"Worker call slot acquired","timestamp":"2025-11-03T22:25:28.887Z","contextId":"ctx_1762208728887_v1jp5b7oh","taskId":"task-1063","lane":"tool_call","globalConcurrency":1}
+{"level":"info","message":"Worker call slot released","timestamp":"2025-11-03T22:25:28.887Z","contextId":"ctx_1762208728887_v1jp5b7oh","taskId":"task-1063","lane":"tool_call","durationMs":0,"success":true,"globalConcurrency":0}
+{"level":"info","message":"Worker call slot acquired","timestamp":"2025-11-03T22:25:28.887Z","contextId":"ctx_1762208728887_zqg67ca1h","taskId":"task-1064","lane":"tool_call","globalConcurrency":1}
+{"level":"info","message":"Worker call slot released","timestamp":"2025-11-03T22:25:28.887Z","contextId":"ctx_1762208728887_zqg67ca1h","taskId":"task-1064","lane":"tool_call","durationMs":0,"success":true,"globalConcurrency":0}
+{"level":"info","message":"Worker call slot acquired","timestamp":"2025-11-03T22:25:28.887Z","contextId":"ctx_1762208728887_z1tc6soo9","taskId":"task-1065","lane":"tool_call","globalConcurrency":1}
+{"level":"info","message":"Worker call slot released","timestamp":"2025-11-03T22:25:28.887Z","contextId":"ctx_1762208728887_z1tc6soo9","taskId":"task-1065","lane":"tool_call","durationMs":0,"success":true,"globalConcurrency":0}
+{"level":"info","message":"Worker call slot acquired","timestamp":"2025-11-03T22:25:28.887Z","contextId":"ctx_1762208728887_n1h06rpfo","taskId":"task-1066","lane":"tool_call","globalConcurrency":1}
+{"level":"info","message":"Worker call slot released","timestamp":"2025-11-03T22:25:28.887Z","contextId":"ctx_1762208728887_n1h06rpfo","taskId":"task-1066","lane":"tool_call","durationMs":0,"success":true,"globalConcurrency":0}
+{"level":"info","message":"Worker call slot acquired","timestamp":"2025-11-03T22:25:28.887Z","contextId":"ctx_1762208728887_cs2x46d4a","taskId":"task-1067","lane":"tool_call","globalConcurrency":1}
+{"level":"info","message":"Worker call slot released","timestamp":"2025-11-03T22:25:28.887Z","contextId":"ctx_1762208728887_cs2x46d4a","taskId":"task-1067","lane":"tool_call","durationMs":0,"success":true,"globalConcurrency":0}
+{"level":"info","message":"Worker call slot acquired","timestamp":"2025-11-03T22:25:28.887Z","contextId":"ctx_1762208728887_1fnb7m1ay","taskId":"task-1068","lane":"tool_call","globalConcurrency":1}
+{"level":"info","message":"Worker call slot released","timestamp":"2025-11-03T22:25:28.887Z","contextId":"ctx_1762208728887_1fnb7m1ay","taskId":"task-1068","lane":"tool_call","durationMs":0,"success":true,"globalConcurrency":0}
+{"level":"info","message":"Worker call slot acquired","timestamp":"2025-11-03T22:25:28.887Z","contextId":"ctx_1762208728887_534450yrf","taskId":"task-1069","lane":"tool_call","globalConcurrency":1}
+{"level":"info","message":"Worker call slot released","timestamp":"2025-11-03T22:25:28.887Z","contextId":"ctx_1762208728887_534450yrf","taskId":"task-1069","lane":"tool_call","durationMs":0,"success":true,"globalConcurrency":0}
+{"level":"info","message":"Worker call slot acquired","timestamp":"2025-11-03T22:25:28.887Z","contextId":"ctx_1762208728887_xoevyebuh","taskId":"task-1070","lane":"tool_call","globalConcurrency":1}
+{"level":"info","message":"Worker call slot released","timestamp":"2025-11-03T22:25:28.887Z","contextId":"ctx_1762208728887_xoevyebuh","taskId":"task-1070","lane":"tool_call","durationMs":0,"success":true,"globalConcurrency":0}
+{"level":"info","message":"Worker call slot acquired","timestamp":"2025-11-03T22:25:28.887Z","contextId":"ctx_1762208728887_vlll7yqav","taskId":"task-1071","lane":"tool_call","globalConcurrency":1}
+{"level":"info","message":"Worker call slot released","timestamp":"2025-11-03T22:25:28.887Z","contextId":"ctx_1762208728887_vlll7yqav","taskId":"task-1071","lane":"tool_call","durationMs":0,"success":true,"globalConcurrency":0}
+{"level":"info","message":"Worker call slot acquired","timestamp":"2025-11-03T22:25:28.887Z","contextId":"ctx_1762208728887_1qxl8ru00","taskId":"task-1072","lane":"tool_call","globalConcurrency":1}
+{"level":"info","message":"Worker call slot released","timestamp":"2025-11-03T22:25:28.887Z","contextId":"ctx_1762208728887_1qxl8ru00","taskId":"task-1072","lane":"tool_call","durationMs":0,"success":true,"globalConcurrency":0}
+{"level":"info","message":"Worker call slot acquired","timestamp":"2025-11-03T22:25:28.887Z","contextId":"ctx_1762208728887_4ycu79rwv","taskId":"task-1073","lane":"tool_call","globalConcurrency":1}
+{"level":"info","message":"Worker call slot released","timestamp":"2025-11-03T22:25:28.887Z","contextId":"ctx_1762208728887_4ycu79rwv","taskId":"task-1073","lane":"tool_call","durationMs":0,"success":true,"globalConcurrency":0}
+{"level":"info","message":"Worker call slot acquired","timestamp":"2025-11-03T22:25:28.887Z","contextId":"ctx_1762208728887_zikwinau9","taskId":"task-1074","lane":"tool_call","globalConcurrency":1}
+{"level":"info","message":"Worker call slot released","timestamp":"2025-11-03T22:25:28.887Z","contextId":"ctx_1762208728887_zikwinau9","taskId":"task-1074","lane":"tool_call","durationMs":0,"success":true,"globalConcurrency":0}
+{"level":"info","message":"Worker call slot acquired","timestamp":"2025-11-03T22:25:28.887Z","contextId":"ctx_1762208728887_cg9uek9uk","taskId":"task-1075","lane":"tool_call","globalConcurrency":1}
+{"level":"info","message":"Worker call slot released","timestamp":"2025-11-03T22:25:28.887Z","contextId":"ctx_1762208728887_cg9uek9uk","taskId":"task-1075","lane":"tool_call","durationMs":0,"success":true,"globalConcurrency":0}
+{"level":"info","message":"Worker call slot acquired","timestamp":"2025-11-03T22:25:28.887Z","contextId":"ctx_1762208728887_2ojfgc0rj","taskId":"task-1076","lane":"tool_call","globalConcurrency":1}
+{"level":"info","message":"Worker call slot released","timestamp":"2025-11-03T22:25:28.887Z","contextId":"ctx_1762208728887_2ojfgc0rj","taskId":"task-1076","lane":"tool_call","durationMs":0,"success":true,"globalConcurrency":0}
+{"level":"info","message":"Worker call slot acquired","timestamp":"2025-11-03T22:25:28.887Z","contextId":"ctx_1762208728887_4iossd05d","taskId":"task-1077","lane":"tool_call","globalConcurrency":1}
+{"level":"info","message":"Worker call slot released","timestamp":"2025-11-03T22:25:28.887Z","contextId":"ctx_1762208728887_4iossd05d","taskId":"task-1077","lane":"tool_call","durationMs":0,"success":true,"globalConcurrency":0}
+{"level":"info","message":"Worker call slot acquired","timestamp":"2025-11-03T22:25:28.887Z","contextId":"ctx_1762208728887_2azi90fco","taskId":"task-1078","lane":"tool_call","globalConcurrency":1}
+{"level":"info","message":"Worker call slot released","timestamp":"2025-11-03T22:25:28.887Z","contextId":"ctx_1762208728887_2azi90fco","taskId":"task-1078","lane":"tool_call","durationMs":0,"success":true,"globalConcurrency":0}
+{"level":"info","message":"Worker call slot acquired","timestamp":"2025-11-03T22:25:28.887Z","contextId":"ctx_1762208728887_5q9ftv7s8","taskId":"task-1079","lane":"tool_call","globalConcurrency":1}
+{"level":"info","message":"Worker call slot released","timestamp":"2025-11-03T22:25:28.887Z","contextId":"ctx_1762208728887_5q9ftv7s8","taskId":"task-1079","lane":"tool_call","durationMs":0,"success":true,"globalConcurrency":0}
+{"level":"info","message":"Worker call slot acquired","timestamp":"2025-11-03T22:25:28.887Z","contextId":"ctx_1762208728887_d2nj79pey","taskId":"task-1080","lane":"tool_call","globalConcurrency":1}
+{"level":"info","message":"Worker call slot released","timestamp":"2025-11-03T22:25:28.887Z","contextId":"ctx_1762208728887_d2nj79pey","taskId":"task-1080","lane":"tool_call","durationMs":0,"success":true,"globalConcurrency":0}
+{"level":"info","message":"Worker call slot acquired","timestamp":"2025-11-03T22:25:28.887Z","contextId":"ctx_1762208728887_77iv0krbu","taskId":"task-1081","lane":"tool_call","globalConcurrency":1}
+{"level":"info","message":"Worker call slot released","timestamp":"2025-11-03T22:25:28.887Z","contextId":"ctx_1762208728887_77iv0krbu","taskId":"task-1081","lane":"tool_call","durationMs":0,"success":true,"globalConcurrency":0}
+{"level":"info","message":"Worker call slot acquired","timestamp":"2025-11-03T22:25:28.887Z","contextId":"ctx_1762208728887_yikvotxi6","taskId":"task-1082","lane":"tool_call","globalConcurrency":1}
+{"level":"info","message":"Worker call slot released","timestamp":"2025-11-03T22:25:28.887Z","contextId":"ctx_1762208728887_yikvotxi6","taskId":"task-1082","lane":"tool_call","durationMs":0,"success":true,"globalConcurrency":0}
+{"level":"info","message":"Worker call slot acquired","timestamp":"2025-11-03T22:25:28.887Z","contextId":"ctx_1762208728887_3ai6m037c","taskId":"task-1083","lane":"tool_call","globalConcurrency":1}
+{"level":"info","message":"Worker call slot released","timestamp":"2025-11-03T22:25:28.887Z","contextId":"ctx_1762208728887_3ai6m037c","taskId":"task-1083","lane":"tool_call","durationMs":0,"success":true,"globalConcurrency":0}
+{"level":"info","message":"Worker call slot acquired","timestamp":"2025-11-03T22:25:28.887Z","contextId":"ctx_1762208728887_sojlftiv1","taskId":"task-1084","lane":"tool_call","globalConcurrency":1}
+{"level":"info","message":"Worker call slot released","timestamp":"2025-11-03T22:25:28.887Z","contextId":"ctx_1762208728887_sojlftiv1","taskId":"task-1084","lane":"tool_call","durationMs":0,"success":true,"globalConcurrency":0}
+{"level":"info","message":"Worker call slot acquired","timestamp":"2025-11-03T22:25:28.887Z","contextId":"ctx_1762208728887_wbzkatquo","taskId":"task-1085","lane":"tool_call","globalConcurrency":1}
+{"level":"info","message":"Worker call slot released","timestamp":"2025-11-03T22:25:28.887Z","contextId":"ctx_1762208728887_wbzkatquo","taskId":"task-1085","lane":"tool_call","durationMs":0,"success":true,"globalConcurrency":0}
+{"level":"info","message":"Worker call slot acquired","timestamp":"2025-11-03T22:25:28.887Z","contextId":"ctx_1762208728887_ugqv5gbf3","taskId":"task-1086","lane":"tool_call","globalConcurrency":1}
+{"level":"info","message":"Worker call slot released","timestamp":"2025-11-03T22:25:28.887Z","contextId":"ctx_1762208728887_ugqv5gbf3","taskId":"task-1086","lane":"tool_call","durationMs":0,"success":true,"globalConcurrency":0}
+{"level":"info","message":"Worker call slot acquired","timestamp":"2025-11-03T22:25:28.887Z","contextId":"ctx_1762208728887_li7k2z1fl","taskId":"task-1087","lane":"tool_call","globalConcurrency":1}
+{"level":"info","message":"Worker call slot released","timestamp":"2025-11-03T22:25:28.887Z","contextId":"ctx_1762208728887_li7k2z1fl","taskId":"task-1087","lane":"tool_call","durationMs":0,"success":true,"globalConcurrency":0}
+{"level":"info","message":"Worker call slot acquired","timestamp":"2025-11-03T22:25:28.887Z","contextId":"ctx_1762208728887_aohi6tnaf","taskId":"task-1088","lane":"tool_call","globalConcurrency":1}
+{"level":"info","message":"Worker call slot released","timestamp":"2025-11-03T22:25:28.887Z","contextId":"ctx_1762208728887_aohi6tnaf","taskId":"task-1088","lane":"tool_call","durationMs":0,"success":true,"globalConcurrency":0}
+{"level":"info","message":"Worker call slot acquired","timestamp":"2025-11-03T22:25:28.887Z","contextId":"ctx_1762208728887_s24e32sy4","taskId":"task-1089","lane":"tool_call","globalConcurrency":1}
+{"level":"info","message":"Worker call slot released","timestamp":"2025-11-03T22:25:28.887Z","contextId":"ctx_1762208728887_s24e32sy4","taskId":"task-1089","lane":"tool_call","durationMs":0,"success":true,"globalConcurrency":0}
+{"level":"info","message":"Worker call slot acquired","timestamp":"2025-11-03T22:25:28.887Z","contextId":"ctx_1762208728887_wvfw04scl","taskId":"task-1090","lane":"tool_call","globalConcurrency":1}
+{"level":"info","message":"Worker call slot released","timestamp":"2025-11-03T22:25:28.887Z","contextId":"ctx_1762208728887_wvfw04scl","taskId":"task-1090","lane":"tool_call","durationMs":0,"success":true,"globalConcurrency":0}
+{"level":"info","message":"Worker call slot acquired","timestamp":"2025-11-03T22:25:28.887Z","contextId":"ctx_1762208728887_d61kaj6o1","taskId":"task-1091","lane":"tool_call","globalConcurrency":1}
+{"level":"info","message":"Worker call slot released","timestamp":"2025-11-03T22:25:28.887Z","contextId":"ctx_1762208728887_d61kaj6o1","taskId":"task-1091","lane":"tool_call","durationMs":0,"success":true,"globalConcurrency":0}
+{"level":"info","message":"Worker call slot acquired","timestamp":"2025-11-03T22:25:28.887Z","contextId":"ctx_1762208728887_fd0qh1kp6","taskId":"task-1092","lane":"tool_call","globalConcurrency":1}
+{"level":"info","message":"Worker call slot released","timestamp":"2025-11-03T22:25:28.887Z","contextId":"ctx_1762208728887_fd0qh1kp6","taskId":"task-1092","lane":"tool_call","durationMs":0,"success":true,"globalConcurrency":0}
+{"level":"info","message":"Worker call slot acquired","timestamp":"2025-11-03T22:25:28.887Z","contextId":"ctx_1762208728887_plhixkxil","taskId":"task-1093","lane":"tool_call","globalConcurrency":1}
+{"level":"info","message":"Worker call slot released","timestamp":"2025-11-03T22:25:28.887Z","contextId":"ctx_1762208728887_plhixkxil","taskId":"task-1093","lane":"tool_call","durationMs":0,"success":true,"globalConcurrency":0}
+{"level":"info","message":"Worker call slot acquired","timestamp":"2025-11-03T22:25:28.887Z","contextId":"ctx_1762208728887_o412yz4jp","taskId":"task-1094","lane":"tool_call","globalConcurrency":1}
+{"level":"info","message":"Worker call slot released","timestamp":"2025-11-03T22:25:28.887Z","contextId":"ctx_1762208728887_o412yz4jp","taskId":"task-1094","lane":"tool_call","durationMs":0,"success":true,"globalConcurrency":0}
+{"level":"info","message":"Worker call slot acquired","timestamp":"2025-11-03T22:25:28.887Z","contextId":"ctx_1762208728887_gy2zz39jq","taskId":"task-1095","lane":"tool_call","globalConcurrency":1}
+{"level":"info","message":"Worker call slot released","timestamp":"2025-11-03T22:25:28.887Z","contextId":"ctx_1762208728887_gy2zz39jq","taskId":"task-1095","lane":"tool_call","durationMs":0,"success":true,"globalConcurrency":0}
+{"level":"info","message":"Worker call slot acquired","timestamp":"2025-11-03T22:25:28.887Z","contextId":"ctx_1762208728887_iiw0n1uxz","taskId":"task-1096","lane":"tool_call","globalConcurrency":1}
+{"level":"info","message":"Worker call slot released","timestamp":"2025-11-03T22:25:28.887Z","contextId":"ctx_1762208728887_iiw0n1uxz","taskId":"task-1096","lane":"tool_call","durationMs":0,"success":true,"globalConcurrency":0}
+{"level":"info","message":"Worker call slot acquired","timestamp":"2025-11-03T22:25:28.888Z","contextId":"ctx_1762208728888_atnf3fqzt","taskId":"task-1097","lane":"tool_call","globalConcurrency":1}
+{"level":"info","message":"Worker call slot released","timestamp":"2025-11-03T22:25:28.888Z","contextId":"ctx_1762208728888_atnf3fqzt","taskId":"task-1097","lane":"tool_call","durationMs":0,"success":true,"globalConcurrency":0}
+{"level":"info","message":"Worker call slot acquired","timestamp":"2025-11-03T22:25:28.888Z","contextId":"ctx_1762208728888_btaee5qsl","taskId":"task-1098","lane":"tool_call","globalConcurrency":1}
+{"level":"info","message":"Worker call slot released","timestamp":"2025-11-03T22:25:28.888Z","contextId":"ctx_1762208728888_btaee5qsl","taskId":"task-1098","lane":"tool_call","durationMs":0,"success":true,"globalConcurrency":0}
+{"level":"info","message":"Worker call slot acquired","timestamp":"2025-11-03T22:25:28.888Z","contextId":"ctx_1762208728888_64tw4js4s","taskId":"task-1099","lane":"tool_call","globalConcurrency":1}
+{"level":"info","message":"Worker call slot released","timestamp":"2025-11-03T22:25:28.888Z","contextId":"ctx_1762208728888_64tw4js4s","taskId":"task-1099","lane":"tool_call","durationMs":0,"success":true,"globalConcurrency":0}
+{"level":"info","message":"ResourceBudgetManager initialized","timestamp":"2025-11-03T22:25:28.888Z","maxRssMb":512,"globalConcurrencyLimit":32,"laneCount":5}
+{"level":"info","message":"Worker call slot acquired","timestamp":"2025-11-03T22:25:28.888Z","contextId":"ctx_1762208728888_nppk1hxhz","taskId":"task-1","lane":"tool_call","globalConcurrency":1}
+{"level":"info","message":"Worker call slot released","timestamp":"2025-11-03T22:25:28.888Z","contextId":"ctx_1762208728888_nppk1hxhz","taskId":"task-1","lane":"tool_call","durationMs":0,"success":true,"globalConcurrency":0}
+{"level":"info","message":"ResourceBudgetManager initialized","timestamp":"2025-11-03T22:25:28.888Z","maxRssMb":512,"globalConcurrencyLimit":32,"laneCount":5}
+{"level":"info","message":"Worker call slot acquired","timestamp":"2025-11-03T22:25:28.888Z","contextId":"ctx_1762208728888_1ms081wsu","taskId":"task-1","lane":"tool_call","globalConcurrency":1}
+{"level":"info","message":"Worker call slot acquired","timestamp":"2025-11-03T22:25:28.888Z","contextId":"ctx_1762208728888_ejm9f6w8i","taskId":"task-2","lane":"file_read","globalConcurrency":2}
+{"level":"info","message":"Worker call slot released","timestamp":"2025-11-03T22:25:28.889Z","contextId":"ctx_1762208728888_1ms081wsu","taskId":"task-1","lane":"tool_call","durationMs":1,"success":true,"globalConcurrency":1}
+{"level":"info","message":"Worker call slot released","timestamp":"2025-11-03T22:25:28.889Z","contextId":"ctx_1762208728888_ejm9f6w8i","taskId":"task-2","lane":"file_read","durationMs":1,"success":true,"globalConcurrency":0}
+{"level":"info","message":"ResourceBudgetManager initialized","timestamp":"2025-11-03T22:25:28.890Z","maxRssMb":512,"globalConcurrencyLimit":32,"laneCount":5}
+{"level":"info","message":"Worker call slot acquired","timestamp":"2025-11-03T22:25:28.890Z","contextId":"ctx_1762208728890_g7pxhpfbr","taskId":"task-1","lane":"tool_call","globalConcurrency":1}
+{"level":"info","message":"Worker call slot released","timestamp":"2025-11-03T22:25:28.890Z","contextId":"ctx_1762208728890_g7pxhpfbr","taskId":"task-1","lane":"tool_call","durationMs":0,"success":true,"globalConcurrency":0}
+{"level":"info","message":"ResourceBudgetManager initialized","timestamp":"2025-11-03T22:25:28.890Z","maxRssMb":512,"globalConcurrencyLimit":32,"laneCount":5}
+{"level":"info","message":"ResourceBudgetManager initialized","timestamp":"2025-11-03T22:25:28.890Z","maxRssMb":512,"globalConcurrencyLimit":32,"laneCount":5}
+{"level":"info","message":"ResourceBudgetManager initialized","timestamp":"2025-11-03T22:25:28.890Z","maxRssMb":512,"globalConcurrencyLimit":32,"laneCount":5}
+{"level":"info","message":"ResourceBudgetManager initialized","timestamp":"2025-11-03T22:25:28.890Z","maxRssMb":512,"globalConcurrencyLimit":64,"laneCount":5}
+{"level":"info","message":"ResourceBudgetManager initialized","timestamp":"2025-11-03T22:25:28.891Z","maxRssMb":512,"globalConcurrencyLimit":32,"laneCount":5}
+{"level":"info","message":"Worker call slot acquired","timestamp":"2025-11-03T22:25:28.891Z","contextId":"ctx_1762208728891_onphpon11","taskId":"task-1","lane":"tool_call","globalConcurrency":1}
+{"level":"info","message":"Worker call slot released","timestamp":"2025-11-03T22:25:28.893Z","contextId":"ctx_1762208728891_onphpon11","taskId":"task-1","lane":"tool_call","durationMs":2,"success":false,"globalConcurrency":0}
+{"level":"info","message":"ResourceBudgetManager initialized","timestamp":"2025-11-03T22:25:28.893Z","maxRssMb":512,"globalConcurrencyLimit":32,"laneCount":5}
+{"level":"info","message":"Worker call slot acquired","timestamp":"2025-11-03T22:25:28.893Z","contextId":"ctx_1762208728893_8ptf7n8e1","taskId":"task-1","lane":"tool_call","globalConcurrency":1}
+{"level":"info","message":"Worker call slot released","timestamp":"2025-11-03T22:25:28.893Z","contextId":"ctx_1762208728893_8ptf7n8e1","taskId":"task-1","lane":"tool_call","durationMs":0,"success":false,"globalConcurrency":0}
+{"level":"info","message":"ResourceBudgetManager initialized","timestamp":"2025-11-03T22:25:28.893Z","maxRssMb":512,"globalConcurrencyLimit":32,"laneCount":5}
+{"level":"info","message":"ResourceBudgetManager initialized","timestamp":"2025-11-03T22:25:28.893Z","maxRssMb":512,"globalConcurrencyLimit":32,"laneCount":5}
+{"level":"info","message":"Worker call slot acquired","timestamp":"2025-11-03T22:25:28.893Z","contextId":"ctx_1762208728893_g7d25em0b","taskId":"task-1","lane":"tool_call","globalConcurrency":1}
+{"level":"info","message":"Worker call slot released","timestamp":"2025-11-03T22:25:28.893Z","contextId":"ctx_1762208728893_g7d25em0b","taskId":"task-1","lane":"tool_call","durationMs":0,"success":true,"globalConcurrency":0}
+{"level":"info","message":"ResourceBudgetManager initialized","timestamp":"2025-11-03T22:25:28.893Z","maxRssMb":512,"globalConcurrencyLimit":32,"laneCount":5}
+{"level":"info","message":"ResourceBudgetManager initialized","timestamp":"2025-11-03T22:25:28.894Z","maxRssMb":512,"globalConcurrencyLimit":32,"laneCount":5}
+{"level":"info","message":"Worker call slot acquired","timestamp":"2025-11-03T22:25:28.894Z","contextId":"ctx_1762208728894_wlgesmytk","taskId":"task-1","lane":"tool_call","globalConcurrency":1}
+{"level":"info","message":"Worker call slot released","timestamp":"2025-11-03T22:25:28.894Z","contextId":"ctx_1762208728894_wlgesmytk","taskId":"task-1","lane":"tool_call","durationMs":0,"success":true,"globalConcurrency":0}
+ ✓ src/observability/resource_budgets.test.ts (25 tests) 110ms
+{"level":"info","message":"No incident log found, skipping failure pattern analysis","timestamp":"2025-11-03T22:25:28.958Z"}
+{"level":"info","message":"Lens gap report saved to /var/folders/tm/nb2dbm2j49sf09rrzldwqz7m0000gn/T/lens-gap-test-tyoGET/state/analytics/lens_gap_report.json","timestamp":"2025-11-03T22:25:28.959Z"}
+{"level":"info","message":"Lens gap report saved to /var/folders/tm/nb2dbm2j49sf09rrzldwqz7m0000gn/T/lens-gap-test-Hgnt14/state/analytics/lens_gap_report.json","timestamp":"2025-11-03T22:25:28.961Z"}
+{"level":"info","message":"Lens gap report saved to /var/folders/tm/nb2dbm2j49sf09rrzldwqz7m0000gn/T/lens-gap-test-5qY4vh/state/analytics/lens_gap_report.json","timestamp":"2025-11-03T22:25:28.962Z"}
+{"level":"info","message":"Lens gap report saved to /var/folders/tm/nb2dbm2j49sf09rrzldwqz7m0000gn/T/lens-gap-test-jkm6pq/state/analytics/lens_gap_report.json","timestamp":"2025-11-03T22:25:28.963Z"}
+{"level":"info","message":"No incident log found, skipping failure pattern analysis","timestamp":"2025-11-03T22:25:28.964Z"}
+{"level":"info","message":"Lens gap report saved to /var/folders/tm/nb2dbm2j49sf09rrzldwqz7m0000gn/T/lens-gap-test-Ed2Ers/state/analytics/lens_gap_report.json","timestamp":"2025-11-03T22:25:28.964Z"}
+{"level":"info","message":"Lens gap report saved to /var/folders/tm/nb2dbm2j49sf09rrzldwqz7m0000gn/T/lens-gap-test-MxQhkT/state/analytics/lens_gap_report.json","timestamp":"2025-11-03T22:25:28.966Z"}
+{"level":"info","message":"Lens gap report saved to /var/folders/tm/nb2dbm2j49sf09rrzldwqz7m0000gn/T/lens-gap-test-VM8hJm/state/analytics/lens_gap_report.json","timestamp":"2025-11-03T22:25:28.967Z"}
+{"level":"info","message":"No incident log found, skipping failure pattern analysis","timestamp":"2025-11-03T22:25:28.967Z"}
+{"level":"info","message":"Lens gap report saved to /var/folders/tm/nb2dbm2j49sf09rrzldwqz7m0000gn/T/lens-gap-test-f5H6lI/state/analytics/lens_gap_report.json","timestamp":"2025-11-03T22:25:28.968Z"}
+{"level":"info","message":"No incident log found, skipping failure pattern analysis","timestamp":"2025-11-03T22:25:28.969Z"}
+{"level":"info","message":"Lens gap report saved to /var/folders/tm/nb2dbm2j49sf09rrzldwqz7m0000gn/T/lens-gap-test-cJivyr/state/analytics/lens_gap_report.json","timestamp":"2025-11-03T22:25:28.969Z"}
+{"level":"info","message":"Lens gap report saved to /var/folders/tm/nb2dbm2j49sf09rrzldwqz7m0000gn/T/lens-gap-test-F39Ksz/state/analytics/lens_gap_report.json","timestamp":"2025-11-03T22:25:28.970Z"}
+{"level":"warning","message":"⚠️ CRITICAL GAPS detected in decision framework: Security","timestamp":"2025-11-03T22:25:28.970Z"}
+{"level":"info","message":"No incident log found, skipping failure pattern analysis","timestamp":"2025-11-03T22:25:28.971Z"}
+{"level":"info","message":"Lens gap report saved to /var/folders/tm/nb2dbm2j49sf09rrzldwqz7m0000gn/T/lens-gap-test-WWR7gZ/state/analytics/lens_gap_report.json","timestamp":"2025-11-03T22:25:28.971Z"}
+{"level":"info","message":"No incident log found, skipping failure pattern analysis","timestamp":"2025-11-03T22:25:28.972Z"}
+{"level":"info","message":"Lens gap report saved to /var/folders/tm/nb2dbm2j49sf09rrzldwqz7m0000gn/T/lens-gap-test-VMIHqU/state/analytics/lens_gap_report.json","timestamp":"2025-11-03T22:25:28.972Z"}
+ ✓ src/orchestrator/lens_gap_detector.test.ts (21 tests | 9 skipped) 16ms
+ ✓ src/state/idempotency_backend.test.ts (27 tests) 44ms
+ ✓ src/tests/autopilot_modeling_reality_integration.test.ts (6 tests) 111ms
+{"level":"warning","message":"Failed to load domain registry, using defaults","timestamp":"2025-11-03T22:25:29.085Z","error":{"errno":-2,"code":"ENOENT","syscall":"open","path":"/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/tools/wvo_mcp/state/domain_expertise.yaml"}}
+{"level":"warning","message":"Failed to load domain registry, using defaults","timestamp":"2025-11-03T22:25:29.087Z","error":{"errno":-2,"code":"ENOENT","syscall":"open","path":"/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/tools/wvo_mcp/state/domain_expertise.yaml"}}
+{"level":"warning","message":"Failed to load domain registry, using defaults","timestamp":"2025-11-03T22:25:29.090Z","error":{"errno":-2,"code":"ENOENT","syscall":"open","path":"/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/tools/wvo_mcp/state/domain_expertise.yaml"}}
+{"level":"warning","message":"Failed to load domain registry, using defaults","timestamp":"2025-11-03T22:25:29.090Z","error":{"errno":-2,"code":"ENOENT","syscall":"open","path":"/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/tools/wvo_mcp/state/domain_expertise.yaml"}}
+{"level":"warning","message":"Failed to load domain registry, using defaults","timestamp":"2025-11-03T22:25:29.092Z","error":{"errno":-2,"code":"ENOENT","syscall":"open","path":"/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/tools/wvo_mcp/state/domain_expertise.yaml"}}
+{"level":"info","message":"Running multi-domain genius-level review","timestamp":"2025-11-03T22:25:29.092Z","taskId":"T1","domains":["statistics_generalized_additive_models","statistics_timeseries","domain_meteorology"]}
+{"level":"info","message":"Running GAM Specialist review","timestamp":"2025-11-03T22:25:29.092Z","taskId":"T1"}
+{"level":"info","message":"Running Time Series Statistician review","timestamp":"2025-11-03T22:25:29.092Z","taskId":"T1"}
+{"level":"info","message":"Running Meteorology Expert review","timestamp":"2025-11-03T22:25:29.092Z","taskId":"T1"}
+{"level":"warning","message":"Failed to load domain registry, using defaults","timestamp":"2025-11-03T22:25:29.105Z","error":{"errno":-2,"code":"ENOENT","syscall":"open","path":"/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/tools/wvo_mcp/state/domain_expertise.yaml"}}
+{"level":"info","message":"Running multi-domain genius-level review","timestamp":"2025-11-03T22:25:29.105Z","taskId":"T2","domains":["software_architecture","philosophy_systems_thinking","practitioner_production"]}
+{"level":"info","message":"Running Software Architect review","timestamp":"2025-11-03T22:25:29.105Z","taskId":"T2"}
+{"level":"info","message":"Running Systems Thinker review","timestamp":"2025-11-03T22:25:29.105Z","taskId":"T2"}
+{"level":"info","message":"Running Production Practitioner review","timestamp":"2025-11-03T22:25:29.106Z","taskId":"T2"}
+{"level":"warning","message":"Failed to load domain registry, using defaults","timestamp":"2025-11-03T22:25:29.107Z","error":{"errno":-2,"code":"ENOENT","syscall":"open","path":"/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/tools/wvo_mcp/state/domain_expertise.yaml"}}
+{"level":"warning","message":"Failed to load domain registry, using defaults","timestamp":"2025-11-03T22:25:29.108Z","error":{"errno":-2,"code":"ENOENT","syscall":"open","path":"/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/tools/wvo_mcp/state/domain_expertise.yaml"}}
+{"level":"warning","message":"Failed to load domain registry, using defaults","timestamp":"2025-11-03T22:25:29.109Z","error":{"errno":-2,"code":"ENOENT","syscall":"open","path":"/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/tools/wvo_mcp/state/domain_expertise.yaml"}}
+{"level":"warning","message":"Failed to load prompt template nonexistent","timestamp":"2025-11-03T22:25:29.109Z","error":{"errno":-2,"code":"ENOENT","syscall":"open","path":"/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/tools/wvo_mcp/prompts/genius_reviews/nonexistent.md"}}
+{"level":"warning","message":"Failed to load domain registry, using defaults","timestamp":"2025-11-03T22:25:29.111Z","error":{"errno":-2,"code":"ENOENT","syscall":"open","path":"/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/tools/wvo_mcp/state/domain_expertise.yaml"}}
+{"level":"warning","message":"Failed to load domain registry, using defaults","timestamp":"2025-11-03T22:25:29.111Z","error":{"errno":-2,"code":"ENOENT","syscall":"open","path":"/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/tools/wvo_mcp/state/domain_expertise.yaml"}}
+{"level":"info","message":"Running multi-domain genius-level review","timestamp":"2025-11-03T22:25:29.111Z","taskId":"T3","domains":[]}
+{"level":"warning","message":"No domains found for review, using defaults","timestamp":"2025-11-03T22:25:29.111Z","taskId":"T3"}
+{"level":"warning","message":"Failed to load domain registry, using defaults","timestamp":"2025-11-03T22:25:29.112Z","error":{"errno":-2,"code":"ENOENT","syscall":"open","path":"/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/tools/wvo_mcp/state/domain_expertise.yaml"}}
+{"level":"info","message":"Running multi-domain genius-level review","timestamp":"2025-11-03T22:25:29.112Z","taskId":"T4","domains":["software_architecture","philosophy_systems_thinking","practitioner_production"]}
+{"level":"info","message":"Running Software Architect review","timestamp":"2025-11-03T22:25:29.112Z","taskId":"T4"}
+{"level":"info","message":"Running Systems Thinker review","timestamp":"2025-11-03T22:25:29.112Z","taskId":"T4"}
+{"level":"info","message":"Running Production Practitioner review","timestamp":"2025-11-03T22:25:29.112Z","taskId":"T4"}
+{"level":"warning","message":"Failed to load domain registry, using defaults","timestamp":"2025-11-03T22:25:29.114Z","error":{"errno":-2,"code":"ENOENT","syscall":"open","path":"/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/tools/wvo_mcp/state/domain_expertise.yaml"}}
+{"level":"warning","message":"Failed to load domain registry, using defaults","timestamp":"2025-11-03T22:25:29.115Z","error":{"errno":-2,"code":"ENOENT","syscall":"open","path":"/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/tools/wvo_mcp/state/domain_expertise.yaml"}}
+{"level":"warning","message":"Failed to load domain registry, using defaults","timestamp":"2025-11-03T22:25:29.116Z","error":{"errno":-2,"code":"ENOENT","syscall":"open","path":"/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/tools/wvo_mcp/state/domain_expertise.yaml"}}
+{"level":"warning","message":"Failed to load domain registry, using defaults","timestamp":"2025-11-03T22:25:29.117Z","error":{"errno":-2,"code":"ENOENT","syscall":"open","path":"/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/tools/wvo_mcp/state/domain_expertise.yaml"}}
+{"level":"info","message":"Running multi-domain genius-level review","timestamp":"2025-11-03T22:25:29.117Z","taskId":"T-concurrent-0","domains":["software_architecture","philosophy_systems_thinking","practitioner_production"]}
+{"level":"info","message":"Running Software Architect review","timestamp":"2025-11-03T22:25:29.117Z","taskId":"T-concurrent-0"}
+{"level":"info","message":"Running Systems Thinker review","timestamp":"2025-11-03T22:25:29.117Z","taskId":"T-concurrent-0"}
+{"level":"info","message":"Running Production Practitioner review","timestamp":"2025-11-03T22:25:29.117Z","taskId":"T-concurrent-0"}
+{"level":"info","message":"Running multi-domain genius-level review","timestamp":"2025-11-03T22:25:29.117Z","taskId":"T-concurrent-1","domains":["software_architecture","philosophy_systems_thinking","practitioner_production"]}
+{"level":"info","message":"Running Software Architect review","timestamp":"2025-11-03T22:25:29.117Z","taskId":"T-concurrent-1"}
+{"level":"info","message":"Running Systems Thinker review","timestamp":"2025-11-03T22:25:29.117Z","taskId":"T-concurrent-1"}
+{"level":"info","message":"Running Production Practitioner review","timestamp":"2025-11-03T22:25:29.117Z","taskId":"T-concurrent-1"}
+{"level":"info","message":"Running multi-domain genius-level review","timestamp":"2025-11-03T22:25:29.117Z","taskId":"T-concurrent-2","domains":["software_architecture","philosophy_systems_thinking","practitioner_production"]}
+{"level":"info","message":"Running Software Architect review","timestamp":"2025-11-03T22:25:29.117Z","taskId":"T-concurrent-2"}
+{"level":"info","message":"Running Systems Thinker review","timestamp":"2025-11-03T22:25:29.117Z","taskId":"T-concurrent-2"}
+{"level":"info","message":"Running Production Practitioner review","timestamp":"2025-11-03T22:25:29.117Z","taskId":"T-concurrent-2"}
+{"level":"info","message":"Running multi-domain genius-level review","timestamp":"2025-11-03T22:25:29.117Z","taskId":"T-concurrent-3","domains":["software_architecture","philosophy_systems_thinking","practitioner_production"]}
+{"level":"info","message":"Running Software Architect review","timestamp":"2025-11-03T22:25:29.117Z","taskId":"T-concurrent-3"}
+{"level":"info","message":"Running Systems Thinker review","timestamp":"2025-11-03T22:25:29.117Z","taskId":"T-concurrent-3"}
+{"level":"info","message":"Running Production Practitioner review","timestamp":"2025-11-03T22:25:29.117Z","taskId":"T-concurrent-3"}
+{"level":"info","message":"Running multi-domain genius-level review","timestamp":"2025-11-03T22:25:29.117Z","taskId":"T-concurrent-4","domains":["software_architecture","philosophy_systems_thinking","practitioner_production"]}
+{"level":"info","message":"Running Software Architect review","timestamp":"2025-11-03T22:25:29.117Z","taskId":"T-concurrent-4"}
+{"level":"info","message":"Running Systems Thinker review","timestamp":"2025-11-03T22:25:29.117Z","taskId":"T-concurrent-4"}
+{"level":"info","message":"Running Production Practitioner review","timestamp":"2025-11-03T22:25:29.117Z","taskId":"T-concurrent-4"}
+{"level":"warning","message":"Failed to load domain registry, using defaults","timestamp":"2025-11-03T22:25:29.118Z","error":{"errno":-2,"code":"ENOENT","syscall":"open","path":"/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/tools/wvo_mcp/state/domain_expertise.yaml"}}
+{"level":"warning","message":"Failed to load domain registry, using defaults","timestamp":"2025-11-03T22:25:29.119Z","error":{"errno":-2,"code":"ENOENT","syscall":"open","path":"/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/tools/wvo_mcp/state/domain_expertise.yaml"}}
+{"level":"warning","message":"Failed to load domain registry, using defaults","timestamp":"2025-11-03T22:25:29.120Z","error":{"errno":-2,"code":"ENOENT","syscall":"open","path":"/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/tools/wvo_mcp/state/domain_expertise.yaml"}}
+{"level":"warning","message":"Failed to load domain registry, using defaults","timestamp":"2025-11-03T22:25:29.121Z","error":{"errno":-2,"code":"ENOENT","syscall":"open","path":"/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/tools/wvo_mcp/state/domain_expertise.yaml"}}
+{"level":"info","message":"Running multi-domain genius-level review","timestamp":"2025-11-03T22:25:29.121Z","taskId":"T-integration","domains":["statistics_generalized_additive_models","statistics_timeseries","domain_meteorology"]}
+{"level":"info","message":"Running GAM Specialist review","timestamp":"2025-11-03T22:25:29.121Z","taskId":"T-integration"}
+{"level":"info","message":"Running Time Series Statistician review","timestamp":"2025-11-03T22:25:29.121Z","taskId":"T-integration"}
+{"level":"info","message":"Running Meteorology Expert review","timestamp":"2025-11-03T22:25:29.122Z","taskId":"T-integration"}
+ ✓ src/orchestrator/domain_expert_reviewer.test.ts (18 tests) 40ms
+ ✓ src/tests/upgrade_preflight.test.ts (6 tests) 25ms
+ ✓ src/state/idempotency_middleware.test.ts (28 tests) 21ms
+ ✓ src/lsp/lsp_manager.test.ts (9 tests) 2ms
+ ✓ src/lsp/tsserver_proxy.test.ts (19 tests) 12ms
+ ✓ src/lsp/pyright_proxy.test.ts (27 tests) 17ms
+ ✓ src/utils/output_validator.test.ts (63 tests) 11ms
+ ✓ src/orchestrator/seven_lens_evaluator.test.ts (26 tests) 6ms
+ ✓ src/critics/utils/artifact_validator.test.ts (2 tests) 15ms
+{"level":"info","message":"ErrorAnalysisWorker analyzing error","timestamp":"2025-11-03T22:25:29.473Z","type":"linter","taskId":"T1.1.1","size":1146}
+{"level":"info","message":"ErrorAnalysisWorker analyzing error","timestamp":"2025-11-03T22:25:29.475Z","type":"linter","taskId":"T1.1.1","size":246}
+{"level":"info","message":"ErrorAnalysisWorker analyzing error","timestamp":"2025-11-03T22:25:29.475Z","type":"typecheck","taskId":"T1.1.1","size":486}
+ ✓ src/state/heavy_queue_store.test.ts (1 test) 10ms
+{"level":"info","message":"ErrorAnalysisWorker analyzing error","timestamp":"2025-11-03T22:25:29.475Z","type":"test_failure","taskId":"T1.1.1","size":264}
+{"level":"info","message":"ErrorAnalysisWorker analyzing error","timestamp":"2025-11-03T22:25:29.476Z","type":"test_failure","taskId":"T1.1.1","size":55}
+{"level":"info","message":"ErrorAnalysisWorker analyzing error","timestamp":"2025-11-03T22:25:29.476Z","type":"build_failure","taskId":"T1.1.1","size":173}
+{"level":"info","message":"ErrorAnalysisWorker analyzing error","timestamp":"2025-11-03T22:25:29.476Z","type":"unknown","taskId":"T1.1.1","size":39}
+{"level":"info","message":"ErrorAnalysisWorker analyzing error","timestamp":"2025-11-03T22:25:29.476Z","type":"network_error","taskId":"T1.1.1","size":50}
+{"level":"info","message":"ErrorAnalysisWorker analyzing error","timestamp":"2025-11-03T22:25:29.476Z","type":"linter","taskId":"T1.1.1","size":18}
+{"level":"info","message":"ErrorAnalysisWorker analyzing error","timestamp":"2025-11-03T22:25:29.476Z","type":"linter","taskId":"T1.1.1","size":18}
+{"level":"info","message":"ErrorAnalysisWorker analyzing error","timestamp":"2025-11-03T22:25:29.476Z","type":"linter","taskId":"T1.1.1","size":18}
+{"level":"info","message":"ErrorAnalysisWorker analyzing error","timestamp":"2025-11-03T22:25:29.477Z","type":"unknown","taskId":"T1.1.1","size":7}
+{"level":"info","message":"ErrorAnalysisWorker analyzing error","timestamp":"2025-11-03T22:25:29.477Z","type":"unknown","taskId":"T1.1.1","size":7}
+{"level":"info","message":"ErrorAnalysisWorker analyzing error","timestamp":"2025-11-03T22:25:29.478Z","type":"unknown","taskId":"T1.1.1","size":7}
+{"level":"info","message":"ErrorAnalysisWorker analyzing error","timestamp":"2025-11-03T22:25:29.479Z","type":"unknown","taskId":"T1.1.1","size":5}
+{"level":"info","message":"ErrorAnalysisWorker analyzing error","timestamp":"2025-11-03T22:25:29.479Z","type":"linter","taskId":"T1.1.1","size":3339}
+{"level":"info","message":"ErrorAnalysisWorker analyzing error","timestamp":"2025-11-03T22:25:29.482Z","type":"typecheck","taskId":"T1.1.1","size":1567}
+{"level":"info","message":"ErrorAnalysisWorker analyzing error","timestamp":"2025-11-03T22:25:29.483Z","type":"linter","taskId":"T1.1.1","size":2527}
+ ✓ src/orchestrator/error_analysis_worker.test.ts (14 tests) 12ms
+ ✓ src/orchestrator/feature_gates.test.ts (31 tests) 6ms
+ ✓ src/tests/worker_client.test.ts (4 tests) 9ms
+ ✓ src/utils/device_profile.test.ts (25 tests) 5ms
+ ✓ src/orchestrator/priority_scheduler.test.ts (18 tests) 12ms
+{"level":"info","message":"Holistic review task scheduled","timestamp":"2024-01-01T00:00:00.010Z","reviewTaskId":"orchestrator:review:group:e5e7620b-1b24-4173-8933-aac7287389c4","scope":"group","scopeLabel":"Epic EP-42","triggerReasons":["Completed 2 tasks since last review"],"taskCount":2}
+{"level":"info","message":"Holistic review task scheduled","timestamp":"2024-01-01T00:00:00.005Z","reviewTaskId":"orchestrator:review:group:67a885c2-902a-457a-91de-84c2c4a29589","scope":"group","scopeLabel":"Epic EP-77","triggerReasons":["Completed 2 tasks since last review"],"taskCount":2}
+{"level":"info","message":"Holistic review completed","timestamp":"2024-01-01T00:00:00.010Z","reviewTaskId":"orchestrator:review:group:67a885c2-902a-457a-91de-84c2c4a29589","scope":"group"}
+{"level":"info","message":"Holistic review (dry-run) would be scheduled","timestamp":"2024-01-01T00:00:00.000Z","reviewId":"orchestrator:review:group:7c599098-e18b-4d5b-b741-c9b3bfe5645b","scope":"group","scopeLabel":"Epic EP-DRY","triggerReasons":["Completed 1 tasks since last review"],"tasks":["dry-task-1"]}
+ ✓ src/orchestrator/holistic_review_manager.test.ts (3 tests) 6ms
+ ✓ src/tests/policy_engine_critic_approval.test.ts (23 tests) 4ms
+ ✓ src/orchestrator/context_assembler.feature_gates.test.ts (3 tests) 2ms
+ ✓ src/critics/weather_coverage.test.ts (5 tests) 4ms
+ ✓ src/utils/browser.feature_gates.test.ts (4 tests) 3ms
+ ✓ src/critics/health_check.test.ts (4 tests) 2ms
+
+ Test Files  59 passed (59)
+      Tests  985 passed | 9 skipped (994)
+   Start at  16:25:23
+   Duration  6.32s (transform 2.01s, setup 0ms, collect 4.12s, tests 27.01s, environment 8ms, prepare 3.26s)
+

@@ -1,0 +1,5 @@
+{"level":"info","message":"WorkerManager configured executor pool","timestamp":"2025-11-03T22:18:48.359Z","desiredExecutors":0}
+{"level":"info","message":"WVO MCP server booting","timestamp":"2025-11-03T22:18:48.365Z","workspace":"/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/tools/wvo_mcp","entry":"worker_manager"}
+{"level":"info","message":"Active worker ready","timestamp":"2025-11-03T22:18:48.692Z","pid":76153}
+{"level":"info","message":"WVO MCP server ready","timestamp":"2025-11-03T22:18:48.693Z","workspace":"/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/tools/wvo_mcp","active_worker_pid":76153}
+{"level":"warning","message":"Active worker exited","timestamp":"2025-11-03T22:21:34.279Z","code":0,"signal":null,"reason":null}
