@@ -1,0 +1,5 @@
+2025-11-03T14:36-06:00 attempt to push snapshot branch/tag/notes failed:
+  git push origin worktree-snapshot-20251103-143623 --tags
+  git push origin refs/notes/*:refs/notes/*
+Error: Could not resolve host github.com (offline sandbox).
+Snapshot kept locally: branch worktree-snapshot-20251103-143623, tag snapshot/worktree-snapshot-20251103-143623, tarball state/backups/worktree-snapshot-20251103-143623.tar.gz.
