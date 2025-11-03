@@ -4,9 +4,15 @@
     "npm": ">=10.0.0"
   },
   "devDependencies": {
+    "tsx": "^4.19.1",
     "vitest": "^4.0.1"
   },
   "overrides": {
     "esbuild": "0.25.11"
+  },
+  "scripts": {
+    "check:structure": "node --import tsx tools/wvo_mcp/scripts/check_structure_integrity.ts",
+    "check:deps": "node --import tsx tools/wvo_mcp/scripts/check_dependency_rules.ts",
+    "check:owners": "node --import tsx tools/wvo_mcp/scripts/check_ownership_and_ttls.ts"
   }
 }

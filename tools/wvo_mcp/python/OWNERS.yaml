@@ -1,0 +1,6 @@
+owners:
+  - steward: autopilot-platform
+    review_cycle_days: 30
+    next_review: 2025-11-17
+notes:
+  - "Python test env maintained by Autopilot Platform"

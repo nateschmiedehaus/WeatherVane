@@ -1,0 +1,24 @@
+{
+  "suite": "structure",
+  "dry": false,
+  "ok": true,
+  "startedAt": "2025-11-03T22:57:27.743Z",
+  "finishedAt": "2025-11-03T22:57:27.765Z",
+  "checks": [
+    {
+      "name": "git_tree_policy_present",
+      "ok": true,
+      "details": "/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/meta/git_tree_policy.md"
+    },
+    {
+      "name": "scan_exclusions_present",
+      "ok": true,
+      "details": "/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/meta/scan_exclusions.yaml"
+    },
+    {
+      "name": "evidence_directory_exists",
+      "ok": true,
+      "details": "/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/state/evidence"
+    }
+  ]
+}

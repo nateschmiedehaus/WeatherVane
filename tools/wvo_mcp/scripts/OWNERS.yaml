@@ -1,0 +1,6 @@
+owners:
+  - steward: autopilot-platform
+    review_cycle_days: 14
+    next_review: 2025-11-17
+notes:
+  - "Script utilities owned by Autopilot Platform"

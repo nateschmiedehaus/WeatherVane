@@ -1,0 +1,8 @@
+{
+  "suite": "structure",
+  "dry": true,
+  "ok": true,
+  "startedAt": "2025-11-03T22:55:29.324Z",
+  "finishedAt": "2025-11-03T22:55:29.334Z",
+  "checks": []
+}

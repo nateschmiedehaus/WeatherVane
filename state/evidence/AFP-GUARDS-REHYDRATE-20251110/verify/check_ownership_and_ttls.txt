@@ -1,0 +1,29 @@
+{
+  "suite": "ownership",
+  "dry": false,
+  "ok": true,
+  "startedAt": "2025-11-03T22:57:39.875Z",
+  "finishedAt": "2025-11-03T22:57:39.892Z",
+  "checks": [
+    {
+      "name": "owners_exists:tools/wvo_mcp/OWNERS.yaml",
+      "ok": true,
+      "details": "/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/tools/wvo_mcp/OWNERS.yaml"
+    },
+    {
+      "name": "owners_exists:tools/wvo_mcp/scripts/OWNERS.yaml",
+      "ok": true,
+      "details": "/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/tools/wvo_mcp/scripts/OWNERS.yaml"
+    },
+    {
+      "name": "owners_exists:tools/wvo_mcp/python/OWNERS.yaml",
+      "ok": true,
+      "details": "/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/tools/wvo_mcp/python/OWNERS.yaml"
+    },
+    {
+      "name": "owners_exists:state/automation/OWNERS.yaml",
+      "ok": true,
+      "details": "/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/state/automation/OWNERS.yaml"
+    }
+  ]
+}

@@ -1,0 +1,6 @@
+owners:
+  - steward: autopilot-governance
+    review_cycle_days: 30
+    next_review: 2025-11-17
+notes:
+  - "Automation evidence stewarded by Governance leads"

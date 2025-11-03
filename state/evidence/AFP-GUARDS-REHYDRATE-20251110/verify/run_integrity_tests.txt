@@ -1,0 +1,17 @@
+
+== Python test suite ==
+============================= test session starts ==============================
+platform darwin -- Python 3.11.2, pytest-8.4.2, pluggy-1.6.0
+rootdir: /Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane
+configfile: pyproject.toml
+plugins: anyio-4.11.0
+collected 0 items
+
+=============================== warnings summary ===============================
+state/py/afp-tests/lib/python3.11/site-packages/_pytest/config/__init__.py:1474
+  /Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/state/py/afp-tests/lib/python3.11/site-packages/_pytest/config/__init__.py:1474: PytestConfigWarning: Unknown config option: asyncio_mode
+  
+    self._warn_or_fail_if_strict(f"Unknown config option: {key}\n")
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+============================== 1 warning in 0.03s ==============================

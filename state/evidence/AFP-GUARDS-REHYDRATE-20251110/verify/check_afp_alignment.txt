@@ -1,0 +1,20 @@
+
+node:internal/modules/run_main:107
+    triggerUncaughtException(
+    ^
+Error [ERR_MODULE_NOT_FOUND]: Cannot find module '/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/tools/wvo_mcp/scripts/check_afp_alignment.ts' imported from /Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/
+    at finalizeResolution (node:internal/modules/esm/resolve:274:11)
+    at moduleResolve (node:internal/modules/esm/resolve:864:10)
+    at defaultResolve (node:internal/modules/esm/resolve:990:11)
+    at nextResolve (node:internal/modules/esm/hooks:748:28)
+    at resolveBase (file:///Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/node_modules/tsx/dist/esm/index.mjs?1762211438895:2:3212)
+    at resolveDirectory (file:///Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/node_modules/tsx/dist/esm/index.mjs?1762211438895:2:3584)
+    at resolveTsPaths (file:///Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/node_modules/tsx/dist/esm/index.mjs?1762211438895:2:4073)
+    at resolve (file:///Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/node_modules/tsx/dist/esm/index.mjs?1762211438895:2:4447)
+    at nextResolve (node:internal/modules/esm/hooks:748:28)
+    at Hooks.resolve (node:internal/modules/esm/hooks:240:30) {
+  code: 'ERR_MODULE_NOT_FOUND',
+  url: 'file:///Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/tools/wvo_mcp/scripts/check_afp_alignment.ts'
+}
+
+Node.js v24.10.0
