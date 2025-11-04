@@ -1,0 +1,4 @@
+## task/roadmap-status-update-20251114
+ M state/roadmap.yaml
+?? meta/adr/
+?? state/evidence/AFP-BOOTSTRAP-UNBLOCK-20251128/

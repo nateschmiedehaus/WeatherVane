@@ -1,0 +1,2 @@
+git status -sb
+git diff state/roadmap.yaml
