@@ -152,6 +152,71 @@ epics:
             domain: product
             description: "Validation phase: Test and verify [Critics] Systemic performance
               remediation"
+  - id: E-AUTOPILOT-BOOTSTRAP
+    title: Autopilot Bootstrap
+    status: in_progress
+    domain: mcp
+    milestones:
+      - id: E-AUTOPILOT-BOOTSTRAP-mvp
+        title: MVP Bootstrap Stream
+        status: in_progress
+        tasks:
+          - id: AFP-AUTOPILOT-MVP-STRANGLER-20251115
+            title: "Autopilot MVP clean-room integration"
+            status: blocked
+            dependencies:
+              - AFP-MVP-SUPERVISOR-SCAFFOLD
+              - AFP-MVP-AGENTS-SCAFFOLD
+              - AFP-MVP-LIBS-SCAFFOLD
+              - AFP-MVP-ADAPTERS-SCAFFOLD
+            exit_criteria: []
+            domain: mcp
+            description: "Meta task aggregating supervisor/agents/libs/adapters scaffolds; closes after demo passes CI."
+          - id: AFP-MVP-SUPERVISOR-SCAFFOLD
+            title: "MVP Supervisor scaffold"
+            status: pending
+            dependencies: []
+            exit_criteria: []
+            domain: mcp
+            description: "Introduce autopilot_mvp/supervisor with lease management and evidence harness stubs."
+          - id: AFP-MVP-AGENTS-SCAFFOLD
+            title: "MVP Agents scaffold"
+            status: pending
+            dependencies: []
+            exit_criteria: []
+            domain: mcp
+            description: "Stub planner, builder, reviewer, SRE agents referencing shared concepts."
+          - id: AFP-MVP-LIBS-SCAFFOLD
+            title: "MVP Libs scaffold"
+            status: pending
+            dependencies: []
+            exit_criteria: []
+            domain: mcp
+            description: "Shared MVP utilities (telemetry hooks, common types)."
+          - id: AFP-MVP-ADAPTERS-SCAFFOLD
+            title: "MVP Adapters scaffold"
+            status: pending
+            dependencies: []
+            exit_criteria: []
+            domain: mcp
+            description: "Adapters bridging legacy orchestrator paths with autopilot_mvp stubs; TTL 90 days."
+          - id: AFP-DPS-BUILD-20251116
+            title: "Dynamic Prompt System build"
+            status: blocked
+            dependencies:
+              - AFP-MVP-SUPERVISOR-SCAFFOLD
+              - AFP-MVP-AGENTS-SCAFFOLD
+            exit_criteria: []
+            domain: mcp
+            description: "Scaffold DPS templates/registry once supervisor + agent stubs exist."
+          - id: AFP-MEMORY-CORE-20251117
+            title: "Memory core bootstrap"
+            status: blocked
+            dependencies:
+              - AFP-DPS-BUILD-20251116
+            exit_criteria: []
+            domain: mcp
+            description: "Semantic memory and lesson registry once DPS schemas compile."
           - id: CRIT-PERF-TESTS-fcee61
             title: "[Critic:tests] Restore performance"
             status: in_progress
