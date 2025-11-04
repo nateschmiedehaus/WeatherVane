@@ -15,8 +15,12 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # Ensure our vendored wheels are on sys.path before importing heavy deps.
 export PYTHONPATH="${ROOT_DIR}/.deps:${PYTHONPATH:-}"
 
+if [[ -z "${PYTHON_BIN:-}" ]]; then
+  PYTHON_BIN="$("${ROOT_DIR}/scripts/python_toolchain.sh")"
+fi
+
 # Check that Shapely can be imported without crashing.
-python - <<'PY'
+"${PYTHON_BIN}" - <<'PY'
 import importlib.util
 spec = importlib.util.find_spec("shapely")
 if spec is None:
@@ -28,7 +32,7 @@ from shapely.strtree import STRtree  # noqa: F401
 PY
 
 # Ensure FeatureBuilder can load – this pulls in GeographyMapper and validates GEOS bindings.
-python - <<'PY'
+"${PYTHON_BIN}" - <<'PY'
 from shared.feature_store.feature_builder import FeatureBuilder  # noqa: F401
 PY
 
@@ -40,4 +44,4 @@ PY
 # This is necessary because conftest.py runs AFTER imports during collection phase.
 cd "${ROOT_DIR}"
 export PYTHONPATH="${ROOT_DIR}/.deps:${ROOT_DIR}:${PYTHONPATH:-}"
-python -m pytest tests/model/test_train_weather_mmm.py::test_train_weather_mmm_persists_artifacts -q
+"${PYTHON_BIN}" -m pytest tests/model/test_train_weather_mmm.py::test_train_weather_mmm_persists_artifacts -q
