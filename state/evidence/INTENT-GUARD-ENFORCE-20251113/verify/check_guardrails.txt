@@ -1,0 +1,3 @@
+Guardrail validation error: Error: meta/dep_rules.yaml not found: ENOENT: no such file or directory, stat '/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/meta/dep_rules.yaml'
+    at ensureFileExists (file:///Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/tools/scripts/check_guardrails.mjs:22:11)
+    at async main (file:///Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/tools/scripts/check_guardrails.mjs:49:5)
