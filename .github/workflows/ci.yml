@@ -1,0 +1,119 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install root dependencies
+        run: npm install
+
+      - name: Install apps/web dependencies
+        run: npm install
+        working-directory: apps/web
+
+      - name: Install tools/wvo_mcp dependencies
+        run: npm install
+        working-directory: tools/wvo_mcp
+
+      - name: Ensure Playwright browsers
+        run: bash scripts/ensure_playwright_browsers.sh
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Cache Python wheels
+        id: wheel-cache
+        uses: actions/cache@v4
+        with:
+          path: .wheels
+          key: wheels-${{ runner.os }}-${{ hashFiles('requirements.txt') }}
+          restore-keys: |
+            wheels-${{ runner.os }}-
+
+      - name: Build wheel cache
+        if: steps.wheel-cache.outputs.cache-hit != 'true'
+        run: |
+          python -m pip install --upgrade pip
+          pip download -r requirements.txt -d .wheels
+
+      - name: Vitest (autopilot scope)
+        run: node tools/oss_autopilot/scripts/run_vitest.mjs --run --scope=autopilot
+
+      - name: Vitest (web scope)
+        run: node tools/oss_autopilot/scripts/run_vitest.mjs --run --scope=web
+
+      - name: App smoke
+        run: bash scripts/app_smoke_e2e.sh
+
+      - name: Checkpoint validation
+        run: bash scripts/validate_checkpoint.sh
+
+      - name: Delta note enforcement
+        run: node --import tsx tools/wvo_mcp/scripts/check_delta_notes.ts
+
+      - name: Follow-up classification enforcement
+        run: node --import tsx tools/wvo_mcp/scripts/classify_follow_ups.ts --enforce
+
+      - name: Roadmap schema validation
+        run: npm run validate:roadmap
+
+      - name: Roadmap evidence validation
+        run: npm run validate:roadmap-evidence -- --json
+
+      - name: CI TypeScript loader guard
+        run: node --import tsx tools/wvo_mcp/scripts/check_ci_ts_loader.ts --workflow .github/workflows/ci.yml
+
+      - name: Improvement audit runner
+        run: node --import tsx tools/wvo_mcp/scripts/run_review_audit.ts --quiet --output state/automation/audit_report.json
+
+      - name: Quality graph precision gate
+        run: |
+          tmp_dir=$(mktemp -d)
+          mkdir -p "$tmp_dir/state/quality_graph" "$tmp_dir/state/automation"
+          cp tools/wvo_mcp/src/quality_graph/__fixtures__/precision/vectors.jsonl \
+            "$tmp_dir/state/quality_graph/task_vectors.jsonl"
+          node --import tsx tools/wvo_mcp/scripts/check_quality_graph_precision.ts \
+            --workspace-root "$tmp_dir" \
+            --dataset tools/wvo_mcp/src/quality_graph/__fixtures__/precision/dataset.json \
+            --report "$tmp_dir/state/automation/quality_graph_precision_report.json"
+          cat "$tmp_dir/state/automation/quality_graph_precision_report.json"
+
+      - name: Performance regression enforcement
+        run: node --import tsx tools/wvo_mcp/scripts/check_performance_regressions.ts
+
+      - name: Determinism enforcement
+        run: node --import tsx tools/wvo_mcp/scripts/check_determinism.ts --output state/automation/determinism_check.json
+
+      - name: Structural policy enforcement
+        run: node --import tsx tools/wvo_mcp/scripts/check_structural_policy.ts --output state/automation/structural_policy_report.json
+
+      - name: Risk-oracle coverage enforcement
+        run: node --import tsx tools/wvo_mcp/scripts/check_risk_oracle_coverage.ts --output state/automation/oracle_coverage.json --map state/risk_oracle_map.json
+
+      - name: PR metadata enforcement
+        run: node --import tsx tools/wvo_mcp/scripts/check_pr_metadata.ts --output state/automation/pr_metadata_report.json
+
+      - name: Architecture docs enforcement
+        run: |
+          mkdir -p state/automation
+          node --import tsx tools/wvo_mcp/scripts/check_architecture_docs.ts --enforce --json=state/automation/architecture_enforce_report.json
+
+      - name: Integrity batch
+        run: bash tools/wvo_mcp/scripts/run_integrity_tests.sh
