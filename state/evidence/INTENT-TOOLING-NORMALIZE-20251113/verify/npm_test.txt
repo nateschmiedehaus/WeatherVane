@@ -1,0 +1,2 @@
+npm error No workspaces found!
+npm error A complete log of this run can be found in: /Volumes/BigSSD4/nathanielschmiedehaus/.npm/_logs/2025-11-04T12_09_18_858Z-debug-0.log
