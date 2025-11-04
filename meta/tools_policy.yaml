@@ -1,0 +1,47 @@
+phases:
+  STRATEGIZE:
+    allow:
+      - notebooks/**
+      - docs/**
+  SPEC:
+    allow:
+      - docs/**
+      - meta/**
+  PLAN:
+    allow:
+      - docs/**
+      - meta/**
+      - state/evidence/**
+  IMPLEMENT:
+    allow:
+      - apps/**
+      - tools/**
+      - shared/**
+      - state/evidence/**
+    deny:
+      - state/archive/**
+  VERIFY:
+    allow:
+      - tools/**
+      - tests/**
+      - state/evidence/**
+  REVIEW:
+    allow:
+      - docs/**
+      - meta/**
+      - state/evidence/**
+  PR:
+    allow:
+      - docs/**
+      - state/evidence/**
+  MONITOR:
+    allow:
+      - state/evidence/**
+      - state/analytics/**
+quotas:
+  parallel_agents: 1
+  max_loc_delta: 400
+  max_new_files: 5
+secrets:
+  - pattern: "**/*.env"
+  - pattern: "state/**/secrets/**"

@@ -1,0 +1,34 @@
+name: Guardrails
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  guardrails:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - run: npm ci
+      - name: Run guardrail checks
+        run: |
+          mkdir -p state/evidence/guardrails
+          node tools/scripts/check_guardrails.mjs > state/evidence/guardrails/run.log 2>&1 || echo "failed" > guardrails_status
+      - uses: actions/upload-artifact@v4
+        with:
+          name: guardrails-violations
+          path: |
+            state/evidence/guardrails/violations.jsonl
+            state/evidence/guardrails/run.log
+          if-no-files-found: warn
+      - name: Fail if guardrails failed
+        run: |
+          if [ -f guardrails_status ]; then
+            cat state/evidence/guardrails/run.log
+            exit 1
+          fi

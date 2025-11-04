@@ -1,0 +1,6 @@
+Guardrail check failed:
+  - ENOENT: no such file or directory, stat '/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/apps/OWNERS.yaml'
+  - ENOENT: no such file or directory, stat '/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/docs/OWNERS.yaml'
+  - ENOENT: no such file or directory, stat '/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/shared/OWNERS.yaml'
+  - ENOENT: no such file or directory, stat '/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/state/OWNERS.yaml'
+  - ENOENT: no such file or directory, stat '/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/tools/OWNERS.yaml'

@@ -1,0 +1,37 @@
+layers:
+  - name: root
+    allows:
+      - apps/**
+      - tools/**
+      - docs/**
+      - shared/**
+      - state/**
+    depends_on: []
+  - name: tools
+    allows:
+      - tools/**
+      - shared/**
+    depends_on:
+      - root
+  - name: apps
+    allows:
+      - apps/**
+      - shared/**
+    depends_on:
+      - tools
+  - name: shared
+    allows:
+      - shared/**
+    depends_on:
+      - tools
+rules:
+  - description: "Disallow apps importing tools"
+    from: "apps/**"
+    to: "tools/**"
+    action: deny
+  - description: "Warn on cross-app imports"
+    from: "apps/**"
+    to: "apps/**"
+    except:
+      - "apps/**/__tests__/**"
+    action: warn
