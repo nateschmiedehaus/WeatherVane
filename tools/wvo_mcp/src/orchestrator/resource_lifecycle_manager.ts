@@ -14,7 +14,9 @@ import { EventEmitter } from 'node:events';
 import { promises as fs, type WriteStream } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
+
 import { execa, type ExecaChildProcess, type Options as ExecaOptions } from 'execa';
+
 import { logInfo, logWarning, logError } from '../telemetry/logger.js';
 
 export interface ListenerInfo {

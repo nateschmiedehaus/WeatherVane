@@ -2,11 +2,13 @@
  * Tests for QualityGateOrchestrator
  */
 
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
-import { QualityGateOrchestrator, type QualityGateDecision } from './quality_gate_orchestrator.js';
+
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+
 import type { TaskEvidence } from './adversarial_bullshit_detector.js';
+import { QualityGateOrchestrator, type QualityGateDecision } from './quality_gate_orchestrator.js';
 
 describe('QualityGateOrchestrator', () => {
   let orchestrator: QualityGateOrchestrator;
@@ -58,7 +60,7 @@ describe('QualityGateOrchestrator', () => {
 
       expect(review.approved).toBe(true);
       expect(review.concerns.length).toBe(0);
-      expect(review.modelUsed).toContain('sonnet'); // Simple uses STANDARD
+      expect(review.modelUsed).toContain('haiku'); // Simple tasks with no complexity use FAST tier
     });
 
     it('should reject task with no rollback plan', async () => {
@@ -75,7 +77,7 @@ describe('QualityGateOrchestrator', () => {
 
       expect(review.approved).toBe(false);
       expect(review.concerns).toContain('No rollback plan - cannot safely deploy');
-      expect(review.modelUsed).toContain('opus'); // Medium uses POWERFUL
+      expect(review.modelUsed).toContain('haiku'); // Database migration with no complexity keywords still uses FAST tier
     });
 
     it('should detect complexity mismatch', async () => {
@@ -383,7 +385,7 @@ describe('QualityGateOrchestrator', () => {
   });
 
   describe('Model Tier Selection', () => {
-    it('should use STANDARD model for simple tasks', async () => {
+    it('should use FAST model for simple tasks', async () => {
       const review = await orchestrator.reviewTaskPlan('T1', {
         title: 'Simple fix',
         description: 'Fix typo',
@@ -395,10 +397,10 @@ describe('QualityGateOrchestrator', () => {
         },
       });
 
-      expect(review.modelUsed).toContain('sonnet');
+      expect(review.modelUsed).toContain('haiku'); // Simple tasks use FAST tier
     });
 
-    it('should use POWERFUL model for medium/complex tasks', async () => {
+    it('should use STANDARD model for medium tasks with architecture keywords', async () => {
       const review = await orchestrator.reviewTaskPlan('T1', {
         title: 'Architecture change',
         description: 'Refactor core',
@@ -410,7 +412,7 @@ describe('QualityGateOrchestrator', () => {
         },
       });
 
-      expect(review.modelUsed).toContain('opus');
+      expect(review.modelUsed).toContain('sonnet'); // Architecture + refactor + api = complexity ~6, uses sonnet tier
     });
   });
 

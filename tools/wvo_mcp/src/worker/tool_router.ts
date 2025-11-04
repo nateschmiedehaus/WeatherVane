@@ -2,11 +2,25 @@ import { randomUUID } from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
 
+import { AtlasService } from "../atlas/atlas_service.js";
 import { describeCodexCommands } from "../executor/codex_commands.js";
-import { SessionContext } from "../session.js";
-import type { OrchestratorRuntime } from "../orchestrator/orchestrator_runtime.js";
+import { withWorkerCallObservability } from "../observability/worker_call_wrapper.js";
 import type { OperationsSnapshot } from "../orchestrator/operations_manager.js";
+import type { OrchestratorRuntime } from "../orchestrator/orchestrator_runtime.js";
 import type { StateMachine } from "../orchestrator/state_machine.js";
+import { SessionContext } from "../session.js";
+import { IdempotencyStore } from "../state/idempotency_cache.js";
+import { IdempotencyMiddleware, type WrappedHandler } from "../state/idempotency_middleware.js";
+import {
+  DEFAULT_LIVE_FLAGS,
+  SettingsStore,
+  isLiveFlagKey,
+  type LiveFlagKey,
+  type LiveFlagSnapshot,
+} from "../state/live_flags.js";
+import type { ConsensusMetricsSnapshot } from "../telemetry/consensus_metrics.js";
+import { logWarning } from "../telemetry/logger.js";
+import { withSpan } from "../telemetry/tracing.js";
 import {
   artifactRecordInput,
   authStatusInput,
@@ -29,14 +43,10 @@ import {
   adminFlagsInput,
   settingsUpdateInput,
   upgradeApplyPatchInput,
+  selfGetSchemaInput,
+  selfGetPromptInput,
 } from "../tools/input_schemas.js";
-import {
-  DEFAULT_LIVE_FLAGS,
-  SettingsStore,
-  isLiveFlagKey,
-  type LiveFlagKey,
-  type LiveFlagSnapshot,
-} from "../state/live_flags.js";
+import { AuthChecker } from "../utils/auth_checker.js";
 import { buildClusterSummaries } from "../utils/cluster.js";
 import {
   dispatchInputSchema,
@@ -44,17 +54,7 @@ import {
   planNextInputSchema,
   verifyInputSchema,
 } from "../utils/schemas.js";
-import { AuthChecker } from "../utils/auth_checker.js";
-import { logWarning } from "../telemetry/logger.js";
 import type { PlanTaskSummary } from "../utils/types.js";
-import type { ConsensusMetricsSnapshot } from "../telemetry/consensus_metrics.js";
-import { withSpan } from "../telemetry/tracing.js";
-import { withWorkerCallObservability } from "../observability/worker_call_wrapper.js";
-import { IdempotencyStore } from "../state/idempotency_cache.js";
-import {
-  IdempotencyMiddleware,
-  type WrappedHandler,
-} from "../state/idempotency_middleware.js";
 
 interface RunToolParams {
   name: string;
@@ -128,6 +128,7 @@ export class WorkerToolRouter {
       }
     | undefined;
   private readonly liveFlags: ReturnType<OrchestratorRuntime["getLiveFlags"]>;
+  private readonly atlasService: AtlasService;
 
   constructor(
     private readonly session: SessionContext,
@@ -145,6 +146,7 @@ export class WorkerToolRouter {
     this.heavyQueueEnqueueHandler = this.createHeavyQueueEnqueueHandler();
     this.heavyQueueUpdateHandler = this.createHeavyQueueUpdateHandler();
     this.liveFlags = runtime.getLiveFlags();
+    this.atlasService = new AtlasService(this.session.workspaceRoot);
   }
 
   async runTool(params: RunToolParams): Promise<unknown> {
@@ -214,6 +216,16 @@ export class WorkerToolRouter {
                   return this.handleLspServerStatus(params.input);
                 case "lsp_initialize":
                   return this.handleLspInitialize(params.input);
+                case "self_describe":
+                  return this.handleSelfDescribe();
+                case "self_list_tools":
+                  return this.handleSelfListTools();
+                case "self_get_schema":
+                  return this.handleSelfGetSchema(params.input);
+                case "self_get_prompt":
+                  return this.handleSelfGetPrompt(params.input);
+                case "self_briefing_pack":
+                  return this.handleSelfBriefingPack();
                 default:
                   throw new Error(`Unknown tool: ${params.name}`);
               }
@@ -1125,6 +1137,33 @@ export class WorkerToolRouter {
         error: error instanceof Error ? error.message : String(error),
       });
     }
+  }
+
+  private async handleSelfDescribe() {
+    const payload = await this.atlasService.describe();
+    return jsonResponse(payload);
+  }
+
+  private async handleSelfListTools() {
+    const payload = await this.atlasService.listTools();
+    return jsonResponse(payload);
+  }
+
+  private async handleSelfGetSchema(input: unknown) {
+    const parsed = selfGetSchemaInput.parse(input ?? {});
+    const payload = await this.atlasService.getSchema(parsed.id);
+    return jsonResponse(payload);
+  }
+
+  private async handleSelfGetPrompt(input: unknown) {
+    const parsed = selfGetPromptInput.parse(input ?? {});
+    const payload = await this.atlasService.getPrompt(parsed.id);
+    return jsonResponse(payload);
+  }
+
+  private async handleSelfBriefingPack() {
+    const payload = await this.atlasService.getBriefingPack();
+    return jsonResponse(payload);
   }
 
   private formatDryRunViolation(error: Error, toolName: string) {

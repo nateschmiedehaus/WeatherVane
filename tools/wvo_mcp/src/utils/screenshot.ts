@@ -3,8 +3,10 @@
  */
 import { promises as fs } from "node:fs";
 import path from "node:path";
-import { browserManager, type Page } from "./browser.js"; // Using the new shared browser manager
+
 import { logError, logInfo } from "../telemetry/logger.js";
+
+import { browserManager, type Page } from "./browser.js"; // Using the new shared browser manager
 
 export interface ScreenshotOptions {
   url: string;

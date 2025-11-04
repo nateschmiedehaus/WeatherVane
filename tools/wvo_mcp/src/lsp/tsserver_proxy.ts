@@ -7,6 +7,7 @@
 
 import * as fs from "fs";
 import * as path from "path";
+
 import { LSPManager } from "./lsp_manager";
 import {
   DefinitionResult,

@@ -1,29 +1,26 @@
+import { readFileSync, writeFileSync, existsSync } from "node:fs";
+import path from "node:path";
+
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
-import path from "node:path";
-import { readFileSync, writeFileSync, existsSync } from "node:fs";
 
 import { describeClaudeCodeCommands } from "./executor/claude_code_commands.js";
+import { LiveFlags } from "./orchestrator/live_flags.js";
+import { OrchestratorRuntime } from "./orchestrator/orchestrator_runtime.js";
 import { RoadmapAutoExtender } from "./planner/roadmap_auto_extend.js";
 import { QualityFramework } from "./quality/quality_framework.js";
 import { SessionContext } from "./session.js";
 import { ContextManager } from "./state/context_manager.js";
+import {
+  SettingsStore,
+  DEFAULT_LIVE_FLAGS,
+  isLiveFlagKey,
+  type LiveFlagKey,
+} from "./state/live_flags.js";
 import { logError, logInfo, logWarning } from "./telemetry/logger.js";
-import { initTracing } from "./telemetry/tracing.js";
-import { AuthChecker } from "./utils/auth_checker.js";
-import { ProviderManager, type Provider } from "./utils/provider_manager.js";
-import { ProviderCapacityMonitor } from "./utils/provider_capacity_monitor.js";
 import { ProviderCapacityTelemetry } from "./telemetry/provider_capacity_telemetry.js";
-import { formatData, formatError, formatList, formatSuccess } from "./utils/response_formatter.js";
-import { ScreenshotCapture } from "./utils/screenshot.js";
-import { ScreenshotManager } from "./utils/screenshot_manager.js";
-import { OrchestratorRuntime } from "./orchestrator/orchestrator_runtime.js";
-import { resolveWorkspaceRoot } from "./utils/config.js";
-import { SERVER_NAME, SERVER_VERSION } from "./utils/version.js";
-import { toJsonSchema } from "./utils/schema.js";
-import { buildClusterSummaries } from "./utils/cluster.js";
-import { LiveFlags } from "./orchestrator/live_flags.js";
+import { initTracing } from "./telemetry/tracing.js";
 import {
   lspDefinitionInput,
   lspReferencesInput,
@@ -38,12 +35,16 @@ import {
   type LspInitializeInput,
   type AdminFlagsInput,
 } from "./tools/input_schemas.js";
-import {
-  SettingsStore,
-  DEFAULT_LIVE_FLAGS,
-  isLiveFlagKey,
-  type LiveFlagKey,
-} from "./state/live_flags.js";
+import { AuthChecker } from "./utils/auth_checker.js";
+import { buildClusterSummaries } from "./utils/cluster.js";
+import { resolveWorkspaceRoot } from "./utils/config.js";
+import { ProviderCapacityMonitor } from "./utils/provider_capacity_monitor.js";
+import { ProviderManager, type Provider } from "./utils/provider_manager.js";
+import { formatData, formatError, formatList, formatSuccess } from "./utils/response_formatter.js";
+import { toJsonSchema } from "./utils/schema.js";
+import { ScreenshotCapture } from "./utils/screenshot.js";
+import { ScreenshotManager } from "./utils/screenshot_manager.js";
+import { SERVER_NAME, SERVER_VERSION } from "./utils/version.js";
 
 let activeRuntime: OrchestratorRuntime | null = null;
 

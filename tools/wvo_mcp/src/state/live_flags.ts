@@ -33,6 +33,12 @@ export const LIVE_FLAG_KEYS = [
   'HOLISTIC_REVIEW_GROUP_INTERVAL_MINUTES',
   'HOLISTIC_REVIEW_GLOBAL_INTERVAL_MINUTES',
   'HOLISTIC_REVIEW_GLOBAL_MIN_TASKS',
+  'OBSERVER_AGENT_ENABLED',
+  'OBSERVER_AGENT_CADENCE',
+  'OBSERVER_AGENT_TIMEOUT_MS',
+  'OBSERVER_AGENT_MODEL',
+  'QUALITY_GRAPH_HINTS_INJECTION',
+  'QUALITY_GRAPH_EMBEDDINGS',
 ] as const;
 
 export type LiveFlagKey = (typeof LIVE_FLAG_KEYS)[number];
@@ -67,6 +73,12 @@ export const DEFAULT_LIVE_FLAGS: LiveFlagSnapshot = {
   HOLISTIC_REVIEW_GROUP_INTERVAL_MINUTES: '45',
   HOLISTIC_REVIEW_GLOBAL_INTERVAL_MINUTES: '90',
   HOLISTIC_REVIEW_GLOBAL_MIN_TASKS: '6',
+  OBSERVER_AGENT_ENABLED: '0',
+  OBSERVER_AGENT_CADENCE: '5',
+  OBSERVER_AGENT_TIMEOUT_MS: '30000',
+  OBSERVER_AGENT_MODEL: 'gpt-5.1-high',
+  QUALITY_GRAPH_HINTS_INJECTION: 'observe',
+  QUALITY_GRAPH_EMBEDDINGS: 'tfidf',
 };
 
 export function isLiveFlagKey(value: string): value is LiveFlagKey {
@@ -103,15 +115,21 @@ export function normalizeLiveFlagValue<K extends LiveFlagKey>(
     case 'UPGRADE_TOOLS':
     case 'ROUTING_TOOLS':
     case 'HOLISTIC_REVIEW_ENABLED':
+    case 'OBSERVER_AGENT_ENABLED':
       return (stringValue === '1' ? '1' : '0') as LiveFlagSnapshot[K];
     case 'HOLISTIC_REVIEW_MIN_TASKS':
     case 'HOLISTIC_REVIEW_MAX_TASKS_TRACKED':
-    case 'HOLISTIC_REVIEW_GLOBAL_MIN_TASKS': {
+    case 'HOLISTIC_REVIEW_GLOBAL_MIN_TASKS':
+    case 'OBSERVER_AGENT_CADENCE': {
       const numeric = Number.parseInt(stringValue, 10);
       if (Number.isNaN(numeric) || numeric < 1) {
         return DEFAULT_LIVE_FLAGS[key] as LiveFlagSnapshot[K];
       }
-      const clamped = Math.min(50, numeric);
+      const max =
+        key === 'OBSERVER_AGENT_CADENCE'
+          ? 1000
+          : 50;
+      const clamped = Math.min(max, numeric);
       return clamped.toString() as LiveFlagSnapshot[K];
     }
     case 'HOLISTIC_REVIEW_GROUP_INTERVAL_MINUTES':
@@ -138,6 +156,29 @@ export function normalizeLiveFlagValue<K extends LiveFlagKey>(
       }
       const clamped = Math.min(3, Math.max(1, numeric));
       return clamped.toString() as LiveFlagSnapshot[K];
+    }
+    case 'OBSERVER_AGENT_TIMEOUT_MS': {
+      const numeric = Number.parseInt(stringValue, 10);
+      if (Number.isNaN(numeric) || numeric < 1000) {
+        return DEFAULT_LIVE_FLAGS[key] as LiveFlagSnapshot[K];
+      }
+      const clamped = Math.min(300000, numeric);
+      return clamped.toString() as LiveFlagSnapshot[K];
+    }
+    case 'OBSERVER_AGENT_MODEL': {
+      if (!stringValue) {
+        return DEFAULT_LIVE_FLAGS[key] as LiveFlagSnapshot[K];
+      }
+      return stringValue as LiveFlagSnapshot[K];
+    }
+    case 'QUALITY_GRAPH_HINTS_INJECTION': {
+      if (stringValue === 'enforce') return 'enforce' as LiveFlagSnapshot[K];
+      if (stringValue === 'off') return 'off' as LiveFlagSnapshot[K];
+      return 'observe' as LiveFlagSnapshot[K];  // default
+    }
+    case 'QUALITY_GRAPH_EMBEDDINGS': {
+      if (stringValue === 'neural') return 'neural' as LiveFlagSnapshot[K];
+      return 'tfidf' as LiveFlagSnapshot[K];
     }
     default: {
       return DEFAULT_LIVE_FLAGS[key] as LiveFlagSnapshot[K];

@@ -3,7 +3,7 @@
 # Comprehensive test for Unified Multi-Provider Autopilot
 #
 # Tests:
-# 1. Model names are correct (claude-sonnet-4-5, gpt-5-codex-high/medium/low)
+# 1. Model names are correct (claude-sonnet-4.5, codex-5-high/medium/low)
 # 2. Agent composition (1 orchestrator, 3 workers, 1 critic)
 # 3. Workers prefer Codex (2/3 Codex, 1/3 Claude)
 # 4. Telemetry shows task names/titles
@@ -48,14 +48,14 @@ log_info() {
 log_test "Model names in compiled JavaScript"
 cd "$ROOT"
 
-MODELS=$(grep -o "claude-sonnet-4-5\|claude-haiku-4-5\|gpt-5-codex-high\|gpt-5-codex-medium\|gpt-5-codex-low" \
+MODELS=$(grep -o "claude-sonnet-4.5\|claude-haiku-4.5\|codex-5-high\|codex-5-medium\|codex-5-low" \
   tools/wvo_mcp/dist/orchestrator/unified_orchestrator.js | sort -u)
 
-EXPECTED_MODELS="claude-haiku-4-5
-claude-sonnet-4-5
-gpt-5-codex-high
-gpt-5-codex-low
-gpt-5-codex-medium"
+EXPECTED_MODELS="claude-haiku-4.5
+claude-sonnet-4.5
+codex-5-high
+codex-5-low
+codex-5-medium"
 
 if [ "$MODELS" == "$EXPECTED_MODELS" ]; then
   log_pass "All model names correct in compiled code"
@@ -108,7 +108,7 @@ log_info "Starting autopilot with 3 agents for 1 iteration..."
 AUTOPILOT_OUTPUT=$(timeout 120 bash tools/wvo_mcp/scripts/autopilot_unified.sh --agents 3 --max-iterations 1 2>&1 || true)
 
 # Check model names in output
-if echo "$AUTOPILOT_OUTPUT" | grep -q "claude-sonnet-4-5\|claude-haiku-4-5\|gpt-5-codex"; then
+if echo "$AUTOPILOT_OUTPUT" | grep -q "claude-sonnet-4.5\|claude-haiku-4.5\|codex-5"; then
   log_pass "Correct model names appear in runtime output"
 else
   log_fail "Old or incorrect model names in output"
@@ -141,7 +141,7 @@ else
 fi
 
 # Check if Codex is being used for workers
-if echo "$AUTOPILOT_OUTPUT" | grep -q "gpt-5-codex-medium"; then
+if echo "$AUTOPILOT_OUTPUT" | grep -q "codex-5-medium"; then
   log_pass "Codex models being used for workers (preference working)"
 else
   log_info "Codex not used (might be using Claude if Codex unavailable)"

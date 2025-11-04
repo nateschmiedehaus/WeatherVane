@@ -2,9 +2,11 @@
  * Tests for ResourceLifecycleManager
  */
 
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { EventEmitter } from 'node:events';
 import { promises as fs } from 'node:fs';
+
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+
 import { ResourceLifecycleManager, ResourceScope } from './resource_lifecycle_manager.js';
 
 describe('ResourceLifecycleManager', () => {

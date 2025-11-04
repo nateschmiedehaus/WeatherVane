@@ -1,7 +1,8 @@
-import Database from 'better-sqlite3';
-import path from 'path';
-import { promises as fs } from 'fs';
 import crypto from 'crypto';
+import { promises as fs } from 'fs';
+import path from 'path';
+
+import Database from 'better-sqlite3';
 import glob from 'fast-glob';
 
 export interface SafeCodeSearchOptions {

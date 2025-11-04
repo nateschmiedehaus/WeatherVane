@@ -11,8 +11,9 @@
  * - Strategic planning
  */
 
-import type { StateMachine, Task } from './state_machine.js';
 import { logInfo, logDebug } from '../telemetry/logger.js';
+
+import type { StateMachine, Task } from './state_machine.js';
 
 export interface BackgroundTaskResult {
   taskName: string;

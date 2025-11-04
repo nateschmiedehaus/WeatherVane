@@ -139,6 +139,119 @@ npm run test
 
 ---
 
+## Gaming Detection (Work Process Enforcement)
+
+The WorkProcessEnforcer automatically detects gaming patterns in verification evidence during VERIFY → REVIEW phase transitions.
+
+### What is Gaming?
+
+Gaming is when tests appear to verify functionality but don't actually test anything meaningful. Examples:
+- **Tests with 0 assertions**: Claims Level 2 verification but tests don't verify anything
+- **Mock-heavy integration tests**: Claims Level 3 but mocks all dependencies (no real integration)
+- **Weak deferrals**: Uses phrases like "don't have time" instead of proper justification
+
+### How It Works
+
+1. VERIFY phase completes
+2. Gaming detection script runs automatically
+3. Results logged to `state/analytics/gaming_detections.jsonl`
+4. If gaming detected: Warning logged, transition proceeds (observe mode)
+5. REVIEW phase starts
+
+**Phase 1 (Current)**: Observe mode - warnings only, no blocking
+**Phase 2 (Future)**: Enforce mode - blocking transitions after 30-day validation
+
+### Configuration
+
+Gaming detection can be configured when instantiating WorkProcessEnforcer:
+
+```typescript
+const enforcer = new WorkProcessEnforcer(stateMachine, workspaceRoot, metricsCollector, {
+  gamingDetection: {
+    enabled: true,                              // default: true
+    scriptPath: 'scripts/detect_test_gaming.sh', // relative to workspaceRoot
+    timeoutMs: 5000,                            // default: 5s
+    telemetryEnabled: true,                     // default: true
+    agentType: 'claude'                         // default: 'unknown' - agent identifier
+  }
+});
+```
+
+### Disabling Detection (for testing/debugging)
+
+```typescript
+const enforcer = new WorkProcessEnforcer(stateMachine, workspaceRoot, metricsCollector, {
+  gamingDetection: { enabled: false }
+});
+```
+
+### Telemetry
+
+Gaming detection results are logged to `state/analytics/gaming_detections.jsonl` in JSONL format:
+
+```json
+{
+  "timestamp": "2025-10-30T20:00:00Z",
+  "task_id": "TASK-ID",
+  "evidence_path": "state/evidence/TASK-ID",
+  "gaming_detected": true,
+  "pattern_count": 2,
+  "patterns": [
+    {
+      "type": "no_assertions",
+      "severity": "high",
+      "file": "path/to/test.test.ts",
+      "message": "Test file has 3 test blocks but 0 assertions"
+    }
+  ],
+  "execution_time_ms": 120,
+  "agent_type": "claude",
+  "workflow_type": "autopilot"
+}
+```
+
+### Requirements
+
+**Bash Required**: Gaming detection script requires bash interpreter. Supported platforms:
+- ✅ macOS (bash is standard)
+- ✅ Linux (bash is standard)
+- ⚠️ Windows (requires Git Bash or WSL)
+
+If bash is not available, detection fails gracefully (warning logged, phase transition proceeds).
+
+### Enhancements (2025-10-30)
+
+**FIX-META-TEST-GAMING-ENHANCEMENTS**:
+- **Agent Type Configuration**: Added `agentType` field for accurate telemetry across agents (Claude, Codex, future agents)
+- **SIGKILL Escalation**: Process termination reliability improved with SIGTERM → SIGKILL escalation (1s grace period)
+- **Schema Version Validation**: Forward compatibility with optional schema_version validation (warning-only, fail-safe)
+
+All enhancements are backward compatible, non-breaking, and maintain fail-safe behavior.
+
+### See Also
+
+- Gaming detection script: `scripts/detect_test_gaming.sh`
+- Script documentation: `scripts/README_GAMING_DETECTION.md`
+- Task evidence: `state/evidence/FIX-META-TEST-GAMING/`
+- Integration evidence: `state/evidence/FIX-META-TEST-GAMING-INTEGRATION/`
+
+---
+
+## Roadmap Validation
+
+Roadmap schema v2.0 is enforced both locally and in CI.
+
+```bash
+# Validate the repo’s roadmap before committing
+npm --prefix tools/wvo_mcp run validate:roadmap
+```
+
+- Runs typed schema checks, dependency validation, and metadata coverage.
+- CI workflow (`.github/workflows/roadmap-validation.yml`) executes the same command on PRs that touch `state/roadmap.yaml`.
+- See `docs/roadmap/STRUCTURE.md` for full schema, metadata, and WSJF guidance.
+
+---
+
 ## Architecture
 
 See `docs/MCP_ORCHESTRATOR.md` for full design details.

@@ -10,16 +10,35 @@
  */
 
 import { EventEmitter } from 'node:events';
-import path from 'node:path';
 import { promises as fs } from 'node:fs';
+import path from 'node:path';
+
 import { execa } from 'execa';
-import type { StateMachine, Task, ContextEntry } from './state_machine.js';
-import { logInfo, logWarning, logError, logDebug } from '../telemetry/logger.js';
-import { ContextAssembler, type AssembledContext, type ContextAssemblyOptions } from './context_assembler.js';
-import { CodeSearchIndex } from '../utils/code_search.js';
-import { AgentHierarchy, type AgentRole as HierarchyAgentRole, type AgentProfile, type PolicyDecision, type TaskClassification } from './agent_hierarchy.js';
+
+import { ContextAssembler as LocalContextAssembler } from '../context/context_assembler.js';
+import { DecisionJournal } from '../memory/decision_journal.js';
+import { KnowledgeBaseResources } from '../memory/kb_resources.js';
+import { ProjectIndex } from '../memory/project_index.js';
+import { RunEphemeralMemory } from '../memory/run_ephemeral.js';
 import { resolveCodexCliOptions } from '../models/codex_cli.js';
+import { CurrentStateTracker } from '../telemetry/current_state_tracker.js';
+import { logInfo, logWarning, logError, logDebug } from '../telemetry/logger.js';
+
+import { acquireLock, releaseLock, registerCleanupHandlers } from '../utils/pid_file_manager.js';
+import { cleanupChildProcesses } from '../utils/process_cleanup.js';
+import { HeartbeatWriter } from '../utils/heartbeat.js';
+import { SafetyMonitor, type SafetyLimits } from '../utils/safety_monitor.js';
+// @ts-ignore - JSON import
+import safetyLimitsConfig from '../../config/safety_limits.json';
+
+import { CodeSearchIndex } from '../utils/code_search.js';
+
+import { AgentHierarchy, type AgentRole as HierarchyAgentRole, type AgentProfile, type PolicyDecision, type TaskClassification } from './agent_hierarchy.js';
+
+
 import { RoadmapTracker } from './roadmap_tracker.js';
+import { SupervisorAgent } from './supervisor.js';
+import { isArchitectureTask, isArchitectureReviewTask } from './task_characteristics.js';
 import { TaskVerifier } from './task_verifier.js';
 import { IdleManager } from './idle_manager.js';
 import { AgentPool, type Agent, type AgentType } from './agent_pool.js';
@@ -28,18 +47,22 @@ import { PolicyController, type PolicySummaryPayload } from './policy_controller
 import { RoadmapPoller, type RoadmapUpdateEvent } from './roadmap_poller.js';
 import { selectModelForTask, estimateTaskCost, type ModelTier } from './model_router.js';
 import { ModelRouterTelemetryTracker } from '../telemetry/model_router_telemetry.js';
+import { ComplexityRouter } from './complexity_router.js';
+import { WIPController } from './wip_controller.js';
+import { MetricsCollector } from '../telemetry/metrics_collector.js';
+import { MetricsAggregator } from '../telemetry/metrics_aggregator.js';
 import { HistoricalContextRegistry } from './historical_context_registry.js';
 import { GitStatusMonitor, type GitStatusSnapshot } from './git_status_monitor.js';
 import { PreflightRunner } from './preflight_runner.js';
 import { RoadmapInboxProcessor } from './roadmap_inbox_processor.js';
 import { rankTasks } from './priority_scheduler.js';
 import { PeerReviewManager } from './peer_review_manager.js';
-import { isArchitectureTask, isArchitectureReviewTask } from './task_characteristics.js';
 import { TaskDecomposer } from './task_decomposer.js';
 import { BlockerEscalationManager } from './blocker_escalation_manager.js';
 import { FeatureGates, type FeatureGatesReader } from './feature_gates.js';
 import { AutopilotHealthMonitor } from './autopilot_health_monitor.js';
 import { FailureResponseManager } from './failure_response_manager.js';
+
 import {
   OutputValidationError,
   resolveOutputValidationSettings,
@@ -47,6 +70,7 @@ import {
   strictValidateOutput,
   type OutputValidationSettings,
 } from '../utils/output_validator.js';
+
 import {
   getNextBackgroundTask,
   executeBackgroundTask,
@@ -55,9 +79,23 @@ import {
 } from './orchestrator_background_tasks.js';
 import { QualityGateOrchestrator, type QualityGateDecision } from './quality_gate_orchestrator.js';
 import type { TaskEvidence } from './adversarial_bullshit_detector.js';
+import { ContextAssembler as LegacyContextAssembler, type AssembledContext, type ContextAssemblyOptions } from './context_assembler.js';
 import { TaskProgressTracker } from './task_progress_tracker.js';
-import { ProcessManager, type ProcessHandle } from './process_manager.js';
 import { TaskReadinessChecker } from './task_readiness.js';
+import { StateGraph, type StateGraphTaskContext, type CheckpointClient } from './state_graph.js';
+import { IncidentReporter } from './incident_reporter.js';
+import { PlannerAgent } from './planner_agent.js';
+import { ThinkerAgent } from './thinker_agent.js';
+import { ImplementerAgent, type ImplementerAgentResult } from './implementer_agent.js';
+import { Verifier as GraphVerifier, ShellToolRunner, type VerifierResult } from './verifier.js';
+import { ReviewerAgent } from './reviewer_agent.js';
+import { CriticalAgent } from './critical_agent.js';
+import type { TaskEnvelope } from './task_envelope.js';
+import { ModelRouter } from './model_router.js';
+import { ProcessManager, type ProcessHandle } from './process_manager.js';
+import { buildTaskEvidenceFromArtifacts, type QualityGateArtifacts } from './quality_gate_bridge.js';
+import type { StateMachine, Task, ContextEntry } from './state_machine.js';
+import { WorkProcessEnforcer } from './work_process_enforcer.js';
 
 export type Provider = 'codex' | 'claude';
 export type AgentRole = 'orchestrator' | 'worker' | 'critic' | 'architecture_planner' | 'architecture_reviewer';
@@ -117,6 +155,15 @@ export interface ExecutionResult {
 }
 
 type PolicyEventType = 'task_completed' | 'task_failed' | 'verification_failed' | 'usage_limit' | 'git_status' | 'preflight_failed';
+
+const VERIFY_COMMANDS: Record<string, string> = {
+  'tests.run': 'bash tools/wvo_mcp/scripts/run_integrity_tests.sh',
+  'lint.run': 'make lint',
+  'typecheck.run': 'npm --prefix apps/web run typecheck && npm --prefix tools/wvo_mcp run typecheck',
+  'security.scan': 'python tools/security/run_security_checks.py',
+  'license.check': 'node scripts/check_licenses.mjs',
+  'mutation.smoke': 'bash scripts/app_smoke_e2e.sh',
+};
 
 /**
  * Calculate execution timeout based on task complexity (1-10 scale)
@@ -453,7 +500,8 @@ export class UnifiedOrchestrator extends EventEmitter {
   private critics: Agent[] = [];
   private codexExecutor?: CodexExecutor;
   private claudeExecutor?: ClaudeExecutor;
-  private contextAssembler: ContextAssembler;
+  private contextAssembler: LegacyContextAssembler;
+  private localContextAssembler: LocalContextAssembler;
   private codeSearch: CodeSearchIndex;
   private agentHierarchy: AgentHierarchy;
   private roadmapTracker: RoadmapTracker;
@@ -462,8 +510,13 @@ export class UnifiedOrchestrator extends EventEmitter {
   private agentPool: AgentPool;
   private roadmapPoller?: RoadmapPoller;
   private policyController: PolicyController;
+  private incidentReporter: IncidentReporter;
   private policyDirective?: string;
   private modelRouterTelemetry: ModelRouterTelemetryTracker;
+  private wipController: WIPController;
+  private metricsCollector!: MetricsCollector;
+  private metricsAggregator!: MetricsAggregator;
+  private currentStateTracker!: CurrentStateTracker;
   private taskDecomposer: TaskDecomposer;
   private blockerEscalationManager: BlockerEscalationManager;
   private failureResponseManager: FailureResponseManager;
@@ -485,6 +538,18 @@ export class UnifiedOrchestrator extends EventEmitter {
   private staleRecoveryTimer?: NodeJS.Timeout;
   private healthMonitor: AutopilotHealthMonitor;
   private processManager: ProcessManager;
+  private readonly modelRouter: ModelRouter;
+  private readonly runMemory: RunEphemeralMemory;
+  private readonly projectIndex: ProjectIndex;
+  private readonly kbResources: KnowledgeBaseResources;
+  private readonly decisionJournal: DecisionJournal;
+  private readonly stateGraph: StateGraph;
+  private readonly stateGraphEnabled: boolean;
+  private readonly workProcessEnforcer: WorkProcessEnforcer;
+  private readonly runId: string;
+  private readonly pidFilePath: string;
+  private heartbeatWriter: HeartbeatWriter | null = null;
+  private safetyMonitor: SafetyMonitor | null = null;
 
   // Continuous pipeline for zero worker idle time
   private taskQueue: Task[] = [];
@@ -559,7 +624,7 @@ export class UnifiedOrchestrator extends EventEmitter {
     this.codeSearch = new CodeSearchIndex(this.stateMachine, config.workspaceRoot);
 
     logDebug('Initializing ContextAssembler with quality metrics and velocity tracking');
-    this.contextAssembler = new ContextAssembler(
+    this.contextAssembler = new LegacyContextAssembler(
       this.stateMachine,
       config.workspaceRoot,
       {
@@ -604,9 +669,19 @@ export class UnifiedOrchestrator extends EventEmitter {
     // Initialize policy controller parity
     this.policyController = new PolicyController(config.workspaceRoot);
 
+    this.incidentReporter = new IncidentReporter({
+      workspaceRoot: config.workspaceRoot,
+      requireHuman: (trigger, task, metadata) =>
+        this.policyController.requireHumanApproval(trigger, { taskId: task.id, ...(metadata ?? {}) }),
+    });
+
     // Initialize model router telemetry for cost tracking
     logDebug('Initializing ModelRouterTelemetryTracker for cost optimization tracking');
     this.modelRouterTelemetry = new ModelRouterTelemetryTracker(config.workspaceRoot);
+
+    // Initialize WIP controller for flow efficiency
+    logDebug('Initializing WIPController for work-in-progress management');
+    this.wipController = new WIPController();
 
     // Initialize task decomposer for parallel execution
     logDebug('Initializing TaskDecomposer for epic breakdown');
@@ -688,6 +763,193 @@ export class UnifiedOrchestrator extends EventEmitter {
       intervalMs: healthMonitorIntervalMs,
       autoRemediate: autoRemediateEnabled
     });
+
+    this.runId = process.env.WVO_RUN_ID ?? `run-${Date.now()}`;
+    this.pidFilePath = path.join(this.config.workspaceRoot, 'state', 'worker_pid');
+
+    // Register cleanup handlers to ensure PID file is deleted on exit
+    registerCleanupHandlers(this.pidFilePath);
+
+    this.modelRouter = new ModelRouter({
+      workspaceRoot: config.workspaceRoot,
+      runId: this.runId,
+    });
+    this.runMemory = new RunEphemeralMemory();
+    this.projectIndex = new ProjectIndex(config.workspaceRoot);
+    this.kbResources = new KnowledgeBaseResources(config.workspaceRoot);
+    this.decisionJournal = new DecisionJournal({
+      workspaceRoot: config.workspaceRoot,
+      runId: this.runId,
+    });
+    this.localContextAssembler = new LocalContextAssembler({
+      workspaceRoot: config.workspaceRoot,
+      runId: this.runId,
+    });
+    // CRITICAL: Initialize work process enforcer before StateGraph
+    // Initialize metrics collector if not already done
+    if (!this.metricsCollector) {
+      this.metricsCollector = new MetricsCollector(config.workspaceRoot);
+    }
+    this.workProcessEnforcer = new WorkProcessEnforcer(this.stateMachine, config.workspaceRoot, this.metricsCollector);
+    this.stateGraph = this.createStateGraph();
+    this.stateGraphEnabled = true;
+  }
+
+  private createStateGraph(): StateGraph {
+    const planner = new PlannerAgent({
+      router: this.modelRouter,
+      memory: this.runMemory,
+      kb: this.kbResources,
+      projectIndex: this.projectIndex,
+    });
+    const thinker = new ThinkerAgent(this.modelRouter);
+    const implementer = new ImplementerAgent({
+      router: this.modelRouter,
+      memory: this.runMemory,
+    });
+    const verifier = new GraphVerifier(
+      0.05,
+      new ShellToolRunner({
+        workspaceRoot: this.config.workspaceRoot,
+        commands: VERIFY_COMMANDS,
+        processManager: this.processManager,
+      })
+    );
+    const reviewer = new ReviewerAgent(this.modelRouter);
+    const critical = new CriticalAgent();
+    const supervisor = new SupervisorAgent(
+      this.modelRouter,
+      (trigger, task, metadata) => this.policyController.requireHumanApproval(trigger, { taskId: task.id, ...(metadata ?? {}) })
+    );
+
+    // Create ComplexityRouter with default embedded model tiers
+    const complexityRouter = new ComplexityRouter();
+
+    // Initialize metrics collector and aggregator if not already created
+    if (!this.metricsCollector) {
+      this.metricsCollector = new MetricsCollector(this.config.workspaceRoot);
+    }
+    if (!this.metricsAggregator) {
+      this.metricsAggregator = new MetricsAggregator(this.config.workspaceRoot);
+    }
+    if (!this.currentStateTracker) {
+      this.currentStateTracker = new CurrentStateTracker(this.config.workspaceRoot);
+      // Load any existing state from disk (fire and forget - non-blocking)
+      this.currentStateTracker.load().catch(() => {
+        // Ignore load errors - we'll start fresh
+      });
+    }
+
+    return new StateGraph(
+      {
+        planner,
+        thinker,
+        implementer,
+        verifier,
+        reviewer,
+        critical,
+        supervisor,
+        router: this.modelRouter,
+        complexityRouter,
+        journal: this.decisionJournal,
+        memory: this.runMemory,
+        contextAssembler: this.localContextAssembler,
+        metricsCollector: this.metricsCollector,
+        currentStateTracker: this.currentStateTracker,
+        checkpoint: this.createCheckpointClient(),
+        workProcessEnforcer: this.workProcessEnforcer,
+      },
+      {
+        workspaceRoot: this.config.workspaceRoot,
+        runId: this.runId,
+        incidentReporter: this.incidentReporter,
+      }
+    );
+  }
+
+  private createCheckpointClient(): CheckpointClient {
+    return {
+      save: async (taskId, state, payload, attempt) => {
+        logDebug('StateGraph checkpoint saved', { taskId, state, attempt, payload });
+      },
+    };
+  }
+
+  private toTaskEnvelope(task: Task): TaskEnvelope {
+    return {
+      id: task.id,
+      title: task.title ?? task.id,
+      description: task.description ?? '',
+      labels: (task.metadata?.labels as string[]) ?? [],
+      metadata: task.metadata ?? {},
+      priorityTags: (task.metadata?.tags as string[]) ?? [],
+    };
+  }
+
+  private async driveTaskThroughStateGraph(task: Task): Promise<ExecutionResult> {
+    const start = Date.now();
+
+    // Reserve WIP slot before starting task execution
+    const reserved = this.wipController.reserveSlot(task.id, 'state-graph');
+    if (!reserved) {
+      logWarning('Failed to reserve WIP slot for task', { taskId: task.id });
+      return {
+        success: false,
+        error: 'WIP limit reached - could not reserve slot',
+        duration: Date.now() - start,
+      };
+    }
+
+    try {
+      const result = await this.stateGraph.run(this.toTaskEnvelope(task) as StateGraphTaskContext);
+      let success = result.success;
+      let output: string | undefined = result.notes.join('\n');
+      let error: string | undefined;
+
+      if (success && this.qualityGateOrchestrator) {
+        const evidence = buildTaskEvidenceFromArtifacts(
+          task,
+          result.artifacts as QualityGateArtifacts
+        );
+        if (!evidence) {
+          logWarning('Skipping quality gate verification due to missing evidence', {
+            taskId: task.id,
+          });
+        } else {
+          const decision = await this.qualityGateOrchestrator.verifyTaskCompletion(task.id, evidence);
+          if (decision.decision !== 'APPROVED') {
+            success = false;
+            output = undefined;
+            error = decision.finalReasoning ?? 'Quality gate rejected task after state graph run';
+            logWarning('Quality gate rejected task after state graph run', {
+              taskId: task.id,
+              reasoning: decision.finalReasoning,
+            });
+          }
+        }
+      }
+
+      return {
+        success,
+        output,
+        error,
+        duration: Date.now() - start,
+      };
+    } catch (error) {
+      logError('StateGraph execution failed', {
+        taskId: task.id,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : String(error),
+        duration: Date.now() - start,
+      };
+    } finally {
+      // Always release WIP slot when task completes (success or failure)
+      this.wipController.releaseSlot(task.id);
+      logDebug('Released WIP slot for task', { taskId: task.id });
+    }
   }
 
   /**
@@ -698,6 +960,43 @@ export class UnifiedOrchestrator extends EventEmitter {
       logWarning('UnifiedOrchestrator already running');
       return;
     }
+
+    // Acquire PID file lock to ensure only one autopilot instance runs
+    try {
+      await acquireLock(this.pidFilePath, this.config.workspaceRoot);
+      logInfo('Acquired autopilot PID lock', { pid: process.pid, pidFile: this.pidFilePath });
+    } catch (error) {
+      logError('Failed to acquire PID lock - another autopilot may be running', {
+        error: error instanceof Error ? error.message : String(error),
+      });
+      throw error;
+    }
+
+    // Set process group for reliable process tree cleanup (Phase 1)
+    try {
+      // @ts-ignore - setpgid is available on Unix-like systems
+      process.setpgid(0, 0);
+      // @ts-ignore - getpgid is available on Unix-like systems
+      const pgid = process.getpgid(0);
+      logInfo('Set process group', { pid: process.pid, pgid });
+    } catch (error) {
+      logWarning('Failed to set process group', {
+        error: error instanceof Error ? error.message : String(error),
+      });
+      // Continue anyway - fallback to individual child killing
+    }
+
+    // Start heartbeat writer for supervisor monitoring (Phase 2)
+    const heartbeatPath = path.join(this.config.workspaceRoot, 'state', 'heartbeat');
+    const heartbeatInterval = (safetyLimitsConfig as SafetyLimits & { supervisor: { heartbeat_interval_seconds: number } }).supervisor.heartbeat_interval_seconds * 1000;
+    this.heartbeatWriter = new HeartbeatWriter(heartbeatPath, heartbeatInterval);
+    this.heartbeatWriter.start();
+    logInfo('Started heartbeat writer', { path: heartbeatPath, intervalMs: heartbeatInterval });
+
+    // Start safety monitor for resource limits enforcement (Phase 3)
+    this.safetyMonitor = new SafetyMonitor(safetyLimitsConfig as SafetyLimits, this.config.workspaceRoot);
+    this.safetyMonitor.start();
+    logInfo('Started safety monitor', { limits: safetyLimitsConfig });
 
     logInfo('Starting UnifiedOrchestrator', {
       agentCount: this.config.agentCount,
@@ -802,7 +1101,7 @@ export class UnifiedOrchestrator extends EventEmitter {
     this.architecturePlanner = undefined;
     this.architectureReviewer = undefined;
 
-    let remainingAgents = this.config.agentCount - 1; // Subtract orchestrator
+    const remainingAgents = this.config.agentCount - 1; // Subtract orchestrator
 
     // SIMPLIFIED ALLOCATION: ALL remaining agents become workers
     // This maximizes task execution capacity
@@ -904,6 +1203,27 @@ export class UnifiedOrchestrator extends EventEmitter {
 
     logInfo('Stopping UnifiedOrchestrator');
 
+    // Stop heartbeat writer and safety monitor first (Phase 2/3)
+    if (this.heartbeatWriter) {
+      this.heartbeatWriter.stop();
+      logDebug('Stopped heartbeat writer');
+    }
+
+    if (this.safetyMonitor) {
+      this.safetyMonitor.stop();
+      logDebug('Stopped safety monitor');
+    }
+
+    // Clean up child processes first (before stopping components)
+    try {
+      logDebug('Cleaning up child processes');
+      await cleanupChildProcesses({ gracefulTimeoutMs: 5000 });
+    } catch (error) {
+      logWarning('Failed to clean up child processes', {
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+
     // Stop health monitor
     logDebug('Stopping health monitor');
     this.healthMonitor.stop();
@@ -944,6 +1264,16 @@ export class UnifiedOrchestrator extends EventEmitter {
     this.architectureReviewer = undefined;
     this.workers = [];
     this.critics = [];
+
+    // Release PID file lock
+    try {
+      await releaseLock(this.pidFilePath);
+      logDebug('Released autopilot PID lock');
+    } catch (error) {
+      logWarning('Failed to release PID lock', {
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
 
     this.running = false;
     this.emit('stopped');
@@ -1103,22 +1433,26 @@ export class UnifiedOrchestrator extends EventEmitter {
 
       const allInProgressTasks = this.stateMachine.getTasks({ status: ['in_progress'] });
       const autopilotInProgress = this.filterAutopilotInProgressTasks(allInProgressTasks);
+
       // WIP Limits (#2 Essential): Enforce focus on completion over starting
-      // Only prefetch if we're under the WIP limit (1 task per worker)
-      const wipLimit = Math.max(1, this.getActiveWorkerCount()); // 1 task per worker
+      // Check WIP limits using WIPController for intelligent flow management
+      const wipStatus = this.wipController.getStatus();
 
       logInfo('PREFETCH DEBUG', {
         inProgressCount: autopilotInProgress.length,
         totalInProgress: allInProgressTasks.length,
-        wipLimit,
+        wipStatus,
         queueLength: this.taskQueue.length,
         workerCount: this.workers.length
       });
 
-      if (autopilotInProgress.length >= wipLimit) {
+      // Check if we can start new work (WIPController enforces limits)
+      const canAccept = this.wipController.canAcceptTask();
+
+      if (!canAccept) {
         logDebug('WIP limit reached - focusing on completion', {
           inProgress: autopilotInProgress.length,
-          limit: wipLimit,
+          status: wipStatus,
           message: 'Not prefetching new tasks to prevent context switching',
         });
         return; // Don't prefetch more - focus on completing current work
@@ -1132,17 +1466,20 @@ export class UnifiedOrchestrator extends EventEmitter {
         return; // Queue already full
       }
 
-      // Respect WIP limit when calculating how many tasks needed
+      // Calculate available WIP capacity from controller
+      const wipCapacity = wipStatus.available;
+
+      // Respect WIP capacity when calculating how many tasks needed
       const needed = Math.min(
         targetQueueSize - this.taskQueue.length,
-        wipLimit - autopilotInProgress.length  // Don't exceed WIP limit
+        wipCapacity  // Don't exceed WIP capacity
       );
 
-      logInfo('PREFETCH NEED CALCULATION', { needed, targetQueueSize, wipLimit });
+      logInfo('PREFETCH NEED CALCULATION', { needed, targetQueueSize, wipCapacity });
 
       if (needed <= 0) {
-        logInfo('No tasks needed (WIP limit)', { needed });
-        return; // WIP limit prevents new tasks
+        logInfo('No tasks needed (WIP capacity)', { needed });
+        return; // WIP capacity exhausted
       }
 
       // CIRCUIT BREAKER: Reset counter every minute
@@ -1800,22 +2137,22 @@ Please manually investigate and fix, then change status from 'blocked' to 'pendi
     // Upgrade path: haiku-4-5 → sonnet-4-5 → opus-4
     if (currentModel.includes('haiku')) {
       return {
-        model: 'claude-sonnet-4-5',
+        model: 'claude-sonnet-4.5',
         provider: 'claude',
       };
     } else if (currentModel.includes('sonnet')) {
       return {
-        model: 'claude-opus-4',
+        model: 'claude-opus-4.1',
         provider: 'claude',
       };
     } else if (currentModel.includes('codex-low')) {
       return {
-        model: 'gpt-5-codex-medium',
+        model: 'codex-5-medium',
         provider: 'codex',
       };
     } else if (currentModel.includes('codex-medium')) {
       return {
-        model: 'gpt-5-codex-high',
+        model: 'codex-5-high',
         provider: 'codex',
       };
     }
@@ -1833,6 +2170,18 @@ Please manually investigate and fix, then change status from 'blocked' to 'pendi
       throw new Error('UnifiedOrchestrator not running');
     }
 
+    if (!this.stateGraphEnabled) {
+      return this.legacyExecuteTask(task);
+    }
+
+    return this.driveTaskThroughStateGraph(task);
+  }
+
+  private async legacyExecuteTask(task: Task): Promise<ExecutionResult> {
+    if (!this.running) {
+      throw new Error('UnifiedOrchestrator not running');
+    }
+
     const startTime = Date.now();
     const complexity = this.assessComplexity(task);
 
@@ -1843,6 +2192,18 @@ Please manually investigate and fix, then change status from 'blocked' to 'pendi
 
     // Reserve an agent (this will queue the task if none are available)
     const agent = await this.agentPool.reserveAgent(task, complexity);
+
+    // Reserve WIP slot before starting task execution
+    const reserved = this.wipController.reserveSlot(task.id, agent.id);
+    if (!reserved) {
+      logWarning('Failed to reserve WIP slot for task - releasing agent', { taskId: task.id });
+      this.agentPool.releaseAgent(agent.id);
+      return {
+        success: false,
+        error: 'WIP limit reached - could not reserve slot',
+        duration: Date.now() - startTime,
+      };
+    }
 
     // Use intelligent model router for cost optimization
     const modelSelection = selectModelForTask(task, agent.config.provider);
@@ -2436,6 +2797,10 @@ Please manually investigate and fix, then change status from 'blocked' to 'pendi
         // Clear remediation state
         this.remediationState.delete(task.id);
 
+        // Release WIP slot when task completes successfully
+        this.wipController.releaseSlot(task.id);
+        logDebug('Released WIP slot for task', { taskId: task.id });
+
         this.agentPool.releaseAgent(agent.id);
         this.logAgentSnapshot('released', {
           agentId: agent.id,
@@ -2476,14 +2841,14 @@ Please manually investigate and fix, then change status from 'blocked' to 'pendi
     if (this.config.preferredOrchestrator === 'claude' && authStatus.claude) {
       provider = 'claude';
       // Latest Claude model: Sonnet 4.5 (released Sep 29, 2025)
-      model = 'claude-sonnet-4-5';
+      model = 'claude-sonnet-4.5';
     } else if (authStatus.codex) {
       provider = 'codex';
       // Codex High - highest capability tier for orchestration
-      model = 'gpt-5-codex-high';
+      model = 'codex-5-high';
     } else if (authStatus.claude) {
       provider = 'claude';
-      model = 'claude-sonnet-4-5';
+      model = 'claude-sonnet-4.5';
     } else {
       throw new Error('No provider available for orchestrator');
     }
@@ -2528,16 +2893,16 @@ Please manually investigate and fix, then change status from 'blocked' to 'pendi
       // 2/3 of workers use Codex
       provider = 'codex';
       // Codex Medium - balanced capability for tactical execution
-      model = 'gpt-5-codex-medium';
+      model = 'codex-5-medium';
     } else if (authStatus.claude) {
       // 1/3 use Claude for diversity
       provider = 'claude';
       // Latest Claude Haiku 4.5 (released Oct 15, 2025) - fast, efficient
-      model = 'claude-haiku-4-5';
+      model = 'claude-haiku-4.5';
     } else if (authStatus.codex) {
       // Fallback to Codex if no Claude
       provider = 'codex';
-      model = 'gpt-5-codex-medium';
+      model = 'codex-5-medium';
     } else {
       throw new Error('No provider available for worker');
     }
@@ -2579,11 +2944,11 @@ Please manually investigate and fix, then change status from 'blocked' to 'pendi
     if (authStatus.claude) {
       provider = 'claude';
       // Latest Claude Haiku 4.5 (released Oct 15, 2025) - fast, efficient critic reviews
-      model = 'claude-haiku-4-5';
+      model = 'claude-haiku-4.5';
     } else if (authStatus.codex) {
       provider = 'codex';
       // Codex Low - fast, efficient reviews
-      model = 'gpt-5-codex-low';
+      model = 'codex-5-low';
     } else {
       throw new Error('No provider available for critic');
     }
@@ -2621,11 +2986,11 @@ Please manually investigate and fix, then change status from 'blocked' to 'pendi
 
     if (authStatus.claude) {
       provider = 'claude';
-      model = 'claude-sonnet-4-5';
+      model = 'claude-sonnet-4.5';
       reasoningEffort = 'high';
     } else if (authStatus.codex) {
       provider = 'codex';
-      model = 'gpt-5-codex-high';
+      model = 'codex-5-high';
       reasoningEffort = 'high';
     } else {
       throw new Error('No provider available for architecture planner');
@@ -2664,11 +3029,11 @@ Please manually investigate and fix, then change status from 'blocked' to 'pendi
 
     if (authStatus.codex) {
       provider = 'codex';
-      model = 'gpt-5-codex-high';
+      model = 'codex-5-high';
       reasoningEffort = 'high';
     } else if (authStatus.claude) {
       provider = 'claude';
-      model = 'claude-sonnet-4-5';
+      model = 'claude-sonnet-4.5';
       reasoningEffort = 'high';
     } else {
       throw new Error('No provider available for architecture reviewer');
@@ -2817,7 +3182,7 @@ Please manually investigate and fix, then change status from 'blocked' to 'pendi
       case 'moderate':
         // Use Codex Medium or available worker
         const codexWorker = this.workers.find(w =>
-          w.status === 'idle' && (w.config.model.startsWith('gpt-5-codex') || w.config.model === 'gpt-5')
+          w.status === 'idle' && w.config.model.startsWith('codex-5')
         );
         if (codexWorker) return codexWorker;
 
@@ -3613,7 +3978,7 @@ Verification: [How you'll confirm it works]
   private formatVelocityMetrics(context: AssembledContext): string {
     const metrics = context.velocityMetrics;
 
-    let output = `## Velocity Metrics
+    const output = `## Velocity Metrics
 **Project Velocity**:
 - Tasks completed today: ${metrics.tasksCompletedToday}
 - Average task duration: ${metrics.averageTaskDuration} minutes

@@ -3,8 +3,9 @@
  * Prevents stdin pipe failures and ensures worker stability
  */
 
-import { logError, logInfo, logWarning } from "../telemetry/logger.js";
 import { spawn, ChildProcess } from "child_process";
+
+import { logError, logInfo, logWarning } from "../telemetry/logger.js";
 
 export interface HealthCheckResult {
   healthy: boolean;

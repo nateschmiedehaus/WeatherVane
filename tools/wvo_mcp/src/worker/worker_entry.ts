@@ -23,15 +23,17 @@
 
 import process from "node:process";
 
+import { verifyAtlasAttestationSync } from "../atlas/attestation.js";
 import { OrchestratorRuntime } from "../orchestrator/orchestrator_runtime.js";
 import { SessionContext } from "../session.js";
 import { AuthChecker } from "../utils/auth_checker.js";
 import { resolveWorkspaceRoot } from "../utils/config.js";
 import { createDryRunError, isDryRunEnabled } from "../utils/dry_run.js";
 import { SERVER_VERSION } from "../utils/version.js";
+
+import { ExecutorToolRouter, type RunToolPayload } from "./executor_router.js";
 import type { WorkerOutgoingMessage, WorkerRpcErrorPayload } from "./protocol.js";
 import { WorkerToolRouter } from "./tool_router.js";
-import { ExecutorToolRouter, type RunToolPayload } from "./executor_router.js";
 
 type WorkerRole = "orchestrator" | "executor";
 type RunToolMessage = {
@@ -83,10 +85,16 @@ if (workerRole === "executor") {
   startOrchestratorWorker();
 }
 
-function startOrchestratorWorker(): void {
+async function startOrchestratorWorker(): Promise<void> {
   const startedAtMs = Date.now();
   const startedAt = new Date(startedAtMs).toISOString();
   const workspaceRoot = resolveWorkspaceRoot();
+  try {
+    verifyAtlasAttestationSync(workspaceRoot);
+  } catch (error) {
+    console.error("Atlas attestation failed", error);
+    process.exit(1);
+  }
 
   // Initialize OrchestratorRuntime which internally manages StateMachine
   // If DRY_RUN=1, StateMachine will open DB in read-only mode
@@ -96,6 +104,9 @@ function startOrchestratorWorker(): void {
 
   // Store runtime for cleanup on crash
   runtimeInstance = runtime;
+
+  // Start runtime (enables heartbeat, safety monitoring, etc.)
+  await runtime.start();
 
   const session = new SessionContext(runtime);
   const authChecker = new AuthChecker();
@@ -127,6 +138,11 @@ function startOrchestratorWorker(): void {
     "autopilot_status",
     "heavy_queue_list",
     "codex_commands",
+    "self_describe",
+    "self_list_tools",
+    "self_get_schema",
+    "self_get_prompt",
+    "self_briefing_pack",
   ]);
 
   /**

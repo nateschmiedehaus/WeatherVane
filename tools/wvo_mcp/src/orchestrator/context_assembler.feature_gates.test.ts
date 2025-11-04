@@ -1,8 +1,10 @@
 import { describe, it, expect } from 'vitest';
+
+import type { LiveFlagsReader } from '../state/live_flags.js';
+
 import { ContextAssembler } from './context_assembler.js';
 import type { FeatureGatesReader } from './feature_gates.js';
 import type { StateMachine } from './state_machine.js';
-import type { LiveFlagsReader } from '../state/live_flags.js';
 
 const stateMachineStub = {} as unknown as StateMachine;
 

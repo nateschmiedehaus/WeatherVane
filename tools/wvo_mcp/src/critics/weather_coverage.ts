@@ -1,8 +1,10 @@
-import { Critic } from "./base.js";
 import { join } from "path";
+
 import { readFile } from "../executor/file_ops.js";
 import { parseJsonSafe } from "../utils/json.js";
 import type { CommandResult } from "../utils/types.js";
+
+import { Critic } from "./base.js";
 
 interface WeatherGuardrailReport {
   geocoded_ratio: number;

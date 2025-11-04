@@ -8,8 +8,11 @@
 
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
+
 import yaml from 'yaml';
+
 import { logInfo, logWarning, logError } from '../telemetry/logger.js';
+
 import type { TaskEvidence } from './adversarial_bullshit_detector.js';
 
 // Simple model router interface for dependency injection
@@ -97,20 +100,23 @@ export class DomainExpertReviewer {
       return this.promptTemplates.get(templateName)!;
     }
 
-    const templatePath = path.join(
-      this.workspaceRoot,
-      'prompts/genius_reviews',
-      `${templateName}.md`
-    );
+    const candidatePaths = [
+      path.join(this.workspaceRoot, 'prompts', 'genius_reviews', `${templateName}.md`),
+      path.join(this.workspaceRoot, 'tools', 'wvo_mcp', 'prompts', 'genius_reviews', `${templateName}.md`),
+    ];
 
-    try {
-      const content = await fs.readFile(templatePath, 'utf-8');
-      this.promptTemplates.set(templateName, content);
-      return content;
-    } catch (error) {
-      logWarning(`Failed to load prompt template ${templateName}`, { error });
-      return this.getDefaultPromptTemplate(templateName);
+    for (const templatePath of candidatePaths) {
+      try {
+        const content = await fs.readFile(templatePath, 'utf-8');
+        this.promptTemplates.set(templateName, content);
+        return content;
+      } catch {
+        // try next candidate
+      }
     }
+
+    logWarning(`Failed to load prompt template ${templateName}`, { attempted: candidatePaths });
+    return this.getDefaultPromptTemplate(templateName);
   }
 
   /**
@@ -407,7 +413,7 @@ export class DomainExpertReviewer {
           name: 'Software Architect',
           description: 'Expert in system design and scalability',
           keyQuestions: ['Is this scalable?', 'What are the failure modes?'],
-          expertModel: 'claude-sonnet-4-5',
+          expertModel: 'claude-sonnet-4.5',
           reasoningEffort: 'medium',
         },
         {
@@ -415,7 +421,7 @@ export class DomainExpertReviewer {
           name: 'Systems Thinker',
           description: 'Expert in holistic analysis',
           keyQuestions: ['What are the feedback loops?', 'What about emergence?'],
-          expertModel: 'claude-opus-4',
+          expertModel: 'claude-opus-4.1',
           reasoningEffort: 'high',
         },
         {
@@ -423,7 +429,7 @@ export class DomainExpertReviewer {
           name: 'Production Practitioner',
           description: 'Expert in production systems and operational excellence',
           keyQuestions: ['Will this work in production?', 'What are the operational risks?'],
-          expertModel: 'claude-sonnet-4-5',
+          expertModel: 'claude-sonnet-4.5',
           reasoningEffort: 'medium',
         },
         {
@@ -431,7 +437,7 @@ export class DomainExpertReviewer {
           name: 'Time Series Statistician',
           description: 'Expert in time series analysis and forecasting',
           keyQuestions: ['Are the statistical assumptions valid?', 'Is this seasonally appropriate?'],
-          expertModel: 'claude-opus-4',
+          expertModel: 'claude-opus-4.1',
           reasoningEffort: 'high',
         },
         {
@@ -439,7 +445,7 @@ export class DomainExpertReviewer {
           name: 'GAM Specialist',
           description: 'Expert in generalized additive models',
           keyQuestions: ['Is the basis selection appropriate?', 'Are smoothness parameters well-tuned?'],
-          expertModel: 'claude-opus-4',
+          expertModel: 'claude-opus-4.1',
           reasoningEffort: 'high',
         },
         {
@@ -447,7 +453,7 @@ export class DomainExpertReviewer {
           name: 'Meteorology Expert',
           description: 'Expert in weather science and meteorological systems',
           keyQuestions: ['Are the weather physics correctly modeled?', 'Is this meteorologically sound?'],
-          expertModel: 'claude-opus-4',
+          expertModel: 'claude-opus-4.1',
           reasoningEffort: 'high',
         },
         {
@@ -455,7 +461,7 @@ export class DomainExpertReviewer {
           name: 'Distributed Systems Expert',
           description: 'Expert in distributed systems and concurrent programming',
           keyQuestions: ['Will this scale to many nodes?', 'How are failures handled?'],
-          expertModel: 'claude-sonnet-4-5',
+          expertModel: 'claude-sonnet-4.5',
           reasoningEffort: 'medium',
         },
       ],

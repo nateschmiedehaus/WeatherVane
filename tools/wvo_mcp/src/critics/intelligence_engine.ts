@@ -1,5 +1,5 @@
-import path from 'node:path';
 import { promises as fs } from 'node:fs';
+import path from 'node:path';
 
 import type { ResearchManager } from '../intelligence/research_manager.js';
 import type { ResearchFinding, AlternativeOption } from '../intelligence/research_types.js';

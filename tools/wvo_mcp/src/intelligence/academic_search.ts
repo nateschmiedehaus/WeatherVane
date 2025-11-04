@@ -1,4 +1,5 @@
 import { logInfo } from '../telemetry/logger.js';
+
 import type { ResearchQuery, ResearchFinding } from './research_types.js';
 
 export interface AcademicSearchOptions {

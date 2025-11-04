@@ -11,8 +11,7 @@
  * See: /tmp/architecture_critique_synthesis.md lines 285-329
  */
 
-import type { StateMachine } from './state_machine.js';
-import type { Task } from './state_machine.js';
+import type { StateMachine , Task } from './state_machine.js';
 import { TaskReadinessChecker } from './task_readiness.js';
 
 /**

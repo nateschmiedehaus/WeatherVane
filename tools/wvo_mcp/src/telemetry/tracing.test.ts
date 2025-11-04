@@ -1,8 +1,8 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import fs from 'node:fs';
-import path from 'node:path';
+import fs, { promises as fsp } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { promises as fsp } from 'node:fs';
+import path from 'node:path';
+
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
 import {
   initTracing,

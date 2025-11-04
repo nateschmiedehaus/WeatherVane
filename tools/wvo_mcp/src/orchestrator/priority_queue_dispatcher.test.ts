@@ -1,8 +1,11 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { promises as fs } from "node:fs";
-import path from "node:path";
 import os from "node:os";
+import path from "node:path";
+
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
+
 import { PriorityQueueStore } from "../state/priority_queue_store.js";
+
 import { PriorityQueueDispatcher } from "./priority_queue_dispatcher.js";
 
 describe("PriorityQueueDispatcher", () => {

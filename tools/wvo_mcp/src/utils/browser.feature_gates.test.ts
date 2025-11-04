@@ -1,7 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { BrowserManager } from './browser.js';
+
 import type { FeatureGatesReader } from '../orchestrator/feature_gates.js';
 import type { LiveFlagsReader } from '../state/live_flags.js';
+
+import { BrowserManager } from './browser.js';
 
 function createFeatureGates(mode: 'pool' | 'none'): FeatureGatesReader {
   return {

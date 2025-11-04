@@ -1,8 +1,11 @@
 import { execa } from 'execa';
-import type { Task } from './state_machine.js';
+
+import { logInfo, logWarning, logDebug } from '../telemetry/logger.js';
+
 import type { TaskClassification } from './agent_hierarchy.js';
 import type { GitStatusSnapshot } from './git_status_monitor.js';
-import { logInfo, logWarning, logDebug } from '../telemetry/logger.js';
+import type { Task } from './state_machine.js';
+
 
 interface PreflightCommand {
   id: string;

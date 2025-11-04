@@ -1,13 +1,13 @@
-import path from 'node:path';
 import { promises as fs } from 'node:fs';
+import path from 'node:path';
 
 import YAML from 'yaml';
 
-import type { Task } from './state_machine.js';
-import type { StateMachine } from './state_machine.js';
-import type { OperationsManager } from './operations_manager.js';
 import { logError, logInfo, logWarning } from '../telemetry/logger.js';
 import { InspirationFetcher, type WebInspirationResult } from '../web_tools/inspiration_fetcher.js';
+
+import type { OperationsManager } from './operations_manager.js';
+import type { Task , StateMachine } from './state_machine.js';
 
 interface InspirationStats {
   url: string;

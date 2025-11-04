@@ -1,11 +1,12 @@
+import { promises as fs } from 'node:fs';
 import path from 'node:path';
 
-import { promises as fs } from 'node:fs';
 
-import { logInfo, logWarning } from '../telemetry/logger.js';
-import type { OperationsManager, OperationsSnapshot } from './operations_manager.js';
 import { SettingsStore } from '../state/live_flags.js';
+import { logInfo, logWarning } from '../telemetry/logger.js';
 import { isDryRunEnabled } from '../utils/dry_run.js';
+
+import type { OperationsManager, OperationsSnapshot } from './operations_manager.js';
 
 const MAX_CONTEXT_WORDS_DEFAULT = 1000;
 const MIN_INTERVAL_MS_DEFAULT = 15 * 60 * 1000;

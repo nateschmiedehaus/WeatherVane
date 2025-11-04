@@ -6,11 +6,13 @@ class TestWeatherCoverageCritic extends WeatherCoverageCritic {
     return this.command(profile);
   }
 }
+import { mkdirSync, rmSync } from "fs";
+import { join } from "path";
+
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
 import { readFile, writeFile } from "../executor/file_ops.js";
 import { parseJsonSafe } from "../utils/json.js";
-import { join } from "path";
-import { mkdirSync, rmSync } from "fs";
-import { beforeEach, describe, expect, it, vi } from "vitest";
 
 describe("WeatherCoverageCritic", () => {
   let critic: TestWeatherCoverageCritic;

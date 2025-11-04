@@ -4,11 +4,22 @@
  */
 
 import { EventEmitter } from "node:events";
+
+import {
+  getEnabledProviders,
+  getProviderMetadata,
+  isProviderEnabled,
+  KnownProvider,
+  normalizeProviderId,
+  displayProviderId,
+  ProviderAlias,
+} from "../providers/registry.js";
 import { logError, logInfo, logWarning } from "../telemetry/logger.js";
-import { getEnabledProviders, getProviderMetadata, isProviderEnabled, KnownProvider } from "../providers/registry.js";
+
 import { ProviderCapacityMonitor } from "./provider_capacity_monitor.js";
 
 export type Provider = KnownProvider;
+export type ProviderLike = ProviderAlias;
 export type TaskComplexity = "simple" | "moderate" | "complex" | "critical";
 
 export interface ProviderUsage {
@@ -23,13 +34,13 @@ export interface ProviderUsage {
 export interface TaskType {
   name: string;
   complexity: TaskComplexity;
-  preferredProvider?: Provider;
+  preferredProvider?: ProviderLike;
   requiresLargeContext?: boolean;
 }
 
 export interface ProviderFailoverEvent {
-  from: Provider;
-  to: Provider;
+  from: ProviderLike;
+  to: ProviderLike;
   reason: string;
   taskName?: string;
 }
@@ -41,15 +52,17 @@ export class ProviderManager extends EventEmitter {
   private capacityMonitor?: ProviderCapacityMonitor;
   private preferredProvider: Provider; // Remember user's preferred provider
 
-  constructor(initialProvider: Provider = "codex", capacityMonitor?: ProviderCapacityMonitor) {
+  constructor(initialProvider: ProviderLike = "codex", capacityMonitor?: ProviderCapacityMonitor) {
     super();
     const enabledProviders = getEnabledProviders();
     if (enabledProviders.length === 0) {
       throw new Error("ProviderManager: no providers enabled. Enable at least one provider in the registry.");
     }
 
-    this.currentProvider = enabledProviders.includes(initialProvider)
-      ? initialProvider
+    const normalizedInitial = normalizeProviderId(initialProvider);
+
+    this.currentProvider = enabledProviders.includes(normalizedInitial)
+      ? normalizedInitial
       : (enabledProviders[0] as Provider);
     this.preferredProvider = this.currentProvider; // Remember original preference
 
@@ -116,7 +129,8 @@ export class ProviderManager extends EventEmitter {
   /**
    * Track token usage for a provider
    */
-  async trackUsage(provider: Provider, tokensUsed: number, success: boolean = true): Promise<void> {
+  async trackUsage(providerLike: ProviderLike, tokensUsed: number, success: boolean = true): Promise<void> {
+    const provider = normalizeProviderId(providerLike);
     const usage = this.usage.get(provider);
     if (!usage) return;
 
@@ -133,8 +147,10 @@ export class ProviderManager extends EventEmitter {
       usage.lastReset = new Date().toISOString();
     }
 
+    const displayProvider = this.toDisplayId(provider);
+
     logInfo("Provider usage tracked", {
-      provider,
+      provider: displayProvider,
       tokensUsed,
       totalTokens: usage.tokensUsed,
       requestCount: usage.requestCount,
@@ -150,7 +166,7 @@ export class ProviderManager extends EventEmitter {
     const remainingPercent = ((usage.hourlyLimit - usage.tokensUsed) / usage.hourlyLimit) * 100;
     if (remainingPercent < 20 && remainingPercent > 0) {
       logWarning("Provider approaching capacity limit", {
-        provider,
+        provider: displayProvider,
         percentRemaining: remainingPercent.toFixed(1),
         tokensRemaining: usage.hourlyLimit - usage.tokensUsed,
       });
@@ -160,7 +176,8 @@ export class ProviderManager extends EventEmitter {
   /**
    * Check if a provider has capacity
    */
-  async hasCapacity(provider: Provider, estimatedTokens: number = 0): Promise<boolean> {
+  async hasCapacity(providerLike: ProviderLike, estimatedTokens: number = 0): Promise<boolean> {
+    const provider = normalizeProviderId(providerLike);
     const usage = this.usage.get(provider);
     if (!usage) return false;
 
@@ -185,9 +202,14 @@ export class ProviderManager extends EventEmitter {
   }
 
   /**
-   * Get best provider for a task
+   * Get best provider for a task (display alias)
    */
-  async getBestProvider(taskName: string, estimatedTokens: number = 1000): Promise<Provider> {
+  async getBestProvider(taskName: string, estimatedTokens: number = 1000): Promise<ProviderLike> {
+    const provider = await this.selectProvider(taskName, estimatedTokens);
+    return this.toDisplayId(provider);
+  }
+
+  private async selectProvider(taskName: string, estimatedTokens: number = 1000): Promise<Provider> {
     const task = this.taskTypes.get(taskName);
     const enabledProviders = Array.from(this.usage.keys());
     if (!enabledProviders.includes(this.currentProvider)) {
@@ -196,18 +218,20 @@ export class ProviderManager extends EventEmitter {
 
     const candidateProviders: Provider[] = [];
 
-    // Priority 1: Task-specific preferred provider
-    if (task?.preferredProvider && enabledProviders.includes(task.preferredProvider)) {
-      candidateProviders.push(task.preferredProvider);
+    if (task?.preferredProvider) {
+      const preferredProvider = normalizeProviderId(task.preferredProvider);
+      if (enabledProviders.includes(preferredProvider) && !candidateProviders.includes(preferredProvider)) {
+        candidateProviders.push(preferredProvider);
+      }
     }
 
-    // Priority 2: User's original preferred provider (if it has recovered)
     if (!candidateProviders.includes(this.preferredProvider)) {
       candidateProviders.push(this.preferredProvider);
     }
 
-    // Priority 3: Large context providers for complex tasks
-    const prefersLargeContext = Boolean(task?.requiresLargeContext || task?.complexity === "complex" || task?.complexity === "critical");
+    const prefersLargeContext = Boolean(
+      task?.requiresLargeContext || task?.complexity === "complex" || task?.complexity === "critical",
+    );
     if (prefersLargeContext) {
       for (const providerId of enabledProviders) {
         const metadata = getProviderMetadata(providerId);
@@ -217,50 +241,44 @@ export class ProviderManager extends EventEmitter {
       }
     }
 
-    // Priority 4: Current provider
     if (!candidateProviders.includes(this.currentProvider)) {
       candidateProviders.push(this.currentProvider);
     }
 
-    // Priority 5: All other enabled providers
     for (const providerId of enabledProviders) {
       if (!candidateProviders.includes(providerId)) {
         candidateProviders.push(providerId);
       }
     }
 
-    // Try each candidate in order
     const oldProvider = this.currentProvider;
     for (const providerId of candidateProviders) {
       if (await this.hasCapacity(providerId, estimatedTokens)) {
         if (oldProvider !== providerId) {
-          this.switchProvider(providerId, `Failover: ${oldProvider} at capacity`, taskName);
+          this.switchProvider(providerId, `Failover: ${this.toDisplayId(oldProvider)} at capacity`, taskName);
         }
         return providerId;
       }
     }
 
-    // All providers exhausted - log critical error and return best available
     logError("All providers at capacity - workload may be throttled", {
-      currentProvider: this.currentProvider,
+      currentProvider: this.toDisplayId(this.currentProvider),
       estimatedTokens,
       taskName,
       providers: Array.from(this.usage.entries()).map(([provider, usage]) => ({
-        provider,
+        provider: this.toDisplayId(provider),
         tokensUsed: usage.tokensUsed,
         hourlyLimit: usage.hourlyLimit,
         percentUsed: ((usage.tokensUsed / usage.hourlyLimit) * 100).toFixed(1) + "%",
       })),
     });
 
-    // Emit event for critical capacity shortage
     this.emit("all-providers-exhausted", {
       estimatedTokens,
       taskName,
-      providers: enabledProviders,
+      providers: enabledProviders.map((p) => this.toDisplayId(p)),
     });
 
-    // Return provider with most capacity left
     let bestProvider = this.currentProvider;
     let maxRemaining = -1;
     for (const [provider, usage] of this.usage.entries()) {
@@ -278,10 +296,11 @@ export class ProviderManager extends EventEmitter {
    * Get provider selection recommendation with reasoning
    */
   async getProviderRecommendation(taskName: string): Promise<{
-    provider: Provider;
+    provider: ProviderLike;
     reasoning: string;
   }> {
-    const provider = await this.getBestProvider(taskName);
+    const provider = await this.selectProvider(taskName);
+    const providerAlias = this.toDisplayId(provider);
     const metadata = getProviderMetadata(provider);
     const task = this.taskTypes.get(taskName);
     const reasons: string[] = [];
@@ -306,7 +325,7 @@ export class ProviderManager extends EventEmitter {
     }
 
     return {
-      provider,
+      provider: providerAlias,
       reasoning: reasons.join("; "),
     };
   }
@@ -319,8 +338,9 @@ export class ProviderManager extends EventEmitter {
       const metadata = getProviderMetadata(provider);
       const hourlyRemaining = data.hourlyLimit - data.tokensUsed;
       const enabled = metadata ? isProviderEnabled(metadata) : true;
+      const displayId = this.toDisplayId(provider);
       return {
-        provider,
+        provider: displayId,
         label: metadata?.label ?? provider,
         stage: metadata?.staging ? "staging" : "production",
         costTier: metadata?.capabilities?.costTier ?? "unknown",
@@ -334,7 +354,7 @@ export class ProviderManager extends EventEmitter {
     });
 
     return {
-      currentProvider: this.currentProvider,
+      currentProvider: this.toDisplayId(this.currentProvider),
       providers,
     };
   }
@@ -342,15 +362,24 @@ export class ProviderManager extends EventEmitter {
   /**
    * Force switch provider
    */
-  switchProvider(provider: Provider, reason: string = "manual", taskName?: string) {
+  switchProvider(providerLike: ProviderLike, reason: string = "manual", taskName?: string) {
+    const provider = normalizeProviderId(providerLike);
     const old = this.currentProvider;
+    if (old === provider) {
+      return;
+    }
     this.currentProvider = provider;
-    logInfo("Provider switched", { from: old, to: provider, reason, taskName });
+    logInfo("Provider switched", {
+      from: this.toDisplayId(old),
+      to: this.toDisplayId(provider),
+      reason,
+      taskName,
+    });
 
     // Emit failover event
     this.emit("provider:failover", {
-      from: old,
-      to: provider,
+      from: this.toDisplayId(old),
+      to: this.toDisplayId(provider),
       reason,
       taskName,
     } satisfies ProviderFailoverEvent);
@@ -361,9 +390,9 @@ export class ProviderManager extends EventEmitter {
    */
   private handleProviderRecovery(provider: Provider): void {
     logInfo("Provider recovered - evaluating switch back", {
-      recoveredProvider: provider,
-      currentProvider: this.currentProvider,
-      preferredProvider: this.preferredProvider,
+      recoveredProvider: this.toDisplayId(provider),
+      currentProvider: this.toDisplayId(this.currentProvider),
+      preferredProvider: this.toDisplayId(this.preferredProvider),
     });
 
     // If the recovered provider is the preferred one and we're not currently using it,
@@ -376,15 +405,19 @@ export class ProviderManager extends EventEmitter {
   /**
    * Get preferred provider (user's initial choice)
    */
-  getPreferredProvider(): Provider {
-    return this.preferredProvider;
+  getPreferredProvider(): ProviderLike {
+    return this.toDisplayId(this.preferredProvider);
   }
 
   /**
    * Set new preferred provider
    */
-  setPreferredProvider(provider: Provider): void {
-    this.preferredProvider = provider;
-    logInfo("Preferred provider updated", { provider });
+  setPreferredProvider(providerLike: ProviderLike): void {
+    this.preferredProvider = normalizeProviderId(providerLike);
+    logInfo("Preferred provider updated", { provider: this.toDisplayId(this.preferredProvider) });
+  }
+
+  private toDisplayId(provider: Provider): ProviderLike {
+    return displayProviderId(provider);
   }
 }

@@ -1,10 +1,14 @@
 import { fork, type ChildProcess } from 'node:child_process';
+import { randomUUID } from 'node:crypto';
 import { EventEmitter } from 'node:events';
 import fs from 'node:fs';
 import fsPromises from 'node:fs/promises';
-import { randomUUID } from 'node:crypto';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+
+import { logError, logInfo, logWarning } from '../telemetry/logger.js';
+import { withSpan } from '../telemetry/tracing.js';
+import { resolveStateRoot } from '../utils/config.js';
 
 import {
   type WorkerCallOptions,
@@ -18,9 +22,7 @@ import {
   type WorkerLogMessage,
   type WorkerExitMessage,
 } from './protocol.js';
-import { logError, logInfo, logWarning } from '../telemetry/logger.js';
-import { resolveStateRoot } from '../utils/config.js';
-import { withSpan } from '../telemetry/tracing.js';
+
 
 type PrimaryWorkerRole = 'active' | 'canary';
 type WorkerRole = PrimaryWorkerRole | 'executor';

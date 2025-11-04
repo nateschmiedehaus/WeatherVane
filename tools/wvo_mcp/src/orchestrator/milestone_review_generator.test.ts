@@ -4,12 +4,14 @@
  * Tests the automatic generation of 7 expert review tasks when milestones reach 80% completion.
  */
 
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { MilestoneReviewGenerator } from './milestone_review_generator.js';
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'fs';
-import { join } from 'path';
 import { tmpdir } from 'os';
+import { join } from 'path';
+
 import * as yaml from 'js-yaml';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+
+import { MilestoneReviewGenerator } from './milestone_review_generator.js';
 
 describe('MilestoneReviewGenerator', () => {
   let tempDir: string;

@@ -1,10 +1,11 @@
 import { randomUUID } from "node:crypto";
 
+import type { ConsensusTelemetryRecorder } from "../../telemetry/consensus_metrics.js";
+import { logInfo } from "../../telemetry/logger.js";
 import type { AssembledContext } from "../context_assembler.js";
 import type { StateMachine, Task, ContextEntry } from "../state_machine.js";
-import { logInfo } from "../../telemetry/logger.js";
+
 import { buildConsensusAgenda, type ConsensusAgenda, type ConsensusDecisionType } from "./agenda_builder.js";
-import type { ConsensusTelemetryRecorder } from "../../telemetry/consensus_metrics.js";
 import { getConsensusWorkloadSnapshot, type ConsensusWorkloadSnapshot } from "./workload_loader.js";
 
 export interface ConsensusEngineOptions {

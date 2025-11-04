@@ -1,19 +1,20 @@
-import fs from 'node:fs';
-import { promises as fsPromises } from 'node:fs';
-import path from 'node:path';
 import { EventEmitter } from 'node:events';
+import fs, { promises as fsPromises } from 'node:fs';
+import path from 'node:path';
 
-import type { AgentType } from './agent_pool.js';
-import type { QualityMetric, StateMachine, Task } from './state_machine.js';
-import type { LiveFlagsReader } from '../state/live_flags.js';
-import { FeatureGates } from './feature_gates.js';
 import {
   QualityFramework,
   type ComprehensiveQualityReport,
   type QualityAssessment,
   type QualityDimension,
 } from '../quality/quality_framework.js';
+import type { LiveFlagsReader } from '../state/live_flags.js';
 import { logWarning } from '../telemetry/logger.js';
+
+import type { AgentType } from './agent_pool.js';
+import { FeatureGates } from './feature_gates.js';
+import type { QualityMetric, StateMachine, Task } from './state_machine.js';
+
 
 export interface QualityCheckInput {
   task: Task;

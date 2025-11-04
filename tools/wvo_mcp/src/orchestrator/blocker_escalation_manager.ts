@@ -10,9 +10,10 @@
  * Pattern: Inspired by PagerDuty's escalation policies and incident.io's SLA tracking
  */
 
-import type { StateMachine, Task } from './state_machine.js';
-import type { RoadmapTracker } from './roadmap_tracker.js';
 import { logInfo, logWarning, logDebug } from '../telemetry/logger.js';
+
+import type { RoadmapTracker } from './roadmap_tracker.js';
+import type { StateMachine, Task } from './state_machine.js';
 
 interface BlockerRecord {
   taskId: string;

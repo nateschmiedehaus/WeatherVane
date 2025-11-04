@@ -1,0 +1,634 @@
+import { spawnSync } from 'node:child_process';
+import path from 'node:path';
+import { PlannerAgent, type PlannerAgentResult } from './planner_agent.js';
+import { ThinkerAgent } from './thinker_agent.js';
+import { ImplementerAgent, type ImplementerAgentResult } from './implementer_agent.js';
+import { Verifier, type VerifierResult } from './verifier.js';
+import { ReviewerAgent } from './reviewer_agent.js';
+import { CriticalAgent } from './critical_agent.js';
+import { SupervisorAgent } from './supervisor.js';
+import type { TaskEnvelope } from './task_envelope.js';
+import { logWarning, logError, logInfo } from '../telemetry/logger.js';
+import type { ModelRouter, ModelSelection } from './model_router.js';
+import { DecisionJournal } from '../memory/decision_journal.js';
+import { RunEphemeralMemory } from '../memory/run_ephemeral.js';
+import { ContextAssembler } from '../context/context_assembler.js';
+import type { IntegrityReport } from './verify_integrity.js';
+import { runResolution, type ResolutionResult } from './resolution_engine.js';
+import type { IncidentReporter } from './incident_reporter.js';
+import type { RouterState } from './router_policy.js';
+
+export type AutopilotState = RouterState;
+
+const RETRY_LIMITS: Record<AutopilotState, number> = {
+  specify: 2,
+  plan: 2,
+  thinker: 1,
+  implement: 3,
+  verify: 2,
+  review: 2,
+  pr: 1,
+  monitor: 1,
+};
+
+type ContextAssemblerContract = {
+  emit: ContextAssembler['emit'];
+};
+
+export interface StateGraphDependencies {
+  planner: PlannerAgent;
+  thinker: ThinkerAgent;
+  implementer: ImplementerAgent;
+  verifier: Verifier;
+  reviewer: ReviewerAgent;
+  critical: CriticalAgent;
+  supervisor: SupervisorAgent;
+  router: ModelRouter;
+  journal: DecisionJournal;
+  memory: RunEphemeralMemory;
+  contextAssembler: ContextAssemblerContract;
+  checkpoint?: CheckpointClient;
+}
+
+export interface StateGraphOptions {
+  workspaceRoot: string;
+  runId?: string;
+  incidentReporter?: IncidentReporter;
+}
+
+export interface StateGraphTaskContext extends TaskEnvelope {}
+
+export interface StateGraphResult {
+  success: boolean;
+  finalState: AutopilotState;
+  notes: string[];
+  artifacts: Record<string, unknown>;
+}
+
+export interface CheckpointClient {
+  save(taskId: string, state: AutopilotState, payload: Record<string, unknown>, attempt: number): Promise<void>;
+}
+
+export class StateGraphError extends Error {
+  constructor(message: string, readonly state: AutopilotState, readonly details?: Record<string, unknown>) {
+    super(message);
+  }
+}
+
+export class StateGraph {
+  private readonly attemptCounter = new Map<string, number>();
+  private readonly planHashes = new Map<string, string>();
+  private readonly patchHistory = new Map<string, Set<string>>();
+  private readonly planDeltaRequired = new Set<string>();
+  private readonly pendingThinker = new Set<string>();
+  private readonly spikeBranches = new Map<string, string>();
+  private readonly resolutionTraces = new Map<string, ResolutionResult[]>();
+  private readonly contextPackRefs = new Map<string, Record<string, string>>();
+  private readonly workspaceRoot: string;
+  private readonly runId: string;
+  private readonly incidentReporter?: IncidentReporter;
+
+  constructor(private readonly deps: StateGraphDependencies, options: StateGraphOptions) {
+    this.workspaceRoot = options.workspaceRoot;
+    this.runId = options.runId ?? process.env.WVO_RUN_ID ?? 'run-local';
+    this.incidentReporter = options.incidentReporter;
+  }
+
+  async run(task: StateGraphTaskContext): Promise<StateGraphResult> {
+    const notes: string[] = [];
+    const artifacts: Record<string, unknown> = {};
+    this.contextPackRefs.delete(task.id);
+    let current: AutopilotState = 'specify';
+    let thinkerInsights: string[] = [];
+    let planResult: PlannerAgentResult | undefined;
+    let implementResult: ImplementerAgentResult | undefined;
+    let verifierResult: VerifierResult | undefined;
+    let integrityReport: IntegrityReport | undefined;
+
+    const routerDecisions: Array<{ state: AutopilotState; selection: ModelSelection }> = [];
+    const resolutionTrace: ResolutionResult[] = [];
+    const recordRouterDecision = (state: AutopilotState, selection?: ModelSelection) => {
+      if (selection) {
+        routerDecisions.push({ state, selection });
+      }
+    };
+
+    const scopeSignal = this.deriveScopeSignal(task);
+    const fileHints = this.extractFileHints(task);
+    const testHints = this.extractTestHints(task);
+
+    try {
+      while (current) {
+        this.incrementAttempt(task.id, current);
+        switch (current) {
+          case 'specify': {
+            const specify = this.deps.supervisor.specify(task);
+            await this.emitContextPack('Supervisor', {
+              taskId: task.id,
+              goal: `Define acceptance for ${task.id}`,
+              acceptanceCriteria: specify.acceptanceCriteria,
+              constraints: specify.initialRisks,
+              capability: 'reasoning_high',
+              scopeSignal,
+              fileHints,
+              testHints,
+              riskNotes: specify.initialRisks,
+            });
+            artifacts.specify = specify;
+            notes.push(`Acceptance criteria recorded: ${specify.acceptanceCriteria.length}`);
+            await this.checkpoint(task.id, current, this.checkpointPayload(specify));
+            recordRouterDecision('specify', specify.model);
+            current = 'plan';
+            break;
+          }
+          case 'plan': {
+            await this.ensureRetryBudget(task, current);
+            const needDelta = this.planDeltaRequired.has(task.id);
+            planResult = await this.deps.planner.run({
+              task,
+              attempt: this.getAttempt(task.id, current),
+              requireDelta: needDelta,
+            });
+            await this.emitContextPack('Planner', {
+              taskId: task.id,
+              goal: `Plan implementation for ${task.id}`,
+              acceptanceCriteria: planResult.summary ? [planResult.summary] : [],
+              constraints: this.defaultConstraints(task),
+              capability: 'reasoning_high',
+              scopeSignal,
+              fileHints,
+              testHints,
+              openQuestions: planResult.requiresThinker ? ['Ambiguity flagged by planner'] : [],
+              nextActions: ['Finalize file/function targets'],
+            });
+            const previousHash = this.planHashes.get(task.id);
+            if (needDelta && previousHash && previousHash === planResult.planHash) {
+              throw new StateGraphError('Plan delta required before re-implementation', current, {
+                planHash: planResult.planHash,
+              });
+            }
+            this.planHashes.set(task.id, planResult.planHash);
+            this.planDeltaRequired.delete(task.id);
+            artifacts.plan = planResult;
+            notes.push(`Plan hash ${planResult.planHash.slice(0, 8)} recorded.`);
+            if (this.spikeBranches.has(task.id)) {
+              notes.push(`Spike branch active: ${this.spikeBranches.get(task.id)}`);
+            }
+            await this.checkpoint(task.id, current, this.checkpointPayload(planResult));
+            recordRouterDecision('plan', planResult.model);
+            const forcedThinker = this.pendingThinker.delete(task.id);
+            if (forcedThinker) {
+              notes.push('Resolution requires Thinker exploration before next patch.');
+            }
+            current = planResult.requiresThinker || forcedThinker ? 'thinker' : 'implement';
+            break;
+          }
+          case 'thinker': {
+            if (!planResult) {
+              throw new StateGraphError('Thinker requires plan result', current);
+            }
+            const reflection = await this.deps.thinker.reflect({
+              task,
+              planHash: planResult.planHash,
+            });
+            await this.emitContextPack('Thinker', {
+              taskId: task.id,
+              goal: `Explore ambiguities for ${task.id}`,
+              acceptanceCriteria: [planResult.summary ?? ''],
+              constraints: this.defaultConstraints(task),
+              capability: 'reasoning_high',
+              scopeSignal,
+              fileHints,
+              testHints,
+              openQuestions: reflection.insights,
+              riskNotes: reflection.escalationRecommended ? ['Requires closer supervision'] : [],
+            });
+            thinkerInsights = reflection.insights;
+            artifacts.thinker = reflection;
+            notes.push(`Thinker added ${thinkerInsights.length} insights.`);
+            await this.checkpoint(task.id, current, this.checkpointPayload(reflection));
+            recordRouterDecision('thinker', reflection.model);
+            current = 'implement';
+            break;
+          }
+          case 'implement': {
+            if (!planResult) {
+              throw new StateGraphError('Implement requires plan result', current);
+            }
+            await this.ensureRetryBudget(task, current);
+            implementResult = await this.deps.implementer.apply({
+              task,
+              planHash: planResult.planHash,
+              insights: thinkerInsights,
+            });
+            if (!implementResult.success) {
+              this.requirePlanDelta(task.id);
+              await this.checkpoint(task.id, current, { status: 'failed' });
+              current = 'plan';
+              break;
+            }
+            await this.emitContextPack('Implementer', {
+              taskId: task.id,
+              goal: `Apply patch ${implementResult.patchHash.slice(0, 8)}`,
+              acceptanceCriteria: planResult.summary ? [planResult.summary] : [],
+              constraints: this.defaultConstraints(task),
+              capability: 'fast_code',
+              scopeSignal,
+              fileHints,
+              testHints,
+              nextActions: ['Produce minimal diff', 'Update/extend tests'],
+            });
+            if (this.isDuplicatePatch(task.id, implementResult.patchHash)) {
+              this.requirePlanDelta(task.id);
+              notes.push(`Duplicate patch ${implementResult.patchHash.slice(0, 8)} detected.`);
+              await this.checkpoint(task.id, current, { status: 'duplicate', patchHash: implementResult.patchHash });
+              current = 'plan';
+              break;
+            }
+            artifacts.implement = implementResult;
+            notes.push(`Patch ${implementResult.patchHash.slice(0, 8)} emitted.`);
+            await this.checkpoint(task.id, current, this.checkpointPayload(implementResult));
+            recordRouterDecision('implement', implementResult.model);
+            current = 'verify';
+            break;
+          }
+          case 'verify': {
+            if (!implementResult) {
+              throw new StateGraphError('Verify requires implementation result', current);
+            }
+            await this.ensureRetryBudget(task, current);
+            const coverageTarget = planResult?.coverageTarget ?? this.deps.verifier.getCoverageThreshold();
+            verifierResult = await this.deps.verifier.verify({
+              task,
+              patchHash: implementResult.patchHash,
+              coverageHint: implementResult.coverageHint,
+              coverageTarget,
+              changedFiles: implementResult.changedFiles,
+              changedLinesCoverage: implementResult.changedLinesCoverage,
+              touchedFilesDelta: implementResult.touchedFilesDelta,
+              failingProofProvided: implementResult.failingProofProvided,
+              mutationSmokeEnabled: implementResult.mutationSmokeEnabled,
+            });
+            artifacts.verify = verifierResult;
+            integrityReport = verifierResult.artifacts.integrity as IntegrityReport | undefined;
+            if (integrityReport) {
+              artifacts.integrity = integrityReport;
+            }
+            await this.emitContextPack('Verifier', {
+              taskId: task.id,
+              goal: 'Evaluate gates',
+              acceptanceCriteria: [`Coverage >= ${verifierResult.coverageTarget}`],
+              constraints: ['tests.run', 'lint.run', 'typecheck.run', 'security.scan', 'license.check'],
+              capability: 'reasoning_high',
+              scopeSignal,
+              fileHints,
+              testHints,
+              riskNotes: verifierResult.success ? [] : ['Gate failure detected'],
+            });
+            await this.checkpoint(task.id, current, this.checkpointPayload(verifierResult));
+            const integrityViolation = integrityReport
+              ? !integrityReport.changedLinesCoverageOk ||
+                integrityReport.skippedTestsFound.length > 0 ||
+                integrityReport.placeholdersFound.length > 0 ||
+                integrityReport.noOpSuspicion.length > 0 ||
+                integrityReport.mutationSmokeOk === false
+              : false;
+            if (!verifierResult.success || integrityViolation) {
+              this.deps.router.noteVerifyFailure(task.id);
+              this.requirePlanDelta(task.id);
+              const failingGate =
+                !verifierResult.success
+                  ? verifierResult.gateResults.find((gate) => !gate.success)?.name ??
+                    (verifierResult.coverageDelta < verifierResult.coverageTarget ? 'coverage_delta' : 'unknown')
+                  : 'integrity_guard';
+              const resolution = await runResolution({
+                taskId: task.id,
+                runId: this.runId,
+                workspaceRoot: this.workspaceRoot,
+                verifier: verifierResult,
+                integrity: integrityReport,
+                failingGate,
+                logSnippets: verifierResult.gateResults.map((gate) => `${gate.name}: ${gate.output}`),
+              });
+              this.recordResolutionTrace(task.id, resolutionTrace, resolution);
+              artifacts.resolution = resolution;
+              notes.push(`Resolution triggered (${resolution.label}); plan delta required.`);
+              if (resolution.requiresThinker) {
+                this.pendingThinker.add(task.id);
+              }
+              if (resolution.spikeBranch) {
+                this.spikeBranches.set(task.id, resolution.spikeBranch);
+                notes.push(`Spike branch created: ${resolution.spikeBranch}`);
+              }
+              current = 'plan';
+              break;
+            }
+            this.deps.router.clearTask(task.id);
+            notes.push(
+              `Verification succeeded with coverage ${verifierResult.coverageDelta.toFixed(3)} (target ${verifierResult.coverageTarget}).`
+            );
+            current = 'review';
+            break;
+          }
+          case 'review': {
+            if (!implementResult || !verifierResult) {
+              throw new StateGraphError('Review requires implementation and verification artifacts', current);
+            }
+            await this.ensureRetryBudget(task, current);
+            const review = await this.deps.reviewer.review({
+              task,
+              patchHash: implementResult.patchHash,
+              coverageDelta: verifierResult.coverageDelta,
+            });
+            const critical = await this.deps.critical.audit({
+              task,
+              patchHash: implementResult.patchHash,
+            });
+            await this.emitContextPack('Reviewer', {
+              taskId: task.id,
+              goal: 'Rubric evaluation',
+              acceptanceCriteria: [`Coverage delta ${verifierResult.coverageDelta.toFixed(2)}`],
+              constraints: ['readability', 'maintainability', 'perf', 'security'],
+              capability: 'reasoning_high',
+              scopeSignal,
+              fileHints,
+              testHints,
+              riskNotes: review.approved ? [] : ['Reviewer blocked'],
+              openQuestions: critical.issues,
+            });
+            artifacts.review = { review, critical };
+            await this.checkpoint(task.id, current, artifacts.review as Record<string, unknown>);
+            recordRouterDecision('review', review.model);
+            if (!review.approved || critical.issues.length > 0) {
+              this.requirePlanDelta(task.id);
+              notes.push('Review or critical gate failed; returning to Plan.');
+              current = 'plan';
+              break;
+            }
+            notes.push('Review approved and critical gate clean.');
+            current = 'pr';
+            break;
+          }
+          case 'pr': {
+            const prResult = this.deps.supervisor.preparePr(task);
+            await this.emitContextPack('Supervisor', {
+              taskId: task.id,
+              goal: 'Prepare PR checklist',
+              acceptanceCriteria: prResult.checklist,
+              constraints: this.defaultConstraints(task),
+              capability: 'reasoning_high',
+              scopeSignal,
+              fileHints,
+              testHints,
+            });
+            artifacts.pr = prResult;
+            await this.checkpoint(task.id, current, this.checkpointPayload(prResult));
+            recordRouterDecision('pr', prResult.model);
+            if (!prResult.ready) {
+              this.requirePlanDelta(task.id);
+              notes.push('PR checklist failed.');
+              current = 'plan';
+              break;
+            }
+            notes.push('PR checklist satisfied.');
+            current = 'monitor';
+            break;
+          }
+          case 'monitor': {
+            const monitorResult = this.deps.supervisor.monitor(task);
+            const smoke = await this.runAppSmoke();
+            if (!smoke.success) {
+              notes.push('App smoke failed; forcing plan delta.');
+              this.requirePlanDelta(task.id);
+              artifacts.monitor = { ...monitorResult, smoke };
+              await this.checkpoint(task.id, current, artifacts.monitor as Record<string, unknown>);
+              current = 'plan';
+              break;
+            }
+            await this.emitContextPack('Supervisor', {
+              taskId: task.id,
+              goal: 'Monitor after merge readiness',
+              acceptanceCriteria: ['App smoke passes', 'No regressions'],
+              constraints: this.defaultConstraints(task),
+              capability: 'cheap_batch',
+              scopeSignal,
+              fileHints,
+              testHints,
+            });
+            artifacts.monitor = { ...monitorResult, smoke };
+            await this.checkpoint(task.id, current, artifacts.monitor as Record<string, unknown>);
+            this.deps.memory.clearTask(task.id);
+            this.deps.router.clearTask(task.id);
+            recordRouterDecision('monitor', monitorResult.model);
+            notes.push('Monitor state complete.');
+            artifacts.routerDecisions = routerDecisions;
+            artifacts.resolutionTrace = resolutionTrace;
+            if (this.spikeBranches.has(task.id)) {
+              artifacts.spikeBranch = this.spikeBranches.get(task.id);
+            }
+            this.attachContextPackArtifacts(task.id, artifacts);
+            return { success: true, finalState: current, notes, artifacts };
+          }
+          default:
+            throw new StateGraphError(`Unknown state ${current}`, current);
+        }
+      }
+    } catch (error) {
+      if (error instanceof StateGraphError) {
+        notes.push(`${error.state} failed: ${error.message}`);
+        artifacts.error = { state: error.state, details: error.details };
+        artifacts.routerDecisions = routerDecisions;
+        artifacts.resolutionTrace = resolutionTrace;
+        if (this.spikeBranches.has(task.id)) {
+          artifacts.spikeBranch = this.spikeBranches.get(task.id);
+        }
+        this.attachContextPackArtifacts(task.id, artifacts);
+        return { success: false, finalState: error.state, notes, artifacts };
+      }
+      throw error;
+    }
+
+    artifacts.routerDecisions = routerDecisions;
+    artifacts.resolutionTrace = resolutionTrace;
+    if (this.spikeBranches.has(task.id)) {
+      artifacts.spikeBranch = this.spikeBranches.get(task.id);
+    }
+    this.attachContextPackArtifacts(task.id, artifacts);
+    return { success: false, finalState: current ?? 'specify', notes, artifacts };
+  }
+
+  private getAttempt(taskId: string, state: AutopilotState): number {
+    const key = `${taskId}:${state}`;
+    return this.attemptCounter.get(key) ?? 0;
+  }
+
+  private incrementAttempt(taskId: string, state: AutopilotState): void {
+    const key = `${taskId}:${state}`;
+    const next = (this.attemptCounter.get(key) ?? 0) + 1;
+    this.attemptCounter.set(key, next);
+  }
+
+  private async ensureRetryBudget(task: TaskEnvelope, state: AutopilotState): Promise<void> {
+    const attempt = this.getAttempt(task.id, state);
+    if (attempt > RETRY_LIMITS[state]) {
+      await this.handleIncident(task, state, attempt);
+      throw new StateGraphError('Retry ceiling exceeded', state, { attempt, limit: RETRY_LIMITS[state] });
+    }
+  }
+
+  private isDuplicatePatch(taskId: string, patchHash: string): boolean {
+    if (!this.patchHistory.has(taskId)) {
+      this.patchHistory.set(taskId, new Set());
+    }
+    const seen = this.patchHistory.get(taskId)!;
+    if (seen.has(patchHash)) {
+      logWarning('Duplicate patch detected', { taskId, patchHash });
+      return true;
+    }
+    seen.add(patchHash);
+    return false;
+  }
+
+  private requirePlanDelta(taskId: string): void {
+    this.planDeltaRequired.add(taskId);
+    this.deps.supervisor.requirePlanDelta(taskId);
+  }
+
+  private async handleIncident(task: TaskEnvelope, state: AutopilotState, attempt: number): Promise<void> {
+    if (!this.incidentReporter) {
+      return;
+    }
+    try {
+      await this.incidentReporter.report({
+        task,
+        state,
+        attempt,
+        notes: ['Retry ceiling exceeded', `state=${state}`],
+      });
+      this.pendingThinker.add(task.id);
+    } catch (error) {
+      logWarning('Incident reporter failed', {
+        taskId: task.id,
+        state,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
+
+  private recordResolutionTrace(taskId: string, trace: ResolutionResult[], resolution: ResolutionResult): void {
+    trace.push(resolution);
+    const existing = this.resolutionTraces.get(taskId) ?? [];
+    existing.push(resolution);
+    this.resolutionTraces.set(taskId, existing);
+  }
+
+  private checkpointPayload(payload: unknown): Record<string, unknown> {
+    if (payload && typeof payload === 'object') {
+      return { ...(payload as Record<string, unknown>) };
+    }
+    return { value: payload };
+  }
+
+  private async checkpoint(taskId: string, state: AutopilotState, payload: Record<string, unknown>): Promise<void> {
+    const attempt = this.getAttempt(taskId, state);
+    try {
+      await this.deps.checkpoint?.save(taskId, state, payload, attempt);
+    } catch (error) {
+      logError('Failed to persist checkpoint', {
+        taskId,
+        state,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+    await this.deps.journal.record({
+      taskId,
+      state,
+      attempt,
+      payload,
+    });
+  }
+
+  private async emitContextPack(
+    agent: 'Planner' | 'Thinker' | 'Implementer' | 'Verifier' | 'Reviewer' | 'Critical' | 'Supervisor',
+    payload: Omit<Parameters<ContextAssembler['emit']>[0], 'agent'>
+  ): Promise<void> {
+    if (!this.deps.contextAssembler) {
+      return;
+    }
+    try {
+      const uri = await this.deps.contextAssembler.emit({ agent, ...payload });
+      this.recordContextPack(payload.taskId, agent, uri);
+    } catch (error) {
+      logWarning('Context assembler failed', {
+        agent,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
+
+  private recordContextPack(taskId: string, agent: string, uri: string | undefined): void {
+    if (!uri) {
+      return;
+    }
+    const slot = agent.toLowerCase();
+    this.deps.memory.set(taskId, slot, 'context_pack_uri', uri);
+    const existing = this.contextPackRefs.get(taskId) ?? {};
+    existing[agent] = uri;
+    this.contextPackRefs.set(taskId, existing);
+  }
+
+  private attachContextPackArtifacts(taskId: string, artifacts: Record<string, unknown>): void {
+    const packs = this.contextPackRefs.get(taskId);
+    if (packs) {
+      artifacts.contextPacks = packs;
+    }
+    this.contextPackRefs.delete(taskId);
+  }
+
+  private extractFileHints(task: TaskEnvelope): string[] {
+    const files = task.metadata?.files;
+    if (Array.isArray(files)) {
+      return files.filter((value): value is string => typeof value === 'string');
+    }
+    return [];
+  }
+
+  private extractTestHints(task: TaskEnvelope): string[] {
+    const tests = task.metadata?.tests;
+    if (Array.isArray(tests)) {
+      return tests.filter((value): value is string => typeof value === 'string');
+    }
+    return [];
+  }
+
+  private deriveScopeSignal(task: TaskEnvelope): { filesTouched: number; approxChangedLines: number } {
+    const files = this.extractFileHints(task);
+    const lines = task.metadata?.approx_lines;
+    return {
+      filesTouched: files.length || 1,
+      approxChangedLines: typeof lines === 'number' ? lines : Math.max(files.length * 40, 40),
+    };
+  }
+
+  private defaultConstraints(task: TaskEnvelope): string[] {
+    const constraints = [];
+    if (task.metadata?.perf_budget) {
+      constraints.push(`Perf budget ${task.metadata.perf_budget}`);
+    }
+    constraints.push('No secrets in context');
+    constraints.push('Respect router locked models');
+    return constraints;
+  }
+
+  private async runMutationSmoke(taskId: string, patchHash: string): Promise<boolean> {
+    logInfo('Mutation smoke (stub) executed', { taskId, patchHash });
+    return true;
+  }
+
+  private async runAppSmoke(): Promise<{ success: boolean; log: string }> {
+    const script = path.join(this.workspaceRoot, 'scripts', 'app_smoke_e2e.sh');
+    const result = spawnSync(script, { shell: true, encoding: 'utf8' });
+    const log = (result.stdout ?? '') + (result.stderr ?? '');
+    return { success: result.status === 0, log };
+  }
+}

@@ -9,8 +9,10 @@
  */
 
 import { EventEmitter } from 'node:events';
-import type { GoogleOAuthFlow, OAuthTokens } from './google_oauth.js';
+
 import { logInfo, logWarning, logError } from '../telemetry/logger.js';
+
+import type { GoogleOAuthFlow, OAuthTokens } from './google_oauth.js';
 
 export interface TokenRefresherOptions {
   refreshThresholdSeconds?: number; // Refresh when this many seconds remain (default: 300 = 5 min)

@@ -1,6 +1,7 @@
 import path from "node:path";
-import type { LiveFlagsReader } from "../state/live_flags.js";
+
 import { FeatureGates } from "../orchestrator/feature_gates.js";
+import type { LiveFlagsReader } from "../state/live_flags.js";
 
 export const ALLOWED_COMMANDS = [
   "bash",

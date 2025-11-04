@@ -8,8 +8,9 @@
  * - Logs analysis for orchestrator action
  */
 
-import type { StateMachine, Task } from './state_machine.js';
 import { logInfo, logError, logWarning } from '../telemetry/logger.js';
+
+import type { StateMachine, Task } from './state_machine.js';
 
 // ============================================================================
 // Types

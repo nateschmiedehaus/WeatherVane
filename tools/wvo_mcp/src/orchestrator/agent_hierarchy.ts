@@ -17,6 +17,7 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
+
 import type { Task } from './state_machine.js';
 
 export type AgentRole = 'atlas' | 'director_dana' | 'worker' | 'critic';
@@ -88,7 +89,7 @@ export class AgentHierarchy {
     this.agentProfiles.set('atlas', {
       role: 'atlas',
       provider: 'claude',
-      model: 'claude-sonnet-4-5',
+      model: 'claude-sonnet-4.5',
       capabilities: [
         'strategic_planning',
         'complex_architecture',
@@ -104,7 +105,7 @@ export class AgentHierarchy {
     this.agentProfiles.set('director_dana', {
       role: 'director_dana',
       provider: 'claude',
-      model: 'claude-sonnet-4-5',
+      model: 'claude-sonnet-4.5',
       capabilities: [
         'infrastructure_management',
         'automation_coordination',

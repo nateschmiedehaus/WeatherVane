@@ -1,6 +1,8 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { FeatureGates } from './feature_gates.js';
+
 import type { LiveFlagsReader } from '../state/live_flags.js';
+
+import { FeatureGates } from './feature_gates.js';
 
 describe('FeatureGates', () => {
   let mockLiveFlags: LiveFlagsReader;
@@ -68,6 +70,14 @@ describe('FeatureGates', () => {
             return (flagValues.get(key) || '1') as string;
           case 'DISABLE_NEW':
             return (flagValues.get(key) || '0') as string;
+          case 'OBSERVER_AGENT_ENABLED':
+            return (flagValues.get(key) || '0') as string;
+          case 'OBSERVER_AGENT_CADENCE':
+            return (flagValues.get(key) || '5') as string;
+          case 'OBSERVER_AGENT_TIMEOUT_MS':
+            return (flagValues.get(key) || '30000') as string;
+          case 'OBSERVER_AGENT_MODEL':
+            return (flagValues.get(key) || 'gpt-5.1-high') as string;
           default:
             return '';
         }
@@ -198,6 +208,45 @@ describe('FeatureGates', () => {
       } as any;
       const gates = new FeatureGates(mockDisabled);
       expect(gates.isResearchLayerEnabled()).toBe(false);
+    });
+  });
+
+  describe('Observer config', () => {
+    it('should return defaults when not configured', () => {
+      const gates = new FeatureGates(mockLiveFlags);
+      expect(gates.getObserverConfig()).toEqual({
+        enabled: false,
+        cadence: 5,
+        timeoutMs: 30000,
+        model: 'gpt-5.1-high',
+      });
+    });
+
+    it('should respect live flag overrides', () => {
+      const gates = new FeatureGates({
+        getValue: (key: string) => {
+          switch (key) {
+            case 'OBSERVER_AGENT_ENABLED':
+              return '1';
+            case 'OBSERVER_AGENT_CADENCE':
+              return '2';
+            case 'OBSERVER_AGENT_TIMEOUT_MS':
+              return '45000';
+            case 'OBSERVER_AGENT_MODEL':
+              return 'gpt-5.1-ultra';
+            default:
+              return mockLiveFlags.getValue(key as any) as string;
+          }
+        },
+        get: () => mockLiveFlags.get(),
+      } as LiveFlagsReader);
+
+      expect(gates.getObserverConfig()).toEqual({
+        enabled: true,
+        cadence: 2,
+        timeoutMs: 45000,
+        model: 'gpt-5.1-ultra',
+      });
     });
   });
 

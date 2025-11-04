@@ -1,0 +1,9 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Local Context Pack",
+  "type": "object",
+  "properties": {
+    "version": {"type": "string"},
+    "context": {"type": "object"}
+  }
+}

@@ -1,11 +1,12 @@
-import type { Task } from './state_machine.js';
-import type { AssembledContext } from './context_assembler.js';
 import type { ModelManager } from '../models/model_manager.js';
+
+import type { AssembledContext } from './context_assembler.js';
 import {
   inferReasoningRequirement,
   type ReasoningDecision,
   type ReasoningLevel,
 } from './reasoning_classifier.js';
+import type { Task } from './state_machine.js';
 
 export interface CodexPresetPerformance {
   sampleSize: number;
@@ -42,53 +43,29 @@ interface CodexPreset {
 }
 
 const CODEX_PRESETS: Record<string, CodexPreset> = {
-  'gpt-5-codex-low': {
-    id: 'gpt-5-codex-low',
-    label: 'gpt-5-codex low',
-    modelSlug: 'gpt-5-codex',
+  'codex-5-low': {
+    id: 'codex-5-low',
+    label: 'codex-5 low',
+    modelSlug: 'codex-5',
     reasoning: 'low',
     profile: 'low',
     description: 'Fastest responses with limited reasoning',
   },
-  'gpt-5-codex-medium': {
-    id: 'gpt-5-codex-medium',
-    label: 'gpt-5-codex medium',
-    modelSlug: 'gpt-5-codex',
+  'codex-5-medium': {
+    id: 'codex-5-medium',
+    label: 'codex-5 medium',
+    modelSlug: 'codex-5',
     reasoning: 'medium',
     profile: 'medium',
     description: 'Adjusts reasoning depth based on task complexity',
   },
-  'gpt-5-codex-high': {
-    id: 'gpt-5-codex-high',
-    label: 'gpt-5-codex high',
-    modelSlug: 'gpt-5-codex',
+  'codex-5-high': {
+    id: 'codex-5-high',
+    label: 'codex-5 high',
+    modelSlug: 'codex-5',
     reasoning: 'high',
     profile: 'high',
     description: 'Maximum reasoning depth for complex or ambiguous problems',
-  },
-  'gpt-5-minimal': {
-    id: 'gpt-5-minimal',
-    label: 'gpt-5 minimal',
-    modelSlug: 'gpt-5',
-    reasoning: 'minimal',
-    profile: 'low',
-    description: 'Non-coding minimal reasoning for quick summaries',
-  },
-  'gpt-5-medium': {
-    id: 'gpt-5-medium',
-    label: 'gpt-5 medium',
-    modelSlug: 'gpt-5',
-    reasoning: 'medium',
-    profile: 'medium',
-    description: 'Balanced general model for narrative/product work',
-  },
-  'gpt-5-high': {
-    id: 'gpt-5-high',
-    label: 'gpt-5 high',
-    modelSlug: 'gpt-5',
-    reasoning: 'high',
-    profile: 'high',
-    description: 'Deep reasoning general model for strategy or documentation',
   },
 };
 
@@ -147,7 +124,7 @@ export function selectCodexModel(
   }
 
   if (documentationTask) {
-    adjustments.push('documentation focus (prefers gpt-5 family)');
+    adjustments.push('documentation focus (prefers lightweight codex preset)');
   }
 
   if (followUp && desiredLevel === 'medium' && complexity <= 4) {
@@ -195,15 +172,15 @@ function buildCodingPlan(
   switch (level) {
     case 'high':
       return {
-        preset: 'gpt-5-codex-high',
-        fallback: 'gpt-5-codex-medium',
+        preset: 'codex-5-high',
+        fallback: 'codex-5-medium',
         rationale,
         critical: true,
       };
     case 'medium':
       return {
-        preset: 'gpt-5-codex-medium',
-        fallback: 'gpt-5-codex-low',
+        preset: 'codex-5-medium',
+        fallback: 'codex-5-low',
         rationale,
         critical: options.highComplexity,
       };
@@ -211,8 +188,8 @@ function buildCodingPlan(
     case 'minimal':
     default:
       return {
-        preset: 'gpt-5-codex-low',
-        fallback: 'gpt-5-codex-medium',
+        preset: 'codex-5-low',
+        fallback: 'codex-5-medium',
         rationale,
         critical: false,
       };
@@ -224,33 +201,33 @@ function buildDocumentationPlan(
   rationale: string,
   complexity: number
 ): SelectionPlan {
+  if (complexity >= 8) {
+    level = 'high';
+  } else if (complexity <= 4) {
+    level = 'low';
+  }
+
   switch (level) {
     case 'high':
       return {
-        preset: 'gpt-5-high',
-        fallback: 'gpt-5-medium',
+        preset: 'codex-5-high',
+        fallback: 'codex-5-medium',
         rationale,
         critical: true,
       };
     case 'medium':
       return {
-        preset: 'gpt-5-medium',
-        fallback: complexity >= 7 ? 'gpt-5-high' : 'gpt-5-minimal',
+        preset: 'codex-5-medium',
+        fallback: 'codex-5-low',
         rationale,
-        critical: complexity >= 7,
+        critical: complexity >= 6,
       };
     case 'low':
-      return {
-        preset: 'gpt-5-medium',
-        fallback: 'gpt-5-minimal',
-        rationale,
-        critical: false,
-      };
     case 'minimal':
     default:
       return {
-        preset: 'gpt-5-minimal',
-        fallback: 'gpt-5-medium',
+        preset: 'codex-5-low',
+        fallback: 'codex-5-medium',
         rationale,
         critical: false,
       };
@@ -273,13 +250,13 @@ function adjustForOperations(
     const fallbackStats = presetStats[plan.fallback];
 
     if (!plan.critical && ratePressure >= 2) {
-      presetId = 'gpt-5-codex-low';
+      presetId = 'codex-5-low';
       notes.push('Rate-limit pressure detected; prioritising low preset');
     } else if (!plan.critical && operational.mode === 'stabilize' && presetProfile(presetId) === 'high') {
       presetId = plan.fallback;
       notes.push('Stabilize mode; reducing reasoning depth to conserve tokens');
     } else if (plan.critical && operational.mode === 'accelerate' && presetProfile(presetId) === 'medium') {
-      presetId = 'gpt-5-codex-high';
+      presetId = 'codex-5-high';
       notes.push('Accelerate mode; boosting reasoning for critical work');
     } else if (!plan.critical && queueLength > 5 && presetProfile(presetId) === 'high') {
       presetId = plan.fallback;
@@ -291,12 +268,12 @@ function adjustForOperations(
         presetId = plan.fallback;
         notes.push(`Recent success rate ${formatPercent(currentStats.successRate)} below 58%; falling back`);
       }
-      if (plan.critical && currentStats.successRate < 0.62 && plan.preset !== 'gpt-5-codex-high') {
-        presetId = 'gpt-5-codex-high';
+      if (plan.critical && currentStats.successRate < 0.62 && plan.preset !== 'codex-5-high') {
+        presetId = 'codex-5-high';
         notes.push(`Critical work success ${formatPercent(currentStats.successRate)}; forcing high preset`);
       }
-      if (plan.critical && currentStats.avgQuality < 0.82 && plan.preset !== 'gpt-5-codex-high') {
-        presetId = 'gpt-5-codex-high';
+      if (plan.critical && currentStats.avgQuality < 0.82 && plan.preset !== 'codex-5-high') {
+        presetId = 'codex-5-high';
         notes.push(`Critical work quality ${currentStats.avgQuality.toFixed(2)} < 0.82; boosting preset`);
       }
       if (!plan.critical && currentStats.avgTotalTokens > 9000) {
@@ -331,7 +308,7 @@ function buildSelection(
   notes: string[] = [],
   modelManager?: ModelManager
 ): ModelSelection {
-  const preset = CODEX_PRESETS[presetId] ?? CODEX_PRESETS['gpt-5-codex-medium'];
+  const preset = CODEX_PRESETS[presetId] ?? CODEX_PRESETS['codex-5-medium'];
   const rationaleText = notes.length ? `${rationale}; ${notes.join('; ')}` : rationale;
 
   // Update cost from model registry if available
@@ -354,7 +331,7 @@ function buildSelection(
 }
 
 function presetProfile(presetId: string): 'low' | 'medium' | 'high' {
-  return CODEX_PRESETS[presetId]?.profile ?? CODEX_PRESETS['gpt-5-codex-medium'].profile;
+  return CODEX_PRESETS[presetId]?.profile ?? CODEX_PRESETS['codex-5-medium'].profile;
 }
 
 function containsArchitectureKeywords(task: Task): boolean {

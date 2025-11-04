@@ -1,7 +1,8 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import type { Task, StateMachine } from './state_machine.js';
-import { calculatePriority, rankTasks } from './priority_scheduler.js';
+
 import type { FeatureGatesReader } from './feature_gates.js';
+import { calculatePriority, rankTasks } from './priority_scheduler.js';
+import type { Task, StateMachine } from './state_machine.js';
 
 const createMockStateMachine = (): StateMachine => ({
   getDependents: () => [],

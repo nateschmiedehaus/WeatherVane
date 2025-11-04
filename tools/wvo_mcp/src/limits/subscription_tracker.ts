@@ -8,9 +8,10 @@
  * - Persists usage data across sessions
  */
 
+import { EventEmitter } from 'node:events';
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
-import { EventEmitter } from 'node:events';
+
 import { logInfo, logWarning, logError } from '../telemetry/logger.js';
 
 export type ProviderName = 'claude' | 'codex';

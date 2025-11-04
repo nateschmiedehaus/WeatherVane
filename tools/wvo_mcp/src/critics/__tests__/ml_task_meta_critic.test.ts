@@ -10,9 +10,11 @@
  * 6. Output formatting
  */
 
-import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import * as fs from "node:fs/promises";
 import path from "node:path";
+
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+
 import { MLTaskMetaCriticCritic } from "../ml_task_meta_critic.js";
 
 describe("MLTaskMetaCritic", () => {

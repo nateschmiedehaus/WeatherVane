@@ -10,10 +10,12 @@
  * 5. MAPE constraints are enforced
  */
 
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import * as fs from 'fs/promises';
-import * as path from 'path';
 import * as os from 'os';
+import * as path from 'path';
+
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+
 import { ModelingRealityV2Critic } from './modeling_reality_v2.js';
 
 describe('ModelingReality Critic', () => {

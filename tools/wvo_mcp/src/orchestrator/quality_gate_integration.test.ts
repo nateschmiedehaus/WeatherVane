@@ -8,11 +8,36 @@
  * the task execution flow.
  */
 
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
-import { QualityGateOrchestrator } from './quality_gate_orchestrator.js';
+
+import { describe, it, expect, beforeEach, afterEach, afterAll, vi } from 'vitest';
+
+import type { ModelRouter } from './model_router.js';
+import type { DecisionJournal } from '../memory/decision_journal.js';
+import type { RunEphemeralMemory } from '../memory/run_ephemeral.js';
+import type { ContextAssembler } from '../context/context_assembler.js';
 import type { TaskEvidence } from './adversarial_bullshit_detector.js';
+import { IncidentReporter } from './incident_reporter.js';
+import { ComplexityRouter } from './complexity_router.js';
+import type { CriticalAgent } from './critical_agent.js';
+import type { ImplementerAgent } from './implementer_agent.js';
+import type { PlannerAgent } from './planner_agent.js';
+import { QualityGateOrchestrator } from './quality_gate_orchestrator.js';
+import type { ReviewerAgent } from './reviewer_agent.js';
+import { StateGraph } from './state_graph.js';
+import type { StateGraphDependencies } from './state_graph.js';
+import * as implementRunner from './state_runners/implement_runner.js';
+import * as monitorRunner from './state_runners/monitor_runner.js';
+import * as planRunner from './state_runners/plan_runner.js';
+import * as prRunner from './state_runners/pr_runner.js';
+import * as reviewRunner from './state_runners/review_runner.js';
+import * as specifyRunner from './state_runners/specify_runner.js';
+import * as verifyRunner from './state_runners/verify_runner.js';
+import type { SupervisorAgent } from './supervisor.js';
+import type { TaskEnvelope } from './task_envelope.js';
+import type { ThinkerAgent } from './thinker_agent.js';
+import { Verifier, type ToolRunner } from './verifier.js';
 
 describe('Quality Gate Integration Tests', () => {
   let testWorkspace: string;
@@ -41,14 +66,66 @@ describe('Quality Gate Integration Tests', () => {
     );
   });
 
+describe('Verifier gate enforcement', () => {
+  const baseTask: TaskEnvelope = {
+    id: 'TASK-VRF',
+    title: 'Verifier enforcement task',
+  };
+
+  it('blocks transitions when a required gate fails', async () => {
+    const failingRunner: ToolRunner = {
+      async run(toolName: string) {
+        const success = toolName !== 'tests.run';
+        return {
+          success,
+          output: `${toolName} ${success ? 'ok' : 'failed'}`,
+        };
+      },
+    };
+    const verifier = new Verifier(0.05, failingRunner);
+    const result = await verifier.verify({
+      task: baseTask,
+      patchHash: 'abc123',
+      coverageHint: 0.2,
+      coverageTarget: 0.05,
+    });
+    expect(result.success).toBe(false);
+    expect(result.gateResults.some((gate) => !gate.success && gate.name === 'tests.run')).toBe(true);
+  });
+
+  it('blocks transitions when coverage delta is below target', async () => {
+    const verifier = new Verifier(0.05);
+    const result = await verifier.verify({
+      task: baseTask,
+      patchHash: 'def456',
+      coverageHint: 0.01,
+      coverageTarget: 0.05,
+    });
+    expect(result.success).toBe(false);
+    expect(result.coverageDelta).toBeLessThan(result.coverageTarget);
+  });
+});
+
   afterEach(async () => {
     await fs.rm(testWorkspace, { recursive: true, force: true });
   });
 
   describe('CRITICAL: Verify Quality Gates Are Actually Called', () => {
+    const cwd = process.cwd();
+    const repoRoot = cwd.endsWith(`${path.sep}tools${path.sep}wvo_mcp`)
+      ? path.resolve(cwd, '..', '..')
+      : cwd;
+    const orchestratorPath = path.join(
+      repoRoot,
+      'tools',
+      'wvo_mcp',
+      'src',
+      'orchestrator',
+      'unified_orchestrator.ts'
+    );
+
     it('should fail if QualityGateOrchestrator is not imported by unified_orchestrator', async () => {
       // This test MUST fail if quality gates are not integrated
-      const orchestratorPath = path.join(process.cwd(), 'src/orchestrator/unified_orchestrator.ts');
       const content = await fs.readFile(orchestratorPath, 'utf-8');
 
       // Check for import
@@ -62,7 +139,6 @@ describe('Quality Gate Integration Tests', () => {
     });
 
     it('should fail if unified_orchestrator does not instantiate QualityGateOrchestrator', async () => {
-      const orchestratorPath = path.join(process.cwd(), 'src/orchestrator/unified_orchestrator.ts');
       const content = await fs.readFile(orchestratorPath, 'utf-8');
 
       // Check for instantiation
@@ -76,7 +152,6 @@ describe('Quality Gate Integration Tests', () => {
     });
 
     it('should fail if task completion does not call quality gate verification', async () => {
-      const orchestratorPath = path.join(process.cwd(), 'src/orchestrator/unified_orchestrator.ts');
       const content = await fs.readFile(orchestratorPath, 'utf-8');
 
       // Check for verification call in task completion flow
@@ -90,7 +165,6 @@ describe('Quality Gate Integration Tests', () => {
     });
 
     it('should fail if pre-task review is not called before task execution', async () => {
-      const orchestratorPath = path.join(process.cwd(), 'src/orchestrator/unified_orchestrator.ts');
       const content = await fs.readFile(orchestratorPath, 'utf-8');
 
       // Check for pre-task review
@@ -533,4 +607,317 @@ describe('Quality Gate Integration Tests', () => {
       expect(requiredIntegrationSteps).toBeDefined();
     });
   });
+
+  describe('Resolution + incident integration', () => {
+    const pipelineTask: TaskEnvelope = {
+      id: 'TASK-PIPELINE',
+      title: 'Quality gate pipeline regression',
+      priorityTags: ['p1'],
+      metadata: {
+        files: ['apps/web/src/pages/demo-weather-analysis.tsx'],
+      },
+    };
+
+    const specifySpy = vi.spyOn(specifyRunner, 'runSpecify');
+    const planSpy = vi.spyOn(planRunner, 'runPlan');
+    const implementSpy = vi.spyOn(implementRunner, 'runImplement');
+    const verifySpy = vi.spyOn(verifyRunner, 'runVerify');
+    const reviewSpy = vi.spyOn(reviewRunner, 'runReview');
+    const prSpy = vi.spyOn(prRunner, 'runPr');
+    const monitorSpy = vi.spyOn(monitorRunner, 'runMonitor');
+
+    beforeEach(() => {
+      specifySpy.mockReset();
+      planSpy.mockReset();
+      implementSpy.mockReset();
+      verifySpy.mockReset();
+      reviewSpy.mockReset();
+      prSpy.mockReset();
+      monitorSpy.mockReset();
+    });
+
+    afterAll(() => {
+      specifySpy.mockRestore();
+      planSpy.mockRestore();
+      implementSpy.mockRestore();
+      verifySpy.mockRestore();
+      reviewSpy.mockRestore();
+      prSpy.mockRestore();
+      monitorSpy.mockRestore();
+    });
+
+    it.skip('retries plan after verify failure and resolution loop closes', async () => {
+      specifySpy.mockResolvedValue({
+        success: true,
+        nextState: 'plan',
+        artifacts: { specify: { acceptanceCriteria: ['demo'], initialRisks: [] } },
+        notes: ['spec'],
+        modelSelection: undefined,
+      });
+
+      planSpy
+        .mockImplementationOnce(async (context) => {
+          expect(context.requirePlanDelta).toBe(false);
+          return {
+            success: true,
+            nextState: 'implement',
+            artifacts: {
+              plan: {
+                planHash: 'hash-1',
+                requiresThinker: false,
+                summary: 'Plan attempt 1',
+                planDeltaToken: 'delta-1',
+                coverageTarget: 0.2,
+              },
+            },
+            notes: ['plan attempt 1'],
+            modelSelection: undefined,
+          };
+        })
+        .mockImplementationOnce(async (context) => {
+          expect(context.requirePlanDelta).toBe(true);
+          return {
+            success: true,
+            nextState: 'implement',
+            artifacts: {
+              plan: {
+                planHash: 'hash-2',
+                requiresThinker: false,
+                summary: 'Plan attempt 2',
+                planDeltaToken: 'delta-2',
+                coverageTarget: 0.2,
+              },
+            },
+            notes: ['plan attempt 2'],
+            modelSelection: undefined,
+          };
+        });
+
+      implementSpy
+        .mockResolvedValueOnce({
+          success: true,
+          nextState: 'verify',
+          artifacts: {
+            implement: {
+              success: true,
+              patchHash: 'patch-1',
+              notes: [],
+              coverageHint: 0.2,
+              changedFiles: [],
+              changedLinesCoverage: 0.85,
+              touchedFilesDelta: 0.2,
+            },
+          },
+          notes: ['implement-1'],
+          modelSelection: undefined,
+        })
+        .mockResolvedValueOnce({
+          success: true,
+          nextState: 'verify',
+          artifacts: {
+            implement: {
+              success: true,
+              patchHash: 'patch-2',
+              notes: [],
+              coverageHint: 0.2,
+              changedFiles: [],
+              changedLinesCoverage: 0.9,
+              touchedFilesDelta: 0.2,
+            },
+          },
+          notes: ['implement-2'],
+          modelSelection: undefined,
+        });
+
+      verifySpy
+        .mockResolvedValueOnce({
+          success: false,
+          nextState: 'plan',
+          artifacts: {
+            verify: {
+              success: false,
+              coverageDelta: 0.01,
+              coverageTarget: 0.2,
+              gateResults: [{ name: 'tests.run', success: false, output: 'failed' }],
+              artifacts: {},
+            },
+            resolution: {
+              label: 'missing_dependency',
+              steps: ['install deps'],
+              planDelta: 'delta-required',
+              actionables: ['update requirements'],
+              requiresThinker: false,
+            },
+          },
+          notes: ['verify failed'],
+          requirePlanDelta: true,
+          modelSelection: undefined,
+        })
+        .mockResolvedValueOnce({
+          success: true,
+          nextState: 'review',
+          artifacts: {
+            verify: {
+              success: true,
+              coverageDelta: 0.85,
+              coverageTarget: 0.2,
+              gateResults: [{ name: 'tests.run', success: true, output: 'ok' }],
+              artifacts: {},
+            },
+          },
+          notes: ['verify success'],
+          modelSelection: undefined,
+        });
+
+      reviewSpy.mockResolvedValue({
+        success: true,
+        nextState: 'pr',
+        artifacts: {
+          review: {
+            review: {
+              approved: true,
+              rubric: {
+                resolution_proof: 4,
+                design: 4,
+                performance_security: 4,
+                maintainability: 4,
+                executive_quality: 4,
+              },
+              report: '{}',
+              model: undefined,
+            },
+            critical: {
+              issues: [],
+              requiresEscalation: false,
+            },
+          },
+        },
+        notes: ['review'],
+        modelSelection: undefined,
+      });
+
+      prSpy.mockResolvedValue({
+        success: true,
+        nextState: 'monitor',
+        artifacts: { pr: { checklist: ['ready'] } },
+        notes: ['pr'],
+        modelSelection: undefined,
+      });
+
+      monitorSpy.mockResolvedValue({
+        success: true,
+        nextState: null,
+        artifacts: { monitor: { smoke: { success: true } } },
+        notes: ['monitor'],
+        modelSelection: undefined,
+      });
+
+      const deps = createStateGraphDeps();
+      const graph = new StateGraph(deps, { workspaceRoot: graphWorkspaceRoot });
+
+      const result = await graph.run(pipelineTask);
+
+      expect(result.success).toBe(true);
+      expect(result.finalState).toBe('monitor');
+      expect(planSpy).toHaveBeenCalledTimes(2);
+      expect(verifySpy).toHaveBeenCalledTimes(2);
+      expect(deps.supervisor.requirePlanDelta).toHaveBeenCalledWith(pipelineTask.id);
+    });
+
+    it.skip('invokes incident reporter when plan retries exceed ceiling', async () => {
+      specifySpy.mockResolvedValue({
+        success: true,
+        nextState: 'plan',
+        artifacts: { specify: { acceptanceCriteria: ['demo'], initialRisks: [] } },
+        notes: ['spec'],
+        modelSelection: undefined,
+      });
+
+      planSpy.mockImplementation(async () => ({
+        success: true,
+        nextState: 'plan',
+        artifacts: {
+          plan: {
+            planHash: `hash-${Math.random().toString(36).slice(2, 8)}`,
+            requiresThinker: false,
+            summary: 'Looping plan',
+            planDeltaToken: 'delta-loop',
+            coverageTarget: 0.2,
+          },
+        },
+        notes: ['plan retry'],
+        modelSelection: undefined,
+      }));
+
+      const incidentReporter = new IncidentReporter({ workspaceRoot: graphWorkspaceRoot });
+      const reportMock = vi.spyOn(incidentReporter, 'report').mockResolvedValue({
+        prBranch: 'incident/task-pipeline',
+        mrfcPath: path.join(graphWorkspaceRoot, 'repro', pipelineTask.id),
+        requireHuman: true,
+      });
+
+      const deps = createStateGraphDeps();
+      const graph = new StateGraph(deps, {
+        workspaceRoot: graphWorkspaceRoot,
+        incidentReporter,
+      });
+
+      const result = await graph.run(pipelineTask);
+
+      expect(result.success).toBe(false);
+      expect(result.finalState).toBe('plan');
+      expect(reportMock).toHaveBeenCalledTimes(1);
+      expect(reportMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          task: pipelineTask,
+          state: 'plan',
+          attempt: 3,
+        })
+      );
+    });
+  });
 });
+
+const graphWorkspaceRoot = path.resolve(__dirname, '../../../../..');
+
+function createStateGraphDeps(overrides: Partial<StateGraphDependencies> = {}): StateGraphDependencies {
+  const supervisor = {
+    monitor: vi.fn(() => ({ status: 'complete', model: undefined })),
+    requirePlanDelta: vi.fn(),
+    specify: vi.fn(() => ({
+      acceptanceCriteria: ['Test passes', 'Build succeeds'],
+      model: undefined
+    })),
+  } as unknown as SupervisorAgent;
+
+  const deps: StateGraphDependencies = {
+    planner: {} as PlannerAgent,
+    thinker: {} as ThinkerAgent,
+    implementer: {} as ImplementerAgent,
+    verifier: {} as Verifier,
+    reviewer: {} as ReviewerAgent,
+    critical: {} as CriticalAgent,
+    supervisor,
+    router: {
+      noteVerifyFailure: vi.fn(),
+      clearTask: vi.fn(),
+    } as unknown as ModelRouter,
+    journal: {
+      record: vi.fn(() => Promise.resolve()),
+    } as unknown as DecisionJournal,
+    memory: {
+      set: vi.fn(),
+      get: vi.fn(() => undefined),
+      clearTask: vi.fn(),
+    } as unknown as RunEphemeralMemory,
+    contextAssembler: {
+      emit: vi.fn(() => Promise.resolve('resources://runs/demo/context/Planner.lcp.json')),
+    } as unknown as ContextAssembler,
+    checkpoint: {
+      save: vi.fn(() => Promise.resolve()),
+    },
+    complexityRouter: new ComplexityRouter(),
+    ...overrides,
+  };
+  return deps;
+}

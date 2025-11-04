@@ -12,6 +12,7 @@
  */
 
 import { createHash } from 'node:crypto';
+
 import { logInfo, logWarning } from '../telemetry/logger.js';
 
 export type ErrorType =

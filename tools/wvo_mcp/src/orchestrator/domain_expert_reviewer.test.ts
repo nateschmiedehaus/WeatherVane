@@ -3,12 +3,13 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import { DomainExpertReviewer, type ModelRouter } from './domain_expert_reviewer.js';
+
 import type { TaskEvidence } from './adversarial_bullshit_detector.js';
+import { DomainExpertReviewer, type ModelRouter } from './domain_expert_reviewer.js';
 
 // Mock model router
 class MockModelRouter {
-  private lastModelUsed = 'claude-opus-4';
+  private lastModelUsed = 'claude-opus-4.1';
 
   async route(prompt: string, complexity: string): Promise<string> {
     // Return mock JSON response

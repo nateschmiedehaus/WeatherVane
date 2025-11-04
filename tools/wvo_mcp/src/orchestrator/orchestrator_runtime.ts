@@ -1,6 +1,17 @@
-import { AgentPool } from './agent_pool.js';
+import { ResearchManager } from '../intelligence/research_manager.js';
+import { ModelManager } from '../models/model_manager.js';
+import { LiveFlags } from '../state/live_flags.js';
+import { logInfo, logWarning, logError } from '../telemetry/logger.js';
+import { AuthChecker } from '../utils/auth_checker.js';
+import { browserManager } from '../utils/browser.js';
+import { CodeSearchIndex } from '../utils/code_search.js';
+import { deriveResourceLimits, loadActiveDeviceProfile } from '../utils/device_profile.js';
+
+import { isDryRunEnabled } from '../utils/dry_run.js';
 import { AgentCoordinator } from './agent_coordinator.js';
+import { AgentPool } from './agent_pool.js';
 import { ContextAssembler } from './context_assembler.js';
+import { FeatureGates } from './feature_gates.js';
 import { OperationsManager } from './operations_manager.js';
 import { ResilienceManager } from './resilience_manager.js';
 import { WebInspirationManager } from './web_inspiration_manager.js';
@@ -8,21 +19,19 @@ import { QualityMonitor } from './quality_monitor.js';
 import { TaskScheduler } from './task_scheduler.js';
 import { StateMachine } from './state_machine.js';
 import { SelfImprovementManager } from './self_improvement_manager.js';
-import { LiveFlags } from '../state/live_flags.js';
-import { FeatureGates } from './feature_gates.js';
-import { logInfo, logWarning, logError } from '../telemetry/logger.js';
-import { AuthChecker } from '../utils/auth_checker.js';
-import { CodeSearchIndex } from '../utils/code_search.js';
-import { deriveResourceLimits, loadActiveDeviceProfile } from '../utils/device_profile.js';
-import { isDryRunEnabled } from '../utils/dry_run.js';
-import { ResearchManager } from '../intelligence/research_manager.js';
+
 import { ResearchOrchestrator } from './research_orchestrator.js';
 import { TokenEfficiencyManager } from './token_efficiency_manager.js';
-import { ModelManager } from '../models/model_manager.js';
+
 import { CriticModelSelector } from '../utils/critic_model_selector.js';
+
 import { ActivityFeedWriter } from './activity_feed_writer.js';
 import { HolisticReviewManager, type HolisticReviewStatus } from './holistic_review_manager.js';
-import { browserManager } from '../utils/browser.js';
+
+// Safety and monitoring
+import { HeartbeatWriter } from '../utils/heartbeat.js';
+import { SafetyMonitor, type SafetyLimits } from '../utils/safety_monitor.js';
+
 
 export interface OrchestratorRuntimeOptions {
   codexWorkers?: number;
@@ -68,6 +77,11 @@ export class OrchestratorRuntime {
   private criticReputationTrackerPromise?: Promise<import('./critic_reputation_tracker.js').CriticReputationTracker | null>;
   private decisionEvidenceLinkerPromise?: Promise<import('../telemetry/decision_evidence_linker.js').DecisionEvidenceLinker | null>;
   private readonly holisticReviewManager: HolisticReviewManager;
+
+  // Safety and monitoring
+  private heartbeatWriter: HeartbeatWriter | null = null;
+  private safetyMonitor: SafetyMonitor | null = null;
+
   private started = false;
 
   constructor(
@@ -245,12 +259,42 @@ export class OrchestratorRuntime {
     await this.criticModelSelector.load();
     this.coordinator.start();
     this.holisticReviewManager.start();
+
+    // Start safety monitoring
+    const path = await import('node:path');
+    const fs = await import('node:fs');
+    const configPath = path.join(this.workspaceRoot, 'tools', 'wvo_mcp', 'config', 'safety_limits.json');
+    const safetyLimitsConfig = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+
+    const heartbeatPath = path.join(this.workspaceRoot, 'tools', 'wvo_mcp', 'state', 'heartbeat');
+    const heartbeatInterval = safetyLimitsConfig.supervisor?.heartbeat_interval_seconds ?? 30;
+    this.heartbeatWriter = new HeartbeatWriter(heartbeatPath, heartbeatInterval * 1000);
+    this.heartbeatWriter.start();
+    logInfo('Heartbeat writer started', { path: heartbeatPath, intervalMs: heartbeatInterval * 1000 });
+
+    // SafetyMonitor should monitor from the tools/wvo_mcp directory
+    const wvoMcpRoot = path.join(this.workspaceRoot, 'tools', 'wvo_mcp');
+    this.safetyMonitor = new SafetyMonitor(safetyLimitsConfig as SafetyLimits, wvoMcpRoot);
+    this.safetyMonitor.start();
+    logInfo('Safety monitor started');
+
     logInfo('Orchestrator runtime started');
   }
 
   stop(): void {
     if (!this.started) return;
     this.started = false;
+
+    // Stop safety monitoring first
+    if (this.heartbeatWriter) {
+      this.heartbeatWriter.stop();
+      logInfo('Heartbeat writer stopped');
+    }
+    if (this.safetyMonitor) {
+      this.safetyMonitor.stop();
+      logInfo('Safety monitor stopped');
+    }
+
     this.coordinator.stop();
     this.operationsManager.stop();
     this.tokenEfficiencyManager?.dispose();

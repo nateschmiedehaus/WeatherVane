@@ -7,6 +7,7 @@ import type {
   ResearchFinding,
 } from '../intelligence/research_types.js';
 import { logError, logInfo, logWarning } from '../telemetry/logger.js';
+
 import type { StateMachine, Task } from './state_machine.js';
 import type { ResearchTriggerPayload, ResearchTriggerType, TaskScheduler } from './task_scheduler.js';
 

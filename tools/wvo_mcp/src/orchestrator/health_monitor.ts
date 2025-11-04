@@ -6,11 +6,13 @@
  */
 
 import { exec } from 'child_process';
-import { promisify } from 'util';
-import { ErrorDetector, type ErrorSignal } from './error_detector.js';
-import { logInfo, logWarning, logError } from '../telemetry/logger.js';
 import * as fs from 'fs/promises';
 import * as path from 'path';
+import { promisify } from 'util';
+
+import { logInfo, logWarning, logError } from '../telemetry/logger.js';
+
+import { ErrorDetector, type ErrorSignal } from './error_detector.js';
 
 const execAsync = promisify(exec);
 

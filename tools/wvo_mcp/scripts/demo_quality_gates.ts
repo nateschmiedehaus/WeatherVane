@@ -11,8 +11,8 @@
 
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
-import { QualityGateOrchestrator } from '../dist/orchestrator/quality_gate_orchestrator.js';
-import type { TaskEvidence } from '../dist/orchestrator/adversarial_bullshit_detector.js';
+import { QualityGateOrchestrator } from '../src/orchestrator/quality_gate_orchestrator.js';
+import type { TaskEvidence } from '../src/orchestrator/adversarial_bullshit_detector.js';
 
 const workspaceRoot = path.join(process.cwd(), '../..');
 const decisionLogPath = path.join(workspaceRoot, 'state/analytics/quality_gate_decisions.jsonl');

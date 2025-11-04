@@ -8,11 +8,12 @@
  * - Browser automation for consent
  */
 
-import { createServer, type Server, type IncomingMessage, type ServerResponse } from 'node:http';
-import { URL } from 'node:url';
 import { randomBytes, createHash } from 'node:crypto';
 import { promises as fs } from 'node:fs';
+import { createServer, type Server, type IncomingMessage, type ServerResponse } from 'node:http';
 import path from 'node:path';
+import { URL } from 'node:url';
+
 import { logInfo, logWarning, logError } from '../telemetry/logger.js';
 
 export interface OAuthTokens {

@@ -1,7 +1,8 @@
-import type { WorkerManager } from "./worker_manager.js";
-import type { WorkerCallOptions } from "./protocol.js";
 import { logError } from "../telemetry/logger.js";
 import { withSpan } from "../telemetry/tracing.js";
+
+import type { WorkerCallOptions } from "./protocol.js";
+import type { WorkerManager } from "./worker_manager.js";
 
 const EXECUTOR_ROUTED_TOOLS = new Set([
   "cmd_run",

@@ -15,10 +15,11 @@
  * - NOT: Full event log, all metrics, entire roadmap
  */
 
-import type { StateMachine, Task, ContextEntry, QualityMetric, ResearchCacheRecord } from './state_machine.js';
-import { CodeSearchIndex } from '../utils/code_search.js';
 import type { LiveFlagsReader } from '../state/live_flags.js';
+import { CodeSearchIndex } from '../utils/code_search.js';
+
 import { FeatureGates, type FeatureGatesReader } from './feature_gates.js';
+import type { StateMachine, Task, ContextEntry, QualityMetric, ResearchCacheRecord } from './state_machine.js';
 
 // ============================================================================
 // Types
@@ -294,7 +295,7 @@ export class ContextAssembler {
 
   /**
    * Format assembled context as a concise text block for agent prompts
-   * This is the actual text that goes into Claude/Codex prompts
+   * This is the actual text that goes into the downstream provider prompts
    */
   formatForPrompt(context: AssembledContext): string {
     const sections: string[] = [];

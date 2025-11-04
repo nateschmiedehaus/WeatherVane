@@ -1,5 +1,5 @@
-import type { Task } from './state_machine.js';
 import type { AssembledContext } from './context_assembler.js';
+import type { Task } from './state_machine.js';
 
 export type ReasoningLevel = 'minimal' | 'low' | 'medium' | 'high';
 

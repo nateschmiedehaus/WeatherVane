@@ -17,9 +17,10 @@
  * );
  */
 
-import { getResourceBudgetManager, type WorkerCallContext } from "./resource_budgets.js";
 import { logInfo, logError, logWarning } from "../telemetry/logger.js";
 import { recordSpanEvent, recordSpanError } from "../telemetry/otel_spans.js";
+
+import { getResourceBudgetManager, type WorkerCallContext } from "./resource_budgets.js";
 
 /**
  * Options for worker call observability wrapper

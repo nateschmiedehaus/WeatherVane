@@ -11,12 +11,13 @@
  * Reduces log growth from 667MB/day to < 50MB/day (93% reduction)
  */
 
+import { createHash } from 'node:crypto';
 import { promises as fs } from 'node:fs';
 import { createWriteStream, type WriteStream } from 'node:fs';
-import { createHash } from 'node:crypto';
-import { createGzip } from 'node:zlib';
-import { pipeline } from 'node:stream/promises';
 import path from 'node:path';
+import { pipeline } from 'node:stream/promises';
+import { createGzip } from 'node:zlib';
+
 import { logInfo, logWarning, logError } from './logger.js';
 
 export type LogLevel = 'debug' | 'info' | 'warn' | 'error';

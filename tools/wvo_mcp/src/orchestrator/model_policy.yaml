@@ -1,0 +1,97 @@
+catalog_version: 1
+models:
+  - name: "codex-5-high"
+    provider: "openai"
+    context_window: 128000
+    reasoning_strength: high
+    code_quality: high
+    latency_ms_est: 1800
+    price_class: premium
+    tool_use_ok: true
+    vision_ok: false
+    max_output_tokens: 8192
+  - name: "codex-5-medium"
+    provider: "openai"
+    context_window: 128000
+    reasoning_strength: medium_high
+    code_quality: high
+    latency_ms_est: 1200
+    price_class: normal
+    tool_use_ok: true
+    vision_ok: false
+    max_output_tokens: 8192
+  - name: "codex-5-low"
+    provider: "openai"
+    context_window: 128000
+    reasoning_strength: medium
+    code_quality: medium_high
+    latency_ms_est: 800
+    price_class: cheap
+    tool_use_ok: true
+    vision_ok: false
+    max_output_tokens: 8192
+  - name: "claude-sonnet-4.5"
+    provider: "anthropic"
+    context_window: 200000
+    reasoning_strength: high
+    code_quality: high
+    latency_ms_est: 1600
+    price_class: premium
+    tool_use_ok: true
+    vision_ok: true
+    max_output_tokens: 8192
+  - name: "claude-haiku-4.5"
+    provider: "anthropic"
+    context_window: 200000
+    reasoning_strength: medium
+    code_quality: medium_high
+    latency_ms_est: 700
+    price_class: cheap
+    tool_use_ok: true
+    vision_ok: true
+    max_output_tokens: 8192
+  - name: "claude-opus-4.1"
+    provider: "anthropic"
+    context_window: 200000
+    reasoning_strength: ultra
+    code_quality: ultra
+    latency_ms_est: 2400
+    price_class: premium
+    tool_use_ok: true
+    vision_ok: true
+    max_output_tokens: 8192
+capability_tags:
+  reasoning_high:
+    prefer: ["claude-sonnet-4.5", "claude-opus-4.1"]
+  fast_code:
+    prefer: ["codex-5-medium", "codex-5-high", "codex-5-low"]
+  cheap_batch:
+    prefer: ["claude-haiku-4.5"]
+  long_context:
+    prefer: ["claude-sonnet-4.5", "claude-opus-4.1"]
+    min_context_window: 120000
+routing:
+  planner: reasoning_high
+  supervisor: reasoning_high
+  reviewer: reasoning_high
+  implementer: fast_code
+budgets:
+  planner:
+    max_tokens: 30000
+    max_ms: 60000
+  implementer:
+    max_tokens: 15000
+    max_ms: 45000
+  reviewer:
+    max_tokens: 10000
+    max_ms: 30000
+retry_ceilings:
+  plan: 2
+  implement: 3
+  verify: 2
+  review: 2
+escalation:
+  on_two_verify_failures:
+    implementer_model: reasoning_high
+    require_plan_delta: true
+ban_providers: ["google", "xai", "other"]

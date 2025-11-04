@@ -3,6 +3,8 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
+
+import { resetResourceBudgetManager, getResourceBudgetManager } from "./resource_budgets.js";
 import {
   withWorkerCallObservability,
   withWorkerCallObservabilitySync,
@@ -10,7 +12,6 @@ import {
   withRequestScope,
   type WorkerCallWrapperOptions,
 } from "./worker_call_wrapper.js";
-import { resetResourceBudgetManager, getResourceBudgetManager } from "./resource_budgets.js";
 
 describe("Worker Call Wrapper", () => {
   beforeEach(() => {

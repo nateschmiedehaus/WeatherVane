@@ -2,19 +2,9 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 
-import { WorkerManager } from "./worker/worker_manager.js";
-import {
-  WorkerClient,
-  isWorkerErrorPayload,
-  type WorkerErrorPayload,
-} from "./worker/worker_client.js";
+import { LiveFlags } from "./state/live_flags.js";
 import { logError, logInfo, logWarning } from "./telemetry/logger.js";
 import { initTracing } from "./telemetry/tracing.js";
-import { resolveWorkspaceRoot } from "./utils/config.js";
-import { SERVER_NAME, SERVER_VERSION } from "./utils/version.js";
-import { toJsonSchema } from "./utils/schema.js";
-import { planNextInputSchema } from "./utils/schemas.js";
-import { LiveFlags } from "./state/live_flags.js";
 import {
   orchestratorStatusInput,
   authStatusInput,
@@ -39,6 +29,16 @@ import {
   upgradeApplyPatchInput,
   routeSwitchInput,
 } from "./tools/input_schemas.js";
+import { resolveWorkspaceRoot } from "./utils/config.js";
+import { toJsonSchema } from "./utils/schema.js";
+import { planNextInputSchema } from "./utils/schemas.js";
+import { SERVER_NAME, SERVER_VERSION } from "./utils/version.js";
+import {
+  WorkerClient,
+  isWorkerErrorPayload,
+  type WorkerErrorPayload,
+} from "./worker/worker_client.js";
+import { WorkerManager } from "./worker/worker_manager.js";
 
 type JsonSchema = ReturnType<typeof toJsonSchema>;
 type McpToolResponse = CallToolResult;
@@ -96,7 +96,7 @@ async function main() {
         process.exit(1);
       } catch {
         // Process doesn't exist - remove stale lock
-        console.log(`Removing stale PID lock file (PID ${existingPid} not running)`);
+        console.error(`Removing stale PID lock file (PID ${existingPid} not running)`);
         await fs.unlink(pidLockPath).catch(() => {});
       }
     }

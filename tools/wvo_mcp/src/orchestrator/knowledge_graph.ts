@@ -21,10 +21,12 @@
  * Knowledge reinforces with repeated evidence (confidence increases).
  */
 
-import type { Task } from './state_machine.js';
-import { logInfo, logDebug, logWarning } from '../telemetry/logger.js';
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 import path from 'node:path';
+
+import { logInfo, logDebug, logWarning } from '../telemetry/logger.js';
+
+import type { Task } from './state_machine.js';
 
 export type KnowledgeType = 'decision' | 'pattern' | 'constraint' | 'learning';
 

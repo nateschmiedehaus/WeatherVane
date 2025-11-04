@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+
 import { IdempotencyStore, type IdempotencyEntry } from "./idempotency_cache.js";
 
 describe("IdempotencyStore", () => {
@@ -163,7 +164,7 @@ describe("IdempotencyStore", () => {
       const input = { test: "data" };
 
       store.startRequest("test_tool", input);
-      let entry = store.getEntry("test_tool", input);
+      const entry = store.getEntry("test_tool", input);
       expect(entry).toBeDefined();
 
       // Wait for TTL to expire

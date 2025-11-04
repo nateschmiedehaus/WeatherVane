@@ -13,8 +13,8 @@
  * - Graceful degradation when tracing is disabled
  */
 
-import { withSpan, startSpan, endSpan, type SpanHandle, initTracing } from "./tracing.js";
 import { logInfo, logWarning } from "./logger.js";
+import { withSpan, startSpan, endSpan, type SpanHandle, initTracing } from "./tracing.js";
 
 // Re-export SpanHandle for external consumers
 export type { SpanHandle };

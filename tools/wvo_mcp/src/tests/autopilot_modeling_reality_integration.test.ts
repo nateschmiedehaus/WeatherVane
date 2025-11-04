@@ -9,11 +9,14 @@
  * 4. Integration with Research Orchestrator
  */
 
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import * as fs from 'fs/promises';
-import * as path from 'path';
 import * as os from 'os';
+import * as path from 'path';
+
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+
 import { ModelingRealityV2Critic } from '../critics/modeling_reality_v2.js';
+
 import { mockAutopilot, type MockedAutopilot, type MockTask } from './helpers/autopilot_test_helpers.js';
 
 describe('Autopilot + ModelingReality Integration', () => {

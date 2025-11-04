@@ -10,6 +10,8 @@
 
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
+
+import { assertRouterEntry, assertRouterProvider } from '../orchestrator/router_lock.js';
 import { logInfo, logWarning, logError } from '../telemetry/logger.js';
 
 export interface ModelCost {
@@ -64,8 +66,8 @@ const EMBEDDED_DEFAULTS: ModelRegistryData = {
       access_method: 'subscription',
       models: [
         {
-          id: 'claude-opus-4',
-          name: 'Claude Opus 4',
+          id: 'claude-opus-4.1',
+          name: 'Claude Opus 4.1',
           context_window: 200000,
           max_output: 16384,
           cost_per_mtok: { input: 15.0, output: 75.0 },
@@ -84,12 +86,12 @@ const EMBEDDED_DEFAULTS: ModelRegistryData = {
           subscription_tier: 'pro',
         },
         {
-          id: 'claude-sonnet-4',
-          name: 'Claude Sonnet 4',
+          id: 'claude-haiku-4.5',
+          name: 'Claude Haiku 4.5',
           context_window: 200000,
           max_output: 8192,
-          cost_per_mtok: { input: 3.0, output: 15.0 },
-          capabilities: ['coding', 'reasoning', 'multimodal'],
+          cost_per_mtok: { input: 0.5, output: 1.5 },
+          capabilities: ['coding', 'reasoning'],
           available: true,
           subscription_tier: 'free',
         },
@@ -99,18 +101,26 @@ const EMBEDDED_DEFAULTS: ModelRegistryData = {
       access_method: 'subscription',
       models: [
         {
-          id: 'gpt-5-codex',
-          name: 'GPT-5 Codex',
-          reasoning_levels: ['minimal', 'low', 'medium', 'high'],
+          id: 'codex-5-high',
+          name: 'Codex 5 High',
+          reasoning_levels: ['high'],
+          cost_per_mtok: { input: 18.0, output: 36.0 },
+          available: true,
+          context_window: 128000,
+        },
+        {
+          id: 'codex-5-medium',
+          name: 'Codex 5 Medium',
+          reasoning_levels: ['medium'],
           cost_per_mtok: { input: 12.0, output: 24.0 },
           available: true,
           context_window: 128000,
         },
         {
-          id: 'gpt-5',
-          name: 'GPT-5',
-          reasoning_levels: ['minimal', 'low', 'medium', 'high'],
-          cost_per_mtok: { input: 12.0, output: 30.0 },
+          id: 'codex-5-low',
+          name: 'Codex 5 Low',
+          reasoning_levels: ['low'],
+          cost_per_mtok: { input: 6.0, output: 12.0 },
           available: true,
           context_window: 128000,
         },
@@ -201,8 +211,14 @@ export class ModelRegistry {
     provider: 'claude' | 'codex',
     models: ProviderModels
   ): void {
+    assertRouterProvider(provider, 'model_registry.updateProvider');
+    const sanitized = this.sanitizeModels(provider, models);
+    if (!sanitized.models.length) {
+      logWarning('Router lock prevented registry update', { provider });
+      return;
+    }
     this.data.providers[provider] = {
-      ...models,
+      ...sanitized,
       last_checked: new Date().toISOString(),
     };
     this.data.last_updated = new Date().toISOString();
@@ -299,5 +315,26 @@ export class ModelRegistry {
         // Then by cost (higher cost = more capable)
         return b.cost_per_mtok.output - a.cost_per_mtok.output;
       });
+  }
+
+  private sanitizeModels(provider: 'claude' | 'codex', models: ProviderModels): ProviderModels {
+    const entries = (models.models as Array<ClaudeModel | CodexModel>).filter(model => {
+      const id = (model as ClaudeModel | CodexModel).id;
+      try {
+        assertRouterEntry(provider, id, 'model_registry');
+        return true;
+      } catch (error) {
+        logWarning('Dropping disallowed model from registry update', {
+          provider,
+          model: id,
+          reason: error instanceof Error ? error.message : String(error),
+        });
+        return false;
+      }
+    });
+    return {
+      ...models,
+      models: entries,
+    };
   }
 }

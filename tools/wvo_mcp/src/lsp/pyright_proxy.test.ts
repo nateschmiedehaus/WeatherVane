@@ -2,11 +2,13 @@
  * Tests for Python LSP Proxy (Pyright)
  */
 
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { PythonLSPProxy } from "./pyright_proxy";
-import { LSPManager, resetLSPManager } from "./lsp_manager";
-import * as path from "path";
 import * as fs from "fs";
+import * as path from "path";
+
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
+
+import { LSPManager, resetLSPManager } from "./lsp_manager";
+import { PythonLSPProxy } from "./pyright_proxy";
 
 describe("PythonLSPProxy", () => {
   let proxy: PythonLSPProxy;

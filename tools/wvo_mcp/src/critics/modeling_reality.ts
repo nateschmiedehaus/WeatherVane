@@ -13,8 +13,10 @@
 
 import * as fs from 'fs/promises';
 import * as path from 'path';
-import { Critic, type CriticOptions } from "./base.js";
+
 import { logDebug, logError, logInfo } from "../telemetry/logger.js";
+
+import { Critic, type CriticOptions } from "./base.js";
 import { ModelingRealityV2Critic, type CriticResult as V2CriticResult } from "./modeling_reality_v2.js";
 
 export class ModelingRealityCritic extends Critic {

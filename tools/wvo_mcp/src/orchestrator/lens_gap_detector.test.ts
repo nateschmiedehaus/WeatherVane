@@ -4,11 +4,14 @@
  * Tests the meta-cognitive system that detects gaps in the orchestrator's decision framework.
  */
 
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { LensGapDetector } from './lens_gap_detector.js';
 import { mkdtempSync, writeFileSync, rmSync, mkdirSync } from 'fs';
-import { join } from 'path';
 import { tmpdir } from 'os';
+import { join } from 'path';
+
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+
+import { LensGapDetector } from './lens_gap_detector.js';
+
 
 describe('LensGapDetector', () => {
   let tempDir: string;

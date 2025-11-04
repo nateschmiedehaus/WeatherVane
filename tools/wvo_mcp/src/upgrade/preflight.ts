@@ -2,9 +2,11 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+
+import Database from 'better-sqlite3';
 import type { ExecaError } from 'execa';
 import { execa } from 'execa';
-import Database from 'better-sqlite3';
+
 import {
   formatSemver,
   parseSemver,

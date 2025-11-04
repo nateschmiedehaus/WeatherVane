@@ -13,10 +13,11 @@
  * No debate, no exceptions.
  */
 
-import { promises as fs } from 'node:fs';
 import { exec } from 'node:child_process';
-import { promisify } from 'node:util';
+import { promises as fs } from 'node:fs';
 import path from 'node:path';
+import { promisify } from 'node:util';
+
 import { logInfo, logWarning, logError } from '../telemetry/logger.js';
 
 const execAsync = promisify(exec);

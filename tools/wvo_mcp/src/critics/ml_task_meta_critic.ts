@@ -7,13 +7,15 @@
 
 import fs from "node:fs";
 import path from "node:path";
+
+import { logInfo } from "../telemetry/logger.js";
+import { resolveStateRoot } from "../utils/config.js";
+
 import { Critic, type CriticResult } from "./base.js";
 import {
   MLTaskAggregator,
   type AggregatedMLTasksReport,
 } from "./ml_task_aggregator.js";
-import { logInfo } from "../telemetry/logger.js";
-import { resolveStateRoot } from "../utils/config.js";
 
 export class MLTaskMetaCriticCritic extends Critic {
   private aggregator: MLTaskAggregator;

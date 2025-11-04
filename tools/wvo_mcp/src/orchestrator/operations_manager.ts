@@ -3,24 +3,27 @@ import { EventEmitter } from 'node:events';
 import fs from 'node:fs';
 import path from 'node:path';
 
-import type { AgentPool, AgentType, OutputValidationFailureEvent } from './agent_pool.js';
+import type { LiveFlagsReader } from '../state/live_flags.js';
+import { buildExecutionTelemetryRecord } from '../telemetry/execution_telemetry.js';
+import { logInfo, logWarning } from '../telemetry/logger.js';
+import { TelemetryExporter } from '../telemetry/telemetry_exporter.js';
+import { withSpan } from '../telemetry/tracing.js';
+import { resolveOutputValidationSettings, type OutputValidationMode } from '../utils/output_validator.js';
+
 import type { ExecutionObserver, ExecutionSummary } from './agent_coordinator.js';
+import type { AgentPool, AgentType, OutputValidationFailureEvent } from './agent_pool.js';
+import { FeatureGates } from './feature_gates.js';
+import type { CodexPresetPerformance } from './model_selector.js';
 import type { QualityMonitor } from './quality_monitor.js';
+import type { StateMachine } from './state_machine.js';
 import type {
   PriorityProfile,
   TaskScheduler,
   QueueMetrics,
   SchedulingReason,
 } from './task_scheduler.js';
-import type { StateMachine } from './state_machine.js';
-import type { CodexPresetPerformance } from './model_selector.js';
-import { logInfo, logWarning } from '../telemetry/logger.js';
-import { TelemetryExporter } from '../telemetry/telemetry_exporter.js';
-import { withSpan } from '../telemetry/tracing.js';
-import { buildExecutionTelemetryRecord } from '../telemetry/execution_telemetry.js';
-import { resolveOutputValidationSettings, type OutputValidationMode } from '../utils/output_validator.js';
-import type { LiveFlagsReader } from '../state/live_flags.js';
-import { FeatureGates } from './feature_gates.js';
+
+
 
 interface OperationsManagerOptions {
   targetCodexRatio?: number;

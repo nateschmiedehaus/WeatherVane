@@ -1,7 +1,6 @@
 import { EventEmitter } from 'node:events';
 
-import type { Task, TaskStatus } from './state_machine.js';
-import type { StateMachine } from './state_machine.js';
+import type { Task, TaskStatus , StateMachine } from './state_machine.js';
 import { WIPLimitEnforcer } from './wip_limits.js';
 
 type ResourceProfile = 'light' | 'standard' | 'heavy';

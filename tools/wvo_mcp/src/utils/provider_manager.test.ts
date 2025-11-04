@@ -2,12 +2,14 @@
  * Tests for Provider Manager with Failover and Recovery
  */
 
-import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import { ProviderManager } from "./provider_manager.js";
-import { ProviderCapacityMonitor } from "./provider_capacity_monitor.js";
-import { tmpdir } from "node:os";
 import { mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import path from "node:path";
+
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+
+import { ProviderCapacityMonitor } from "./provider_capacity_monitor.js";
+import { ProviderManager } from "./provider_manager.js";
 
 describe("ProviderManager", () => {
   let testWorkspace: string;

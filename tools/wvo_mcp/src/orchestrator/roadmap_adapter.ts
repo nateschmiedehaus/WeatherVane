@@ -1,7 +1,10 @@
-import path from 'node:path';
-import { promises as fs } from 'node:fs';
 import { randomUUID } from 'node:crypto';
+import { promises as fs } from 'node:fs';
+import path from 'node:path';
 
+import { RoadmapStore } from '../state/roadmap_store.js';
+import { logWarning } from '../telemetry/logger.js';
+import { normalizeClusterSpec } from '../utils/cluster.js';
 import type {
   PlanNextInput,
   PlanTaskSummary,
@@ -11,10 +14,8 @@ import type {
   RoadmapTask,
   TaskClusterSpec,
 } from '../utils/types.js';
+
 import type { StateMachine, Task, TaskStatus } from './state_machine.js';
-import { RoadmapStore } from '../state/roadmap_store.js';
-import { logWarning } from '../telemetry/logger.js';
-import { normalizeClusterSpec } from '../utils/cluster.js';
 
 export type LegacyPlanStatus = 'pending' | 'in_progress' | 'blocked' | 'done';
 export interface RoadmapSyncOptions {

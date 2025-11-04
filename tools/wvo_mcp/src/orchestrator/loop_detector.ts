@@ -12,8 +12,9 @@
  * - Stuck tasks: Apply circuit breaker and suggest alternatives
  */
 
-import type { StateMachine } from './state_machine.js';
 import { logInfo, logWarning, logError } from '../telemetry/logger.js';
+
+import type { StateMachine } from './state_machine.js';
 
 export interface LoopDetectionResult {
   isLooping: boolean;

@@ -12,7 +12,7 @@
     },
     "declaration": true,
     "outDir": "dist",
-    "rootDir": "src",
+    "rootDir": ".",
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
     "strict": true,
@@ -20,6 +20,6 @@
     "resolveJsonModule": true,
     "types": ["node"]
   },
-  "include": ["src/**/*.ts", "src/**/*.d.ts"],
+  "include": ["src/**/*.ts", "src/**/*.d.ts", "scripts/**/*.ts"],
   "exclude": ["node_modules", "dist"]
 }

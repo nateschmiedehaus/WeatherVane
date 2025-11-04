@@ -12,10 +12,12 @@
  * Pattern: Inspired by GitHub pull request reviews and GitLab merge request approvals
  */
 
-import type { StateMachine, Task } from './state_machine.js';
-import type { RoadmapTracker } from './roadmap_tracker.js';
-import type { Agent } from './agent_pool.js';
 import { logInfo, logDebug } from '../telemetry/logger.js';
+
+import type { Agent } from './agent_pool.js';
+import type { RoadmapTracker } from './roadmap_tracker.js';
+import type { StateMachine, Task } from './state_machine.js';
+
 
 export interface ReviewCriteria {
   logicCorrectness: boolean;

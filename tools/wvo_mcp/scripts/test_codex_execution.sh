@@ -18,7 +18,7 @@ echo "=== Test 1: HIGH Tier (Orchestrator) ==="
 CODEX_HOME="$CODEX_HOME" codex exec \
   --profile weathervane_orchestrator \
   --dangerously-bypass-approvals-and-sandbox \
-  -c model=gpt-5-codex \
+  -c model=codex-5 \
   -c model_reasoning_effort=high \
   'Return exactly: ORCHESTRATOR_HIGH_OK' 2>&1 | head -15
 
@@ -27,7 +27,7 @@ echo "=== Test 2: MEDIUM Tier (Worker) ==="
 CODEX_HOME="$CODEX_HOME" codex exec \
   --profile weathervane_orchestrator \
   --dangerously-bypass-approvals-and-sandbox \
-  -c model=gpt-5-codex \
+  -c model=codex-5 \
   -c model_reasoning_effort=medium \
   'Return exactly: WORKER_MEDIUM_OK' 2>&1 | head -15
 
@@ -36,7 +36,7 @@ echo "=== Test 3: LOW Tier (Critic) ==="
 CODEX_HOME="$CODEX_HOME" codex exec \
   --profile weathervane_orchestrator \
   --dangerously-bypass-approvals-and-sandbox \
-  -c model=gpt-5-codex \
+  -c model=codex-5 \
   -c model_reasoning_effort=low \
   'Return exactly: CRITIC_LOW_OK' 2>&1 | head -15
 

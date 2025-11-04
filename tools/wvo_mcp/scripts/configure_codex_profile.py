@@ -109,7 +109,7 @@ def main() -> int:
     parser.add_argument("profile_name")
     parser.add_argument("workspace")
     parser.add_argument("instructions_path")
-    parser.add_argument("--model", default="gpt-5-codex")
+    parser.add_argument("--model", default="codex-5-high")
     parser.add_argument("--sandbox", default="danger-full-access")
     parser.add_argument("--approval", default=None, help="Deprecated; use --ask-for-approval")
     parser.add_argument("--ask-for-approval", dest="ask_for_approval", default="never")
