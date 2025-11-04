@@ -1,0 +1,5 @@
+lifecycle:
+  ttl_days: 180
+signals:
+  - reuse_ratio
+  - entropy_score

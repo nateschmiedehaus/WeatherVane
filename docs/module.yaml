@@ -1,0 +1,5 @@
+lifecycle:
+  ttl_days: 180
+signals:
+  - documentation_health
+  - entropy_score

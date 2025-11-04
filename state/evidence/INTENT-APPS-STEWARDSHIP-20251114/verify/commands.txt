@@ -1,0 +1,4 @@
+ls apps/OWNERS.yaml
+ls docs/OWNERS.yaml
+ls shared/OWNERS.yaml
+ls state/OWNERS.yaml
