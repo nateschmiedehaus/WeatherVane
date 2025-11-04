@@ -73,6 +73,7 @@ state/task_memos/
 state/worker_pid
 state/backups/
 state/analytics/*.jsonl
+state/py/afp-tests/venv/
 state/analytics/*_watch.json
 state/analytics/*_runtime.json
 state/analytics/orchestration_metrics.json

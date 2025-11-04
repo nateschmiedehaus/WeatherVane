@@ -1,0 +1,3 @@
+npm install --package-lock-only
+npm ci
+npm test --workspaces
