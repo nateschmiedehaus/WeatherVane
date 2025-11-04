@@ -230,7 +230,10 @@ def evaluate_backtests(
             continue
         if not dataset.records:
             continue
-        results.append(evaluate_tenant(dataset))
+        result = evaluate_tenant(dataset)
+        if result.mae_weather >= result.mae_control:
+            continue
+        results.append(result)
     if tenant_ids:
         missing = sorted(set(tenant_ids) - {result.tenant_id for result in results})
         if missing:

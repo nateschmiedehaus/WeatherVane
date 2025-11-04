@@ -1,7 +1,12 @@
 import { describe, it, expect, vi } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import "@testing-library/jest-dom/vitest";
+import { screen, fireEvent } from "@testing-library/react";
+import * as matchers from "@testing-library/jest-dom/matchers";
 import { LoadScenarioPanel } from "../LoadScenarioPanel";
 import type { ScenarioSnapshot } from "../../lib/api";
+import { renderWithProviders } from "../../test-utils/renderWithProviders";
+
+expect.extend(matchers);
 
 describe("LoadScenarioPanel", () => {
   const mockSnapshot: ScenarioSnapshot = {
@@ -29,7 +34,7 @@ describe("LoadScenarioPanel", () => {
   });
 
   it("shows loading message when loading", () => {
-    render(
+    renderWithProviders(
       <LoadScenarioPanel
         snapshots={[]}
         onLoad={mockOnLoad}
@@ -41,14 +46,14 @@ describe("LoadScenarioPanel", () => {
   });
 
   it("shows empty state when no snapshots", () => {
-    render(
+    renderWithProviders(
       <LoadScenarioPanel snapshots={[]} onLoad={mockOnLoad} onDelete={mockOnDelete} />
     );
     expect(screen.getByText(/no saved scenarios yet/i)).toBeInTheDocument();
   });
 
   it("renders snapshot cards", () => {
-    render(
+    renderWithProviders(
       <LoadScenarioPanel
         snapshots={[mockSnapshot]}
         onLoad={mockOnLoad}
@@ -59,7 +64,7 @@ describe("LoadScenarioPanel", () => {
   });
 
   it("displays snapshot metadata", () => {
-    render(
+    renderWithProviders(
       <LoadScenarioPanel
         snapshots={[mockSnapshot]}
         onLoad={mockOnLoad}
@@ -72,7 +77,7 @@ describe("LoadScenarioPanel", () => {
   });
 
   it("displays scenario summary metrics", () => {
-    render(
+    renderWithProviders(
       <LoadScenarioPanel
         snapshots={[mockSnapshot]}
         onLoad={mockOnLoad}
@@ -86,7 +91,7 @@ describe("LoadScenarioPanel", () => {
   });
 
   it("calls onLoad when load button clicked", () => {
-    render(
+    renderWithProviders(
       <LoadScenarioPanel
         snapshots={[mockSnapshot]}
         onLoad={mockOnLoad}
@@ -99,7 +104,7 @@ describe("LoadScenarioPanel", () => {
   });
 
   it("expands details when expand button clicked", () => {
-    render(
+    renderWithProviders(
       <LoadScenarioPanel
         snapshots={[mockSnapshot]}
         onLoad={mockOnLoad}
@@ -117,7 +122,7 @@ describe("LoadScenarioPanel", () => {
   });
 
   it("collapses details when collapse button clicked", () => {
-    render(
+    renderWithProviders(
       <LoadScenarioPanel
         snapshots={[mockSnapshot]}
         onLoad={mockOnLoad}
@@ -134,7 +139,7 @@ describe("LoadScenarioPanel", () => {
   });
 
   it("calls onDelete when delete button clicked", () => {
-    render(
+    renderWithProviders(
       <LoadScenarioPanel
         snapshots={[mockSnapshot]}
         onLoad={mockOnLoad}
@@ -159,7 +164,7 @@ describe("LoadScenarioPanel", () => {
       name: "Second Scenario",
     };
 
-    render(
+    renderWithProviders(
       <LoadScenarioPanel
         snapshots={[mockSnapshot, snapshot2]}
         onLoad={mockOnLoad}
@@ -172,7 +177,7 @@ describe("LoadScenarioPanel", () => {
   });
 
   it("formats dates correctly", () => {
-    render(
+    renderWithProviders(
       <LoadScenarioPanel
         snapshots={[mockSnapshot]}
         onLoad={mockOnLoad}
@@ -192,7 +197,7 @@ describe("LoadScenarioPanel", () => {
       scenario_roi: null,
     };
 
-    render(
+    renderWithProviders(
       <LoadScenarioPanel
         snapshots={[snapshotWithoutOptionalFields]}
         onLoad={mockOnLoad}
@@ -207,7 +212,7 @@ describe("LoadScenarioPanel", () => {
   });
 
   it("shows positive and negative adjustments with different styling", () => {
-    render(
+    renderWithProviders(
       <LoadScenarioPanel
         snapshots={[mockSnapshot]}
         onLoad={mockOnLoad}

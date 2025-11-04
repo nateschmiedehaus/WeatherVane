@@ -24,6 +24,13 @@ declare global {
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
+if (!window.matchMedia) {
+  Object.defineProperty(window, "matchMedia", {
+    writable: true,
+    value: vi.fn().mockImplementation((query: string) => createMatchMediaMock(false)),
+  });
+}
+
 type MatchMediaListener = (event: MediaQueryListEvent) => void;
 
 interface MatchMediaMock extends MediaQueryList {

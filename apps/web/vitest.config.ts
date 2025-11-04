@@ -9,14 +9,13 @@ const pageTestsRoot = path.resolve(__dirname, "src", "pages", "__tests__").repla
 export default defineConfig({
   root: __dirname,
   test: {
-    environment: "node",
+    environment: "jsdom",
     include: [
       `${testsRoot}/**/*.spec.ts`,
       `${libTestsRoot}/**/*.test.ts`,
       `${componentTestsRoot}/**/*.test.tsx`,
       `${pageTestsRoot}/**/*.test.tsx`,
     ],
-    environmentMatchGlobs: [["src/components/**/__tests__/**", "jsdom"], ["src/pages/**/__tests__/**", "jsdom"]],
     globals: true,
     setupFiles: ["./vitest.setup.ts"],
   },
