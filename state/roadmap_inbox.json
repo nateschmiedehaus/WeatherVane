@@ -141,5 +141,81 @@
     "weights": {},
     "task_id": "INBOX-6029C8CCB1CF",
     "accepted_at": "2025-10-22T21:12:20.698Z"
+  },
+  {
+    "id": "INTENT-TOOLING-NORMALIZE-20251113",
+    "created_at": "2025-11-04T03:03:50Z",
+    "title": "Intent queue: tooling normalization micro-PR",
+    "summary": "Lock Node/Python versions, regenerate lockfiles, and capture npm/node evidence for deterministic builds.",
+    "domain": "tools",
+    "source": "codex",
+    "status": "in_review",
+    "notes": "PR #9 adds .nvmrc/.editorconfig and lockfile evidence (≤30 files).",
+    "blockers": "",
+    "signals": "Deterministic builds baseline",
+    "layers": [
+      "surface"
+    ],
+    "integration": "npm ci evidence stored under state/evidence/INTENT-TOOLING-NORMALIZE-20251113.",
+    "weights": {},
+    "task_id": "INTENT-TOOLING-NORMALIZE-20251113",
+    "accepted_at": "2025-11-04T03:03:50Z"
+  },
+  {
+    "id": "INTENT-GUARD-ENFORCE-20251113",
+    "created_at": "2025-11-04T03:03:50Z",
+    "title": "Intent queue: guard enforcement micro-PR",
+    "summary": "Enable dep-guard and tools policy scripts in CI, run check_* --dry, capture violations report.",
+    "domain": "mcp",
+    "source": "codex",
+    "status": "in_review",
+    "notes": "PR #10 wires guardrail workflow; failures highlight missing stewardship manifests.",
+    "blockers": "",
+    "signals": "Policy kernel alignment",
+    "layers": [
+      "surface"
+    ],
+    "integration": "Guardrail workflow uploads violations artifact for Adaptive Budgets.",
+    "weights": {},
+    "task_id": "INTENT-GUARD-ENFORCE-20251113",
+    "accepted_at": "2025-11-04T03:03:50Z"
+  },
+  {
+    "id": "INTENT-APPS-STEWARDSHIP-20251114",
+    "created_at": "2025-11-04T12:00:42Z",
+    "title": "Apps: restore stewardship manifests",
+    "summary": "Add apps/OWNERS.yaml and apps/module.yaml with TTL + signals to close ownership gap detected by triage.",
+    "domain": "apps",
+    "source": "codex",
+    "status": "in_review",
+    "notes": "PR #13 adds stewardship manifests for apps/docs/shared/state.",
+    "blockers": "",
+    "signals": "governance",
+    "layers": [
+      "surface"
+    ],
+    "integration": "Ensure guardrail workflow sees updated ownership metadata.",
+    "weights": {},
+    "task_id": "INTENT-APPS-STEWARDSHIP-20251114",
+    "accepted_at": "2025-11-04T12:00:42Z"
+  },
+  {
+    "id": "INTENT-GLOBAL-BUILD-SCRIPT-20251114",
+    "created_at": "2025-11-04T12:00:42Z",
+    "title": "Build matrix: add root npm build orchestration",
+    "summary": "Implement npm run build script invoking workspace builds to unblock CI build matrix.",
+    "domain": "infrastructure",
+    "source": "codex",
+    "status": "in_review",
+    "notes": "PR #14 adds scripts/run-build.js and evidence; warnings logged for missing dependencies.",
+    "blockers": "",
+    "signals": "builds",
+    "layers": [
+      "adjacent"
+    ],
+    "integration": "Root build script now exits gracefully, removing \"Missing script\" failure from build matrix.",
+    "weights": {},
+    "task_id": "INTENT-GLOBAL-BUILD-SCRIPT-20251114",
+    "accepted_at": "2025-11-04T12:00:42Z"
   }
 ]
