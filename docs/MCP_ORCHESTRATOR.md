@@ -73,7 +73,7 @@ The server may also proxy to existing MCP servers (`filesystem`, `git`, `fetch`,
 ## 4. Control Loop (PDCA with Double-Loop Learning)
 
 ### Plan
-- Parse docs (`docs/ROADMAP.md`, `docs/ARCHITECTURE.md`, `docs/STACK.md`, `agent.md`) to seed `state/roadmap.yaml`.
+- Parse docs (`docs/ROADMAP.md`, `docs/ARCHITECTURE.md`, `docs/STACK.md`, `AGENTS.md`) to seed `state/roadmap.yaml`.
 - Expand epics → milestones → tasks with owners = `WVO`, estimates, dependencies, exit criteria, and critic requirements.
 - For each cycle, select smallest viable vertical slice that moves epic state forward; prefer tasks that unblock critical paths (ingest → features → models → allocator → UX → CI).
 

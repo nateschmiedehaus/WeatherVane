@@ -1,6 +1,6 @@
 # WeatherVane Free / OSS Stack Blueprint
 
-This document captures the recommended zero-license stack and operating posture for WeatherVane. It backs the decisions in `agent.md` and `README.md`, and helps engineers keep instrumentation neutral so experiments are not skewed.
+This document captures the recommended zero-license stack and operating posture for WeatherVane. It backs the decisions in `AGENTS.md` and `README.md`, and helps engineers keep instrumentation neutral so experiments are not skewed.
 
 ## Default Operating Mode
 - **Read-only Plan & Proof**: ingest, model, simulate, and report without touching live ad budgets.

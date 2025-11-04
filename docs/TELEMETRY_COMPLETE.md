@@ -77,7 +77,7 @@ The enhanced live view now shows:
 
 ### **Orchestrator Display**:
 ```
-▶ Orchestrator: claude-sonnet-4-5 (claude)
+▶ Orchestrator: claude-sonnet-4.5 (claude)
   Status: ● BUSY
   Tasks: 12 completed | Success: 11/12 (92%)
   Current: T1.1.1 - Build scenario builder MVP
@@ -115,7 +115,7 @@ The enhanced live view now shows:
 ### **Critic Display**:
 ```
 ▶ Critics (1):
-  1. critic-0: ○ claude-haiku-4-5 | Tasks: 5 | Success: 100%
+  1. critic-0: ○ claude-haiku-4.5 | Tasks: 5 | Success: 100%
 ```
 
 **What You Can Verify**:
@@ -283,7 +283,7 @@ When running the autopilot, you can now verify:
 ━━━ Live Agent Status ━━━
 Total Agents: 5
 
-▶ Orchestrator: claude-sonnet-4-5 (claude)
+▶ Orchestrator: claude-sonnet-4.5 (claude)
   Status: ● BUSY
   Tasks: 12 completed | Success: 11/12 (92%)
   Current: T1.1.1 - Build scenario builder MVP
@@ -303,12 +303,12 @@ Total Agents: 5
      Tasks: 7 | Success: 100% | Avg: 42s
      Last: T1.1.2 (Implement visual overlays & exports)
 
-  3. worker-2: ○ claude-haiku-4-5
+  3. worker-2: ○ claude-haiku-4.5
      Tasks: 9 | Success: 89% | Avg: 35s
      Last: T0.1.5 (Add weather guardrail monitoring)
 
 ▶ Critics (1):
-  1. critic-0: ○ claude-haiku-4-5 | Tasks: 5 | Success: 100%
+  1. critic-0: ○ claude-haiku-4.5 | Tasks: 5 | Success: 100%
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ```

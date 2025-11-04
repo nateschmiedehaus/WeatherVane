@@ -1,0 +1,75 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Local Context Pack",
+  "type": "object",
+  "required": [
+    "agent",
+    "task_id",
+    "goal",
+    "acceptance_criteria",
+    "constraints",
+    "scope_class",
+    "model_capability",
+    "anchors",
+    "micro_summaries",
+    "risk_notes",
+    "open_questions",
+    "next_actions",
+    "token_estimate",
+    "bloat_checks"
+  ],
+  "properties": {
+    "agent": { "enum": ["Planner", "Thinker", "Implementer", "Verifier", "Reviewer", "Critical", "Supervisor"] },
+    "task_id": { "type": "string" },
+    "goal": { "type": "string" },
+    "acceptance_criteria": { "type": "array", "items": { "type": "string" } },
+    "constraints": { "type": "array", "items": { "type": "string" } },
+    "scope_class": { "enum": ["Tiny", "Small", "Medium", "Large"] },
+    "model_capability": { "enum": ["fast_code", "reasoning_high", "reasoning_ultra", "long_context", "cheap_batch"] },
+    "anchors": {
+      "type": "array",
+      "maxItems": 24,
+      "items": {
+        "type": "object",
+        "required": ["kind"],
+        "properties": {
+          "kind": { "enum": ["code", "test", "kb", "decision", "artifact"] },
+          "path": { "type": "string" },
+          "lines": { "type": "string" },
+          "rev": { "type": "string" },
+          "ref": { "type": "string" },
+          "name": { "type": "string" }
+        },
+        "additionalProperties": false
+      }
+    },
+    "micro_summaries": {
+      "type": "array",
+      "maxItems": 24,
+      "items": {
+        "type": "object",
+        "required": ["ref", "summary"],
+        "properties": {
+          "ref": { "type": "string" },
+          "summary": { "type": "string", "minLength": 1, "maxLength": 320 }
+        },
+        "additionalProperties": false
+      }
+    },
+    "risk_notes": { "type": "array", "items": { "type": "string" } },
+    "open_questions": { "type": "array", "items": { "type": "string" } },
+    "next_actions": { "type": "array", "items": { "type": "string" } },
+    "token_estimate": { "type": "number", "minimum": 0 },
+    "bloat_checks": {
+      "type": "object",
+      "required": ["dedup_ok", "within_budget", "no_large_blobs"],
+      "properties": {
+        "dedup_ok": { "type": "boolean" },
+        "within_budget": { "type": "boolean" },
+        "no_large_blobs": { "type": "boolean" }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

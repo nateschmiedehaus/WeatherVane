@@ -225,7 +225,7 @@ private async upgradeAgentModel(agent: Agent): Promise<{ model: string; provider
   const currentModel = agent.config.model;
 
   // Upgrade paths
-  if (currentModel.includes('haiku')) return { model: 'claude-sonnet-4-5', provider: 'claude' };
+  if (currentModel.includes('haiku')) return { model: 'claude-sonnet-4.5', provider: 'claude' };
   if (currentModel.includes('sonnet')) return { model: 'claude-opus-4', provider: 'claude' };
   if (currentModel.includes('codex-low')) return { model: 'gpt-5-codex-medium', provider: 'codex' };
   if (currentModel.includes('codex-medium')) return { model: 'gpt-5-codex-high', provider: 'codex' };
@@ -275,8 +275,8 @@ private async upgradeAgentModel(agent: Agent): Promise<{ model: string; provider
 ```
 ⚠ 🔄 Task failed - initiating escalating remediation
 ℹ 🔺 Escalation level { taskId: 'TEST-1', level: 2, attempts: 4 }
-ℹ ⬆️ Level 2-3: Escalating to higher-tier model { taskId: 'TEST-1', currentModel: 'claude-haiku-4-5' }
-ℹ 🚀 Retrying with upgraded model { taskId: 'TEST-1', newModel: 'claude-sonnet-4-5' }
+ℹ ⬆️ Level 2-3: Escalating to higher-tier model { taskId: 'TEST-1', currentModel: 'claude-haiku-4.5' }
+ℹ 🚀 Retrying with upgraded model { taskId: 'TEST-1', newModel: 'claude-sonnet-4.5' }
 ℹ 🔒 Agent locked for remediation { agentId: 'worker-2', taskId: 'TEST-1', escalationLevel: 2 }
 ```
 

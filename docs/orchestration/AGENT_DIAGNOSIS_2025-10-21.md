@@ -48,8 +48,8 @@ The system retried 5 times with exponential backoff (~6 seconds total), then fai
 | `gpt-5-codex-high` | ❌ Fails | API key only |
 | `gpt-5-codex-medium` | ❌ Fails | API key only |
 | `gpt-5-codex-low` | ❌ Fails | API key only |
-| `claude-sonnet-4-5` | ✅ Works | All |
-| `claude-haiku-4-5` | ✅ Works | All |
+| `claude-sonnet-4.5` | ✅ Works | All |
+| `claude-haiku-4.5` | ✅ Works | All |
 
 ---
 

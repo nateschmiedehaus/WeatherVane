@@ -7,6 +7,8 @@
 
 Fixed all critical issues preventing the unified multi-provider autopilot from working correctly. The system now uses the correct API model names, has enhanced telemetry showing task titles, and is ready for production testing.
 
+> **Router-lock update (Oct 2025)**: Subsequent remediation replaced every `gpt-5-codex-*` reference with the allow-listed `codex-5-low/medium/high` presets governed by `router_lock.ts`. Discovery, registry, and router layers now reject any provider outside `openai`/`anthropic`, so keep that guardrail in mind when following the steps below.
+
 ## Fixes Applied
 
 ### 1. Model Names Corrected (CRITICAL)
@@ -15,8 +17,8 @@ Fixed all critical issues preventing the unified multi-provider autopilot from w
 **Root Cause**: User-provided model names didn't match actual API format
 
 **Changes**:
-- **Claude Sonnet 4.5**: `claude-sonnet-4.5` → `claude-sonnet-4-5` (hyphens, not dots)
-- **Claude Haiku 4.5**: `claude-haiku-4.5` → `claude-haiku-4-5`
+- **Claude Sonnet 4.5**: `claude-sonnet-4.5` → `claude-sonnet-4.5` (hyphens, not dots)
+- **Claude Haiku 4.5**: `claude-haiku-4.5` → `claude-haiku-4.5`
 - **Codex High**: `codex-5-high` → `gpt-5-codex-high` (three Codex tiers exist)
 - **Codex Medium**: `codex-5-medium` → `gpt-5-codex-medium`
 - **Codex Low**: `codex-5-low` → `gpt-5-codex-low`
@@ -46,15 +48,15 @@ Fixed all critical issues preventing the unified multi-provider autopilot from w
 
 **Example Output**:
 ```
-▶ Orchestrator: claude-sonnet-4-5 (claude)
+▶ Orchestrator: claude-sonnet-4.5 (claude)
   Status: ● BUSY
   Tasks completed: 3
   Current task: T1.1.1 - Build scenario builder MVP
 
 ▶ Workers (3):
-  1. worker-0: ○ claude-haiku-4-5 | Tasks: 5 | Last: T0.1.2 (Build lift & confidence UI surfaces)
+  1. worker-0: ○ claude-haiku-4.5 | Tasks: 5 | Last: T0.1.2 (Build lift & confidence UI surfaces)
   2. worker-1: ● gpt-5-mini | Tasks: 4 | Last: T0.1.3 (Generate forecast calibration report)
-  3. worker-2: ○ claude-haiku-4-5 | Tasks: 3 | Last: T1.1.2 (Implement visual overlays & exports)
+  3. worker-2: ○ claude-haiku-4.5 | Tasks: 3 | Last: T1.1.2 (Implement visual overlays & exports)
 ```
 
 ---
@@ -66,8 +68,8 @@ Based on web search results as of October 21, 2025:
 #### Claude (Anthropic)
 | Model | API Name | Released | Use Case |
 |-------|----------|----------|----------|
-| **Claude Sonnet 4.5** | `claude-sonnet-4-5` | Sep 29, 2025 | Strategic planning, complex architecture |
-| **Claude Haiku 4.5** | `claude-haiku-4-5` | Oct 15, 2025 | Fast execution, tactical coding, reviews |
+| **Claude Sonnet 4.5** | `claude-sonnet-4.5` | Sep 29, 2025 | Strategic planning, complex architecture |
+| **Claude Haiku 4.5** | `claude-haiku-4.5` | Oct 15, 2025 | Fast execution, tactical coding, reviews |
 | **Claude Opus 4.1** | `claude-opus-4-1` | Aug 5, 2025 | Highest capability (not used in current config) |
 
 #### OpenAI Codex (3 Tiers)
@@ -83,9 +85,9 @@ Based on web search results as of October 21, 2025:
 
 | Agent Type | Primary Model | Fallback Model | Allocation | Reasoning |
 |------------|---------------|----------------|------------|-----------|
-| **Orchestrator (Atlas)** | `claude-sonnet-4-5` | `gpt-5-codex-high` | Claude preferred | Strategic thinking, world-class design standards |
-| **Workers** | `gpt-5-codex-medium` | `claude-haiku-4-5` | **2/3 Codex, 1/3 Claude** | User has more Codex usage, prefers it for workers |
-| **Critics** | `claude-haiku-4-5` | `gpt-5-codex-low` | Claude preferred | Quick quality reviews, cost-effective |
+| **Orchestrator (Atlas)** | `claude-sonnet-4.5` | `gpt-5-codex-high` | Claude preferred | Strategic thinking, world-class design standards |
+| **Workers** | `gpt-5-codex-medium` | `claude-haiku-4.5` | **2/3 Codex, 1/3 Claude** | User has more Codex usage, prefers it for workers |
+| **Critics** | `claude-haiku-4.5` | `gpt-5-codex-low` | Claude preferred | Quick quality reviews, cost-effective |
 
 **Worker Allocation**: Prefers Codex based on user preference and available usage quota. With 5 agents (1 orchestrator, 3 workers, 1 critic), expect: **worker-0: Codex, worker-1: Codex, worker-2: Claude**
 
@@ -147,7 +149,7 @@ make mcp-autopilot AGENTS=5
 ```
 
 **Expected behavior**:
-1. Spawn 1 orchestrator (claude-sonnet-4-5), 3 workers (haiku/mini mix), 1 critic (haiku/nano)
+1. Spawn 1 orchestrator (claude-sonnet-4.5), 3 workers (haiku/mini mix), 1 critic (haiku/nano)
 2. Load pending tasks from roadmap (Phase 0/1)
 3. Execute tasks in parallel across workers
 4. Show rich telemetry with task names, progress updates, output snippets

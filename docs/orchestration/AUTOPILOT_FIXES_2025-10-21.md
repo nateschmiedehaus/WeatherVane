@@ -143,7 +143,7 @@ function resolveWorkspaceRoot(explicitRoot) {
 
 **Agent Assignment**:
 ```
-worker-0: claude-haiku-4-5 (assigned to E3, E4, CRIT-PERF-SECURITY-799f0c, CRIT-PERF-ACADEMICRIGOR-a17b71)
+worker-0: claude-haiku-4.5 (assigned to E3, E4, CRIT-PERF-SECURITY-799f0c, CRIT-PERF-ACADEMICRIGOR-a17b71)
 worker-1: gpt-5-codex-medium (assigned to E2)
 ```
 
