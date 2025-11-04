@@ -1,0 +1,26 @@
+{
+  "dep_rules": {
+    "path": "meta/dep_rules.yaml",
+    "present": true
+  },
+  "tools_policy": {
+    "path": "meta/tools_policy.yaml",
+    "present": true
+  },
+  "git_tree_policy": {
+    "path": "meta/git_tree_policy.md",
+    "present": true
+  },
+  "codeowners": {
+    "path": "CODEOWNERS",
+    "present": true
+  },
+  "owners_files": [
+    "tools/OWNERS.yaml"
+  ],
+  "module_files": [
+    "tools/module.yaml"
+  ],
+  "owners_present": true,
+  "module_present": true
+}

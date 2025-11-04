@@ -1,0 +1,8 @@
+# Default stewardship
+* @maintainers-team
+
+# Domain owners
+apps/** @apps-core
+tools/** @mcp-core
+docs/** @docs-core
+state/** @operations-core

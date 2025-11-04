@@ -141,5 +141,43 @@
     "weights": {},
     "task_id": "INBOX-6029C8CCB1CF",
     "accepted_at": "2025-10-22T21:12:20.698Z"
+  },
+  {
+    "id": "INTENT-TOOLING-NORMALIZE-20251113",
+    "created_at": "2025-11-04T03:03:50Z",
+    "title": "Intent queue: tooling normalization micro-PR",
+    "summary": "Lock Node/Python versions, regenerate lockfiles, and capture npm/node evidence for deterministic builds.",
+    "domain": "tools",
+    "source": "codex",
+    "status": "pending",
+    "notes": "Follow-up to AFP-RECOVERY-ADAPT-20251113 Path A; create \u226430-file PR with .nvmrc/.editorconfig updates and lockfile verification evidence.",
+    "blockers": "",
+    "signals": "Deterministic builds baseline",
+    "layers": [
+      "surface"
+    ],
+    "integration": "Run npm ci + workspace tests; attach verify/tooling.txt.",
+    "weights": {},
+    "task_id": "INTENT-TOOLING-NORMALIZE-20251113",
+    "accepted_at": "2025-11-04T03:03:50Z"
+  },
+  {
+    "id": "INTENT-GUARD-ENFORCE-20251113",
+    "created_at": "2025-11-04T03:03:50Z",
+    "title": "Intent queue: guard enforcement micro-PR",
+    "summary": "Enable dep-guard and tools policy scripts in CI, run check_* --dry, capture violations report.",
+    "domain": "mcp",
+    "source": "codex",
+    "status": "pending",
+    "notes": "Transition from dry-run to enforcement after baseline recovery; limit to \u226430 files and document coverage.",
+    "blockers": "",
+    "signals": "Policy kernel alignment",
+    "layers": [
+      "surface"
+    ],
+    "integration": "Add CI steps and evidence linking to guardrail scripts.",
+    "weights": {},
+    "task_id": "INTENT-GUARD-ENFORCE-20251113",
+    "accepted_at": "2025-11-04T03:03:50Z"
   }
 ]

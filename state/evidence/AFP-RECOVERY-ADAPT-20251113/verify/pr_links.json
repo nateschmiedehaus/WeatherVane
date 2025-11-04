@@ -1,0 +1,8 @@
+[
+  {
+    "branch": "task/AFP-RECOVERY-ADAPT-20251113",
+    "commit": "9b8e0df9a2259b62d0ddc19dff0f36c1e0f1db72",
+    "title": "chore(afp): adaptive baseline guardrails [AFP]",
+    "status": "local-only (ready for push)"
+  }
+]

@@ -134,3 +134,6 @@ gha-creds-*.json
 # Shopify connector and external projects
 integrations/shopify-connector/weathervane-connector/
 weather-vane/
+
+# Archive artifacts
+state/archive/

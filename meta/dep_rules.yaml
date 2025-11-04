@@ -1,0 +1,36 @@
+layers:
+  - name: root
+    allows:
+      - apps/**
+      - tools/**
+      - docs/**
+      - state/**
+    depends_on: []
+  - name: tools
+    allows:
+      - tools/**
+      - shared/**
+    depends_on:
+      - root
+  - name: apps
+    allows:
+      - apps/**
+      - shared/**
+    depends_on:
+      - tools
+  - name: shared
+    allows:
+      - shared/**
+    depends_on:
+      - tools
+rules:
+  - description: "Disallow upward imports"
+    from: "apps/**"
+    to: "tools/**"
+    action: deny
+  - description: "Disallow cross-app coupling"
+    from: "apps/**"
+    to: "apps/**"
+    except:
+      - "apps/**/__tests__/**"
+    action: warn
