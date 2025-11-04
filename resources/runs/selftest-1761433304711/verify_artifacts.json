@@ -1,0 +1,65 @@
+{
+  "success": true,
+  "coverageDelta": 0.08,
+  "coverageTarget": 0.05,
+  "gateResults": [
+    {
+      "name": "tests.run",
+      "success": true,
+      "output": "tests.run simulated ok for APP-CORE-SELFTEST"
+    },
+    {
+      "name": "lint.run",
+      "success": true,
+      "output": "lint.run simulated ok for APP-CORE-SELFTEST"
+    },
+    {
+      "name": "typecheck.run",
+      "success": true,
+      "output": "typecheck.run simulated ok for APP-CORE-SELFTEST"
+    },
+    {
+      "name": "security.scan",
+      "success": true,
+      "output": "security.scan simulated ok for APP-CORE-SELFTEST"
+    },
+    {
+      "name": "license.check",
+      "success": true,
+      "output": "license.check simulated ok for APP-CORE-SELFTEST"
+    }
+  ],
+  "artifacts": {
+    "gates": [
+      {
+        "name": "tests.run",
+        "success": true,
+        "output": "tests.run simulated ok for APP-CORE-SELFTEST"
+      },
+      {
+        "name": "lint.run",
+        "success": true,
+        "output": "lint.run simulated ok for APP-CORE-SELFTEST"
+      },
+      {
+        "name": "typecheck.run",
+        "success": true,
+        "output": "typecheck.run simulated ok for APP-CORE-SELFTEST"
+      },
+      {
+        "name": "security.scan",
+        "success": true,
+        "output": "security.scan simulated ok for APP-CORE-SELFTEST"
+      },
+      {
+        "name": "license.check",
+        "success": true,
+        "output": "license.check simulated ok for APP-CORE-SELFTEST"
+      }
+    ],
+    "coverage": {
+      "delta": 0.08,
+      "target": 0.05
+    }
+  }
+}

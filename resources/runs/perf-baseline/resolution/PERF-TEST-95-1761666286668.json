@@ -1,0 +1,51 @@
+{
+  "taskId": "PERF-TEST-95",
+  "failingGate": "tests.run",
+  "label": "missing_dependency",
+  "planDelta": "Resolution label: missing_dependency\nFocus: Dependency or provider not installed in CI.\nShow dependency install logs and passing CI snippet.",
+  "actionables": [
+    {
+      "change": "Replicate install locally ➜ Add lock/dependency file updates ➜ Record CI run installing dependency"
+    },
+    {
+      "change": "Add lightweight stub/provider with deterministic responses ➜ Guard behind feature toggle"
+    }
+  ],
+  "requiresThinker": false,
+  "steps": [
+    {
+      "cause_hypothesis": "Dependency or provider not installed in CI.",
+      "step_actions": [
+        "Replicate install locally",
+        "Add lock/dependency file updates",
+        "Record CI run installing dependency"
+      ],
+      "expected_signal": "CI log shows dependency install + green tests",
+      "evidence_required": [
+        "Screenshot/log snippet of failing install",
+        "Link to passing run after install"
+      ],
+      "next_state": "Plan",
+      "ceilings": {
+        "attempts": 2
+      }
+    },
+    {
+      "cause_hypothesis": "Provider requires mock/stub for hermetic runs.",
+      "step_actions": [
+        "Add lightweight stub/provider with deterministic responses",
+        "Guard behind feature toggle"
+      ],
+      "expected_signal": "Tests run without hitting live provider.",
+      "evidence_required": [
+        "Stub file path",
+        "Link to failing test now green via stub"
+      ],
+      "next_state": "Implement",
+      "ceilings": {
+        "attempts": 2
+      }
+    }
+  ],
+  "createdAt": "2025-10-28T15:44:46.668Z"
+}

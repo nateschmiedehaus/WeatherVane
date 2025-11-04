@@ -1,0 +1,98 @@
+{
+  "models": [
+    {
+      "name": "gpt-4o-mini",
+      "provider": "openai",
+      "context_window": 128000,
+      "reasoning_strength": "high",
+      "code_quality": "high",
+      "latency_ms_est": 1400,
+      "price_class": "normal",
+      "tool_use_ok": true,
+      "vision_ok": false,
+      "max_output_tokens": 4096,
+      "notes": ["policy_seed"]
+    },
+    {
+      "name": "gpt-4o",
+      "provider": "openai",
+      "context_window": 128000,
+      "reasoning_strength": "ultra",
+      "code_quality": "ultra",
+      "latency_ms_est": 2200,
+      "price_class": "premium",
+      "tool_use_ok": true,
+      "vision_ok": true,
+      "max_output_tokens": 8192,
+      "notes": ["policy_seed"]
+    },
+    {
+      "name": "claude-3-5-sonnet",
+      "provider": "anthropic",
+      "context_window": 200000,
+      "reasoning_strength": "high",
+      "code_quality": "ultra",
+      "latency_ms_est": 2400,
+      "price_class": "premium",
+      "tool_use_ok": true,
+      "vision_ok": true,
+      "max_output_tokens": 8192,
+      "notes": ["policy_seed"]
+    },
+    {
+      "name": "claude-3-haiku",
+      "provider": "anthropic",
+      "context_window": 200000,
+      "reasoning_strength": "medium",
+      "code_quality": "medium",
+      "latency_ms_est": 1200,
+      "price_class": "cheap",
+      "tool_use_ok": false,
+      "vision_ok": true,
+      "max_output_tokens": 4096,
+      "notes": ["policy_seed"]
+    },
+    {
+      "name": "gemini-1-5-flash",
+      "provider": "google",
+      "context_window": 1000000,
+      "reasoning_strength": "medium",
+      "code_quality": "medium",
+      "latency_ms_est": 900,
+      "price_class": "cheap",
+      "tool_use_ok": true,
+      "vision_ok": true,
+      "max_output_tokens": 8192,
+      "notes": ["policy_seed"]
+    },
+    {
+      "name": "gemini-1-5-pro",
+      "provider": "google",
+      "context_window": 2000000,
+      "reasoning_strength": "high",
+      "code_quality": "high",
+      "latency_ms_est": 1800,
+      "price_class": "premium",
+      "tool_use_ok": true,
+      "vision_ok": true,
+      "max_output_tokens": 16384,
+      "notes": ["policy_seed"]
+    },
+    {
+      "name": "grok-2",
+      "provider": "xai",
+      "context_window": 128000,
+      "reasoning_strength": "medium_high",
+      "code_quality": "high",
+      "latency_ms_est": 1600,
+      "price_class": "normal",
+      "tool_use_ok": true,
+      "vision_ok": false,
+      "max_output_tokens": 4096,
+      "notes": ["policy_seed"]
+    }
+  ],
+  "source": "policy",
+  "timestamp": "2025-10-25T22:50:00Z",
+  "fallback": []
+}

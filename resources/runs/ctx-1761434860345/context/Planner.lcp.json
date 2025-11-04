@@ -1,0 +1,58 @@
+{
+  "agent": "Planner",
+  "task_id": "INBOX-7227706627CB",
+  "goal": "Plan MCP: Restore policy controller parity",
+  "acceptance_criteria": [
+    "Port the legacy autopilot policy controller into UnifiedOrchestrator so policy state and escalations are recorded for every guardrail breach."
+  ],
+  "constraints": [
+    "No secrets in context",
+    "Respect router locked models"
+  ],
+  "scope_class": "Small",
+  "model_capability": "reasoning_high",
+  "anchors": [
+    {
+      "kind": "code",
+      "path": "tools/wvo_mcp/src/orchestrator/state_graph.ts",
+      "lines": "1-200",
+      "rev": "d91e11e88631"
+    },
+    {
+      "kind": "test",
+      "path": "tests/api/test_dashboard_service.py",
+      "name": "test_dashboard_service.py"
+    },
+    {
+      "kind": "decision",
+      "ref": "resources://runs/ctx-1761434860345/journal.md"
+    }
+  ],
+  "micro_summaries": [
+    {
+      "ref": "tools/wvo_mcp/src/orchestrator/state_graph.ts",
+      "summary": "Review tools/wvo_mcp/src/orchestrator/state_graph.ts for invariants and dependency impacts."
+    },
+    {
+      "ref": "tests/api/test_dashboard_service.py",
+      "summary": "Review tests/api/test_dashboard_service.py for invariants and dependency impacts."
+    },
+    {
+      "ref": "resources://runs/ctx-1761434860345/journal.md",
+      "summary": "Consult resources://runs/ctx-1761434860345/journal.md for prior decision or KB rule."
+    }
+  ],
+  "risk_notes": [
+    "Need guardrail parity"
+  ],
+  "open_questions": [],
+  "next_actions": [
+    "Enumerate files to touch"
+  ],
+  "token_estimate": 1500,
+  "bloat_checks": {
+    "dedup_ok": true,
+    "within_budget": true,
+    "no_large_blobs": true
+  }
+}
