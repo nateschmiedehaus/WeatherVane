@@ -1,0 +1,273 @@
+modules:
+  - id: analytics
+    path: tools/wvo_mcp/src/analytics
+    description: "Analytics helpers: outcome logging, feedback tracking"
+    stewards:
+      - Atlas
+    reviewers:
+      - Council
+    dependencies:
+      - telemetry
+    health_signals:
+      - build_passes
+    ttl_days: 90
+    last_review: 2025-11-05
+    next_review: 2026-02-03
+    status: healthy
+  - id: apps
+    path: apps
+    description: Application umbrella containing API, web, and worker services
+    stewards:
+      - Atlas
+    reviewers:
+      - Council
+    dependencies: []
+    health_signals:
+      - build_passes
+      - tests_pass
+    ttl_days: 90
+    last_review: 2025-11-05
+    next_review: 2026-02-03
+    status: healthy
+  - id: apps-api
+    path: apps/api
+    description: WeatherVane API service
+    stewards:
+      - Atlas
+    reviewers:
+      - Council
+    dependencies:
+      - shared
+      - tools-wvo_mcp
+    health_signals:
+      - build_passes
+      - tests_pass
+      - api_latency
+    ttl_days: 90
+    last_review: 2025-11-05
+    next_review: 2026-02-03
+    status: healthy
+  - id: apps-web
+    path: apps/web
+    description: WeatherVane web front-end
+    stewards:
+      - Atlas
+    reviewers:
+      - Council
+    dependencies:
+      - apps-api
+      - shared
+    health_signals:
+      - build_passes
+      - tests_pass
+      - lighthouse_score
+    ttl_days: 90
+    last_review: 2025-11-05
+    next_review: 2026-02-03
+    status: healthy
+  - id: apps-worker
+    path: apps/worker
+    description: Background worker for orchestration workflows
+    stewards:
+      - Atlas
+    reviewers:
+      - Council
+    dependencies:
+      - tools-wvo_mcp
+      - shared
+    health_signals:
+      - build_passes
+      - tests_pass
+      - queue_latency
+    ttl_days: 90
+    last_review: 2025-11-05
+    next_review: 2026-02-03
+    status: healthy
+  - id: critics
+    path: tools/wvo_mcp/src/critics
+    description: Automated reviewers and quality critics
+    stewards:
+      - Atlas
+    reviewers:
+      - Council
+    dependencies:
+      - telemetry
+    health_signals:
+      - tests_pass
+      - critic_pass_rate
+    ttl_days: 90
+    last_review: 2025-11-05
+    next_review: 2026-02-03
+    status: healthy
+  - id: docs
+    path: docs
+    description: Documentation and theory references
+    stewards:
+      - Director Dana
+    reviewers:
+      - Council
+    dependencies: []
+    health_signals:
+      - doc_review_pass
+      - ttl_not_expired
+    ttl_days: 90
+    last_review: 2025-11-05
+    next_review: 2026-02-03
+    status: healthy
+  - id: executor
+    path: tools/wvo_mcp/src/executor
+    description: Command execution and sandbox enforcement
+    stewards:
+      - Atlas
+    reviewers:
+      - Council
+    dependencies:
+      - telemetry
+    health_signals:
+      - build_passes
+      - tests_pass
+    ttl_days: 90
+    last_review: 2025-11-05
+    next_review: 2026-02-03
+    status: healthy
+  - id: intelligence
+    path: tools/wvo_mcp/src/intelligence
+    description: Research orchestration and knowledge management
+    stewards:
+      - Atlas
+    reviewers:
+      - Director Dana
+    dependencies:
+      - telemetry
+    health_signals:
+      - build_passes
+    ttl_days: 90
+    last_review: 2025-11-05
+    next_review: 2026-02-03
+    status: healthy
+  - id: meta
+    path: meta
+    description: Governance, guardrails, and policy configuration
+    stewards:
+      - Council
+    reviewers:
+      - Atlas
+    dependencies:
+      - docs
+    health_signals:
+      - guardrails_valid
+    ttl_days: 90
+    last_review: 2025-11-05
+    next_review: 2026-02-03
+    status: healthy
+  - id: orchestrator
+    path: tools/wvo_mcp/src/orchestrator
+    description: Task planning, execution coordination, guardrails
+    stewards:
+      - Atlas
+    reviewers:
+      - Council
+    dependencies:
+      - executor
+      - intelligence
+      - critics
+      - telemetry
+    health_signals:
+      - build_passes
+      - tests_pass
+      - guardrail_compliance
+    ttl_days: 90
+    last_review: 2025-11-05
+    next_review: 2026-02-03
+    status: healthy
+  - id: shared
+    path: shared
+    description: Shared libraries used by applications and tools
+    stewards:
+      - Atlas
+    reviewers:
+      - Council
+    dependencies: []
+    health_signals:
+      - build_passes
+      - tests_pass
+    ttl_days: 90
+    last_review: 2025-11-05
+    next_review: 2026-02-03
+    status: healthy
+  - id: state
+    path: state
+    description: Evidence, analytics, and state bundles
+    stewards:
+      - Atlas
+    reviewers:
+      - Council
+    dependencies: []
+    health_signals:
+      - evidence_complete
+      - analytics_fresh
+    ttl_days: 90
+    last_review: 2025-11-05
+    next_review: 2026-02-03
+    status: healthy
+  - id: telemetry
+    path: tools/wvo_mcp/src/telemetry
+    description: Telemetry exporters, tracing, and analytics helpers
+    stewards:
+      - Atlas
+    reviewers:
+      - Council
+    dependencies: []
+    health_signals:
+      - telemetry_flowing
+    ttl_days: 90
+    last_review: 2025-11-05
+    next_review: 2026-02-03
+    status: healthy
+  - id: tests
+    path: tools/wvo_mcp/src/tests
+    description: Autopilot test suites and fixtures
+    stewards:
+      - Atlas
+    reviewers:
+      - Council
+    dependencies:
+      - orchestrator
+      - executor
+    health_signals:
+      - tests_pass
+    ttl_days: 90
+    last_review: 2025-11-05
+    next_review: 2026-02-03
+    status: healthy
+  - id: tools
+    path: tools
+    description: Developer tooling and automation scripts
+    stewards:
+      - Atlas
+    reviewers:
+      - Council
+    dependencies:
+      - shared
+    health_signals:
+      - build_passes
+    ttl_days: 90
+    last_review: 2025-11-05
+    next_review: 2026-02-03
+    status: healthy
+  - id: tools-wvo_mcp
+    path: tools/wvo_mcp
+    description: Autopilot orchestrator MCP server and tooling
+    stewards:
+      - Atlas
+    reviewers:
+      - Council
+    dependencies:
+      - shared
+    health_signals:
+      - build_passes
+      - tests_pass
+    ttl_days: 90
+    last_review: 2025-11-05
+    next_review: 2026-02-03
+    status: healthy

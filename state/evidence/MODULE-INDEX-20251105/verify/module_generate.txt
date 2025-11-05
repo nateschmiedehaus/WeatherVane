@@ -1,0 +1,5 @@
+
+> wvo-mcp-server@0.1.0 module:generate
+> npx tsx ./scripts/generate_module_index.ts
+
+Module index generated -> meta/module_index.yaml

@@ -23,7 +23,11 @@
     "register:claude": "claude mcp add weathervane -- node dist/index-claude.js --workspace ../../..",
     "auto:codex": "npm run build && npm run register:codex && codex session --profile weathervane_orchestrator",
     "auto:claude": "npm run build && npm run register:claude && claude chat --mcp weathervane",
-    "providers:smoke": "npm run build && node dist/providers/provider_smoke_test.js"
+    "providers:smoke": "npm run build && node dist/providers/provider_smoke_test.js",
+    "analyze:outcomes": "node --import tsx ./scripts/analyze_outcomes.ts",
+    "analyze:feedback-loops": "node --import tsx ./scripts/analyze_feedback_loops.ts",
+    "module:generate": "npx tsx ./scripts/generate_module_index.ts",
+    "module:validate": "npx tsx ./scripts/validate_module_index.ts"
   },
   "author": "",
   "license": "MIT",

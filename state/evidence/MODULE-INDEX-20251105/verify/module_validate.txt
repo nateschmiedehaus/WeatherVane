@@ -1,0 +1,5 @@
+
+> wvo-mcp-server@0.1.0 module:validate
+> npx tsx ./scripts/validate_module_index.ts
+
+module_index.yaml validation passed
