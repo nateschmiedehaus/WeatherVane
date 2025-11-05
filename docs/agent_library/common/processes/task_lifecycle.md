@@ -190,14 +190,75 @@ const task = await readTask('T1.2.5');
 // - Review acceptance criteria
 ```
 
-**b. Execute**:
+**b. Complete AFP 10-Phase Planning (BEFORE coding)**:
+
+**CRITICAL: You MUST complete phases 1-5 BEFORE writing ANY code.**
+
+See `MANDATORY_WORK_CHECKLIST.md` and `docs/concepts/afp_work_phases.md` for details.
+
+**Phases 1-4: Planning**
+1. **STRATEGIZE**: Understand WHY (not just WHAT) - problem analysis, root cause, goals
+2. **SPEC**: Define success criteria, acceptance criteria, requirements
+3. **PLAN**: Design approach using AFP/SCAS (via negativa, refactor not patch, files/LOC estimate)
+4. **THINK**: Reason through edge cases, failure modes, complexity
+
+**Phase 5: [GATE] - MANDATORY CHECKPOINT**
+
+**For NON-TRIVIAL work (>2 files or >50 LOC)**:
+```bash
+# Create phase evidence file BEFORE implementing
+mkdir -p state/evidence/T1.2.5/
+cat > state/evidence/T1.2.5/phases.md <<EOF
+# Phase Evidence: T1.2.5
+
+## Phase 1: STRATEGIZE
+**Problem**: [describe problem and root cause]
+**Goal**: [desired outcome]
+**AFP/SCAS alignment**: [how this aligns with principles]
+
+## Phase 2: SPEC
+**Acceptance criteria**:
+- [ ] [criterion 1]
+- [ ] [criterion 2]
+
+**Requirements**: [functional + non-functional]
+
+## Phase 3: PLAN
+**Via negativa**: [Can we DELETE instead of add?]
+**Refactor analysis**: [Can we REFACTOR instead of patch?]
+**Files to change**: [list files]
+**Architecture**: [design approach]
+**LOC estimate**: [X files, Y LOC]
+
+## Phase 4: THINK
+**Edge cases**: [list and mitigations]
+**Failure modes**: [list and handling]
+**Complexity**: [analysis]
+**Testing strategy**: [approach]
+EOF
+
+# Stage it immediately
+git add state/evidence/T1.2.5/phases.md
+```
+
+**⚠️ IF YOU SKIP THIS:**
+- Pre-commit hook will BLOCK your commit
+- You'll have to redo your work after rethinking with AFP/SCAS lens
+- You're violating the work process
+
+**For TRIVIAL work (≤2 files, ≤50 LOC)**:
+- Document reasoning inline in code comments
+- No separate evidence file required
+
+**c. Execute**:
 ```typescript
+// NOW you can implement (phase 6: IMPLEMENT)
 // Implement feature
 // Write tests
 // Document changes
 ```
 
-**c. Verify**:
+**d. Verify**:
 ```typescript
 // Complete verification loop (iteratively)
 // 1. Build
@@ -207,7 +268,7 @@ const task = await readTask('T1.2.5');
 // 5. Documentation
 ```
 
-**d. Complete**:
+**e. Complete**:
 ```typescript
 // Only when ALL verification steps pass
 await plan_update({
