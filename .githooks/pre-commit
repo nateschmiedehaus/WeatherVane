@@ -153,8 +153,14 @@ else
       IS_REVERT=1
     fi
 
-    # Only check pattern for non-merge, non-revert commits
-    if [ $IS_MERGE -eq 0 ] && [ $IS_REVERT -eq 0 ]; then
+    # Check if this is a roadmap administrative commit
+    IS_ROADMAP_CHORE=0
+    if echo "$COMMIT_MSG" | grep -q "^chore(roadmap):"; then
+      IS_ROADMAP_CHORE=1
+    fi
+
+    # Only check pattern for non-merge, non-revert, non-roadmap-chore commits
+    if [ $IS_MERGE -eq 0 ] && [ $IS_REVERT -eq 0 ] && [ $IS_ROADMAP_CHORE -eq 0 ]; then
       # COHERENCE/EVOLUTION: Check for pattern reference
       if ! echo "$COMMIT_MSG" | grep -qE "(Pattern:|New pattern:)"; then
         echo -e "${RED}❌ BLOCKED: No pattern reference found${NC}"
@@ -420,7 +426,108 @@ if [ -n "$THINK_MD_STAGED" ]; then
 fi
 
 # ============================================================
-# PART 2: Credential Leak Detection
+# PART 2: Roadmap Task Completion Validation
+# ============================================================
+
+# Check if roadmap is being changed
+if git diff --cached --name-only | grep -q "state/roadmap.yaml"; then
+  echo ""
+  echo -e "${YELLOW}📋 Validating roadmap task completion...${NC}"
+
+  # Get the diff for roadmap changes
+  ROADMAP_DIFF=$(git diff --cached state/roadmap.yaml)
+
+  # Check if any task is being marked as "done"
+  TASKS_MARKED_DONE=$(echo "$ROADMAP_DIFF" | grep -E '^\+.*status: done' | wc -l | tr -d ' ')
+
+  if [ "$TASKS_MARKED_DONE" -gt 0 ]; then
+    # Extract task IDs from the diff context (look for "id: AFP-*" or "id: TASK-*" before the status change)
+    TASK_IDS=$(echo "$ROADMAP_DIFF" | awk '
+      /^\+.*status: done/ {
+        # Look backwards in buffer for task ID
+        for (i = NR-1; i >= NR-20 && i >= 1; i--) {
+          if (lines[i] ~ /- id: [A-Z]/) {
+            match(lines[i], /id: ([A-Z0-9_-]+)/, arr)
+            if (arr[1] != "") print arr[1]
+            next
+          }
+        }
+      }
+      { lines[NR] = $0 }
+    ' <<< "$ROADMAP_DIFF")
+
+    # Validate each task being marked done
+    VALIDATION_ERRORS=0
+    for TASK_ID in $TASK_IDS; do
+      EVIDENCE_PATH="state/evidence/$TASK_ID"
+
+      if [ ! -d "$EVIDENCE_PATH" ]; then
+        echo -e "${RED}❌ BLOCKED: Cannot mark $TASK_ID as done${NC}"
+        echo "   Evidence directory missing: $EVIDENCE_PATH"
+        VALIDATION_ERRORS=$((VALIDATION_ERRORS + 1))
+        continue
+      fi
+
+      # Check for required artifacts
+      MISSING_ARTIFACTS=()
+
+      if [ ! -f "$EVIDENCE_PATH/strategy.md" ]; then
+        MISSING_ARTIFACTS+=("strategy.md (STRATEGIZE phase)")
+      fi
+
+      if [ ! -f "$EVIDENCE_PATH/spec.md" ]; then
+        MISSING_ARTIFACTS+=("spec.md (SPEC phase)")
+      fi
+
+      if [ ! -f "$EVIDENCE_PATH/plan.md" ]; then
+        MISSING_ARTIFACTS+=("plan.md (PLAN phase)")
+      fi
+
+      if [ ! -f "$EVIDENCE_PATH/think.md" ]; then
+        MISSING_ARTIFACTS+=("think.md (THINK phase)")
+      fi
+
+      if [ ! -f "$EVIDENCE_PATH/verify.md" ]; then
+        MISSING_ARTIFACTS+=("verify.md (VERIFY phase)")
+      fi
+
+      if [ ! -f "$EVIDENCE_PATH/review.md" ]; then
+        MISSING_ARTIFACTS+=("review.md (REVIEW phase)")
+      fi
+
+      if [ ${#MISSING_ARTIFACTS[@]} -gt 0 ]; then
+        echo ""
+        echo -e "${RED}❌ BLOCKED: Cannot mark $TASK_ID as done${NC}"
+        echo "   Evidence incomplete: $EVIDENCE_PATH"
+        echo ""
+        echo "   Missing required artifacts:"
+        for artifact in "${MISSING_ARTIFACTS[@]}"; do
+          echo "     ❌ $artifact"
+        done
+        echo ""
+        echo "   Remediation:"
+        echo "     1. Complete all required work process phases"
+        echo "     2. Ensure all phase artifacts exist"
+        echo "     3. Then mark task as done in roadmap"
+        echo ""
+        echo "   See MANDATORY_WORK_CHECKLIST.md for full work process."
+        VALIDATION_ERRORS=$((VALIDATION_ERRORS + 1))
+      else
+        echo -e "${GREEN}✅ $TASK_ID evidence complete${NC}"
+      fi
+    done
+
+    if [ $VALIDATION_ERRORS -gt 0 ]; then
+      echo ""
+      echo -e "${RED}❌ Roadmap validation failed: $VALIDATION_ERRORS task(s) have incomplete evidence${NC}"
+      echo "   Cannot mark tasks as done without full evidence trail."
+      exit 1
+    fi
+  fi
+fi
+
+# ============================================================
+# PART 3: Credential Leak Detection
 # ============================================================
 
 echo -e "${YELLOW}🔐 Running credential leak detection...${NC}"
