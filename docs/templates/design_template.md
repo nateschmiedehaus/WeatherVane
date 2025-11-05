@@ -147,7 +147,16 @@ Before implementing, verify:
 **IMPORTANT:** If DesignReviewer finds issues, you MUST:
 1. Create remediation task (new STRATEGIZE→MONITOR cycle)
 2. Do actual research/exploration (30-60 min per critical issue)
-3. Update design.md with REAL findings (not assertions)
-4. Re-submit for review
+3. **Update UPSTREAM phase artifacts** (strategy, spec, plan docs)
+   - Via negativa concern → revise PLAN to show deletion analysis
+   - Refactor concern → revise STRATEGY to target root cause
+   - Alternatives concern → revise SPEC with new requirements
+4. Update design.md with revised approach (reflects upstream changes)
+5. Re-submit for review
 
 **Superficial edits to pass GATE = compliance theater = rejected.**
+
+**Remember:** design.md is a SUMMARY of phases 1-4. If DesignReviewer finds
+fundamental issues, you may need to GO BACK and revise your strategy, spec, or
+plan. This is EXPENSIVE but NECESSARY to ensure quality. GATE enforces that
+implementation is based on SOLID thinking, not rushed assumptions.

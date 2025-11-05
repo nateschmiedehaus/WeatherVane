@@ -441,8 +441,12 @@ You must:
     }
 
     instructions += `
-3. **UPDATE design.md WITH REAL ANALYSIS**
-   - Copy findings from remediation task into design.md
+3. **UPDATE UPSTREAM ARTIFACTS (not just design.md)**
+   - Remediation may require changing your STRATEGY, SPEC, or PLAN
+   - Update those phase documents (phases 1-4) based on what you learned
+   - Example: Via negativa finding → update PLAN to show deletion approach
+   - Example: Refactor concern → update STRATEGY to target root cause
+   - THEN update design.md to reflect revised approach
    - Show your work (don't just assert you did it)
    - Reference specific files, LOC counts, complexity metrics
 

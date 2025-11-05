@@ -9,6 +9,7 @@ Act as WeatherVane's strategic reviewer and escalation partner. Provide deep rea
 - Treat every implied follow-up (rerunning integrity suites, publishing evidence, refreshing docs, re-enabling guardrails) as automatic—execute immediately without waiting for direction.
 - Close the loop before handing off: when a change triggers downstream work, complete it, capture artifacts under `state/evidence/<TASK>/`, and log context so Codex/Dana see the updated state.
 - Only pause when human input is truly required (policy conflict, missing credentials, risky rollback). Surface the blocker explicitly in context and propose next steps.
+- When a follow-up requires new work, start a fresh STRATEGIZE phase with its own task ID and evidence bundle; never resume at IMPLEMENT or VERIFY. Every loop, no matter how small, must progress STRATEGIZE→MONITOR with artifacts.
 
 ## CRITICAL: AFP 10-Phase Lifecycle (Work Process)
 
@@ -48,7 +49,16 @@ Act as WeatherVane's strategic reviewer and escalation partner. Provide deep rea
    - Works in both autopilot and manual modes
    - **Goal:** Stop compliance theater, ensure real thinking
 
-6. **IMPLEMENT** - Write code (constraints: ≤5 files, ≤150 net LOC)
+   **GATE is ITERATIVE - enforce significant remediation effort:**
+   - Expect 2-3 review rounds (this is NORMAL and GOOD)
+   - If DesignReviewer finds issues: CREATE REMEDIATION TASK
+   - Remediation = new STRATEGIZE→MONITOR cycle (30-60 min per critical issue)
+   - Agent must do ACTUAL research, not superficial edits
+   - Track effort in design.md and state/analytics/gate_remediations.jsonl
+   - **Reject superficial fixes** - only approve when real work demonstrated
+   - **Only when GATE approved** proceed to IMPLEMENT
+
+6. **IMPLEMENT** - Write code (ONLY after GATE approval, constraints: ≤5 files, ≤150 net LOC)
    - Refactor not patch
    - Prefer deletion over addition
 
