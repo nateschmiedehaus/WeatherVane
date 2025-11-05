@@ -1,0 +1,5 @@
+{
+  "npm_install_lock": "success",
+  "npm_ci": "success",
+  "npm_test_workspaces": "No workspaces found (expected failure to investigate)"
+}
