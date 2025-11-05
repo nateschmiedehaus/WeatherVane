@@ -816,6 +816,63 @@ if [ $ERRORS -gt 0 ]; then
 fi
 
 echo -e "${GREEN}✅ No credential leaks detected${NC}"
+
+# ============================================================
+# PART 4: Git Policy Enforcement
+# Part of: AFP-S2-GIT-HYGIENE-AUTOPUSH
+# ============================================================
+
+echo ""
+echo -e "${YELLOW}🔐 Validating git policies...${NC}"
+
+# 1. Branch name validation
+BRANCH=$(git branch --show-current 2>/dev/null)
+
+if [[ -n "$BRANCH" ]]; then
+  # Allow: AFP-*, TASK-*, feature/*, fix/*, main, master
+  if [[ ! "$BRANCH" =~ ^(AFP-|TASK-|feature/|fix/|main|master) ]]; then
+    echo ""
+    echo -e "${RED}❌ BLOCKED: Invalid branch name${NC}"
+    echo "   Branch: $BRANCH"
+    echo ""
+    echo "   Allowed patterns:"
+    echo "     • AFP-*       (task branches)"
+    echo "     • TASK-*      (task branches)"
+    echo "     • feature/*   (feature branches)"
+    echo "     • fix/*       (fix branches)"
+    echo "     • main, master (main branches)"
+    echo ""
+    echo "   Create new branch:"
+    echo "     git checkout -b AFP-TASK-NAME"
+    echo ""
+    exit 1
+  fi
+
+  # Block direct commits to main (unless merge commit)
+  if [[ "$BRANCH" == "main" || "$BRANCH" == "master" ]]; then
+    COMMIT_MSG=$(cat .git/COMMIT_EDITMSG 2>/dev/null || echo "")
+
+    # Allow merge commits (they start with "Merge")
+    # Allow commits from auto-push system
+    if [[ ! "$COMMIT_MSG" =~ ^Merge ]] && [[ ! "$COMMIT_MSG" =~ "Auto-push" ]]; then
+      echo ""
+      echo -e "${RED}❌ BLOCKED: Direct commits to $BRANCH not allowed${NC}"
+      echo "   Use feature branch workflow:"
+      echo "     1. git checkout -b feature/my-feature"
+      echo "     2. Make changes and commit"
+      echo "     3. git push origin feature/my-feature"
+      echo "     4. Create PR on GitHub"
+      echo ""
+      echo "   To override (EMERGENCY ONLY):"
+      echo "     git commit --no-verify"
+      echo ""
+      exit 1
+    fi
+  fi
+fi
+
+echo -e "${GREEN}✅ Git policies validated${NC}"
+
 echo ""
 echo -e "${GREEN}🎉 All pre-commit checks passed!${NC}"
 exit 0

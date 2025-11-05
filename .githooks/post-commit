@@ -1,0 +1,149 @@
+#!/bin/bash
+
+# Post-Commit Hook: Auto-Push to GitHub
+# Part of: AFP-S2-GIT-HYGIENE-AUTOPUSH
+#
+# Automatically pushes commits to GitHub within seconds of committing.
+# Handles concurrent agents, network failures, and conflicts.
+
+# Colors
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m'
+
+# Configuration
+AUTO_PUSH_ENABLED=${AUTO_PUSH_ENABLED:-true}
+BATCH_WINDOW=5  # seconds - wait for more commits
+MAX_RETRIES=3
+PUSH_TIMEOUT=30  # seconds
+
+# Check if auto-push is enabled
+if [ "$AUTO_PUSH_ENABLED" != "true" ]; then
+  exit 0  # Silently skip
+fi
+
+# Check for SKIP_AUTO_PUSH flag
+if [ -n "$SKIP_AUTO_PUSH" ]; then
+  echo -e "${YELLOW}⏭  Auto-push skipped (SKIP_AUTO_PUSH set)${NC}"
+  exit 0
+fi
+
+# Check if rebase in progress (don't push during rebase)
+if [ -d ".git/rebase-merge" ] || [ -d ".git/rebase-apply" ]; then
+  exit 0  # Silently skip during rebase
+fi
+
+echo ""
+echo -e "${YELLOW}📤 Auto-push to GitHub...${NC}"
+
+# Wait for batch window (allow multiple commits to batch)
+sleep $BATCH_WINDOW
+
+# Get current branch
+BRANCH=$(git branch --show-current 2>/dev/null)
+
+if [ -z "$BRANCH" ]; then
+  echo -e "${YELLOW}⏭  Detached HEAD, skipping auto-push${NC}"
+  exit 0
+fi
+
+# Check if already up-to-date with remote
+if git diff --quiet "origin/$BRANCH" 2>/dev/null; then
+  echo -e "${GREEN}✅ Already up-to-date with origin/$BRANCH${NC}"
+  exit 0
+fi
+
+# Function: Pull and rebase
+pull_and_rebase() {
+  echo -e "${YELLOW}🔄 Pulling latest from origin/$BRANCH...${NC}"
+
+  # Note: timeout command not available on macOS by default
+  # Git operations have their own timeouts, so this is acceptable
+  if ! git fetch origin 2>&1; then
+    return 1
+  fi
+
+  if ! git rebase "origin/$BRANCH" 2>&1; then
+    # Rebase failed - abort
+    git rebase --abort 2>/dev/null
+    return 1
+  fi
+
+  return 0
+}
+
+# Function: Push to remote
+push_to_remote() {
+  echo -e "${YELLOW}⬆️  Pushing to origin/$BRANCH...${NC}"
+
+  if git push origin "$BRANCH" 2>&1; then
+    return 0
+  else
+    return 1
+  fi
+}
+
+# Retry logic with exponential backoff
+attempt=1
+while [ $attempt -le $MAX_RETRIES ]; do
+  if [ $attempt -gt 1 ]; then
+    echo -e "${YELLOW}Retry attempt $attempt/$MAX_RETRIES...${NC}"
+  fi
+
+  # Pull latest (to handle concurrent pushes)
+  if ! pull_and_rebase; then
+    echo -e "${RED}❌ Pull/rebase failed${NC}"
+
+    if [ $attempt -eq $MAX_RETRIES ]; then
+      echo ""
+      echo -e "${RED}❌ Auto-push failed after $MAX_RETRIES attempts${NC}"
+      echo "   Manual intervention required:"
+      echo "   1. Check for conflicts: git status"
+      echo "   2. Resolve conflicts if needed"
+      echo "   3. Push manually: git push origin $BRANCH"
+      echo ""
+      exit 0  # Don't fail the commit
+    fi
+
+    # Exponential backoff
+    delay=$((2 ** (attempt - 1)))
+    echo -e "${YELLOW}⏳ Waiting ${delay}s before retry...${NC}"
+    sleep $delay
+    attempt=$((attempt + 1))
+    continue
+  fi
+
+  # Push to remote
+  if push_to_remote; then
+    echo -e "${GREEN}✅ Successfully pushed to GitHub!${NC}"
+    echo -e "${GREEN}   Branch: $BRANCH${NC}"
+    exit 0
+  else
+    echo -e "${RED}❌ Push failed${NC}"
+
+    if [ $attempt -eq $MAX_RETRIES ]; then
+      echo ""
+      echo -e "${RED}❌ Auto-push failed after $MAX_RETRIES attempts${NC}"
+      echo "   Your commits are safe locally."
+      echo "   Manual push required:"
+      echo "     git push origin $BRANCH"
+      echo ""
+      echo "   Possible causes:"
+      echo "     • Network connectivity issues"
+      echo "     • Concurrent push from another agent"
+      echo "     • Merge conflicts"
+      echo ""
+      exit 0  # Don't fail the commit
+    fi
+
+    # Exponential backoff
+    delay=$((2 ** (attempt - 1)))
+    echo -e "${YELLOW}⏳ Waiting ${delay}s before retry...${NC}"
+    sleep $delay
+    attempt=$((attempt + 1))
+  fi
+done
+
+# Should never reach here, but just in case
+exit 0

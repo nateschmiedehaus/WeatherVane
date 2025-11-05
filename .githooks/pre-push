@@ -1,0 +1,60 @@
+#!/bin/bash
+
+# Pre-Push Hook: Force Push Protection
+# Part of: AFP-S2-GIT-HYGIENE-AUTOPUSH
+#
+# Prevents force push to main/master branches.
+# Allows force push to other branches with warning.
+
+# Colors
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m'
+
+echo ""
+echo -e "${YELLOW}🔐 Validating push...${NC}"
+
+# Get current branch
+BRANCH=$(git branch --show-current 2>/dev/null)
+
+# Read push details from stdin
+# Format: <local ref> <local sha> <remote ref> <remote sha>
+while read local_ref local_sha remote_ref remote_sha; do
+  # Check if this is a force push
+  # A force push is when the remote SHA is not an ancestor of local SHA
+  if [ -n "$remote_sha" ] && [ "$remote_sha" != "0000000000000000000000000000000000000000" ]; then
+    # Check if this is a non-fast-forward push (force push)
+    if ! git merge-base --is-ancestor "$remote_sha" "$local_sha" 2>/dev/null; then
+      # Force push detected
+      if [[ "$BRANCH" == "main" || "$BRANCH" == "master" ]]; then
+        echo ""
+        echo -e "${RED}❌ BLOCKED: Force push to $BRANCH not allowed${NC}"
+        echo ""
+        echo "   Force pushing to main branches is dangerous and not permitted."
+        echo "   It rewrites history and can cause data loss."
+        echo ""
+        echo "   If you need to fix commits:"
+        echo "     1. Use: git revert <commit>"
+        echo "     2. Create new fix commit"
+        echo "     3. Push normally"
+        echo ""
+        echo "   For repository administrator:"
+        echo "     Contact team lead for approval"
+        echo ""
+        exit 1
+      else
+        echo ""
+        echo -e "${YELLOW}⚠️  WARNING: Force push to $BRANCH${NC}"
+        echo "   This will rewrite history on the remote branch."
+        echo "   Make sure no one else is working on this branch."
+        echo ""
+        echo -e "${YELLOW}   Proceeding with force push...${NC}"
+        # Allow force push to non-main branches (but warn)
+      fi
+    fi
+  fi
+done
+
+echo -e "${GREEN}✅ Push validated${NC}"
+exit 0
