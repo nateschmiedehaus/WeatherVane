@@ -34,6 +34,7 @@ export const LIVE_FLAG_KEYS = [
   'HOLISTIC_REVIEW_GROUP_INTERVAL_MINUTES',
   'HOLISTIC_REVIEW_GLOBAL_INTERVAL_MINUTES',
   'HOLISTIC_REVIEW_GLOBAL_MIN_TASKS',
+  'WORK_PROCESS_ENFORCEMENT',
 ] as const;
 
 export type LiveFlagKey = (typeof LIVE_FLAG_KEYS)[number];
@@ -69,6 +70,7 @@ export const DEFAULT_LIVE_FLAGS: LiveFlagSnapshot = {
   HOLISTIC_REVIEW_GROUP_INTERVAL_MINUTES: '45',
   HOLISTIC_REVIEW_GLOBAL_INTERVAL_MINUTES: '90',
   HOLISTIC_REVIEW_GLOBAL_MIN_TASKS: '6',
+  WORK_PROCESS_ENFORCEMENT: '1',
 };
 
 export function isLiveFlagKey(value: string): value is LiveFlagKey {
@@ -106,6 +108,7 @@ export function normalizeLiveFlagValue<K extends LiveFlagKey>(
     case 'UPGRADE_TOOLS':
     case 'ROUTING_TOOLS':
     case 'HOLISTIC_REVIEW_ENABLED':
+    case 'WORK_PROCESS_ENFORCEMENT':
       return (stringValue === '1' ? '1' : '0') as LiveFlagSnapshot[K];
     case 'HOLISTIC_REVIEW_MIN_TASKS':
     case 'HOLISTIC_REVIEW_MAX_TASKS_TRACKED':

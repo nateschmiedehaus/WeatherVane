@@ -3,6 +3,7 @@ import { existsSync } from 'node:fs';
 import { appendFile, mkdir, readFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { verifyCriticApprovals, formatVerificationError } from './critic_verification.js';
 
 export const WORK_PROCESS_PHASES = ['strategize','spec','plan','think','implement','verify','review','pr','monitor'] as const;
 export type WorkProcessPhase = typeof WORK_PROCESS_PHASES[number];
@@ -85,6 +86,13 @@ export class WorkProcessEnforcer {
       if (last.phase === LAST) throw new Error(`Task ${request.taskId} already completed ${LAST}.`);
       const expected = nextPhase(last.phase);
       if (expected !== request.phase) throw new Error(`Invalid transition for ${request.taskId}. Expected ${expected}, got ${request.phase}.`);
+
+      // CRITIC VERIFICATION: Ensure phase artifacts are approved before transition
+      const verification = verifyCriticApprovals(request.taskId, last.phase, request.phase);
+      if (!verification.allowed) {
+        const errorMsg = formatVerificationError(request.taskId, last.phase, request.phase, verification.checks);
+        throw new Error(errorMsg);
+      }
     }
     return this.ledger.append({ ...request, timestamp: request.timestamp ?? this.clock() });
   }
