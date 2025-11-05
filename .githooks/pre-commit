@@ -527,6 +527,221 @@ if git diff --cached --name-only | grep -q "state/roadmap.yaml"; then
 fi
 
 # ============================================================
+# PART 2.5: Work Process Phase Validation
+# ============================================================
+
+echo ""
+echo -e "${YELLOW}🔄 Validating work process phases...${NC}"
+
+# Extract task ID from commit message or branch
+COMMIT_MSG=$(git log -1 --pretty=%B 2>/dev/null || cat .git/COMMIT_EDITMSG 2>/dev/null || echo "")
+TASK_ID=$(echo "$COMMIT_MSG" | grep -oE '\[([A-Z0-9_-]+)\]' | tr -d '[]' | head -1)
+
+# Fallback 1: Check branch name
+if [ -z "$TASK_ID" ]; then
+  BRANCH=$(git branch --show-current 2>/dev/null || echo "")
+  TASK_ID=$(echo "$BRANCH" | grep -oE 'AFP-[A-Z0-9_-]+|TASK-[A-Z0-9_-]+' | head -1)
+fi
+
+# Fallback 2: Check recent evidence directories
+if [ -z "$TASK_ID" ]; then
+  RECENT_EVIDENCE=$(find state/evidence -maxdepth 1 -type d -mtime -1 2>/dev/null | head -1)
+  if [ -n "$RECENT_EVIDENCE" ]; then
+    TASK_ID=$(basename "$RECENT_EVIDENCE")
+  fi
+fi
+
+# Get staged files
+STAGED_FILES=$(git diff --cached --name-only)
+
+# Check if this is documentation-only or chore-only commit
+DOC_ONLY=0
+CHORE_ONLY=0
+
+# Documentation patterns
+if echo "$STAGED_FILES" | grep -qE '\.md$' && ! echo "$STAGED_FILES" | grep -qE '\.(ts|js|tsx|jsx)$'; then
+  # Only markdown files, check if they're documentation
+  if echo "$STAGED_FILES" | grep -qE '^docs/'; then
+    DOC_ONLY=1
+  fi
+fi
+
+# Chore patterns
+CHORE_PATTERNS='^(package\.json|package-lock\.json|\.github/.*\.yml|\.gitignore|tsconfig\.json|.*\.config\.(js|ts|mjs))$'
+ALL_FILES_CHORE=1
+for file in $STAGED_FILES; do
+  if ! echo "$file" | grep -qE "$CHORE_PATTERNS"; then
+    ALL_FILES_CHORE=0
+    break
+  fi
+done
+
+if [ $ALL_FILES_CHORE -eq 1 ] && [ -n "$STAGED_FILES" ]; then
+  CHORE_ONLY=1
+fi
+
+# Skip validation for doc-only or chore-only commits
+if [ $DOC_ONLY -eq 1 ] || [ $CHORE_ONLY -eq 1 ]; then
+  echo "✅ Documentation/chore commit, skipping phase validation"
+else
+  # Detect implementation files
+  IMPL_FILES=0
+  IMPL_PATTERNS='^(src/|tools/.*/src/|apps/).*\.(ts|js|tsx|jsx)$'
+
+  for file in $STAGED_FILES; do
+    if echo "$file" | grep -qE "$IMPL_PATTERNS"; then
+      IMPL_FILES=$((IMPL_FILES + 1))
+    fi
+  done
+
+  # If implementation files present, validate phases
+  if [ $IMPL_FILES -gt 0 ]; then
+    if [ -z "$TASK_ID" ]; then
+      echo ""
+      echo -e "${RED}❌ BLOCKED: Cannot determine task ID${NC}"
+      echo "   Add task ID to commit message: [AFP-TASK-ID]"
+      echo "   Or create branch: git checkout -b AFP-TASK-ID"
+      echo ""
+      echo "   Implementation files require work process phase validation."
+      exit 1
+    fi
+
+    EVIDENCE_PATH="state/evidence/$TASK_ID"
+
+    # Check if evidence directory exists
+    if [ ! -d "$EVIDENCE_PATH" ]; then
+      # Allow first commit creating evidence
+      if echo "$STAGED_FILES" | grep -q "^state/evidence/$TASK_ID/strategy\.md$"; then
+        echo "✅ First commit: creating evidence directory"
+      else
+        echo ""
+        echo -e "${RED}❌ BLOCKED: No evidence directory for $TASK_ID${NC}"
+        echo "   Evidence path: $EVIDENCE_PATH"
+        echo ""
+        echo "   Remediation:"
+        echo "     1. Create directory: mkdir -p $EVIDENCE_PATH"
+        echo "     2. Start with STRATEGIZE: cp docs/templates/strategy_template.md $EVIDENCE_PATH/strategy.md"
+        echo ""
+        echo "   See MANDATORY_WORK_CHECKLIST.md for full work process."
+        exit 1
+      fi
+    else
+      # Validate required phases
+      MISSING_PHASES=()
+
+      # Required phases before IMPLEMENT
+      if [ ! -f "$EVIDENCE_PATH/strategy.md" ]; then
+        MISSING_PHASES+=("STRATEGIZE:strategy.md")
+      fi
+
+      if [ ! -f "$EVIDENCE_PATH/spec.md" ]; then
+        MISSING_PHASES+=("SPEC:spec.md")
+      fi
+
+      if [ ! -f "$EVIDENCE_PATH/plan.md" ]; then
+        MISSING_PHASES+=("PLAN:plan.md")
+      fi
+
+      if [ ! -f "$EVIDENCE_PATH/think.md" ]; then
+        MISSING_PHASES+=("THINK:think.md")
+      fi
+
+      # Check GATE requirement
+      GATE_REQUIRED=0
+      GATE_REASON=""
+
+      if [ $IMPL_FILES -gt 1 ]; then
+        GATE_REQUIRED=1
+        GATE_REASON="$IMPL_FILES implementation files changed"
+      fi
+
+      # Check LOC (reuse existing smart LOC)
+      if [ $GATE_REQUIRED -eq 0 ]; then
+        NET_LOC=$(node scripts/analyze_loc.mjs --staged --get-net-loc 2>/dev/null || echo "999")
+        if [ "$NET_LOC" = "999" ]; then
+          GATE_REQUIRED=1
+          GATE_REASON="LOC analysis unavailable (safe default)"
+        elif [ "$NET_LOC" -gt 20 ]; then
+          GATE_REQUIRED=1
+          GATE_REASON="$NET_LOC net LOC"
+        fi
+      fi
+
+      if [ $GATE_REQUIRED -eq 1 ] && [ ! -f "$EVIDENCE_PATH/design.md" ]; then
+        MISSING_PHASES+=("GATE:design.md ($GATE_REASON)")
+      fi
+
+      # If phases missing, block commit
+      if [ ${#MISSING_PHASES[@]} -gt 0 ]; then
+        echo ""
+        echo -e "${RED}❌ BLOCKED: Missing required work process phases${NC}"
+        echo ""
+        echo "Task: $TASK_ID"
+        echo "Evidence path: $EVIDENCE_PATH"
+        echo ""
+        echo "Phase progress:"
+
+        # Show progress
+        [ -f "$EVIDENCE_PATH/strategy.md" ] && echo "  ✅ STRATEGIZE: strategy.md" || echo "  ❌ STRATEGIZE: strategy.md not found"
+        [ -f "$EVIDENCE_PATH/spec.md" ] && echo "  ✅ SPEC: spec.md" || echo "  ❌ SPEC: spec.md not found"
+        [ -f "$EVIDENCE_PATH/plan.md" ] && echo "  ✅ PLAN: plan.md" || echo "  ❌ PLAN: plan.md not found"
+        [ -f "$EVIDENCE_PATH/think.md" ] && echo "  ✅ THINK: think.md" || echo "  ❌ THINK: think.md not found"
+
+        if [ $GATE_REQUIRED -eq 1 ]; then
+          [ -f "$EVIDENCE_PATH/design.md" ] && echo "  ✅ GATE: design.md" || echo "  ❌ GATE: design.md not found (required: $GATE_REASON)"
+        else
+          echo "  ⏭  GATE: design.md (not required: single file, ≤20 LOC)"
+        fi
+
+        echo ""
+        echo "Remediation:"
+
+        for phase_info in "${MISSING_PHASES[@]}"; do
+          PHASE_NAME="${phase_info%%:*}"
+          PHASE_FILE="${phase_info#*:}"
+          PHASE_FILE="${PHASE_FILE%% (*}"  # Remove reason if present
+
+          case "$PHASE_NAME" in
+            STRATEGIZE)
+              echo "  1. Create strategy.md:"
+              echo "     cp docs/templates/strategy_template.md $EVIDENCE_PATH/strategy.md"
+              ;;
+            SPEC)
+              echo "  2. Create spec.md:"
+              echo "     cp docs/templates/spec_template.md $EVIDENCE_PATH/spec.md"
+              ;;
+            PLAN)
+              echo "  3. Create plan.md:"
+              echo "     cp docs/templates/plan_template.md $EVIDENCE_PATH/plan.md"
+              ;;
+            THINK)
+              echo "  4. Create think.md:"
+              echo "     cp docs/templates/think_template.md $EVIDENCE_PATH/think.md"
+              ;;
+            GATE)
+              echo "  5. Create design.md (GATE):"
+              echo "     cp docs/templates/design_template.md $EVIDENCE_PATH/design.md"
+              ;;
+          esac
+        done
+
+        echo ""
+        echo "See MANDATORY_WORK_CHECKLIST.md for full work process."
+        echo ""
+        echo "To bypass (EMERGENCY ONLY):"
+        echo "  git commit --no-verify"
+
+        exit 1
+      fi
+
+      echo "✅ All required phases complete for $TASK_ID"
+    fi
+  else
+    echo "✅ No implementation files, skipping phase validation"
+  fi
+fi
+
+# ============================================================
 # PART 3: Credential Leak Detection
 # ============================================================
 
