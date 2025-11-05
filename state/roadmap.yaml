@@ -20454,7 +20454,7 @@ epics:
             evidence_enforcement: enforce
           - id: AFP-S1-GUARDRAILS
             title: Seed Guardrail Catalog & Policy Controller
-            status: pending
+            status: done
             description: Define baseline security, quality, and governance guardrails with
               policy enforcement hooks.
             dependencies:
