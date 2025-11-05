@@ -4,9 +4,16 @@
     "npm": ">=10.0.0"
   },
   "scripts": {
-    "build": "node scripts/run-build.js"
+    "postinstall": "bash scripts/install_hooks.sh",
+    "build": "node scripts/run-build.js",
+    "bootstrap:init": "node --import tsx tools/bootstrap/index.ts",
+    "test:bootstrap": "vitest run tools/bootstrap/index.test.ts",
+    "readme:bootstrap": "node --import tsx tools/docsync/index.ts bootstrap",
+    "readme:update": "node --import tsx tools/docsync/index.ts update",
+    "readme:check": "node --import tsx tools/docsync/index.ts check"
   },
   "devDependencies": {
+    "tsx": "^4.7.0",
     "vitest": "^4.0.1"
   },
   "overrides": {

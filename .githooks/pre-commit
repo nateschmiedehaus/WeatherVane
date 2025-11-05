@@ -29,18 +29,49 @@ if [ $FILES_CHANGED -gt 5 ]; then
   exit 1
 fi
 
-# Count net LOC added
-LOC_ADDED=$(git diff --cached --numstat | awk '{sum+=$1} END {print sum+0}')
-LOC_DELETED=$(git diff --cached --numstat | awk '{sum+=$2} END {print sum+0}')
-NET_LOC=$((LOC_ADDED - LOC_DELETED))
+# ============================================================
+# Smart LOC Enforcement (context-aware, via negativa credits)
+# Set USE_SMART_LOC=0 to fallback to flat 150 LOC limit
+# ============================================================
 
-if [ $NET_LOC -gt 150 ]; then
-  echo -e "${RED}❌ BLOCKED: +$NET_LOC net LOC (max: +150)${NC}"
-  echo "   AFP micro-batching violation."
-  echo "   Prefer deletion/refactoring over addition."
-  echo ""
-  echo "   See MANDATORY_WORK_CHECKLIST.md for full guidelines."
-  exit 1
+if [ "${USE_SMART_LOC:-1}" = "1" ]; then
+  echo -e "${YELLOW}📊 Running smart LOC analysis...${NC}"
+
+  if node scripts/analyze_loc.mjs --staged; then
+    LOC_EXIT=$?
+    if [ $LOC_EXIT -eq 2 ]; then
+      # Warning only (exit code 2), not blocking
+      echo -e "${YELLOW}⚠️  LOC warnings noted (not blocking)${NC}"
+    else
+      # Pass (exit code 0)
+      echo -e "${GREEN}✅ Smart LOC check passed${NC}"
+    fi
+  else
+    # Blocked (exit code 1)
+    echo ""
+    echo -e "${RED}❌ BLOCKED by smart LOC enforcement${NC}"
+    echo "   See analysis above for details."
+    exit 1
+  fi
+else
+  # Fallback: Flat 150 LOC limit (original logic)
+  echo -e "${YELLOW}📏 Running flat LOC check (USE_SMART_LOC=0)...${NC}"
+
+  LOC_ADDED=$(git diff --cached --numstat | awk '{sum+=$1} END {print sum+0}')
+  LOC_DELETED=$(git diff --cached --numstat | awk '{sum+=$2} END {print sum+0}')
+  NET_LOC=$((LOC_ADDED - LOC_DELETED))
+
+  if [ $NET_LOC -gt 150 ]; then
+    echo -e "${RED}❌ BLOCKED: +$NET_LOC net LOC (max: +150)${NC}"
+    echo "   AFP micro-batching violation."
+    echo "   Prefer deletion/refactoring over addition."
+    echo ""
+    echo "   See MANDATORY_WORK_CHECKLIST.md for full guidelines."
+    exit 1
+  fi
+
+  echo -e "${GREEN}✅ Flat LOC check passed${NC}"
+  echo "   Net LOC: +$NET_LOC/+150"
 fi
 
 # Check for common anti-patterns
@@ -182,6 +213,21 @@ else
 fi
 
 echo ""
+
+# ============================================================
+# PART 1c: README & Directory Health Sync (docsync)
+# ============================================================
+
+echo -e "${YELLOW}📚 README/structure sync (docsync)${NC}"
+
+node --import tsx tools/docsync/index.ts update --mode staged --quiet || {
+  STATUS=$?
+  if [ $STATUS -ne 0 ]; then
+    echo -e "${RED}❌ README automation flagged issues. Run 'npm run readme:update -- --mode staged' to review.${NC}"
+    exit $STATUS
+  fi
+}
+
 
 # ============================================================
 # PART 1b: Design Evidence Enforcement (AFP/SCAS GATE)

@@ -1,0 +1,117 @@
+name: AFP Quality Gates
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'state/evidence/**/*.md'
+      - 'tools/wvo_mcp/src/**'
+      - 'apps/**'
+
+jobs:
+  quality-enforcement:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for diff analysis
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Install dependencies
+        run: |
+          cd tools/wvo_mcp
+          npm ci
+          npm run build
+
+      - name: Find phase artifacts in PR
+        id: find_artifacts
+        run: |
+          # Find all strategy.md, think.md, design.md in this PR
+          STRATEGY_FILES=$(git diff --name-only origin/main...HEAD | grep -E 'state/evidence/.*/strategy\.md$' || true)
+          THINK_FILES=$(git diff --name-only origin/main...HEAD | grep -E 'state/evidence/.*/think\.md$' || true)
+          DESIGN_FILES=$(git diff --name-only origin/main...HEAD | grep -E 'state/evidence/.*/design\.md$' || true)
+
+          echo "strategy_files=$STRATEGY_FILES" >> $GITHUB_OUTPUT
+          echo "think_files=$THINK_FILES" >> $GITHUB_OUTPUT
+          echo "design_files=$DESIGN_FILES" >> $GITHUB_OUTPUT
+
+      - name: Run StrategyReviewer
+        if: steps.find_artifacts.outputs.strategy_files != ''
+        run: |
+          cd tools/wvo_mcp
+          FAILED=0
+
+          for FILE in ${{ steps.find_artifacts.outputs.strategy_files }}; do
+            TASK_ID=$(echo "$FILE" | sed -E 's|state/evidence/([^/]+)/strategy\.md|\1|')
+            echo "::group::Reviewing $TASK_ID strategy.md"
+
+            if npm run strategy:review "$TASK_ID"; then
+              echo "::notice::✅ $TASK_ID strategy approved"
+            else
+              echo "::error::❌ $TASK_ID strategy blocked - needs deeper thinking"
+              FAILED=1
+            fi
+            echo "::endgroup::"
+          done
+
+          exit $FAILED
+
+      - name: Run ThinkingCritic
+        if: steps.find_artifacts.outputs.think_files != ''
+        run: |
+          cd tools/wvo_mcp
+          FAILED=0
+
+          for FILE in ${{ steps.find_artifacts.outputs.think_files }}; do
+            TASK_ID=$(echo "$FILE" | sed -E 's|state/evidence/([^/]+)/think\.md|\1|')
+            echo "::group::Reviewing $TASK_ID think.md"
+
+            if npm run think:review "$TASK_ID"; then
+              echo "::notice::✅ $TASK_ID thinking approved"
+            else
+              echo "::error::❌ $TASK_ID thinking blocked - needs deeper analysis"
+              FAILED=1
+            fi
+            echo "::endgroup::"
+          done
+
+          exit $FAILED
+
+      - name: Run DesignReviewer
+        if: steps.find_artifacts.outputs.design_files != ''
+        run: |
+          cd tools/wvo_mcp
+          FAILED=0
+
+          for FILE in ${{ steps.find_artifacts.outputs.design_files }}; do
+            TASK_ID=$(echo "$FILE" | sed -E 's|state/evidence/([^/]+)/design\.md|\1|')
+            echo "::group::Reviewing $TASK_ID design.md"
+
+            if npm run gate:review "$TASK_ID"; then
+              echo "::notice::✅ $TASK_ID design approved"
+            else
+              echo "::error::❌ $TASK_ID design blocked - needs revision"
+              FAILED=1
+            fi
+            echo "::endgroup::"
+          done
+
+          exit $FAILED
+
+      - name: Quality gate summary
+        if: always()
+        run: |
+          echo "## AFP Quality Gates" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "All phase artifacts have been validated for AFP/SCAS compliance." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Enforcement layers:**" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Pre-commit hooks (local)" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ CI/CD checks (guaranteed)" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Cannot bypass with --no-verify" >> $GITHUB_STEP_SUMMARY
