@@ -1,5 +1,18 @@
 # Repository Guidelines
 
+## ⚠️ STOP: Before Making ANY Code Changes
+
+**Read `MANDATORY_WORK_CHECKLIST.md` NOW. Do not proceed without checking all boxes.**
+
+Every code change MUST comply with AFP/SCAS principles:
+- **≤5 files changed** (if more, split the task)
+- **≤150 net LOC** (additions minus deletions - prefer deletion!)
+- **Refactor, don't patch**: If file >200 LOC or function >50 LOC, refactor the entire module
+- **Via negativa**: Always consider deletion/simplification before adding
+- **No complexity increase**: Unless strongly justified
+
+**Pre-commit hook will BLOCK commits that violate these limits.**
+
 ## Operational Checklist
 - Call MCP tools `plan_next` (with `minimal=true`) and `autopilot_status` at the start of every session; the latter now reports consensus staffing insights and token pressure. Restart the MCP (`./tools/wvo_mcp/scripts/restart_mcp.sh`) if either call fails.
 - Route follow-up tasks created by the consensus engine (critical or non-quorum decisions) to Atlas or Director Dana instead of bypassing review.
