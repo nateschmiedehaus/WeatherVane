@@ -10,7 +10,10 @@
     "test:bootstrap": "vitest run tools/bootstrap/index.test.ts",
     "readme:bootstrap": "node --import tsx tools/docsync/index.ts bootstrap",
     "readme:update": "node --import tsx tools/docsync/index.ts update",
-    "readme:check": "node --import tsx tools/docsync/index.ts check"
+    "readme:check": "node --import tsx tools/docsync/index.ts check",
+    "knowledge:enable": "mkdir -p state/knowledge && touch state/knowledge/.enabled && echo 'Knowledge system enabled'",
+    "knowledge:disable": "rm -f state/knowledge/.enabled && echo 'Knowledge system disabled'",
+    "knowledge:extract": "node scripts/extract_knowledge.mjs"
   },
   "devDependencies": {
     "tsx": "^4.7.0",
