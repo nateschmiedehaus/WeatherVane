@@ -319,16 +319,22 @@ export abstract class Critic {
     return fallback;
   }
 
-  private appendEscalationLog(record: CriticEscalationLogRecord): void {
-    if (!this.escalationLogPath) return;
+  /**
+   * Append escalation record to audit log
+   * @returns true if logged successfully, false if failed
+   */
+  private appendEscalationLog(record: CriticEscalationLogRecord): boolean {
+    if (!this.escalationLogPath) return false;
     try {
       fs.mkdirSync(path.dirname(this.escalationLogPath), { recursive: true });
       fs.appendFileSync(this.escalationLogPath, `${JSON.stringify(record)}\\n`, "utf-8");
+      return true;
     } catch (error) {
-      logInfo("Failed to record critic escalation log", {
+      logWarning("Failed to record critic escalation log", {
         path: this.escalationLogPath,
         error: error instanceof Error ? error.message : String(error),
       });
+      return false;
     }
   }
 
@@ -349,7 +355,7 @@ export abstract class Critic {
           info.delegates && info.delegates.length > 0
             ? await this.resolveDelegatedTasks(result, info.delegates)
             : [];
-        this.appendEscalationLog({
+        const logged = this.appendEscalationLog({
           timestamp: new Date().toISOString(),
           critic: result.critic,
           reviewer: info.reviewer,
@@ -361,6 +367,12 @@ export abstract class Critic {
           tasks: resolvedTasks.length ? resolvedTasks : undefined,
           identity: identity ? { ...identity } : undefined,
         });
+        if (!logged) {
+          logWarning("Escalation audit trail may have gaps", {
+            critic: result.critic,
+            status: "cleared",
+          });
+        }
       }
       return;
     }
@@ -377,7 +389,7 @@ export abstract class Critic {
         ? await this.coordinateDelegates(result, info, narrative, stdout, stderr)
         : [];
 
-    this.appendEscalationLog({
+    const logged = this.appendEscalationLog({
       timestamp: new Date().toISOString(),
       critic: result.critic,
       reviewer: info?.reviewer,
@@ -387,6 +399,12 @@ export abstract class Critic {
           tasks: delegatedTaskIds.length ? delegatedTaskIds : undefined,
           identity: identity ? { ...identity } : undefined,
         });
+    if (!logged) {
+      logWarning("Escalation audit trail may have gaps", {
+        critic: result.critic,
+        status: "escalate",
+      });
+    }
 
     if (this.options.stateMachine) {
       try {
