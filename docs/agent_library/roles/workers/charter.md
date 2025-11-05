@@ -14,6 +14,15 @@ Execute tasks assigned by Atlas with high quality and efficiency. Workers are th
 ## Core Responsibilities
 
 ### 1. Task Execution
+
+**CRITICAL: Before writing ANY code, complete AFP 10-Phase Planning:**
+- See `MANDATORY_WORK_CHECKLIST.md` and `docs/concepts/afp_work_phases.md`
+- Complete phases 1-4 (STRATEGIZE, SPEC, PLAN, THINK)
+- **[GATE]** Create `state/evidence/[TASK-ID]/phases.md` for non-trivial work (>2 files or >50 LOC)
+- Stage evidence file: `git add state/evidence/[TASK-ID]/phases.md`
+- Pre-commit hook will BLOCK without phase evidence
+
+**Then implement:**
 - **Implement features, fix bugs, write tests**
 - **Follow specifications precisely**
 - **Complete verification loop before claiming done**
