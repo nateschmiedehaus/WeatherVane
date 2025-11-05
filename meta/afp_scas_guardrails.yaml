@@ -1,0 +1,54 @@
+# AFP/SCAS Guardrail Catalog
+# Defines baseline security, quality, and governance checks
+#
+# Schema:
+#   id: unique-identifier (kebab-case)
+#   suite: baseline | strict | audit
+#   summary: Human-readable description
+#   enforcement: audit | block
+#   severity: info | warn | critical
+#   evidence: path/to/evidence.md (optional)
+#   check:
+#     kind: builtin
+#     name: check_function_name
+
+guardrails:
+  # Security: Git working tree must be clean
+  - id: worktree-clean
+    suite: baseline
+    summary: Ensure git working tree has no uncommitted changes
+    enforcement: audit
+    severity: warn
+    check:
+      kind: builtin
+      name: worktree_clean
+
+  # Quality: Command allowlist validated
+  - id: command-allowlist
+    suite: baseline
+    summary: Validate command allowlist has sufficient entries and no duplicates
+    enforcement: audit
+    severity: warn
+    check:
+      kind: builtin
+      name: command_allowlist_snapshot
+
+  # Governance: Work process ledger intact
+  - id: ledger-integrity
+    suite: baseline
+    summary: Verify work process ledger exists and hash chain is intact
+    enforcement: audit
+    severity: warn
+    check:
+      kind: builtin
+      name: ledger_integrity
+
+  # Governance: Required policy directories exist
+  - id: policy-paths
+    suite: baseline
+    summary: Ensure state/policy and state/analytics directories exist
+    enforcement: audit
+    severity: info
+    check:
+      kind: builtin
+      name: policy_state_paths
