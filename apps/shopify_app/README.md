@@ -59,3 +59,51 @@ Minimal OAuth + Admin API bridge that exchanges a tenant's offline token and sto
 - The repository ignores `storage/sessions.json` and `storage/tenants/*.json`; keep them out of version control.
 - Rotate the access token per tenant policy and re-run the OAuth flow if Shopify revokes the credential.
 - Check server logs (`LOG_LEVEL=debug`) for hook registration or API failures.
+
+
+<!-- BEGIN DOCSYNC -->
+
+## Local Knowledge (generated 2025-11-05T23:27:13.386Z)
+
+**Hierarchy:**
+- Parent: `apps`
+- Key children:
+  - `apps/shopify_app/src` (src)
+  - `apps/shopify_app/storage` (storage)
+
+**What it is:**
+- Path: `apps/shopify_app`
+- Languages: json (2), example (1), unknown (1), toml (1)
+- Children: 2
+- Files: 6
+
+**Key files:**
+- `.env.example` (554 B)
+- `shopify.app.toml` (554 B)
+- `package.json` (534 B)
+- `tsconfig.json` (391 B)
+- `.gitignore` (67 B)
+
+**Upstream dependencies:**
+- none detected
+
+**Downstream consumers:**
+- none detected
+
+**Guardrails & tests:**
+- Test files: 0
+- Critic configs: 0
+- TODO/FIXME markers: 0
+
+**AFP/SCAS summary (5 = healthy):**
+- Coherence: 4.0
+- Economy/Via Negativa: 5.0
+- Locality: 5.0
+- Visibility: 5.0
+- Evolution: 5.0
+
+**Critical evaluation:**
+- ⚠️ (coherence) Directory contains 4 languages (.example, , .json, .toml).
+  - Recommendation: Consider splitting language-specific modules.
+
+<!-- END DOCSYNC -->
