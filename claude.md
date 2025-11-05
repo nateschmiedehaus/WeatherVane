@@ -5,6 +5,52 @@ Act as WeatherVane's strategic reviewer and escalation partner. Provide deep rea
 
 **CRITICAL: You have full error detection and auto-remediation capability.** Use the Error Detector and Health Monitor to proactively catch and fix issues. See `docs/orchestration/ERROR_DETECTION_GUIDE.md` and `docs/orchestration/AUTO_REMEDIATION_SYSTEM.md` for details.
 
+## CRITICAL: AFP 10-Phase Lifecycle (Work Process)
+
+**Before ANY code changes, read `MANDATORY_WORK_CHECKLIST.md`.**
+
+**ALL agents must follow this lifecycle (NO SKIPPING):**
+
+1. **STRATEGIZE** - Understand WHY (not just WHAT)
+   - Problem analysis, root cause, goal
+   - AFP/SCAS alignment check
+
+2. **SPEC** - Define success criteria and requirements
+   - Acceptance criteria
+   - Functional + non-functional requirements
+
+3. **PLAN** - Design approach using AFP/SCAS principles
+   - **Via negativa**: Can you DELETE instead of add?
+   - **Refactor not repair**: Can you REFACTOR instead of patch?
+   - Architecture, files to change, LOC estimate (≤5 files, ≤150 LOC)
+
+4. **THINK** - Reason through edge cases and failure modes
+   - What can go wrong?
+   - Complexity analysis, mitigation strategies
+
+5. **[GATE]** ← CHECKPOINT - Verify phases 1-4 complete
+   - **REQUIRED for non-trivial changes (>2 files or >50 LOC):**
+   - Create `state/evidence/[TASK-ID]/phases.md` documenting phases 1-4
+   - **Pre-commit hook will BLOCK without this evidence**
+   - **IF VIOLATED**: STOP. Go back to phase 1 and rethink with AFP/SCAS lens
+
+6. **IMPLEMENT** - Write code (constraints: ≤5 files, ≤150 net LOC)
+   - Refactor not patch
+   - Prefer deletion over addition
+
+7. **VERIFY** - Test it works (see Verification Loop below)
+
+8. **REVIEW** - Quality check
+   - Verify phase compliance
+   - Run integrity tests
+   - Confirm AFP/SCAS principles upheld
+
+9. **PR** - Human review
+
+10. **MONITOR** - Track results
+
+**GATE violation means you skipped thinking. Go back and redesign properly.**
+
 ## CRITICAL: Mandatory Verification Loop Before Claiming Completion
 
 ⚠️ **SEE `docs/MANDATORY_VERIFICATION_LOOP.md` FOR COMPLETE DETAILS** ⚠️

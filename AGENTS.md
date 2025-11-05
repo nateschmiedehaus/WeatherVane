@@ -4,7 +4,43 @@
 
 **Read `MANDATORY_WORK_CHECKLIST.md` NOW. Do not proceed without checking all boxes.**
 
-Every code change MUST comply with AFP/SCAS principles:
+### AFP 10-Phase Lifecycle (MANDATORY)
+
+**DO NOT SKIP TO IMPLEMENTATION.** Follow this sequence:
+
+1. **STRATEGIZE** - Understand WHY (not just WHAT)
+   - Document: Problem analysis, root cause, goal
+
+2. **SPEC** - Define requirements
+   - Document: Acceptance criteria, functional + non-functional requirements
+
+3. **PLAN** - Design approach
+   - Document: Architecture, files to change, module structure
+
+4. **THINK** - Reason through solution
+   - Document: Edge cases, failure modes, AFP/SCAS validation
+
+5. **[GATE]** ← CHECKPOINT - Verify phases 1-4 complete
+   - **REQUIRED**: For non-trivial changes (>2 files or >50 LOC), create:
+   - `state/evidence/[TASK-ID]/phases.md` documenting phases 1-4
+   - **Pre-commit hook will BLOCK without this evidence**
+
+6. **IMPLEMENT** - Write code (NOW you can code)
+   - Constraints: ≤5 files, ≤150 net LOC, refactor not patch
+
+7. **VERIFY** - Test it works
+   - See `MANDATORY_VERIFICATION_LOOP.md` for full requirements
+
+8. **REVIEW** - Quality check
+   - Verify phase compliance, run integrity tests
+
+9. **PR** - Human review
+   - Use `.github/pull_request_template.md`
+
+10. **MONITOR** - Track results
+
+### AFP/SCAS Constraints (Enforced by Hook)
+
 - **≤5 files changed** (if more, split the task)
 - **≤150 net LOC** (additions minus deletions - prefer deletion!)
 - **Refactor, don't patch**: If file >200 LOC or function >50 LOC, refactor the entire module
