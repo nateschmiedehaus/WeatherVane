@@ -1,5 +1,6 @@
 ## main...origin/main
- M state/limits/usage_log.json
-?? state/evidence/AFP-WORKTREE-STABILIZE-20251109/
-?? state/heartbeat
-?? vendor/
+ M state/evidence/AFP-WORKTREE-STABILIZE-20251109/spec.md
+ M state/evidence/AFP-WORKTREE-STABILIZE-20251109/strategy.md
+ M state/evidence/AFP-WORKTREE-STABILIZE-20251109/verify/git_diff_pre.patch
+ M state/evidence/AFP-WORKTREE-STABILIZE-20251109/verify/git_status_clean.txt
+ M state/evidence/AFP-WORKTREE-STABILIZE-20251109/verify/git_status_pre.txt

@@ -12,6 +12,15 @@ Both variants share the same core functionality and differ only in CLI command a
 - Node.js ≥ 18
 - npm ≥ 9
 - Run all commands from the WeatherVane repo root unless stated otherwise.
+- **macOS toolchain note:** Xcode Command Line Tools 16+ place C++ headers inside the SDK. Export the following before running `npm ci`/`npm install` to ensure native modules (e.g., `better-sqlite3`) compile:
+
+  ```bash
+  export SDKROOT="$(xcrun --show-sdk-path)"
+  export CXXFLAGS="-isysroot $SDKROOT -I$SDKROOT/usr/include/c++/v1"
+  export CPPFLAGS="$CXXFLAGS"
+  ```
+
+  The `scripts/ensure-sqlite-build.mjs` helper uses these flags automatically when rebuilding, but fresh installs still need them in the environment on macOS 15 and newer.
 
 ## Installation
 ```bash

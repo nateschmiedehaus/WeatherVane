@@ -1,6 +1,1 @@
-[restart_mcp] Starting MCP restart at 2025-11-03T22:24:13Z
-[restart_mcp] Running workspace cleanup script.
-[restart_mcp] Stopping existing MCP workers (if any).
-[restart_mcp] Rebuilding MCP distribution.
-[restart_mcp] Launching MCP worker (log: /Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/state/worker_logs/worker_20251103T222418Z.log).
-[restart_mcp] MCP worker started and verified (pid=83894).
+bash: tools/wvo_mcp/scripts/restart_mcp.sh: No such file or directory

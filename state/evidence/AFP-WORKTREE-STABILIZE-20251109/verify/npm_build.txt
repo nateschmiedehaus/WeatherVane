@@ -1,0 +1,7 @@
+
+> wvo-mcp-server@0.1.0 build
+> tsc --project tsconfig.json
+
+error TS2688: Cannot find type definition file for 'node'.
+  The file is in the program because:
+    Entry point of type library 'node' specified in compilerOptions

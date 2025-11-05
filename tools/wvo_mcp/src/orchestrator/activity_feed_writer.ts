@@ -532,20 +532,20 @@ export class ActivityFeedWriter {
         estimatedDurationSeconds: metadata?.estimatedDuration,
         reasoning: metadata?.reasoning,
         filesToRead: context.filesToRead ?? [],
-        relatedTasks: context.relatedTasks?.map((related) => ({
+        relatedTasks: context.relatedTasks?.map((related: { id: string; title?: string; status?: string }) => ({
           id: related.id,
           title: related.title,
           status: related.status,
         })) ?? [],
-        qualitySignals: context.qualityIssuesInArea?.map((issue) => ({
+        qualitySignals: context.qualityIssuesInArea?.map((issue: { dimension: string; score: number }) => ({
           dimension: issue.dimension,
           score: issue.score,
         })) ?? [],
-        relevantDecisions: context.relevantDecisions?.map((decision) => ({
+        relevantDecisions: context.relevantDecisions?.map((decision: { topic: string; content: string }) => ({
           topic: decision.topic,
           content: decision.content,
         })) ?? [],
-        recentLearnings: context.recentLearnings?.map((learning) => ({
+        recentLearnings: context.recentLearnings?.map((learning: { topic: string; content: string }) => ({
           topic: learning.topic,
           content: learning.content,
         })) ?? [],
@@ -578,17 +578,17 @@ export class ActivityFeedWriter {
         taskId: task.id,
         generatedAt: Date.now(),
         filesToRead: context.filesToRead ?? [],
-        relatedTasks: context.relatedTasks?.map((related) => related.id) ?? [],
-        qualitySignals: context.qualityIssuesInArea?.map((issue) => ({
+        relatedTasks: context.relatedTasks?.map((related: { id: string }) => related.id) ?? [],
+        qualitySignals: context.qualityIssuesInArea?.map((issue: { dimension: string; score: number }) => ({
           dimension: issue.dimension,
           score: issue.score,
         })) ?? [],
         researchHighlights: context.researchHighlights ?? metadata?.contextSummary?.researchHighlights ?? [],
-        decisions: context.relevantDecisions?.map((decision) => ({
+        decisions: context.relevantDecisions?.map((decision: { topic: string; content: string }) => ({
           topic: decision.topic,
           content: decision.content,
         })) ?? [],
-        learnings: context.recentLearnings?.map((learning) => ({
+        learnings: context.recentLearnings?.map((learning: { topic: string; content: string }) => ({
           topic: learning.topic,
           content: learning.content,
         })) ?? [],

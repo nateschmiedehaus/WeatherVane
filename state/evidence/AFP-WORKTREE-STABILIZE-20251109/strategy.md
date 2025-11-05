@@ -1,42 +1,31 @@
-# Strategy
+# Strategy — AFP-WORKTREE-STABILIZE-20251109
 
-## Context
-- MCP restart failed (`tools/wvo_mcp/scripts/restart_mcp.sh` exit 2) leaving enforcement offline.
-- Worktree is heavily dirty (~2k tracked/untracked paths) after previous tasks; guardrails previously prevented cleanup.
-- AFP mandates restoring the enforced STRATEGIZE→AFP ALIGNMENT→…→MONITOR loop before further product changes.
+## Why now
+- Current branch `task/AFP-RESOLVE-AND-ADVANCE-20251111` carries ~12k dirty paths captured by earlier git status; large diff blocks any ability to verify or extend Wave 3 tasks.
+- MCP tooling fails to build because prior guardrails prevented worktree cleanup; policy update authorizes a stabilization pass so AFP/SCAS loops can resume.
+- Without a clean baseline we cannot trust tests, evidence, or gate outputs, violating Complete-Finish and AFP enforcement mandates.
 
-## Problem Statement
-We must preserve the current dirty state for later forensic analysis, reset the repo to a clean baseline rooted in `origin/main`, rebuild the MCP toolchain, and validate the AFP guard stack so future tasks can proceed safely.
+## Desired end state
+- Dirty state archived with full lineage (status + diff, branch/tag, tarball) for forensic recovery.
+- Local repo reset to origin/main with deterministic clean status.
+- Volatile artifacts quarantined; scan exclusions documented to prevent rebuild loops.
+- MCP toolchain rebuilt, restart scripts runnable, and integrity guards ready for later remediation work.
 
-## Goals
-1. Capture a fully attributable snapshot (branch, tag, tarball, git notes) of the existing worktree.
-2. Restore a deterministic clean baseline tied to `origin/main` and quarantine volatile artifacts.
-3. Rebuild/restart the MCP toolchain, re-enabling automated AFP enforcement.
-4. Repair guard/test fixtures impacted by the 10-phase AFP loop without touching product code.
-5. Produce audit evidence and monitoring entries so stewards can trace the stabilization.
+## Strategic options considered
+1. **Do nothing** — rejected; leaves orchestrator unusable and blocks Wave 3 tasks indefinitely.
+2. **Partial cleanup (selective file resets)** — rejected; impossible to reason over 12k files and would leave hidden drift.
+3. **Full AFP-guided stabilization (archive + reset + quarantine)** — chosen; aligns with new policy, preserves evidence, and re-establishes trustworthy baseline.
 
-## Strategic Approach
-- Use audit-first workflow: capture git status/diff and snapshot artifacts before modifying the tree.
-- Perform cleanup via explicit authority, tagging lineage to ensure reversibility.
-- Quarantine transient directories to reduce future scan noise while preserving data in `state/archive`.
-- Rebuild MCP from scratch (`npm ci`, `npm run build`) so tooling re-aligns with baseline.
-- Limit code edits to test fixtures/tools, focusing on AFP terminology updates and existing failing suites.
-- Document every step in evidence directories and monitoring logs to satisfy AFP/SCAS stewardship.
+## Kill / pivot triggers
+- If snapshot creation fails (branch/tag/write) or tarball exceeds filesystem capacity → pause and reassess storage plan.
+- If repo permissions prevent reset/clean → escalate for ownership fix before proceeding.
+- If MCP build continues to fail after toolchain install → pause stabilization until toolchain dependency is unblocked (may require environment change).
 
-## Alternatives Considered
-- **Selective stash/apply**: rejected because it loses attribution and complicates multi-root dirty state.
-- **Hard reset without snapshot**: rejected; violates auditability and could destroy unfinished work.
-- **Fresh clone**: rejected; would not remediate the current repo or provide lineage for future recovery.
+## Integration considerations
+- Snapshot artifacts will live under `state/backups/` and may be large; ensure scan exclusions prevent re-ingestion by future scans/tests.
+- Git notes/tag naming must remain unique to avoid clashing with other stabilization runs.
+- Evidence in `state/evidence/AFP-WORKTREE-STABILIZE-20251109` must be kept small enough for PR attachments while still satisfying AFP audit trail.
 
-## Risks & Mitigations
-- *Risk*: Snapshot commands fail due to path length/size. → Mitigate by using tarball + git branch/tag; monitor command output.
-- *Risk*: `git clean -fdx` removes necessary config. → Mitigate via prior snapshot and verifying exclusions.
-- *Risk*: MCP rebuild still fails. → Capture logs, treat as blocker, escalate with restart status in evidence.
-- *Risk*: Test remediation touches product code inadvertently. → Constrain edits to `tools/wvo_mcp/src/__tests__` and similar paths; review diffs before commit.
-
-## Success Criteria
-- Evidence directory contains strategy/spec, before/after git state, MCP version, integrity logs, test outputs.
-- Snapshot artifacts exist (branch, tag, tarball, git note) and are referenced in monitoring entry.
-- `git status` shows clean tree post-reset.
-- MCP restart script completes without fatal errors or provides actionable log recorded in evidence.
-- Integrity suite and targeted tests run with captured outputs.
+## AFP worthiness check
+- Restoring clean STRATEGIZE→MONITOR loop is prerequisite for adaptive-feedback roadmap; effort justified because every subsequent task depends on a stable baseline.
+- Alternative “wave continuation” without cleanup would violate enforcement and risk corrupting evidence, so this stabilization task remains highest priority.

@@ -1,8 +1,8 @@
 {
   "compilerOptions": {
     "target": "ES2021",
-    "module": "ES2022",
-    "moduleResolution": "Bundler",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
     "baseUrl": ".",
     "paths": {
       "@modelcontextprotocol/sdk/server": ["node_modules/@modelcontextprotocol/sdk/dist/esm/server/index.d.ts"],
@@ -21,5 +21,5 @@
     "types": ["node"]
   },
   "include": ["src/**/*.ts", "src/**/*.d.ts"],
-  "exclude": ["node_modules", "dist"]
+  "exclude": ["node_modules", "dist", "src/**/__tests__/**/*", "src/**/*.test.ts", "src/**/*.test.tsx"]
 }

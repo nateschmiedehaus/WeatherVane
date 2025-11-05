@@ -1,0 +1,21 @@
+remote: warning: File state/staging_snapshots/2025-10-31T11-58-43-530Z-codex-e19647/untracked.tar is 57.52 MB; this is larger than GitHub's recommended maximum file size of 50.00 MB        
+remote: warning: File state/evidence/AFP-RESOLVE-AND-ADVANCE-20251111/verify/integrity_work_process.txt is 76.21 MB; this is larger than GitHub's recommended maximum file size of 50.00 MB        
+remote: warning: File state/staging_snapshots/2025-10-31T11-51-17-725Z-codex-1f0b5c/untracked.tar is 58.31 MB; this is larger than GitHub's recommended maximum file size of 50.00 MB        
+remote: error: Trace: 924e29ca62c5da6fe0c56226ed690be6039ed0ee2140b85710675e37b289f7ba        
+remote: error: See https://gh.io/lfs for more information.        
+remote: error: File state/evidence/AFP-RESOLVE-AND-ADVANCE-20251111/verify/integrity_work_process_20251105.txt is 159.80 MB; this exceeds GitHub's file size limit of 100.00 MB        
+remote: error: File resources/runs/run-1762177074204/journal.md is 195.65 MB; this exceeds GitHub's file size limit of 100.00 MB        
+remote: error: File state/evidence/AFP-GUARDS-REHYDRATE-20251110/verify/integrity.txt is 128.50 MB; this exceeds GitHub's file size limit of 100.00 MB        
+remote: error: File resources/runs/run-1762010326098/journal.md is 195.77 MB; this exceeds GitHub's file size limit of 100.00 MB        
+remote: error: File state/staging_snapshots/2025-10-31T11-51-17-725Z-codex-1f0b5c/snapshot.patch is 120.97 MB; this exceeds GitHub's file size limit of 100.00 MB        
+remote: error: File state/staging_snapshots/2025-10-31T11-58-43-530Z-codex-e19647/snapshot.patch is 120.96 MB; this exceeds GitHub's file size limit of 100.00 MB        
+remote: error: GH001: Large files detected. You may want to try Git Large File Storage - https://git-lfs.github.com.        
+To https://github.com/nateschmiedehaus/WeatherVane.git
+ ! [remote rejected]     worktree-snapshot-20251105-010919 -> worktree-snapshot-20251105-010919 (pre-receive hook declined)
+ ! [remote rejected]     snapshot/adapt-snapshot-20251103-205329 -> snapshot/adapt-snapshot-20251103-205329 (pre-receive hook declined)
+ ! [remote rejected]     snapshot/repo-recovery-snapshot-20251103-204515 -> snapshot/repo-recovery-snapshot-20251103-204515 (pre-receive hook declined)
+ ! [remote rejected]     snapshot/worktree-snapshot-20251103-143623 -> snapshot/worktree-snapshot-20251103-143623 (pre-receive hook declined)
+ ! [remote rejected]     snapshot/worktree-snapshot-20251103-191819 -> snapshot/worktree-snapshot-20251103-191819 (pre-receive hook declined)
+ ! [remote rejected]     snapshot/worktree-snapshot-20251104-204130 -> snapshot/worktree-snapshot-20251104-204130 (pre-receive hook declined)
+ ! [remote rejected]     snapshot/worktree-snapshot-20251105-010919 -> snapshot/worktree-snapshot-20251105-010919 (pre-receive hook declined)
+error: failed to push some refs to 'https://github.com/nateschmiedehaus/WeatherVane.git'

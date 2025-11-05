@@ -7,7 +7,7 @@
 
 import * as fs from "fs";
 import * as path from "path";
-import { LSPManager } from "./lsp_manager";
+import { LSPManager } from "./lsp_manager.js";
 import {
   DefinitionResult,
   ReferencesResult,
@@ -17,7 +17,7 @@ import {
   CodeSlice,
   Location,
   SymbolKind,
-} from "./types";
+} from "./types.js";
 
 export class TypeScriptLSPProxy {
   private lspManager: LSPManager;

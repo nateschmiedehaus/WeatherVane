@@ -13,7 +13,7 @@ import {
   LSPResponse,
   InitializeParams,
   SymbolKind,
-} from "./types";
+} from "./types.js";
 
 interface PendingRequest {
   resolve: (value: unknown) => void;
