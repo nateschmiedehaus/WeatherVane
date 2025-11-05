@@ -815,6 +815,50 @@ epics:
             domain: product
             description: "Part of Create reproducible validation notebook:
               critic:academic_rigor"
+      - id: E-AUTOPILOT-BOOTSTRAP-agentic-review
+        title: Agentic Review System
+        status: pending
+        tasks:
+          - id: AFP-AGENTIC-REVIEW-RESEARCH
+            title: Research agentic review architecture
+            status: pending
+            dependencies: []
+            exit_criteria: []
+            domain: mcp
+            description: Research LLM-based dialogue systems, counter-argumentation patterns, and multi-agent debate frameworks for strategic review capability. REQUIRED for autopilot.
+          - id: AFP-AGENTIC-REVIEW-DESIGN
+            title: Design agentic review system
+            status: pending
+            dependencies:
+              - AFP-AGENTIC-REVIEW-RESEARCH
+            exit_criteria: []
+            domain: mcp
+            description: Design architecture separating agentic review from mechanical critics. Define LLM integration, dialogue protocol, belief updating mechanism, selective usage strategy.
+          - id: AFP-AGENTIC-REVIEW-PILOT
+            title: Pilot agentic reviewer implementation
+            status: pending
+            dependencies:
+              - AFP-AGENTIC-REVIEW-DESIGN
+            exit_criteria: []
+            domain: mcp
+            description: Implement pilot agentic reviewer (DesignReviewer candidate). Measure cost per review, latency, quality improvement vs mechanical checks. ROI analysis.
+          - id: AFP-AGENTIC-REVIEW-AUTOPILOT-INTEGRATION
+            title: Integrate agentic review with autopilot
+            status: pending
+            dependencies:
+              - AFP-AGENTIC-REVIEW-PILOT
+              - AFP-MVP-SUPERVISOR-SCAFFOLD
+            exit_criteria: []
+            domain: mcp
+            description: Integrate agentic review into autopilot workflow. Define when to use (complex decisions, strategic planning) vs mechanical checks (routine validation). Selective deployment strategy.
+          - id: AFP-AGENTIC-REVIEW-SCALE
+            title: Scale agentic review deployment
+            status: pending
+            dependencies:
+              - AFP-AGENTIC-REVIEW-AUTOPILOT-INTEGRATION
+            exit_criteria: []
+            domain: mcp
+            description: Deploy agentic review to full autopilot. Monitor cost/latency/quality metrics. Establish SLAs and fallback to mechanical checks when needed. Production readiness.
   - id: E-ML-REMEDIATION
     title: ML Model Remediation - From Prototype to Production
     status: pending
@@ -20393,15 +20437,18 @@ epics:
           - id: AFP-S1-README-BOOTSTRAP
             title: Bootstrap README automation & directory health
             status: pending
-            description: Implement docsync bootstrap to generate READMEs and structural
-              metrics across the repo.
+            description: Promote docsync to the canonical local knowledge base with
+              hierarchy awareness, AFP scoring, and automatic
+              ancestor/descendant refresh.
             dependencies:
               depends_on:
                 - AFP-S1-OPS-DASHBOARD
             exit_criteria:
-              - prose: Docsync bootstrap generates README sections for all eligible directories
-                  with manifest stored in state/analytics.
-              - prose: README automation guide published describing workflow and exclusions.
+              - prose: Docsync bootstrap regenerates READMEs (including parents/children) with
+                  hierarchy, dependency, and AFP critical evaluation sections
+                  recorded in state/analytics/readme_manifest.json.
+              - prose: README automation handbook + template published; workflow instructs
+                  agents to run staged updates during IMPLEMENT/VERIFY/REVIEW.
             domain: mcp
             complexity_score: 6
             effort_hours: 8
@@ -21021,8 +21068,9 @@ epics:
           - id: AFP-S2-README-GUARDRAIL
             title: Enforce README automation guardrail
             status: pending
-            description: Integrate docsync into hooks/CI, surface structural warnings, and
-              wire metrics into Stage 2 reliability gates.
+            description: Make README automation a hard guardrail across
+              IMPLEMENT/REVIEW/MONITOR phases; structural drift must block
+              merges and open remediation tasks.
             dependencies:
               depends_on:
                 - AFP-S1-README-BOOTSTRAP
@@ -21030,8 +21078,9 @@ epics:
             exit_criteria:
               - prose: Pre-commit hook and CI workflow block merges when READMEs or structural
                   metrics are stale.
-              - prose: Structural warnings logged to state/analytics/readme_sync.jsonl with
-                  remediation guidance and recommended tasks.
+              - prose: Structural warnings logged to state/analytics/readme_sync.jsonl,
+                  automatically triaged into Stage 2 remediation backlog with
+                  escalation guidance.
             domain: mcp
             complexity_score: 6
             effort_hours: 8
@@ -21310,15 +21359,18 @@ epics:
           - id: AFP-S3-KNOWLEDGE-SYNTH
             title: Organizational Memory Rehydration
             status: pending
-            description: Persist distilled learnings and retrieval pipeline to inform
-              STRATEGIZE/THINK phases.
+            description: Persist distilled learnings (including README analytics) into a
+              retrieval pipeline that feeds STRATEGIZE/THINK for autonomous
+              agents.
             dependencies:
               depends_on:
                 - AFP-S3-AUTONOMOUS-DELIVERY-LADDER
                 - AFP-S3-SPEC-TEST-SYNTH
             exit_criteria:
-              - prose: Memory queries return high-signal notes for sampled tasks.
-              - prose: Decay policy implementation audited with evidence.
+              - prose: Memory queries return high-signal notes + README critical evaluations for
+                  sampled tasks during STRATEGIZE reviews.
+              - prose: Decay policy implementation audited; demonstrates retention of
+                  autonomy-critical knowledge while pruning stale noise.
             domain: mcp
             complexity_score: 6
             effort_hours: 8
@@ -21628,16 +21680,19 @@ epics:
           - id: AFP-S5-AUTONOMY-FRAMEWORK
             title: Autonomy Trial Framework
             status: pending
-            description: Design trial rubric, oracles, and scoring automation for autonomy
-              validation.
+            description: Design autonomy trial rubric, oracles, and scoring automation
+              covering core repo changes, internal tooling, and greenfield
+              creative builds.
             dependencies:
               depends_on:
                 - AFP-S4-LOAD-CHAOS
                 - AFP-S4-POLICY-CHANGE
                 - AFP-S4-VIA-NEGATIVA
             exit_criteria:
-              - prose: Trial rubric approved by stewardship board.
-              - prose: Scoring harness executes against seed corpus with stored results.
+              - prose: Trial rubric (core/tooling/greenfield) approved by stewardship board with
+                  explicit oracles + rollback policies.
+              - prose: Scoring harness executes against seed corpus with stored results and
+                  publishes success/failure dashboards.
             domain: mcp
             complexity_score: 7
             effort_hours: 10
@@ -21660,15 +21715,16 @@ epics:
           - id: AFP-S5-AUTOPILOT-CORE
             title: Core WeatherVane Autonomy Trial
             status: pending
-            description: Run autopilot on a WeatherVane repo change end-to-end without human
-              edits.
+            description: Run Autopilot on a WeatherVane production-grade change
+              (API/worker/web) end-to-end with zero human edits.
             dependencies:
               depends_on:
                 - AFP-S5-AUTONOMY-FRAMEWORK
             exit_criteria:
-              - prose: Trial execution logs stored with autogenerated design/spec/plan
-                  artifacts.
-              - prose: Telemetry shows ≥99% phase completion with zero critical regressions.
+              - prose: Trial execution archives design/spec/plan artifacts plus README updates
+                  proving knowledge propagation.
+              - prose: Telemetry shows ≥99% phase compliance, zero failed guardrails, and
+                  post-merge monitors green.
             domain: mcp
             complexity_score: 8
             effort_hours: 12
@@ -21692,14 +21748,16 @@ epics:
           - id: AFP-S5-AUTOPILOT-TOOLING
             title: Internal Tool Autonomy Trial
             status: pending
-            description: Have autopilot build a new internal tool/service end-to-end.
+            description: Have Autopilot build a new internal tool/service (e.g., CLI,
+              critic, dashboard) end-to-end with deployment readiness.
             dependencies:
               depends_on:
                 - AFP-S5-AUTONOMY-FRAMEWORK
             exit_criteria:
-              - prose: Tool spec, implementation, and deployment scripts recorded with tests
-                  passing.
-              - prose: Ops handoff checklist signed by stewards.
+              - prose: Tool spec, implementation, deployment scripts, and README coverage
+                  recorded with tests passing.
+              - prose: Ops handoff checklist signed by stewards; monitors configured for the new
+                  tool.
             domain: mcp
             complexity_score: 8
             effort_hours: 12
@@ -21723,16 +21781,19 @@ epics:
           - id: AFP-S5-AUTOPILOT-GREENFIELD
             title: Greenfield Creative Trial
             status: pending
-            description: Autopilot produces novel artifact (e.g., game prototype, external
-              app) with minimal prompts.
+            description: Autopilot produces a novel artifact (game prototype, external app,
+              creative experience) from prompt to deployment with human sign-off
+              only at audit.
             dependencies:
               depends_on:
                 - AFP-S5-AUTONOMY-FRAMEWORK
                 - AFP-S5-AUTOPILOT-CORE
                 - AFP-S5-AUTOPILOT-TOOLING
             exit_criteria:
-              - prose: User acceptance script passes for greenfield artifact.
-              - prose: Resilience tests recorded with human red-team signoff.
+              - prose: Acceptance script passes (functional + UX) for greenfield artifact with
+                  replayable harness.
+              - prose: Resilience tests + README updates recorded with human red-team signoff
+                  documenting residual risks.
             domain: mcp
             complexity_score: 8
             effort_hours: 12
@@ -21756,18 +21817,18 @@ epics:
           - id: AFP-S5-AUTONOMY-AUDIT
             title: Autonomous Operations Audit
             status: pending
-            description: Aggregate analytics, guardrail triggers, and trial outcomes for
-              final autonomy certification.
+            description: Aggregate analytics, guardrail triggers, README health, and trial
+              outcomes into the final autonomy certification packet.
             dependencies:
               depends_on:
                 - AFP-S5-AUTOPILOT-CORE
                 - AFP-S5-AUTOPILOT-TOOLING
                 - AFP-S5-AUTOPILOT-GREENFIELD
             exit_criteria:
-              - prose: Autonomy scorecard generated with MTTR distribution and guardrail trigger
-                  analysis.
-              - prose: Audit committee sign-off recorded; remediation tasks logged for residual
-                  gaps.
+              - prose: Autonomy scorecard covers MTTR distribution, guardrail triggers, README
+                  warning closure rate, and trial scores.
+              - prose: Audit committee sign-off recorded; residual gaps logged as remediation
+                  tasks with owners and due dates.
             domain: mcp
             complexity_score: 7
             effort_hours: 10
