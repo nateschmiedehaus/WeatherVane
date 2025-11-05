@@ -30,7 +30,10 @@
     "module:validate": "npx tsx ./scripts/validate_module_index.ts",
     "entropy:capture": "npx tsx ./scripts/capture_entropy_snapshot.ts",
     "entropy:validate": "npx tsx ./scripts/validate_entropy_log.ts",
-    "gate:review": "npx tsx ./scripts/run_design_review.ts"
+    "gate:review": "npx tsx ./scripts/run_design_review.ts",
+    "strategy:review": "npx tsx ./scripts/run_strategy_review.ts",
+    "think:review": "npx tsx ./scripts/run_thinking_review.ts",
+    "work-process:check": "node ./scripts/check_work_process_artifacts.mjs"
   },
   "author": "",
   "license": "MIT",

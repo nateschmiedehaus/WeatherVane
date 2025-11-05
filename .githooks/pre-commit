@@ -124,47 +124,146 @@ if [ $FILES_CHANGED -gt 1 ] || [ $NET_LOC -gt 20 ]; then
       echo -e "${YELLOW}🔍 Running DesignReviewer on staged design.md...${NC}"
       echo ""
 
-      # Extract task ID from design.md path
-      TASK_ID=$(echo "$DESIGN_MD_STAGED" | sed -E 's|state/evidence/([^/]+)/design\.md|\1|')
+      for DESIGN_FILE in $DESIGN_MD_STAGED; do
+        TASK_ID=$(echo "$DESIGN_FILE" | sed -E 's|state/evidence/([^/]+)/design\.md|\1|')
 
-      # Run design review script
-      cd tools/wvo_mcp
-      if npm run gate:review "$TASK_ID"; then
-        echo ""
-        echo -e "${GREEN}✅ DesignReviewer APPROVED${NC}"
-        cd ../..
-      else
-        EXIT_CODE=$?
-        cd ../..
-
-        if [ $EXIT_CODE -eq 1 ]; then
-          echo ""
-          echo -e "${RED}❌ GATE BLOCKED: Design needs revision${NC}"
-          echo ""
-          echo "   DesignReviewer found concerns with your design.md"
-          echo "   You MUST address these before committing."
-          echo ""
-          echo "   This is the ITERATIVE GATE process:"
-          echo "   1. Read the concerns above carefully"
-          echo "   2. Create a remediation task (new STRATEGIZE cycle)"
-          echo "   3. Do actual research (30-60 min per critical issue)"
-          echo "   4. Update UPSTREAM artifacts (strategy/spec/plan docs)"
-          echo "   5. Update design.md with revised approach"
-          echo "   6. Test: npm run gate:review $TASK_ID"
-          echo "   7. Re-commit when approved"
-          echo ""
-          echo "   Expected: 2-3 review rounds is NORMAL and GOOD."
-          echo "   Goal: Ensure real AFP/SCAS thinking, not compliance theater."
-          exit 1
+        echo -e "${YELLOW}   • Reviewing $TASK_ID${NC}"
+        cd tools/wvo_mcp
+        if npm run gate:review "$TASK_ID"; then
+          cd ../..
+          echo -e "${GREEN}     ✅ $TASK_ID approved${NC}"
         else
-          echo ""
-          echo -e "${RED}❌ GATE ERROR: DesignReviewer failed${NC}"
-          echo "   Check the error above."
-          exit 1
+          EXIT_CODE=$?
+          cd ../..
+
+          if [ $EXIT_CODE -eq 1 ]; then
+            echo ""
+            echo -e "${RED}❌ GATE BLOCKED: Design needs revision${NC}"
+            echo ""
+            echo "   DesignReviewer found concerns with $TASK_ID/design.md"
+            echo "   You MUST address these before committing."
+            echo ""
+            echo "   Iterative GATE process:"
+            echo "   1. Read concerns above carefully"
+            echo "   2. Create remediation task (new STRATEGIZE cycle)"
+            echo "   3. Do actual research (30-60 min per critical issue)"
+            echo "   4. Update upstream artifacts (strategy/spec/plan docs)"
+            echo "   5. Update design.md with revised approach"
+            echo "   6. Re-run: npm run gate:review $TASK_ID"
+            echo "   7. Re-commit when approved"
+            echo ""
+            echo "   Expect multiple review rounds; that's healthy."
+            exit 1
+          else
+            echo ""
+            echo -e "${RED}❌ GATE ERROR: DesignReviewer failed${NC}"
+            echo "   Check the error above."
+            exit 1
+          fi
         fi
-      fi
+      done
     fi
   fi
+fi
+
+# ============================================================
+# PART 1c: Strategy Review Enforcement (AFP/SCAS Phase 1)
+# ============================================================
+
+# If strategy.md is staged, run StrategyReviewer to enforce quality
+STRATEGY_MD_STAGED=$(git diff --cached --name-only | grep -E 'state/evidence/.*/strategy\.md$')
+
+if [ -n "$STRATEGY_MD_STAGED" ]; then
+  echo ""
+  echo -e "${YELLOW}🔍 Running StrategyReviewer on staged strategy.md...${NC}"
+  echo ""
+
+  for STRATEGY_FILE in $STRATEGY_MD_STAGED; do
+    TASK_ID=$(echo "$STRATEGY_FILE" | sed -E 's|state/evidence/([^/]+)/strategy\.md|\1|')
+
+    echo -e "${YELLOW}   • Reviewing $TASK_ID${NC}"
+    cd tools/wvo_mcp
+    if npm run strategy:review "$TASK_ID"; then
+      cd ../..
+      echo -e "${GREEN}     ✅ $TASK_ID approved${NC}"
+    else
+      EXIT_CODE=$?
+      cd ../..
+
+      if [ $EXIT_CODE -eq 1 ]; then
+        echo ""
+        echo -e "${RED}❌ STRATEGY BLOCKED: Strategy needs deeper thinking${NC}"
+        echo ""
+        echo "   StrategyReviewer found concerns with $TASK_ID/strategy.md"
+        echo "   You MUST address these before committing."
+        echo ""
+        echo "   Remediation process:"
+        echo "   1. Read concerns above carefully"
+        echo "   2. Do actual research (30-60 min per critical issue)"
+        echo "   3. Update strategy.md with real analysis (not generic text)"
+        echo "   4. Re-run: npm run strategy:review $TASK_ID"
+        echo "   5. Re-commit when approved"
+        echo ""
+        echo "   2-3 review rounds is normal for quality strategic thinking."
+        exit 1
+      else
+        echo ""
+        echo -e "${RED}❌ STRATEGY ERROR: StrategyReviewer failed${NC}"
+        echo "   Check the error above."
+        exit 1
+      fi
+    fi
+  done
+fi
+
+# ============================================================
+# PART 1d: Thinking Review Enforcement (AFP/SCAS Phase 4)
+# ============================================================
+
+# If think.md is staged, run ThinkingCritic to enforce quality
+THINK_MD_STAGED=$(git diff --cached --name-only | grep -E 'state/evidence/.*/think\.md$')
+
+if [ -n "$THINK_MD_STAGED" ]; then
+  echo ""
+  echo -e "${YELLOW}🔍 Running ThinkingCritic on staged think.md...${NC}"
+  echo ""
+
+  for THINK_FILE in $THINK_MD_STAGED; do
+    TASK_ID=$(echo "$THINK_FILE" | sed -E 's|state/evidence/([^/]+)/think\.md|\1|')
+
+    echo -e "${YELLOW}   • Reviewing $TASK_ID${NC}"
+    cd tools/wvo_mcp
+    if npm run think:review "$TASK_ID"; then
+      cd ../..
+      echo -e "${GREEN}     ✅ $TASK_ID approved${NC}"
+    else
+      EXIT_CODE=$?
+      cd ../..
+
+      if [ $EXIT_CODE -eq 1 ]; then
+        echo ""
+        echo -e "${RED}❌ THINKING BLOCKED: Thinking needs deeper analysis${NC}"
+        echo ""
+        echo "   ThinkingCritic found concerns with $TASK_ID/think.md"
+        echo "   You MUST address these before committing."
+        echo ""
+        echo "   Remediation process:"
+        echo "   1. Read concerns above carefully"
+        echo "   2. Do actual deep thinking (30-60 min per critical issue)"
+        echo "   3. Update think.md with comprehensive analysis"
+        echo "   4. Re-run: npm run think:review $TASK_ID"
+        echo "   5. Re-commit when approved"
+        echo ""
+        echo "   If you find critical issues, GO BACK and revise STRATEGY/SPEC/PLAN."
+        exit 1
+      else
+        echo ""
+        echo -e "${RED}❌ THINKING ERROR: ThinkingCritic failed${NC}"
+        echo "   Check the error above."
+        exit 1
+      fi
+    fi
+  done
 fi
 
 # ============================================================

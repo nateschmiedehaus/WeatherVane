@@ -25,6 +25,8 @@ Every agent must complete these checks BEFORE proceeding to implementation.
 
 - [ ] **STRATEGIZE complete**: I understand WHY this change is needed (not just WHAT)
   - Documented: Problem analysis, root cause, goal
+  - Template: `docs/templates/strategy_template.md`
+  - Test: `cd tools/wvo_mcp && npm run strategy:review [TASK-ID] && cd ../..`
 
 - [ ] **SPEC complete**: I have defined success criteria and requirements
   - Documented: Acceptance criteria, functional + non-functional requirements
@@ -34,13 +36,23 @@ Every agent must complete these checks BEFORE proceeding to implementation.
 
 - [ ] **THINK complete**: I have reasoned through the solution
   - Documented: Edge cases, failure modes, AFP/SCAS validation
+  - Template: `docs/templates/think_template.md`
+  - Test: `cd tools/wvo_mcp && npm run think:review [TASK-ID] && cd ../..`
 
 **Evidence requirement (NON-TRIVIAL changes >2 files or >50 LOC):**
 
 - [ ] I have created `state/evidence/[TASK-ID]/phases.md` documenting phases 1-4
 - [ ] OR this is a trivial change (≤2 files, ≤50 LOC) and I documented my reasoning inline
 
-**Pre-commit hook will BLOCK commits >2 files without phase evidence.**
+**Run quality critics before committing:**
+- **StrategyReviewer**: `cd tools/wvo_mcp && npm run strategy:review [TASK-ID] && cd ../..`
+  - Validates strategic thinking depth (strategy.md)
+- **ThinkingCritic**: `cd tools/wvo_mcp && npm run think:review [TASK-ID] && cd ../..`
+  - Validates depth of analysis (think.md)
+- **DesignReviewer**: `cd tools/wvo_mcp && npm run gate:review [TASK-ID] && cd ../..`
+  - Validates AFP/SCAS design thinking (design.md)
+
+**Pre-commit hook will automatically run critics on staged files and BLOCK if concerns remain.**
 
 **⚠️ IF GATE VIOLATED (you already coded without doing phases 1-4):**
 - **STOP CODING IMMEDIATELY**

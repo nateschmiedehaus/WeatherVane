@@ -8,7 +8,7 @@ export const WORK_PROCESS_PHASES = ['strategize','spec','plan','think','implemen
 export type WorkProcessPhase = typeof WORK_PROCESS_PHASES[number];
 const INDEX = new Map<WorkProcessPhase, number>(WORK_PROCESS_PHASES.map((phase, index) => [phase, index] as const));
 const FIRST = WORK_PROCESS_PHASES[0]; const LAST = WORK_PROCESS_PHASES[WORK_PROCESS_PHASES.length - 1];
-const MODULE_DIR = dirname(fileURLToPath(import.meta.url)), WORKSPACE_ROOT = join(MODULE_DIR, '..', '..', '..'), DEFAULT_LEDGER_FILE = join(WORKSPACE_ROOT, 'state', 'logs', 'work_process.jsonl');
+const MODULE_DIR = dirname(fileURLToPath(import.meta.url)), WORKSPACE_ROOT = join(MODULE_DIR, '..', '..', '..', '..'), DEFAULT_LEDGER_FILE = join(WORKSPACE_ROOT, 'state', 'logs', 'work_process.jsonl');
 
 export type LedgerEntry = { taskId: string; phase: WorkProcessPhase; actorId: string; evidencePath: string; metadata?: Record<string, unknown>; timestamp: string; backtrack?: { targetPhase: WorkProcessPhase; reason: string }; sequence: number; previousHash: string | null; hash: string; };
 type AppendInput = Omit<LedgerEntry,'timestamp'|'sequence'|'previousHash'|'hash'> & { timestamp?: Date };
@@ -42,8 +42,8 @@ export class WorkProcessLedger {
     const timestamp = (input.timestamp ?? new Date()).toISOString();
     const sequence = previous ? previous.sequence + 1 : 0;
     const previousHash = previous?.hash ?? null;
-    const { timestamp: _unused, ...restInput } = input;
-    const entry: LedgerEntry = { ...restInput, timestamp, sequence, previousHash, hash: computeHash(restInput as any, timestamp, sequence, previousHash) };
+    const { timestamp: _, ...inputWithoutTimestamp } = input;
+    const entry: LedgerEntry = { ...inputWithoutTimestamp, timestamp, sequence, previousHash, hash: computeHash(inputWithoutTimestamp, timestamp, sequence, previousHash) };
     bucket.push(entry); this.buckets.set(input.taskId, bucket);
     await this.store.append(entry);
     return entry;

@@ -20,6 +20,8 @@ Act as WeatherVane's strategic reviewer and escalation partner. Provide deep rea
 1. **STRATEGIZE** - Understand WHY (not just WHAT)
    - Problem analysis, root cause, goal
    - AFP/SCAS alignment check
+   - **Quality enforcement:** StrategyReviewer validates strategic thinking depth
+   - Test: `cd tools/wvo_mcp && npm run strategy:review [TASK-ID] && cd ../..`
 
 2. **SPEC** - Define success criteria and requirements
    - Acceptance criteria
@@ -33,6 +35,8 @@ Act as WeatherVane's strategic reviewer and escalation partner. Provide deep rea
 4. **THINK** - Reason through edge cases and failure modes
    - What can go wrong?
    - Complexity analysis, mitigation strategies
+   - **Quality enforcement:** ThinkingCritic validates depth of analysis
+   - Test: `cd tools/wvo_mcp && npm run think:review [TASK-ID] && cd ../..`
 
 5. **[GATE]** ← CHECKPOINT - Document design thinking
 
@@ -57,7 +61,10 @@ Act as WeatherVane's strategic reviewer and escalation partner. Provide deep rea
    #  - Implementation Plan: Files, LOC, risks, testing
 
    # Step 3: Test design with DesignReviewer
-   cd tools/wvo_mcp && npm run gate:review [TASK-ID] && cd ../..
+   cd tools/wvo_mcp && npm run gate:review [TASK-ID]
+   # Optional: review every staged design
+   # npx tsx scripts/run_design_review.ts
+   cd ../..
 
    # Step 4: If BLOCKED (expect this on first try):
    #  - Read concerns carefully - DesignReviewer gives SPECIFIC feedback
@@ -72,6 +79,13 @@ Act as WeatherVane's strategic reviewer and escalation partner. Provide deep rea
    git add state/evidence/[TASK-ID]/design.md
    # Proceed to IMPLEMENT
    ```
+
+   **Pre-commit reminder:** staging phase artifacts automatically runs critics:
+   - `strategy.md` → StrategyReviewer (validates strategic thinking)
+   - `think.md` → ThinkingCritic (validates depth of analysis)
+   - `design.md` → DesignReviewer (validates AFP/SCAS design thinking)
+
+   Expect hooks to block on concerns—resolve them with remediation loop before committing.
 
    **DO NOT:**
    - ❌ Create gate.md (old format - use design.md)
