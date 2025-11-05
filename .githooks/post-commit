@@ -60,9 +60,9 @@ pull_and_rebase() {
 
   # Ensure clean working tree by stashing if needed
   local stashed=false
-  if ! git diff-files --quiet || ! git diff-index --quiet --cached HEAD; then
+  if ! git diff-files --quiet || ! git diff-index --quiet --cached HEAD || [ -n "$(git ls-files --others --exclude-standard)" ]; then
     echo -e "${YELLOW}💾 Stashing uncommitted changes...${NC}"
-    if git stash push -m "Auto-stash before auto-push - $(date +%Y-%m-%d_%H-%M-%S)" 2>&1; then
+    if git stash push -u -m "Auto-stash before auto-push - $(date +%Y-%m-%d_%H-%M-%S)" 2>&1; then
       stashed=true
     else
       echo -e "${RED}❌ Failed to stash changes${NC}"
