@@ -910,6 +910,103 @@ epics:
             exit_criteria: []
             domain: mcp
             description: Deploy agentic review to full autopilot. Monitor cost/latency/quality metrics. Establish SLAs and fallback to mechanical checks when needed. Production readiness.
+      - id: E-AUTOPILOT-BOOTSTRAP-self-capabilities
+        title: Self-Editing & Self-Improvement
+        status: pending
+        tasks:
+          - id: AFP-ROADMAP-SCHEMA
+            title: Define roadmap schema and validation rules
+            status: pending
+            dependencies: []
+            exit_criteria:
+              - TypeScript schema for roadmap structure
+              - JSON Schema for YAML validation
+              - Validation tests pass
+            domain: mcp
+            description: Define formal schema for roadmap.yaml structure to enable programmatic validation (prevent invalid states), type-safe API (TypeScript interfaces), and documentation (self-documenting schema). Deliverables - src/roadmap/schema.ts (TypeScript types), schema/roadmap.json (JSON Schema), tests validating current roadmap.yaml passes schema. Ensures autopilot cannot create invalid roadmap states.
+          - id: AFP-ROADMAP-MUTATION-API
+            title: Implement roadmap mutation API
+            status: pending
+            dependencies:
+              - AFP-ROADMAP-SCHEMA
+            exit_criteria:
+              - API can add/remove/update tasks
+              - API validates changes against schema
+              - Tests cover all mutation operations
+            domain: mcp
+            description: Build API for autopilot to modify roadmap programmatically. API methods - addTask, removeTask, updateTask, reorderTasks, updateDependencies. All mutations validate against schema before applying, log to audit trail, persist to roadmap.yaml atomically. Enables autopilot to edit roadmap without manual YAML.
+          - id: AFP-ROADMAP-GUARDRAILS
+            title: Implement roadmap mutation guardrails
+            status: pending
+            dependencies:
+              - AFP-ROADMAP-MUTATION-API
+            exit_criteria:
+              - Max tasks per run enforced (prevent infinite loops)
+              - Circular dependency detection
+              - Exit criteria required for new tasks
+              - Tests verify guardrails block violations
+            domain: mcp
+            description: Prevent autopilot from creating pathological roadmap states. Guardrails - max tasks per mutation (10), circular dependencies (blocked via DAG validation), exit criteria (required for all tasks), rate limiting (max 100 mutations/day), audit trail (all changes logged to state/roadmap-changes.jsonl). Ensures autopilot cannot break roadmap with self-edits.
+          - id: AFP-ROADMAP-VALIDATION
+            title: Add pre-commit validation for roadmap
+            status: pending
+            dependencies:
+              - AFP-ROADMAP-SCHEMA
+              - AFP-ROADMAP-GUARDRAILS
+            exit_criteria:
+              - Git hook validates roadmap.yaml on commit
+              - Validation runs in CI
+              - Invalid roadmap blocks commit
+            domain: mcp
+            description: Prevent invalid roadmap from being committed. Validation checks - schema conformance (all required fields present), dependency DAG (no cycles), guardrails (max tasks, exit criteria), referenced tasks exist (dependencies are valid). Implementation in .githooks/pre-commit and .github/workflows/ci.yml. Ensures roadmap.yaml is always valid.
+          - id: AFP-QUALITY-METRICS
+            title: Define and track autopilot quality metrics
+            status: pending
+            dependencies: []
+            exit_criteria:
+              - Metrics defined (test coverage, critic pass rate, evidence completeness)
+              - Tracking implemented (metrics saved per task)
+              - Dashboard shows trends over time
+            domain: mcp
+            description: Track quality metrics to measure autopilot improvement. Metrics - test coverage (% of code covered), critic pass rate (% of tasks passing all critics first try), evidence completeness (% of tasks with full evidence bundle), build health (% of builds passing), execution time (average time per task). Storage in state/analytics/autopilot_metrics.jsonl (append-only log) and per-task metrics in evidence bundles. Enables measuring self-improvement effectiveness.
+          - id: AFP-FEEDBACK-LOOP
+            title: Implement execute → measure → learn → improve loop
+            status: pending
+            dependencies:
+              - AFP-QUALITY-METRICS
+              - AFP-MEMORY-CORE-20251117
+            exit_criteria:
+              - Autopilot records lessons from each task
+              - Lessons stored in memory core
+              - Lessons applied to future tasks
+              - Improvement measurable via metrics
+            domain: mcp
+            description: Build feedback loop for continuous improvement. Loop stages - EXECUTE (autopilot completes task), MEASURE (quality metrics recorded), LEARN (patterns extracted - what worked/failed), IMPROVE (apply lessons to next task). Lesson format includes pattern, context, solution, evidence path, effectiveness (0.0-1.0). Enables autopilot to learn from experience.
+          - id: AFP-SELF-REFACTOR
+            title: Enable autopilot to refactor its own code
+            status: pending
+            dependencies:
+              - AFP-FEEDBACK-LOOP
+            exit_criteria:
+              - Autopilot can identify refactoring opportunities
+              - Autopilot can execute refactorings safely
+              - Quality metrics improve after refactoring
+              - All tests pass after refactoring
+            domain: mcp
+            description: Enable autopilot to improve its own implementation. Refactoring triggers - lesson learned (this pattern causes bugs), metric degradation (test coverage drops), complexity increase (function >50 lines), duplication detected (same code in 3+ places). Refactoring process - identify target, propose refactoring (via AFP work process), execute refactoring, verify improvement (metrics better + tests pass), record lesson. Safety - all changes go through AFP 10-phase process, critics must pass, tests must pass, metrics must improve or stay same. Enables autopilot to evolve its own codebase.
+          - id: AFP-LESSON-PERSISTENCE
+            title: Persist lessons across autopilot sessions
+            status: pending
+            dependencies:
+              - AFP-MEMORY-CORE-20251117
+              - AFP-FEEDBACK-LOOP
+            exit_criteria:
+              - Lessons survive autopilot restart
+              - Lessons retrieved by pattern matching
+              - Lesson effectiveness tracked over time
+              - Low-effectiveness lessons pruned automatically
+            domain: mcp
+            description: Ensure lessons learned persist and improve. Storage in state/memory/lessons.jsonl (append-only), indexed by pattern for fast retrieval. Retrieval via pattern matching, context similarity (vector embeddings), effectiveness ranking (sort by success rate). Pruning - lessons with <20% effectiveness deleted, superseded lessons archived, conflicting lessons reconciled. Enables autopilot to accumulate knowledge.
   - id: E-ML-REMEDIATION
     title: ML Model Remediation - From Prototype to Production
     status: pending
