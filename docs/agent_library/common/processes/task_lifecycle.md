@@ -194,9 +194,9 @@ const task = await readTask('T1.2.5');
 
 **CRITICAL: You MUST complete phases 1-5 BEFORE writing ANY code.**
 
-See `MANDATORY_WORK_CHECKLIST.md` and `docs/concepts/afp_work_phases.md` for details.
+See `MANDATORY_WORK_CHECKLIST.md`, `AGENTS.md`, and `docs/concepts/afp_work_phases.md` for details.
 
-**Phases 1-4: Planning**
+**Phases 1-4: COGNITIVE/THINKING PHASES**
 1. **STRATEGIZE**: Understand WHY (not just WHAT) - problem analysis, root cause, goals
 2. **SPEC**: Define success criteria, acceptance criteria, requirements
 3. **PLAN**: Design approach using AFP/SCAS (via negativa, refactor not patch, files/LOC estimate)
@@ -204,73 +204,128 @@ See `MANDATORY_WORK_CHECKLIST.md` and `docs/concepts/afp_work_phases.md` for det
 
 **Phase 5: [GATE] - MANDATORY CHECKPOINT**
 
-**For NON-TRIVIAL work (>2 files or >50 LOC)**:
+**⚠️ GATE REVIEWS PHASES 1-4 (YOUR THINKING), NOT IMPLEMENTATION**
+
+**Purpose**: Ensure AFP/SCAS thinking is solid BEFORE you write any code. GATE prevents:
+- Jumping to implementation without thinking
+- Patching instead of refactoring
+- Adding instead of deleting
+- Missing alternatives exploration
+
+**For NON-TRIVIAL work (>1 file or >20 LOC)**:
+
+**Step 1: Create design.md from template**
 ```bash
-# Create phase evidence file BEFORE implementing
 mkdir -p state/evidence/T1.2.5/
-cat > state/evidence/T1.2.5/phases.md <<EOF
-# Phase Evidence: T1.2.5
-
-## Phase 1: STRATEGIZE
-**Problem**: [describe problem and root cause]
-**Goal**: [desired outcome]
-**AFP/SCAS alignment**: [how this aligns with principles]
-
-## Phase 2: SPEC
-**Acceptance criteria**:
-- [ ] [criterion 1]
-- [ ] [criterion 2]
-
-**Requirements**: [functional + non-functional]
-
-## Phase 3: PLAN
-**Via negativa**: [Can we DELETE instead of add?]
-**Refactor analysis**: [Can we REFACTOR instead of patch?]
-**Files to change**: [list files]
-**Architecture**: [design approach]
-**LOC estimate**: [X files, Y LOC]
-
-## Phase 4: THINK
-**Edge cases**: [list and mitigations]
-**Failure modes**: [list and handling]
-**Complexity**: [analysis]
-**Testing strategy**: [approach]
-EOF
-
-# Stage it immediately
-git add state/evidence/T1.2.5/phases.md
+cp docs/templates/design_template.md state/evidence/T1.2.5/design.md
 ```
 
-**⚠️ IF YOU SKIP THIS:**
+**Step 2: Fill in ALL sections (this is your phases 1-4 thinking)**
+- Context: Problem, root cause, goal (STRATEGIZE)
+- Via Negativa: What can you DELETE/SIMPLIFY? (PLAN)
+- Refactor vs Repair: Patching or refactoring root cause? (PLAN)
+- Alternatives: 2-3 approaches considered (SPEC/PLAN)
+- Complexity: Justified? Mitigated? (THINK)
+- Implementation Plan: Files, LOC, risks, testing (PLAN/THINK)
+
+**Step 3: Test with DesignReviewer (BEFORE committing)**
+```bash
+cd tools/wvo_mcp && npm run gate:review T1.2.5 && cd ../..
+```
+
+**Step 4: If BLOCKED (expect this on first try):**
+
+🚨 **CRITICAL: You must GO BACK to phases 1-4 and REDO your thinking**
+
+DesignReviewer will tell you what's wrong with your THINKING:
+- "via_negativa_missing" → Go back to PLAN phase, explore deletion
+- "insufficient_alternatives" → Go back to SPEC/PLAN, explore options
+- "repair_not_refactor" → Go back to STRATEGIZE, find root cause
+
+**DO NOT just edit design.md superficially**
+
+**Remediation process:**
+```bash
+# 1. Create remediation task
+REMED_ID="T1.2.5-REMEDIATION-$(date +%s)"
+mkdir -p state/evidence/$REMED_ID
+
+# 2. GO BACK to STRATEGIZE phase
+#    - Rethink the problem based on DesignReviewer concerns
+#    - Create strategy.md, spec.md, plan.md if they don't exist
+#    - Update them based on what you learned
+
+# 3. Do actual research (30-60 min per critical issue)
+#    - Examine code for deletion opportunities
+#    - Explore alternative approaches
+#    - Design full refactors
+
+# 4. Update design.md with revised thinking
+#    - Reflect what you learned in remediation
+#    - Show specific files examined, alternatives explored
+
+# 5. Re-test
+cd tools/wvo_mcp && npm run gate:review T1.2.5 && cd ../..
+```
+
+**Step 5: When APPROVED, stage and commit**
+```bash
+git add state/evidence/T1.2.5/design.md
+git commit  # Hook will run DesignReviewer automatically
+```
+
+**⚠️ IF YOU SKIP GATE:**
 - Pre-commit hook will BLOCK your commit
 - You'll have to redo your work after rethinking with AFP/SCAS lens
 - You're violating the work process
 
-**For TRIVIAL work (≤2 files, ≤50 LOC)**:
+**For TRIVIAL work (≤1 file, ≤20 LOC)**:
 - Document reasoning inline in code comments
 - No separate evidence file required
 
-**c. Execute**:
+**c. Execute (Phase 6: IMPLEMENT)**:
 ```typescript
-// NOW you can implement (phase 6: IMPLEMENT)
+// NOW you can implement (ONLY after GATE approval)
 // Implement feature
 // Write tests
 // Document changes
 ```
 
-**d. Verify**:
+**d. Verify (Phase 7: VERIFY)**:
 ```typescript
 // Complete verification loop (iteratively)
-// 1. Build
-// 2. Test
-// 3. Audit
-// 4. Runtime
-// 5. Documentation
+// 1. Build (0 errors)
+// 2. Test (all pass, 7/7 coverage)
+// 3. Audit (0 vulnerabilities)
+// 4. Runtime (works end-to-end)
+// 5. Documentation (complete)
 ```
 
-**e. Complete**:
+**e. Review (Phase 8: REVIEW)**:
+
+**⚠️ REVIEW IS DIFFERENT FROM GATE**
+
+- **GATE (phase 5)**: Reviews your DESIGN THINKING (phases 1-4) BEFORE implementation
+  - Checks: via negativa, refactor vs repair, alternatives, complexity
+  - If fails: GO BACK to STRATEGIZE/SPEC/PLAN/THINK and redo
+
+- **REVIEW (phase 8)**: Reviews your IMPLEMENTATION QUALITY (phase 6) AFTER coding
+  - Checks: code quality, test coverage, documentation, AFP/SCAS compliance in code
+  - If fails: Fix implementation or refactor
+
+**Review checklist (Phase 8)**:
 ```typescript
-// Only when ALL verification steps pass
+// Quality check of implementation
+- ✅ Code follows AFP/SCAS principles (no patches, refactored cleanly)
+- ✅ Tests are comprehensive (7/7 dimensions)
+- ✅ Documentation is complete
+- ✅ No technical debt introduced
+- ✅ Micro-batching limits respected (≤5 files, ≤150 LOC)
+```
+
+**f. Complete (Phase 9-10: PR and MONITOR)**:
+```typescript
+// Only when ALL verification AND review steps pass
 await plan_update({
   task_id: 'T1.2.5',
   status: 'done'

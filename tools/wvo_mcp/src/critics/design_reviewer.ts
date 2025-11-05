@@ -98,10 +98,10 @@ export class DesignReviewerCritic extends Critic {
       agentContext
     );
 
-    if (!analysis.approved) {
-      // Log remediation required for tracking
-      await this.logRemediationRequired(taskId, analysis);
+    // **Log ALL reviews (approved and blocked) for metrics tracking**
+    await this.logDesignReview(taskId, analysis);
 
+    if (!analysis.approved) {
       return this.fail(
         `Design needs revision: ${analysis.summary}`,
         {
@@ -139,6 +139,11 @@ export class DesignReviewerCritic extends Critic {
    *
    * This is where the intelligence happens - not just checking boxes,
    * but understanding if the agent actually THOUGHT through the problem.
+   *
+   * Anti-gaming measures:
+   * - Verify mentioned files actually exist
+   * - Check for specific details (not just generic claims)
+   * - Require proof of work (not just assertions)
    */
   private async analyzeDesignWithAFPSCAS(
     designContent: string,
@@ -166,6 +171,32 @@ export class DesignReviewerCritic extends Critic {
       guidance: string;
     }> = [];
     const strengths: string[] = [];
+
+    // **Anti-Gaming Check 1: Verify file references exist**
+    const filePathPattern = /(?:src|tools|apps|shared|docs)\/[a-zA-Z0-9_\-\/\.]+\.[a-z]{2,4}/g;
+    const mentionedFiles = designContent.match(filePathPattern) || [];
+    const uniqueFiles = [...new Set(mentionedFiles)];
+
+    if (uniqueFiles.length > 0) {
+      const invalidFiles: string[] = [];
+      for (const filePath of uniqueFiles) {
+        const fullPath = path.join(this.workspaceRoot, filePath);
+        if (!fs.existsSync(fullPath)) {
+          invalidFiles.push(filePath);
+        }
+      }
+
+      if (invalidFiles.length > 0) {
+        concerns.push({
+          type: "fake_file_references",
+          severity: "high",
+          guidance: `You mentioned files that don't exist:\n${invalidFiles.map(f => `  - ${f}`).join('\n')}\n` +
+                   "Provide REAL file paths you actually examined. Don't make up files."
+        });
+      } else {
+        strengths.push(`Referenced ${uniqueFiles.length} real files (verified to exist)`);
+      }
+    }
 
     // 1. Via Negativa: Did they consider deletion?
     const hasViaNegativa =
@@ -340,7 +371,59 @@ export class DesignReviewerCritic extends Critic {
   }
 
   /**
+   * Log ALL design reviews (approved and blocked) for metrics tracking
+   *
+   * This enables:
+   * - Gaming detection (approval rate too high = suspicious)
+   * - Pattern analysis (which concerns are most common?)
+   * - Effectiveness tracking (are remediations working?)
+   */
+  private async logDesignReview(
+    taskId: string,
+    analysis: {
+      approved: boolean;
+      concerns?: Array<{ type: string; severity: string; guidance: string }>;
+      strengths?: string[];
+      summary: string;
+    }
+  ): Promise<void> {
+    const reviewLog = path.join(
+      this.stateRoot,
+      "analytics",
+      "gate_reviews.jsonl"
+    );
+
+    const entry = {
+      timestamp: new Date().toISOString(),
+      task_id: taskId,
+      approved: analysis.approved,
+      concerns_count: analysis.concerns?.length || 0,
+      high_severity_count: analysis.concerns?.filter(c => c.severity === "high").length || 0,
+      strengths_count: analysis.strengths?.length || 0,
+      summary: analysis.summary,
+      concerns: analysis.concerns,
+      strengths: analysis.strengths,
+    };
+
+    // Append to JSONL log
+    const dir = path.dirname(reviewLog);
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+
+    fs.appendFileSync(reviewLog, JSON.stringify(entry) + "\n");
+
+    logInfo("DesignReviewer: Review logged", {
+      taskId,
+      approved: analysis.approved,
+      concerns: analysis.concerns?.length || 0,
+      strengths: analysis.strengths?.length || 0,
+    });
+  }
+
+  /**
    * Log remediation requirement for tracking effort spent on GATE
+   * (Deprecated - use logDesignReview instead which logs everything)
    */
   private async logRemediationRequired(
     taskId: string,
@@ -399,14 +482,23 @@ You have ${analysis.concerns?.length || 0} design concerns (${highSeverityConcer
 
 **DO NOT just edit design.md to pass GATE.** That's compliance theater.
 
+🚨 **CRITICAL: GATE reviews your THINKING (phases 1-4), NOT your code**
+
+If GATE blocks you, your THINKING is wrong. You must GO BACK to cognitive phases and REDO them:
+
+- **via_negativa_missing** → GO BACK to PLAN phase, explore deletion
+- **insufficient_alternatives** → GO BACK to SPEC/PLAN phases, explore options
+- **repair_not_refactor** → GO BACK to STRATEGIZE phase, find root cause
+- **unjustified_complexity** → GO BACK to THINK phase, analyze trade-offs
+
 You must:
 
 1. **START A NEW REMEDIATION CYCLE** (AFP Autonomous Continuation Mandate)
    - Create new task: ${taskId}-REMEDIATION-${Date.now()}
-   - Start fresh at STRATEGIZE phase
-   - Document: What did DesignReviewer flag? Why is it a problem?
+   - Start fresh at STRATEGIZE phase (phase 1, not phase 6!)
+   - Document: What did DesignReviewer flag? Why is my thinking wrong?
 
-2. **DO THE ACTUAL THINKING WORK**
+2. **GO BACK TO COGNITIVE PHASES (1-4) AND REDO YOUR THINKING**
 `;
 
     // Add specific instructions for each concern type
