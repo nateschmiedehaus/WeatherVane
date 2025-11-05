@@ -26,7 +26,19 @@
  * See: docs/MISSING_OBJECTIVES_ANALYSIS.md - Rationale for lens expansion
  */
 
-import { logDebug, logInfo } from '../telemetry/logger.js';
+import { logDebug, logInfo, logWarning } from '../telemetry/logger.js';
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+interface KeywordConfig {
+  version: string;
+  updated: string;
+  description: string;
+  lenses: Record<string, Record<string, string[]>>;
+}
 
 interface Task {
   id: string;
@@ -60,6 +72,59 @@ interface TwelveLensReport {
 export type SevenLensReport = TwelveLensReport;
 
 export class SevenLensEvaluator {
+  private keywords: KeywordConfig;
+
+  constructor() {
+    this.keywords = this.loadKeywordConfig();
+  }
+
+  /**
+   * Load keyword configuration from config file
+   */
+  private loadKeywordConfig(): KeywordConfig {
+    const configPath = path.join(__dirname, '..', '..', 'config', 'lens_keywords.json');
+    try {
+      const content = fs.readFileSync(configPath, 'utf-8');
+      const config = JSON.parse(content);
+      logDebug('Loaded lens keyword configuration', { version: config.version });
+      return config;
+    } catch (error) {
+      logWarning('Failed to load keyword config, using hardcoded fallback', { error });
+      return this.getDefaultKeywords();
+    }
+  }
+
+  /**
+   * Fallback keywords if config file unavailable
+   */
+  private getDefaultKeywords(): KeywordConfig {
+    return {
+      version: '1.0.0-fallback',
+      updated: new Date().toISOString(),
+      description: 'Hardcoded fallback keywords',
+      lenses: {
+        ceo: {
+          pocValidation: ['poc', 'proof of concept', 'validate model'],
+          negativeCase: ['negative', 'random', 'control'],
+          e2e: ['end-to-end', 'e2e'],
+          revenue: ['demo', 'customer', 'revenue'],
+          blocking: ['blocker', 'blocks'],
+          infrastructure: ['infrastructure', 'scalability'],
+          lowImpact: ['documentation', 'refactor']
+        }
+        // ... abbreviated fallback for other lenses
+      }
+    };
+  }
+
+  /**
+   * Helper: Check if text matches any keywords in a lens group
+   */
+  private matchesKeywords(text: string, lens: string, group: string): boolean {
+    const keywords = this.keywords.lenses[lens]?.[group] || [];
+    return keywords.some(kw => text.includes(kw));
+  }
+
   /**
    * Evaluate a task through all 12 expert lenses (evolved from 7)
    */
@@ -111,28 +176,20 @@ export class SevenLensEvaluator {
     const text = `${task.title} ${task.description || ''}`.toLowerCase();
 
     // HIGHEST PRIORITY: PoC Validation (Critical Path to Revenue)
-    const pocValidationKeywords = [
-      'poc', 'proof of concept', 'validate model', 'model validation',
-      'synthetic data', 'synthetic tenant', 'simulate', 'simulation',
-      'train model', 'mmm', 'weather-aware', 'roas prediction',
-      'negative case', 'random data', 'control tenant', 'placebo',
-      'forecast', 'recommendation', 'automation', 'demo dashboard'
-    ];
-    const isPoCValidation = pocValidationKeywords.some(kw => text.includes(kw));
+    // Keywords now loaded from config/lens_keywords.json
+    const isPoCValidation = this.matchesKeywords(text, 'ceo', 'pocValidation');
 
     if (isPoCValidation) {
       score += 40; // MASSIVE boost - PoC is THE priority
 
       // Extra boost for negative case testing (good science!)
-      const negativeCaseKeywords = ['negative', 'random', 'control', 'placebo', 'should fail', 'non-sensitive'];
-      const isNegativeCase = negativeCaseKeywords.some(kw => text.includes(kw));
+      const isNegativeCase = this.matchesKeywords(text, 'ceo', 'negativeCase');
       if (isNegativeCase) {
         score += 10; // Extra credit for good science
       }
 
       // Extra boost for end-to-end simulation
-      const e2eKeywords = ['end-to-end', 'e2e', 'full simulation', 'automation demo', 'forecast ingestion'];
-      const isE2E = e2eKeywords.some(kw => text.includes(kw));
+      const isE2E = this.matchesKeywords(text, 'ceo', 'e2e');
       if (isE2E) {
         score += 10; // This is what we show prospects!
       }
@@ -141,8 +198,7 @@ export class SevenLensEvaluator {
     }
 
     // Check if task is on critical path to revenue
-    const revenueKeywords = ['demo', 'customer', 'pilot', 'revenue', 'prospect', 'sales', 'payment', 'mrr'];
-    const isRevenueCritical = revenueKeywords.some(kw => text.includes(kw));
+    const isRevenueCritical = this.matchesKeywords(text, 'ceo', 'revenue');
 
     if (isRevenueCritical && !isPoCValidation) {
       score += 20; // Good, but not as critical as PoC validation
@@ -153,20 +209,14 @@ export class SevenLensEvaluator {
     }
 
     // Check if blocks other high-priority work
-    const blockingKeywords = ['blocker', 'blocks', 'prerequisite', 'critical path'];
-    const isBlocking = blockingKeywords.some(kw => text.includes(kw));
+    const isBlocking = this.matchesKeywords(text, 'ceo', 'blocking');
 
     if (isBlocking) {
       score += 15;
     }
 
     // PENALIZE infrastructure work that doesn't unblock PoC
-    const infrastructureKeywords = [
-      'infrastructure', 'scalability', 'database sharding', 'multi-tenant architecture',
-      'production hardening', 'devops', 'monitoring', 'alerting', 'sla',
-      'oauth integration', 'real customer', 'api rate limit'
-    ];
-    const isInfrastructure = infrastructureKeywords.some(kw => text.includes(kw));
+    const isInfrastructure = this.matchesKeywords(text, 'ceo', 'infrastructure');
 
     if (isInfrastructure && !isPoCValidation) {
       score -= 30; // HEAVY penalty - wrong priority!
@@ -174,8 +224,7 @@ export class SevenLensEvaluator {
     }
 
     // Penalize low-impact work (documentation, refactoring without clear business case)
-    const lowImpactKeywords = ['documentation', 'refactor', 'cleanup', 'style', 'polish'];
-    const isLowImpact = lowImpactKeywords.some(kw => task.title.toLowerCase().includes(kw)) && !isPoCValidation;
+    const isLowImpact = this.matchesKeywords(task.title.toLowerCase(), 'ceo', 'lowImpact') && !isPoCValidation;
 
     if (isLowImpact) {
       score -= 20;
@@ -200,22 +249,16 @@ export class SevenLensEvaluator {
   private evaluateDesignerLens(task: Task, context?: any): LensEvaluation {
     let score = 70; // Default pass for non-UI work
     const concerns: string[] = [];
+    const text = `${task.title} ${task.description || ''}`.toLowerCase();
 
     // Check if this is UI/visual work
-    const uiKeywords = ['ui', 'design', 'frontend', 'component', 'styling', 'visual', 'layout', 'dashboard'];
-    const isUIWork = uiKeywords.some(kw =>
-      task.title.toLowerCase().includes(kw) ||
-      (task.description?.toLowerCase().includes(kw) ?? false)
-    );
+    const isUIWork = this.matchesKeywords(text, 'designer', 'ui');
 
     if (isUIWork) {
       // UI work must meet high standards
       score = 40; // Start lower for UI work
 
-      const designSystemKeywords = ['design system', 'figma', 'storybook', 'component library'];
-      const mentionsDesignSystem = designSystemKeywords.some(kw =>
-        task.description?.toLowerCase().includes(kw) ?? false
-      );
+      const mentionsDesignSystem = this.matchesKeywords(text, 'designer', 'designSystem');
 
       if (mentionsDesignSystem) {
         score += 30;
@@ -223,10 +266,7 @@ export class SevenLensEvaluator {
         concerns.push('UI work does not reference design system standards');
       }
 
-      const qualityKeywords = ['vercel', 'linear', 'stripe', 'world-class', 'polished'];
-      const mentionsQuality = qualityKeywords.some(kw =>
-        task.description?.toLowerCase().includes(kw) ?? false
-      );
+      const mentionsQuality = this.matchesKeywords(text, 'designer', 'quality');
 
       if (mentionsQuality) {
         score += 20;
@@ -251,21 +291,15 @@ export class SevenLensEvaluator {
   private evaluateUXLens(task: Task, context?: any): LensEvaluation {
     let score = 70; // Default pass for non-UX work
     const concerns: string[] = [];
+    const text = `${task.title} ${task.description || ''}`.toLowerCase();
 
     // Check if this affects user experience
-    const uxKeywords = ['onboarding', 'workflow', 'user', 'dashboard', 'automation', 'experience'];
-    const affectsUX = uxKeywords.some(kw =>
-      task.title.toLowerCase().includes(kw) ||
-      (task.description?.toLowerCase().includes(kw) ?? false)
-    );
+    const affectsUX = this.matchesKeywords(text, 'ux', 'ux');
 
     if (affectsUX) {
       score = 40; // Start lower for UX-affecting work
 
-      const frictionlessKeywords = ['<5 min', 'quick', 'easy', 'simple', 'intuitive', 'no training'];
-      const mentionsFrictionless = frictionlessKeywords.some(kw =>
-        task.description?.toLowerCase().includes(kw) ?? false
-      );
+      const mentionsFrictionless = this.matchesKeywords(text, 'ux', 'frictionless');
 
       if (mentionsFrictionless) {
         score += 30;
@@ -273,10 +307,7 @@ export class SevenLensEvaluator {
         concerns.push('UX work does not specify time-to-value or friction metrics');
       }
 
-      const automationKeywords = ['automate', 'default', 'one-click'];
-      const mentionsAutomation = automationKeywords.some(kw =>
-        task.description?.toLowerCase().includes(kw) ?? false
-      );
+      const mentionsAutomation = this.matchesKeywords(text, 'ux', 'automation');
 
       if (mentionsAutomation) {
         score += 20;
@@ -301,21 +332,15 @@ export class SevenLensEvaluator {
   private evaluateCMOLens(task: Task, context?: any): LensEvaluation {
     let score = 70; // Default pass for non-GTM work
     const concerns: string[] = [];
+    const text = `${task.title} ${task.description || ''}`.toLowerCase();
 
     // Check if this is GTM-related work
-    const gtmKeywords = ['demo', 'prospect', 'messaging', 'pitch', 'case study', 'customer'];
-    const isGTMWork = gtmKeywords.some(kw =>
-      task.title.toLowerCase().includes(kw) ||
-      (task.description?.toLowerCase().includes(kw) ?? false)
-    );
+    const isGTMWork = this.matchesKeywords(text, 'cmo', 'gtm');
 
     if (isGTMWork) {
       score = 50;
 
-      const narrativeKeywords = ['15-30%', 'weather', 'lift', 'roas', 'incremental revenue'];
-      const mentionsNarrative = narrativeKeywords.some(kw =>
-        task.description?.toLowerCase().includes(kw) ?? false
-      );
+      const mentionsNarrative = this.matchesKeywords(text, 'cmo', 'narrative');
 
       if (mentionsNarrative) {
         score += 25;
@@ -340,21 +365,15 @@ export class SevenLensEvaluator {
   private evaluateAdExpertLens(task: Task, context?: any): LensEvaluation {
     let score = 70; // Default pass for non-ad-platform work
     const concerns: string[] = [];
+    const text = `${task.title} ${task.description || ''}`.toLowerCase();
 
     // Check if this involves ad platform integration
-    const adPlatformKeywords = ['meta', 'google ads', 'facebook', 'instagram', 'api', 'shopify', 'campaign'];
-    const isAdPlatformWork = adPlatformKeywords.some(kw =>
-      task.title.toLowerCase().includes(kw) ||
-      (task.description?.toLowerCase().includes(kw) ?? false)
-    );
+    const isAdPlatformWork = this.matchesKeywords(text, 'adExpert', 'platform');
 
     if (isAdPlatformWork) {
       score = 50;
 
-      const constraintKeywords = ['rate limit', 'api limit', 'retry', 'error handling', 'oauth'];
-      const mentionsConstraints = constraintKeywords.some(kw =>
-        task.description?.toLowerCase().includes(kw) ?? false
-      );
+      const mentionsConstraints = this.matchesKeywords(text, 'adExpert', 'constraints');
 
       if (mentionsConstraints) {
         score += 25;
@@ -386,27 +405,20 @@ export class SevenLensEvaluator {
     const text = `${task.title} ${task.description || ''}`.toLowerCase();
 
     // Check if this is modeling/research work
-    const researchKeywords = ['model', 'mmm', 'validation', 'experiment', 'causal', 'statistical', 'train', 'predict'];
-    const isResearchWork = researchKeywords.some(kw => text.includes(kw));
+    const isResearchWork = this.matchesKeywords(text, 'academic', 'research');
 
     if (isResearchWork) {
       score = 40;
 
       // BOOST for negative case testing (this is GOOD science!)
-      const negativeCaseKeywords = [
-        'negative case', 'negative control', 'random data', 'placebo',
-        'should fail', 'should not work', 'zero sensitivity', 'non-sensitive',
-        'control tenant', 'baseline', 'false positive'
-      ];
-      const hasNegativeCase = negativeCaseKeywords.some(kw => text.includes(kw));
+      const hasNegativeCase = this.matchesKeywords(text, 'academic', 'negativeCase');
 
       if (hasNegativeCase) {
         score += 35; // MAJOR boost - this proves we're not snake oil!
       }
 
       // Check for statistical rigor
-      const rigorKeywords = ['r²', 'p-value', 'cross-validation', 'out-of-sample', 'reproducible', 'significance'];
-      const mentionsRigor = rigorKeywords.some(kw => text.includes(kw));
+      const mentionsRigor = this.matchesKeywords(text, 'academic', 'rigor');
 
       if (mentionsRigor) {
         score += 30;
@@ -460,6 +472,7 @@ export class SevenLensEvaluator {
   private evaluatePMLens(task: Task, context?: any): LensEvaluation {
     let score = 50; // Neutral baseline
     const concerns: string[] = [];
+    const text = `${task.title} ${task.description || ''}`.toLowerCase();
 
     // Check if dependencies are defined
     if (!task.dependencies || task.dependencies.length === 0) {
@@ -483,11 +496,8 @@ export class SevenLensEvaluator {
       concerns.push(`Task estimated >16 hours (${task.estimated_hours}h) - needs decomposition into smaller subtasks`);
     }
 
-    // Check if task is on critical path (uses context if available)
-    const criticalPathKeywords = ['blocker', 'blocks', 'critical', 'prerequisite'];
-    const isCriticalPath = criticalPathKeywords.some(kw =>
-      task.description?.toLowerCase().includes(kw) ?? false
-    );
+    // Check if task is on critical path
+    const isCriticalPath = this.matchesKeywords(text, 'pm', 'dependencies');
 
     if (isCriticalPath) {
       score += 15;
@@ -509,21 +519,18 @@ export class SevenLensEvaluator {
   private evaluateCFOLens(task: Task, context?: any): LensEvaluation {
     let score = 70; // Default pass for non-financial work
     const concerns: string[] = [];
+    const text = `${task.title} ${task.description || ''}`.toLowerCase();
 
     // Check if this is financial/pricing work
-    const financialKeywords = ['cost', 'pricing', 'margin', 'cac', 'ltv', 'unit economics', 'burn rate', 'revenue', 'profit'];
-    const isFinancialWork = financialKeywords.some(kw =>
-      task.title.toLowerCase().includes(kw) ||
-      (task.description?.toLowerCase().includes(kw) ?? false)
-    );
+    const isFinancialWork = this.matchesKeywords(text, 'cfo', 'economics') ||
+                           this.matchesKeywords(text, 'cfo', 'pricing') ||
+                           this.matchesKeywords(text, 'cfo', 'metrics');
 
     if (isFinancialWork) {
       score = 40; // Start lower for financial work
 
       const rigorKeywords = ['calculate', 'analysis', 'margin', 'target', 'threshold'];
-      const mentionsRigor = rigorKeywords.some(kw =>
-        task.description?.toLowerCase().includes(kw) ?? false
-      );
+      const mentionsRigor = rigorKeywords.some(kw => text.includes(kw));
 
       if (mentionsRigor) {
         score += 30;
@@ -533,9 +540,7 @@ export class SevenLensEvaluator {
 
       // Check for specific metrics
       const metricsKeywords = ['70%', 'cac', 'ltv', '3:1'];
-      const mentionsMetrics = metricsKeywords.some(kw =>
-        task.description?.toLowerCase().includes(kw) ?? false
-      );
+      const mentionsMetrics = metricsKeywords.some(kw => text.includes(kw));
 
       if (mentionsMetrics) {
         score += 20;
@@ -560,21 +565,18 @@ export class SevenLensEvaluator {
   private evaluateCTOLens(task: Task, context?: any): LensEvaluation {
     let score = 70; // Default pass for non-scalability work
     const concerns: string[] = [];
+    const text = `${task.title} ${task.description || ''}`.toLowerCase();
 
     // Check if this is scalability/architecture work
-    const scalabilityKeywords = ['scale', 'scalability', 'database', 'infrastructure', 'multi-tenant', 'architecture', 'performance', 'sharding'];
-    const isScalabilityWork = scalabilityKeywords.some(kw =>
-      task.title.toLowerCase().includes(kw) ||
-      (task.description?.toLowerCase().includes(kw) ?? false)
-    );
+    const isScalabilityWork = this.matchesKeywords(text, 'cto', 'scalability') ||
+                              this.matchesKeywords(text, 'cto', 'architecture') ||
+                              this.matchesKeywords(text, 'cto', 'security');
 
     if (isScalabilityWork) {
       score = 40; // Start lower for scalability work
 
       const planKeywords = ['10x', '100x', '1000', 'load test', 'benchmark', 'capacity'];
-      const mentionsPlan = planKeywords.some(kw =>
-        task.description?.toLowerCase().includes(kw) ?? false
-      );
+      const mentionsPlan = planKeywords.some(kw => text.includes(kw));
 
       if (mentionsPlan) {
         score += 30;
@@ -583,9 +585,7 @@ export class SevenLensEvaluator {
       }
 
       const constraintsKeywords = ['limit', 'bottleneck', 'connection', 'pooling'];
-      const mentionsConstraints = constraintsKeywords.some(kw =>
-        task.description?.toLowerCase().includes(kw) ?? false
-      );
+      const mentionsConstraints = constraintsKeywords.some(kw => text.includes(kw));
 
       if (mentionsConstraints) {
         score += 20;
@@ -610,21 +610,18 @@ export class SevenLensEvaluator {
   private evaluateCustomerSuccessLens(task: Task, context?: any): LensEvaluation {
     let score = 70; // Default pass for non-CS work
     const concerns: string[] = [];
+    const text = `${task.title} ${task.description || ''}`.toLowerCase();
 
     // Check if this affects customer retention/success
-    const csKeywords = ['churn', 'retention', 'onboard', 'customer success', 'health score', 'usage', 'adoption', 'customer'];
-    const isCSWork = csKeywords.some(kw =>
-      task.title.toLowerCase().includes(kw) ||
-      (task.description?.toLowerCase().includes(kw) ?? false)
-    );
+    const isCSWork = this.matchesKeywords(text, 'customerSuccess', 'retention') ||
+                     this.matchesKeywords(text, 'customerSuccess', 'support') ||
+                     this.matchesKeywords(text, 'customerSuccess', 'satisfaction');
 
     if (isCSWork) {
       score = 50; // Start lower for CS work
 
       const metricsKeywords = ['metric', 'measure', 'track', 'rate', 'nps', 'score'];
-      const mentionsMetrics = metricsKeywords.some(kw =>
-        task.description?.toLowerCase().includes(kw) ?? false
-      );
+      const mentionsMetrics = metricsKeywords.some(kw => text.includes(kw));
 
       if (mentionsMetrics) {
         score += 25;
@@ -649,21 +646,18 @@ export class SevenLensEvaluator {
   private evaluateDevOpsLens(task: Task, context?: any): LensEvaluation {
     let score = 70; // Default pass for non-ops work
     const concerns: string[] = [];
+    const text = `${task.title} ${task.description || ''}`.toLowerCase();
 
     // Check if this is ops/reliability work
-    const opsKeywords = ['monitoring', 'alert', 'incident', 'uptime', 'sla', 'deployment', 'rollback', 'observability', 'reliability'];
-    const isOpsWork = opsKeywords.some(kw =>
-      task.title.toLowerCase().includes(kw) ||
-      (task.description?.toLowerCase().includes(kw) ?? false)
-    );
+    const isOpsWork = this.matchesKeywords(text, 'devops', 'reliability') ||
+                      this.matchesKeywords(text, 'devops', 'deployment') ||
+                      this.matchesKeywords(text, 'devops', 'infrastructure');
 
     if (isOpsWork) {
       score = 40; // Start lower for ops work
 
       const monitoringKeywords = ['monitor', 'alert', 'pagerduty', 'datadog', 'grafana'];
-      const mentionsMonitoring = monitoringKeywords.some(kw =>
-        task.description?.toLowerCase().includes(kw) ?? false
-      );
+      const mentionsMonitoring = monitoringKeywords.some(kw => text.includes(kw));
 
       if (mentionsMonitoring) {
         score += 30;
@@ -672,9 +666,7 @@ export class SevenLensEvaluator {
       }
 
       const slaKeywords = ['sla', '99', 'uptime', 'target', 'mttr', 'mttd'];
-      const mentionsSLA = slaKeywords.some(kw =>
-        task.description?.toLowerCase().includes(kw) ?? false
-      );
+      const mentionsSLA = slaKeywords.some(kw => text.includes(kw));
 
       if (mentionsSLA) {
         score += 20;
@@ -699,21 +691,18 @@ export class SevenLensEvaluator {
   private evaluateLegalLens(task: Task, context?: any): LensEvaluation {
     let score = 70; // Default pass for non-legal work
     const concerns: string[] = [];
+    const text = `${task.title} ${task.description || ''}`.toLowerCase();
 
     // Check if this is legal/compliance work
-    const legalKeywords = ['gdpr', 'ccpa', 'soc2', 'compliance', 'legal', 'privacy', 'terms', 'policy', 'audit', 'data protection'];
-    const isLegalWork = legalKeywords.some(kw =>
-      task.title.toLowerCase().includes(kw) ||
-      (task.description?.toLowerCase().includes(kw) ?? false)
-    );
+    const isLegalWork = this.matchesKeywords(text, 'legal', 'compliance') ||
+                        this.matchesKeywords(text, 'legal', 'risk') ||
+                        this.matchesKeywords(text, 'legal', 'data');
 
     if (isLegalWork) {
       score = 40; // Start lower for legal work
 
       const requirementsKeywords = ['requirement', 'must', 'shall', 'comply', 'regulation'];
-      const mentionsRequirements = requirementsKeywords.some(kw =>
-        task.description?.toLowerCase().includes(kw) ?? false
-      );
+      const mentionsRequirements = requirementsKeywords.some(kw => text.includes(kw));
 
       if (mentionsRequirements) {
         score += 30;
@@ -722,9 +711,7 @@ export class SevenLensEvaluator {
       }
 
       const documentationKeywords = ['document', 'policy', 'agreement', 'record'];
-      const mentionsDocumentation = documentationKeywords.some(kw =>
-        task.description?.toLowerCase().includes(kw) ?? false
-      );
+      const mentionsDocumentation = documentationKeywords.some(kw => text.includes(kw));
 
       if (mentionsDocumentation) {
         score += 20;

@@ -1,0 +1,82 @@
+{
+  "version": "1.0.0",
+  "updated": "2025-11-05",
+  "description": "Keyword configuration for 12-lens task evaluator (extracted from code)",
+  "lenses": {
+    "ceo": {
+      "pocValidation": [
+        "poc", "proof of concept", "validate model", "model validation",
+        "synthetic data", "synthetic tenant", "simulate", "simulation",
+        "train model", "mmm", "weather-aware", "roas prediction",
+        "negative case", "random data", "control tenant", "placebo",
+        "forecast", "recommendation", "automation", "demo dashboard"
+      ],
+      "negativeCase": ["negative", "random", "control", "placebo", "should fail", "non-sensitive"],
+      "e2e": ["end-to-end", "e2e", "full simulation", "automation demo", "forecast ingestion"],
+      "revenue": ["demo", "customer", "pilot", "revenue", "prospect", "sales", "payment", "mrr"],
+      "blocking": ["blocker", "blocks", "prerequisite", "critical path"],
+      "infrastructure": [
+        "infrastructure", "scalability", "database sharding", "multi-tenant architecture",
+        "production hardening", "devops", "monitoring", "alerting", "sla",
+        "oauth integration", "real customer", "api rate limit"
+      ],
+      "lowImpact": ["documentation", "refactor", "cleanup", "style", "polish"]
+    },
+    "designer": {
+      "ui": ["ui", "design", "frontend", "component", "styling", "visual", "layout", "dashboard"],
+      "designSystem": ["design system", "figma", "storybook", "component library"],
+      "quality": ["vercel", "linear", "stripe", "world-class", "polished"]
+    },
+    "ux": {
+      "ux": ["onboarding", "workflow", "user", "dashboard", "automation", "experience"],
+      "frictionless": ["<5 min", "quick", "easy", "simple", "intuitive", "no training"],
+      "automation": ["automate", "default", "one-click"]
+    },
+    "cmo": {
+      "gtm": ["demo", "prospect", "messaging", "pitch", "case study", "customer"],
+      "narrative": ["15-30%", "weather", "lift", "roas", "incremental revenue"]
+    },
+    "adExpert": {
+      "platform": ["meta", "google ads", "facebook", "instagram", "api", "shopify", "campaign"],
+      "constraints": ["rate limit", "api limit", "retry", "error handling", "oauth"]
+    },
+    "academic": {
+      "research": ["model", "mmm", "validation", "experiment", "causal", "statistical", "train", "predict"],
+      "negativeCase": [
+        "negative case", "random data", "control tenant", "placebo",
+        "should not work", "non-sensitive", "test falsifiability"
+      ],
+      "rigor": ["r²", "p-value", "cross-validation", "out-of-sample", "reproducible", "significance"]
+    },
+    "pm": {
+      "clarity": ["spec", "requirements", "acceptance criteria", "definition of done"],
+      "dependencies": ["blocked by", "depends on", "prerequisite"],
+      "scope": ["phase", "milestone", "epic", "story"]
+    },
+    "cfo": {
+      "economics": ["unit economics", "ltv", "cac", "margin", "burn rate", "runway"],
+      "pricing": ["pricing", "revenue model", "subscription", "billing"],
+      "metrics": ["arr", "mrr", "churn", "retention"]
+    },
+    "cto": {
+      "scalability": ["scale", "performance", "latency", "throughput"],
+      "architecture": ["architecture", "design pattern", "refactor", "technical debt"],
+      "security": ["security", "auth", "encryption", "vulnerability"]
+    },
+    "customerSuccess": {
+      "retention": ["churn", "retention", "customer health", "engagement"],
+      "support": ["support", "training", "documentation", "onboarding"],
+      "satisfaction": ["nps", "feedback", "customer satisfaction"]
+    },
+    "devops": {
+      "reliability": ["uptime", "sla", "monitoring", "alerting", "incident"],
+      "deployment": ["deploy", "ci/cd", "rollback", "canary", "blue-green"],
+      "infrastructure": ["infrastructure", "kubernetes", "docker", "aws"]
+    },
+    "legal": {
+      "compliance": ["gdpr", "ccpa", "compliance", "privacy", "regulation"],
+      "risk": ["legal risk", "liability", "terms of service", "contract"],
+      "data": ["data privacy", "data retention", "data deletion"]
+    }
+  }
+}

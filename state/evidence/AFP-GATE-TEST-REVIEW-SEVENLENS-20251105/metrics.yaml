@@ -82,29 +82,59 @@ suggestions:
   - "DesignReviewer could distinguish 'file to be created' vs 'referenced file missing'"
   - "Template could have section for 'Files to CREATE' vs 'Files to MODIFY'"
 
-## Implementation Metrics (Not Yet Executed)
+## Implementation Metrics
 
-implementation_started: false
-implementation_time_minutes: null
-implementation_matches_design: null
-tests_written: null
-tests_passing: null
-actual_loc: null
+implementation_started: true
+implementation_completed: true
+implementation_time_minutes: 45  # From continuation to completion
+implementation_matches_design: "partial"  # Core refactoring done, but LOC estimates were off
+tests_written: false  # Existing tests used
+tests_passing: true  # All 996 tests pass, including 26 seven_lens_evaluator tests
+actual_loc: "+69 total (+82 config JSON, +123/-136 = -13 code)"
+actual_loc_breakdown:
+  config_file: "+82 LOC (lens_keywords.json)"
+  source_file_additions: "+123 LOC (infrastructure: constructor, loader, fallback, helper; text vars)"
+  source_file_deletions: "-136 LOC (hardcoded keyword arrays removed)"
+  source_file_net: "-13 LOC"
+  total_net: "+69 LOC"
+estimate_accuracy: "poor"
+estimate_vs_actual:
+  estimated: "-10 net LOC"
+  actual: "+69 net LOC (or -13 code-only)"
+  variance: "+79 LOC (or -3 LOC code-only)"
+estimate_error_analysis:
+  - "Underestimated infrastructure LOC (constructor, loader, fallback, helper)"
+  - "Didn't account for const text declarations in each lens method"
+  - "Overestimated LOC deletion (estimated -120, actual -136 is good)"
+  - "Confusion about whether to count JSON config as LOC"
 
 ## Overall Assessment
 
 gate_experience: "positive"
-gate_value: "high"  # Forced thorough alternatives analysis, revealed net deletion
+gate_value: "medium"  # Forced alternatives analysis, but LOC estimate was way off
 would_skip_gate: false
-gate_overhead_acceptable: true  # 36 min for 2-3 hour task = 18-24% overhead
+gate_overhead_acceptable: true  # 36 min GATE + 45 min implementation = 81 min total
+total_time_minutes: 81  # GATE (36) + Implementation (45)
+gate_overhead_percentage: 44  # 36/81 = 44% of total time spent on GATE
 
 key_insights:
-  - "Via negativa analysis revealed -10 net LOC (not obvious until analyzed)"
+  - "Via negativa CLAIM of -10 LOC was wrong (actual +69 or -13 code-only)"
   - "Alternatives comparison prevented over-engineering (didn't add caching prematurely)"
   - "First-try approval shows design was thorough enough"
   - "High-severity concern about non-existent file is false positive (creating it)"
+  - "LOC estimation is HARD - need better estimation discipline in GATE"
+  - "Refactoring goal achieved (externalized config) despite LOC miss"
+
+implementation_insights:
+  - "Implementation took 45 min (within 2-3 hour estimate)"
+  - "All 996 tests pass immediately (no test fixes needed)"
+  - "Build succeeded on first try (no compilation errors)"
+  - "Config loading works correctly (debug logs show v1.0.0 loaded)"
+  - "Estimate was 79 LOC off (+69 vs -10), but refactoring quality is good"
 
 recommendations:
-  - "Proceed with implementation as designed"
+  - "GATE LOC estimates need more rigor - count existing LOC, not assumptions"
+  - "Distinguish code LOC vs data LOC (JSON config) in estimates"
   - "DesignReviewer improvement: detect 'NEW' file markers in design"
-  - "This validates GATE for simple tasks - continue to Task 2"
+  - "This validates GATE process, but exposes estimation weakness"
+  - "Continue to Task 2 - need more data on GATE effectiveness"
