@@ -426,8 +426,9 @@ export class QualityGateOrchestrator {
       reasoning += `- Reviewed by ${expertReview.reviews.length} domain expert(s)\n`;
       reasoning += `- Overall depth: ${expertReview.overallDepth}\n`;
       reasoning += `- Consensus: ${expertReview.consensusApproved ? 'APPROVED' : 'REJECTED'}\n`;
-      if (expertReview.criticalConcerns.length > 0) {
-        reasoning += `- Critical concerns: ${expertReview.criticalConcerns.length}\n`;
+      const criticalConcerns = expertReview.reviews.filter(r => !r.approved);
+      if (criticalConcerns.length > 0) {
+        reasoning += `- Critical concerns: ${criticalConcerns.length}\n`;
       }
     }
 
