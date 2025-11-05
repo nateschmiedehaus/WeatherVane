@@ -36,7 +36,16 @@
 
    **Goal:** Stop compliance theater. Ensure real thinking before coding.
 
-6. **IMPLEMENT** - Write code (NOW you can code)
+   **GATE is ITERATIVE - expect 2-3 review rounds:**
+   - DesignReviewer provides specific AFP/SCAS feedback
+   - If concerns raised: CREATE REMEDIATION TASK (new STRATEGIZE cycle)
+   - Do actual research/exploration (30-60 min per critical issue)
+   - Update design.md with REAL findings
+   - Re-submit for review
+   - **Track effort** in design.md (demonstrates real work, not theater)
+   - **Only when approved** can you proceed to IMPLEMENT
+
+6. **IMPLEMENT** - Write code (NOW you can code, after GATE approval)
    - Constraints: ≤5 files, ≤150 net LOC, refactor not patch
 
 7. **VERIFY** - Test it works
@@ -64,6 +73,7 @@
 - When a policy, checklist, or verification gate implies additional work (tests, docs, evidence uploads, guardrail enforcement), do it immediately—do **not** wait for a reviewer prompt.
 - Close the loop end-to-end: if a build surfaces a follow-up (e.g., rerun integrity suite after fixes, update READMEs when structure changes, publish evidence artifacts), execute those actions before asking “what next?”.
 - Record actions in `state/evidence/<TASK>/` and `state/context.md` so concurrent agents see the latest state. Pause only when a blocker requires human clarification, and call it out explicitly.
+- Any “next step” that produces new work must spin up a fresh STRATEGIZE→MONITOR loop (new phases evidence, new task ID, new roadmap entry). Never jump directly to IMPLEMENT, even when the follow-up feels obvious.
 
 ## Operational Checklist
 - Call MCP tools `plan_next` (with `minimal=true`) and `autopilot_status` at the start of every session; the latter now reports consensus staffing insights and token pressure. Restart the MCP (`./tools/wvo_mcp/scripts/restart_mcp.sh`) if either call fails.

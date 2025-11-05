@@ -120,3 +120,34 @@ Before implementing, verify:
 
 **Design Date:** [YYYY-MM-DD]
 **Author:** [Your name/agent ID]
+
+---
+
+## GATE Review Tracking
+
+**GATE is ITERATIVE - expect multiple rounds:**
+
+### Review 1: [Date]
+- **DesignReviewer Result:** [pending/needs-revision/approved]
+- **Concerns Raised:** [list any concerns]
+- **Remediation Task:** [TASK-ID-REMEDIATION-XXX if created]
+- **Time Spent:** [hours on remediation work]
+
+### Review 2: [Date] (if needed)
+- **DesignReviewer Result:** [pending/needs-revision/approved]
+- **Concerns Raised:** [list any concerns]
+- **Remediation Task:** [TASK-ID-REMEDIATION-XXX if created]
+- **Time Spent:** [hours on remediation work]
+
+### Review 3: [Date] (if needed)
+- **DesignReviewer Result:** [pending/needs-revision/approved]
+- **Final Approval:** [yes/no]
+- **Total GATE Effort:** [X hours across all reviews + remediation]
+
+**IMPORTANT:** If DesignReviewer finds issues, you MUST:
+1. Create remediation task (new STRATEGIZE→MONITOR cycle)
+2. Do actual research/exploration (30-60 min per critical issue)
+3. Update design.md with REAL findings (not assertions)
+4. Re-submit for review
+
+**Superficial edits to pass GATE = compliance theater = rejected.**
