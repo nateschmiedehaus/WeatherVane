@@ -58,16 +58,46 @@ fi
 pull_and_rebase() {
   echo -e "${YELLOW}🔄 Pulling latest from origin/$BRANCH...${NC}"
 
+  # Ensure clean working tree by stashing if needed
+  local stashed=false
+  if ! git diff-files --quiet || ! git diff-index --quiet --cached HEAD; then
+    echo -e "${YELLOW}💾 Stashing uncommitted changes...${NC}"
+    if git stash push -m "Auto-stash before auto-push - $(date +%Y-%m-%d_%H-%M-%S)" 2>&1; then
+      stashed=true
+    else
+      echo -e "${RED}❌ Failed to stash changes${NC}"
+      return 1
+    fi
+  fi
+
   # Note: timeout command not available on macOS by default
   # Git operations have their own timeouts, so this is acceptable
   if ! git fetch origin 2>&1; then
+    # Restore stash if we stashed
+    if [ "$stashed" = true ]; then
+      git stash pop 2>/dev/null
+    fi
     return 1
   fi
 
   if ! git rebase "origin/$BRANCH" 2>&1; then
-    # Rebase failed - abort
+    # Rebase failed - abort and restore stash
     git rebase --abort 2>/dev/null
+    if [ "$stashed" = true ]; then
+      git stash pop 2>/dev/null
+    fi
     return 1
+  fi
+
+  # Success - restore stash if we stashed
+  if [ "$stashed" = true ]; then
+    echo -e "${YELLOW}📦 Restoring stashed changes...${NC}"
+    if ! git stash pop 2>&1; then
+      echo -e "${RED}⚠️  Stash pop conflict - manual intervention needed${NC}"
+      echo "   Run: git status"
+      echo "   Resolve conflicts, then: git stash drop"
+      return 1
+    fi
   fi
 
   return 0
