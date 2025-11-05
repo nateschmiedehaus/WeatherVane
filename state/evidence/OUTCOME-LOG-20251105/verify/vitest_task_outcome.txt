@@ -1,0 +1,22 @@
+
+> wvo-mcp-server@0.1.0 pretest
+> node ./scripts/ensure-sqlite-build.mjs
+
+
+> wvo-mcp-server@0.1.0 test
+> node ./scripts/run_vitest.mjs src/analytics/__tests__/task_outcome_builder.test.ts
+
+
+> wvo-mcp-server@0.1.0 build
+> tsc --project tsconfig.json
+
+
+ RUN  v3.2.4 /Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/tools/wvo_mcp
+
+ ✓ src/analytics/__tests__/task_outcome_builder.test.ts (2 tests) 5ms
+
+ Test Files  1 passed (1)
+      Tests  2 passed (2)
+   Start at  07:48:37
+   Duration  324ms (transform 100ms, setup 0ms, collect 94ms, tests 5ms, environment 0ms, prepare 57ms)
+

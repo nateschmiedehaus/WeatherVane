@@ -37,6 +37,9 @@ import type { LiveFlagsReader } from './live_flags.js';
 import type { FeatureGatesReader } from './feature_gates.js';
 import { ConsensusEngine, ConsensusTelemetryRecorder } from './consensus/index.js';
 import type { ModelManager } from '../models/model_manager.js';
+import { buildTaskOutcome } from '../analytics/task_outcome_builder.js';
+import { logTaskOutcome } from '../analytics/task_outcome_logger.js';
+import { FeedbackTracker } from '../analytics/feedback_tracker.js';
 
 const TOKEN_ESTIMATE_CHAR_RATIO = 4;
 const MAX_PROMPT_TOKENS = 600;
@@ -183,6 +186,7 @@ export class AgentCoordinator extends EventEmitter {
   private readonly selfImprovementManager?: SelfImprovementManager;
   private readonly consensusEngine?: ConsensusEngine;
   private readonly modelManager?: ModelManager;
+  private readonly feedbackTracker: FeedbackTracker;
   private readonly featureGates?: FeatureGatesReader;
 
   // Store bound listeners for proper cleanup
@@ -214,6 +218,7 @@ export class AgentCoordinator extends EventEmitter {
     this.resilienceManager = resilienceManager ?? new ResilienceManager(this.stateMachine, this.agentPool);
     this.selfImprovementManager = selfImprovementManager;
     this.modelManager = modelManager;
+    this.feedbackTracker = new FeedbackTracker(workspaceRoot);
 
     const envConsensusRaw = process.env.WVO_CONSENSUS_ENABLED;
     const envConsensus =
@@ -389,6 +394,7 @@ export class AgentCoordinator extends EventEmitter {
           agent.id
         );
       }
+      await this.feedbackTracker.openFeedbackLoop(task);
 
       const executionPromise: Promise<ExecutionOutcome> = agent.type === 'claude_code'
         ? this.agentPool.executeWithClaudeCode(task.id, prompt, { workdir: this.workspaceRoot })
@@ -606,6 +612,7 @@ export class AgentCoordinator extends EventEmitter {
         agent: agent.id,
         issues: combinedIssues,
       });
+      await this.feedbackTracker.markIteration(task.id);
     } else if (finalStatus === 'done') {
       await this.stateMachine.transition(task.id, 'done', transitionMetadata, stage('done'), agent.id);
       this.scheduler.completeTask(task.id);
@@ -748,6 +755,47 @@ export class AgentCoordinator extends EventEmitter {
 
     this.emit('execution:completed', summary);
     this.observer?.recordExecution(summary);
+
+    if (this.featureGates?.isOutcomeLoggingEnabled?.()) {
+      try {
+        const outcome = buildTaskOutcome({
+          task,
+          execution: result,
+          quality: qualityResult,
+          summary,
+          context,
+          criticOutcome: criticOutcome
+            ? {
+                passed: criticOutcome.passed,
+                required: criticOutcome.required,
+                failedCritics: criticOutcome.failedCritics,
+              }
+            : null,
+          guardrailAdjustments: [],
+          promptVersion: this.getPromptMode(),
+          failureReason: result.success ? null : result.error ?? result.failureType ?? null,
+          failureCategory: result.success ? null : result.failureType ?? null,
+        });
+        await logTaskOutcome(outcome, { workspaceRoot: this.workspaceRoot });
+      } catch (error) {
+        logWarning('Failed to log task outcome', {
+          taskId: task.id,
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+    }
+
+    if (finalStatus === 'done') {
+      await this.feedbackTracker.closeFeedbackLoop({
+        task,
+        execution: result,
+        summary,
+        quality: qualityResult,
+        context,
+        guardrailAdjustments: [],
+        criticIssues: criticOutcome?.failedCritics,
+      });
+    }
 
     if (result.success) {
       this.resilienceManager.resetRetries(task.id);

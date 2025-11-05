@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Feedback Loop Health</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+    <style>
+      body { font-family: sans-serif; margin: 2rem; }
+      .metrics { display: flex; gap: 2rem; flex-wrap: wrap; }
+      .metric-card { border: 1px solid #ccc; padding: 1rem; border-radius: 8px; min-width: 220px; }
+      .metric-card h3 { margin: 0 0 0.5rem 0; font-size: 1.1rem; }
+      .metric-value { font-size: 2rem; font-weight: bold; }
+      canvas { max-width: 600px; margin-top: 2rem; }
+      table { border-collapse: collapse; margin-top: 2rem; width: 100%; }
+      th, td { border: 1px solid #ddd; padding: 0.5rem; text-align: left; }
+    </style>
+  </head>
+  <body>
+    <h1>Feedback Loop Health</h1>
+    <p>This dashboard visualizes loop closures stored in <code>state/analytics/feedback_loops.jsonl</code>.</p>
+    <div class="metrics">
+      <div class="metric-card">
+        <h3>Feedback Density</h3>
+        <div class="metric-value" id="metric-density">--</div>
+        <div>Target: ≥ 0.80</div>
+      </div>
+      <div class="metric-card">
+        <h3>Open Loops</h3>
+        <div class="metric-value" id="metric-open">--</div>
+      </div>
+      <div class="metric-card">
+        <h3>Avg Time to Close</h3>
+        <div class="metric-value" id="metric-duration">--</div>
+      </div>
+    </div>
+
+    <canvas id="qualityChart"></canvas>
+
+    <h2>Open Loops</h2>
+    <table id="openLoopsTable">
+      <thead>
+        <tr>
+          <th>Task</th>
+          <th>Opened</th>
+          <th>Iterations</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+
+    <script>
+      async function loadData() {
+        const response = await fetch('/state/analytics/feedback_loops.jsonl');
+        if (!response.ok) {
+          throw new Error('Unable to load feedback loop log');
+        }
+        const text = await response.text();
+        return text
+          .split('\n')
+          .map((line) => line.trim())
+          .filter(Boolean)
+          .map((line) => JSON.parse(line));
+      }
+
+      function latestRecords(records) {
+        const map = new Map();
+        for (const record of records) {
+          map.set(record.loop_id, record);
+        }
+        return Array.from(map.values());
+      }
+
+      function computeDensity(records) {
+        if (records.length === 0) return 0;
+        const latest = latestRecords(records);
+        const total = latest.length;
+        const closed = latest.filter((record) => record.loop_closed).length;
+        return total === 0 ? 0 : closed / total;
+      }
+
+      function renderMetrics(records) {
+        const density = computeDensity(records);
+        document.getElementById('metric-density').textContent = density.toFixed(2);
+
+        const latest = latestRecords(records);
+        const openLoops = latest.filter((record) => !record.loop_closed);
+        document.getElementById('metric-open').textContent = openLoops.length.toString();
+
+        const closed = latest.filter((record) => record.loop_closed && typeof record.loop_duration_hours === 'number');
+        const avgDuration = closed.length > 0
+          ? closed.reduce((sum, record) => sum + record.loop_duration_hours, 0) / closed.length
+          : 0;
+        document.getElementById('metric-duration').textContent = avgDuration.toFixed(1) + 'h';
+
+        const qualityBuckets = { high: 0, medium: 0, low: 0 };
+        for (const record of closed) {
+          if (record.loop_quality && qualityBuckets[record.loop_quality] !== undefined) {
+            qualityBuckets[record.loop_quality] += 1;
+          }
+        }
+
+        const ctx = document.getElementById('qualityChart').getContext('2d');
+        new Chart(ctx, {
+          type: 'bar',
+          data: {
+            labels: ['High', 'Medium', 'Low'],
+            datasets: [{
+              label: 'Closed loop quality',
+              data: [qualityBuckets.high, qualityBuckets.medium, qualityBuckets.low],
+              backgroundColor: ['#4caf50', '#ffb300', '#f44336'],
+            }],
+          },
+        });
+
+        const tbody = document.querySelector('#openLoopsTable tbody');
+        tbody.innerHTML = '';
+        for (const record of openLoops) {
+          const row = document.createElement('tr');
+          row.innerHTML = `
+            <td>${record.task_id}</td>
+            <td>${record.loop_opened_timestamp}</td>
+            <td>${record.iterations_to_close}</td>
+          `;
+          tbody.appendChild(row);
+        }
+      }
+
+      loadData()
+        .then(renderMetrics)
+        .catch((error) => {
+          document.body.insertAdjacentHTML('beforeend', `<p style="color:red">${error.message}</p>`);
+        });
+    </script>
+  </body>
+</html>

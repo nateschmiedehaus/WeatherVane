@@ -1,0 +1,2 @@
+Feedback density: 100.0%
+Open loops: 0

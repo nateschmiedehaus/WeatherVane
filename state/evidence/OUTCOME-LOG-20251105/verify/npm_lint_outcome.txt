@@ -1,0 +1,761 @@
+
+> wvo-mcp-server@0.1.0 lint
+> eslint "src/**/*.{ts,tsx}" --quiet
+
+
+/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/tools/wvo_mcp/src/critics/data_observation.ts
+   29:13  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  212:45  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/tools/wvo_mcp/src/critics/database_observation.ts
+   27:10  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  222:17  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/tools/wvo_mcp/src/critics/design_system_visual.ts
+   17:19  error  'logWarning' is defined but never used. Allowed unused vars must match /^_/u      @typescript-eslint/no-unused-vars
+  210:36  error  'screenshotPath' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+  210:60  error  'page' is defined but never used. Allowed unused args must match /^_/u            @typescript-eslint/no-unused-vars
+  210:74  error  'viewport' is defined but never used. Allowed unused args must match /^_/u        @typescript-eslint/no-unused-vars
+  230:30  error  'screenshotPath' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+  230:54  error  'page' is defined but never used. Allowed unused args must match /^_/u            @typescript-eslint/no-unused-vars
+  230:68  error  'viewport' is defined but never used. Allowed unused args must match /^_/u        @typescript-eslint/no-unused-vars
+  249:33  error  'screenshotPath' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+  249:57  error  'page' is defined but never used. Allowed unused args must match /^_/u            @typescript-eslint/no-unused-vars
+  249:71  error  'viewport' is defined but never used. Allowed unused args must match /^_/u        @typescript-eslint/no-unused-vars
+  297:42  error  'screenshotPath' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+  297:66  error  'page' is defined but never used. Allowed unused args must match /^_/u            @typescript-eslint/no-unused-vars
+  297:80  error  'viewport' is defined but never used. Allowed unused args must match /^_/u        @typescript-eslint/no-unused-vars
+  316:36  error  'screenshotPath' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+  316:60  error  'page' is defined but never used. Allowed unused args must match /^_/u            @typescript-eslint/no-unused-vars
+  316:74  error  'viewport' is defined but never used. Allowed unused args must match /^_/u        @typescript-eslint/no-unused-vars
+
+/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/tools/wvo_mcp/src/critics/forecast_stitch.ts
+  11:21  error  'profile' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+
+/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/tools/wvo_mcp/src/critics/infrastructure_observation.ts
+   31:13  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  180:43  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/tools/wvo_mcp/src/critics/meta_critique.ts
+  4:21  error  'profile' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+
+/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/tools/wvo_mcp/src/critics/ml_task_meta_critic.ts
+   48:21  error  'profile' is defined but never used. Allowed unused args must match /^_/u   @typescript-eslint/no-unused-vars
+  282:5   error  'insights' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+
+/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/tools/wvo_mcp/src/critics/modeling_reality.ts
+  14:13  error  'fs' is defined but never used. Allowed unused vars must match /^_/u               @typescript-eslint/no-unused-vars
+  15:13  error  'path' is defined but never used. Allowed unused vars must match /^_/u             @typescript-eslint/no-unused-vars
+  66:13  error  'stdout' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/tools/wvo_mcp/src/critics/modeling_reality_v2.ts
+   17:10  error  'execSync' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+  265:65  error  'taskId' is defined but never used. Allowed unused args must match /^_/u    @typescript-eslint/no-unused-vars
+
+/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/tools/wvo_mcp/src/critics/performance_observation.ts
+   19:10  error  'promisify' is defined but never used. Allowed unused vars must match /^_/u   @typescript-eslint/no-unused-vars
+   47:13  error  Unexpected any. Specify a different type                                      @typescript-eslint/no-explicit-any
+  324:36  error  'sessionDir' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+  324:65  error  Unexpected any. Specify a different type                                      @typescript-eslint/no-explicit-any
+  343:33  error  'pid' is defined but never used. Allowed unused args must match /^_/u         @typescript-eslint/no-unused-vars
+
+/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/tools/wvo_mcp/src/critics/tests.ts
+  4:21  error  'profile' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+
+/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/tools/wvo_mcp/src/critics/weather_coverage.test.ts
+    9:20  error  'writeFile' is defined but never used. Allowed unused vars must match /^_/u        @typescript-eslint/no-unused-vars
+   10:10  error  'parseJsonSafe' is defined but never used. Allowed unused vars must match /^_/u    @typescript-eslint/no-unused-vars
+   11:10  error  'join' is defined but never used. Allowed unused vars must match /^_/u             @typescript-eslint/no-unused-vars
+   12:10  error  'mkdirSync' is defined but never used. Allowed unused vars must match /^_/u        @typescript-eslint/no-unused-vars
+   12:21  error  'rmSync' is defined but never used. Allowed unused vars must match /^_/u           @typescript-eslint/no-unused-vars
+   69:13  error  'result' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+   89:13  error  'result' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+  103:13  error  'result' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/tools/wvo_mcp/src/critics/weather_coverage.ts
+   2:10  error  'join' is defined but never used. Allowed unused vars must match /^_/u                            @typescript-eslint/no-unused-vars
+  17:7   error  'REGRESSION_THRESHOLDS' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+  39:33  error  'output' is defined but never used. Allowed unused args must match /^_/u                          @typescript-eslint/no-unused-vars
+
+/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/tools/wvo_mcp/src/index-claude.ts
+    18:35  error  'formatList' is defined but never used. Allowed unused vars must match /^_/u            @typescript-eslint/no-unused-vars
+    34:8   error  'LspDefinitionInput' is defined but never used. Allowed unused vars must match /^_/u    @typescript-eslint/no-unused-vars
+    35:8   error  'LspReferencesInput' is defined but never used. Allowed unused vars must match /^_/u    @typescript-eslint/no-unused-vars
+    36:8   error  'LspHoverInput' is defined but never used. Allowed unused vars must match /^_/u         @typescript-eslint/no-unused-vars
+    37:8   error  'LspServerStatusInput' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+    38:8   error  'LspInitializeInput' is defined but never used. Allowed unused vars must match /^_/u    @typescript-eslint/no-unused-vars
+    39:8   error  'AdminFlagsInput' is defined but never used. Allowed unused vars must match /^_/u       @typescript-eslint/no-unused-vars
+   150:45  error  'promise' is defined but never used. Allowed unused args must match /^_/u               @typescript-eslint/no-unused-vars
+   312:48  error  Unexpected any. Specify a different type                                                @typescript-eslint/no-explicit-any
+   313:50  error  Unexpected any. Specify a different type                                                @typescript-eslint/no-explicit-any
+   314:46  error  Unexpected any. Specify a different type                                                @typescript-eslint/no-explicit-any
+   315:77  error  Unexpected any. Specify a different type                                                @typescript-eslint/no-explicit-any
+   317:43  error  Unexpected any. Specify a different type                                                @typescript-eslint/no-explicit-any
+   317:95  error  Unexpected any. Specify a different type                                                @typescript-eslint/no-explicit-any
+   669:13  error  'startTime' is assigned a value but never used. Allowed unused vars must match /^_/u    @typescript-eslint/no-unused-vars
+   788:26  error  Unexpected any. Specify a different type                                                @typescript-eslint/no-explicit-any
+   815:59  error  Unexpected any. Specify a different type                                                @typescript-eslint/no-explicit-any
+   822:66  error  Unexpected any. Specify a different type                                                @typescript-eslint/no-explicit-any
+   949:62  error  Unexpected any. Specify a different type                                                @typescript-eslint/no-explicit-any
+   988:63  error  Unexpected any. Specify a different type                                                @typescript-eslint/no-explicit-any
+  1039:68  error  Unexpected any. Specify a different type                                                @typescript-eslint/no-explicit-any
+  1802:50  error  Unexpected any. Specify a different type                                                @typescript-eslint/no-explicit-any
+  1837:50  error  Unexpected any. Specify a different type                                                @typescript-eslint/no-explicit-any
+
+/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/tools/wvo_mcp/src/index.ts
+  114:15  error  Empty block statement  no-empty
+
+/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/tools/wvo_mcp/src/limits/usage_estimator.ts
+  11:50  error  'ProviderUsage' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/tools/wvo_mcp/src/lsp/lsp_manager.ts
+   15:3   error  'SymbolKind' is defined but never used. Allowed unused vars must match /^_/u         @typescript-eslint/no-unused-vars
+  142:11  error  'response' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+  157:46  error  'language' is defined but never used. Allowed unused args must match /^_/u           @typescript-eslint/no-unused-vars
+
+/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/tools/wvo_mcp/src/lsp/pyright_proxy.test.ts
+   76:32  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   82:32  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   94:32  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  255:32  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  260:32  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/tools/wvo_mcp/src/lsp/pyright_proxy.ts
+  115:27  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/tools/wvo_mcp/src/lsp/tsserver_proxy.test.ts
+   78:32  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   84:32  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   96:32  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  173:32  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  178:32  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/tools/wvo_mcp/src/lsp/tsserver_proxy.ts
+  115:27  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/tools/wvo_mcp/src/models/model_discovery.ts
+   88:23  error  'stderr' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+  128:23  error  'stderr' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/tools/wvo_mcp/src/observability/resource_budgets.test.ts
+   5:55  error  'vi' is defined but never used. Allowed unused vars must match /^_/u                 @typescript-eslint/no-unused-vars
+  12:8   error  'WorkerCallContext' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/tools/wvo_mcp/src/observability/resource_budgets.ts
+  400:11  error  'memStart' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/tools/wvo_mcp/src/observability/worker_call_wrapper.test.ts
+   11:8   error  'WorkerCallWrapperOptions' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+  306:16  error  'scope' is defined but never used. Allowed unused args must match /^_/u                     @typescript-eslint/no-unused-vars
+
+/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/tools/wvo_mcp/src/orchestrator/active_response_manager.ts
+   25:15  error  'Task' is defined but never used. Allowed unused vars must match /^_/u          @typescript-eslint/no-unused-vars
+   27:31  error  'logError' is defined but never used. Allowed unused vars must match /^_/u      @typescript-eslint/no-unused-vars
+  199:44  error  Unexpected any. Specify a different type                                        @typescript-eslint/no-explicit-any
+  301:38  error  'policyEngine' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+  303:11  error  'now' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+  323:29  error  Unexpected any. Specify a different type                                        @typescript-eslint/no-explicit-any
+
+/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/tools/wvo_mcp/src/orchestrator/activity_feed_writer.ts
+   21:15  error  'AssembledContext' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+   51:22  error  Unexpected any. Specify a different type                                            @typescript-eslint/no-explicit-any
+  265:73  error  Unexpected any. Specify a different type                                            @typescript-eslint/no-explicit-any
+
+/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/tools/wvo_mcp/src/orchestrator/adversarial_bullshit_detector.ts
+  20:31  error  'logError' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/tools/wvo_mcp/src/orchestrator/agent_coordinator.ts
+    1:1  error  Do not use "@ts-nocheck" because it alters compilation errors                           @typescript-eslint/ban-ts-comment
+  979:7  error  'lastContext' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/tools/wvo_mcp/src/orchestrator/agent_pool.ts
+  429:43  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  429:58  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  429:83  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  437:75  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  441:70  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  511:24  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/tools/wvo_mcp/src/orchestrator/autopilot_health_monitor.ts
+   17:29  error  'Task' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+  548:42  error  Unexpected any. Specify a different type                                @typescript-eslint/no-explicit-any
+
+/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/tools/wvo_mcp/src/orchestrator/blocker_escalation_manager.ts
+  157:25  error  'record' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/tools/wvo_mcp/src/orchestrator/context_assembler.feature_gates.test.ts
+  47:15  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/tools/wvo_mcp/src/orchestrator/context_assembler.ts
+   750:40  error  'task' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+  1148:36  error  Unexpected any. Specify a different type                                @typescript-eslint/no-explicit-any
+
+/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/tools/wvo_mcp/src/orchestrator/critic_availability_guardian.ts
+  142:17  error  'override' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/tools/wvo_mcp/src/orchestrator/domain_expert_reviewer.test.ts
+   13:15  error  'prompt' is defined but never used. Allowed unused args must match /^_/u      @typescript-eslint/no-unused-vars
+   13:31  error  'complexity' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+   34:43  error  Unexpected any. Specify a different type                                      @typescript-eslint/no-explicit-any
+  249:52  error  Unexpected any. Specify a different type                                      @typescript-eslint/no-explicit-any
+  250:52  error  Unexpected any. Specify a different type                                      @typescript-eslint/no-explicit-any
+
+/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/tools/wvo_mcp/src/orchestrator/domain_expert_reviewer.ts
+  271:11  error  'approvedCount' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+  486:36  error  'templateName' is defined but never used. Allowed unused args must match /^_/u            @typescript-eslint/no-unused-vars
+
+/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/tools/wvo_mcp/src/orchestrator/error_analysis_worker.ts
+  15:19  error  'logWarning' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/tools/wvo_mcp/src/orchestrator/error_detector.ts
+  8:20  error  'logWarning' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/tools/wvo_mcp/src/orchestrator/evidence_bundle.ts
+   10:10  error  'execSync' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+   28:36  error  Unexpected any. Specify a different type                                    @typescript-eslint/no-explicit-any
+  280:26  error  Unexpected any. Specify a different type                                    @typescript-eslint/no-explicit-any
+  282:38  error  Unexpected any. Specify a different type                                    @typescript-eslint/no-explicit-any
+
+/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/tools/wvo_mcp/src/orchestrator/failure_classifier.ts
+  249:9  error  'normalized' is never reassigned. Use 'const' instead  prefer-const
+
+/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/tools/wvo_mcp/src/orchestrator/failure_response_manager.ts
+  247:9  error  Unexpected lexical declaration in case block  no-case-declarations
+  259:9  error  Unexpected lexical declaration in case block  no-case-declarations
+
+/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/tools/wvo_mcp/src/orchestrator/feature_gates.test.ts
+   88:12  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  105:12  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  122:12  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  138:12  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  153:12  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  168:12  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  183:12  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  198:12  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  213:12  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  226:12  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  237:12  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  245:12  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  253:12  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  263:12  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  283:12  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  291:12  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  299:12  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  331:12  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  364:12  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  385:12  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/tools/wvo_mcp/src/orchestrator/git_status_monitor.ts
+  209:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/tools/wvo_mcp/src/orchestrator/health_monitor.ts
+  190:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  223:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  255:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/tools/wvo_mcp/src/orchestrator/holistic_review_manager.test.ts
+  96:60  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/tools/wvo_mcp/src/orchestrator/idle_manager.ts
+  13:29  error  'Task' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+  75:23  error  Unexpected any. Specify a different type                                @typescript-eslint/no-explicit-any
+
+/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/tools/wvo_mcp/src/orchestrator/knowledge_graph.ts
+  125:17  error  'id' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/tools/wvo_mcp/src/orchestrator/lens_gap_detector.test.ts
+  385:18  error  Require statement not part of import statement  @typescript-eslint/no-var-requires
+
+/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/tools/wvo_mcp/src/orchestrator/lens_gap_detector.ts
+   16:19  error  'logDebug' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+  122:44  error  'lenses' is defined but never used. Allowed unused args must match /^_/u    @typescript-eslint/no-unused-vars
+  122:52  error  Unexpected any. Specify a different type                                    @typescript-eslint/no-explicit-any
+  265:40  error  Unexpected any. Specify a different type                                    @typescript-eslint/no-explicit-any
+  321:36  error  Unexpected any. Specify a different type                                    @typescript-eslint/no-explicit-any
+
+/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/tools/wvo_mcp/src/orchestrator/milestone_review_generator.test.ts
+    7:55  error  'vi' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+  278:30  error  Require statement not part of import statement                        @typescript-eslint/no-var-requires
+  279:59  error  Unexpected any. Specify a different type                              @typescript-eslint/no-explicit-any
+  283:54  error  Unexpected any. Specify a different type                              @typescript-eslint/no-explicit-any
+  284:45  error  Unexpected any. Specify a different type                              @typescript-eslint/no-explicit-any
+  327:30  error  Require statement not part of import statement                        @typescript-eslint/no-var-requires
+  328:59  error  Unexpected any. Specify a different type                              @typescript-eslint/no-explicit-any
+  331:56  error  Unexpected any. Specify a different type                              @typescript-eslint/no-explicit-any
+  366:30  error  Require statement not part of import statement                        @typescript-eslint/no-var-requires
+  367:59  error  Unexpected any. Specify a different type                              @typescript-eslint/no-explicit-any
+  370:55  error  Unexpected any. Specify a different type                              @typescript-eslint/no-explicit-any
+  371:54  error  Unexpected any. Specify a different type                              @typescript-eslint/no-explicit-any
+  404:30  error  Require statement not part of import statement                        @typescript-eslint/no-var-requires
+  405:59  error  Unexpected any. Specify a different type                              @typescript-eslint/no-explicit-any
+  408:56  error  Unexpected any. Specify a different type                              @typescript-eslint/no-explicit-any
+
+/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/tools/wvo_mcp/src/orchestrator/operations_manager.ts
+     1:1   error  Do not use "@ts-nocheck" because it alters compilation errors  @typescript-eslint/ban-ts-comment
+   376:37  error  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+   417:37  error  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+   466:37  error  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+   500:37  error  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+   580:37  error  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+   610:37  error  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+   628:37  error  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+   659:37  error  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+   787:37  error  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+   952:37  error  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+   980:37  error  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+  1116:37  error  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+  1163:37  error  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+  1230:37  error  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+  1288:37  error  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+  1576:37  error  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+  1615:37  error  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+  1749:37  error  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+
+/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/tools/wvo_mcp/src/orchestrator/orchestrator_background_tasks.ts
+  381:68  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/tools/wvo_mcp/src/orchestrator/orchestrator_loop.ts
+  593:17  error  'passedCount' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+  736:32  error  'reason' is defined but never used. Allowed unused args must match /^_/u                @typescript-eslint/no-unused-vars
+
+/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/tools/wvo_mcp/src/orchestrator/orchestrator_runtime.ts
+  80:11  error  'enableClaudeCoordinator' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/tools/wvo_mcp/src/orchestrator/peer_review_manager.ts
+  88:75  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/tools/wvo_mcp/src/orchestrator/post_promotion_health_monitor.ts
+   19:18  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   20:22  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   21:14  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   87:56  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  106:59  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  125:51  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  133:45  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  148:47  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  189:49  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/tools/wvo_mcp/src/orchestrator/preflight_runner.ts
+  97:23  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/tools/wvo_mcp/src/orchestrator/priority_queue_dispatcher.test.ts
+  177:13  error  'batch' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+  232:13  error  'task2' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/tools/wvo_mcp/src/orchestrator/priority_queue_dispatcher.ts
+  96:13  error  'enforced' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/tools/wvo_mcp/src/orchestrator/priority_scheduler.test.ts
+   70:41  error  Unexpected any. Specify a different type                                                 @typescript-eslint/no-explicit-any
+   79:45  error  Unexpected any. Specify a different type                                                 @typescript-eslint/no-explicit-any
+   87:36  error  Unexpected any. Specify a different type                                                 @typescript-eslint/no-explicit-any
+   99:14  error  Unexpected any. Specify a different type                                                 @typescript-eslint/no-explicit-any
+  102:13  error  'legacyResult' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+  118:14  error  Unexpected any. Specify a different type                                                 @typescript-eslint/no-explicit-any
+  131:14  error  Unexpected any. Specify a different type                                                 @typescript-eslint/no-explicit-any
+  142:76  error  Unexpected any. Specify a different type                                                 @typescript-eslint/no-explicit-any
+  143:72  error  Unexpected any. Specify a different type                                                 @typescript-eslint/no-explicit-any
+  144:75  error  Unexpected any. Specify a different type                                                 @typescript-eslint/no-explicit-any
+  155:86  error  Unexpected any. Specify a different type                                                 @typescript-eslint/no-explicit-any
+  156:72  error  Unexpected any. Specify a different type                                                 @typescript-eslint/no-explicit-any
+  169:59  error  Unexpected any. Specify a different type                                                 @typescript-eslint/no-explicit-any
+  173:58  error  Unexpected any. Specify a different type                                                 @typescript-eslint/no-explicit-any
+  214:14  error  Unexpected any. Specify a different type                                                 @typescript-eslint/no-explicit-any
+  230:39  error  Unexpected any. Specify a different type                                                 @typescript-eslint/no-explicit-any
+
+/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/tools/wvo_mcp/src/orchestrator/priority_scheduler.ts
+  181:53   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  191:55   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  205:105  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  243:57   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/tools/wvo_mcp/src/orchestrator/process_manager.ts
+  159:15  error  Empty block statement  no-empty
+
+/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/tools/wvo_mcp/src/orchestrator/quality_gate_integration.test.ts
+  11:55  error  'vi' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/tools/wvo_mcp/src/orchestrator/quality_gate_orchestrator.ts
+  124:23  error  Require statement not part of import statement  @typescript-eslint/no-var-requires
+
+/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/tools/wvo_mcp/src/orchestrator/resilience_manager.ts
+  12:29  error  'Task' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+  45:51  error  Unexpected any. Specify a different type                                @typescript-eslint/no-explicit-any
+
+/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/tools/wvo_mcp/src/orchestrator/resource_lifecycle_manager.test.ts
+   8:36  error  'ResourceScope' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+  25:53  error  'scope' is defined but never used. Allowed unused args must match /^_/u          @typescript-eslint/no-unused-vars
+  46:23  error  Unexpected any. Specify a different type                                         @typescript-eslint/no-explicit-any
+
+/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/tools/wvo_mcp/src/orchestrator/resource_lifecycle_manager.ts
+   17:57  error  'ExecaOptions' is defined but never used. Allowed unused vars must match /^_/u                                                                                                                                                                                                                                                                                                                                      @typescript-eslint/no-unused-vars
+   18:31  error  'logError' is defined but never used. Allowed unused vars must match /^_/u                                                                                                                                                                                                                                                                                                                                          @typescript-eslint/no-unused-vars
+   23:12  error  Don't use `Function` as a type. The `Function` type accepts any function-like value.
+It provides no type safety when calling the function, which can be a common source of bugs.
+It also accepts things like class declarations, which will throw at runtime as they will not be called with `new`.
+If you are expecting the function to accept certain arguments, you should explicitly define the function shape  @typescript-eslint/ban-types
+   53:53  error  Don't use `Function` as a type. The `Function` type accepts any function-like value.
+It provides no type safety when calling the function, which can be a common source of bugs.
+It also accepts things like class declarations, which will throw at runtime as they will not be called with `new`.
+If you are expecting the function to accept certain arguments, you should explicitly define the function shape  @typescript-eslint/ban-types
+   55:34  error  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                            @typescript-eslint/no-explicit-any
+   61:55  error  Don't use `Function` as a type. The `Function` type accepts any function-like value.
+It provides no type safety when calling the function, which can be a common source of bugs.
+It also accepts things like class declarations, which will throw at runtime as they will not be called with `new`.
+If you are expecting the function to accept certain arguments, you should explicitly define the function shape  @typescript-eslint/ban-types
+   63:36  error  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                            @typescript-eslint/no-explicit-any
+  104:75  error  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                            @typescript-eslint/no-explicit-any
+  148:69  error  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                            @typescript-eslint/no-explicit-any
+  191:64  error  Don't use `Function` as a type. The `Function` type accepts any function-like value.
+It provides no type safety when calling the function, which can be a common source of bugs.
+It also accepts things like class declarations, which will throw at runtime as they will not be called with `new`.
+If you are expecting the function to accept certain arguments, you should explicitly define the function shape  @typescript-eslint/ban-types
+  201:65  error  Don't use `Function` as a type. The `Function` type accepts any function-like value.
+It provides no type safety when calling the function, which can be a common source of bugs.
+It also accepts things like class declarations, which will throw at runtime as they will not be called with `new`.
+If you are expecting the function to accept certain arguments, you should explicitly define the function shape  @typescript-eslint/ban-types
+  207:52  error  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                            @typescript-eslint/no-explicit-any
+  220:30  error  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                            @typescript-eslint/no-explicit-any
+  247:21  error  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                            @typescript-eslint/no-explicit-any
+  278:9   error  'fileInfo' is assigned a value but never used. Allowed unused vars must match /^_/u                                                                                                                                                                                                                                                                                                                                 @typescript-eslint/no-unused-vars
+  369:68  error  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                            @typescript-eslint/no-explicit-any
+
+/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/tools/wvo_mcp/src/orchestrator/roadmap_inbox_processor.ts
+  177:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/tools/wvo_mcp/src/orchestrator/roadmap_tracker.ts
+  18:18  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/tools/wvo_mcp/src/orchestrator/rollback_monitor.test.ts
+   55:26  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   56:30  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   57:22  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  111:28  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  135:25  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  156:25  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  169:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  217:39  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  280:26  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  287:25  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  430:25  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/tools/wvo_mcp/src/orchestrator/rollback_monitor.ts
+  51:18  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  52:22  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  53:14  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  62:26  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  63:30  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  64:22  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/tools/wvo_mcp/src/orchestrator/sandbox_pool.test.ts
+   14:55  error  'vi' is defined but never used. Allowed unused vars must match /^_/u              @typescript-eslint/no-unused-vars
+   73:52  error  'sandbox' is defined but never used. Allowed unused args must match /^_/u         @typescript-eslint/no-unused-vars
+   84:54  error  'sandbox' is defined but never used. Allowed unused args must match /^_/u         @typescript-eslint/no-unused-vars
+   97:39  error  'sandbox' is defined but never used. Allowed unused args must match /^_/u         @typescript-eslint/no-unused-vars
+  107:11  error  'initialStats' is never reassigned. Use 'const' instead                           prefer-const
+  110:37  error  'sandbox' is defined but never used. Allowed unused args must match /^_/u         @typescript-eslint/no-unused-vars
+  122:39  error  'sandbox' is defined but never used. Allowed unused args must match /^_/u         @typescript-eslint/no-unused-vars
+  144:40  error  'sandbox' is defined but never used. Allowed unused args must match /^_/u         @typescript-eslint/no-unused-vars
+  155:11  error  'stats' is never reassigned. Use 'const' instead                                  prefer-const
+  212:38  error  Unexpected any. Specify a different type                                          @typescript-eslint/no-explicit-any
+  242:37  error  'sandbox' is defined but never used. Allowed unused args must match /^_/u         @typescript-eslint/no-unused-vars
+  250:37  error  'sandbox' is defined but never used. Allowed unused args must match /^_/u         @typescript-eslint/no-unused-vars
+  282:37  error  'sandbox' is defined but never used. Allowed unused args must match /^_/u         @typescript-eslint/no-unused-vars
+  315:35  error  'sandbox' is defined but never used. Allowed unused args must match /^_/u         @typescript-eslint/no-unused-vars
+  341:39  error  'sandbox' is defined but never used. Allowed unused args must match /^_/u         @typescript-eslint/no-unused-vars
+  561:37  error  'sandbox' is defined but never used. Allowed unused args must match /^_/u         @typescript-eslint/no-unused-vars
+  573:39  error  'sandbox' is defined but never used. Allowed unused args must match /^_/u         @typescript-eslint/no-unused-vars
+  577:23  error  Unexpected any. Specify a different type                                          @typescript-eslint/no-explicit-any
+  633:13  error  'stats' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/tools/wvo_mcp/src/orchestrator/sandbox_pool.ts
+  29:33  error  Unexpected any. Specify a different type                                   @typescript-eslint/no-explicit-any
+  58:5   error  'command' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+  59:5   error  'args' is defined but never used. Allowed unused args must match /^_/u     @typescript-eslint/no-unused-vars
+  60:5   error  'options' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+  74:21  error  Unexpected any. Specify a different type                                   @typescript-eslint/no-explicit-any
+
+/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/tools/wvo_mcp/src/orchestrator/self_improvement_manager.ts
+  172:13  error  'result' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+  194:21  error  Unexpected any. Specify a different type                                           @typescript-eslint/no-explicit-any
+  485:23  error  Unexpected any. Specify a different type                                           @typescript-eslint/no-explicit-any
+  538:23  error  Unexpected any. Specify a different type                                           @typescript-eslint/no-explicit-any
+
+/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/tools/wvo_mcp/src/orchestrator/seven_lens_evaluator.ts
+   29:10  error  'logDebug' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+   29:20  error  'logInfo' is defined but never used. Allowed unused vars must match /^_/u   @typescript-eslint/no-unused-vars
+   66:50  error  Unexpected any. Specify a different type                                    @typescript-eslint/no-explicit-any
+  108:39  error  'context' is defined but never used. Allowed unused args must match /^_/u   @typescript-eslint/no-unused-vars
+  108:49  error  Unexpected any. Specify a different type                                    @typescript-eslint/no-explicit-any
+  200:44  error  'context' is defined but never used. Allowed unused args must match /^_/u   @typescript-eslint/no-unused-vars
+  200:54  error  Unexpected any. Specify a different type                                    @typescript-eslint/no-explicit-any
+  251:38  error  'context' is defined but never used. Allowed unused args must match /^_/u   @typescript-eslint/no-unused-vars
+  251:48  error  Unexpected any. Specify a different type                                    @typescript-eslint/no-explicit-any
+  301:39  error  'context' is defined but never used. Allowed unused args must match /^_/u   @typescript-eslint/no-unused-vars
+  301:49  error  Unexpected any. Specify a different type                                    @typescript-eslint/no-explicit-any
+  340:44  error  'context' is defined but never used. Allowed unused args must match /^_/u   @typescript-eslint/no-unused-vars
+  340:54  error  Unexpected any. Specify a different type                                    @typescript-eslint/no-explicit-any
+  383:44  error  'context' is defined but never used. Allowed unused args must match /^_/u   @typescript-eslint/no-unused-vars
+  383:54  error  Unexpected any. Specify a different type                                    @typescript-eslint/no-explicit-any
+  460:38  error  'context' is defined but never used. Allowed unused args must match /^_/u   @typescript-eslint/no-unused-vars
+  460:48  error  Unexpected any. Specify a different type                                    @typescript-eslint/no-explicit-any
+  509:39  error  'context' is defined but never used. Allowed unused args must match /^_/u   @typescript-eslint/no-unused-vars
+  509:49  error  Unexpected any. Specify a different type                                    @typescript-eslint/no-explicit-any
+  560:39  error  'context' is defined but never used. Allowed unused args must match /^_/u   @typescript-eslint/no-unused-vars
+  560:49  error  Unexpected any. Specify a different type                                    @typescript-eslint/no-explicit-any
+  610:51  error  'context' is defined but never used. Allowed unused args must match /^_/u   @typescript-eslint/no-unused-vars
+  610:61  error  Unexpected any. Specify a different type                                    @typescript-eslint/no-explicit-any
+  649:42  error  'context' is defined but never used. Allowed unused args must match /^_/u   @typescript-eslint/no-unused-vars
+  649:52  error  Unexpected any. Specify a different type                                    @typescript-eslint/no-explicit-any
+  699:41  error  'context' is defined but never used. Allowed unused args must match /^_/u   @typescript-eslint/no-unused-vars
+  699:51  error  Unexpected any. Specify a different type                                    @typescript-eslint/no-explicit-any
+  765:42  error  Unexpected any. Specify a different type                                    @typescript-eslint/no-explicit-any
+
+/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/tools/wvo_mcp/src/orchestrator/state_machine.ts
+   508:84   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   521:19   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   562:19   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   586:59   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   709:102  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   718:113  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   901:19   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   920:59   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   955:19   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   974:59   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   987:19   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   994:58   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  1188:19   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  1207:59   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  1246:103  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  1362:19   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  1402:26   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/tools/wvo_mcp/src/orchestrator/task_decomposer.ts
+  136:9   error  'currentId' is never reassigned. Use 'const' instead                                    prefer-const
+  283:11  error  'description' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/tools/wvo_mcp/src/orchestrator/task_readiness.ts
+  19:20  error  'logWarning' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/tools/wvo_mcp/src/orchestrator/task_verifier.ts
+  73:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/tools/wvo_mcp/src/orchestrator/task_verifier_v2.ts
+   25:10  error  'logDebug' is defined but never used. Allowed unused vars must match /^_/u                @typescript-eslint/no-unused-vars
+   41:36  error  Unexpected any. Specify a different type                                                  @typescript-eslint/no-explicit-any
+   54:37  error  Unexpected any. Specify a different type                                                  @typescript-eslint/no-explicit-any
+  262:23  error  Unexpected any. Specify a different type                                                  @typescript-eslint/no-explicit-any
+  343:75  error  Unexpected any. Specify a different type                                                  @typescript-eslint/no-explicit-any
+  443:15  error  'artifactPaths' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/tools/wvo_mcp/src/orchestrator/unified_orchestrator.ts
+    29:53  error  'ModelTier' is defined but never used. Allowed unused vars must match /^_/u                  @typescript-eslint/no-unused-vars
+    32:33  error  'GitStatusSnapshot' is defined but never used. Allowed unused vars must match /^_/u          @typescript-eslint/no-unused-vars
+    56:40  error  'QualityGateDecision' is defined but never used. Allowed unused vars must match /^_/u        @typescript-eslint/no-unused-vars
+   244:23  error  Empty block statement                                                                        no-empty
+   271:21  error  Unexpected any. Specify a different type                                                     @typescript-eslint/no-explicit-any
+   387:23  error  Empty block statement                                                                        no-empty
+   414:21  error  Unexpected any. Specify a different type                                                     @typescript-eslint/no-explicit-any
+   492:46  error  Unexpected any. Specify a different type                                                     @typescript-eslint/no-explicit-any
+   576:51  error  Unexpected any. Specify a different type                                                     @typescript-eslint/no-explicit-any
+   805:9   error  'remainingAgents' is never reassigned. Use 'const' instead                                   prefer-const
+  1358:23  error  'maxTasks' is defined but never used. Allowed unused args must match /^_/u                   @typescript-eslint/no-unused-vars
+  1627:15  error  'orchestratorTask' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+  2035:21  error  'data' is assigned a value but never used. Allowed unused vars must match /^_/u              @typescript-eslint/no-unused-vars
+  2804:9   error  Unexpected lexical declaration in case block                                                 no-case-declarations
+  2809:9   error  Unexpected lexical declaration in case block                                                 no-case-declarations
+  2819:9   error  Unexpected lexical declaration in case block                                                 no-case-declarations
+  2824:9   error  Unexpected lexical declaration in case block                                                 no-case-declarations
+  3320:42  error  Unnecessary escape character: \-                                                             no-useless-escape
+  3360:41  error  Unnecessary escape character: \-                                                             no-useless-escape
+  3616:9   error  'output' is never reassigned. Use 'const' instead                                            prefer-const
+
+/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/tools/wvo_mcp/src/planner/planner_engine.ts
+    1:10  error  'z' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+   99:32  error  Unexpected any. Specify a different type                             @typescript-eslint/no-explicit-any
+  111:47  error  Unexpected any. Specify a different type                             @typescript-eslint/no-explicit-any
+  120:69  error  Unexpected any. Specify a different type                             @typescript-eslint/no-explicit-any
+
+/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/tools/wvo_mcp/src/planner/roadmap_auto_extend.ts
+    7:15  error  'PlanNextInput' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+   39:25  error  Unexpected any. Specify a different type                                         @typescript-eslint/no-explicit-any
+   72:9   error  'taskCounter' is never reassigned. Use 'const' instead                           prefer-const
+  303:32  error  Unexpected any. Specify a different type                                         @typescript-eslint/no-explicit-any
+  330:19  error  Unexpected any. Specify a different type                                         @typescript-eslint/no-explicit-any
+
+/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/tools/wvo_mcp/src/quality/quality_framework.ts
+  8:10  error  'logInfo' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/tools/wvo_mcp/src/session.ts
+  63:3  error  'TaskPriority' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+  69:3  error  'Task' is defined but never used. Allowed unused vars must match /^_/u          @typescript-eslint/no-unused-vars
+
+/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/tools/wvo_mcp/src/state/idempotency_backend.test.ts
+    4:8   error  'IdempotencyEntry' is defined but never used. Allowed unused vars must match /^_/u                          @typescript-eslint/no-unused-vars
+  191:50  error  Optional chain expressions can return undefined by design - using a non-null assertion is unsafe and wrong  @typescript-eslint/no-non-null-asserted-optional-chain
+  349:15  error  'before' is assigned a value but never used. Allowed unused vars must match /^_/u                           @typescript-eslint/no-unused-vars
+
+/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/tools/wvo_mcp/src/state/idempotency_backend.ts
+  247:7  error  Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  @typescript-eslint/ban-ts-comment
+
+/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/tools/wvo_mcp/src/state/idempotency_cache.test.ts
+    1:55  error  'vi' is defined but never used. Allowed unused vars must match /^_/u                @typescript-eslint/no-unused-vars
+    2:33  error  'IdempotencyEntry' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+  166:11  error  'entry' is never reassigned. Use 'const' instead                                    prefer-const
+
+/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/tools/wvo_mcp/src/state/idempotency_cache_v2.ts
+  19:3  error  'InMemoryIdempotencyBackend' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/tools/wvo_mcp/src/state/idempotency_middleware.test.ts
+   24:36  error  'input' is defined but never used. Allowed unused args must match /^_/u            @typescript-eslint/no-unused-vars
+   35:36  error  'input' is defined but never used. Allowed unused args must match /^_/u            @typescript-eslint/no-unused-vars
+  376:15  error  'parsed' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/tools/wvo_mcp/src/state/priority_queue_store.test.ts
+    6:15  error  'HeavyTaskQueueItem' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+  172:13  error  'task2' is assigned a value but never used. Allowed unused vars must match /^_/u      @typescript-eslint/no-unused-vars
+  173:13  error  'task3' is assigned a value but never used. Allowed unused vars must match /^_/u      @typescript-eslint/no-unused-vars
+
+/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/tools/wvo_mcp/src/telemetry/model_router_telemetry.ts
+  79:5  error  'estimatedTokens' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+
+/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/tools/wvo_mcp/src/telemetry/otel_spans.test.ts
+   13:44  error  'afterEach' is defined but never used. Allowed unused vars must match /^_/u               @typescript-eslint/no-unused-vars
+   13:55  error  'vi' is defined but never used. Allowed unused vars must match /^_/u                      @typescript-eslint/no-unused-vars
+   81:11  error  'capturedAttributes' is defined but never used. Allowed unused vars must match /^_/u      @typescript-eslint/no-unused-vars
+  178:13  error  'parentTraceId' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/tools/wvo_mcp/src/telemetry/otel_spans.ts
+  102:20  error  'T' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/tools/wvo_mcp/src/telemetry/telemetry_manager.test.ts
+  5:55  error  'vi' is defined but never used. Allowed unused vars must match /^_/u        @typescript-eslint/no-unused-vars
+  8:33  error  'LogLevel' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/tools/wvo_mcp/src/telemetry/telemetry_manager.ts
+   27:24  error  Unexpected any. Specify a different type        @typescript-eslint/no-explicit-any
+  129:51  error  Unexpected any. Specify a different type        @typescript-eslint/no-explicit-any
+  171:41  error  Unexpected any. Specify a different type        @typescript-eslint/no-explicit-any
+  171:63  error  Unexpected any. Specify a different type        @typescript-eslint/no-explicit-any
+  172:34  error  Unexpected any. Specify a different type        @typescript-eslint/no-explicit-any
+  197:61  error  Unexpected any. Specify a different type        @typescript-eslint/no-explicit-any
+  401:49  error  Unexpected any. Specify a different type        @typescript-eslint/no-explicit-any
+  402:36  error  Unexpected any. Specify a different type        @typescript-eslint/no-explicit-any
+  404:11  error  Require statement not part of import statement  @typescript-eslint/no-var-requires
+  404:41  error  Unexpected any. Specify a different type        @typescript-eslint/no-explicit-any
+
+/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/tools/wvo_mcp/src/telemetry/tracing.test.ts
+    1:55  error  'vi' is defined but never used. Allowed unused vars must match /^_/u                  @typescript-eslint/no-unused-vars
+   12:8   error  'InitTracingOptions' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+   13:8   error  'SpanHandle' is defined but never used. Allowed unused vars must match /^_/u          @typescript-eslint/no-unused-vars
+  181:11  error  'traceId' is assigned a value but never used. Allowed unused vars must match /^_/u    @typescript-eslint/no-unused-vars
+  238:46  error  'span' is defined but never used. Allowed unused args must match /^_/u                @typescript-eslint/no-unused-vars
+
+/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/tools/wvo_mcp/src/telemetry/verification_telemetry.ts
+   25:38  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  173:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/tools/wvo_mcp/src/tests/autopilot_decomposition_integration.test.ts
+   90:9  error  Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  @typescript-eslint/ban-ts-comment
+  306:7  error  Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  @typescript-eslint/ban-ts-comment
+  308:7  error  Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  @typescript-eslint/ban-ts-comment
+  402:9  error  'shouldDecomposeReturnedFalse' is assigned a value but never used. Allowed unused vars must match /^_/u              @typescript-eslint/no-unused-vars
+
+/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/tools/wvo_mcp/src/tests/helpers/mock_worker.ts
+  81:13  error  'executorMutatingTools' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/tools/wvo_mcp/src/tests/mcp_admin_flags.test.ts
+    1:55  error  'vi' is defined but never used. Allowed unused vars must match /^_/u                @typescript-eslint/no-unused-vars
+   13:8   error  'LiveFlagSnapshot' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+  257:16  error  Unexpected any. Specify a different type                                            @typescript-eslint/no-explicit-any
+  441:44  error  Unexpected any. Specify a different type                                            @typescript-eslint/no-explicit-any
+  447:45  error  Unexpected any. Specify a different type                                            @typescript-eslint/no-explicit-any
+
+/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/tools/wvo_mcp/src/tests/orchestrator_critic_approval_integration.test.ts
+  16:15  error  'Task' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/tools/wvo_mcp/src/tests/policy_engine_critic_approval.test.ts
+   12:24  error  'CriticApprovalStatus' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+   28:53  error  Unexpected any. Specify a different type                                                @typescript-eslint/no-explicit-any
+   67:55  error  Unexpected any. Specify a different type                                                @typescript-eslint/no-explicit-any
+  103:55  error  Unexpected any. Specify a different type                                                @typescript-eslint/no-explicit-any
+
+/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/tools/wvo_mcp/src/tests/rollback_integration.test.ts
+   17:25  error  Unexpected any. Specify a different type                                                  @typescript-eslint/no-explicit-any
+   18:27  error  Unexpected any. Specify a different type                                                  @typescript-eslint/no-explicit-any
+   19:32  error  Unexpected any. Specify a different type                                                  @typescript-eslint/no-explicit-any
+  173:29  error  Unexpected any. Specify a different type                                                  @typescript-eslint/no-explicit-any
+  252:25  error  Unexpected any. Specify a different type                                                  @typescript-eslint/no-explicit-any
+  316:11  error  'degradedCount' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+  375:25  error  Unexpected any. Specify a different type                                                  @typescript-eslint/no-explicit-any
+  391:50  error  Unexpected any. Specify a different type                                                  @typescript-eslint/no-explicit-any
+  410:25  error  Unexpected any. Specify a different type                                                  @typescript-eslint/no-explicit-any
+  434:46  error  Unexpected any. Specify a different type                                                  @typescript-eslint/no-explicit-any
+  466:11  error  'errorEmitted' is assigned a value but never used. Allowed unused vars must match /^_/u   @typescript-eslint/no-unused-vars
+  532:25  error  Unexpected any. Specify a different type                                                  @typescript-eslint/no-explicit-any
+  539:25  error  Unexpected any. Specify a different type                                                  @typescript-eslint/no-explicit-any
+  552:25  error  Unexpected any. Specify a different type                                                  @typescript-eslint/no-explicit-any
+
+/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/tools/wvo_mcp/src/tests/worker_dry_run.test.ts
+  1:8   error  'os' is defined but never used. Allowed unused vars must match /^_/u       @typescript-eslint/no-unused-vars
+  3:10  error  'mkdtemp' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+  3:19  error  'rm' is defined but never used. Allowed unused vars must match /^_/u       @typescript-eslint/no-unused-vars
+
+/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/tools/wvo_mcp/src/upgrade/preflight.test.ts
+    1:55  error  'vi' is defined but never used. Allowed unused vars must match /^_/u                       @typescript-eslint/no-unused-vars
+    5:15  error  'UpgradePreflightOptions' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+   82:22  error  Require statement not part of import statement                                             @typescript-eslint/no-var-requires
+  525:24  error  Require statement not part of import statement                                             @typescript-eslint/no-var-requires
+  763:24  error  Require statement not part of import statement                                             @typescript-eslint/no-var-requires
+
+/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/tools/wvo_mcp/src/upgrade/preflight.ts
+  13:8  error  'Semver' is defined but never used. Allowed unused vars must match /^_/u             @typescript-eslint/no-unused-vars
+  14:8  error  'VersionConstraint' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/tools/wvo_mcp/src/utils/auth_checker.ts
+  40:23  error  'stderr' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/tools/wvo_mcp/src/utils/browser.feature_gates.test.ts
+  25:13  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/tools/wvo_mcp/src/utils/code_search.ts
+  197:16  error  Unexpected constant condition  no-constant-condition
+
+/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/tools/wvo_mcp/src/utils/device_profile.test.ts
+  163:12  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  211:12  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/tools/wvo_mcp/src/utils/git_recovery.ts
+  170:37  error  Unexpected control character(s) in regular expression: \x1b                no-control-regex
+  234:20  error  'message' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+
+/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/tools/wvo_mcp/src/utils/output_validator.test.ts
+  253:57  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  255:46  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/tools/wvo_mcp/src/utils/output_validator.ts
+  51:29  error  Unexpected control character(s) in regular expression: \x09, \x0a, \x0d  no-control-regex
+
+/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/tools/wvo_mcp/src/utils/provider_manager.test.ts
+   98:13  error  'status' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+   99:41  error  Unexpected any. Specify a different type                                           @typescript-eslint/no-explicit-any
+  137:27  error  Unexpected any. Specify a different type                                           @typescript-eslint/no-explicit-any
+
+/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/tools/wvo_mcp/src/utils/safe_code_search.ts
+  281:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/tools/wvo_mcp/src/utils/screenshot_manager.ts
+   53:29  error  Unexpected any. Specify a different type                     @typescript-eslint/no-explicit-any
+  311:9   error  'totalScreenshots' is never reassigned. Use 'const' instead  prefer-const
+
+/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/tools/wvo_mcp/src/utils/worker_health.ts
+  6:29  error  'logWarning' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+  7:10  error  'spawn' is defined but never used. Allowed unused vars must match /^_/u       @typescript-eslint/no-unused-vars
+
+/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/tools/wvo_mcp/src/worker/worker_manager.ts
+   21:29  error  'logWarning' is defined but never used. Allowed unused vars must match /^_/u                                 @typescript-eslint/no-unused-vars
+  108:7   error  'DEFAULT_SHUTDOWN_GRACE_PERIOD_MS' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+✖ 498 problems (498 errors, 0 warnings)
+  9 errors and 0 warnings potentially fixable with the `--fix` option.
+
