@@ -1,4 +1,4 @@
-import { BaseCritic, type CriticResult } from './base.js';
+import { Critic, type CriticResult } from './base.js';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 
@@ -12,9 +12,11 @@ const execAsync = promisify(exec);
  *
  * Part of: AFP-S2-GIT-HYGIENE-AUTOPUSH
  */
-export class GitHygieneCritic extends BaseCritic {
-  name = 'git_hygiene';
-  description = 'Validates git working tree is clean';
+export class GitHygieneCritic extends Critic {
+  protected command(_profile: string): string | null {
+    // This critic doesn't use command pattern - it checks git status directly
+    return null;
+  }
 
   async evaluate(): Promise<CriticResult> {
     try {
@@ -26,12 +28,7 @@ export class GitHygieneCritic extends BaseCritic {
       const lines = stdout.split('\n').filter(l => l.trim().length > 0);
 
       if (lines.length === 0) {
-        return {
-          passed: true,
-          critic: this.name,
-          message: '✅ Git tree is clean',
-          violations: []
-        };
+        return this.pass('✅ Git tree is clean');
       }
 
       // Parse status lines
@@ -70,21 +67,18 @@ export class GitHygieneCritic extends BaseCritic {
         }
       }
 
-      return {
-        passed: false,
-        critic: this.name,
-        message: '❌ Git tree is not clean',
+      const remediation = this.getRemediation(uncommitted.length, untracked.length);
+
+      return this.fail('❌ Git tree is not clean', {
         violations,
-        remediation: this.getRemediation(uncommitted.length, untracked.length)
-      };
+        remediation,
+        uncommittedCount: uncommitted.length,
+        untrackedCount: untracked.length
+      });
 
     } catch (error) {
-      return {
-        passed: true,  // Fail gracefully (don't block if git command fails)
-        critic: this.name,
-        message: `⚠️  Git hygiene check skipped (${error})`,
-        violations: []
-      };
+      // Fail gracefully if git command fails (e.g., not in a git repo)
+      return this.pass(`⚠️  Git hygiene check skipped (${error})`);
     }
   }
 
