@@ -134,3 +134,10 @@ gha-creds-*.json
 # Shopify connector and external projects
 integrations/shopify-connector/weathervane-connector/
 weather-vane/
+# Temporary/backup files
+.githooks/*.backup
+
+# Runtime state files
+state/.mcp.pid
+state/limits/usage_log.json
+state/analytics/provider_capacity_metrics.json
