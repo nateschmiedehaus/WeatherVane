@@ -21,29 +21,55 @@
    - Document: Edge cases, failure modes, AFP/SCAS validation
 
 5. **[GATE]** ← CHECKPOINT - Document design thinking
-   - **REQUIRED**: For non-trivial changes (>1 file or >20 LOC), create:
-   - `state/evidence/[TASK-ID]/design.md` using template from `docs/templates/design_template.md`
-   - **DesignReviewer critic will review and provide INTELLIGENT FEEDBACK**
-   - Document: via negativa, refactor vs repair, alternatives, complexity
-   - **Pre-commit hook will BLOCK without design evidence**
 
-   **Quick start:**
+   **⚠️ CRITICAL: You MUST create design.md (NOT gate.md) for non-trivial changes**
+
+   **REQUIRED for:** >1 file changed OR >20 net LOC
+
+   **Step-by-step workflow:**
+
    ```bash
+   # Step 1: Create design.md from template
    cp docs/templates/design_template.md state/evidence/[TASK-ID]/design.md
-   # Fill in your thinking (be honest, not superficial)
+
+   # Step 2: Fill in ALL sections (be honest about trade-offs):
+   #  - Via Negativa: What can you DELETE/SIMPLIFY?
+   #  - Refactor vs Repair: Are you patching or refactoring root cause?
+   #  - Alternatives: 2-3 different approaches you considered
+   #  - Complexity: Is complexity increase justified?
+   #  - Implementation Plan: Files, LOC, risks, testing
+
+   # Step 3: Test design with DesignReviewer
+   cd tools/wvo_mcp
+   npm run gate:review [TASK-ID]
+   cd ../..
+
+   # Step 4: If BLOCKED (expect this on first try):
+   #  - Read concerns carefully
+   #  - Create remediation task: [TASK-ID]-REMEDIATION-[timestamp]
+   #  - Start new STRATEGIZE cycle
+   #  - Do actual research (30-60 min per critical issue)
+   #  - Update UPSTREAM artifacts (strategy.md, spec.md, plan.md)
+   #  - Update design.md with revised approach
+   #  - Re-test: npm run gate:review [TASK-ID]
+
+   # Step 5: When APPROVED:
    git add state/evidence/[TASK-ID]/design.md
+   # Proceed to IMPLEMENT
    ```
 
-   **Goal:** Stop compliance theater. Ensure real thinking before coding.
+   **DO NOT:**
+   - ❌ Create gate.md (old format, use design.md)
+   - ❌ Write superficial "I considered X" without evidence
+   - ❌ Skip design review testing before committing
+   - ❌ Try to bypass with --no-verify (hook will catch you)
 
-   **GATE is ITERATIVE - expect 2-3 review rounds:**
-   - DesignReviewer provides specific AFP/SCAS feedback
-   - If concerns raised: CREATE REMEDIATION TASK (new STRATEGIZE cycle)
-   - Do actual research/exploration (30-60 min per critical issue)
-   - Update design.md with REAL findings
-   - Re-submit for review
-   - **Track effort** in design.md (demonstrates real work, not theater)
-   - **Only when approved** can you proceed to IMPLEMENT
+   **GATE is ITERATIVE - 2-3 rounds is NORMAL:**
+   - First try: Usually BLOCKED (via negativa missing, insufficient alternatives, etc.)
+   - Second try: May pass or need refinement
+   - Third try: Should pass if real work done
+
+   **Goal:** Stop compliance theater. DesignReviewer WILL block superficial designs.
 
 6. **IMPLEMENT** - Write code (NOW you can code, after GATE approval)
    - Constraints: ≤5 files, ≤150 net LOC, refactor not patch

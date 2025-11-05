@@ -34,29 +34,58 @@ Act as WeatherVane's strategic reviewer and escalation partner. Provide deep rea
    - What can go wrong?
    - Complexity analysis, mitigation strategies
 
-5. **[GATE]** ← CHECKPOINT - Verify phases 1-4 complete
-   - **REQUIRED for non-trivial changes (>1 file or >20 LOC):**
-   - Create `state/evidence/[TASK-ID]/design.md` using template from `docs/templates/design_template.md`
-   - **DesignReviewer critic will provide INTELLIGENT FEEDBACK** (not just blocking)
-   - Document: via negativa analysis, refactor vs repair, alternatives, complexity trade-offs
-   - **Pre-commit hook will BLOCK without design evidence**
-   - **IF VIOLATED**: STOP. Go back to phase 1 and rethink with AFP/SCAS lens
+5. **[GATE]** ← CHECKPOINT - Document design thinking
 
-   **Design Review Approach:**
-   - Copy template: `cp docs/templates/design_template.md state/evidence/[TASK-ID]/design.md`
-   - Fill in your thinking (be honest, not superficial)
-   - DesignReviewer will give SPECIFIC guidance on AFP/SCAS alignment
-   - Works in both autopilot and manual modes
-   - **Goal:** Stop compliance theater, ensure real thinking
+   **⚠️ CRITICAL CLARITY:**
+   - **PHASE NAME:** GATE (phase 5)
+   - **FILE NAME:** design.md (NOT gate.md - old format)
+   - **PURPOSE:** Design documentation with AFP/SCAS analysis
 
-   **GATE is ITERATIVE - enforce significant remediation effort:**
-   - Expect 2-3 review rounds (this is NORMAL and GOOD)
-   - If DesignReviewer finds issues: CREATE REMEDIATION TASK
-   - Remediation = new STRATEGIZE→MONITOR cycle (30-60 min per critical issue)
-   - Agent must do ACTUAL research, not superficial edits
-   - Track effort in design.md and state/analytics/gate_remediations.jsonl
-   - **Reject superficial fixes** - only approve when real work demonstrated
-   - **Only when GATE approved** proceed to IMPLEMENT
+   **REQUIRED for:** >1 file changed OR >20 net LOC
+
+   **Step-by-step workflow:**
+
+   ```bash
+   # Step 1: Create design.md from template
+   cp docs/templates/design_template.md state/evidence/[TASK-ID]/design.md
+
+   # Step 2: Fill in ALL sections with real analysis:
+   #  - Via Negativa: What can you DELETE/SIMPLIFY?
+   #  - Refactor vs Repair: Patching or refactoring root cause?
+   #  - Alternatives: 2-3 different approaches considered
+   #  - Complexity: Is increase justified?
+   #  - Implementation Plan: Files, LOC, risks, testing
+
+   # Step 3: Test design with DesignReviewer
+   cd tools/wvo_mcp && npm run gate:review [TASK-ID] && cd ../..
+
+   # Step 4: If BLOCKED (expect this on first try):
+   #  - Read concerns carefully - DesignReviewer gives SPECIFIC feedback
+   #  - Create remediation task: [TASK-ID]-REMEDIATION-[timestamp]
+   #  - Start new STRATEGIZE cycle
+   #  - Do actual research (30-60 min per critical issue)
+   #  - Update UPSTREAM artifacts (strategy.md, spec.md, plan.md)
+   #  - Update design.md with revised approach
+   #  - Re-test until approved
+
+   # Step 5: When APPROVED:
+   git add state/evidence/[TASK-ID]/design.md
+   # Proceed to IMPLEMENT
+   ```
+
+   **DO NOT:**
+   - ❌ Create gate.md (old format - use design.md)
+   - ❌ Write superficial "I considered X" without evidence
+   - ❌ Skip testing before committing
+   - ❌ Approve superficial fixes from other agents
+
+   **GATE is ITERATIVE - 2-3 rounds is NORMAL:**
+   - Pre-commit hook runs DesignReviewer automatically
+   - Blocks commit if concerns found (exit code 1)
+   - Forces remediation iteration
+   - Tracks in state/analytics/gate_remediations.jsonl
+
+   **Your role as Council:** Reject superficial fixes, enforce real AFP/SCAS work
 
 6. **IMPLEMENT** - Write code (ONLY after GATE approval, constraints: ≤5 files, ≤150 net LOC)
    - Refactor not patch

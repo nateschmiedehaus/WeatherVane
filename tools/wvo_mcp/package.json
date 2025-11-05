@@ -27,7 +27,10 @@
     "analyze:outcomes": "node --import tsx ./scripts/analyze_outcomes.ts",
     "analyze:feedback-loops": "node --import tsx ./scripts/analyze_feedback_loops.ts",
     "module:generate": "npx tsx ./scripts/generate_module_index.ts",
-    "module:validate": "npx tsx ./scripts/validate_module_index.ts"
+    "module:validate": "npx tsx ./scripts/validate_module_index.ts",
+    "entropy:capture": "npx tsx ./scripts/capture_entropy_snapshot.ts",
+    "entropy:validate": "npx tsx ./scripts/validate_entropy_log.ts",
+    "gate:review": "npx tsx ./scripts/run_design_review.ts"
   },
   "author": "",
   "license": "MIT",

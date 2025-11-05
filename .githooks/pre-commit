@@ -115,6 +115,55 @@ if [ $FILES_CHANGED -gt 1 ] || [ $NET_LOC -gt 20 ]; then
     fi
 
     echo -e "${GREEN}✅ Design evidence found${NC}"
+
+    # If design.md is staged, run DesignReviewer to enforce quality
+    DESIGN_MD_STAGED=$(git diff --cached --name-only | grep -E 'state/evidence/.*/design\.md$')
+
+    if [ -n "$DESIGN_MD_STAGED" ]; then
+      echo ""
+      echo -e "${YELLOW}🔍 Running DesignReviewer on staged design.md...${NC}"
+      echo ""
+
+      # Extract task ID from design.md path
+      TASK_ID=$(echo "$DESIGN_MD_STAGED" | sed -E 's|state/evidence/([^/]+)/design\.md|\1|')
+
+      # Run design review script
+      cd tools/wvo_mcp
+      if npm run gate:review "$TASK_ID"; then
+        echo ""
+        echo -e "${GREEN}✅ DesignReviewer APPROVED${NC}"
+        cd ../..
+      else
+        EXIT_CODE=$?
+        cd ../..
+
+        if [ $EXIT_CODE -eq 1 ]; then
+          echo ""
+          echo -e "${RED}❌ GATE BLOCKED: Design needs revision${NC}"
+          echo ""
+          echo "   DesignReviewer found concerns with your design.md"
+          echo "   You MUST address these before committing."
+          echo ""
+          echo "   This is the ITERATIVE GATE process:"
+          echo "   1. Read the concerns above carefully"
+          echo "   2. Create a remediation task (new STRATEGIZE cycle)"
+          echo "   3. Do actual research (30-60 min per critical issue)"
+          echo "   4. Update UPSTREAM artifacts (strategy/spec/plan docs)"
+          echo "   5. Update design.md with revised approach"
+          echo "   6. Test: npm run gate:review $TASK_ID"
+          echo "   7. Re-commit when approved"
+          echo ""
+          echo "   Expected: 2-3 review rounds is NORMAL and GOOD."
+          echo "   Goal: Ensure real AFP/SCAS thinking, not compliance theater."
+          exit 1
+        else
+          echo ""
+          echo -e "${RED}❌ GATE ERROR: DesignReviewer failed${NC}"
+          echo "   Check the error above."
+          exit 1
+        fi
+      fi
+    fi
   fi
 fi
 
