@@ -77,6 +77,113 @@ echo -e "${GREEN}✅ AFP/SCAS checks passed${NC}"
 echo "   Files: $FILES_CHANGED/5, Net LOC: +$NET_LOC/+150"
 
 # ============================================================
+# PART 1a: Five Forces Checks
+# ============================================================
+
+# Check for override first
+if git config --get hooks.override >/dev/null 2>&1; then
+  REASON=$(git config --get hooks.override)
+  HASH=$(git rev-parse HEAD 2>/dev/null || echo "pending")
+  TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+
+  # Log override
+  mkdir -p state
+  echo "{\"timestamp\":\"$TIMESTAMP\",\"commit\":\"$HASH\",\"reason\":\"$REASON\"}" >> state/overrides.jsonl
+
+  # Clear flag
+  git config --unset hooks.override
+
+  echo -e "${YELLOW}⚠️  OVERRIDE used: $REASON${NC}"
+  echo "   Logged to state/overrides.jsonl for weekly review"
+  echo ""
+else
+  # Check for SKIP_AFP environment variable
+  if [ -n "$SKIP_AFP" ]; then
+    TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+    mkdir -p state
+    echo "{\"timestamp\":\"$TIMESTAMP\",\"commit\":\"pending\",\"reason\":\"SKIP_AFP environment variable\"}" >> state/overrides.jsonl
+
+    echo -e "${YELLOW}⚠️  AFP checks skipped via SKIP_AFP${NC}"
+    echo "   Logged to state/overrides.jsonl for weekly review"
+    echo ""
+  else
+    # Not a merge or revert commit (check HEAD for merge, message for revert)
+    IS_MERGE=0
+    IS_REVERT=0
+
+    if git rev-parse -q --verify MERGE_HEAD >/dev/null 2>&1; then
+      IS_MERGE=1
+    fi
+
+    # Get commit message (try multiple sources)
+    COMMIT_MSG=$(git log -1 --pretty=%B 2>/dev/null || cat .git/COMMIT_EDITMSG 2>/dev/null || echo "")
+
+    if echo "$COMMIT_MSG" | grep -q "^Revert"; then
+      IS_REVERT=1
+    fi
+
+    # Only check pattern for non-merge, non-revert commits
+    if [ $IS_MERGE -eq 0 ] && [ $IS_REVERT -eq 0 ]; then
+      # COHERENCE/EVOLUTION: Check for pattern reference
+      if ! echo "$COMMIT_MSG" | grep -qE "(Pattern:|New pattern:)"; then
+        echo -e "${RED}❌ BLOCKED: No pattern reference found${NC}"
+        echo ""
+        echo "   Five forces require COHERENCE + EVOLUTION checks:"
+        echo "   Add 'Pattern: <name>' if reusing existing pattern"
+        echo "   Add 'New pattern: <reason>' if creating new pattern"
+        echo ""
+        echo "   Examples:"
+        echo "     Pattern: error_logging_with_context"
+        echo "     New pattern: async error aggregation for batch processing"
+        echo ""
+        echo "   See: docs/AFP_QUICK_START.md for pattern examples"
+        echo ""
+        echo "   To override: git config hooks.override 'reason' && git commit"
+        echo "   Or: SKIP_AFP=1 git commit (emergency only)"
+        exit 1
+      fi
+
+      # ECONOMY: Check for deletion accounting if adding >50 LOC
+      if [ $LOC_ADDED -gt 50 ]; then
+        if ! echo "$COMMIT_MSG" | grep -qE "Deleted:"; then
+          echo -e "${RED}❌ BLOCKED: +$LOC_ADDED LOC added without deletion accounting${NC}"
+          echo ""
+          echo "   Five forces require ECONOMY check:"
+          echo "   If adding >50 LOC, document what you deleted/simplified"
+          echo "   Add 'Deleted: <description>' to commit message"
+          echo ""
+          echo "   Examples:"
+          echo "     Deleted: duplicate error handling in 3 files (-45 LOC)"
+          echo "     Deleted: unused config validation function (-20 LOC)"
+          echo "     Simplified: combined 2 validators into 1 (-30 LOC)"
+          echo ""
+          echo "   If genuinely can't delete:"
+          echo "     git config hooks.override 'new feature requires additions' && git commit"
+          exit 1
+        fi
+      fi
+
+      echo -e "${GREEN}✅ Five forces checks passed${NC}"
+      if echo "$COMMIT_MSG" | grep -q "Pattern:"; then
+        PATTERN_NAME=$(echo "$COMMIT_MSG" | grep "Pattern:" | sed 's/.*Pattern: *//' | head -1)
+        echo "   Pattern: $PATTERN_NAME"
+      else
+        echo "   New pattern documented"
+      fi
+    else
+      if [ $IS_MERGE -eq 1 ]; then
+        echo -e "${YELLOW}⚠️  Merge commit: skipping pattern check${NC}"
+      fi
+      if [ $IS_REVERT -eq 1 ]; then
+        echo -e "${YELLOW}⚠️  Revert commit: skipping pattern check${NC}"
+      fi
+    fi
+  fi
+fi
+
+echo ""
+
+# ============================================================
 # PART 1b: Design Evidence Enforcement (AFP/SCAS GATE)
 # ============================================================
 

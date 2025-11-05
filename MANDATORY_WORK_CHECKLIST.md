@@ -66,6 +66,51 @@ Every agent must complete these checks BEFORE proceeding to implementation.
 
 ---
 
+## Phase 0.5: Five Forces Alignment
+
+**ALL design decisions must align with the five forces:**
+
+### 1. COHERENCE - Match the terrain
+- [ ] I searched for similar patterns (checked 3 most similar modules)
+- [ ] I'm reusing proven pattern OR justifying why new pattern needed
+- [ ] This matches the style/structure of surrounding code
+
+### 2. ECONOMY - Achieve more with less
+- [ ] I explored deletion/simplification (via negativa)
+- [ ] If adding >50 LOC, I identified what to delete
+- [ ] Changes are minimal (≤150 LOC, ≤5 files)
+
+### 3. LOCALITY - Related near, unrelated far
+- [ ] Related code is in same module
+- [ ] Dependencies are local (not scattered)
+- [ ] Changes don't create coupling across boundaries
+
+### 4. VISIBILITY - Important obvious, unimportant hidden
+- [ ] Errors are logged with context (no silent failures)
+- [ ] Public interfaces are clear and minimal
+- [ ] Complexity hidden behind abstraction
+
+### 5. EVOLUTION - Patterns prove fitness
+- [ ] I'm using proven pattern (tracked fitness) OR measuring new pattern
+- [ ] Pattern will be logged in commit for fitness tracking
+- [ ] Bad patterns can be deprecated based on data
+
+**See:** [docs/AFP_QUICK_START.md](docs/AFP_QUICK_START.md) for 30-second heuristics and examples.
+
+**Commit message must include:**
+```
+Pattern: [pattern_name]
+Deleted: [what was removed/simplified, if +50 LOC added]
+```
+
+**Note:** Five forces GENERATE the specific checks below:
+- ECONOMY → via negativa, micro-batching
+- COHERENCE → refactor not repair (match root patterns)
+- LOCALITY → modularity
+- VISIBILITY → fail explicitly
+
+---
+
 ## 1. Micro-Batching Check
 - [ ] I will change ≤5 files (if more, SPLIT the task)
 - [ ] I will add ≤150 net LOC (additions - deletions)

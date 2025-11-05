@@ -13,6 +13,73 @@
 
 ---
 
+## Five Forces Check
+
+**Before proceeding, verify you've considered all five forces:**
+
+### COHERENCE - Match the terrain
+- [ ] I searched for similar patterns in the codebase
+- Modules checked (3 most similar): [list them]
+- Pattern I'm reusing: [name] OR why existing patterns don't fit: [explain]
+
+### ECONOMY - Achieve more with less
+- [ ] I explored deletion/simplification (via negativa - see next section)
+- Code I can delete: [specific files/functions] OR why I must add: [reason]
+- LOC estimate: +[X] -[Y] = net [Z] (≤150 limit? If not, justify)
+
+### LOCALITY - Related near, unrelated far
+- [ ] Related changes are in same module
+- Files changing: [list - are they all in same area?]
+- Dependencies: [are they local or scattered across codebase?]
+
+### VISIBILITY - Important obvious, unimportant hidden
+- [ ] Errors are observable, interfaces are clear
+- Error handling: [how are failures logged?]
+- Public API: [is it minimal and self-explanatory?]
+
+### EVOLUTION - Patterns prove fitness
+- [ ] I'm using proven patterns OR documenting new one for fitness tracking
+- Pattern fitness: [has this pattern worked before? usage count, bug rate?]
+- If new pattern: [why needed? how will we measure success?]
+
+**Pattern Decision:**
+
+**Similar patterns found:** [from COHERENCE search above]
+- Pattern 1: [file:line, description]
+- Pattern 2: [file:line, description]
+- Pattern 3: [file:line, description]
+
+**Pattern selected:** [which one I'm using]
+**Why this pattern:** [fits my use case because...]
+
+**OR**
+
+**New pattern needed:** [name]
+**Why existing patterns don't fit:** [specific reason]
+**How this pattern differs:** [key differences]
+
+**Leverage Classification:**
+
+**Code leverage level:** [critical / high / medium / low]
+
+- **Critical:** Auth, payments, core abstractions → formal verification or 100% test coverage
+- **High:** Public APIs, frequently changed → comprehensive testing
+- **Medium:** Business logic, orchestrators → happy path + error cases
+- **Low:** Utils, rarely changed → smoke tests
+
+**My code is:** [level] **because** [reason]
+**Assurance strategy:** [testing/verification approach based on leverage]
+
+**Commit message will include:**
+```
+Pattern: [pattern name]
+Deleted: [what was removed/simplified, if +50 LOC]
+```
+
+**See:** [docs/AFP_QUICK_START.md](../AFP_QUICK_START.md) for five forces details and examples.
+
+---
+
 ## Via Negativa Analysis
 
 **Can you DELETE or SIMPLIFY existing code instead of adding?**
