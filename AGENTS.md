@@ -20,10 +20,21 @@
 4. **THINK** - Reason through solution
    - Document: Edge cases, failure modes, AFP/SCAS validation
 
-5. **[GATE]** ← CHECKPOINT - Verify phases 1-4 complete
-   - **REQUIRED**: For non-trivial changes (>2 files or >50 LOC), create:
-   - `state/evidence/[TASK-ID]/phases.md` documenting phases 1-4
-   - **Pre-commit hook will BLOCK without this evidence**
+5. **[GATE]** ← CHECKPOINT - Document design thinking
+   - **REQUIRED**: For non-trivial changes (>1 file or >20 LOC), create:
+   - `state/evidence/[TASK-ID]/design.md` using template from `docs/templates/design_template.md`
+   - **DesignReviewer critic will review and provide INTELLIGENT FEEDBACK**
+   - Document: via negativa, refactor vs repair, alternatives, complexity
+   - **Pre-commit hook will BLOCK without design evidence**
+
+   **Quick start:**
+   ```bash
+   cp docs/templates/design_template.md state/evidence/[TASK-ID]/design.md
+   # Fill in your thinking (be honest, not superficial)
+   git add state/evidence/[TASK-ID]/design.md
+   ```
+
+   **Goal:** Stop compliance theater. Ensure real thinking before coding.
 
 6. **IMPLEMENT** - Write code (NOW you can code)
    - Constraints: ≤5 files, ≤150 net LOC, refactor not patch
@@ -48,6 +59,11 @@
 - **No complexity increase**: Unless strongly justified
 
 **Pre-commit hook will BLOCK commits that violate these limits.**
+
+## Autonomous Continuation Mandate
+- When a policy, checklist, or verification gate implies additional work (tests, docs, evidence uploads, guardrail enforcement), do it immediately—do **not** wait for a reviewer prompt.
+- Close the loop end-to-end: if a build surfaces a follow-up (e.g., rerun integrity suite after fixes, update READMEs when structure changes, publish evidence artifacts), execute those actions before asking “what next?”.
+- Record actions in `state/evidence/<TASK>/` and `state/context.md` so concurrent agents see the latest state. Pause only when a blocker requires human clarification, and call it out explicitly.
 
 ## Operational Checklist
 - Call MCP tools `plan_next` (with `minimal=true`) and `autopilot_status` at the start of every session; the latter now reports consensus staffing insights and token pressure. Restart the MCP (`./tools/wvo_mcp/scripts/restart_mcp.sh`) if either call fails.

@@ -5,6 +5,11 @@ Act as WeatherVane's strategic reviewer and escalation partner. Provide deep rea
 
 **CRITICAL: You have full error detection and auto-remediation capability.** Use the Error Detector and Health Monitor to proactively catch and fix issues. See `docs/orchestration/ERROR_DETECTION_GUIDE.md` and `docs/orchestration/AUTO_REMEDIATION_SYSTEM.md` for details.
 
+## Autonomous Continuation Mandate
+- Treat every implied follow-up (rerunning integrity suites, publishing evidence, refreshing docs, re-enabling guardrails) as automatic—execute immediately without waiting for direction.
+- Close the loop before handing off: when a change triggers downstream work, complete it, capture artifacts under `state/evidence/<TASK>/`, and log context so Codex/Dana see the updated state.
+- Only pause when human input is truly required (policy conflict, missing credentials, risky rollback). Surface the blocker explicitly in context and propose next steps.
+
 ## CRITICAL: AFP 10-Phase Lifecycle (Work Process)
 
 **Before ANY code changes, read `MANDATORY_WORK_CHECKLIST.md`.**
@@ -29,10 +34,19 @@ Act as WeatherVane's strategic reviewer and escalation partner. Provide deep rea
    - Complexity analysis, mitigation strategies
 
 5. **[GATE]** ← CHECKPOINT - Verify phases 1-4 complete
-   - **REQUIRED for non-trivial changes (>2 files or >50 LOC):**
-   - Create `state/evidence/[TASK-ID]/phases.md` documenting phases 1-4
-   - **Pre-commit hook will BLOCK without this evidence**
+   - **REQUIRED for non-trivial changes (>1 file or >20 LOC):**
+   - Create `state/evidence/[TASK-ID]/design.md` using template from `docs/templates/design_template.md`
+   - **DesignReviewer critic will provide INTELLIGENT FEEDBACK** (not just blocking)
+   - Document: via negativa analysis, refactor vs repair, alternatives, complexity trade-offs
+   - **Pre-commit hook will BLOCK without design evidence**
    - **IF VIOLATED**: STOP. Go back to phase 1 and rethink with AFP/SCAS lens
+
+   **Design Review Approach:**
+   - Copy template: `cp docs/templates/design_template.md state/evidence/[TASK-ID]/design.md`
+   - Fill in your thinking (be honest, not superficial)
+   - DesignReviewer will give SPECIFIC guidance on AFP/SCAS alignment
+   - Works in both autopilot and manual modes
+   - **Goal:** Stop compliance theater, ensure real thinking
 
 6. **IMPLEMENT** - Write code (constraints: ≤5 files, ≤150 net LOC)
    - Refactor not patch

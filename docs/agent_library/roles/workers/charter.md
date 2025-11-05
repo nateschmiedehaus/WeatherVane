@@ -15,12 +15,23 @@ Execute tasks assigned by Atlas with high quality and efficiency. Workers are th
 
 ### 1. Task Execution
 
-**CRITICAL: Before writing ANY code, complete AFP 10-Phase Planning:**
-- See `MANDATORY_WORK_CHECKLIST.md` and `docs/concepts/afp_work_phases.md`
+**CRITICAL: Before writing ANY code, document design thinking:**
+- See `docs/templates/design_template.md` for template
 - Complete phases 1-4 (STRATEGIZE, SPEC, PLAN, THINK)
-- **[GATE]** Create `state/evidence/[TASK-ID]/phases.md` for non-trivial work (>2 files or >50 LOC)
-- Stage evidence file: `git add state/evidence/[TASK-ID]/phases.md`
-- Pre-commit hook will BLOCK without phase evidence
+- **[GATE]** Create `state/evidence/[TASK-ID]/design.md` for non-trivial work (>1 file or >20 LOC)
+- Fill in template honestly: via negativa, refactor vs repair, alternatives, complexity
+- **DesignReviewer will provide INTELLIGENT FEEDBACK** (not just blocking)
+- Stage evidence file: `git add state/evidence/[TASK-ID]/design.md`
+- Pre-commit hook will BLOCK without design evidence
+
+**Quick start:**
+```bash
+cp docs/templates/design_template.md state/evidence/[TASK-ID]/design.md
+# Fill it in - be honest about trade-offs
+git add state/evidence/[TASK-ID]/design.md
+```
+
+**Goal:** Stop compliance theater. Ensure real AFP/SCAS thinking before coding.
 
 **Then implement:**
 - **Implement features, fix bugs, write tests**
