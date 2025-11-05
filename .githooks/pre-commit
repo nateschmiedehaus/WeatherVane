@@ -1,6 +1,7 @@
 #!/bin/bash
-# Pre-commit hook to prevent credential leaks
-# Install with: git config core.hooksPath .githooks
+# Combined Pre-Commit Hook:
+# 1. AFP/SCAS guardrails (micro-batching, complexity control)
+# 2. Credential leak detection
 
 set -e
 
@@ -9,6 +10,77 @@ RED='\033[0;31m'
 YELLOW='\033[1;33m'
 GREEN='\033[0;32m'
 NC='\033[0m' # No Color
+
+echo -e "${YELLOW}🔍 AFP/SCAS Pre-Commit Checks...${NC}"
+
+# ============================================================
+# PART 1: AFP/SCAS Guardrails
+# ============================================================
+
+# Count files changed
+FILES_CHANGED=$(git diff --cached --name-only | wc -l | tr -d ' ')
+
+if [ $FILES_CHANGED -gt 5 ]; then
+  echo -e "${RED}❌ BLOCKED: $FILES_CHANGED files changed (max: 5)${NC}"
+  echo "   AFP micro-batching violation."
+  echo "   Split this into smaller commits."
+  echo ""
+  echo "   See MANDATORY_WORK_CHECKLIST.md for full guidelines."
+  exit 1
+fi
+
+# Count net LOC added
+LOC_ADDED=$(git diff --cached --numstat | awk '{sum+=$1} END {print sum+0}')
+LOC_DELETED=$(git diff --cached --numstat | awk '{sum+=$2} END {print sum+0}')
+NET_LOC=$((LOC_ADDED - LOC_DELETED))
+
+if [ $NET_LOC -gt 150 ]; then
+  echo -e "${RED}❌ BLOCKED: +$NET_LOC net LOC (max: +150)${NC}"
+  echo "   AFP micro-batching violation."
+  echo "   Prefer deletion/refactoring over addition."
+  echo ""
+  echo "   See MANDATORY_WORK_CHECKLIST.md for full guidelines."
+  exit 1
+fi
+
+# Check for common anti-patterns
+DIFF=$(git diff --cached)
+
+# Anti-pattern 1: Adding long functions (>50 lines)
+ADDED_LINES=$(echo "$DIFF" | grep "^+" | wc -l | tr -d ' ')
+if [ $ADDED_LINES -gt 50 ]; then
+  # Check for function definitions
+  FUNC_COUNT=$(echo "$DIFF" | grep -E "^\+.*function|^\+.*=>|^\+.*async " | wc -l | tr -d ' ')
+  if [ $FUNC_COUNT -gt 0 ]; then
+    AVG_LINES_PER_FUNC=$((ADDED_LINES / FUNC_COUNT))
+    if [ $AVG_LINES_PER_FUNC -gt 50 ]; then
+      echo -e "${YELLOW}⚠️  WARNING: Adding function(s) >50 lines avg.${NC}"
+      echo "   Consider extracting sub-functions (AFP modularity principle)."
+    fi
+  fi
+fi
+
+# Anti-pattern 2: Deep nesting (>3 levels)
+DEEP_NESTING=$(echo "$DIFF" | grep "^+" | grep -E "      \{|      if|      for|      while" | wc -l | tr -d ' ')
+if [ $DEEP_NESTING -gt 3 ]; then
+  echo -e "${YELLOW}⚠️  WARNING: Deep nesting detected (>3 levels).${NC}"
+  echo "   Simplify control flow (AFP complexity principle)."
+fi
+
+# Anti-pattern 3: No deletions when adding code
+if [ $LOC_ADDED -gt 50 ] && [ $LOC_DELETED -eq 0 ]; then
+  echo -e "${YELLOW}⚠️  WARNING: Adding $LOC_ADDED LOC without deleting anything.${NC}"
+  echo "   Consider via negativa: can you simplify existing code instead?"
+fi
+
+echo -e "${GREEN}✅ AFP/SCAS checks passed${NC}"
+echo "   Files: $FILES_CHANGED/5, Net LOC: +$NET_LOC/+150"
+
+# ============================================================
+# PART 2: Credential Leak Detection
+# ============================================================
+
+echo -e "${YELLOW}🔐 Running credential leak detection...${NC}"
 
 ERRORS=0
 
@@ -34,8 +106,6 @@ SKIP_PATTERNS=(
 # Get staged files
 STAGED_FILES=$(git diff --cached --name-only --diff-filter=ACM)
 
-echo -e "${YELLOW}🔐 Running credential leak detection...${NC}"
-
 for file in $STAGED_FILES; do
     # Skip files that are documentation or examples
     SKIP=0
@@ -52,7 +122,7 @@ for file in $STAGED_FILES; do
 
     # Check against patterns (only in source code, not docs)
     for pattern in "${PATTERNS[@]}"; do
-        if git diff --cached "$file" | grep -E "$pattern" > /dev/null; then
+        if git diff --cached "$file" | grep -E "$pattern" > /dev/null 2>&1; then
             echo -e "${RED}❌ BLOCKED: Potential credential in $file${NC}"
             echo "   Pattern: $pattern"
             ERRORS=$((ERRORS + 1))
@@ -81,4 +151,6 @@ if [ $ERRORS -gt 0 ]; then
 fi
 
 echo -e "${GREEN}✅ No credential leaks detected${NC}"
+echo ""
+echo -e "${GREEN}🎉 All pre-commit checks passed!${NC}"
 exit 0
