@@ -1,4 +1,3 @@
-// @ts-nocheck - Legacy MCP architecture file with incompatible types
 import { EventEmitter } from 'node:events';
 import { randomUUID } from 'node:crypto';
 
@@ -88,6 +87,13 @@ function estimateModelCost(
 
   const pricing = MODEL_COST_TABLE[pricingKey];
   if (!pricing) return undefined;
+
+  logWarning('Cost estimate using potentially stale hardcoded prices', {
+    agentType,
+    modelSlug,
+    pricingKey,
+    source: 'MODEL_COST_TABLE',
+  });
 
   const cost =
     ((promptTokens * pricing.prompt) + (completionTokens * pricing.completion)) / 1000;
@@ -448,9 +454,10 @@ export class AgentCoordinator extends EventEmitter {
 
       if (!result.success && result.failureType === 'network') {
         this.scheduler.releaseTask(task.id);
-        this.agentPool.completeTask(task.id, false, result.durationSeconds, {
+        this.agentPool.completeTask(task.id, agent, {
+          success: false,
           failureType: 'network',
-        });
+        }, result.durationSeconds ?? 0);
         const metadata = {
           agent: agent.id,
           blocker_reason: 'network_offline',
@@ -468,15 +475,16 @@ export class AgentCoordinator extends EventEmitter {
           taskId: task.id,
           agent: agent.id,
         });
-        this.observer?.handleNetworkFailure?.(task.id, agent.id, agent.type, result.output);
+        this.observer?.handleNetworkFailure?.(task.id, agent.id, agent.type, result.output ?? '');
         return;
       }
 
       if (!result.success && result.failureType === 'context_limit') {
         this.scheduler.releaseTask(task.id);
-        this.agentPool.completeTask(task.id, false, result.durationSeconds, {
+        this.agentPool.completeTask(task.id, agent, {
+          success: false,
           failureType: 'context_limit',
-        });
+        }, result.durationSeconds ?? 0);
         this.observer?.handleContextLimit?.(task.id, agent.id, agent.type);
         logWarning('Context limit encountered; marking task for manual follow-up', {
           taskId: task.id,
@@ -550,18 +558,19 @@ export class AgentCoordinator extends EventEmitter {
       this.createExecutionCorrelation(task.id);
     const stage = (name: string) => this.stageCorrelation(correlationId, name);
 
-    this.agentPool.completeTask(task.id, result.success, result.durationSeconds, {
+    this.agentPool.completeTask(task.id, agent, {
+      success: result.success,
       failureType: result.success ? undefined : result.failureType,
       retryAfterSeconds: result.retryAfterSeconds,
-    });
+    }, result.durationSeconds ?? 0);
 
     const qualityInput: QualityCheckInput = {
       task,
       agentId: agent.id,
       agentType: agent.type,
       success: result.success,
-      durationSeconds: result.durationSeconds,
-      outputExcerpt: result.output.slice(0, 4000),
+      durationSeconds: result.durationSeconds ?? 0,
+      outputExcerpt: (result.output ?? '').slice(0, 4000),
     };
 
     const qualityResult = await this.qualityMonitor.evaluate(qualityInput);
@@ -686,7 +695,7 @@ export class AgentCoordinator extends EventEmitter {
       };
 
     const promptCache = result.promptCache;
-    const promptCacheStatus: PromptCacheStatus | 'unknown' = promptCache?.status ?? 'unknown';
+    const promptCacheStatus: PromptCacheStatus | 'unknown' = (promptCache?.status as PromptCacheStatus | undefined) ?? 'unknown';
     const promptCacheHit = promptCache?.status === 'hit';
     const promptCacheStore = promptCache?.status === 'store';
     const promptCacheEligible =
@@ -723,12 +732,12 @@ export class AgentCoordinator extends EventEmitter {
       agentType: agent.type,
       success: result.success,
       finalStatus,
-      durationSeconds: result.durationSeconds,
+      durationSeconds: result.durationSeconds ?? 0,
       qualityScore: qualityResult.score,
       issues: combinedIssues,
       timestamp: Date.now(),
       projectPhase: context.projectPhase,
-      coordinatorType: coordinatorStatus.type,
+      coordinatorType: coordinatorStatus.type as AgentType | undefined,
       coordinatorReason: coordinatorStatus.reason,
       coordinatorAvailable: coordinatorStatus.available,
       codexPreset: agent.type === 'codex' ? codexModelHint?.presetId : undefined,
@@ -879,7 +888,7 @@ export class AgentCoordinator extends EventEmitter {
       environment,
       promptMode,
       agentType: agent.type,
-      agentRole: agent.role,
+      agentRole: agent.role ?? '',
       intent: this.resolvePromptIntent(task.status),
     });
   }
@@ -1071,7 +1080,7 @@ export class AgentCoordinator extends EventEmitter {
       failureType: 'validation',
       retryAfterSeconds: result.retryAfterSeconds,
       attemptNumber,
-      originalError: result.output,
+      originalError: result.output ?? '',
     });
 
     this.operationsManager?.recordValidationRecovery({
@@ -1084,9 +1093,10 @@ export class AgentCoordinator extends EventEmitter {
       delaySeconds: recovery.delaySeconds,
     });
 
-    this.agentPool.completeTask(task.id, false, result.durationSeconds, {
+    this.agentPool.completeTask(task.id, agent, {
+      success: false,
       failureType: 'validation',
-    });
+    }, result.durationSeconds ?? 0);
 
     if (recovery.action === 'fail_task') {
       const metadata: Record<string, unknown> = {
