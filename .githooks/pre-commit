@@ -77,6 +77,56 @@ echo -e "${GREEN}✅ AFP/SCAS checks passed${NC}"
 echo "   Files: $FILES_CHANGED/5, Net LOC: +$NET_LOC/+150"
 
 # ============================================================
+# PART 1b: Phase Evidence Enforcement (AFP 10-Phase Lifecycle)
+# ============================================================
+
+# For non-trivial changes (>2 files or >50 LOC), require phase evidence
+if [ $FILES_CHANGED -gt 2 ] || [ $NET_LOC -gt 50 ]; then
+  # Check if there are source code changes (not just docs/config)
+  CODE_CHANGES=$(git diff --cached --name-only | grep -E '\.(ts|js|py|go|rs|java|cpp|c|h)$' | wc -l | tr -d ' ')
+
+  if [ $CODE_CHANGES -gt 0 ]; then
+    # Look for phase evidence in staged changes
+    PHASE_EVIDENCE=$(git diff --cached --name-only | grep -E 'state/evidence/.*/phases\.md' | wc -l | tr -d ' ')
+
+    if [ $PHASE_EVIDENCE -eq 0 ]; then
+      echo -e "${RED}❌ GATE VIOLATION: You skipped phases 1-4. STOP CODING.${NC}"
+      echo "   Changed: $FILES_CHANGED files, +$NET_LOC LOC, $CODE_CHANGES code files"
+      echo ""
+      echo -e "${RED}   YOU MUST GO BACK AND COMPLETE PHASES 1-4 PROPERLY:${NC}"
+      echo ""
+      echo "   1. STRATEGIZE - Understand WHY (not just WHAT)"
+      echo "      → What problem are you solving? What's the root cause?"
+      echo "      → How does this align with AFP/SCAS principles?"
+      echo ""
+      echo "   2. SPEC - Define success criteria and requirements"
+      echo "      → What does 'done' look like? What are acceptance criteria?"
+      echo "      → Functional + non-functional requirements?"
+      echo ""
+      echo "   3. PLAN - Design the approach using AFP/SCAS"
+      echo "      → Can you DELETE code instead of adding? (via negativa)"
+      echo "      → Can you REFACTOR instead of patching?"
+      echo "      → Which files need changes? How to keep it ≤5 files, ≤150 LOC?"
+      echo ""
+      echo "   4. THINK - Reason through edge cases and failure modes"
+      echo "      → What can go wrong? What are the edge cases?"
+      echo "      → Does this increase complexity? How to mitigate?"
+      echo ""
+      echo -e "${YELLOW}   Then document phases 1-4 in: state/evidence/[TASK-ID]/phases.md${NC}"
+      echo "   And stage it: git add state/evidence/[TASK-ID]/phases.md"
+      echo ""
+      echo "   If you already coded without thinking: THAT'S THE PROBLEM."
+      echo "   Revisit your design with AFP/SCAS lens before proceeding."
+      echo ""
+      echo "   See MANDATORY_WORK_CHECKLIST.md for full guidelines."
+      exit 1
+    fi
+
+    echo -e "${GREEN}✅ Phase evidence found${NC}"
+  fi
+fi
+
+# ============================================================
 # PART 2: Credential Leak Detection
 # ============================================================
 
