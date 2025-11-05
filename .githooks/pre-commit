@@ -12,6 +12,9 @@ GREEN='\033[0;32m'
 NC='\033[0m' # No Color
 
 CHANGED_FILES=$(git diff --cached --name-only)
+LOC_ADDED=$(git diff --cached --numstat | awk '{sum+=$1} END {print sum+0}')
+LOC_DELETED=$(git diff --cached --numstat | awk '{sum+=$2} END {print sum+0}')
+NET_LOC=$((LOC_ADDED - LOC_DELETED))
 
 is_docsync_bulk_file() {
   case "$1" in

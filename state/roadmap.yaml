@@ -8,6 +8,57 @@ epics:
         title: MVP Bootstrap Stream
         status: in_progress
         tasks:
+          - id: AFP-ROADMAP-FAST-AUTONOMY-AUDIT
+            title: Audit roadmap for fast autonomy + self-improvement
+            status: pending
+            dependencies: []
+            exit_criteria:
+              - Roadmap restructured for critical path to autonomy
+              - Parallel execution opportunities identified
+              - Self-editing capability tasks added
+              - Self-improvement loop tasks added
+              - Autopilot can execute roadmap autonomously after bootstrap
+            domain: mcp
+            description: |
+              Audit and restructure roadmap to achieve:
+
+              1. FAST AUTONOMY (weeks not months):
+                 - Identify critical path to working autopilot
+                 - Reorder tasks for parallel execution where possible
+                 - Remove or defer blockers that slow bootstrap
+                 - Ensure scaffolds (supervisor/agents/libs/adapters) can build concurrently
+
+              2. SELF-EDITING CAPABILITY:
+                 - Add tasks for autopilot to modify its own roadmap
+                 - Define roadmap schema validation
+                 - Implement roadmap mutation API with guardrails
+                 - Enable autopilot to add/remove/reorder tasks
+
+              3. SELF-IMPROVEMENT LOOP:
+                 - Add tasks for autopilot to improve its own code
+                 - Define quality metrics autopilot tracks
+                 - Implement feedback loop (execute → measure → learn → improve)
+                 - Enable autopilot to refactor its own scaffolds
+
+              4. AUTONOMOUS EXECUTION:
+                 - Validate entire roadmap is executable by autopilot
+                 - Add missing tasks for full autonomy
+                 - Remove tasks that require human intervention
+                 - Ensure autopilot can truck through roadmap independently
+
+              Deliverables:
+              - Updated roadmap.yaml with restructured dependencies
+              - Critical path analysis (what blocks autonomy)
+              - Parallel execution plan (4 scaffolds → weeks not months)
+              - Self-improvement task additions
+              - Evidence of fast path (timeline with milestones)
+
+              Success criteria:
+              - Autopilot bootstrap achievable in <4 weeks
+              - 4 scaffolds buildable in parallel (not sequential)
+              - Self-editing capability in roadmap
+              - Self-improvement loop in roadmap
+              - Autopilot can execute 90%+ of roadmap without human intervention
           - id: AFP-AUTOPILOT-MVP-STRANGLER-20251115
             title: Autopilot MVP clean-room integration
             status: blocked
