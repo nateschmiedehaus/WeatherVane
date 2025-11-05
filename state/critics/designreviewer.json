@@ -1,0 +1,11 @@
+{
+  "critic": "designreviewer",
+  "code": 0,
+  "stdout": "Design approved with recommendations: Design shows good AFP/SCAS thinking (5 strengths, 2 concerns)\n{\n  \"concerns\": [\n    {\n      \"type\": \"fake_file_references\",\n      \"severity\": \"high\",\n      \"guidance\": \"You mentioned files that don't exist:\\n  - src/orchestrator/model_selection_service.ts\\n  - src/orchestrator/agent_lifecycle_manager.ts\\n  - src/orchestrator/preflight_validator.ts\\n  - src/orchestrator/task_execution_engine.ts\\n  - src/orchestrator/background_task_scheduler.ts\\n  - src/orchestrator/escalation_coordinator.ts\\nProvide REAL file paths you actually examined. Don't make up files.\"\n    },\n    {\n      \"type\": \"missing_scope_estimate\",\n      \"severity\": \"low\",\n      \"guidance\": \"Design should estimate scope:\\n- How many files will change?\\n- Estimated LOC added/deleted?\\n- Is this within micro-batching limits (≤5 files, ≤150 net LOC)?\\nIf over limits, how will you split this?\"\n    }\n  ],\n  \"guidance\": \"Address these concerns:\\n1. [HIGH] fake_file_references:\\nYou mentioned files that don't exist:\\n  - src/orchestrator/model_selection_service.ts\\n  - src/orchestrator/agent_lifecycle_manager.ts\\n  - src/orchestrator/preflight_validator.ts\\n  - src/orchestrator/task_execution_engine.ts\\n  - src/orchestrator/background_task_scheduler.ts\\n  - src/orchestrator/escalation_coordinator.ts\\nProvide REAL file paths you actually examined. Don't make up files.\\n\\n2. [LOW] missing_scope_estimate:\\nDesign should estimate scope:\\n- How many files will change?\\n- Estimated LOC added/deleted?\\n- Is this within micro-batching limits (≤5 files, ≤150 net LOC)?\\nIf over limits, how will you split this?\",\n  \"recommendation\": \"proceed_with_caution\"\n}",
+  "stderr": "",
+  "passed": true,
+  "analysis": null,
+  "git_sha": "e1d60f96f30fa05842a1c0e72920be8152110752",
+  "timestamp": "2025-11-05T16:59:40.957Z",
+  "identity": null
+}
