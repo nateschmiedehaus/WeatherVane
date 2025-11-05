@@ -1,157 +1,4 @@
 epics:
-  - id: E-GENERAL
-    title: E-GENERAL
-    status: pending
-    domain: product
-    milestones:
-      - id: E-GENERAL-backlog
-        title: Backlog
-        status: pending
-        tasks:
-          - id: CRIT-PERF-BUILD-4254a2
-            title: "[Critic:build] Restore performance"
-            status: blocked
-            dependencies: []
-            exit_criteria: []
-            domain: product
-            description: >-
-              Critic build is underperforming and needs immediate remediation.
-
-
-              Identity: Build Sentinel (engineering, authority blocking)
-
-              Mission: Guarantee that core build processes remain reproducible
-              and optimized across environments.
-
-              Signature powers: Diagnoses build pipeline regressions and
-              unstable toolchains.; Flags missing build artifacts or
-              misconfigured dependencies before release.
-
-              Autonomy guidance: Attempt automated patching of build scripts
-              when safe; escalate infrastructure escalations beyond local fixes.
-
-
-              No successful runs recorded in the last 6 observations; 6
-              consecutive failures detected.
-
-
-              Observation window: 6 runs
-
-
-              Consecutive failures: 6
-
-
-              Failures: 6 | Successes: 0
-
-
-              Assigned to: Director Dana
-
-
-              Expectations:
-
-              - Diagnose root causes for the critic's repeated failures.
-
-              - Patch critic configuration, training data, or underlying
-              automation as needed.
-
-              - Document findings in state/context.md and roadmap notes.
-
-              - Close this task once the critic passes reliably.
-
-
-              Latest output snippet:
-
-              make[1]: *** [lint] Error 1
-          - id: CRIT-PERF-BUILD-4254a2.1
-            title: Research and design for [Critic:build] Restore performance
-            status: pending
-            dependencies: []
-            exit_criteria: []
-            domain: product
-            description: "Research phase: Understand requirements and design approach for
-              [Critic:build] Restore performance"
-          - id: CRIT-PERF-BUILD-4254a2.2
-            title: Implement [Critic:build] Restore performance
-            status: pending
-            dependencies:
-              - CRIT-PERF-BUILD-4254a2.1
-            exit_criteria: []
-            domain: product
-            description: "Implementation phase: Execute the plan for [Critic:build] Restore
-              performance"
-          - id: CRIT-PERF-BUILD-4254a2.3
-            title: Validate and test [Critic:build] Restore performance
-            status: pending
-            dependencies:
-              - CRIT-PERF-BUILD-4254a2.2
-            exit_criteria: []
-            domain: product
-            description: "Validation phase: Test and verify [Critic:build] Restore
-              performance"
-          - id: CRIT-PERF-GLOBAL-9dfa06
-            title: "[Critics] Systemic performance remediation"
-            status: blocked
-            dependencies: []
-            exit_criteria: []
-            domain: product
-            description: >-
-              Multiple critics are underperforming and require coordinated
-              intervention.
-
-
-              2 critics require director-level intervention after repeated
-              failures.
-
-
-              Affected critics: build, tests
-
-
-              Critics evaluated in run: 3
-
-
-              Reports captured: 2
-
-
-              Assigned to: Director Dana
-
-
-              Expectations:
-
-              - Review individual remediation tasks and look for systemic
-              issues.
-
-              - Adjust critic configurations, training loops, or staffing mixes.
-
-              - Provide a coordination brief in state/context.md.
-
-              - Close this systemic task once individual critics are back on
-              track.
-          - id: CRIT-PERF-GLOBAL-9dfa06.1
-            title: Research and design for [Critics] Systemic performance remediation
-            status: pending
-            dependencies: []
-            exit_criteria: []
-            domain: product
-            description: "Research phase: Understand requirements and design approach for
-              [Critics] Systemic performance remediation"
-          - id: CRIT-PERF-GLOBAL-9dfa06.2
-            title: Implement [Critics] Systemic performance remediation
-            status: pending
-            dependencies:
-              - CRIT-PERF-GLOBAL-9dfa06.1
-            exit_criteria: []
-            domain: product
-            description: "Implementation phase: Execute the plan for [Critics] Systemic
-              performance remediation"
-          - id: CRIT-PERF-GLOBAL-9dfa06.3
-            title: Validate and test [Critics] Systemic performance remediation
-            status: pending
-            dependencies:
-              - CRIT-PERF-GLOBAL-9dfa06.2
-            exit_criteria: []
-            domain: product
-            description: "Validation phase: Test and verify [Critics] Systemic performance
-              remediation"
   - id: E-AUTOPILOT-BOOTSTRAP
     title: Autopilot Bootstrap
     status: in_progress
@@ -20500,3 +20347,1521 @@ epics:
     milestones: []
     description: "Validation phase: Test and verify PHASE-5-OPTIMIZATION —
       Performance & Observability"
+  - id: E-AFP-ROADMAP
+    title: AFP Antifragile Roadmap
+    status: pending
+    domain: mcp
+    description: Stage-based roadmap aligning AFP/SCAS controls toward antifragile
+      autonomous operations and full autonomy trials.
+    milestones:
+      - id: E-AFP-ROADMAP-stage1
+        title: Stage 1 — Deterministic Core
+        status: pending
+        description: Stand up a deterministic autopilot loop with smoke evidence,
+          telemetry, and ops visibility.
+        tasks:
+          - id: AFP-S1-BOOTSTRAP
+            title: Establish Autopilot Baseline
+            status: in_progress
+            description: Bring MCP orchestration online with deterministic bootstrap scripts
+              and health logging.
+            dependencies:
+              depends_on: []
+            exit_criteria:
+              - prose: Bootstrap executes cleanly on a fresh clone and captures restart
+                  evidence.
+              - prose: Health check entry appended in state/analytics/health_checks.jsonl.
+            domain: mcp
+            complexity_score: 5
+            effort_hours: 6
+            required_tools:
+              - bash
+              - npm
+              - node
+            evidence_path: state/evidence/AFP-S1-BOOTSTRAP
+            work_process_phases:
+              - strategize
+              - spec
+              - plan
+              - think
+              - implement
+              - verify
+              - review
+              - pr
+              - monitor
+            evidence_enforcement: enforce
+          - id: AFP-S1-README-BOOTSTRAP
+            title: Bootstrap README automation & directory health
+            status: pending
+            description: Implement docsync bootstrap to generate READMEs and structural
+              metrics across the repo.
+            dependencies:
+              depends_on:
+                - AFP-S1-OPS-DASHBOARD
+            exit_criteria:
+              - prose: Docsync bootstrap generates README sections for all eligible directories
+                  with manifest stored in state/analytics.
+              - prose: README automation guide published describing workflow and exclusions.
+            domain: mcp
+            complexity_score: 6
+            effort_hours: 8
+            required_tools:
+              - node
+              - npm
+              - bash
+            evidence_path: state/evidence/AFP-S1-README-BOOTSTRAP
+            work_process_phases:
+              - strategize
+              - spec
+              - plan
+              - think
+              - implement
+              - verify
+              - review
+              - pr
+              - monitor
+            evidence_enforcement: enforce
+          - id: AFP-S1-LEDGER
+            title: Implement Phase Ledger & Enforcer
+            status: done
+            description: Create immutable work-process ledger enforcing STRATEGIZE→MONITOR
+              sequencing.
+            dependencies:
+              depends_on:
+                - AFP-S1-BOOTSTRAP
+            exit_criteria:
+              - prose: Ledger prevents phase skips and records backtracks with hash chain
+                  validation.
+              - prose: Unit tests cover success and rejection paths for WorkProcessEnforcer.
+            domain: mcp
+            complexity_score: 6
+            effort_hours: 8
+            required_tools:
+              - node
+              - npm
+              - bash
+            evidence_path: state/evidence/AFP-S1-LEDGER
+            work_process_phases:
+              - strategize
+              - spec
+              - plan
+              - think
+              - implement
+              - verify
+              - review
+              - pr
+              - monitor
+            evidence_enforcement: enforce
+          - id: AFP-S1-GUARDRAILS
+            title: Seed Guardrail Catalog & Policy Controller
+            status: pending
+            description: Define baseline security, quality, and governance guardrails with
+              policy enforcement hooks.
+            dependencies:
+              depends_on:
+                - AFP-S1-BOOTSTRAP
+                - AFP-S1-LEDGER
+            exit_criteria:
+              - prose: Guardrail catalog defined and validated against policy controller.
+              - prose: Guardrail check fails on intentionally bad configuration and passes on
+                  baseline.
+            domain: mcp
+            complexity_score: 6
+            effort_hours: 8
+            required_tools:
+              - node
+              - npm
+              - bash
+            evidence_path: state/evidence/AFP-S1-GUARDRAILS
+            work_process_phases:
+              - strategize
+              - spec
+              - plan
+              - think
+              - implement
+              - verify
+              - review
+              - pr
+              - monitor
+            evidence_enforcement: enforce
+          - id: AFP-S1-STATE-GRAPH
+            title: Build State Graph & Lease Manager
+            status: pending
+            description: Provide orchestration backbone for leases, retries, and checkpoints
+              across phases.
+            dependencies:
+              depends_on:
+                - AFP-S1-BOOTSTRAP
+                - AFP-S1-LEDGER
+                - AFP-S1-GUARDRAILS
+            exit_criteria:
+              - prose: State graph prevents duplicate executions and supports resume after
+                  crash.
+              - prose: Lease and retry unit tests cover happy path and expiry scenarios.
+            domain: mcp
+            complexity_score: 7
+            effort_hours: 10
+            required_tools:
+              - node
+              - npm
+              - bash
+            evidence_path: state/evidence/AFP-S1-STATE-GRAPH
+            work_process_phases:
+              - strategize
+              - spec
+              - plan
+              - think
+              - implement
+              - verify
+              - review
+              - pr
+              - monitor
+            evidence_enforcement: enforce
+          - id: AFP-S1-TOOLS-CATALOG
+            title: Normalize Tooling Metadata & Access Controls
+            status: pending
+            description: Enumerate tools with schema, cost, and permissions for
+              deterministic routing.
+            dependencies:
+              depends_on:
+                - AFP-S1-BOOTSTRAP
+                - AFP-S1-STATE-GRAPH
+            exit_criteria:
+              - prose: Tool catalog published and validated against schema checks.
+              - prose: Router consumes catalog without warnings and enforces allowlists.
+            domain: mcp
+            complexity_score: 5
+            effort_hours: 6
+            required_tools:
+              - node
+              - npm
+              - bash
+            evidence_path: state/evidence/AFP-S1-TOOLS-CATALOG
+            work_process_phases:
+              - strategize
+              - spec
+              - plan
+              - think
+              - implement
+              - verify
+              - review
+              - pr
+              - monitor
+            evidence_enforcement: enforce
+          - id: AFP-S1-EVIDENCE-SCHEMA
+            title: Standardize Evidence Bundles & Storage
+            status: pending
+            description: Define schemas and validation tooling for state/evidence/<TASK_ID>
+              artifacts.
+            dependencies:
+              depends_on:
+                - AFP-S1-BOOTSTRAP
+                - AFP-S1-TOOLS-CATALOG
+            exit_criteria:
+              - prose: Evidence schema documented and validator CLI passes on canonical bundles.
+              - prose: Invalid evidence sample fails with actionable error messaging.
+            domain: mcp
+            complexity_score: 5
+            effort_hours: 6
+            required_tools:
+              - node
+              - npm
+              - bash
+            evidence_path: state/evidence/AFP-S1-EVIDENCE-SCHEMA
+            work_process_phases:
+              - strategize
+              - spec
+              - plan
+              - think
+              - implement
+              - verify
+              - review
+              - pr
+              - monitor
+            evidence_enforcement: enforce
+          - id: AFP-S1-SMOKE-SUITE
+            title: Create End-to-End Work Process Smoke Tests
+            status: pending
+            description: Build synthetic tasks proving the 9-phase loop records required
+              evidence.
+            dependencies:
+              depends_on:
+                - AFP-S1-LEDGER
+                - AFP-S1-STATE-GRAPH
+                - AFP-S1-EVIDENCE-SCHEMA
+            exit_criteria:
+              - prose: Smoke suite fails when any phase evidence is missing.
+              - prose: Happy-path run exercises STRATEGIZE→MONITOR with recorded artifacts.
+            domain: mcp
+            complexity_score: 6
+            effort_hours: 8
+            required_tools:
+              - npm
+              - node
+              - bash
+            evidence_path: state/evidence/AFP-S1-SMOKE-SUITE
+            work_process_phases:
+              - strategize
+              - spec
+              - plan
+              - think
+              - implement
+              - verify
+              - review
+              - pr
+              - monitor
+            evidence_enforcement: enforce
+          - id: AFP-S1-SANDBOX
+            title: Harden Workspace & Secrets Handling
+            status: pending
+            description: Provide sandboxed execution and secrets isolation for agent
+              operations.
+            dependencies:
+              depends_on:
+                - AFP-S1-STATE-GRAPH
+                - AFP-S1-SMOKE-SUITE
+            exit_criteria:
+              - prose: Sandbox denies forbidden filesystem paths in acceptance tests.
+              - prose: Secrets configuration stored outside repo with documented usage.
+            domain: mcp
+            complexity_score: 6
+            effort_hours: 8
+            required_tools:
+              - bash
+              - npm
+              - node
+            evidence_path: state/evidence/AFP-S1-SANDBOX
+            work_process_phases:
+              - strategize
+              - spec
+              - plan
+              - think
+              - implement
+              - verify
+              - review
+              - pr
+              - monitor
+            evidence_enforcement: enforce
+          - id: AFP-S1-PROMPT-HASHES
+            title: Baseline Prompts & Attestation Hashes
+            status: pending
+            description: Capture core prompt families, hash them, and wire attestation into
+              router.
+            dependencies:
+              depends_on:
+                - AFP-S1-TOOLS-CATALOG
+                - AFP-S1-SANDBOX
+            exit_criteria:
+              - prose: Prompt hashes generated and stored with attestation metadata.
+              - prose: Router blocks prompt drift without explicit steward approval.
+            domain: mcp
+            complexity_score: 5
+            effort_hours: 6
+            required_tools:
+              - node
+              - npm
+              - bash
+            evidence_path: state/evidence/AFP-S1-PROMPT-HASHES
+            work_process_phases:
+              - strategize
+              - spec
+              - plan
+              - think
+              - implement
+              - verify
+              - review
+              - pr
+              - monitor
+            evidence_enforcement: enforce
+          - id: AFP-S1-OBSERVABILITY
+            title: Instrument OTel GenAI Spans
+            status: pending
+            description: Emit spans for tool calls, phases, and token usage with success
+              metrics.
+            dependencies:
+              depends_on:
+                - AFP-S1-STATE-GRAPH
+                - AFP-S1-PROMPT-HASHES
+            exit_criteria:
+              - prose: Telemetry spans emitted with success/failure attribution.
+              - prose: Snapshot stored in state/evidence/AFP-S1-OBSERVABILITY/verify/.
+            domain: mcp
+            complexity_score: 6
+            effort_hours: 8
+            required_tools:
+              - node
+              - npm
+              - bash
+            evidence_path: state/evidence/AFP-S1-OBSERVABILITY
+            work_process_phases:
+              - strategize
+              - spec
+              - plan
+              - think
+              - implement
+              - verify
+              - review
+              - pr
+              - monitor
+            evidence_enforcement: enforce
+          - id: AFP-S1-OPS-DASHBOARD
+            title: Minimal Operations Dashboard
+            status: pending
+            description: Build dashboard surfacing smoke, guardrail, and telemetry signals.
+            dependencies:
+              depends_on:
+                - AFP-S1-SMOKE-SUITE
+                - AFP-S1-OBSERVABILITY
+            exit_criteria:
+              - prose: Dashboard renders key widgets with live data feed.
+              - prose: UI smoke test passes for primary views.
+            domain: mcp
+            complexity_score: 6
+            effort_hours: 8
+            required_tools:
+              - npm
+              - node
+              - bash
+            evidence_path: state/evidence/AFP-S1-OPS-DASHBOARD
+            work_process_phases:
+              - strategize
+              - spec
+              - plan
+              - think
+              - implement
+              - verify
+              - review
+              - pr
+              - monitor
+            evidence_enforcement: enforce
+          - id: AFP-S1-HANDBOOK
+            title: Author Agent Handbook & Workflow Contracts
+            status: pending
+            description: Document enforced work process, guardrails, and onboarding
+              expectations.
+            dependencies:
+              depends_on:
+                - AFP-S1-BOOTSTRAP
+                - AFP-S1-OPS-DASHBOARD
+            exit_criteria:
+              - prose: Handbook published with STRATEGIZE→MONITOR guidance and guardrail
+                  references.
+              - prose: Link checker passes and stewards sign off on content accuracy.
+            domain: mcp
+            complexity_score: 5
+            effort_hours: 6
+            required_tools:
+              - bash
+            evidence_path: state/evidence/AFP-S1-HANDBOOK
+            work_process_phases:
+              - strategize
+              - spec
+              - plan
+              - think
+              - implement
+              - verify
+              - review
+              - pr
+              - monitor
+            evidence_enforcement: enforce
+      - id: E-AFP-ROADMAP-stage2
+        title: Stage 2 — Reliability & Guardrails
+        status: pending
+        description: Make regressions impossible to ignore and keep AFP/SCAS constraints
+          self-enforcing.
+        tasks:
+          - id: AFP-S2-FAILURE-CATALOG
+            title: Classify Failure Modes & Recovery Playbooks
+            status: pending
+            description: Create taxonomy for task failures with remediation playbooks.
+            dependencies:
+              depends_on:
+                - AFP-S1-HANDBOOK
+            exit_criteria:
+              - prose: Failure taxonomy published with remediation playbooks.
+              - prose: CLI returns remediation steps for sampled failure types.
+            domain: mcp
+            complexity_score: 6
+            effort_hours: 8
+            required_tools:
+              - node
+              - npm
+              - bash
+            evidence_path: state/evidence/AFP-S2-FAILURE-CATALOG
+            work_process_phases:
+              - strategize
+              - spec
+              - plan
+              - think
+              - implement
+              - verify
+              - review
+              - pr
+              - monitor
+            evidence_enforcement: enforce
+          - id: AFP-S2-EVIDENCE-LINTER
+            title: Enforce Evidence Completeness
+            status: pending
+            description: Lint evidence bundles for required artifacts per phase.
+            dependencies:
+              depends_on:
+                - AFP-S1-EVIDENCE-SCHEMA
+                - AFP-S2-FAILURE-CATALOG
+            exit_criteria:
+              - prose: Evidence completeness check fails when required artifact missing.
+              - prose: CI integration blocks merge on missing evidence.
+            domain: mcp
+            complexity_score: 6
+            effort_hours: 8
+            required_tools:
+              - node
+              - npm
+              - bash
+            evidence_path: state/evidence/AFP-S2-EVIDENCE-LINTER
+            work_process_phases:
+              - strategize
+              - spec
+              - plan
+              - think
+              - implement
+              - verify
+              - review
+              - pr
+              - monitor
+            evidence_enforcement: enforce
+          - id: AFP-S2-PROMPT-DRIFT
+            title: Real-Time Prompt Drift Monitoring
+            status: pending
+            description: Continuously monitor prompt usage and detect unauthorized changes.
+            dependencies:
+              depends_on:
+                - AFP-S1-PROMPT-HASHES
+                - AFP-S2-EVIDENCE-LINTER
+            exit_criteria:
+              - prose: Simulated prompt drift triggers alert within one loop.
+              - prose: Hashed log stored for steward review.
+            domain: mcp
+            complexity_score: 6
+            effort_hours: 8
+            required_tools:
+              - node
+              - npm
+              - bash
+            evidence_path: state/evidence/AFP-S2-PROMPT-DRIFT
+            work_process_phases:
+              - strategize
+              - spec
+              - plan
+              - think
+              - implement
+              - verify
+              - review
+              - pr
+              - monitor
+            evidence_enforcement: enforce
+          - id: AFP-S2-BIAS-SIGNAL
+            title: Capture Agent Bias Indicators
+            status: pending
+            description: Log bias signals (recency, confirmation, anchoring) from agent
+              decisions.
+            dependencies:
+              depends_on:
+                - AFP-S1-OPS-DASHBOARD
+                - AFP-S2-EVIDENCE-LINTER
+            exit_criteria:
+              - prose: Bias detector logs severity-tagged events during simulation.
+              - prose: Escalations routed to reviewers with evidence bundle.
+            domain: mcp
+            complexity_score: 6
+            effort_hours: 8
+            required_tools:
+              - node
+              - npm
+              - bash
+            evidence_path: state/evidence/AFP-S2-BIAS-SIGNAL
+            work_process_phases:
+              - strategize
+              - spec
+              - plan
+              - think
+              - implement
+              - verify
+              - review
+              - pr
+              - monitor
+            evidence_enforcement: enforce
+          - id: AFP-S2-TOOL-HEALTH
+            title: Monitor Tool Failures & Latency
+            status: pending
+            description: Track tool availability, latency histograms, and failure bursts.
+            dependencies:
+              depends_on:
+                - AFP-S1-OBSERVABILITY
+                - AFP-S1-OPS-DASHBOARD
+            exit_criteria:
+              - prose: Tool health dashboard shows latency histogram and uptime trends.
+              - prose: Simulated outage triggers escalation workflow.
+            domain: mcp
+            complexity_score: 6
+            effort_hours: 8
+            required_tools:
+              - node
+              - npm
+              - bash
+            evidence_path: state/evidence/AFP-S2-TOOL-HEALTH
+            work_process_phases:
+              - strategize
+              - spec
+              - plan
+              - think
+              - implement
+              - verify
+              - review
+              - pr
+              - monitor
+            evidence_enforcement: enforce
+          - id: AFP-S2-HEALTH-REPORTER
+            title: Automated Health Check Summaries
+            status: pending
+            description: Summarize system health daily with metrics, guardrails, and entropy
+              trend.
+            dependencies:
+              depends_on:
+                - AFP-S2-FAILURE-CATALOG
+                - AFP-S2-TOOL-HEALTH
+                - AFP-S2-BIAS-SIGNAL
+            exit_criteria:
+              - prose: Daily health report generated with key metrics and guardrail summaries.
+              - prose: Report archived under state/analytics with retention policy.
+            domain: mcp
+            complexity_score: 6
+            effort_hours: 8
+            required_tools:
+              - node
+              - npm
+              - bash
+            evidence_path: state/evidence/AFP-S2-HEALTH-REPORTER
+            work_process_phases:
+              - strategize
+              - spec
+              - plan
+              - think
+              - implement
+              - verify
+              - review
+              - pr
+              - monitor
+            evidence_enforcement: enforce
+          - id: AFP-S2-RELIABILITY-ORACLE
+            title: Reliability Scorecard & MTTR Tracking
+            status: pending
+            description: Aggregate Stage 2 signals into a reliability oracle with MTTR/SLO
+              tracking and gating.
+            dependencies:
+              depends_on:
+                - AFP-S2-FAILURE-CATALOG
+                - AFP-S2-EVIDENCE-LINTER
+                - AFP-S2-PROMPT-DRIFT
+                - AFP-S2-BIAS-SIGNAL
+                - AFP-S2-TOOL-HEALTH
+                - AFP-S2-HEALTH-REPORTER
+            exit_criteria:
+              - prose: Reliability scorecard report generated with MTTR and SLO metrics.
+              - prose: Scorecard gating integrated with WorkProcessEnforcer to block failing
+                  runs.
+            domain: mcp
+            complexity_score: 7
+            effort_hours: 10
+            required_tools:
+              - node
+              - npm
+              - bash
+            evidence_path: state/evidence/AFP-S2-RELIABILITY-ORACLE
+            work_process_phases:
+              - strategize
+              - spec
+              - plan
+              - think
+              - implement
+              - verify
+              - review
+              - pr
+              - monitor
+            evidence_enforcement: enforce
+          - id: AFP-S2-CHAOS-LEDGER
+            title: Guardrail Deviation Ledger
+            status: pending
+            description: Maintain immutable ledger of guardrail deviations, remediation
+              status, and follow-up tasks.
+            dependencies:
+              depends_on:
+                - AFP-S2-RELIABILITY-ORACLE
+            exit_criteria:
+              - prose: Deviation ledger CLI records sample deviation with owner and due date.
+              - prose: Ledger shows zero outstanding deviations before advancing to Stage 3.
+            domain: mcp
+            complexity_score: 6
+            effort_hours: 8
+            required_tools:
+              - node
+              - npm
+              - bash
+            evidence_path: state/evidence/AFP-S2-CHAOS-LEDGER
+            work_process_phases:
+              - strategize
+              - spec
+              - plan
+              - think
+              - implement
+              - verify
+              - review
+              - pr
+              - monitor
+            evidence_enforcement: enforce
+          - id: AFP-S2-README-GUARDRAIL
+            title: Enforce README automation guardrail
+            status: pending
+            description: Integrate docsync into hooks/CI, surface structural warnings, and
+              wire metrics into Stage 2 reliability gates.
+            dependencies:
+              depends_on:
+                - AFP-S1-README-BOOTSTRAP
+                - AFP-S2-RELIABILITY-ORACLE
+            exit_criteria:
+              - prose: Pre-commit hook and CI workflow block merges when READMEs or structural
+                  metrics are stale.
+              - prose: Structural warnings logged to state/analytics/readme_sync.jsonl with
+                  remediation guidance and recommended tasks.
+            domain: mcp
+            complexity_score: 6
+            effort_hours: 8
+            required_tools:
+              - node
+              - npm
+              - bash
+            evidence_path: state/evidence/AFP-S2-README-GUARDRAIL
+            work_process_phases:
+              - strategize
+              - spec
+              - plan
+              - think
+              - implement
+              - verify
+              - review
+              - pr
+              - monitor
+            evidence_enforcement: enforce
+      - id: E-AFP-ROADMAP-stage3
+        title: Stage 3 — Autonomous Delivery
+        status: pending
+        description: Enable autopilot to spec, implement, and verify new work with
+          risk-tuned guardrails.
+        tasks:
+          - id: AFP-S3-INTENT-PARSER
+            title: Classify Task Intent & Mode Selection
+            status: pending
+            description: Automatically infer task mode and AFP implications for planning.
+            dependencies:
+              depends_on:
+                - AFP-S2-RELIABILITY-ORACLE
+                - AFP-S2-CHAOS-LEDGER
+            exit_criteria:
+              - prose: Intent classifier hits ≥90% precision/recall on curated dataset.
+              - prose: Misclassification review loop documented with evidence.
+            domain: mcp
+            complexity_score: 7
+            effort_hours: 10
+            required_tools:
+              - python
+              - node
+              - npm
+            evidence_path: state/evidence/AFP-S3-INTENT-PARSER
+            work_process_phases:
+              - strategize
+              - spec
+              - plan
+              - think
+              - implement
+              - verify
+              - review
+              - pr
+              - monitor
+            evidence_enforcement: enforce
+          - id: AFP-S3-RESOURCE-BUDGETER
+            title: Adaptive Resource Allocation Engine
+            status: pending
+            description: Allocate tokens/time per phase based on complexity, risk, and
+              history.
+            dependencies:
+              depends_on:
+                - AFP-S3-INTENT-PARSER
+            exit_criteria:
+              - prose: Budget model adjusts allocations in simulation scenarios.
+              - prose: Override policy captured with steward sign-off.
+            domain: mcp
+            complexity_score: 7
+            effort_hours: 10
+            required_tools:
+              - python
+              - node
+              - npm
+            evidence_path: state/evidence/AFP-S3-RESOURCE-BUDGETER
+            work_process_phases:
+              - strategize
+              - spec
+              - plan
+              - think
+              - implement
+              - verify
+              - review
+              - pr
+              - monitor
+            evidence_enforcement: enforce
+          - id: AFP-S3-AGENT-PROFILE
+            title: Agent Profiling Analytics
+            status: pending
+            description: Track agent strengths/weaknesses to inform staffing and review
+              pairings.
+            dependencies:
+              depends_on:
+                - AFP-S3-INTENT-PARSER
+                - AFP-S3-RESOURCE-BUDGETER
+            exit_criteria:
+              - prose: Profiling accuracy exceeds 80% compared to steward assessment.
+              - prose: Dashboard screenshot stored with analysis narrative.
+            domain: mcp
+            complexity_score: 6
+            effort_hours: 8
+            required_tools:
+              - python
+              - node
+              - npm
+            evidence_path: state/evidence/AFP-S3-AGENT-PROFILE
+            work_process_phases:
+              - strategize
+              - spec
+              - plan
+              - think
+              - implement
+              - verify
+              - review
+              - pr
+              - monitor
+            evidence_enforcement: enforce
+          - id: AFP-S3-SCENARIO-SIM
+            title: Scenario Simulator for Planner Strategies
+            status: pending
+            description: Simulate strategy decisions using historical data to inform
+              STRATEGIZE.
+            dependencies:
+              depends_on:
+                - AFP-S3-INTENT-PARSER
+                - AFP-S3-RESOURCE-BUDGETER
+            exit_criteria:
+              - prose: Scenario simulator accuracy exceeds 75% vs actual outcomes.
+              - prose: Simulation outputs archived with evaluation report.
+            domain: mcp
+            complexity_score: 7
+            effort_hours: 10
+            required_tools:
+              - python
+              - node
+              - npm
+            evidence_path: state/evidence/AFP-S3-SCENARIO-SIM
+            work_process_phases:
+              - strategize
+              - spec
+              - plan
+              - think
+              - implement
+              - verify
+              - review
+              - pr
+              - monitor
+            evidence_enforcement: enforce
+          - id: AFP-S3-ADAPTIVE-REVIEWS
+            title: Reviewer Assignment Engine
+            status: pending
+            description: Match reviewers to tasks based on risk, expertise, availability.
+            dependencies:
+              depends_on:
+                - AFP-S3-AGENT-PROFILE
+                - AFP-S3-SCENARIO-SIM
+            exit_criteria:
+              - prose: Reviewer assignments logged with rationale and reduction in latency ≥15%.
+              - prose: Integration with WorkProcessEnforcer validated by tests.
+            domain: mcp
+            complexity_score: 6
+            effort_hours: 8
+            required_tools:
+              - python
+              - node
+              - npm
+            evidence_path: state/evidence/AFP-S3-ADAPTIVE-REVIEWS
+            work_process_phases:
+              - strategize
+              - spec
+              - plan
+              - think
+              - implement
+              - verify
+              - review
+              - pr
+              - monitor
+            evidence_enforcement: enforce
+          - id: AFP-S3-WORKFLOW-SANDBOX
+            title: Mode-Specific Sandbox Environments
+            status: pending
+            description: Provide dedicated sandboxes per mode with tailored guard sets.
+            dependencies:
+              depends_on:
+                - AFP-S1-SANDBOX
+                - AFP-S3-INTENT-PARSER
+                - AFP-S3-RESOURCE-BUDGETER
+            exit_criteria:
+              - prose: Mode-specific sandbox smoke tests pass for normal/investigation/delivery
+                  modes.
+              - prose: Configuration bundles reviewed by SRE steward.
+            domain: mcp
+            complexity_score: 7
+            effort_hours: 10
+            required_tools:
+              - bash
+              - python
+              - node
+              - npm
+            evidence_path: state/evidence/AFP-S3-WORKFLOW-SANDBOX
+            work_process_phases:
+              - strategize
+              - spec
+              - plan
+              - think
+              - implement
+              - verify
+              - review
+              - pr
+              - monitor
+            evidence_enforcement: enforce
+          - id: AFP-S3-AUTONOMOUS-DELIVERY-LADDER
+            title: End-to-End Autonomy Ladder
+            status: pending
+            description: Define ladder of progressively harder internal delivery tasks with
+              explicit oracles and scoring.
+            dependencies:
+              depends_on:
+                - AFP-S3-INTENT-PARSER
+                - AFP-S3-RESOURCE-BUDGETER
+                - AFP-S3-AGENT-PROFILE
+                - AFP-S3-SCENARIO-SIM
+                - AFP-S3-ADAPTIVE-REVIEWS
+                - AFP-S3-WORKFLOW-SANDBOX
+            exit_criteria:
+              - prose: Autonomy ladder spec approved with scoring rubric.
+              - prose: Harness run results stored for baseline tiers.
+            domain: mcp
+            complexity_score: 7
+            effort_hours: 10
+            required_tools:
+              - node
+              - npm
+              - python
+            evidence_path: state/evidence/AFP-S3-AUTONOMOUS-DELIVERY-LADDER
+            work_process_phases:
+              - strategize
+              - spec
+              - plan
+              - think
+              - implement
+              - verify
+              - review
+              - pr
+              - monitor
+            evidence_enforcement: enforce
+          - id: AFP-S3-SPEC-TEST-SYNTH
+            title: Spec/Test Synthesis Harness
+            status: pending
+            description: Automate generation and verification of design/spec/test artifacts
+              for autopilot work.
+            dependencies:
+              depends_on:
+                - AFP-S3-AUTONOMOUS-DELIVERY-LADDER
+            exit_criteria:
+              - prose: Harness produces spec/test bundles meeting coverage targets.
+              - prose: Oracle comparator highlights discrepancies with steward approval.
+            domain: mcp
+            complexity_score: 7
+            effort_hours: 10
+            required_tools:
+              - python
+              - node
+              - npm
+            evidence_path: state/evidence/AFP-S3-SPEC-TEST-SYNTH
+            work_process_phases:
+              - strategize
+              - spec
+              - plan
+              - think
+              - implement
+              - verify
+              - review
+              - pr
+              - monitor
+            evidence_enforcement: enforce
+          - id: AFP-S3-KNOWLEDGE-SYNTH
+            title: Organizational Memory Rehydration
+            status: pending
+            description: Persist distilled learnings and retrieval pipeline to inform
+              STRATEGIZE/THINK phases.
+            dependencies:
+              depends_on:
+                - AFP-S3-AUTONOMOUS-DELIVERY-LADDER
+                - AFP-S3-SPEC-TEST-SYNTH
+            exit_criteria:
+              - prose: Memory queries return high-signal notes for sampled tasks.
+              - prose: Decay policy implementation audited with evidence.
+            domain: mcp
+            complexity_score: 6
+            effort_hours: 8
+            required_tools:
+              - python
+              - node
+              - npm
+            evidence_path: state/evidence/AFP-S3-KNOWLEDGE-SYNTH
+            work_process_phases:
+              - strategize
+              - spec
+              - plan
+              - think
+              - implement
+              - verify
+              - review
+              - pr
+              - monitor
+            evidence_enforcement: enforce
+      - id: E-AFP-ROADMAP-stage4
+        title: Stage 4 — Self-Govern & Scale
+        status: pending
+        description: Preserve AFP/SCAS integrity while scaling concurrency, governance,
+          and incident response.
+        tasks:
+          - id: AFP-S4-MULTI-TENANT
+            title: Multi-Tenant Orchestrator Support
+            status: pending
+            description: Allow isolated tenants with shared infrastructure honoring
+              guardrails per tenant.
+            dependencies:
+              depends_on:
+                - AFP-S3-AUTONOMOUS-DELIVERY-LADDER
+                - AFP-S3-KNOWLEDGE-SYNTH
+            exit_criteria:
+              - prose: Multi-tenant integration tests pass without cross-tenant leakage.
+              - prose: Security review sign-off documented.
+            domain: mcp
+            complexity_score: 7
+            effort_hours: 10
+            required_tools:
+              - python
+              - node
+              - npm
+            evidence_path: state/evidence/AFP-S4-MULTI-TENANT
+            work_process_phases:
+              - strategize
+              - spec
+              - plan
+              - think
+              - implement
+              - verify
+              - review
+              - pr
+              - monitor
+            evidence_enforcement: enforce
+          - id: AFP-S4-QUEUE-ADAPT
+            title: Dynamic Task Queue Prioritization
+            status: pending
+            description: Prioritize tasks based on severity, deadlines, and entropy impact.
+            dependencies:
+              depends_on:
+                - AFP-S3-AUTONOMOUS-DELIVERY-LADDER
+                - AFP-S3-KNOWLEDGE-SYNTH
+            exit_criteria:
+              - prose: Priority scheduler simulation demonstrates SLA improvements.
+              - prose: Dashboard shows reprioritization metrics.
+            domain: mcp
+            complexity_score: 6
+            effort_hours: 8
+            required_tools:
+              - python
+              - node
+              - npm
+            evidence_path: state/evidence/AFP-S4-QUEUE-ADAPT
+            work_process_phases:
+              - strategize
+              - spec
+              - plan
+              - think
+              - implement
+              - verify
+              - review
+              - pr
+              - monitor
+            evidence_enforcement: enforce
+          - id: AFP-S4-SWARM-COORD
+            title: Coordinated Multi-Agent Workflows
+            status: pending
+            description: Enable multi-agent collaboration with managed interfaces across
+              phases.
+            dependencies:
+              depends_on:
+                - AFP-S4-MULTI-TENANT
+                - AFP-S4-QUEUE-ADAPT
+            exit_criteria:
+              - prose: Swarm coordination protocol validated by integration test with conflict
+                  log.
+              - prose: Handoff artifacts reviewed by stewardship committee.
+            domain: mcp
+            complexity_score: 7
+            effort_hours: 10
+            required_tools:
+              - python
+              - node
+              - npm
+            evidence_path: state/evidence/AFP-S4-SWARM-COORD
+            work_process_phases:
+              - strategize
+              - spec
+              - plan
+              - think
+              - implement
+              - verify
+              - review
+              - pr
+              - monitor
+            evidence_enforcement: enforce
+          - id: AFP-S4-ADVERSARIAL-TESTS
+            title: Autonomous Adversarial Test Harness
+            status: pending
+            description: Continuously attack the system to find weaknesses.
+            dependencies:
+              depends_on:
+                - AFP-S2-PROMPT-DRIFT
+                - AFP-S3-AUTONOMOUS-DELIVERY-LADDER
+            exit_criteria:
+              - prose: Scheduled adversarial run logs stored with findings.
+              - prose: Vulnerabilities triaged with remediation tasks linked.
+            domain: mcp
+            complexity_score: 7
+            effort_hours: 10
+            required_tools:
+              - python
+              - node
+              - npm
+            evidence_path: state/evidence/AFP-S4-ADVERSARIAL-TESTS
+            work_process_phases:
+              - strategize
+              - spec
+              - plan
+              - think
+              - implement
+              - verify
+              - review
+              - pr
+              - monitor
+            evidence_enforcement: enforce
+          - id: AFP-S4-LOAD-CHAOS
+            title: High-Load & Chaos Resilience Tests
+            status: pending
+            description: Validate orchestrator under peak load and chaotic failures.
+            dependencies:
+              depends_on:
+                - AFP-S4-MULTI-TENANT
+                - AFP-S4-SWARM-COORD
+            exit_criteria:
+              - prose: Stress test results demonstrate stability at 5× baseline load.
+              - prose: Chaos drills record recovery time under target.
+            domain: mcp
+            complexity_score: 7
+            effort_hours: 10
+            required_tools:
+              - python
+              - node
+              - npm
+            evidence_path: state/evidence/AFP-S4-LOAD-CHAOS
+            work_process_phases:
+              - strategize
+              - spec
+              - plan
+              - think
+              - implement
+              - verify
+              - review
+              - pr
+              - monitor
+            evidence_enforcement: enforce
+          - id: AFP-S4-SUCCESSION-ORCH
+            title: Steward Succession Orchestrator
+            status: pending
+            description: Automate stewardship succession with readiness scoring.
+            dependencies:
+              depends_on:
+                - AFP-S3-KNOWLEDGE-SYNTH
+            exit_criteria:
+              - prose: Succession registry lists steward + apprentice for every directory.
+              - prose: Quarterly drill evidence stored with readiness metrics.
+            domain: mcp
+            complexity_score: 6
+            effort_hours: 8
+            required_tools:
+              - node
+              - npm
+              - bash
+            evidence_path: state/evidence/AFP-S4-SUCCESSION-ORCH
+            work_process_phases:
+              - strategize
+              - spec
+              - plan
+              - think
+              - implement
+              - verify
+              - review
+              - pr
+              - monitor
+            evidence_enforcement: enforce
+          - id: AFP-S4-POLICY-CHANGE
+            title: Policy Change Process Automation
+            status: pending
+            description: Automate policy proposals, reviews, and rollouts with traceable
+              approvals.
+            dependencies:
+              depends_on:
+                - AFP-S2-RELIABILITY-ORACLE
+                - AFP-S4-SUCCESSION-ORCH
+            exit_criteria:
+              - prose: Policy change workflow exercised end-to-end with recorded approvals.
+              - prose: CI gating prevents policy merges without recorded approvals.
+            domain: mcp
+            complexity_score: 6
+            effort_hours: 8
+            required_tools:
+              - node
+              - npm
+              - bash
+            evidence_path: state/evidence/AFP-S4-POLICY-CHANGE
+            work_process_phases:
+              - strategize
+              - spec
+              - plan
+              - think
+              - implement
+              - verify
+              - review
+              - pr
+              - monitor
+            evidence_enforcement: enforce
+          - id: AFP-S4-COMMS-ROUTER
+            title: Adaptive Communication Router & Incident Escalation
+            status: pending
+            description: Route alerts via appropriate channels while preventing alert
+              fatigue.
+            dependencies:
+              depends_on:
+                - AFP-S2-TOOL-HEALTH
+                - AFP-S4-ADVERSARIAL-TESTS
+            exit_criteria:
+              - prose: Simulated incidents show correct routing with no duplicates.
+              - prose: False positive rate <5% documented in evidence.
+            domain: mcp
+            complexity_score: 6
+            effort_hours: 8
+            required_tools:
+              - node
+              - npm
+              - bash
+            evidence_path: state/evidence/AFP-S4-COMMS-ROUTER
+            work_process_phases:
+              - strategize
+              - spec
+              - plan
+              - think
+              - implement
+              - verify
+              - review
+              - pr
+              - monitor
+            evidence_enforcement: enforce
+          - id: AFP-S4-VIA-NEGATIVA
+            title: Via Negativa Principle Engine
+            status: pending
+            description: Identify and remove harmful practices, unused features, and
+              redundant policies.
+            dependencies:
+              depends_on:
+                - AFP-S2-CHAOS-LEDGER
+                - AFP-S4-QUEUE-ADAPT
+            exit_criteria:
+              - prose: Removal candidate report logged with harm/benefit scoring.
+              - prose: At least three removals executed with improvement metrics.
+            domain: mcp
+            complexity_score: 6
+            effort_hours: 8
+            required_tools:
+              - node
+              - npm
+              - bash
+            evidence_path: state/evidence/AFP-S4-VIA-NEGATIVA
+            work_process_phases:
+              - strategize
+              - spec
+              - plan
+              - think
+              - implement
+              - verify
+              - review
+              - pr
+              - monitor
+            evidence_enforcement: enforce
+      - id: E-AFP-ROADMAP-stage5
+        title: Stage 5 — Full Autonomy Trials
+        status: pending
+        description: Prove autopilot can program anything with audited reliability
+          across diverse domains.
+        tasks:
+          - id: AFP-S5-AUTONOMY-FRAMEWORK
+            title: Autonomy Trial Framework
+            status: pending
+            description: Design trial rubric, oracles, and scoring automation for autonomy
+              validation.
+            dependencies:
+              depends_on:
+                - AFP-S4-LOAD-CHAOS
+                - AFP-S4-POLICY-CHANGE
+                - AFP-S4-VIA-NEGATIVA
+            exit_criteria:
+              - prose: Trial rubric approved by stewardship board.
+              - prose: Scoring harness executes against seed corpus with stored results.
+            domain: mcp
+            complexity_score: 7
+            effort_hours: 10
+            required_tools:
+              - python
+              - node
+              - npm
+            evidence_path: state/evidence/AFP-S5-AUTONOMY-FRAMEWORK
+            work_process_phases:
+              - strategize
+              - spec
+              - plan
+              - think
+              - implement
+              - verify
+              - review
+              - pr
+              - monitor
+            evidence_enforcement: enforce
+          - id: AFP-S5-AUTOPILOT-CORE
+            title: Core WeatherVane Autonomy Trial
+            status: pending
+            description: Run autopilot on a WeatherVane repo change end-to-end without human
+              edits.
+            dependencies:
+              depends_on:
+                - AFP-S5-AUTONOMY-FRAMEWORK
+            exit_criteria:
+              - prose: Trial execution logs stored with autogenerated design/spec/plan
+                  artifacts.
+              - prose: Telemetry shows ≥99% phase completion with zero critical regressions.
+            domain: mcp
+            complexity_score: 8
+            effort_hours: 12
+            required_tools:
+              - python
+              - node
+              - npm
+              - bash
+            evidence_path: state/evidence/AFP-S5-AUTOPILOT-CORE
+            work_process_phases:
+              - strategize
+              - spec
+              - plan
+              - think
+              - implement
+              - verify
+              - review
+              - pr
+              - monitor
+            evidence_enforcement: enforce
+          - id: AFP-S5-AUTOPILOT-TOOLING
+            title: Internal Tool Autonomy Trial
+            status: pending
+            description: Have autopilot build a new internal tool/service end-to-end.
+            dependencies:
+              depends_on:
+                - AFP-S5-AUTONOMY-FRAMEWORK
+            exit_criteria:
+              - prose: Tool spec, implementation, and deployment scripts recorded with tests
+                  passing.
+              - prose: Ops handoff checklist signed by stewards.
+            domain: mcp
+            complexity_score: 8
+            effort_hours: 12
+            required_tools:
+              - python
+              - node
+              - npm
+              - bash
+            evidence_path: state/evidence/AFP-S5-AUTOPILOT-TOOLING
+            work_process_phases:
+              - strategize
+              - spec
+              - plan
+              - think
+              - implement
+              - verify
+              - review
+              - pr
+              - monitor
+            evidence_enforcement: enforce
+          - id: AFP-S5-AUTOPILOT-GREENFIELD
+            title: Greenfield Creative Trial
+            status: pending
+            description: Autopilot produces novel artifact (e.g., game prototype, external
+              app) with minimal prompts.
+            dependencies:
+              depends_on:
+                - AFP-S5-AUTONOMY-FRAMEWORK
+                - AFP-S5-AUTOPILOT-CORE
+                - AFP-S5-AUTOPILOT-TOOLING
+            exit_criteria:
+              - prose: User acceptance script passes for greenfield artifact.
+              - prose: Resilience tests recorded with human red-team signoff.
+            domain: mcp
+            complexity_score: 8
+            effort_hours: 12
+            required_tools:
+              - python
+              - node
+              - npm
+              - bash
+            evidence_path: state/evidence/AFP-S5-AUTOPILOT-GREENFIELD
+            work_process_phases:
+              - strategize
+              - spec
+              - plan
+              - think
+              - implement
+              - verify
+              - review
+              - pr
+              - monitor
+            evidence_enforcement: enforce
+          - id: AFP-S5-AUTONOMY-AUDIT
+            title: Autonomous Operations Audit
+            status: pending
+            description: Aggregate analytics, guardrail triggers, and trial outcomes for
+              final autonomy certification.
+            dependencies:
+              depends_on:
+                - AFP-S5-AUTOPILOT-CORE
+                - AFP-S5-AUTOPILOT-TOOLING
+                - AFP-S5-AUTOPILOT-GREENFIELD
+            exit_criteria:
+              - prose: Autonomy scorecard generated with MTTR distribution and guardrail trigger
+                  analysis.
+              - prose: Audit committee sign-off recorded; remediation tasks logged for residual
+                  gaps.
+            domain: mcp
+            complexity_score: 7
+            effort_hours: 10
+            required_tools:
+              - python
+              - node
+              - npm
+              - bash
+            evidence_path: state/evidence/AFP-S5-AUTONOMY-AUDIT
+            work_process_phases:
+              - strategize
+              - spec
+              - plan
+              - think
+              - implement
+              - verify
+              - review
+              - pr
+              - monitor
+            evidence_enforcement: enforce
+  - id: E-GENERAL
+    title: Legacy Critic Remediation Backlog
+    status: on_hold
+    domain: product
+    description: >
+      Historic critic remediation tasks retained for reference. These are
+      deprioritized while Autopilot Wave milestones execute; reactivate only if
+      critic health degrades after Wave delivery.
+    milestones:
+      - id: E-GENERAL-backlog
+        title: Backlog (On Hold)
+        status: on_hold
+        tasks:
+          - id: CRIT-PERF-BUILD-4254a2
+            title: "[Critic:build] Restore performance"
+            status: on_hold
+            dependencies: []
+            exit_criteria: []
+            domain: product
+            description: Critic build remediation plan archived pending Wave completion.
+              Re-enable if build critic regresses after Autopilot Stage tasks.
+          - id: CRIT-PERF-BUILD-4254a2.1
+            title: Research and design for [Critic:build] Restore performance
+            status: on_hold
+            dependencies: []
+            exit_criteria: []
+            domain: product
+            description: Research phase (paused) for [Critic:build] Restore performance
+          - id: CRIT-PERF-BUILD-4254a2.2
+            title: Implement [Critic:build] Restore performance
+            status: on_hold
+            dependencies:
+              - CRIT-PERF-BUILD-4254a2.1
+            exit_criteria: []
+            domain: product
+            description: Implementation phase (paused) for [Critic:build] Restore
+              performance
+          - id: CRIT-PERF-BUILD-4254a2.3
+            title: Validate and test [Critic:build] Restore performance
+            status: on_hold
+            dependencies:
+              - CRIT-PERF-BUILD-4254a2.2
+            exit_criteria: []
+            domain: product
+            description: Validation phase (paused) for [Critic:build] Restore performance
+          - id: CRIT-PERF-GLOBAL-9dfa06
+            title: "[Critics] Systemic performance remediation"
+            status: on_hold
+            dependencies: []
+            exit_criteria: []
+            domain: product
+            description: Systemic critic remediation parked while Autopilot Wave execution
+              proceeds. Resume once Stage milestones complete or if new systemic
+              failures emerge.
+          - id: CRIT-PERF-GLOBAL-9dfa06.1
+            title: Research and design for [Critics] Systemic performance remediation
+            status: on_hold
+            dependencies: []
+            exit_criteria: []
+            domain: product
+            description: Research phase (paused) for systemic critic remediation
+          - id: CRIT-PERF-GLOBAL-9dfa06.2
+            title: Implement [Critics] Systemic performance remediation
+            status: on_hold
+            dependencies:
+              - CRIT-PERF-GLOBAL-9dfa06.1
+            exit_criteria: []
+            domain: product
+            description: Implementation phase (paused) for systemic critic remediation
+          - id: CRIT-PERF-GLOBAL-9dfa06.3
+            title: Validate and test [Critics] Systemic performance remediation
+            status: on_hold
+            dependencies:
+              - CRIT-PERF-GLOBAL-9dfa06.2
+            exit_criteria: []
+            domain: product
+            description: Validation phase (paused) for systemic critic remediation
