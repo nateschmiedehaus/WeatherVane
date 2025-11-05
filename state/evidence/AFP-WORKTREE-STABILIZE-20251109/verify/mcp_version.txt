@@ -1,2 +1,1 @@
-name=weathervane-orchestrator
-version=0.2.0
+weathervane-orchestrator 0.2.0
