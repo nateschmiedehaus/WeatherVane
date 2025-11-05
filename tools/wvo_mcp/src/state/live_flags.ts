@@ -15,6 +15,7 @@ export const LIVE_FLAG_KEYS = [
   'UI_ENABLED',
   'MO_ENGINE',
   'DISABLE_NEW',
+  'ENABLE_OUTCOME_LOGGING',
   'RESEARCH_LAYER',
   'INTELLIGENT_CRITICS',
   'EFFICIENT_OPERATIONS',
@@ -49,6 +50,7 @@ export const DEFAULT_LIVE_FLAGS: LiveFlagSnapshot = {
   UI_ENABLED: '0',
   MO_ENGINE: '0',
   DISABLE_NEW: '0',
+  ENABLE_OUTCOME_LOGGING: '1',
   RESEARCH_LAYER: '1',
   INTELLIGENT_CRITICS: '1',
   EFFICIENT_OPERATIONS: '1',
@@ -92,6 +94,7 @@ export function normalizeLiveFlagValue<K extends LiveFlagKey>(
     case 'UI_ENABLED':
     case 'MO_ENGINE':
     case 'DISABLE_NEW':
+    case 'ENABLE_OUTCOME_LOGGING':
     case 'RESEARCH_LAYER':
     case 'INTELLIGENT_CRITICS':
     case 'EFFICIENT_OPERATIONS':

@@ -18,6 +18,8 @@ import type {
   ExecutionLifecycleEvent,
   ExecutionSummary,
 } from './agent_coordinator.js';
+import type { AssembledContext } from './context_assembler.js';
+import type { ContextEntry, QualityMetric } from './state_machine.js';
 
 interface ActivityFeedWriterConfig {
   workspaceRoot: string;
@@ -532,23 +534,29 @@ export class ActivityFeedWriter {
         estimatedDurationSeconds: metadata?.estimatedDuration,
         reasoning: metadata?.reasoning,
         filesToRead: context.filesToRead ?? [],
-        relatedTasks: context.relatedTasks?.map((related) => ({
+        relatedTasks: context.relatedTasks?.map((related: Task) => ({
           id: related.id,
           title: related.title,
           status: related.status,
         })) ?? [],
-        qualitySignals: context.qualityIssuesInArea?.map((issue) => ({
-          dimension: issue.dimension,
-          score: issue.score,
-        })) ?? [],
-        relevantDecisions: context.relevantDecisions?.map((decision) => ({
-          topic: decision.topic,
-          content: decision.content,
-        })) ?? [],
-        recentLearnings: context.recentLearnings?.map((learning) => ({
-          topic: learning.topic,
-          content: learning.content,
-        })) ?? [],
+        qualitySignals: context.qualityIssuesInArea?.map(
+          (issue: QualityMetric) => ({
+            dimension: issue.dimension,
+            score: issue.score,
+          })
+        ) ?? [],
+        relevantDecisions: context.relevantDecisions?.map(
+          (decision: ContextEntry) => ({
+            topic: decision.topic,
+            content: decision.content,
+          })
+        ) ?? [],
+        recentLearnings: context.recentLearnings?.map(
+          (learning: ContextEntry) => ({
+            topic: learning.topic,
+            content: learning.content,
+          })
+        ) ?? [],
         researchHighlights: context.researchHighlights ?? [],
         velocity: context.velocityMetrics,
         generatedAt: Date.now(),
@@ -578,17 +586,20 @@ export class ActivityFeedWriter {
         taskId: task.id,
         generatedAt: Date.now(),
         filesToRead: context.filesToRead ?? [],
-        relatedTasks: context.relatedTasks?.map((related) => related.id) ?? [],
-        qualitySignals: context.qualityIssuesInArea?.map((issue) => ({
-          dimension: issue.dimension,
-          score: issue.score,
-        })) ?? [],
+        relatedTasks:
+          context.relatedTasks?.map((related: Task) => related.id) ?? [],
+        qualitySignals: context.qualityIssuesInArea?.map(
+          (issue: QualityMetric) => ({
+            dimension: issue.dimension,
+            score: issue.score,
+          })
+        ) ?? [],
         researchHighlights: context.researchHighlights ?? metadata?.contextSummary?.researchHighlights ?? [],
-        decisions: context.relevantDecisions?.map((decision) => ({
+        decisions: context.relevantDecisions?.map((decision: ContextEntry) => ({
           topic: decision.topic,
           content: decision.content,
         })) ?? [],
-        learnings: context.recentLearnings?.map((learning) => ({
+        learnings: context.recentLearnings?.map((learning: ContextEntry) => ({
           topic: learning.topic,
           content: learning.content,
         })) ?? [],

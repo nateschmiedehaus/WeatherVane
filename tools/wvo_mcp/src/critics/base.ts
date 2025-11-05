@@ -1,17 +1,17 @@
+import { randomUUID } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
-import { randomUUID } from "node:crypto";
 
-import type { ResearchManager } from "../intelligence/research_manager.js";
 import { runCommand } from "../executor/command_runner.js";
-import { writeFile } from "../executor/file_ops.js";
 import { logInfo, logWarning } from "../telemetry/logger.js";
-import { getCurrentGitSha } from "../utils/git.js";
 import { withSpan } from "../telemetry/tracing.js";
-import type { CommandResult } from "../utils/types.js";
-import type { StateMachine, Task, TaskStatus } from "../orchestrator/state_machine.js";
+import { getCurrentGitSha } from "../utils/git.js";
 import { resolveStateRoot } from "../utils/config.js";
 import { CriticIntelligenceEngine, type CriticAnalysis } from "./intelligence_engine.js";
+
+import type { ResearchManager } from "../intelligence/research_manager.js";
+import type { CommandResult } from "../utils/types.js";
+import type { StateMachine, Task, TaskStatus } from "../orchestrator/state_machine.js";
 
 export interface CriticIdentityProfile {
   title: string;
@@ -226,17 +226,23 @@ export abstract class Critic {
         };
         span?.setAttribute("critic.exitCode", result.code);
         span?.setAttribute("critic.passed", result.code === 0);
-      } catch (error: any) {
+      } catch (error) {
+        const execError = error as {
+          exitCode?: number;
+          stdout?: string;
+          stderr?: string;
+          message?: string;
+        };
         criticResult = {
           critic: criticKey,
-          code: error.exitCode ?? -1,
-          stdout: error.stdout ?? "",
-          stderr: error.stderr ?? error.message,
+          code: execError.exitCode ?? -1,
+          stdout: execError.stdout ?? "",
+          stderr: execError.stderr ?? execError.message ?? "",
           passed: false,
           analysis: null,
         };
-        span?.recordException(error);
-        span?.setAttribute("critic.exitCode", error.exitCode ?? -1);
+        span?.recordException(error as Error);
+        span?.setAttribute("critic.exitCode", execError.exitCode ?? -1);
         span?.setAttribute("critic.passed", false);
       }
 

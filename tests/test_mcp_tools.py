@@ -33,6 +33,9 @@ CODEX_TOOLS = frozenset(
         "artifact_record",
         "codex_commands",
         "mcp_admin_flags",
+        "settings_update",
+        "route_switch",
+        "upgrade_apply_patch",
         "tool_manifest",
         "lsp_initialize",
         "lsp_server_status",
@@ -216,16 +219,31 @@ class MCPTestClient:
             stripped = line.strip()
             if not stripped:
                 continue
-            return json.loads(stripped)
+            try:
+                return json.loads(stripped)
+            except json.JSONDecodeError:
+                # Server may emit human-readable logs on stdout before responding.
+                # Skip any non-JSON lines and continue reading until a valid message arrives.
+                continue
 
 
 def _contains_error(lines: List[str]) -> bool:
     return any('"level":"error"' in line or "Unhandled MCP server error" in line for line in lines)
 
 
+def _clear_pid_lock() -> None:
+    pid_path = REPO_ROOT / "state" / ".mcp.pid"
+    if pid_path.exists():
+        try:
+            pid_path.unlink()
+        except OSError:
+            pass
+
+
 def _fetch_tools(
     entry_path: str, env_updates: Optional[Dict[str, str]] = None
 ) -> Tuple[List[str], Dict[str, object], List[str]]:
+    _clear_pid_lock()
     client = MCPTestClient(entry_path, env_updates)
     with client:
         tool_names = client.list_tools()
@@ -282,6 +300,7 @@ def test_mcp_tool_inventory_and_dry_run_parity(entry_path: str, expected_tools: 
     ],
 )
 def test_dry_run_blocks_mutating_tools(entry_path: str) -> None:
+    _clear_pid_lock()
     with MCPTestClient(entry_path, {"WVO_DRY_RUN": "1"}) as client:
         result = client.call_tool(
             "context_write",

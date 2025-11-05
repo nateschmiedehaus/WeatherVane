@@ -34,6 +34,8 @@ class WorkerTestHarness {
   private readonly readyPromise: Promise<void>;
   private readyResolved = false;
   private readonly callTimeoutMs: number;
+  private readonly stdoutBuffer: string[] = [];
+  private readonly stderrBuffer: string[] = [];
 
   constructor(options: WorkerOptions) {
     const { entryPath, execArgv } = resolveWorkerEntry();
@@ -49,6 +51,14 @@ class WorkerTestHarness {
       execArgv,
     });
 
+    this.child.stdout?.on("data", (chunk) => {
+      this.stdoutBuffer.push(chunk.toString());
+    });
+
+    this.child.stderr?.on("data", (chunk) => {
+      this.stderrBuffer.push(chunk.toString());
+    });
+
     this.child.on("message", (raw: unknown) => {
       this.handleMessage(raw);
     });
@@ -58,15 +68,19 @@ class WorkerTestHarness {
     });
 
     this.child.on("exit", (code, signal) => {
+      const diagnostic =
+        this.stderrBuffer.length || this.stdoutBuffer.length
+          ? `\n--- worker stdout ---\n${this.stdoutBuffer.join("")}\n--- worker stderr ---\n${this.stderrBuffer.join("")}`
+          : "";
       if (!this.readyResolved) {
         this.rejectAllPending(
           new Error(
-            `Worker exited before ready (code=${code ?? "null"}, signal=${signal ?? "null"})`,
+            `Worker exited before ready (code=${code ?? "null"}, signal=${signal ?? "null"})${diagnostic}`,
           ),
         );
       } else {
         this.rejectAllPending(
-          new Error(`Worker exited (code=${code ?? "null"}, signal=${signal ?? "null"})`),
+          new Error(`Worker exited (code=${code ?? "null"}, signal=${signal ?? "null"})${diagnostic}`),
         );
       }
     });

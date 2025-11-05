@@ -13,6 +13,7 @@ function createFeatureGates(mode: 'pool' | 'none'): FeatureGatesReader {
     isAdminToolsEnabled: () => false,
     isUpgradeToolsEnabled: () => false,
     isRoutingToolsEnabled: () => false,
+    isOutcomeLoggingEnabled: () => true,
   };
 }
 

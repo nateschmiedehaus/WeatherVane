@@ -16,6 +16,7 @@ function createFeatureGates(mode: 'compact' | 'verbose'): FeatureGatesReader {
     isAdminToolsEnabled: () => false,
     isUpgradeToolsEnabled: () => false,
     isRoutingToolsEnabled: () => false,
+    isOutcomeLoggingEnabled: () => true,
   };
 }
 

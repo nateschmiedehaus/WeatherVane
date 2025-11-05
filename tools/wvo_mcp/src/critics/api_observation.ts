@@ -11,11 +11,19 @@
  * Philosophy: Call the APIs, don't just read the OpenAPI spec
  */
 
-import { Critic, type CriticResult } from "./base.js";
+import { spawn, type ChildProcess } from "node:child_process";
 import { promises as fs } from "node:fs";
 import path from "node:path";
+
 import { logInfo, logWarning, logError } from "../telemetry/logger.js";
-import { spawn, type ChildProcess } from "node:child_process";
+import { Critic, type CriticResult } from "./base.js";
+
+interface EndpointDefinition {
+  path: string;
+  method: string;
+  validData?: Record<string, unknown>;
+  malformedData?: Record<string, unknown>;
+}
 
 export interface APITrace {
   endpoint: string;
@@ -70,12 +78,7 @@ export class APIObservationCritic extends Critic {
   private devServer: ChildProcess | null = null;
   private config: {
     baseURL: string;
-    endpoints: Array<{
-      path: string;
-      method: string;
-      validData?: any;
-      malformedData?: any;
-    }>;
+    endpoints: EndpointDefinition[];
     thresholds: {
       maxLatencyMs: number;
       maxErrorRate: number;
@@ -167,7 +170,7 @@ export class APIObservationCritic extends Critic {
     const configPath = path.join(this.workspaceRoot, 'state', 'api_observation_config.yaml');
 
     try {
-      const content = await fs.readFile(configPath, 'utf-8');
+      await fs.readFile(configPath, 'utf-8');
       // TODO: Parse YAML - for now using defaults
       logInfo('Using default API observation config');
     } catch {
@@ -261,8 +264,12 @@ export class APIObservationCritic extends Critic {
     return traces;
   }
 
-  private async callEndpoint(path: string, method: string, data?: any): Promise<APITrace> {
-    const url = `${this.config.baseURL}${path}`;
+  private async callEndpoint(
+    pathUrl: string,
+    method: string,
+    data?: Record<string, unknown>
+  ): Promise<APITrace> {
+    const url = `${this.config.baseURL}${pathUrl}`;
     const start = Date.now();
 
     try {
@@ -277,7 +284,7 @@ export class APIObservationCritic extends Critic {
       const text = await response.text();
 
       return {
-        endpoint: path,
+        endpoint: pathUrl,
         method,
         status: response.status,
         duration,
@@ -286,7 +293,7 @@ export class APIObservationCritic extends Critic {
       };
     } catch (error) {
       return {
-        endpoint: path,
+        endpoint: pathUrl,
         method,
         status: 0,
         duration: Date.now() - start,

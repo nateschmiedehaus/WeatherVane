@@ -9,15 +9,13 @@
  * 5. Report aggregation and merging
  */
 
-import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
+
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+
 import { MLTaskAggregator } from "../ml_task_aggregator.js";
-import type {
-  MLTaskCompletionReport,
-  AggregatedMLTasksReport,
-  MLTaskSummary,
-} from "../ml_task_aggregator.js";
+import type { MLTaskSummary } from "../ml_task_aggregator.js";
 
 describe("MLTaskAggregator", () => {
   let aggregator: MLTaskAggregator;

@@ -19,6 +19,13 @@ const stripUnsupportedFlags = (args) =>
 const main = async () => {
   const forwardedArgs = stripUnsupportedFlags(process.argv.slice(2));
   try {
+    // Ensure latest TypeScript sources are compiled so tests exercising
+    // child-process workers can execute without relying on ts-node loaders.
+    await execa('npm', ['run', 'build'], {
+      stdio: 'inherit',
+      preferLocal: true,
+    });
+
     const subprocess = execa('vitest', ['run', ...forwardedArgs], {
       stdio: 'inherit',
       preferLocal: true,

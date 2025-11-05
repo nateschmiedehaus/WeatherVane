@@ -9,8 +9,8 @@ vi.mock("../executor/command_runner.js", () => ({
 }));
 
 import { runCommand } from "../executor/command_runner.js";
+import type { StateMachine, Task, TaskStatus } from "../orchestrator/state_machine.js";
 import { Critic } from "./base.js";
-import type { Task, TaskStatus } from "../orchestrator/state_machine.js";
 
 class MockStateMachine {
   public tasks: Task[] = [];
@@ -171,7 +171,7 @@ describe("Critic escalation orchestration", () => {
 
     stateMachine = new MockStateMachine();
     critic = new TestCritic(workspace, {
-      stateMachine: stateMachine as unknown as any,
+      stateMachine: stateMachine as unknown as StateMachine,
       escalationConfigPath: configPath,
       escalationLogPath: path.join(workspace, "state", "escalations.log"),
       identityConfigPath: identityPath,
