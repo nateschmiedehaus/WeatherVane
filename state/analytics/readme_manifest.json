@@ -398,410 +398,520 @@
       }
     },
     "docs/agent_library": {
-      "digest": "396b58433208d6521d09c8c6c08b48e4f632d312",
-      "lastUpdated": "2025-11-05T23:29:07.550Z",
+      "digest": "fc3bdc7cfcbc8770fbe58ff1318a4f33104d04b4",
+      "lastUpdated": "2025-11-06T21:41:12.265Z",
       "metrics": {
-        "coherenceScore": 5,
-        "economyScore": 5,
-        "localityScore": 5,
-        "visibilityScore": 5,
-        "evolutionScore": 5,
+        "summary": {
+          "coherenceScore": 5,
+          "economyScore": 5,
+          "localityScore": 5,
+          "visibilityScore": 5,
+          "evolutionScore": 5
+        },
         "warningCount": 0
       }
     },
     "docs/agent_library/common": {
-      "digest": "32c6ea78030521116d14ec922c9dd8172dd19a8d",
-      "lastUpdated": "2025-11-05T23:29:07.549Z",
+      "digest": "8e80fb904719cfe103a4551c9bc7a9d4436f1b1c",
+      "lastUpdated": "2025-11-06T21:41:12.261Z",
       "metrics": {
-        "coherenceScore": 5,
-        "economyScore": 5,
-        "localityScore": 5,
-        "visibilityScore": 5,
-        "evolutionScore": 5,
+        "summary": {
+          "coherenceScore": 5,
+          "economyScore": 5,
+          "localityScore": 5,
+          "visibilityScore": 5,
+          "evolutionScore": 5
+        },
         "warningCount": 0
       }
     },
     "docs/agent_library/common/concepts": {
-      "digest": "591bac63f04d65730886f13fde3a79df1be80beb",
-      "lastUpdated": "2025-11-05T23:29:07.548Z",
+      "digest": "efc862c35e741fa832d16809116babda1130dbb8",
+      "lastUpdated": "2025-11-06T21:41:12.259Z",
       "metrics": {
-        "coherenceScore": 5,
-        "economyScore": 5,
-        "localityScore": 5,
-        "visibilityScore": 5,
-        "evolutionScore": 5,
+        "summary": {
+          "coherenceScore": 5,
+          "economyScore": 5,
+          "localityScore": 5,
+          "visibilityScore": 5,
+          "evolutionScore": 5
+        },
         "warningCount": 0
       }
     },
     "docs/agent_library/common/processes": {
-      "digest": "3b233080d09cb924564c2eabf78b03a6a95b661f",
-      "lastUpdated": "2025-11-05T23:29:07.548Z",
+      "digest": "cac5d759e09e4901957cc9685caf354389bd9a24",
+      "lastUpdated": "2025-11-06T21:41:12.260Z",
       "metrics": {
-        "coherenceScore": 5,
-        "economyScore": 5,
-        "localityScore": 5,
-        "visibilityScore": 5,
-        "evolutionScore": 5,
+        "summary": {
+          "coherenceScore": 5,
+          "economyScore": 5,
+          "localityScore": 5,
+          "visibilityScore": 5,
+          "evolutionScore": 5
+        },
         "warningCount": 0
       }
     },
     "docs/agent_library/common/standards": {
-      "digest": "8fcbdf3da2637ad0790f386eefd2779a5bce7f2e",
-      "lastUpdated": "2025-11-05T23:29:07.549Z",
+      "digest": "d092b27fe708a709286ad14c8135adc43c3565e6",
+      "lastUpdated": "2025-11-06T21:41:12.261Z",
       "metrics": {
-        "coherenceScore": 5,
-        "economyScore": 5,
-        "localityScore": 5,
-        "visibilityScore": 5,
-        "evolutionScore": 5,
+        "summary": {
+          "coherenceScore": 5,
+          "economyScore": 5,
+          "localityScore": 5,
+          "visibilityScore": 5,
+          "evolutionScore": 5
+        },
         "warningCount": 0
       }
     },
     "docs/agent_library/domains": {
-      "digest": "d19a7432a43000bf1f3d00b7bc8cd0324f3f9ea8",
-      "lastUpdated": "2025-11-05T23:29:07.549Z",
+      "digest": "cf8cacdbd533ef620437ce0fb84d920bd2b67749",
+      "lastUpdated": "2025-11-06T21:41:12.263Z",
       "metrics": {
-        "coherenceScore": 5,
-        "economyScore": 5,
-        "localityScore": 5,
-        "visibilityScore": 5,
-        "evolutionScore": 5,
+        "summary": {
+          "coherenceScore": 5,
+          "economyScore": 5,
+          "localityScore": 5,
+          "visibilityScore": 5,
+          "evolutionScore": 5
+        },
         "warningCount": 0
       }
     },
     "docs/agent_library/domains/infrastructure": {
-      "digest": "c38c66fe1b2c83e290e77da7d156fae5c192bd2f",
-      "lastUpdated": "2025-11-05T23:29:07.549Z",
+      "digest": "f809cfe153dfde2e84fdff8ed58e87b439029404",
+      "lastUpdated": "2025-11-06T21:41:12.262Z",
       "metrics": {
-        "coherenceScore": 5,
-        "economyScore": 5,
-        "localityScore": 5,
-        "visibilityScore": 5,
-        "evolutionScore": 5,
+        "summary": {
+          "coherenceScore": 5,
+          "economyScore": 5,
+          "localityScore": 5,
+          "visibilityScore": 5,
+          "evolutionScore": 5
+        },
         "warningCount": 0
       }
     },
     "docs/agent_library/domains/ml": {
-      "digest": "6dfbc287be6f73ea7005aa43c5ad8b250ea85ede",
-      "lastUpdated": "2025-11-05T23:29:07.549Z",
+      "digest": "cb4abd911252ce1dc8418aba677ff6634f7270ef",
+      "lastUpdated": "2025-11-06T21:41:12.262Z",
       "metrics": {
-        "coherenceScore": 5,
-        "economyScore": 5,
-        "localityScore": 5,
-        "visibilityScore": 5,
-        "evolutionScore": 5,
+        "summary": {
+          "coherenceScore": 5,
+          "economyScore": 5,
+          "localityScore": 5,
+          "visibilityScore": 5,
+          "evolutionScore": 5
+        },
         "warningCount": 0
       }
     },
     "docs/agent_library/domains/product": {
-      "digest": "f5d1a788ca47ac5a859f90c55e88434431c240c9",
-      "lastUpdated": "2025-11-05T23:29:07.549Z",
+      "digest": "2c4fe12d7f81790e35680acbe8bf0dcbfef1d441",
+      "lastUpdated": "2025-11-06T21:41:12.262Z",
       "metrics": {
-        "coherenceScore": 5,
-        "economyScore": 5,
-        "localityScore": 5,
-        "visibilityScore": 5,
-        "evolutionScore": 5,
+        "summary": {
+          "coherenceScore": 5,
+          "economyScore": 5,
+          "localityScore": 5,
+          "visibilityScore": 5,
+          "evolutionScore": 5
+        },
         "warningCount": 0
       }
     },
     "docs/agent_library/domains/security": {
-      "digest": "6554669b6f8001853945a631e242659d541b0bad",
-      "lastUpdated": "2025-11-05T23:29:07.549Z",
+      "digest": "e45e8e9c9b9aeb8117a3646d932508bf83ba5d4f",
+      "lastUpdated": "2025-11-06T21:41:12.263Z",
       "metrics": {
-        "coherenceScore": 5,
-        "economyScore": 5,
-        "localityScore": 5,
-        "visibilityScore": 5,
-        "evolutionScore": 5,
+        "summary": {
+          "coherenceScore": 5,
+          "economyScore": 5,
+          "localityScore": 5,
+          "visibilityScore": 5,
+          "evolutionScore": 5
+        },
         "warningCount": 0
       }
     },
     "docs/agent_library/roles": {
-      "digest": "50f5a6e81036a5ffd5cb842573b5604768d3dadb",
-      "lastUpdated": "2025-11-05T23:29:07.550Z",
+      "digest": "d42740645205b389b12f779ea3a71b936a99467c",
+      "lastUpdated": "2025-11-06T21:41:12.265Z",
       "metrics": {
-        "coherenceScore": 5,
-        "economyScore": 5,
-        "localityScore": 5,
-        "visibilityScore": 5,
-        "evolutionScore": 5,
+        "summary": {
+          "coherenceScore": 5,
+          "economyScore": 5,
+          "localityScore": 5,
+          "visibilityScore": 5,
+          "evolutionScore": 5
+        },
         "warningCount": 0
       }
     },
     "docs/agent_library/roles/atlas": {
-      "digest": "3a5dc4f80031521f15f3f6ab51ff32e5cb13d5fa",
-      "lastUpdated": "2025-11-05T23:29:07.550Z",
+      "digest": "fe3135bb4e2e2928bbbe656ac8cb30acf2bea51d",
+      "lastUpdated": "2025-11-06T21:41:12.264Z",
       "metrics": {
-        "coherenceScore": 5,
-        "economyScore": 5,
-        "localityScore": 5,
-        "visibilityScore": 5,
-        "evolutionScore": 5,
+        "summary": {
+          "coherenceScore": 5,
+          "economyScore": 5,
+          "localityScore": 5,
+          "visibilityScore": 5,
+          "evolutionScore": 5
+        },
         "warningCount": 0
       }
     },
     "docs/agent_library/roles/critics": {
-      "digest": "f94f70b89bca7661c272c75976ea53334cc7cf62",
-      "lastUpdated": "2025-11-05T23:29:07.550Z",
+      "digest": "a1a0e1bb2240f81bd822315a3a25b221af6523d7",
+      "lastUpdated": "2025-11-06T21:41:12.264Z",
       "metrics": {
-        "coherenceScore": 5,
-        "economyScore": 5,
-        "localityScore": 5,
-        "visibilityScore": 5,
-        "evolutionScore": 5,
+        "summary": {
+          "coherenceScore": 5,
+          "economyScore": 5,
+          "localityScore": 5,
+          "visibilityScore": 5,
+          "evolutionScore": 5
+        },
         "warningCount": 0
       }
     },
     "docs/agent_library/roles/director_dana": {
-      "digest": "8a795bcd7e50386d1d499a5d2830efbf572efe37",
-      "lastUpdated": "2025-11-05T23:29:07.550Z",
+      "digest": "5ed0d274f591ccd4633a524b9996e19499e59680",
+      "lastUpdated": "2025-11-06T21:41:12.264Z",
       "metrics": {
-        "coherenceScore": 5,
-        "economyScore": 5,
-        "localityScore": 5,
-        "visibilityScore": 5,
-        "evolutionScore": 5,
+        "summary": {
+          "coherenceScore": 5,
+          "economyScore": 5,
+          "localityScore": 5,
+          "visibilityScore": 5,
+          "evolutionScore": 5
+        },
         "warningCount": 0
       }
     },
     "docs/agent_library/roles/workers": {
-      "digest": "2b569f248c98be57dce5740be42406100ee526b5",
-      "lastUpdated": "2025-11-05T23:29:07.550Z",
+      "digest": "bf61cd3b967e8c030d00717fcf870f35551adbca",
+      "lastUpdated": "2025-11-06T21:41:12.265Z",
       "metrics": {
-        "coherenceScore": 5,
-        "economyScore": 5,
-        "localityScore": 5,
-        "visibilityScore": 5,
-        "evolutionScore": 5,
+        "summary": {
+          "coherenceScore": 5,
+          "economyScore": 5,
+          "localityScore": 5,
+          "visibilityScore": 5,
+          "evolutionScore": 5
+        },
         "warningCount": 0
       }
     },
     "docs/api": {
-      "digest": "86104547198933480149d5d76503f7f7a4c8da59",
-      "lastUpdated": "2025-11-05T23:29:07.550Z",
+      "digest": "c3f89ba5fd47a60d1b95f906a96c80d6ed561a17",
+      "lastUpdated": "2025-11-06T21:41:12.266Z",
       "metrics": {
-        "coherenceScore": 5,
-        "economyScore": 5,
-        "localityScore": 5,
-        "visibilityScore": 5,
-        "evolutionScore": 5,
+        "summary": {
+          "coherenceScore": 5,
+          "economyScore": 5,
+          "localityScore": 5,
+          "visibilityScore": 5,
+          "evolutionScore": 5
+        },
+        "warningCount": 0
+      }
+    },
+    "docs/checklists": {
+      "digest": "2168b7d0b5e2c1d7d6b8de26c1979da945379dd2",
+      "lastUpdated": "2025-11-06T21:41:12.266Z",
+      "metrics": {
+        "summary": {
+          "coherenceScore": 5,
+          "economyScore": 5,
+          "localityScore": 5,
+          "visibilityScore": 5,
+          "evolutionScore": 5
+        },
         "warningCount": 0
       }
     },
     "docs/concepts": {
-      "digest": "7e9f6d6d8e7162d129dc154a507c4915d300afca",
-      "lastUpdated": "2025-11-05T23:29:07.551Z",
+      "digest": "df72d35f4463328fe799a60cab86f88b38886323",
+      "lastUpdated": "2025-11-06T21:41:12.267Z",
       "metrics": {
-        "coherenceScore": 5,
-        "economyScore": 5,
-        "localityScore": 5,
-        "visibilityScore": 5,
-        "evolutionScore": 5,
+        "summary": {
+          "coherenceScore": 5,
+          "economyScore": 5,
+          "localityScore": 5,
+          "visibilityScore": 5,
+          "evolutionScore": 5
+        },
         "warningCount": 0
       }
     },
     "docs/critics": {
-      "digest": "70d9bb066695d9c09bcf1c26cdc8b6694dc18a88",
-      "lastUpdated": "2025-11-05T23:29:07.551Z",
+      "digest": "e47ac1e20e68e10659c6983de60d2854d4c946d6",
+      "lastUpdated": "2025-11-06T21:41:12.267Z",
       "metrics": {
-        "coherenceScore": 5,
-        "economyScore": 5,
-        "localityScore": 5,
-        "visibilityScore": 5,
-        "evolutionScore": 5,
+        "summary": {
+          "coherenceScore": 5,
+          "economyScore": 5,
+          "localityScore": 5,
+          "visibilityScore": 5,
+          "evolutionScore": 5
+        },
         "warningCount": 0
       }
     },
     "docs/enforcement": {
-      "digest": "33271ffa58a526f7405df6949f8e989cb8bd8508",
-      "lastUpdated": "2025-11-05T23:29:07.551Z",
+      "digest": "fbf7ac9ca6b0acca95a774eb3f7ef6179e3c871d",
+      "lastUpdated": "2025-11-06T21:41:12.267Z",
       "metrics": {
-        "coherenceScore": 5,
-        "economyScore": 5,
-        "localityScore": 5,
-        "visibilityScore": 5,
-        "evolutionScore": 5,
+        "summary": {
+          "coherenceScore": 5,
+          "economyScore": 5,
+          "localityScore": 5,
+          "visibilityScore": 5,
+          "evolutionScore": 5
+        },
         "warningCount": 0
       }
     },
     "docs/features": {
-      "digest": "ac0a9b2a9fb4066ea498470f4df02de91874b216",
-      "lastUpdated": "2025-11-05T23:29:07.551Z",
+      "digest": "e3a01807b63ddf6c99077a76cf40e47ab6fad71c",
+      "lastUpdated": "2025-11-06T21:41:12.268Z",
       "metrics": {
-        "coherenceScore": 5,
-        "economyScore": 5,
-        "localityScore": 5,
-        "visibilityScore": 5,
-        "evolutionScore": 5,
+        "summary": {
+          "coherenceScore": 5,
+          "economyScore": 5,
+          "localityScore": 5,
+          "visibilityScore": 5,
+          "evolutionScore": 5
+        },
         "warningCount": 0
       }
     },
     "docs/idempotency": {
-      "digest": "b6041b7d74e15debe1f7914a6da2857cca312110",
-      "lastUpdated": "2025-11-05T23:29:07.551Z",
+      "digest": "6dccaf5000fa62a79aef60eabb407122d1f6a260",
+      "lastUpdated": "2025-11-06T21:41:12.268Z",
       "metrics": {
-        "coherenceScore": 5,
-        "economyScore": 5,
-        "localityScore": 5,
-        "visibilityScore": 5,
-        "evolutionScore": 5,
+        "summary": {
+          "coherenceScore": 5,
+          "economyScore": 5,
+          "localityScore": 5,
+          "visibilityScore": 5,
+          "evolutionScore": 5
+        },
         "warningCount": 0
       }
     },
     "docs/implementations": {
-      "digest": "4dac83d1af397c4aa214b0a8140160d923518b1f",
-      "lastUpdated": "2025-11-05T23:29:07.551Z",
+      "digest": "1376d47d59199636c5b2123c14489e37e77ec728",
+      "lastUpdated": "2025-11-06T21:41:12.268Z",
       "metrics": {
-        "coherenceScore": 5,
-        "economyScore": 5,
-        "localityScore": 5,
-        "visibilityScore": 5,
-        "evolutionScore": 5,
+        "summary": {
+          "coherenceScore": 5,
+          "economyScore": 5,
+          "localityScore": 5,
+          "visibilityScore": 5,
+          "evolutionScore": 5
+        },
         "warningCount": 0
       }
     },
     "docs/intelligence": {
-      "digest": "d68d8603b67449714ff7dbf8b6115ee77492dcd9",
-      "lastUpdated": "2025-11-05T23:29:07.551Z",
+      "digest": "286163f0b915c5b51a57c1b1db2d5b72a3daa68c",
+      "lastUpdated": "2025-11-06T21:41:12.268Z",
       "metrics": {
-        "coherenceScore": 5,
-        "economyScore": 5,
-        "localityScore": 5,
-        "visibilityScore": 5,
-        "evolutionScore": 5,
+        "summary": {
+          "coherenceScore": 5,
+          "economyScore": 5,
+          "localityScore": 5,
+          "visibilityScore": 5,
+          "evolutionScore": 5
+        },
         "warningCount": 0
       }
     },
     "docs/modeling": {
-      "digest": "d63f8eea978f78bc56df25d5dc41e410a8614a4f",
-      "lastUpdated": "2025-11-05T23:29:07.551Z",
+      "digest": "8a23ee2bf0a8d91e3ed7edabc472aeccd598d89b",
+      "lastUpdated": "2025-11-06T21:41:12.269Z",
       "metrics": {
-        "coherenceScore": 5,
-        "economyScore": 5,
-        "localityScore": 5,
-        "visibilityScore": 5,
-        "evolutionScore": 5,
+        "summary": {
+          "coherenceScore": 5,
+          "economyScore": 5,
+          "localityScore": 5,
+          "visibilityScore": 5,
+          "evolutionScore": 5
+        },
         "warningCount": 0
       }
     },
     "docs/models": {
-      "digest": "2f55f3aeea920c0b203589bd414ef4d7623bed6b",
-      "lastUpdated": "2025-11-05T23:29:07.552Z",
+      "digest": "d7c1cd07dd3b1968ff9f01bf66ef453f68284a36",
+      "lastUpdated": "2025-11-06T21:41:12.269Z",
       "metrics": {
-        "coherenceScore": 5,
-        "economyScore": 5,
-        "localityScore": 5,
-        "visibilityScore": 5,
-        "evolutionScore": 5,
+        "summary": {
+          "coherenceScore": 5,
+          "economyScore": 5,
+          "localityScore": 5,
+          "visibilityScore": 5,
+          "evolutionScore": 5
+        },
         "warningCount": 0
       }
     },
     "docs/orchestration": {
-      "digest": "08498920b9cdd04a185ac6bb1af363291db31ab7",
-      "lastUpdated": "2025-11-05T23:29:07.552Z",
+      "digest": "5de43f9ebdc619c92a123a501e9622e81d6e73f5",
+      "lastUpdated": "2025-11-06T21:41:12.269Z",
       "metrics": {
-        "coherenceScore": 5,
-        "economyScore": 5,
-        "localityScore": 5,
-        "visibilityScore": 5,
-        "evolutionScore": 5,
+        "summary": {
+          "coherenceScore": 5,
+          "economyScore": 5,
+          "localityScore": 5,
+          "visibilityScore": 5,
+          "evolutionScore": 5
+        },
         "warningCount": 0
       }
     },
     "docs/product": {
-      "digest": "f0908167a0e74019a2f0cbc9b6e655de48447ad5",
-      "lastUpdated": "2025-11-05T23:29:07.552Z",
+      "digest": "cee0ca151c80995c197ed2bf9f71b7f7b8840e16",
+      "lastUpdated": "2025-11-06T21:41:12.270Z",
       "metrics": {
-        "coherenceScore": 5,
-        "economyScore": 5,
-        "localityScore": 5,
-        "visibilityScore": 5,
-        "evolutionScore": 5,
+        "summary": {
+          "coherenceScore": 5,
+          "economyScore": 5,
+          "localityScore": 5,
+          "visibilityScore": 5,
+          "evolutionScore": 5
+        },
         "warningCount": 0
       }
     },
     "docs/research": {
-      "digest": "a7c6d2bdb4d2cd192fa69f83f86d20a2facb0c39",
-      "lastUpdated": "2025-11-05T23:29:07.552Z",
+      "digest": "5054628d516e35161d55300e0b90ac9739cb6f40",
+      "lastUpdated": "2025-11-06T21:41:12.270Z",
       "metrics": {
-        "coherenceScore": 5,
-        "economyScore": 5,
-        "localityScore": 5,
-        "visibilityScore": 5,
-        "evolutionScore": 5,
+        "summary": {
+          "coherenceScore": 5,
+          "economyScore": 5,
+          "localityScore": 5,
+          "visibilityScore": 5,
+          "evolutionScore": 5
+        },
         "warningCount": 0
       }
     },
     "docs/reviews": {
-      "digest": "a6cf5c4d9cd80adda81c7380e4f25c6ac9faf7cb",
-      "lastUpdated": "2025-11-05T23:29:07.552Z",
+      "digest": "5919033a0ebd065c3e1f0da50a16f9179ba394e4",
+      "lastUpdated": "2025-11-06T21:41:12.270Z",
       "metrics": {
-        "coherenceScore": 5,
-        "economyScore": 5,
-        "localityScore": 5,
-        "visibilityScore": 5,
-        "evolutionScore": 5,
+        "summary": {
+          "coherenceScore": 5,
+          "economyScore": 5,
+          "localityScore": 5,
+          "visibilityScore": 5,
+          "evolutionScore": 5
+        },
         "warningCount": 0
       }
     },
     "docs/runbooks": {
-      "digest": "7ba0c08178aa160c21039fc1b37fa0e24e479b5c",
-      "lastUpdated": "2025-11-05T23:29:07.552Z",
+      "digest": "6155da0a064659d758146d26f568c8aae6767bdf",
+      "lastUpdated": "2025-11-06T21:41:12.270Z",
       "metrics": {
-        "coherenceScore": 5,
-        "economyScore": 5,
-        "localityScore": 5,
-        "visibilityScore": 5,
-        "evolutionScore": 5,
+        "summary": {
+          "coherenceScore": 5,
+          "economyScore": 5,
+          "localityScore": 5,
+          "visibilityScore": 5,
+          "evolutionScore": 5
+        },
         "warningCount": 0
       }
     },
     "docs/security": {
-      "digest": "880b92e092a0842af8ea2b969b72a5b4b6c1bfd9",
-      "lastUpdated": "2025-11-05T23:29:07.552Z",
+      "digest": "f63ee83144df613079260584f6910baa6ec6530d",
+      "lastUpdated": "2025-11-06T21:41:12.271Z",
       "metrics": {
-        "coherenceScore": 5,
-        "economyScore": 5,
-        "localityScore": 5,
-        "visibilityScore": 5,
-        "evolutionScore": 5,
+        "summary": {
+          "coherenceScore": 5,
+          "economyScore": 5,
+          "localityScore": 5,
+          "visibilityScore": 5,
+          "evolutionScore": 5
+        },
         "warningCount": 0
       }
     },
     "docs/templates": {
-      "digest": "1d237aa79a542f390e036c9003cbf0eb90a31bdd",
-      "lastUpdated": "2025-11-05T23:29:07.553Z",
+      "digest": "a70fcec98df47203b8c0820f938dc68603b974d3",
+      "lastUpdated": "2025-11-06T21:41:12.271Z",
       "metrics": {
-        "coherenceScore": 5,
-        "economyScore": 5,
-        "localityScore": 5,
-        "visibilityScore": 5,
-        "evolutionScore": 5,
+        "summary": {
+          "coherenceScore": 5,
+          "economyScore": 5,
+          "localityScore": 5,
+          "visibilityScore": 5,
+          "evolutionScore": 5
+        },
+        "warningCount": 0
+      }
+    },
+    "docs/templates/hierarchical": {
+      "digest": "9f26374be542a68bc1e9fa020c5b20ff775b9f20",
+      "lastUpdated": "2025-11-06T21:41:12.271Z",
+      "metrics": {
+        "summary": {
+          "coherenceScore": 5,
+          "economyScore": 5,
+          "localityScore": 5,
+          "visibilityScore": 5,
+          "evolutionScore": 5
+        },
         "warningCount": 0
       }
     },
     "docs/testing": {
-      "digest": "04fb14c17ad0670bcc7ce39ab665c2f59adb2eb5",
-      "lastUpdated": "2025-11-05T23:29:07.553Z",
+      "digest": "a34e134cc031a249f3629c1eccbb5b684924b599",
+      "lastUpdated": "2025-11-06T21:41:12.272Z",
       "metrics": {
-        "coherenceScore": 5,
-        "economyScore": 5,
-        "localityScore": 5,
-        "visibilityScore": 5,
-        "evolutionScore": 5,
+        "summary": {
+          "coherenceScore": 5,
+          "economyScore": 5,
+          "localityScore": 5,
+          "visibilityScore": 5,
+          "evolutionScore": 5
+        },
         "warningCount": 0
       }
     },
     "docs/verification": {
-      "digest": "e0e6c95f3ae39612e8fd56cceb37878fd61ecf4b",
-      "lastUpdated": "2025-11-05T23:29:07.553Z",
+      "digest": "e4bcf7a8ab963f2e3db5edba157bb5671ae22b35",
+      "lastUpdated": "2025-11-06T21:41:12.272Z",
       "metrics": {
-        "coherenceScore": 5,
-        "economyScore": 5,
-        "localityScore": 5,
-        "visibilityScore": 5,
-        "evolutionScore": 5,
+        "summary": {
+          "coherenceScore": 5,
+          "economyScore": 5,
+          "localityScore": 5,
+          "visibilityScore": 5,
+          "evolutionScore": 5
+        },
+        "warningCount": 0
+      }
+    },
+    "docs/workflows": {
+      "digest": "0717660e00d6ed06118aea2a5742f7479dc174f7",
+      "lastUpdated": "2025-11-06T21:41:12.272Z",
+      "metrics": {
+        "summary": {
+          "coherenceScore": 5,
+          "economyScore": 5,
+          "localityScore": 5,
+          "visibilityScore": 5,
+          "evolutionScore": 5
+        },
         "warningCount": 0
       }
     },
@@ -1752,8 +1862,8 @@
       }
     }
   },
-  "generatedAt": "2025-11-06T21:18:50.240Z",
+  "generatedAt": "2025-11-06T21:41:12.281Z",
   "stats": {
-    "trackedDirectories": 138
+    "trackedDirectories": 141
   }
 }

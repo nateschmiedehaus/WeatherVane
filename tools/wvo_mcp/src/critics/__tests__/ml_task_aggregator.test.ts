@@ -37,6 +37,26 @@ describe("MLTaskAggregator", () => {
     }
   });
 
+  function createTaskSummary(overrides: Partial<MLTaskSummary>): MLTaskSummary {
+    return {
+      id: "TASK_PLACEHOLDER",
+      title: "Placeholder Task",
+      status: "in_progress",
+      report_path: "docs/placeholder.md",
+      completion_path: "docs/placeholder.md",
+      deliverables: [],
+      artifacts_generated: [],
+      quality_metrics: {},
+      verification_checklist: {},
+      tests_passed: null,
+      test_count: null,
+      coverage_dimensions: null,
+      blockers: [],
+      critic_results: {},
+      ...overrides,
+    };
+  }
+
   describe("Task Retrieval", () => {
     it("should retrieve completed ML tasks from completion reports", async () => {
       // Create test completion reports
@@ -400,30 +420,37 @@ Only 2/7 dimensions covered
       );
 
       const mockTasks: MLTaskSummary[] = [
-        {
+        createTaskSummary({
           id: "TASK_SUCCESS",
           title: "Successful Task",
           status: "done",
           completion_path: "docs/TASK_SUCCESS_COMPLETION_REPORT.md",
-        },
-        {
+          report_path: "docs/TASK_SUCCESS_COMPLETION_REPORT.md",
+          tests_passed: true,
+        }),
+        createTaskSummary({
           id: "TASK_FAIL",
           title: "Failed Task",
           status: "done",
           completion_path: "docs/TASK_FAIL_COMPLETION_REPORT.md",
-        },
-        {
+          report_path: "docs/TASK_FAIL_COMPLETION_REPORT.md",
+          tests_passed: false,
+          blockers: ["Tests failing"],
+        }),
+        createTaskSummary({
           id: "TASK_PROGRESS",
           title: "In Progress Task",
           status: "in_progress",
           completion_path: "docs/TASK_PROGRESS_COMPLETION_REPORT.md",
-        },
-        {
+          report_path: "docs/TASK_PROGRESS_COMPLETION_REPORT.md",
+        }),
+        createTaskSummary({
           id: "TASK_NO_REPORT",
           title: "Legacy Task",
           status: "done",
           completion_path: "docs/TASK_NO_REPORT_COMPLETION_REPORT.md",
-        },
+          report_path: "docs/TASK_NO_REPORT_COMPLETION_REPORT.md",
+        }),
       ];
 
       const taskSpy = vi

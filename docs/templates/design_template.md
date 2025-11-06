@@ -148,6 +148,8 @@ What existing code did you examine for deletion/simplification?
 
 **Scope:**
 - Files to change: [list, e.g., "3 files: cache_manager.ts (refactor), cache_utils.ts (delete), tests/cache.test.ts (update)"]
+- PLAN-authored tests: [list the tests you created/updated during PLAN; include status (failing/skipped acceptable) and any N/A justification]
+- Autopilot scope: [If touching Wave 0/autopilot, list the live runs you will execute (`npm run wave0`, TaskFlow wave0-smoke, telemetry checks)]
 - Estimated LOC: +[X] -[Y] = net [Z] LOC
 - Micro-batching compliance: [≤5 files? ≤150 net LOC? If not, how will you split?]
 
@@ -173,7 +175,8 @@ Before implementing, verify:
 - [ ] Any complexity increases are justified and mitigated
 - [ ] I estimated scope (files, LOC) and it's within limits
 - [ ] I thought through edge cases and failure modes
-- [ ] I have a testing strategy
+- [ ] I authored the verification tests during PLAN (listed above) and have a testing strategy
+- [ ] If autopilot work, I defined the Wave 0 live loop (commands + telemetry) that VERIFY will execute
 
 **If ANY box unchecked:** Revisit your design. You're not ready to implement.
 

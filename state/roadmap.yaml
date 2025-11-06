@@ -22,6 +22,7 @@ epics:
               Provides baseline evidence bundle
               (`state/evidence/AFP-ROADMAP-FAST-AUTONOMY-AUDIT`) and informs the
               wave rewrite.
+            set_id: w0m1-validation-and-readiness
           - id: AFP-W0-M1-MVP-SUPERVISOR-SCAFFOLD
             title: MVP supervisor scaffold
             status: done
@@ -36,6 +37,7 @@ epics:
               Restore the stripped supervisor skeleton so Autopilot can own task
               orchestration. Implements minimal leasing, logging, and evidence
               capture to unblock downstream agents.
+            set_id: w0m1-supervisor-agent-integration
           - id: TEST-SUPERVISOR-INTEGRATION-001
             title: Test supervisor integration with Wave0 (verification task)
             status: done
@@ -51,19 +53,22 @@ epics:
               Verification task for AFP-W0-M1-MVP-SUPERVISOR-INTEGRATION. Tests
               that supervisor components work with live Wave0 autopilot. This is
               a minimal no-op task to verify orchestration.
+            set_id: w0m1-supervisor-agent-integration
           - id: AFP-W0-VALIDATE-PROOF-LOOP
             title: Validate proof-driven Wave 0 loop
             status: done
             dependencies: []
             exit_criteria:
-              - Wave 0 executes this task with proof system enabled and marks it done
+              - Wave 0 executes this task with proof system enabled and marks it
+                done
               - Proof system generates verify.md for the task
               - Lifecycle telemetry + achievements recorded in evidence bundle
             domain: mcp
             description: >
               Synthetic validation task executed during
-              AFP-PROOF-DRIVEN-GAMIFICATION-20251106-REDO to prove the proof-driven
-              gamification loop works end to end.
+              AFP-PROOF-DRIVEN-GAMIFICATION-20251106-REDO to prove the
+              proof-driven gamification loop works end to end.
+            set_id: w0m1-validation-and-readiness
           - id: AFP-W0-M1-MVP-AGENTS-SCAFFOLD
             title: MVP agents scaffold
             status: done
@@ -80,6 +85,7 @@ epics:
               Provide minimal agent implementations wired into the supervisor so
               end-to-end flows can execute. Focus on contracts, evidence
               emission, and safe fallbacks.
+            set_id: w0m1-supervisor-agent-integration
           - id: AFP-W0-M1-MVP-LIBS-SCAFFOLD
             title: MVP shared libraries scaffold
             status: done
@@ -93,6 +99,7 @@ epics:
             description: >
               Rehydrate the shared utilities Autopilot uses (telemetry, prompts,
               IO). Keep lean and document patterns.
+            set_id: w0m1-supporting-infrastructure
           - id: AFP-W0-M1-MVP-ADAPTERS-SCAFFOLD
             title: MVP adapters scaffold
             status: done
@@ -106,6 +113,7 @@ epics:
             description: >
               Bridge legacy orchestration paths with the revived MVP stack so
               Autopilot can pilot existing workloads while new APIs harden.
+            set_id: w0m1-supporting-infrastructure
           - id: AFP-W0-M1-AUTOPILOT-MVP-STRANGLER
             title: Autopilot MVP clean-room integration
             status: blocked
@@ -122,6 +130,7 @@ epics:
             description: >
               Meta task that closes when the MVP stack successfully runs the
               end-to-end demo with the revived scaffolds.
+            set_id: w0m1-supervisor-agent-integration
           - id: AFP-W0-M1-SCAFFOLD-EXECUTION
             title: Execute Wave 0 scaffold bring-up
             status: blocked
@@ -144,6 +153,7 @@ epics:
               (supervisor, agents, libs, adapters, DPS, memory) are stood up
               promptly with ownership, evidence, and remediation tracking so
               Wave 0 momentum is maintained.
+            set_id: w0m1-validation-and-readiness
           - id: AFP-W0-M1-DPS-BUILD
             title: Dynamic Prompt System build
             status: blocked
@@ -158,6 +168,7 @@ epics:
             description: >
               Rebuild the Dynamic Prompt System once supervisor + agents
               scaffolds exist so Autopilot can reason with updated templates.
+            set_id: w0m1-supporting-infrastructure
           - id: AFP-W0-M1-MEMORY-CORE
             title: Memory core bootstrap
             status: blocked
@@ -171,6 +182,7 @@ epics:
             description: >
               Stand up the semantic memory layer that powers lesson persistence
               and future self-improvement loops.
+            set_id: w0m1-supporting-infrastructure
           - id: AFP-W0-M1-WORKTREE-STABILIZE
             title: Worktree stability & git hygiene
             status: done
@@ -183,6 +195,7 @@ epics:
             description: >
               Repair git hygiene (stashes, locks, dirty trees) so Autopilot can
               operate unattended without corrupting the repo.
+            set_id: w0m1-stability-and-guardrails
           - id: AFP-W0-M1-GUARDRAIL-BASELINE
             title: Baseline AFP/SCAS guardrail enforcement
             status: done
@@ -197,6 +210,7 @@ epics:
             description: >
               Ensure core guardrails (ledger, override controls, micro-batching)
               hold after the MVP scaffolds return.
+            set_id: w0m1-stability-and-guardrails
           - id: AFP-W0-M1-EXIT-READINESS
             title: Wave 0 exit readiness review
             status: blocked
@@ -213,6 +227,53 @@ epics:
             description: >
               Formal gate confirming Autopilot can run for extended periods
               without human babysitting before governance tightening begins.
+            set_id: w0m1-validation-and-readiness
+          - id: AFP-W0-M1-DEVICE-PROFILE-STABILITY
+            title: Stabilize device profile memory safeguards
+            status: blocked
+            dependencies:
+              - AFP-W0-M1-GUARDRAIL-BASELINE
+            exit_criteria:
+              - device_profile resource limits Vitest suite passes without
+                memory overruns
+              - Resource heuristic documented in state/evidence bundle
+              - Evidence captured in
+                state/evidence/AFP-MODULE-REMEDIATION-20251105-Q
+            domain: mcp
+            description: >
+              Resolve the device profile memory regression so Autopilot resource
+              caps remain enforceable in verification and live runs.
+            set_id: w0m1-stability-and-guardrails
+          - id: AFP-W0-M1-DOMAIN-EXPERT-TEMPLATES
+            title: Refresh domain expert reviewer templates
+            status: blocked
+            dependencies:
+              - AFP-W0-M1-AUTOPILOT-MVP-STRANGLER
+            exit_criteria:
+              - Domain expert reviewer Vitest suite passes with updated prompts
+              - Template files versioned with AFP evidence
+              - Documentation describes prompt locations and update workflow
+            domain: mcp
+            description: >
+              Align domain expert reviewer prompts with current content so
+              autopilot reviews surface accurate guidance for specialised tasks.
+            set_id: w0m1-quality-automation
+          - id: AFP-W0-M1-WAVE0-PROCESS-INVESTIGATION
+            title: Investigate Wave 0 process behavior
+            status: blocked
+            dependencies: []
+            exit_criteria:
+              - Document observed process count and behavior in evidence bundle
+              - Identify expected vs actual process spawning patterns
+              - Record findings in state/evidence/AFP-W0-PROCESS-INVESTIGATION
+            domain: mcp
+            description: >
+              Multiple Wave 0 processes observed running concurrently in
+              background. Investigation to understand process lifecycle,
+              spawning behavior, cleanup mechanisms, and whether current state
+              matches intended design. Factual observation and documentation
+              without pre-evaluation.
+            set_id: w0m1-quality-automation
           - id: AFP-W5-M1-PROCESS-CRITIC
             title: Implement ProcessCritic for PLAN/VERIFY test sequencing
             status: done
@@ -225,6 +286,187 @@ epics:
             description: Build a critic to enforce that tests are authored during PLAN and
               not added during VERIFY. Integrate into pre-commit hooks and
               document usage.
+            set_id: w0m1-quality-automation
+          - id: AFP-W0M1-SUPERVISOR-AGENT-INTEGRATION-REVIEW
+            title: "Review: Supervisor Agent Integration"
+            status: blocked
+            set_id: w0m1-supervisor-agent-integration
+            dependencies: []
+            exit_criteria:
+              - All tasks in w0m1-supervisor-agent-integration set reviewed
+                antagonistically
+              - Improvement opportunities documented
+              - Gaps and assumptions challenged
+              - Enhancement proposals captured
+              - Review findings documented in evidence bundle
+            domain: mcp
+            description: Antagonistically review all work in Supervisor Agent Integration
+              set. Seek improvements, challenge assumptions, identify gaps,
+              propose enhancements. This is a learning loop task that aims to
+              continuously improve the quality and effectiveness of work in this
+              set.
+          - id: AFP-W0M1-SUPERVISOR-AGENT-INTEGRATION-REFORM
+            title: "Reform: Supervisor Agent Integration"
+            status: pending
+            set_id: w0m1-supervisor-agent-integration
+            dependencies:
+              - AFP-W0M1-SUPERVISOR-AGENT-INTEGRATION-REVIEW
+            exit_criteria:
+              - AFP/SCAS research conducted on set patterns
+              - Via negativa opportunities identified
+              - Refactor vs repair analysis completed
+              - Reform proposals documented with ROI analysis
+              - Recommendations prioritized by impact
+            domain: mcp
+            description: Research-based reform proposals for Supervisor Agent Integration
+              set. Apply AFP/SCAS principles to identify fundamental
+              improvements. Focus on via negativa (what can be deleted),
+              refactoring root causes (not patching symptoms), and systematic
+              improvements that compound over time.
+          - id: AFP-W0M1-SUPPORTING-INFRASTRUCTURE-REVIEW
+            title: "Review: Supporting Infrastructure"
+            status: pending
+            set_id: w0m1-supporting-infrastructure
+            dependencies: []
+            exit_criteria:
+              - All tasks in w0m1-supporting-infrastructure set reviewed
+                antagonistically
+              - Improvement opportunities documented
+              - Gaps and assumptions challenged
+              - Enhancement proposals captured
+              - Review findings documented in evidence bundle
+            domain: mcp
+            description: Antagonistically review all work in Supporting Infrastructure set.
+              Seek improvements, challenge assumptions, identify gaps, propose
+              enhancements. This is a learning loop task that aims to
+              continuously improve the quality and effectiveness of work in this
+              set.
+          - id: AFP-W0M1-SUPPORTING-INFRASTRUCTURE-REFORM
+            title: "Reform: Supporting Infrastructure"
+            status: pending
+            set_id: w0m1-supporting-infrastructure
+            dependencies:
+              - AFP-W0M1-SUPPORTING-INFRASTRUCTURE-REVIEW
+            exit_criteria:
+              - AFP/SCAS research conducted on set patterns
+              - Via negativa opportunities identified
+              - Refactor vs repair analysis completed
+              - Reform proposals documented with ROI analysis
+              - Recommendations prioritized by impact
+            domain: mcp
+            description: Research-based reform proposals for Supporting Infrastructure set.
+              Apply AFP/SCAS principles to identify fundamental improvements.
+              Focus on via negativa (what can be deleted), refactoring root
+              causes (not patching symptoms), and systematic improvements that
+              compound over time.
+          - id: AFP-W0M1-STABILITY-AND-GUARDRAILS-REVIEW
+            title: "Review: Stability And Guardrails"
+            status: pending
+            set_id: w0m1-stability-and-guardrails
+            dependencies: []
+            exit_criteria:
+              - All tasks in w0m1-stability-and-guardrails set reviewed
+                antagonistically
+              - Improvement opportunities documented
+              - Gaps and assumptions challenged
+              - Enhancement proposals captured
+              - Review findings documented in evidence bundle
+            domain: mcp
+            description: Antagonistically review all work in Stability And Guardrails set.
+              Seek improvements, challenge assumptions, identify gaps, propose
+              enhancements. This is a learning loop task that aims to
+              continuously improve the quality and effectiveness of work in this
+              set.
+          - id: AFP-W0M1-STABILITY-AND-GUARDRAILS-REFORM
+            title: "Reform: Stability And Guardrails"
+            status: pending
+            set_id: w0m1-stability-and-guardrails
+            dependencies:
+              - AFP-W0M1-STABILITY-AND-GUARDRAILS-REVIEW
+            exit_criteria:
+              - AFP/SCAS research conducted on set patterns
+              - Via negativa opportunities identified
+              - Refactor vs repair analysis completed
+              - Reform proposals documented with ROI analysis
+              - Recommendations prioritized by impact
+            domain: mcp
+            description: Research-based reform proposals for Stability And Guardrails set.
+              Apply AFP/SCAS principles to identify fundamental improvements.
+              Focus on via negativa (what can be deleted), refactoring root
+              causes (not patching symptoms), and systematic improvements that
+              compound over time.
+          - id: AFP-W0M1-VALIDATION-AND-READINESS-REVIEW
+            title: "Review: Validation And Readiness"
+            status: pending
+            set_id: w0m1-validation-and-readiness
+            dependencies: []
+            exit_criteria:
+              - All tasks in w0m1-validation-and-readiness set reviewed
+                antagonistically
+              - Improvement opportunities documented
+              - Gaps and assumptions challenged
+              - Enhancement proposals captured
+              - Review findings documented in evidence bundle
+            domain: mcp
+            description: Antagonistically review all work in Validation And Readiness set.
+              Seek improvements, challenge assumptions, identify gaps, propose
+              enhancements. This is a learning loop task that aims to
+              continuously improve the quality and effectiveness of work in this
+              set.
+          - id: AFP-W0M1-VALIDATION-AND-READINESS-REFORM
+            title: "Reform: Validation And Readiness"
+            status: pending
+            set_id: w0m1-validation-and-readiness
+            dependencies:
+              - AFP-W0M1-VALIDATION-AND-READINESS-REVIEW
+            exit_criteria:
+              - AFP/SCAS research conducted on set patterns
+              - Via negativa opportunities identified
+              - Refactor vs repair analysis completed
+              - Reform proposals documented with ROI analysis
+              - Recommendations prioritized by impact
+            domain: mcp
+            description: Research-based reform proposals for Validation And Readiness set.
+              Apply AFP/SCAS principles to identify fundamental improvements.
+              Focus on via negativa (what can be deleted), refactoring root
+              causes (not patching symptoms), and systematic improvements that
+              compound over time.
+          - id: AFP-W0M1-QUALITY-AUTOMATION-REVIEW
+            title: "Review: Quality Automation"
+            status: pending
+            set_id: w0m1-quality-automation
+            dependencies: []
+            exit_criteria:
+              - All tasks in w0m1-quality-automation set reviewed
+                antagonistically
+              - Improvement opportunities documented
+              - Gaps and assumptions challenged
+              - Enhancement proposals captured
+              - Review findings documented in evidence bundle
+            domain: mcp
+            description: Antagonistically review all work in Quality Automation set. Seek
+              improvements, challenge assumptions, identify gaps, propose
+              enhancements. This is a learning loop task that aims to
+              continuously improve the quality and effectiveness of work in this
+              set.
+          - id: AFP-W0M1-QUALITY-AUTOMATION-REFORM
+            title: "Reform: Quality Automation"
+            status: pending
+            set_id: w0m1-quality-automation
+            dependencies:
+              - AFP-W0M1-QUALITY-AUTOMATION-REVIEW
+            exit_criteria:
+              - AFP/SCAS research conducted on set patterns
+              - Via negativa opportunities identified
+              - Refactor vs repair analysis completed
+              - Reform proposals documented with ROI analysis
+              - Recommendations prioritized by impact
+            domain: mcp
+            description: Research-based reform proposals for Quality Automation set. Apply
+              AFP/SCAS principles to identify fundamental improvements. Focus on
+              via negativa (what can be deleted), refactoring root causes (not
+              patching symptoms), and systematic improvements that compound over
+              time.
       - id: W0.M2
         title: Autopilot Test Harness Validation
         status: done
@@ -250,14 +492,51 @@ epics:
               validates the testing workflow and ensures future development can
               leverage autonomous validation instead of just manual build/test
               verification. Uses TaskFlow CLI as safe test environment.
+            set_id: w0m2-test-harness
+          - id: AFP-W0M2-TEST-HARNESS-REVIEW
+            title: "Review: Test Harness"
+            status: pending
+            set_id: w0m2-test-harness
+            dependencies: []
+            exit_criteria:
+              - All tasks in w0m2-test-harness set reviewed antagonistically
+              - Improvement opportunities documented
+              - Gaps and assumptions challenged
+              - Enhancement proposals captured
+              - Review findings documented in evidence bundle
+            domain: mcp
+            description: Antagonistically review all work in Test Harness set. Seek
+              improvements, challenge assumptions, identify gaps, propose
+              enhancements. This is a learning loop task that aims to
+              continuously improve the quality and effectiveness of work in this
+              set.
+          - id: AFP-W0M2-TEST-HARNESS-REFORM
+            title: "Reform: Test Harness"
+            status: pending
+            set_id: w0m2-test-harness
+            dependencies:
+              - AFP-W0M2-TEST-HARNESS-REVIEW
+            exit_criteria:
+              - AFP/SCAS research conducted on set patterns
+              - Via negativa opportunities identified
+              - Refactor vs repair analysis completed
+              - Reform proposals documented with ROI analysis
+              - Recommendations prioritized by impact
+            domain: mcp
+            description: Research-based reform proposals for Test Harness set. Apply
+              AFP/SCAS principles to identify fundamental improvements. Focus on
+              via negativa (what can be deleted), refactoring root causes (not
+              patching symptoms), and systematic improvements that compound over
+              time.
       - id: W0.M3
         title: Hierarchical Process System
         status: in_progress
         description: >
-          Implement 5-level hierarchical work process (META/PROJECT/EPIC/SET/TASK)
-          with mandatory embedding, enforced phase completion, and bidirectional
-          pattern flow. First task: Create WAVE-0 epic phase docs (we're already
-          in W0 but missing super-task structures).
+          Implement 5-level hierarchical work process
+          (META/PROJECT/EPIC/SET/TASK) with mandatory embedding, enforced phase
+          completion, and bidirectional pattern flow. First task: Create WAVE-0
+          epic phase docs (we're already in W0 but missing super-task
+          structures).
         sets:
           - id: wave0-epic-bootstrap
             title: Create WAVE-0 Epic Phase Docs (we're already in it!)
@@ -283,11 +562,10 @@ epics:
                   - All docs validated by OutcomeCritic
                 domain: mcp
                 description: >
-                  Bootstrap hierarchical process by creating epic-level phase docs
-                  for WAVE-0 itself. This is meta-work: documenting the epic we're
-                  already in. Required before we can enforce epic gates on future
-                  epics.
-
+                  Bootstrap hierarchical process by creating epic-level phase
+                  docs for WAVE-0 itself. This is meta-work: documenting the
+                  epic we're already in. Required before we can enforce epic
+                  gates on future epics.
           - id: hierarchy-structure
             title: Create 5-Level Structure (META/PROJECT/EPIC/SET/TASK)
             status: pending
@@ -303,15 +581,16 @@ epics:
                 set_id: hierarchy-structure
                 epic_id: WAVE-0
                 exit_criteria:
-                  - state/meta/ directory created with strategy/spec/plan/think/design
+                  - state/meta/ directory created with
+                    strategy/spec/plan/think/design
                   - AFP principles documented in meta/plan/principles/
                   - Process evolution rules in meta/design.md
                   - MetaCritic specification complete
                 domain: mcp
                 description: >
-                  Create META level for process governance itself. Documents AFP/SCAS
-                  principles, process evolution policy, and how hierarchy works.
-
+                  Create META level for process governance itself. Documents
+                  AFP/SCAS principles, process evolution policy, and how
+                  hierarchy works.
               - id: AFP-HIERARCHY-PROJECT-STRUCTURE
                 title: Create PROJECT-level structure and templates
                 status: pending
@@ -326,9 +605,9 @@ epics:
                   - VisionCritic specification complete
                 domain: mcp
                 description: >
-                  Create PROJECT level structure. Document WEATHERVANE's architecture,
-                  tech stack (TypeScript/Python), constraints (≤150 LOC), and governance.
-
+                  Create PROJECT level structure. Document WEATHERVANE's
+                  architecture, tech stack (TypeScript/Python), constraints
+                  (≤150 LOC), and governance.
               - id: AFP-HIERARCHY-SET-TEMPLATES
                 title: Create SET-level templates
                 status: pending
@@ -345,7 +624,6 @@ epics:
                 description: >
                   Create templates for SET (task group) level. Lightweight phase
                   docs for clustering related tasks.
-
           - id: hierarchy-enforcement
             title: Enforce Hierarchy Gates and Embedding
             status: pending
@@ -368,9 +646,9 @@ epics:
                   - Unit tests pass (80% coverage)
                 domain: mcp
                 description: >
-                  Implement gate enforcement logic. Pre-commit hook blocks adding
-                  tasks to epic/set until strategy/spec/plan/think/design exist.
-
+                  Implement gate enforcement logic. Pre-commit hook blocks
+                  adding tasks to epic/set until strategy/spec/plan/think/design
+                  exist.
               - id: AFP-HIERARCHY-PRECOMMIT-HOOKS
                 title: Integrate enforcement into pre-commit
                 status: pending
@@ -388,7 +666,6 @@ epics:
                 description: >
                   Add hierarchy enforcement to pre-commit hooks. Make violations
                   IMPOSSIBLE (not just warned).
-
           - id: hierarchy-critics
             title: Implement Hierarchical Critics
             status: pending
@@ -411,9 +688,9 @@ epics:
                   - Tests pass
                 domain: mcp
                 description: >
-                  MetaCritic validates the process itself. Runs quarterly, checks
-                  if hierarchy is delivering value or becoming bureaucracy.
-
+                  MetaCritic validates the process itself. Runs quarterly,
+                  checks if hierarchy is delivering value or becoming
+                  bureaucracy.
               - id: AFP-HIERARCHY-LEVEL-CRITICS
                 title: Implement VisionCritic, OutcomeCritic, ClusterCritic
                 status: pending
@@ -429,9 +706,8 @@ epics:
                   - Tests pass
                 domain: mcp
                 description: >
-                  Implement level-specific critics. Each validates phase docs
-                  at appropriate level.
-
+                  Implement level-specific critics. Each validates phase docs at
+                  appropriate level.
           - id: hierarchy-migration
             title: Migrate Existing Work to Hierarchy
             status: pending
@@ -456,7 +732,6 @@ epics:
                   Retroactively organize W0.M1's ~30 tasks into logical sets
                   (proof-system, supervisor-integration, scaffold-bringup, etc).
                   Create lightweight phase docs for each set.
-
               - id: AFP-HIERARCHY-DOCUMENTATION
                 title: Write hierarchical process documentation
                 status: pending
@@ -473,11 +748,219 @@ epics:
                   - Examples from WAVE-0 included
                 domain: mcp
                 description: >
-                  Document the hierarchical process system. Include examples from
-                  WAVE-0 migration showing how it works in practice.
+                  Document the hierarchical process system. Include examples
+                  from WAVE-0 migration showing how it works in practice.
+        tasks:
+          - id: AFP-WAVE0-EPIC-BOOTSTRAP-REVIEW
+            title: "Review: Wave0 Epic Bootstrap"
+            status: pending
+            set_id: wave0-epic-bootstrap
+            dependencies: []
+            exit_criteria:
+              - All tasks in wave0-epic-bootstrap set reviewed antagonistically
+              - Improvement opportunities documented
+              - Gaps and assumptions challenged
+              - Enhancement proposals captured
+              - Review findings documented in evidence bundle
+            domain: mcp
+            description: Antagonistically review all work in Wave0 Epic Bootstrap set. Seek
+              improvements, challenge assumptions, identify gaps, propose
+              enhancements. This is a learning loop task that aims to
+              continuously improve the quality and effectiveness of work in this
+              set.
+          - id: AFP-WAVE0-EPIC-BOOTSTRAP-REFORM
+            title: "Reform: Wave0 Epic Bootstrap"
+            status: pending
+            set_id: wave0-epic-bootstrap
+            dependencies:
+              - AFP-WAVE0-EPIC-BOOTSTRAP-REVIEW
+            exit_criteria:
+              - AFP/SCAS research conducted on set patterns
+              - Via negativa opportunities identified
+              - Refactor vs repair analysis completed
+              - Reform proposals documented with ROI analysis
+              - Recommendations prioritized by impact
+            domain: mcp
+            description: Research-based reform proposals for Wave0 Epic Bootstrap set. Apply
+              AFP/SCAS principles to identify fundamental improvements. Focus on
+              via negativa (what can be deleted), refactoring root causes (not
+              patching symptoms), and systematic improvements that compound over
+              time.
+          - id: AFP-HIERARCHY-STRUCTURE-REVIEW
+            title: "Review: Structure"
+            status: pending
+            set_id: hierarchy-structure
+            dependencies: []
+            exit_criteria:
+              - All tasks in hierarchy-structure set reviewed antagonistically
+              - Improvement opportunities documented
+              - Gaps and assumptions challenged
+              - Enhancement proposals captured
+              - Review findings documented in evidence bundle
+            domain: mcp
+            description: Antagonistically review all work in Structure set. Seek
+              improvements, challenge assumptions, identify gaps, propose
+              enhancements. This is a learning loop task that aims to
+              continuously improve the quality and effectiveness of work in this
+              set.
+          - id: AFP-HIERARCHY-STRUCTURE-REFORM
+            title: "Reform: Structure"
+            status: pending
+            set_id: hierarchy-structure
+            dependencies:
+              - AFP-HIERARCHY-STRUCTURE-REVIEW
+            exit_criteria:
+              - AFP/SCAS research conducted on set patterns
+              - Via negativa opportunities identified
+              - Refactor vs repair analysis completed
+              - Reform proposals documented with ROI analysis
+              - Recommendations prioritized by impact
+            domain: mcp
+            description: Research-based reform proposals for Structure set. Apply AFP/SCAS
+              principles to identify fundamental improvements. Focus on via
+              negativa (what can be deleted), refactoring root causes (not
+              patching symptoms), and systematic improvements that compound over
+              time.
+          - id: AFP-HIERARCHY-ENFORCEMENT-REVIEW
+            title: "Review: Enforcement"
+            status: pending
+            set_id: hierarchy-enforcement
+            dependencies: []
+            exit_criteria:
+              - All tasks in hierarchy-enforcement set reviewed antagonistically
+              - Improvement opportunities documented
+              - Gaps and assumptions challenged
+              - Enhancement proposals captured
+              - Review findings documented in evidence bundle
+            domain: mcp
+            description: Antagonistically review all work in Enforcement set. Seek
+              improvements, challenge assumptions, identify gaps, propose
+              enhancements. This is a learning loop task that aims to
+              continuously improve the quality and effectiveness of work in this
+              set.
+          - id: AFP-HIERARCHY-ENFORCEMENT-REFORM
+            title: "Reform: Enforcement"
+            status: pending
+            set_id: hierarchy-enforcement
+            dependencies:
+              - AFP-HIERARCHY-ENFORCEMENT-REVIEW
+            exit_criteria:
+              - AFP/SCAS research conducted on set patterns
+              - Via negativa opportunities identified
+              - Refactor vs repair analysis completed
+              - Reform proposals documented with ROI analysis
+              - Recommendations prioritized by impact
+            domain: mcp
+            description: Research-based reform proposals for Enforcement set. Apply AFP/SCAS
+              principles to identify fundamental improvements. Focus on via
+              negativa (what can be deleted), refactoring root causes (not
+              patching symptoms), and systematic improvements that compound over
+              time.
+          - id: AFP-HIERARCHY-CRITICS-REVIEW
+            title: "Review: Critics"
+            status: pending
+            set_id: hierarchy-critics
+            dependencies: []
+            exit_criteria:
+              - All tasks in hierarchy-critics set reviewed antagonistically
+              - Improvement opportunities documented
+              - Gaps and assumptions challenged
+              - Enhancement proposals captured
+              - Review findings documented in evidence bundle
+            domain: mcp
+            description: Antagonistically review all work in Critics set. Seek improvements,
+              challenge assumptions, identify gaps, propose enhancements. This
+              is a learning loop task that aims to continuously improve the
+              quality and effectiveness of work in this set.
+          - id: AFP-HIERARCHY-CRITICS-REFORM
+            title: "Reform: Critics"
+            status: pending
+            set_id: hierarchy-critics
+            dependencies:
+              - AFP-HIERARCHY-CRITICS-REVIEW
+            exit_criteria:
+              - AFP/SCAS research conducted on set patterns
+              - Via negativa opportunities identified
+              - Refactor vs repair analysis completed
+              - Reform proposals documented with ROI analysis
+              - Recommendations prioritized by impact
+            domain: mcp
+            description: Research-based reform proposals for Critics set. Apply AFP/SCAS
+              principles to identify fundamental improvements. Focus on via
+              negativa (what can be deleted), refactoring root causes (not
+              patching symptoms), and systematic improvements that compound over
+              time.
+          - id: AFP-HIERARCHY-MIGRATION-REVIEW
+            title: "Review: Migration"
+            status: pending
+            set_id: hierarchy-migration
+            dependencies: []
+            exit_criteria:
+              - All tasks in hierarchy-migration set reviewed antagonistically
+              - Improvement opportunities documented
+              - Gaps and assumptions challenged
+              - Enhancement proposals captured
+              - Review findings documented in evidence bundle
+            domain: mcp
+            description: Antagonistically review all work in Migration set. Seek
+              improvements, challenge assumptions, identify gaps, propose
+              enhancements. This is a learning loop task that aims to
+              continuously improve the quality and effectiveness of work in this
+              set.
+          - id: AFP-HIERARCHY-MIGRATION-REFORM
+            title: "Reform: Migration"
+            status: pending
+            set_id: hierarchy-migration
+            dependencies:
+              - AFP-HIERARCHY-MIGRATION-REVIEW
+            exit_criteria:
+              - AFP/SCAS research conducted on set patterns
+              - Via negativa opportunities identified
+              - Refactor vs repair analysis completed
+              - Reform proposals documented with ROI analysis
+              - Recommendations prioritized by impact
+            domain: mcp
+            description: Research-based reform proposals for Migration set. Apply AFP/SCAS
+              principles to identify fundamental improvements. Focus on via
+              negativa (what can be deleted), refactoring root causes (not
+              patching symptoms), and systematic improvements that compound over
+              time.
+          - id: AFP-WAVE-0-EPIC-REVIEW
+            title: "Review: Wave 0 Epic"
+            status: pending
+            epic_id: WAVE-0
+            dependencies: []
+            exit_criteria:
+              - All Wave 0 sets reviewed and synthesized
+              - Cross-set patterns identified
+              - Wave-level improvements proposed
+              - Strategic gaps documented
+              - Epic review findings captured in evidence bundle
+            domain: mcp
+            description: Epic-level review synthesizing learnings across all Wave 0 sets.
+              Identify cross-cutting patterns, strategic gaps, and wave-level
+              improvement opportunities. This is a meta-learning task that looks
+              at the wave as a whole.
+          - id: AFP-WAVE-0-EPIC-REFORM
+            title: "Reform: Wave 0 Epic"
+            status: pending
+            epic_id: WAVE-0
+            dependencies:
+              - AFP-WAVE-0-EPIC-REVIEW
+            exit_criteria:
+              - Wave 0 strategy questioned and validated
+              - Wave-level AFP/SCAS analysis completed
+              - Fundamental restructuring options explored
+              - Strategic reforms proposed with evidence
+              - Wave evolution roadmap updated
+            domain: mcp
+            description: Strategic reform proposals for Wave 0 as a whole. Question
+              fundamental assumptions, explore alternative approaches, apply
+              AFP/SCAS at wave level. Focus on whether the wave strategy itself
+              is optimal or should be reformed.
   - id: WAVE-1
     title: Wave 1 – Governance & AFP Enforcement
-    status: done
+    status: pending
     domain: mcp
     milestones:
       - id: W1.M1
@@ -604,9 +1087,150 @@ epics:
             description: >
               Gate ensuring AFP enforcement is working before investing in
               knowledge base automation.
+          - id: AFP-W1M1-GOVERNANCE-FOUNDATION-REVIEW
+            title: "Review: Governance Foundation"
+            status: pending
+            set_id: w1m1-governance-foundation
+            dependencies: []
+            exit_criteria:
+              - All tasks in w1m1-governance-foundation set reviewed
+                antagonistically
+              - Improvement opportunities documented
+              - Gaps and assumptions challenged
+              - Enhancement proposals captured
+              - Review findings documented in evidence bundle
+            domain: mcp
+            description: Antagonistically review all work in Governance Foundation set. Seek
+              improvements, challenge assumptions, identify gaps, propose
+              enhancements. This is a learning loop task that aims to
+              continuously improve the quality and effectiveness of work in this
+              set.
+          - id: AFP-W1M1-GOVERNANCE-FOUNDATION-REFORM
+            title: "Reform: Governance Foundation"
+            status: pending
+            set_id: w1m1-governance-foundation
+            dependencies:
+              - AFP-W1M1-GOVERNANCE-FOUNDATION-REVIEW
+            exit_criteria:
+              - AFP/SCAS research conducted on set patterns
+              - Via negativa opportunities identified
+              - Refactor vs repair analysis completed
+              - Reform proposals documented with ROI analysis
+              - Recommendations prioritized by impact
+            domain: mcp
+            description: Research-based reform proposals for Governance Foundation set.
+              Apply AFP/SCAS principles to identify fundamental improvements.
+              Focus on via negativa (what can be deleted), refactoring root
+              causes (not patching symptoms), and systematic improvements that
+              compound over time.
+          - id: AFP-W1M1-ENFORCEMENT-AUTOMATION-REVIEW
+            title: "Review: Enforcement Automation"
+            status: pending
+            set_id: w1m1-enforcement-automation
+            dependencies: []
+            exit_criteria:
+              - All tasks in w1m1-enforcement-automation set reviewed
+                antagonistically
+              - Improvement opportunities documented
+              - Gaps and assumptions challenged
+              - Enhancement proposals captured
+              - Review findings documented in evidence bundle
+            domain: mcp
+            description: Antagonistically review all work in Enforcement Automation set.
+              Seek improvements, challenge assumptions, identify gaps, propose
+              enhancements. This is a learning loop task that aims to
+              continuously improve the quality and effectiveness of work in this
+              set.
+          - id: AFP-W1M1-ENFORCEMENT-AUTOMATION-REFORM
+            title: "Reform: Enforcement Automation"
+            status: pending
+            set_id: w1m1-enforcement-automation
+            dependencies:
+              - AFP-W1M1-ENFORCEMENT-AUTOMATION-REVIEW
+            exit_criteria:
+              - AFP/SCAS research conducted on set patterns
+              - Via negativa opportunities identified
+              - Refactor vs repair analysis completed
+              - Reform proposals documented with ROI analysis
+              - Recommendations prioritized by impact
+            domain: mcp
+            description: Research-based reform proposals for Enforcement Automation set.
+              Apply AFP/SCAS principles to identify fundamental improvements.
+              Focus on via negativa (what can be deleted), refactoring root
+              causes (not patching symptoms), and systematic improvements that
+              compound over time.
+          - id: AFP-W1M1-VALIDATION-AND-EXIT-REVIEW
+            title: "Review: Validation And Exit"
+            status: pending
+            set_id: w1m1-validation-and-exit
+            dependencies: []
+            exit_criteria:
+              - All tasks in w1m1-validation-and-exit set reviewed
+                antagonistically
+              - Improvement opportunities documented
+              - Gaps and assumptions challenged
+              - Enhancement proposals captured
+              - Review findings documented in evidence bundle
+            domain: mcp
+            description: Antagonistically review all work in Validation And Exit set. Seek
+              improvements, challenge assumptions, identify gaps, propose
+              enhancements. This is a learning loop task that aims to
+              continuously improve the quality and effectiveness of work in this
+              set.
+          - id: AFP-W1M1-VALIDATION-AND-EXIT-REFORM
+            title: "Reform: Validation And Exit"
+            status: pending
+            set_id: w1m1-validation-and-exit
+            dependencies:
+              - AFP-W1M1-VALIDATION-AND-EXIT-REVIEW
+            exit_criteria:
+              - AFP/SCAS research conducted on set patterns
+              - Via negativa opportunities identified
+              - Refactor vs repair analysis completed
+              - Reform proposals documented with ROI analysis
+              - Recommendations prioritized by impact
+            domain: mcp
+            description: Research-based reform proposals for Validation And Exit set. Apply
+              AFP/SCAS principles to identify fundamental improvements. Focus on
+              via negativa (what can be deleted), refactoring root causes (not
+              patching symptoms), and systematic improvements that compound over
+              time.
+          - id: AFP-WAVE-1-EPIC-REVIEW
+            title: "Review: Wave 1 Epic"
+            status: pending
+            epic_id: WAVE-1
+            dependencies: []
+            exit_criteria:
+              - All Wave 1 sets reviewed and synthesized
+              - Cross-set patterns identified
+              - Wave-level improvements proposed
+              - Strategic gaps documented
+              - Epic review findings captured in evidence bundle
+            domain: mcp
+            description: Epic-level review synthesizing learnings across all Wave 1 sets.
+              Identify cross-cutting patterns, strategic gaps, and wave-level
+              improvement opportunities. This is a meta-learning task that looks
+              at the wave as a whole.
+          - id: AFP-WAVE-1-EPIC-REFORM
+            title: "Reform: Wave 1 Epic"
+            status: pending
+            epic_id: WAVE-1
+            dependencies:
+              - AFP-WAVE-1-EPIC-REVIEW
+            exit_criteria:
+              - Wave 1 strategy questioned and validated
+              - Wave-level AFP/SCAS analysis completed
+              - Fundamental restructuring options explored
+              - Strategic reforms proposed with evidence
+              - Wave evolution roadmap updated
+            domain: mcp
+            description: Strategic reform proposals for Wave 1 as a whole. Question
+              fundamental assumptions, explore alternative approaches, apply
+              AFP/SCAS at wave level. Focus on whether the wave strategy itself
+              is optimal or should be reformed.
   - id: WAVE-2
     title: Wave 2 – Local Knowledge Base Deployment
-    status: done
+    status: pending
     domain: mcp
     milestones:
       - id: W2.M1
@@ -736,6 +1360,113 @@ epics:
             description: >
               Gate verifying the knowledge base is trustworthy before running
               autonomy stress tests.
+          - id: AFP-W2M1-README-GENERATION-REVIEW
+            title: "Review: Readme Generation"
+            status: pending
+            set_id: w2m1-readme-generation
+            dependencies: []
+            exit_criteria:
+              - All tasks in w2m1-readme-generation set reviewed antagonistically
+              - Improvement opportunities documented
+              - Gaps and assumptions challenged
+              - Enhancement proposals captured
+              - Review findings documented in evidence bundle
+            domain: mcp
+            description: Antagonistically review all work in Readme Generation set. Seek
+              improvements, challenge assumptions, identify gaps, propose
+              enhancements. This is a learning loop task that aims to
+              continuously improve the quality and effectiveness of work in this
+              set.
+          - id: AFP-W2M1-README-GENERATION-REFORM
+            title: "Reform: Readme Generation"
+            status: pending
+            set_id: w2m1-readme-generation
+            dependencies:
+              - AFP-W2M1-README-GENERATION-REVIEW
+            exit_criteria:
+              - AFP/SCAS research conducted on set patterns
+              - Via negativa opportunities identified
+              - Refactor vs repair analysis completed
+              - Reform proposals documented with ROI analysis
+              - Recommendations prioritized by impact
+            domain: mcp
+            description: Research-based reform proposals for Readme Generation set. Apply
+              AFP/SCAS principles to identify fundamental improvements. Focus on
+              via negativa (what can be deleted), refactoring root causes (not
+              patching symptoms), and systematic improvements that compound over
+              time.
+          - id: AFP-W2M1-README-ENHANCEMENT-REVIEW
+            title: "Review: Readme Enhancement"
+            status: pending
+            set_id: w2m1-readme-enhancement
+            dependencies: []
+            exit_criteria:
+              - All tasks in w2m1-readme-enhancement set reviewed
+                antagonistically
+              - Improvement opportunities documented
+              - Gaps and assumptions challenged
+              - Enhancement proposals captured
+              - Review findings documented in evidence bundle
+            domain: mcp
+            description: Antagonistically review all work in Readme Enhancement set. Seek
+              improvements, challenge assumptions, identify gaps, propose
+              enhancements. This is a learning loop task that aims to
+              continuously improve the quality and effectiveness of work in this
+              set.
+          - id: AFP-W2M1-README-ENHANCEMENT-REFORM
+            title: "Reform: Readme Enhancement"
+            status: pending
+            set_id: w2m1-readme-enhancement
+            dependencies:
+              - AFP-W2M1-README-ENHANCEMENT-REVIEW
+            exit_criteria:
+              - AFP/SCAS research conducted on set patterns
+              - Via negativa opportunities identified
+              - Refactor vs repair analysis completed
+              - Reform proposals documented with ROI analysis
+              - Recommendations prioritized by impact
+            domain: mcp
+            description: Research-based reform proposals for Readme Enhancement set. Apply
+              AFP/SCAS principles to identify fundamental improvements. Focus on
+              via negativa (what can be deleted), refactoring root causes (not
+              patching symptoms), and systematic improvements that compound over
+              time.
+          - id: AFP-W2M1-README-MAINTENANCE-REVIEW
+            title: "Review: Readme Maintenance"
+            status: pending
+            set_id: w2m1-readme-maintenance
+            dependencies: []
+            exit_criteria:
+              - All tasks in w2m1-readme-maintenance set reviewed
+                antagonistically
+              - Improvement opportunities documented
+              - Gaps and assumptions challenged
+              - Enhancement proposals captured
+              - Review findings documented in evidence bundle
+            domain: mcp
+            description: Antagonistically review all work in Readme Maintenance set. Seek
+              improvements, challenge assumptions, identify gaps, propose
+              enhancements. This is a learning loop task that aims to
+              continuously improve the quality and effectiveness of work in this
+              set.
+          - id: AFP-W2M1-README-MAINTENANCE-REFORM
+            title: "Reform: Readme Maintenance"
+            status: pending
+            set_id: w2m1-readme-maintenance
+            dependencies:
+              - AFP-W2M1-README-MAINTENANCE-REVIEW
+            exit_criteria:
+              - AFP/SCAS research conducted on set patterns
+              - Via negativa opportunities identified
+              - Refactor vs repair analysis completed
+              - Reform proposals documented with ROI analysis
+              - Recommendations prioritized by impact
+            domain: mcp
+            description: Research-based reform proposals for Readme Maintenance set. Apply
+              AFP/SCAS principles to identify fundamental improvements. Focus on
+              via negativa (what can be deleted), refactoring root causes (not
+              patching symptoms), and systematic improvements that compound over
+              time.
       - id: W2.M2
         title: Prompt architecture & lifecycle
         status: done
@@ -921,9 +1652,182 @@ epics:
             description: >
               Confirm prompt design, evaluation, and lifecycle automation meet
               AFP/SCAS requirements before autonomy stress tests.
+          - id: AFP-W2M2-PROMPT-FOUNDATION-REVIEW
+            title: "Review: Prompt Foundation"
+            status: pending
+            set_id: w2m2-prompt-foundation
+            dependencies: []
+            exit_criteria:
+              - All tasks in w2m2-prompt-foundation set reviewed antagonistically
+              - Improvement opportunities documented
+              - Gaps and assumptions challenged
+              - Enhancement proposals captured
+              - Review findings documented in evidence bundle
+            domain: mcp
+            description: Antagonistically review all work in Prompt Foundation set. Seek
+              improvements, challenge assumptions, identify gaps, propose
+              enhancements. This is a learning loop task that aims to
+              continuously improve the quality and effectiveness of work in this
+              set.
+          - id: AFP-W2M2-PROMPT-FOUNDATION-REFORM
+            title: "Reform: Prompt Foundation"
+            status: pending
+            set_id: w2m2-prompt-foundation
+            dependencies:
+              - AFP-W2M2-PROMPT-FOUNDATION-REVIEW
+            exit_criteria:
+              - AFP/SCAS research conducted on set patterns
+              - Via negativa opportunities identified
+              - Refactor vs repair analysis completed
+              - Reform proposals documented with ROI analysis
+              - Recommendations prioritized by impact
+            domain: mcp
+            description: Research-based reform proposals for Prompt Foundation set. Apply
+              AFP/SCAS principles to identify fundamental improvements. Focus on
+              via negativa (what can be deleted), refactoring root causes (not
+              patching symptoms), and systematic improvements that compound over
+              time.
+          - id: AFP-W2M2-PROMPT-LIBRARY-REVIEW
+            title: "Review: Prompt Library"
+            status: pending
+            set_id: w2m2-prompt-library
+            dependencies: []
+            exit_criteria:
+              - All tasks in w2m2-prompt-library set reviewed antagonistically
+              - Improvement opportunities documented
+              - Gaps and assumptions challenged
+              - Enhancement proposals captured
+              - Review findings documented in evidence bundle
+            domain: mcp
+            description: Antagonistically review all work in Prompt Library set. Seek
+              improvements, challenge assumptions, identify gaps, propose
+              enhancements. This is a learning loop task that aims to
+              continuously improve the quality and effectiveness of work in this
+              set.
+          - id: AFP-W2M2-PROMPT-LIBRARY-REFORM
+            title: "Reform: Prompt Library"
+            status: pending
+            set_id: w2m2-prompt-library
+            dependencies:
+              - AFP-W2M2-PROMPT-LIBRARY-REVIEW
+            exit_criteria:
+              - AFP/SCAS research conducted on set patterns
+              - Via negativa opportunities identified
+              - Refactor vs repair analysis completed
+              - Reform proposals documented with ROI analysis
+              - Recommendations prioritized by impact
+            domain: mcp
+            description: Research-based reform proposals for Prompt Library set. Apply
+              AFP/SCAS principles to identify fundamental improvements. Focus on
+              via negativa (what can be deleted), refactoring root causes (not
+              patching symptoms), and systematic improvements that compound over
+              time.
+          - id: AFP-W2M2-PROMPT-QUALITY-REVIEW
+            title: "Review: Prompt Quality"
+            status: pending
+            set_id: w2m2-prompt-quality
+            dependencies: []
+            exit_criteria:
+              - All tasks in w2m2-prompt-quality set reviewed antagonistically
+              - Improvement opportunities documented
+              - Gaps and assumptions challenged
+              - Enhancement proposals captured
+              - Review findings documented in evidence bundle
+            domain: mcp
+            description: Antagonistically review all work in Prompt Quality set. Seek
+              improvements, challenge assumptions, identify gaps, propose
+              enhancements. This is a learning loop task that aims to
+              continuously improve the quality and effectiveness of work in this
+              set.
+          - id: AFP-W2M2-PROMPT-QUALITY-REFORM
+            title: "Reform: Prompt Quality"
+            status: pending
+            set_id: w2m2-prompt-quality
+            dependencies:
+              - AFP-W2M2-PROMPT-QUALITY-REVIEW
+            exit_criteria:
+              - AFP/SCAS research conducted on set patterns
+              - Via negativa opportunities identified
+              - Refactor vs repair analysis completed
+              - Reform proposals documented with ROI analysis
+              - Recommendations prioritized by impact
+            domain: mcp
+            description: Research-based reform proposals for Prompt Quality set. Apply
+              AFP/SCAS principles to identify fundamental improvements. Focus on
+              via negativa (what can be deleted), refactoring root causes (not
+              patching symptoms), and systematic improvements that compound over
+              time.
+          - id: AFP-W2M2-PROMPT-SANDBOX-REVIEW
+            title: "Review: Prompt Sandbox"
+            status: pending
+            set_id: w2m2-prompt-sandbox
+            dependencies: []
+            exit_criteria:
+              - All tasks in w2m2-prompt-sandbox set reviewed antagonistically
+              - Improvement opportunities documented
+              - Gaps and assumptions challenged
+              - Enhancement proposals captured
+              - Review findings documented in evidence bundle
+            domain: mcp
+            description: Antagonistically review all work in Prompt Sandbox set. Seek
+              improvements, challenge assumptions, identify gaps, propose
+              enhancements. This is a learning loop task that aims to
+              continuously improve the quality and effectiveness of work in this
+              set.
+          - id: AFP-W2M2-PROMPT-SANDBOX-REFORM
+            title: "Reform: Prompt Sandbox"
+            status: pending
+            set_id: w2m2-prompt-sandbox
+            dependencies:
+              - AFP-W2M2-PROMPT-SANDBOX-REVIEW
+            exit_criteria:
+              - AFP/SCAS research conducted on set patterns
+              - Via negativa opportunities identified
+              - Refactor vs repair analysis completed
+              - Reform proposals documented with ROI analysis
+              - Recommendations prioritized by impact
+            domain: mcp
+            description: Research-based reform proposals for Prompt Sandbox set. Apply
+              AFP/SCAS principles to identify fundamental improvements. Focus on
+              via negativa (what can be deleted), refactoring root causes (not
+              patching symptoms), and systematic improvements that compound over
+              time.
+          - id: AFP-WAVE-2-EPIC-REVIEW
+            title: "Review: Wave 2 Epic"
+            status: pending
+            epic_id: WAVE-2
+            dependencies: []
+            exit_criteria:
+              - All Wave 2 sets reviewed and synthesized
+              - Cross-set patterns identified
+              - Wave-level improvements proposed
+              - Strategic gaps documented
+              - Epic review findings captured in evidence bundle
+            domain: mcp
+            description: Epic-level review synthesizing learnings across all Wave 2 sets.
+              Identify cross-cutting patterns, strategic gaps, and wave-level
+              improvement opportunities. This is a meta-learning task that looks
+              at the wave as a whole.
+          - id: AFP-WAVE-2-EPIC-REFORM
+            title: "Reform: Wave 2 Epic"
+            status: pending
+            epic_id: WAVE-2
+            dependencies:
+              - AFP-WAVE-2-EPIC-REVIEW
+            exit_criteria:
+              - Wave 2 strategy questioned and validated
+              - Wave-level AFP/SCAS analysis completed
+              - Fundamental restructuring options explored
+              - Strategic reforms proposed with evidence
+              - Wave evolution roadmap updated
+            domain: mcp
+            description: Strategic reform proposals for Wave 2 as a whole. Question
+              fundamental assumptions, explore alternative approaches, apply
+              AFP/SCAS at wave level. Focus on whether the wave strategy itself
+              is optimal or should be reformed.
   - id: WAVE-3
     title: Wave 3 – Autonomy Stress Tests & Reliability
-    status: done
+    status: pending
     domain: mcp
     milestones:
       - id: W3.M1
@@ -1011,9 +1915,113 @@ epics:
             description: >
               Confirms Autopilot is reliable enough to tackle the autonomy
               gauntlet.
+          - id: AFP-W3M1-AUTONOMY-TESTING-REVIEW
+            title: "Review: Autonomy Testing"
+            status: pending
+            set_id: w3m1-autonomy-testing
+            dependencies: []
+            exit_criteria:
+              - All tasks in w3m1-autonomy-testing set reviewed antagonistically
+              - Improvement opportunities documented
+              - Gaps and assumptions challenged
+              - Enhancement proposals captured
+              - Review findings documented in evidence bundle
+            domain: mcp
+            description: Antagonistically review all work in Autonomy Testing set. Seek
+              improvements, challenge assumptions, identify gaps, propose
+              enhancements. This is a learning loop task that aims to
+              continuously improve the quality and effectiveness of work in this
+              set.
+          - id: AFP-W3M1-AUTONOMY-TESTING-REFORM
+            title: "Reform: Autonomy Testing"
+            status: pending
+            set_id: w3m1-autonomy-testing
+            dependencies:
+              - AFP-W3M1-AUTONOMY-TESTING-REVIEW
+            exit_criteria:
+              - AFP/SCAS research conducted on set patterns
+              - Via negativa opportunities identified
+              - Refactor vs repair analysis completed
+              - Reform proposals documented with ROI analysis
+              - Recommendations prioritized by impact
+            domain: mcp
+            description: Research-based reform proposals for Autonomy Testing set. Apply
+              AFP/SCAS principles to identify fundamental improvements. Focus on
+              via negativa (what can be deleted), refactoring root causes (not
+              patching symptoms), and systematic improvements that compound over
+              time.
+          - id: AFP-W3M1-RELIABILITY-VALIDATION-REVIEW
+            title: "Review: Reliability Validation"
+            status: pending
+            set_id: w3m1-reliability-validation
+            dependencies: []
+            exit_criteria:
+              - All tasks in w3m1-reliability-validation set reviewed
+                antagonistically
+              - Improvement opportunities documented
+              - Gaps and assumptions challenged
+              - Enhancement proposals captured
+              - Review findings documented in evidence bundle
+            domain: mcp
+            description: Antagonistically review all work in Reliability Validation set.
+              Seek improvements, challenge assumptions, identify gaps, propose
+              enhancements. This is a learning loop task that aims to
+              continuously improve the quality and effectiveness of work in this
+              set.
+          - id: AFP-W3M1-RELIABILITY-VALIDATION-REFORM
+            title: "Reform: Reliability Validation"
+            status: pending
+            set_id: w3m1-reliability-validation
+            dependencies:
+              - AFP-W3M1-RELIABILITY-VALIDATION-REVIEW
+            exit_criteria:
+              - AFP/SCAS research conducted on set patterns
+              - Via negativa opportunities identified
+              - Refactor vs repair analysis completed
+              - Reform proposals documented with ROI analysis
+              - Recommendations prioritized by impact
+            domain: mcp
+            description: Research-based reform proposals for Reliability Validation set.
+              Apply AFP/SCAS principles to identify fundamental improvements.
+              Focus on via negativa (what can be deleted), refactoring root
+              causes (not patching symptoms), and systematic improvements that
+              compound over time.
+          - id: AFP-WAVE-3-EPIC-REVIEW
+            title: "Review: Wave 3 Epic"
+            status: pending
+            epic_id: WAVE-3
+            dependencies: []
+            exit_criteria:
+              - All Wave 3 sets reviewed and synthesized
+              - Cross-set patterns identified
+              - Wave-level improvements proposed
+              - Strategic gaps documented
+              - Epic review findings captured in evidence bundle
+            domain: mcp
+            description: Epic-level review synthesizing learnings across all Wave 3 sets.
+              Identify cross-cutting patterns, strategic gaps, and wave-level
+              improvement opportunities. This is a meta-learning task that looks
+              at the wave as a whole.
+          - id: AFP-WAVE-3-EPIC-REFORM
+            title: "Reform: Wave 3 Epic"
+            status: pending
+            epic_id: WAVE-3
+            dependencies:
+              - AFP-WAVE-3-EPIC-REVIEW
+            exit_criteria:
+              - Wave 3 strategy questioned and validated
+              - Wave-level AFP/SCAS analysis completed
+              - Fundamental restructuring options explored
+              - Strategic reforms proposed with evidence
+              - Wave evolution roadmap updated
+            domain: mcp
+            description: Strategic reform proposals for Wave 3 as a whole. Question
+              fundamental assumptions, explore alternative approaches, apply
+              AFP/SCAS at wave level. Focus on whether the wave strategy itself
+              is optimal or should be reformed.
   - id: WAVE-4
     title: Wave 4 – Autonomy Proof Gauntlet
-    status: done
+    status: pending
     domain: mcp
     milestones:
       - id: W4.M1
@@ -1100,9 +2108,114 @@ epics:
             domain: mcp
             description: |
               Gate verifying the autonomy gauntlet is complete and documented.
+          - id: AFP-W4M1-SOFTWARE-DEMONSTRATIONS-REVIEW
+            title: "Review: Software Demonstrations"
+            status: pending
+            set_id: w4m1-software-demonstrations
+            dependencies: []
+            exit_criteria:
+              - All tasks in w4m1-software-demonstrations set reviewed
+                antagonistically
+              - Improvement opportunities documented
+              - Gaps and assumptions challenged
+              - Enhancement proposals captured
+              - Review findings documented in evidence bundle
+            domain: mcp
+            description: Antagonistically review all work in Software Demonstrations set.
+              Seek improvements, challenge assumptions, identify gaps, propose
+              enhancements. This is a learning loop task that aims to
+              continuously improve the quality and effectiveness of work in this
+              set.
+          - id: AFP-W4M1-SOFTWARE-DEMONSTRATIONS-REFORM
+            title: "Reform: Software Demonstrations"
+            status: pending
+            set_id: w4m1-software-demonstrations
+            dependencies:
+              - AFP-W4M1-SOFTWARE-DEMONSTRATIONS-REVIEW
+            exit_criteria:
+              - AFP/SCAS research conducted on set patterns
+              - Via negativa opportunities identified
+              - Refactor vs repair analysis completed
+              - Reform proposals documented with ROI analysis
+              - Recommendations prioritized by impact
+            domain: mcp
+            description: Research-based reform proposals for Software Demonstrations set.
+              Apply AFP/SCAS principles to identify fundamental improvements.
+              Focus on via negativa (what can be deleted), refactoring root
+              causes (not patching symptoms), and systematic improvements that
+              compound over time.
+          - id: AFP-W4M1-GAUNTLET-VALIDATION-REVIEW
+            title: "Review: Gauntlet Validation"
+            status: pending
+            set_id: w4m1-gauntlet-validation
+            dependencies: []
+            exit_criteria:
+              - All tasks in w4m1-gauntlet-validation set reviewed
+                antagonistically
+              - Improvement opportunities documented
+              - Gaps and assumptions challenged
+              - Enhancement proposals captured
+              - Review findings documented in evidence bundle
+            domain: mcp
+            description: Antagonistically review all work in Gauntlet Validation set. Seek
+              improvements, challenge assumptions, identify gaps, propose
+              enhancements. This is a learning loop task that aims to
+              continuously improve the quality and effectiveness of work in this
+              set.
+          - id: AFP-W4M1-GAUNTLET-VALIDATION-REFORM
+            title: "Reform: Gauntlet Validation"
+            status: pending
+            set_id: w4m1-gauntlet-validation
+            dependencies:
+              - AFP-W4M1-GAUNTLET-VALIDATION-REVIEW
+            exit_criteria:
+              - AFP/SCAS research conducted on set patterns
+              - Via negativa opportunities identified
+              - Refactor vs repair analysis completed
+              - Reform proposals documented with ROI analysis
+              - Recommendations prioritized by impact
+            domain: mcp
+            description: Research-based reform proposals for Gauntlet Validation set. Apply
+              AFP/SCAS principles to identify fundamental improvements. Focus on
+              via negativa (what can be deleted), refactoring root causes (not
+              patching symptoms), and systematic improvements that compound over
+              time.
+          - id: AFP-WAVE-4-EPIC-REVIEW
+            title: "Review: Wave 4 Epic"
+            status: pending
+            epic_id: WAVE-4
+            dependencies: []
+            exit_criteria:
+              - All Wave 4 sets reviewed and synthesized
+              - Cross-set patterns identified
+              - Wave-level improvements proposed
+              - Strategic gaps documented
+              - Epic review findings captured in evidence bundle
+            domain: mcp
+            description: Epic-level review synthesizing learnings across all Wave 4 sets.
+              Identify cross-cutting patterns, strategic gaps, and wave-level
+              improvement opportunities. This is a meta-learning task that looks
+              at the wave as a whole.
+          - id: AFP-WAVE-4-EPIC-REFORM
+            title: "Reform: Wave 4 Epic"
+            status: pending
+            epic_id: WAVE-4
+            dependencies:
+              - AFP-WAVE-4-EPIC-REVIEW
+            exit_criteria:
+              - Wave 4 strategy questioned and validated
+              - Wave-level AFP/SCAS analysis completed
+              - Fundamental restructuring options explored
+              - Strategic reforms proposed with evidence
+              - Wave evolution roadmap updated
+            domain: mcp
+            description: Strategic reform proposals for Wave 4 as a whole. Question
+              fundamental assumptions, explore alternative approaches, apply
+              AFP/SCAS at wave level. Focus on whether the wave strategy itself
+              is optimal or should be reformed.
   - id: WAVE-5
     title: Wave 5 – Continuous Evolution & Monitoring
-    status: done
+    status: pending
     domain: mcp
     milestones:
       - id: W5.M1
@@ -1475,6 +2588,253 @@ epics:
             description: >
               Final gate: confirms autonomy is self-sustaining and well
               monitored.
+          - id: AFP-W5M1-ROADMAP-AUTOMATION-REVIEW
+            title: "Review: Roadmap Automation"
+            status: pending
+            set_id: w5m1-roadmap-automation
+            dependencies: []
+            exit_criteria:
+              - All tasks in w5m1-roadmap-automation set reviewed
+                antagonistically
+              - Improvement opportunities documented
+              - Gaps and assumptions challenged
+              - Enhancement proposals captured
+              - Review findings documented in evidence bundle
+            domain: mcp
+            description: Antagonistically review all work in Roadmap Automation set. Seek
+              improvements, challenge assumptions, identify gaps, propose
+              enhancements. This is a learning loop task that aims to
+              continuously improve the quality and effectiveness of work in this
+              set.
+          - id: AFP-W5M1-ROADMAP-AUTOMATION-REFORM
+            title: "Reform: Roadmap Automation"
+            status: pending
+            set_id: w5m1-roadmap-automation
+            dependencies:
+              - AFP-W5M1-ROADMAP-AUTOMATION-REVIEW
+            exit_criteria:
+              - AFP/SCAS research conducted on set patterns
+              - Via negativa opportunities identified
+              - Refactor vs repair analysis completed
+              - Reform proposals documented with ROI analysis
+              - Recommendations prioritized by impact
+            domain: mcp
+            description: Research-based reform proposals for Roadmap Automation set. Apply
+              AFP/SCAS principles to identify fundamental improvements. Focus on
+              via negativa (what can be deleted), refactoring root causes (not
+              patching symptoms), and systematic improvements that compound over
+              time.
+          - id: AFP-W5M1-QUALITY-SYSTEMS-REVIEW
+            title: "Review: Quality Systems"
+            status: pending
+            set_id: w5m1-quality-systems
+            dependencies: []
+            exit_criteria:
+              - All tasks in w5m1-quality-systems set reviewed antagonistically
+              - Improvement opportunities documented
+              - Gaps and assumptions challenged
+              - Enhancement proposals captured
+              - Review findings documented in evidence bundle
+            domain: mcp
+            description: Antagonistically review all work in Quality Systems set. Seek
+              improvements, challenge assumptions, identify gaps, propose
+              enhancements. This is a learning loop task that aims to
+              continuously improve the quality and effectiveness of work in this
+              set.
+          - id: AFP-W5M1-QUALITY-SYSTEMS-REFORM
+            title: "Reform: Quality Systems"
+            status: pending
+            set_id: w5m1-quality-systems
+            dependencies:
+              - AFP-W5M1-QUALITY-SYSTEMS-REVIEW
+            exit_criteria:
+              - AFP/SCAS research conducted on set patterns
+              - Via negativa opportunities identified
+              - Refactor vs repair analysis completed
+              - Reform proposals documented with ROI analysis
+              - Recommendations prioritized by impact
+            domain: mcp
+            description: Research-based reform proposals for Quality Systems set. Apply
+              AFP/SCAS principles to identify fundamental improvements. Focus on
+              via negativa (what can be deleted), refactoring root causes (not
+              patching symptoms), and systematic improvements that compound over
+              time.
+          - id: AFP-W5M1-AUTONOMY-EVOLUTION-REVIEW
+            title: "Review: Autonomy Evolution"
+            status: pending
+            set_id: w5m1-autonomy-evolution
+            dependencies: []
+            exit_criteria:
+              - All tasks in w5m1-autonomy-evolution set reviewed
+                antagonistically
+              - Improvement opportunities documented
+              - Gaps and assumptions challenged
+              - Enhancement proposals captured
+              - Review findings documented in evidence bundle
+            domain: mcp
+            description: Antagonistically review all work in Autonomy Evolution set. Seek
+              improvements, challenge assumptions, identify gaps, propose
+              enhancements. This is a learning loop task that aims to
+              continuously improve the quality and effectiveness of work in this
+              set.
+          - id: AFP-W5M1-AUTONOMY-EVOLUTION-REFORM
+            title: "Reform: Autonomy Evolution"
+            status: pending
+            set_id: w5m1-autonomy-evolution
+            dependencies:
+              - AFP-W5M1-AUTONOMY-EVOLUTION-REVIEW
+            exit_criteria:
+              - AFP/SCAS research conducted on set patterns
+              - Via negativa opportunities identified
+              - Refactor vs repair analysis completed
+              - Reform proposals documented with ROI analysis
+              - Recommendations prioritized by impact
+            domain: mcp
+            description: Research-based reform proposals for Autonomy Evolution set. Apply
+              AFP/SCAS principles to identify fundamental improvements. Focus on
+              via negativa (what can be deleted), refactoring root causes (not
+              patching symptoms), and systematic improvements that compound over
+              time.
+          - id: AFP-W5M1-WORK-PROCESS-TOOLING-REVIEW
+            title: "Review: Work Process Tooling"
+            status: pending
+            set_id: w5m1-work-process-tooling
+            dependencies: []
+            exit_criteria:
+              - All tasks in w5m1-work-process-tooling set reviewed
+                antagonistically
+              - Improvement opportunities documented
+              - Gaps and assumptions challenged
+              - Enhancement proposals captured
+              - Review findings documented in evidence bundle
+            domain: mcp
+            description: Antagonistically review all work in Work Process Tooling set. Seek
+              improvements, challenge assumptions, identify gaps, propose
+              enhancements. This is a learning loop task that aims to
+              continuously improve the quality and effectiveness of work in this
+              set.
+          - id: AFP-W5M1-WORK-PROCESS-TOOLING-REFORM
+            title: "Reform: Work Process Tooling"
+            status: pending
+            set_id: w5m1-work-process-tooling
+            dependencies:
+              - AFP-W5M1-WORK-PROCESS-TOOLING-REVIEW
+            exit_criteria:
+              - AFP/SCAS research conducted on set patterns
+              - Via negativa opportunities identified
+              - Refactor vs repair analysis completed
+              - Reform proposals documented with ROI analysis
+              - Recommendations prioritized by impact
+            domain: mcp
+            description: Research-based reform proposals for Work Process Tooling set. Apply
+              AFP/SCAS principles to identify fundamental improvements. Focus on
+              via negativa (what can be deleted), refactoring root causes (not
+              patching symptoms), and systematic improvements that compound over
+              time.
+          - id: AFP-W5M1-DEVELOPER-TOOLING-REVIEW
+            title: "Review: Developer Tooling"
+            status: pending
+            set_id: w5m1-developer-tooling
+            dependencies: []
+            exit_criteria:
+              - All tasks in w5m1-developer-tooling set reviewed antagonistically
+              - Improvement opportunities documented
+              - Gaps and assumptions challenged
+              - Enhancement proposals captured
+              - Review findings documented in evidence bundle
+            domain: mcp
+            description: Antagonistically review all work in Developer Tooling set. Seek
+              improvements, challenge assumptions, identify gaps, propose
+              enhancements. This is a learning loop task that aims to
+              continuously improve the quality and effectiveness of work in this
+              set.
+          - id: AFP-W5M1-DEVELOPER-TOOLING-REFORM
+            title: "Reform: Developer Tooling"
+            status: pending
+            set_id: w5m1-developer-tooling
+            dependencies:
+              - AFP-W5M1-DEVELOPER-TOOLING-REVIEW
+            exit_criteria:
+              - AFP/SCAS research conducted on set patterns
+              - Via negativa opportunities identified
+              - Refactor vs repair analysis completed
+              - Reform proposals documented with ROI analysis
+              - Recommendations prioritized by impact
+            domain: mcp
+            description: Research-based reform proposals for Developer Tooling set. Apply
+              AFP/SCAS principles to identify fundamental improvements. Focus on
+              via negativa (what can be deleted), refactoring root causes (not
+              patching symptoms), and systematic improvements that compound over
+              time.
+          - id: AFP-W5M1-INSTITUTIONALIZATION-REVIEW
+            title: "Review: Institutionalization"
+            status: pending
+            set_id: w5m1-institutionalization
+            dependencies: []
+            exit_criteria:
+              - All tasks in w5m1-institutionalization set reviewed
+                antagonistically
+              - Improvement opportunities documented
+              - Gaps and assumptions challenged
+              - Enhancement proposals captured
+              - Review findings documented in evidence bundle
+            domain: mcp
+            description: Antagonistically review all work in Institutionalization set. Seek
+              improvements, challenge assumptions, identify gaps, propose
+              enhancements. This is a learning loop task that aims to
+              continuously improve the quality and effectiveness of work in this
+              set.
+          - id: AFP-W5M1-INSTITUTIONALIZATION-REFORM
+            title: "Reform: Institutionalization"
+            status: pending
+            set_id: w5m1-institutionalization
+            dependencies:
+              - AFP-W5M1-INSTITUTIONALIZATION-REVIEW
+            exit_criteria:
+              - AFP/SCAS research conducted on set patterns
+              - Via negativa opportunities identified
+              - Refactor vs repair analysis completed
+              - Reform proposals documented with ROI analysis
+              - Recommendations prioritized by impact
+            domain: mcp
+            description: Research-based reform proposals for Institutionalization set. Apply
+              AFP/SCAS principles to identify fundamental improvements. Focus on
+              via negativa (what can be deleted), refactoring root causes (not
+              patching symptoms), and systematic improvements that compound over
+              time.
+          - id: AFP-WAVE-5-EPIC-REVIEW
+            title: "Review: Wave 5 Epic"
+            status: pending
+            epic_id: WAVE-5
+            dependencies: []
+            exit_criteria:
+              - All Wave 5 sets reviewed and synthesized
+              - Cross-set patterns identified
+              - Wave-level improvements proposed
+              - Strategic gaps documented
+              - Epic review findings captured in evidence bundle
+            domain: mcp
+            description: Epic-level review synthesizing learnings across all Wave 5 sets.
+              Identify cross-cutting patterns, strategic gaps, and wave-level
+              improvement opportunities. This is a meta-learning task that looks
+              at the wave as a whole.
+          - id: AFP-WAVE-5-EPIC-REFORM
+            title: "Reform: Wave 5 Epic"
+            status: pending
+            epic_id: WAVE-5
+            dependencies:
+              - AFP-WAVE-5-EPIC-REVIEW
+            exit_criteria:
+              - Wave 5 strategy questioned and validated
+              - Wave-level AFP/SCAS analysis completed
+              - Fundamental restructuring options explored
+              - Strategic reforms proposed with evidence
+              - Wave evolution roadmap updated
+            domain: mcp
+            description: Strategic reform proposals for Wave 5 as a whole. Question
+              fundamental assumptions, explore alternative approaches, apply
+              AFP/SCAS at wave level. Focus on whether the wave strategy itself
+              is optimal or should be reformed.
   - id: LEGACY-BACKLOG
     title: Legacy Product Backlog (post-autonomy)
     status: blocked

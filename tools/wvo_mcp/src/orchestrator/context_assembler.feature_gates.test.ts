@@ -3,21 +3,16 @@ import { ContextAssembler } from './context_assembler.js';
 import type { FeatureGatesReader } from './feature_gates.js';
 import type { StateMachine } from './state_machine.js';
 import type { LiveFlagsReader } from '../state/live_flags.js';
+import { createFeatureGatesStub } from './__tests__/feature_gate_stub.js';
 
 const stateMachineStub = {} as unknown as StateMachine;
 
 function createFeatureGates(mode: 'compact' | 'verbose'): FeatureGatesReader {
-  return {
-    isCompactPromptMode: () => mode === 'compact',
-    getPromptMode: () => mode,
-    isSandboxPoolEnabled: () => false,
-    getSandboxMode: () => 'none',
-    getSchedulerMode: () => 'legacy',
-    isAdminToolsEnabled: () => false,
-    isUpgradeToolsEnabled: () => false,
-    isRoutingToolsEnabled: () => false,
-    isOutcomeLoggingEnabled: () => true,
-  };
+  return createFeatureGatesStub({
+    snapshot: {
+      promptMode: mode,
+    },
+  });
 }
 
 describe('ContextAssembler feature gating', () => {

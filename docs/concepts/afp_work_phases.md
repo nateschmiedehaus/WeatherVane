@@ -90,6 +90,8 @@
 - Which files need changes?
 - How to keep it ≤5 files, ≤150 LOC?
 - What's the architecture/flow?
+- What automated/manual tests will VERIFY run? Author them now (they can be failing/skipped until implementation catches up).
+- If touching autopilot, which Wave 0 live steps (e.g., `npm run wave0`, `TaskFlow wave0-smoke`, telemetry checks) will VERIFY execute? Document them explicitly in PLAN.
 
 **Output**: Implementation plan
 
@@ -115,6 +117,10 @@
 4. ADD: src/cache/CacheManager.ts
 
 **Architecture**: Single CacheManager with timezone-aware key generation
+
+**Tests authored now**:
+- `tests/cache/test_cache_manager.py::test_timezone_key_generation` (initially failing until IMPLEMENT updates logic)
+- `tests/cache/test_cache_manager.py::test_dst_transition_invalidation` (skipped with TODO explaining required scaffolding)
 ```
 
 ---
@@ -195,12 +201,14 @@
 - ≤150 net LOC (additions - deletions)
 - Refactor not patch
 - Prefer deletion over addition
+- Tests authored during PLAN may be failing/skipped; implementation focuses on making them pass. If you realize additional tests are needed, stop and return to PLAN to author them.
 
 **Process**:
 1. Follow the PLAN from phase 3
 2. Keep commits atomic and focused
 3. Write clean, simple code
 4. Follow project conventions
+5. Make the PLAN-authored tests pass; do not create new tests here—loop back to PLAN if coverage is missing.
 
 **Output**: Code changes
 
@@ -210,12 +218,17 @@
 
 **Purpose**: Test that it works
 
+The VERIFY phase executes the automated/manual tests authored during PLAN. If you discover missing coverage, STOP, return to PLAN to author those tests, update THINK/DESIGN as needed, and only then resume VERIFY.
+- Autopilot work must include at least one full Wave 0 live loop (start Wave 0, observe tasks completing, capture telemetry). If credentials or environment block the run, escalate rather than skipping.
+
 **Requirements** (see `MANDATORY_VERIFICATION_LOOP.md` for details):
 1. **BUILD**: `npm run build` completes with 0 errors
-2. **TEST**: All tests pass, 7/7 coverage dimensions
+2. **TEST**: PLAN-authored tests pass (7/7 coverage dimensions); no new tests are written during VERIFY
 3. **AUDIT**: `npm audit` shows 0 vulnerabilities
 4. **RUNTIME**: Feature works end-to-end with realistic data
 5. **DOCUMENTATION**: Docs updated
+6. **DAILY ARTIFACT HEALTH**: Run the rotation script (`node tools/wvo_mcp/scripts/rotate_overrides.mjs --dry-run && node tools/wvo_mcp/scripts/rotate_overrides.mjs`), ensure no untracked files, and commit `state/evidence/AFP-ARTIFACT-AUDIT-YYYY-MM-DD/summary.md`
+7. **GUARDRAIL MONITOR**: `node tools/wvo_mcp/scripts/check_guardrails.mjs` reports PASS (or CI guardrail job is green)
 
 **Exit criteria**: ALL checks pass (no shortcuts)
 

@@ -1,34 +1,35 @@
 name: Guardrails
 
 on:
-  push:
-    branches: [ main ]
   pull_request:
-    branches: [ main ]
+  schedule:
+    - cron: '0 12 * * *'
 
 jobs:
-  guardrails:
+  guardrail-monitor:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Setup Node
+        uses: actions/setup-node@v3
         with:
-          node-version-file: .nvmrc
-      - run: npm ci
-      - name: Run guardrail checks
-        run: |
-          mkdir -p state/evidence/guardrails
-          node tools/scripts/check_guardrails.mjs > state/evidence/guardrails/run.log 2>&1 || echo "failed" > guardrails_status
-      - uses: actions/upload-artifact@v4
+          node-version: '18'
+
+      - name: Install dependencies (tools/wvo_mcp)
+        run: npm install
+        working-directory: tools/wvo_mcp
+
+      - name: Run guardrail monitor
+        env:
+          WAVE0_RATE_LIMIT_MS: '100'
+          WAVE0_EMPTY_RETRY_LIMIT: '1'
+        run: node tools/wvo_mcp/scripts/check_guardrails.mjs --ci
+
+      - name: Upload guardrail telemetry
+        if: always()
+        uses: actions/upload-artifact@v3
         with:
-          name: guardrails-violations
-          path: |
-            state/evidence/guardrails/violations.jsonl
-            state/evidence/guardrails/run.log
-          if-no-files-found: warn
-      - name: Fail if guardrails failed
-        run: |
-          if [ -f guardrails_status ]; then
-            cat state/evidence/guardrails/run.log
-            exit 1
-          fi
+          name: guardrail-compliance
+          path: state/analytics/guardrail_compliance.jsonl
