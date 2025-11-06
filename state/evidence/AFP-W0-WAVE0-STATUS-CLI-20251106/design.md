@@ -1,232 +1,136 @@
-# Design: [TASK-ID]
-
-> **Purpose:** Document your design thinking BEFORE implementing.
-> This prevents compliance theater and ensures AFP/SCAS principles guide your work.
+# Design: AFP-W0-WAVE0-STATUS-CLI-20251106
 
 ---
 
 ## Context
 
-**What problem are you solving and WHY?**
-
-[Describe the problem, root cause, and goal. Focus on WHY, not just WHAT.]
+Wave 0 remains the forced verification loop for autopilot work, yet there is no first-class way to see whether it is actually running. Every time a reviewer or Atlas needs proof, they hand-run `ps`, open multiple JSONL files, and mentally correlate timestamps. This is brittle (permission issues on `ps`, stale locks) and wastes minutes per inquiry. Goal: provide a repo-native CLI that aggregates lock + telemetry data and surfaces it in both textual and JSON formats so humans and scripts can answer the question immediately.
 
 ---
 
 ## Five Forces Check
 
-**Before proceeding, verify you've considered all five forces:**
+### COHERENCE
+- Searched for similar patterns:
+  1. `plan_next` (root script invoking MCP tooling).
+  2. `autopilot_status` (root script calling MCP CLI).
+  3. `tools/wvo_mcp/scripts/run_wave0.mjs` (existing automation around Wave 0).
+- Pattern reused: lightweight root-level executable + helper functions exported for tests. Deviates slightly because logic lives in the same file (CommonJS) rather than TypeScript -> dist, keeping footprint minimal.
 
-### COHERENCE - Match the terrain
-- [ ] I searched for similar patterns in the codebase
-- Modules checked (3 most similar): [list them]
-- Pattern I'm reusing: [name] OR why existing patterns don't fit: [explain]
+### ECONOMY
+- Via negativa considered (see section below). Cannot delete existing commands because none aggregate telemetry; new addition limited to ~130 LOC + one test file.
+- LOC estimate: `+130` (CLI) + `+150` (tests/docs/evidence) ≈ net `+200` including documentation (code delta ≤150 as required).
 
-### ECONOMY - Achieve more with less
-- [ ] I explored deletion/simplification (via negativa - see next section)
-- Code I can delete: [specific files/functions] OR why I must add: [reason]
-- LOC estimate: +[X] -[Y] = net [Z] (≤150 limit? If not, justify)
+### LOCALITY
+- All executable logic resides in the new `wave0_status` script and matching test under `tests/`. Documentation change confined to a single workflow guide.
+- Dependencies limited to Node core modules (fs, path, os). No spreading across unrelated modules.
 
-### LOCALITY - Related near, unrelated far
-- [ ] Related changes are in same module
-- Files changing: [list - are they all in same area?]
-- Dependencies: [are they local or scattered across codebase?]
+### VISIBILITY
+- CLI prints explicit status enums (running/stale_lock/idle) and warnings; JSON mode exposes structured data for automation.
+- Errors (missing files, parse failures) are surfaced in output rather than swallowed.
 
-### VISIBILITY - Important obvious, unimportant hidden
-- [ ] Errors are observable, interfaces are clear
-- Error handling: [how are failures logged?]
-- Public API: [is it minimal and self-explanatory?]
+### EVOLUTION
+- Pattern classification: **medium leverage** utility—script is user-facing but not a critical API. Testing covers happy path + stale lock.
+- Success measured by adoption in docs and ability to paste CLI output into evidence.
 
-### EVOLUTION - Patterns prove fitness
-- [ ] I'm using proven patterns OR documenting new one for fitness tracking
-- Pattern fitness: [has this pattern worked before? usage count, bug rate?]
-- If new pattern: [why needed? how will we measure success?]
-
-**Pattern Decision:**
-
-**Similar patterns found:** [from COHERENCE search above]
-- Pattern 1: [file:line, description]
-- Pattern 2: [file:line, description]
-- Pattern 3: [file:line, description]
-
-**Pattern selected:** [which one I'm using]
-**Why this pattern:** [fits my use case because...]
-
-**OR**
-
-**New pattern needed:** [name]
-**Why existing patterns don't fit:** [specific reason]
-**How this pattern differs:** [key differences]
-
-**Leverage Classification:**
-
-**Code leverage level:** [critical / high / medium / low]
-
-- **Critical:** Auth, payments, core abstractions → formal verification or 100% test coverage
-- **High:** Public APIs, frequently changed → comprehensive testing
-- **Medium:** Business logic, orchestrators → happy path + error cases
-- **Low:** Utils, rarely changed → smoke tests
-
-**My code is:** [level] **because** [reason]
-**Assurance strategy:** [testing/verification approach based on leverage]
-
-**Commit message will include:**
+**Commit message stub**
 ```
-Pattern: [pattern name]
-Deleted: [what was removed/simplified, if +50 LOC]
+Pattern: repo-cli-wave0-status
+Deleted: replaced manual ps/tail instructions in docs with single command
 ```
-
-**See:** [docs/AFP_QUICK_START.md](../AFP_QUICK_START.md) for five forces details and examples.
 
 ---
 
 ## Via Negativa Analysis
 
-**Can you DELETE or SIMPLIFY existing code instead of adding?**
-
-What existing code did you examine for deletion/simplification?
-- File/function 1: [examined, could/couldn't be deleted because...]
-- File/function 2: [examined, could/couldn't be simplified because...]
-
-**If you must add code, why is deletion/simplification insufficient?**
-
-[Explain why via negativa doesn't work here]
+- Reviewed `docs/workflows/AFP_REVIEWER_ROUTINE.md` and `docs/orchestration/AUTOPILOT_VALIDATION_RULES.md`. Only solution today is textual guidance (“run ps, tail logs”). Nothing to delete that would yield an automated answer.
+- Considered enhancing `autopilot_status` MCP tool, but that requires reviving a broken server path (`plan_next` currently failing) and still forces CLI -> MCP hop.
+- Therefore addition is justified: we are *removing* duplicated manual instructions by centralising them into one script.
 
 ---
 
 ## Refactor vs Repair Analysis
 
-**Are you patching a symptom or refactoring the root cause?**
-
-- Is this a PATCH/WORKAROUND or a PROPER FIX? [which and why?]
-- If modifying file >200 LOC or function >50 LOC: Did you consider refactoring the WHOLE module? [yes/no and reasoning]
-- What technical debt does this create (if any)? [be honest]
+This is a refactor-level fix: addressing the systemic lack of instrumentation rather than adding yet another troubleshooting doc. No large modules (>200 LOC) modified; new module introduced. Minimal tech debt: script may later migrate into MCP or dashboards, but current solution remains simple and testable.
 
 ---
 
 ## Alternatives Considered
 
-**List 2-3 approaches you evaluated:**
+### 1. **Documentation-only reminder**
+- **What:** Expand docs with step-by-step instructions (ps + tail).
+- **Pros:** Zero code, immediate.
+- **Cons:** Still manual, still requires elevated `ps`, still error‑prone.
+- **Rejected:** Does not solve root cause (no automation).
 
-### Alternative 1: [Deletion/Simplification Approach]
-- What: [describe approach]
-- Pros: [benefits]
-- Cons: [drawbacks]
-- Why not selected: [reasoning]
+### 2. **Extend MCP `autopilot_status` tool**
+- **What:** Teach MCP server to read telemetry and surface via `autopilot_status`.
+- **Pros:** Uniform interface, works from any MCP client.
+- **Cons:** Requires MCP worker health (currently flaky), adds latency, doesn’t help when MCP cannot start (exact scenario we faced). More complex to test.
+- **Rejected:** Overkill for immediate need; CLI offers faster iteration and fewer dependencies.
 
-### Alternative 2: [Refactoring Approach]
-- What: [describe approach]
-- Pros: [benefits]
-- Cons: [drawbacks]
-- Why not selected: [reasoning]
-
-### Selected Approach: [Your Choice]
-- What: [describe your selected approach]
-- Why: [why this is best given trade-offs]
-- How it aligns with AFP/SCAS: [specific principles]
+### 3. **Selected – Standalone CLI + tests**
+- **What:** Add repo-local executable aggregating lock + telemetry files with JSON/text output.
+- **Why:** Small footprint, no external dependencies, works even when MCP is down, fits existing pattern of root helpers (`plan_next`, `autopilot_status`).
+- **AFP alignment:** Via negativa (removes manual workflow), locality (single module), visibility (clear status), evolution (measurable adoption through doc references).
 
 ---
 
 ## Complexity Analysis
 
-**How does this change affect complexity?**
-
-- **Complexity increases:** [where and why?]
-  - Is this increase JUSTIFIED? [yes/no and why]
-  - How will you MITIGATE this complexity? [strategy]
-
-- **Complexity decreases:** [where and how?]
-  - What are you simplifying/removing?
-
-- **Trade-offs:** [necessary complexity vs unnecessary]
-
-**Remember:** Not all complexity is bad. But it must be WORTH IT.
+- **Increase:** +1 CLI + +1 test file. Complexity justified because it eliminates an O(minutes) manual process and provides structured data.
+- **Decrease:** Operational workflow now one command instead of multiple manual steps; documentation simplified.
+- **Mitigation:** Keep implementation under 150 LOC, avoid dependencies, export helper for tests to prevent duplicated parsing logic.
 
 ---
 
 ## Implementation Plan
 
-**Scope:**
-- Files to change: [list, e.g., "3 files: cache_manager.ts (refactor), cache_utils.ts (delete), tests/cache.test.ts (update)"]
-- PLAN-authored tests: [list the tests you created/updated during PLAN; include status (failing/skipped acceptable) and any N/A justification]
-- Autopilot scope: [If touching Wave 0/autopilot, list the live runs you will execute (`npm run wave0`, TaskFlow wave0-smoke, telemetry checks)]
-- Estimated LOC: +[X] -[Y] = net [Z] LOC
-- Micro-batching compliance: [≤5 files? ≤150 net LOC? If not, how will you split?]
+- **Files:** `wave0_status` (new), `tests/wave0_status.test.js` (new), `docs/workflows/AFP_REVIEWER_ROUTINE.md` (update), evidence docs (this folder).
+- **PLAN-authored tests:** `tests/wave0_status.test.js` covering:
+  - collects healthy status when lock + runs exist.
+  - flags stale lock when PID dead.
+  - handles missing telemetry gracefully.
+- **Autopilot scope:** N/A (read-only telemetry; no Wave 0 code touched).
+- **Estimated LOC:** ~130 (CLI) + ~100 (test) + doc delta (~20). Within ≤150 LOC net for executable code; doc/evidence excluded from guardrail.
+- **Micro-batching:** ≤3 code/docs files (plus evidence).
 
-**Risk Analysis:**
-- Edge cases: [what edge cases must you handle?]
-- Failure modes: [what could go wrong?]
-- Testing strategy: [how will you verify this works?]
+**Risks & mitigations**
+- Stale lock false positives → include lock age + human guidance.
+- PID permission errors → catch EPERM, mark status `unknown`.
+- Large files → limit to tail of JSONL (read last ~200 lines) to keep CLI quick.
 
-**Assumptions:**
-- [List assumptions you're making]
-- [What happens if these assumptions are wrong?]
+**Assumptions**
+- Node ≥18 available; repo path accessible via `__dirname`.
+- Wave 0 lock uses `{ pid, startTime }`; JSON lines well-formed most of the time.
+- Operators run CLI from repo root (or use `--root` override).
 
 ---
 
-## Review Checklist (Self-Check)
+## Review Checklist
 
-Before implementing, verify:
-
-- [ ] I explored deletion/simplification (via negativa)
-- [ ] If adding code, I explained why deletion won't work
-- [ ] If modifying large files/functions, I considered full refactoring
-- [ ] I documented 2-3 alternative approaches
-- [ ] Any complexity increases are justified and mitigated
-- [ ] I estimated scope (files, LOC) and it's within limits
-- [ ] I thought through edge cases and failure modes
-- [ ] I authored the verification tests during PLAN (listed above) and have a testing strategy
-- [ ] If autopilot work, I defined the Wave 0 live loop (commands + telemetry) that VERIFY will execute
-
-**If ANY box unchecked:** Revisit your design. You're not ready to implement.
+- [x] Explored via negativa (docs-only fix) and explained why insufficient.
+- [x] Described alternatives (docs vs MCP vs CLI).
+- [x] Scope within limits (≤5 files, ≤150 LOC code).
+- [x] Documented tests to be authored now (`tests/wave0_status.test.js`) and VERIFY commands (`node --test …`, `./wave0_status --json`).
+- [x] Considered edge cases/failure modes (missing files, stale lock, PID reuse, permissions).
+- [x] Locality maintained (new script + test only).
 
 ---
 
 ## Notes
 
-[Any additional context, decisions, or references]
+- CLI will emit ISO timestamps + relative ages to make evidence copy/paste friendly.
+- JSON schema intentionally flat to keep future automation simple (`status`, `lock`, `recentRuns`, `warnings`).
+- Future enhancement path: MCP tool can simply shell out to this CLI or reuse shared helper.
 
----
-
-**Design Date:** [YYYY-MM-DD]
-**Author:** [Your name/agent ID]
+**Design Date:** 2025-11-06  
+**Author:** Codex
 
 ---
 
 ## GATE Review Tracking
 
-**GATE is ITERATIVE - expect multiple rounds:**
-
-### Review 1: [Date]
-- **DesignReviewer Result:** [pending/needs-revision/approved]
-- **Concerns Raised:** [list any concerns]
-- **Remediation Task:** [TASK-ID-REMEDIATION-XXX if created]
-- **Time Spent:** [hours on remediation work]
-
-### Review 2: [Date] (if needed)
-- **DesignReviewer Result:** [pending/needs-revision/approved]
-- **Concerns Raised:** [list any concerns]
-- **Remediation Task:** [TASK-ID-REMEDIATION-XXX if created]
-- **Time Spent:** [hours on remediation work]
-
-### Review 3: [Date] (if needed)
-- **DesignReviewer Result:** [pending/needs-revision/approved]
-- **Final Approval:** [yes/no]
-- **Total GATE Effort:** [X hours across all reviews + remediation]
-
-**IMPORTANT:** If DesignReviewer finds issues, you MUST:
-1. Create remediation task (new STRATEGIZE→MONITOR cycle)
-2. Do actual research/exploration (30-60 min per critical issue)
-3. **Update UPSTREAM phase artifacts** (strategy, spec, plan docs)
-   - Via negativa concern → revise PLAN to show deletion analysis
-   - Refactor concern → revise STRATEGY to target root cause
-   - Alternatives concern → revise SPEC with new requirements
-4. Update design.md with revised approach (reflects upstream changes)
-5. Re-submit for review
-
-**Superficial edits to pass GATE = compliance theater = rejected.**
-
-**Remember:** design.md is a SUMMARY of phases 1-4. If DesignReviewer finds
-fundamental issues, you may need to GO BACK and revise your strategy, spec, or
-plan. This is EXPENSIVE but NECESSARY to ensure quality. GATE enforces that
-implementation is based on SOLID thinking, not rushed assumptions.
+| Review | Date | Result | Notes |
+|--------|------|--------|-------|
+| 1 | _pending_ | _pending_ | Will run `npm run gate:review AFP-W0-WAVE0-STATUS-CLI-20251106` after filling docs |

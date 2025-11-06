@@ -1,319 +1,95 @@
-# Strategy Analysis — [TASK-ID]
+# Strategy Analysis — AFP-W0-WAVE0-STATUS-CLI-20251106
 
-**Template Version:** 1.0
-**Date:** [YYYY-MM-DD]
-**Author:** [Agent/Council name]
+**Template Version:** 1.0  
+**Date:** 2025-11-06  
+**Author:** Codex (WeatherVane)
 
 ---
 
 ## Purpose
 
-This document captures **WHY** this task matters and **WHAT** we're trying to achieve (not HOW - that comes in later phases).
-
-**Instructions:**
-- Be specific and honest
-- Show your thinking, not just conclusions
-- Use evidence from the codebase/context
-- If you don't know something, say so explicitly
-- Aim for ~30-60 lines of substantive analysis
+Provide a reliable way to answer “is Wave 0 actually doing anything right now?” without spelunking through multiple logs or running privileged process listings. This unlocks faster triage, tighter VERIFY loops, and fewer escalations when autopilot appears idle.
 
 ---
 
 ## Hierarchical Context
 
-**Check for existing READMEs before starting analysis:**
+Checked READMEs and docs before analysis:
+- ✅ `state/epics/WAVE-0/README.md` – Restates that WAVE‑0 focuses on stabilising the autopilot foundation and proof loop. Content is still skeletal, highlighting the lack of operational instrumentation.
+- ❌ `state/milestones/W0.M1/README.md` – File not present; milestone documentation gap noted.
+- ✅ `docs/workflows/AFP_REVIEWER_ROUTINE.md` – Documents current reviewer + Wave 0 workflow; currently tells operators to run `ps aux | grep wave0` and inspect `state/analytics/wave0_runs.jsonl` manually.
+- ✅ `docs/orchestration/AUTOPILOT_VALIDATION_RULES.md` – Outlines required telemetry artifacts (wave0_runs.jsonl, proof logs) but no tooling to summarise them.
+- ✅ `tools/wvo_mcp/README.md` – Confirms Wave 0 is part of the MCP toolchain; no status CLI exists.
 
-**Epic context:** [Check state/epics/[EPIC-ID]/README.md if task belongs to epic]
-**Milestone context:** [Check state/milestones/[MILESTONE-ID]/README.md if task belongs to milestone]
-**Task group context:** [Check state/task_groups/[GROUP-ID]/README.md if task belongs to group]
-**Module context:** [Check [working-directory]/README.md if working in specific module]
-
-**Example:**
-```
-Checked READMEs:
-- ✅ state/epics/WAVE-0/README.md - Found: Autopilot foundation strategy (see Purpose section)
-- ✅ state/milestones/W0.M1/README.md - Found: Proof system milestone plan
-- ✅ tools/wvo_mcp/src/critics/README.md - Found: Critic architecture patterns
-- ❌ state/task_groups/proof-system/README.md - Not found (no task group for this work)
-
-Key insights from READMEs:
-- WAVE-0 epic goal: Stabilize autopilot foundation for autonomous operation (<4 week path to autonomy)
-- W0.M1 milestone: Implementing 3-layer proof system (structural, critic, production feedback)
-- Critics module uses CriticResult interface for all quality checks
-```
-
-**Purpose of this section:**
-- Discover strategic context that already exists (don't duplicate effort)
-- Understand how this task fits into larger goals (epic/milestone strategy)
-- Find proven patterns in the module (module README documents architecture)
-- Document what context informed your analysis (reproducibility)
-
-**If READMEs don't exist:** That's fine! This is a discovery step, not a requirement. Just note that you checked and proceed with analysis.
+Key insight: guardrails require Wave 0 evidence, yet the workflow forces humans to collect it by hand, which is both slow and error‑prone.
 
 ---
 
 ## Problem Statement
 
-**What is the actual problem we're solving?**
+Operators must inspect multiple files (`state/.wave0.lock`, `state/analytics/wave0_runs.jsonl`, `state/analytics/supervisor_lifecycle.jsonl`) and run privileged `ps` commands just to know whether Wave 0 is running or has executed a task recently. This takes several minutes, is easy to miss (lockfile may be stale), and does not provide a concise answer for stakeholders.
 
-[Describe the problem in 2-4 sentences. Be specific.]
-
-**Examples:**
-- ❌ BAD: "The system needs improvement"
-- ✅ GOOD: "Agents skip the STRATEGY phase 40% of the time (evidence: 12 of 30 recent tasks in state/evidence/ lack strategy.md), leading to poor task selection and wasted implementation effort"
-
-**Who is affected by this problem?**
-
-[List stakeholders and how they're impacted]
-
-**Examples:**
-- ❌ BAD: "Users"
-- ✅ GOOD: "Autopilot Atlas (wastes tokens on low-value tasks), Director Dana (cannot prioritize effectively without quality analysis), Human users (receive lower-value deliverables)"
+**Stakeholders**
+- Atlas / reviewers: waste time validating Wave 0 evidence and may block tasks due to uncertainty.
+- Director Dana & autopilot SREs: lack real-time signal to decide whether to restart, investigate, or let Wave 0 soak.
+- Builders: cannot quickly demonstrate compliance with Wave 0 verification steps during PLAN/VERIFY.
 
 ---
 
 ## Root Cause Analysis
 
-**What is the ROOT CAUSE (not symptoms)?**
+1. **No status surface** – Repository lacks any CLI or dashboard summarising Wave 0 telemetry. Evidence: no references to `wave0_status` or similar in repo; docs instruct manual steps only.
+2. **Manual log parsing** – Telemetry is spread between JSONL files with no aggregation. Operators must open them manually; there is no canonical “last run” statement.
+3. **Process visibility depends on `ps`** – Guardrails instruct `ps aux | grep wave0`, which already required escalated permissions in this environment. This blocks automation and slows humans.
+4. **Resulting behaviour** – Questions like “is it doing anything?” become ad-hoc Slack/agent asks, stealing cycles from actual AFP work and delaying remediation loops.
 
-[Dig deeper. Ask "why" 3-5 times to get to the root.]
-
-**Examples:**
-- ❌ SHALLOW: "Agents don't think strategically"
-- ✅ DEEPER: "No enforcement mechanism exists for STRATEGY phase → agents skip it to save time → poor quality compounds → human review catches it too late → rework costs 10x more"
-
-**What evidence supports this root cause?**
-
-[Provide specific evidence: file paths, metrics, quotes, observations]
-
-**Examples:**
-- ❌ VAGUE: "I noticed quality issues"
-- ✅ SPECIFIC: "Review of state/evidence/ shows 12/30 tasks lack strategy.md (40%). Of those 12, 8 required significant rework (evidence: -REMEDIATION- task IDs). Average remediation time: 2-3 hours per task."
+Evidence: recent session needed multiple commands (tail, ps, manual lock inspection) just to answer the question. Similar guidance repeated in `docs/workflows/AFP_REVIEWER_ROUTINE.md` and `docs/orchestration/AUTOPILOT_VALIDATION_RULES.md`, confirming the lack of tooling is systemic.
 
 ---
 
 ## Current State vs Desired State
 
-**Current State:**
+**Current State**
+- Determining Wave 0 status requires manual `ps` (sometimes blocked) plus hand-parsing JSONL files.
+- No single command or artifact summarises lock health, process uptime, and latest tasks.
+- VERIFY plans cannot reference an automated status command, so compliance evidence is inconsistent.
 
-[What's happening now? Be factual.]
+**Desired State**
+- A single repo-native command outputs Wave 0 runner state (lock + PID health) and the most recent task executions (human-readable + JSON for scripts) within seconds.
+- Docs point to that command so agents consistently capture the same evidence during PLAN/VERIFY.
+- Script runs without elevated permissions by relying on lockfiles and telemetry already committed to the repo.
 
-**Examples:**
-- ❌ OPINION: "The system is bad"
-- ✅ FACTUAL: "STRATEGIZE phase exists in docs (CLAUDE.md:20-25) but has no template, no examples, no enforcement. Agents skip it ~40% of the time. DesignReviewer enforces GATE but nothing enforces earlier phases."
-
-**Desired State:**
-
-[What should be happening? Be specific about outcomes, not solutions.]
-
-**Examples:**
-- ❌ SOLUTION-FOCUSED: "We need a StrategyReviewer tool"
-- ✅ OUTCOME-FOCUSED: "100% of tasks have documented strategy analysis before PLAN phase. Quality of strategic thinking is measurable and improving over time. Agents receive feedback within 30 seconds of completing strategy.md."
-
-**Gap Analysis:**
-
-[What's the delta between current and desired? Quantify if possible.]
-
-**Examples:**
-- 40% → 100% compliance (2.5x improvement)
-- 0 → <30 second feedback loop
-- Ad-hoc → measurable quality tracking
+**Gap**
+- Time to answer status: ~5–7 minutes today vs ≤10 seconds with a CLI (≈30x faster).
+- Evidence consistency: ad-hoc vs standardised output that can be attached to `state/evidence/<TASK>/verify.md`.
+- Risk: stale lock files currently mislead operators; CLI can flag stale locks and recommend cleanup.
 
 ---
 
 ## Success Criteria
 
-**How will we know this task succeeded?**
-
-[List 3-5 measurable criteria. Use SMART framework where possible.]
-
-**Examples:**
-- ❌ VAGUE: "Better quality"
-- ✅ MEASURABLE: "100% of new tasks in state/evidence/ have strategy.md files (measured by pre-commit hook rejection rate < 5%)"
-- ✅ MEASURABLE: "StrategyReviewer approval rate > 80% on first review (measured by state/analytics/strategy_reviews.jsonl)"
-- ✅ MEASURABLE: "Remediation tasks decrease by 30% within 4 weeks (compare state/roadmap.yaml REMEDIATION task frequency)"
-
-**Criteria:**
-
-1. [Criterion 1 - measurable]
-2. [Criterion 2 - measurable]
-3. [Criterion 3 - measurable]
-4. [Criterion 4 - measurable, optional]
-5. [Criterion 5 - measurable, optional]
+1. `./wave0_status` (or equivalent) reports runner status, lock freshness, and the last ≥3 Wave 0 task executions within 1 second on local hardware.
+2. Command exposes a `--json` flag so scripts/agents can capture structured evidence without scraping text.
+3. Documentation (`docs/workflows/AFP_REVIEWER_ROUTINE.md`) references the new command in the Wave 0 procedure.
+4. Automated test coverage exists for the status collector, including stale-lock detection and log parsing edge cases (validated via `node --test tests/wave0_status.test.js` or equivalent).
 
 ---
 
 ## Impact Assessment
 
-**If we do this task, what improves?**
+- **Efficiency:** Reduce Wave 0 triage time by ~5 minutes per inquiry. Even one check per task saves >30 minutes per review cycle.
+- **Quality:** Consistent telemetry output lowers false alarms (“Wave 0 is idle”) and highlights real issues faster (stale lock, no recent runs).
+- **Risk:** Early detection of stuck runners prevents backlog growth and ensures AFP VERIFY steps remain trustworthy.
+- **Strategic:** Establishes a reusable pattern for other autopilot health commands (Wave 1+, critics, etc.) without waiting for external dashboards.
 
-[Quantify impact where possible. Consider multiple dimensions.]
-
-**Dimensions to consider:**
-- **Efficiency:** Time/tokens saved
-- **Quality:** Defects reduced, rework avoided
-- **Velocity:** Tasks completed per week
-- **Cost:** Budget impact (token usage, human time)
-- **Risk:** What risks are reduced?
-- **Strategic:** Does this unlock future capabilities?
-
-**Examples:**
-- ❌ GENERIC: "Quality will improve"
-- ✅ QUANTIFIED: "Prevent 8 remediation tasks per 30-task cycle (8 * 2.5 hours = 20 hours saved). At 50k tokens/hour, save 1M tokens per cycle (~$15 at current rates). Strategic value: proven pattern can extend to other phases (THINK, SPEC)."
-
-**Estimated Impact:**
-
-[Your impact analysis here - be honest, use ranges if uncertain]
-
-**If we DON'T do this task, what are the consequences?**
-
-[Be specific about opportunity cost and continued pain]
-
-**Examples:**
-- ❌ GENERIC: "Problems continue"
-- ✅ SPECIFIC: "Remediation burden continues at 20 hours per 30-task cycle. Quality variance remains high. Manual review burden increases as task volume scales. Strategic blindness: low-value tasks consume resources that could deliver 10x more value elsewhere."
+If we do nothing, each future agent must repeat the same manual spelunking, Wave 0 evidence remains diffuse, and compliance checks will continue to require elevated shell commands that may be disallowed. This wastes time and undermines confidence in the autopilot telemetry.
 
 ---
 
-## Alignment with Strategy (AFP/SCAS)
+## Alignment with AFP/SCAS
 
-**How does this task align with Anti-Fragile Principles (AFP) and Success Cascade Assurance System (SCAS)?**
+- **Via Negativa:** Deletes repeated manual instructions (“tail this log, run ps…”) by replacing them with one command; prevents unnecessary restarts triggered by guesswork.
+- **Refactor vs Repair:** Addresses the root cause (lack of status surface) rather than adding more checklist text. We’re building a reusable telemetry reporter instead of another reminder.
+- **Complexity Control:** Adds ~1 small script + test while simplifying the operational workflow. Complexity decreases overall because humans stop duplicating effort and the script centralises parsing logic.
 
-**Via Negativa (Deletion > Addition):**
-[What does this task DELETE, SIMPLIFY, or PREVENT?]
-
-**Examples:**
-- ❌ ADDING: "Adds new StrategyReviewer tool" (describes implementation, not strategy)
-- ✅ DELETING: "Deletes manual review burden (automates routine checks). Prevents low-value task selection (catches at source). Simplifies decision-making (clear quality bar)."
-
-**Refactor not Repair:**
-[Is this addressing root cause or patching symptoms?]
-
-**Examples:**
-- ❌ PATCHING: "Add reminder in CLAUDE.md to think strategically"
-- ✅ REFACTORING: "Address root cause: no enforcement mechanism. Create systematic solution similar to proven DesignReviewer pattern."
-
-**Complexity Control:**
-[Does this increase or decrease system complexity? Justify.]
-
-**Examples:**
-- "Increases code complexity: +900 LOC (critic + template + scripts). Decreases cognitive complexity: clear quality bar, automated enforcement. Net: justified trade-off."
-
-**Force Multiplier:**
-[Does this amplify future value delivery?]
-
-**Examples:**
-- "Proven pattern extends to THINK phase, SPEC phase. Enables better task selection → less waste → more value per token spent. Compounds over time as agents learn from feedback."
-
----
-
-## Risks and Mitigations
-
-**What could go wrong with this task?**
-
-[List 3-5 risks with honest assessment]
-
-**Risk 1: [Risk description]**
-- **Likelihood:** [High/Medium/Low]
-- **Impact:** [High/Medium/Low]
-- **Mitigation:** [How will we address this?]
-
-**Risk 2: [Risk description]**
-- **Likelihood:** [High/Medium/Low]
-- **Impact:** [High/Medium/Low]
-- **Mitigation:** [How will we address this?]
-
-**Examples:**
-- ❌ GENERIC: "Risk: Implementation might fail"
-- ✅ SPECIFIC: "Risk: StrategyReviewer too strict → false positives → agent frustration → gaming behavior. Likelihood: Medium (DesignReviewer has ~5% false positive rate). Impact: High (erodes trust). Mitigation: Human escalation path always available, analytics track false positive rate, tune thresholds based on data."
-
----
-
-## Dependencies and Constraints
-
-**What does this task depend on?**
-
-[List prerequisites: tools, data, other tasks, approvals]
-
-**Examples:**
-- "Depends on: Critic base class (exists: tools/wvo_mcp/src/critics/base.ts), Research layer (exists), Analytics infrastructure (exists: state/analytics/)"
-
-**What constraints must we respect?**
-
-[List limitations: time, budget, technical, policy]
-
-**Examples:**
-- "Constraints: Micro-batching limits (≤5 files, ≤150 LOC - will need to split into sub-tasks), Token budget (must use intelligence layer sparingly), DesignReviewer pattern (must maintain consistency)"
-
----
-
-## Open Questions
-
-**What don't we know yet?**
-
-[List uncertainties that might affect the approach. Be honest.]
-
-**Examples:**
-- ❌ PRETENDING TO KNOW: "This will definitely work"
-- ✅ HONEST: "Unknown: Will agents game the critic by writing longer but still superficial strategy docs? Mitigation: Start with semantic analysis, evolve based on analytics. Unknown: What's the right balance between strictness and flexibility? Mitigation: Monitor false positive/negative rates, tune thresholds."
-
-**Questions:**
-
-1. [Question 1]
-2. [Question 2]
-3. [Question 3]
-4. [Question 4, optional]
-5. [Question 5, optional]
-
----
-
-## Recommendation
-
-**Should we do this task?**
-
-[Yes/No/Defer and why]
-
-**Examples:**
-- ❌ WEAK: "Yes, sounds good"
-- ✅ STRONG: "YES - proceed immediately. Strong evidence of problem (40% compliance, 20 hours waste per cycle). Clear impact (save 20 hours + 1M tokens per cycle). Proven pattern (DesignReviewer works). High strategic value (extends to other phases). Low risk (human escalation path, analytics feedback loop)."
-
-**If YES:**
-- **Priority:** [Critical/High/Medium/Low]
-- **Urgency:** [Immediate/Soon/Can wait]
-- **Effort:** [Small/Medium/Large - rough estimate]
-
-**If NO or DEFER:**
-- **Why not?** [Specific reasoning]
-- **What would change your mind?** [What evidence/conditions would make this worthwhile?]
-
----
-
-## Notes
-
-[Any additional context, references, or decisions made during analysis]
-
-**References:**
-- [Link to related tasks, docs, code, discussions]
-
-**Decisions:**
-- [Key decisions made during strategy phase]
-
----
-
-**Strategy Complete:** [YYYY-MM-DD]
-**Next Phase:** SPEC (define requirements and acceptance criteria)
-
----
-
-## Anti-Patterns to Avoid
-
-**This template should help you avoid:**
-- 🚫 Jumping straight to solutions (focus on WHY and WHAT, not HOW)
-- 🚫 Vague problem statements ("improve quality" vs specific evidence)
-- 🚫 Shallow root cause analysis (stopping at symptoms)
-- 🚫 Unmeasurable success criteria ("better" vs quantified targets)
-- 🚫 Generic risk assessment (specific risks with likelihood/impact)
-- 🚫 Missing evidence (claims without supporting data)
-- 🚫 Solution bias (starting with "we need X tool" vs "we need to achieve Y outcome")
-
-**Remember:** Strategy is about THINKING, not TYPING. If your strategy.md is < 30 lines, you probably haven't thought deeply enough.
+The task therefore aligns with AFP’s emphasis on measurable guardrails, rapid feedback, and evolutionary improvements that enable autonomy.

@@ -26,3 +26,4 @@
 | AFP-MODULE-REMEDIATION-20251105-S | Add “surprise-rate” telemetry + dynamic safety case manifests. | IWASS guidance demands live metrics for SCAS assurance. | 🆕 pending |
 | AFP-MODULE-REMEDIATION-20251105-T | Build knowledge-graph inventory + module fitness dashboard. | ScienceDirect 2025 highlights KG + LLM integration for autonomy. | 🆕 pending |
 | AFP-MODULE-REMEDIATION-20251105-U | Implement near-miss / ODD breach detection service. | Needed for operational safety parity w/ modern autopilot programs. | 🆕 pending |
+| AFP-MODULE-REMEDIATION-20251105-V | Repair blocking test suites + prove Wave 0 success (domain reviewer, ML aggregator, work-process, guardrail catalog). | Wave 0 cannot progress while `npm run test` fails; ML critic fixes can be staged last if needed. | 🆕 pending |
