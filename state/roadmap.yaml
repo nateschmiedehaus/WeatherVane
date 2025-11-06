@@ -307,7 +307,7 @@ epics:
               set.
           - id: AFP-W0M1-SUPERVISOR-AGENT-INTEGRATION-REFORM
             title: "Reform: Supervisor Agent Integration"
-            status: pending
+            status: blocked
             set_id: w0m1-supervisor-agent-integration
             dependencies:
               - AFP-W0M1-SUPERVISOR-AGENT-INTEGRATION-REVIEW

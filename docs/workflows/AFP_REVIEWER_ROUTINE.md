@@ -38,6 +38,15 @@ Standard procedure for running the spec/plan reviewers and validating Wave 0 a
    - Follow `docs/checklists/daily_artifact_health.md`.
    - `state/evidence/AFP-ARTIFACT-AUDIT-YYYY-MM-DD/summary.md` must mention the reviewer runs.
 
+## Execution Tagging
+
+Every task must declare whether it was executed manually or by Wave 0.
+
+- Manual agents: `node tools/wvo_mcp/scripts/set_execution_mode.mjs <TASK-ID> manual --source reviewer-routine`
+  - Run immediately after REVIEW (before VERIFY starts) so ProcessCritic sees the metadata.
+  - Re-run with `autopilot` only if Wave 0 actually finished the task.
+- Wave 0 autopilot tags itself automatically; confirm `state/evidence/<TASK-ID>/metadata.json` exists before closing the task.
+
 ## Wave 0 Autopilot Execution
 
 Wave 0 should only be exercised after reviewers pass and evidence is staged.
