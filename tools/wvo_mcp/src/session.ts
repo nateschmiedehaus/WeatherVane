@@ -22,6 +22,7 @@ import { TestsCritic } from "./critics/tests.js";
 import { TypecheckCritic } from "./critics/typecheck.js";
 import { FailoverGuardrailCritic } from "./critics/failover_guardrail.js";
 import { ProductCompletenessCritic } from "./critics/product_completeness.js";
+import { ProcessCritic } from "./critics/process.js";
 import { IntegrationFuryCritic } from "./critics/integration_fury.js";
 import { NetworkNavigatorCritic } from "./critics/network_navigator.js";
 import { ExperienceFlowCritic } from "./critics/experience_flow.js";
@@ -97,6 +98,7 @@ const CRITIC_REGISTRY = {
   prompt_budget: PromptBudgetCritic,
   failover_guardrail: FailoverGuardrailCritic,
   product_completeness: ProductCompletenessCritic,
+  process_guard: ProcessCritic,
   integration_fury: IntegrationFuryCritic,
   network_navigator: NetworkNavigatorCritic,
   experience_flow: ExperienceFlowCritic,
