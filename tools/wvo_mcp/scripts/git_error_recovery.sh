@@ -27,6 +27,12 @@ NC='\033[0m'
 
 cd "$ROOT"
 
+# Clean up temp files on exit (including Ctrl+C)
+trap "rm -f *.base *.ours *.theirs *.merged 2>/dev/null || true" EXIT
+
+# Source intelligent merge helpers
+source "$SCRIPT_DIR/merge_helpers.sh"
+
 echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 echo -e "${BLUE}  Git Error Recovery${NC}"
 echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
@@ -82,14 +88,47 @@ if git diff --name-only --diff-filter=U | grep -q .; then
   echo "$conflicted_files" | head -10
   echo ""
 
-  echo "Auto-resolving with 'ours' strategy (keep local changes)..."
+  echo "Attempting intelligent merge (auto-merge → union → fallback)..."
 
-  # Resolve each conflict by keeping our version
+  # Intelligent merge resolution (Batch 1: auto + union + validation)
   while IFS= read -r file; do
     if [ -f "$file" ]; then
-      git checkout --ours "$file" 2>/dev/null || true
-      git add "$file" 2>/dev/null || true
-      echo "  ✓ $file"
+      echo "  Processing: $file"
+
+      # Extract versions for merge functions
+      git show :2:"$file" > "$file.ours" 2>/dev/null || true
+      git show :3:"$file" > "$file.theirs" 2>/dev/null || true
+
+      # Try merge strategies in priority order
+      if attempt_auto_merge "$file"; then
+        echo "    ✓ Auto-merged successfully"
+
+        # Validate merged file
+        if validate_merge "$file"; then
+          git add "$file"
+          log_merge_decision "$file" "auto_merge" "kept_both"
+        else
+          echo "    ✗ Validation failed, fallback to ours"
+          git checkout --ours "$file"
+          git add "$file"
+          log_merge_decision "$file" "fallback_ours" "validation_failed"
+        fi
+
+      elif attempt_union_merge "$file"; then
+        echo "    ⚠️  Union merge (manual review needed)"
+        git add "$file"
+        log_merge_decision "$file" "union_merge" "needs_review"
+
+      else
+        # Should never reach here (union always succeeds)
+        echo "    ✗ All strategies failed, fallback to ours"
+        git checkout --ours "$file"
+        git add "$file"
+        log_merge_decision "$file" "fallback_ours" "all_failed"
+      fi
+
+      # Clean up temp files for this iteration
+      rm -f "$file.base" "$file.ours" "$file.theirs" "$file.merged" 2>/dev/null || true
     fi
   done <<< "$conflicted_files"
 
