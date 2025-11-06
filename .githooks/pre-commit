@@ -263,7 +263,8 @@ else
       fi
 
       # ECONOMY: Check for deletion accounting if adding >50 LOC
-      if [ $LOC_ADDED -gt 50 ]; then
+      # Skip for evidence-only commits (they're new documentation)
+      if [ $LOC_ADDED -gt 50 ] && [ $NON_EVIDENCE_FILE_COUNT -gt 0 ]; then
         if ! echo "$COMMIT_MSG" | grep -qE "Deleted:"; then
           echo -e "${RED}❌ BLOCKED: +$LOC_ADDED LOC added without deletion accounting${NC}"
           echo ""
@@ -280,6 +281,9 @@ else
           echo "     git config hooks.override 'new feature requires additions' && git commit"
           exit 1
         fi
+      elif [ $LOC_ADDED -gt 50 ] && [ $NON_EVIDENCE_FILE_COUNT -eq 0 ]; then
+        echo -e "${YELLOW}📚 Evidence-only commit: ECONOMY check skipped${NC}"
+        echo "   Evidence documentation is new content by design"
       fi
 
       echo -e "${GREEN}✅ Five forces checks passed${NC}"
