@@ -617,6 +617,288 @@ describe('deriveResourceLimits', () => {
 });
 ```
 
+## Advanced Technique: Property-Based Testing
+
+### What is Property-Based Testing?
+
+Instead of writing specific test cases, you define **properties** (invariants) that must hold for ALL inputs, then let the framework generate hundreds of test cases automatically.
+
+**Traditional approach:**
+```typescript
+it('reversing twice returns original', () => {
+  expect(reverse(reverse([1, 2, 3]))).toEqual([1, 2, 3]);
+  expect(reverse(reverse([]))).toEqual([]);
+  expect(reverse(reverse([5]))).toEqual([5]);
+  // How many cases do we need to test?
+});
+```
+
+**Property-based approach:**
+```typescript
+import * as fc from 'fast-check';
+
+it('reversing twice returns original', () => {
+  fc.assert(
+    fc.property(fc.array(fc.integer()), (arr) => {
+      expect(reverse(reverse(arr))).toEqual(arr);
+    })
+  );
+  // Tests 100+ random arrays automatically
+});
+```
+
+### Why Property-Based Testing?
+
+1. **Covers edge cases you didn't think of** - Framework generates boundary values, empty arrays, negative numbers, etc.
+2. **Reduces test code** - One property replaces dozens of example-based tests
+3. **Expresses intent clearly** - Properties state WHAT must hold, not HOW to test it
+4. **Finds bugs traditional tests miss** - Random generation explores input space more thoroughly
+
+### Installing fast-check
+
+```bash
+npm install --save-dev fast-check
+```
+
+### Common Properties to Test
+
+#### 1. Idempotence
+Operations that can be applied multiple times without changing the result after the first application.
+
+```typescript
+import * as fc from 'fast-check';
+
+it('applying sort multiple times produces same result', () => {
+  fc.assert(
+    fc.property(fc.array(fc.integer()), (arr) => {
+      const sorted1 = sort(arr);
+      const sorted2 = sort(sorted1);
+      expect(sorted1).toEqual(sorted2);
+    })
+  );
+});
+```
+
+#### 2. Inverse Operations
+Operations that undo each other.
+
+```typescript
+it('encode and decode are inverses', () => {
+  fc.assert(
+    fc.property(fc.string(), (str) => {
+      expect(decode(encode(str))).toBe(str);
+    })
+  );
+});
+
+it('serialize and deserialize are inverses', () => {
+  fc.assert(
+    fc.property(fc.object(), (obj) => {
+      expect(deserialize(serialize(obj))).toEqual(obj);
+    })
+  );
+});
+```
+
+#### 3. Invariants
+Properties that must always hold, regardless of input.
+
+```typescript
+it('filter never increases array length', () => {
+  fc.assert(
+    fc.property(
+      fc.array(fc.integer()),
+      fc.func(fc.boolean()),
+      (arr, predicate) => {
+        const filtered = arr.filter(predicate);
+        expect(filtered.length).toBeLessThanOrEqual(arr.length);
+      }
+    )
+  );
+});
+
+it('map preserves array length', () => {
+  fc.assert(
+    fc.property(
+      fc.array(fc.integer()),
+      fc.func(fc.integer()),
+      (arr, mapper) => {
+        expect(arr.map(mapper).length).toBe(arr.length);
+      }
+    )
+  );
+});
+```
+
+#### 4. Commutativity
+Order of operations doesn't matter.
+
+```typescript
+it('addition is commutative', () => {
+  fc.assert(
+    fc.property(fc.integer(), fc.integer(), (a, b) => {
+      expect(add(a, b)).toBe(add(b, a));
+    })
+  );
+});
+```
+
+#### 5. Associativity
+Grouping of operations doesn't matter.
+
+```typescript
+it('string concatenation is associative', () => {
+  fc.assert(
+    fc.property(fc.string(), fc.string(), fc.string(), (a, b, c) => {
+      expect(concat(concat(a, b), c)).toBe(concat(a, concat(b, c)));
+    })
+  );
+});
+```
+
+### Generators for Complex Types
+
+fast-check provides generators for many types:
+
+```typescript
+// Primitives
+fc.integer()            // any integer
+fc.integer({min: 0, max: 100})  // bounded integer
+fc.float()              // any float
+fc.string()             // any string
+fc.boolean()            // true or false
+fc.constant(value)      // always returns value
+
+// Collections
+fc.array(fc.integer())  // array of integers
+fc.set(fc.string())     // set of strings
+fc.dictionary(fc.string(), fc.integer())  // object with string keys, integer values
+
+// Custom types
+const userArbitrary = fc.record({
+  id: fc.nat(),
+  name: fc.string(),
+  email: fc.emailAddress(),
+  age: fc.integer({min: 18, max: 120}),
+});
+
+// Functions
+fc.func(fc.integer())   // function returning integer
+```
+
+### Example: Testing Roadmap Mutation API
+
+```typescript
+import * as fc from 'fast-check';
+import { RoadmapMutationAPI } from './roadmap_mutations';
+
+describe('RoadmapMutationAPI properties', () => {
+  const api = new RoadmapMutationAPI();
+
+  it('validation is deterministic', () => {
+    fc.assert(
+      fc.property(mutationArbitrary, (mutation) => {
+        const result1 = api.validate(mutation);
+        const result2 = api.validate(mutation);
+        expect(result1).toEqual(result2);
+      })
+    );
+  });
+
+  it('valid mutations never create cycles', () => {
+    fc.assert(
+      fc.property(validMutationArbitrary, async (mutation) => {
+        await api.apply(mutation);
+        const hasCycle = await api.detectCycles();
+        expect(hasCycle).toBe(false);
+      })
+    );
+  });
+
+  it('applying and undoing returns to original state', () => {
+    fc.assert(
+      fc.property(mutationArbitrary, async (mutation) => {
+        const originalState = await api.getRoadmap();
+        await api.apply(mutation);
+        await api.undo();
+        const finalState = await api.getRoadmap();
+        expect(finalState).toEqual(originalState);
+      })
+    );
+  });
+});
+
+// Custom generator for mutations
+const mutationArbitrary = fc.oneof(
+  fc.record({
+    type: fc.constant('add_task'),
+    taskId: fc.string(),
+    dependencies: fc.array(fc.string()),
+  }),
+  fc.record({
+    type: fc.constant('remove_task'),
+    taskId: fc.string(),
+  }),
+  fc.record({
+    type: fc.constant('reorder_tasks'),
+    taskIds: fc.array(fc.string()),
+  })
+);
+```
+
+### When to Use Property-Based Testing
+
+**Use property-based testing for:**
+- ✅ Pure functions (no side effects)
+- ✅ Data transformations
+- ✅ Parsers and serializers
+- ✅ Mathematical operations
+- ✅ Validation logic
+- ✅ State machines
+
+**Use example-based testing for:**
+- ❌ Integration tests (external dependencies)
+- ❌ UI tests (specific user flows)
+- ❌ API contracts (specific endpoints)
+- ❌ Regression tests (specific bugs)
+
+**Best practice:** Combine both approaches. Use property-based tests for invariants, example-based tests for specific behaviors.
+
+### Debugging Failed Property Tests
+
+When a property test fails, fast-check automatically shrinks the failing case to the smallest input that still fails:
+
+```typescript
+// Property test fails with:
+// Input: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+// After shrinking:
+// Minimal failing input: [1, 2]
+```
+
+This makes debugging much easier - you get the simplest case that reproduces the bug.
+
+### Property-Based Testing and the 7 Dimensions
+
+Property-based testing naturally covers multiple dimensions:
+
+1. **Happy Path** - Random valid inputs
+2. **Edge Cases** - Framework generates boundary values automatically
+3. **Error Cases** - Can generate invalid inputs to test error handling
+4. **Concurrency** - Can generate concurrent operations
+5. **Resource Constraints** - Can generate large inputs
+6. **State Mutations** - Can generate sequences of operations
+7. **Integration** - Can generate realistic scenarios
+
+**One property test often covers 4-5 dimensions simultaneously.**
+
+### References
+
+- [fast-check documentation](https://fast-check.dev/)
+- [Property-Based Testing with fast-check](https://github.com/dubzzz/fast-check)
+- [Introduction to Property-Based Testing](https://increment.com/testing/in-praise-of-property-based-testing/)
+
+---
+
 ## Enforcement
 
 ### 1. Test Coverage Tool
