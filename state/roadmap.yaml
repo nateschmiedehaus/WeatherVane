@@ -407,6 +407,99 @@ epics:
             domain: mcp
             description: >
               Gate verifying the knowledge base is trustworthy before running autonomy stress tests.
+      - id: W2.M2
+        title: Prompt architecture & lifecycle
+        status: pending
+        tasks:
+          - id: AFP-W2-M2-PROMPT-RESEARCH
+            title: Prompt research & taxonomy
+            status: pending
+            dependencies:
+              - AFP-W1-M1-EXIT-READINESS
+            exit_criteria:
+              - Research dossier synthesising 2024–2025 open literature, industry playbooks, and AFP/SCAS implications
+              - Prompt taxonomy covering roles, objectives, safeguards, and escalation patterns
+              - Strategy stored in `docs/autonomy/prompt_strategy.md` with cited sources
+            domain: mcp
+            description: >
+              Establish a strategic foundation for prompts by surveying state-of-the-art techniques and mapping them to AFP/SCAS principles.
+          - id: AFP-W2-M2-PROMPT-LIFECYCLE
+            title: Prompt registry & lifecycle engine
+            status: pending
+            dependencies:
+              - AFP-W2-M2-PROMPT-RESEARCH
+            exit_criteria:
+              - Versioned prompt registry with metadata (role, owner, risk level, evaluation status)
+              - Lifecycle policy (draft→review→rollout→retire) documented and enforced via CI
+              - Audit trail persists in `state/analytics/prompt_registry.json`
+            domain: mcp
+            description: >
+              Treat prompts as governed assets with ownership, history, and promotion rules so changes are auditable and reversible.
+          - id: AFP-W2-M2-PROMPT-EVAL
+            title: Prompt evaluation harness
+            status: pending
+            dependencies:
+              - AFP-W2-M2-PROMPT-RESEARCH
+            exit_criteria:
+              - Automated evaluation harness covering planner, builder, reviewer, researcher, critic, SRE, and PM roles
+              - Golden conversation suites + synthetic scenarios versioned alongside prompts
+              - Metrics published to `state/analytics/prompt_eval.json` with regression thresholds
+            domain: mcp
+            description: >
+              Provide objective signal on prompt quality using automated tasks, metrics, and regression detection.
+          - id: AFP-W2-M2-PROMPT-ROLE-LIBRARY
+            title: Role-specific prompt library
+            status: pending
+            dependencies:
+              - AFP-W2-M2-PROMPT-RESEARCH
+              - AFP-W2-M2-PROMPT-LIFECYCLE
+            exit_criteria:
+              - Prompt stacks shipped for planner, builder, reviewer, researcher, critic, SRE, and program steward roles
+              - Each stack documents escalation, override, and AFP/SCAS guardrails
+              - Library catalogued in registry with usage examples and dependencies
+            domain: mcp
+            description: >
+              Supply curated prompt compositions per Autopilot role so behaviours stay consistent across scenarios.
+          - id: AFP-W2-M2-PROMPT-AUTO-GEN
+            title: Autopilot prompt generator
+            status: blocked
+            dependencies:
+              - AFP-W2-M2-PROMPT-LIFECYCLE
+              - AFP-W2-M2-PROMPT-EVAL
+            exit_criteria:
+              - Autopilot can draft prompt variants under policy guardrails with evaluation feedback loops
+              - Successful prompt improvement merged via automated run and logged in registry
+              - Safety rails detect regressions and roll back automatically
+            domain: mcp
+            description: >
+              Empower Autopilot to propose and refine prompts programmatically while staying inside lifecycle guardrails.
+          - id: AFP-W2-M2-PROMPT-CRITIC
+            title: Prompt critic & review automation
+            status: blocked
+            dependencies:
+              - AFP-W2-M2-PROMPT-EVAL
+              - AFP-W2-M2-PROMPT-AUTO-GEN
+            exit_criteria:
+              - Dedicated prompt critic integrated into review pipeline with remediation workflow
+              - Critic output logged to `state/analytics/prompt_reviews.jsonl`
+              - Demonstrated catch of risky prompt change in sandbox test (with documented fix)
+            domain: mcp
+            description: >
+              Install automated reviewers to scrutinize human- and Autopilot-generated prompts before rollout.
+          - id: AFP-W2-M2-PROMPT-EXIT-READINESS
+            title: Prompt architecture exit readiness review
+            status: blocked
+            dependencies:
+              - AFP-W2-M2-PROMPT-LIFECYCLE
+              - AFP-W2-M2-PROMPT-EVAL
+              - AFP-W2-M2-PROMPT-CRITIC
+            exit_criteria:
+              - Prompt dashboards covering registry, evaluation, and critic findings published
+              - Evidence bundle `state/evidence/AFP-W2-PROMPT-EXIT-READINESS` complete
+              - Approval recorded to advance to Wave 3 with prompt governance in place
+            domain: mcp
+            description: >
+              Confirm prompt design, evaluation, and lifecycle automation meet AFP/SCAS requirements before autonomy stress tests.
 
   - id: WAVE-3
     title: Wave 3 – Autonomy Stress Tests & Reliability
@@ -861,6 +954,26 @@ epics:
               are Claude Code feature, not available in Codex. Hook analyzes prompt for keywords
               and automatically activates relevant skills. Delivers 40-60% token efficiency improvement.
               CODEX ALTERNATIVE: Use progressive disclosure pattern in CLAUDE.md with manual activation.
+          - id: AFP-W5-M1-HIERARCHICAL-PROCESS-ENFORCEMENT
+            title: Hierarchical work process enforcement
+            status: pending
+            dependencies: []
+            exit_criteria:
+              - Pre-execution check validates correct process level (task/task-set/epic)
+              - Blocks execution without evidence bundle for appropriate level
+              - Task level requires strategy.md (AFP 10-phase)
+              - Task-set level requires assessment.md (6-phase ASSESS → META-REVIEW)
+              - Epic level requires strategic_analysis.md (7-phase STRATEGIZE → META-REVIEW)
+              - Clear error messages guide agents to correct process
+              - Override via SKIP_HIERARCHY_CHECK=1 logged to overrides.jsonl
+            domain: mcp
+            description: >
+              Enforces the HIERARCHY of work processes, not just individual task compliance. Ensures
+              agents execute at the appropriate cognitive level: individual tasks use AFP 10-phase,
+              task sets use 6-phase process (ASSESS → META-REVIEW), epics use 7-phase process
+              (STRATEGIZE → META-REVIEW). Prevents jumping straight to implementation without
+              executing the required cognitive work at the appropriate hierarchical level. Complements
+              AFP-W5-M1-PROCESS-ENFORCEMENT (which enforces compliance within a single level).
           - id: AFP-W5-M1-MONITORING-DECK
             title: Autonomy monitoring deck
             status: pending
