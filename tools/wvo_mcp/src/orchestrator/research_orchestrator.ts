@@ -281,7 +281,8 @@ export class ResearchOrchestrator extends EventEmitter {
 
     if (research.alternatives.length > 0) {
       const lines = research.alternatives.slice(0, 5).map((alternative) => {
-        return `- ${alternative.title} (confidence ${Math.round(alternative.confidence * 100)}%)`;
+        const normalizedConfidence = this.normalizeConfidence(alternative.confidence ?? 0.6);
+        return `- ${alternative.title} (confidence ${Math.round(normalizedConfidence * 100)}%)`;
       });
       sections.push(`Alternative Approaches:\n${lines.join('\n')}`);
     }

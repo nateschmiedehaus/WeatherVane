@@ -109,7 +109,12 @@
 - Run the consolidated test batch via `bash tools/wvo_mcp/scripts/run_integrity_tests.sh` so TestsCritic sees the real pass/fail state; do not rely on piecemeal `make test`.
 - Keep `state/context.md` concise (<1000 words). `TokenEfficiencyManager` trims overflow automatically and stores backups in `state/backups/context/`; review before restoring.
 - ProcessCritic now blocks commits when PLAN lacks authored tests or new tests appear without PLAN updates. Fix the plan (or document docs-only work) before continuing.
+- Run the **Daily Artifact Health** audit every ≤24 hours: execute `node tools/wvo_mcp/scripts/rotate_overrides.mjs` (after a dry run), ensure `git status` is clean, and file the results in `state/evidence/AFP-ARTIFACT-AUDIT-YYYY-MM-DD/` using the daily template.
+- Run the **Guardrail Monitor** (`node tools/wvo_mcp/scripts/check_guardrails.mjs`) locally before pushing; CI runs the same check on every PR.
+- Manual completions must tag execution mode: `node tools/wvo_mcp/scripts/set_execution_mode.mjs <TASK-ID> manual` (Wave 0 tags autopilot runs automatically).
 - Autopilot work must stage PLAN updates that list Wave 0 live testing steps (e.g., `npm run wave0`, `ps aux | grep wave0`, TaskFlow live smoke). VERIFY is expected to execute those steps—commits touching autopilot/wave0 code without the plan updates will fail.
+- Every code/docs change (including evidence) must be staged, committed, and pushed to GitHub with the task ID in context. No local-only work is considered complete.
+- Services, agents, or scripts that modify the repo must follow the same rule: open a branch, commit with AFP task ID, push to GitHub (or fail the task). Non-git outputs are treated as violations.
 - **TEST WITH LIVE AUTOPILOT:** For autopilot changes or new features, use Wave 0 live testing instead of just build verification:
   - **CRITICAL: Wave 0 is evolutionary, not frozen** - it improves over time as autopilot capabilities advance
   - Wave 0 = current autopilot version (0.1, 0.2, 0.3...) - gets better at harder tasks as it evolves

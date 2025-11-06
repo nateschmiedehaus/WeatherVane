@@ -1,0 +1,11 @@
+{
+  "critic": "planreviewer",
+  "code": 0,
+  "stdout": "PlanReviewer review passed: all required sections present.",
+  "stderr": "",
+  "passed": true,
+  "analysis": null,
+  "git_sha": "45d66ea5bd5df52f303ed3f702845275889575b9",
+  "timestamp": "2025-11-06T19:26:23.001Z",
+  "identity": null
+}

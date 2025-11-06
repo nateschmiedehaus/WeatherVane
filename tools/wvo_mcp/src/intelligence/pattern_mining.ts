@@ -30,10 +30,16 @@ export class PatternMiningClient {
         title: `Pattern stub for ${input.problem}`,
         summary:
           'Pattern mining is not yet implemented. Use this as a placeholder until remote sources are wired in.',
+        source: 'stub',
         url: undefined,
         repository: undefined,
         stars: undefined,
         language: undefined,
+        tags: ['placeholder'],
+        evidence: [],
+        metadata: {
+          origin: 'stub',
+        },
       },
     ];
   }

@@ -17,14 +17,19 @@
 
 import fs from "node:fs";
 import path from "node:path";
+import YAML from "yaml";
 import { resolveStateRoot } from "../utils/config.js";
 import { logInfo, logWarning, logError } from "../telemetry/logger.js";
 import { TaskExecutor, type Task, type ExecutionResult } from "./task_executor.js";
 import { LeaseManager } from "../supervisor/lease_manager.js";
 import { LifecycleTelemetry } from "../supervisor/lifecycle_telemetry.js";
+import { ProofIntegration } from "../prove/wave0_integration.js";
+import { SelfImprovementSystem } from "../prove/self_improvement.js";
 
-const RATE_LIMIT_MS = 5 * 60 * 1000; // 5 minutes
-const EMPTY_RETRY_LIMIT = 3; // Exit after 3 consecutive empty checks
+interface Wave0Options {
+  singleRun?: boolean;
+  targetEpics?: string[];
+}
 
 export class Wave0Runner {
   private workspaceRoot: string;
@@ -35,14 +40,26 @@ export class Wave0Runner {
   private emptyCheckCount = 0;
   private leaseManager: LeaseManager;
   private telemetry: LifecycleTelemetry;
+  private proofIntegration: ProofIntegration;
+  private selfImprovement: SelfImprovementSystem;
+  private rateLimitMs: number;
+  private emptyRetryLimit: number;
+  private singleRun: boolean;
+  private targetEpics: string[] | null;
 
-  constructor(workspaceRoot: string) {
+  constructor(workspaceRoot: string, options: Wave0Options = {}) {
     this.workspaceRoot = workspaceRoot;
     this.stateRoot = resolveStateRoot(workspaceRoot);
     this.lockFile = path.join(this.stateRoot, ".wave0.lock");
     this.executor = new TaskExecutor(workspaceRoot);
     this.leaseManager = new LeaseManager(30 * 60 * 1000); // 30 min TTL
     this.telemetry = new LifecycleTelemetry(workspaceRoot);
+    this.proofIntegration = new ProofIntegration(workspaceRoot, `wave0-${Date.now()}`);
+    this.selfImprovement = new SelfImprovementSystem(workspaceRoot);
+    this.rateLimitMs = this.resolveRateLimit();
+    this.emptyRetryLimit = this.resolveEmptyRetryLimit();
+    this.singleRun = this.resolveSingleRun(options);
+    this.targetEpics = this.resolveTargetEpics(options);
   }
 
   async run(): Promise<void> {
@@ -81,15 +98,20 @@ export class Wave0Runner {
         if (!task) {
           // No tasks available
           this.emptyCheckCount++;
-          logWarning(`Wave0Runner: No pending tasks found (${this.emptyCheckCount}/${EMPTY_RETRY_LIMIT})`);
+          logWarning(
+            `Wave0Runner: No pending tasks found (${this.emptyCheckCount}/${this.emptyRetryLimit})`
+          );
 
-          if (this.emptyCheckCount >= EMPTY_RETRY_LIMIT) {
-            logInfo("Wave0Runner: No tasks for 15 minutes, exiting gracefully");
+          if (this.emptyCheckCount >= this.emptyRetryLimit) {
+            const minutes = Math.round((this.rateLimitMs * this.emptyRetryLimit) / 60000);
+            logInfo(
+              `Wave0Runner: No tasks for ${minutes} minute(s), exiting gracefully`
+            );
             break;
           }
 
           // Sleep and retry
-          await this.sleep(RATE_LIMIT_MS);
+          await this.sleep(this.rateLimitMs);
           continue;
         }
 
@@ -125,33 +147,54 @@ export class Wave0Runner {
           // 6. Execute task
           const result = await this.executor.execute(task);
 
-          // 7. Emit task.completed event
+          // 7. Run proof system (if enabled)
+          let finalStatus: Task["status"];
+          if (ProofIntegration.isEnabled()) {
+            const proofStatus = await this.proofIntegration.processTaskAfterExecution(
+              task,
+              result.status === "completed" ? "completed" : "failed"
+            );
+            // Map proof statuses to Task statuses
+            finalStatus = proofStatus === "proven" ? "done" : "blocked";
+          } else {
+            // Legacy behavior (no proof system)
+            finalStatus = result.status === "completed" ? "done" : "blocked";
+          }
+
+          // 8. Record execution metadata
+          await this.updateExecutionMetadata(task.id, "autopilot", "wave0");
+
+          // 9. Emit task.completed event
           await this.telemetry.emit('task.completed', {
             taskId: task.id,
             metadata: {
-              status: result.status,
+              status: finalStatus,
               executionTimeMs: result.executionTimeMs
             }
           });
 
-          // 8. Update final status based on result
-          const finalStatus = result.status === "completed" ? "done" : "blocked";
+          // 10. Update final status
           await this.updateTaskStatus(task.id, finalStatus);
         } finally {
-          // 9. Release lease (always, even if execution fails)
+          // 10. Release lease (always, even if execution fails)
           await this.leaseManager.releaseLease(task.id);
         }
 
-        // 10. Checkpoint
+        // 11. Checkpoint
         await this.checkpoint();
 
-        // 11. Rate limit
-        if (!this.shutdownRequested) {
-          logInfo(`Wave0Runner: Rate limiting (${RATE_LIMIT_MS / 1000}s)...`);
-          await this.sleep(RATE_LIMIT_MS);
+        // 12. Rate limit
+        if (this.singleRun) {
+          logInfo("Wave0Runner: Single-run mode - exiting after first task.");
+          break;
         }
-      } catch (error) {
-        logError("Wave0Runner: Error in main loop", { error });
+
+          if (!this.shutdownRequested) {
+            logInfo(`Wave0Runner: Rate limiting (${this.rateLimitMs / 1000}s)...`);
+            await this.sleep(this.rateLimitMs);
+          }
+        } catch (error) {
+          logError("Wave0Runner: Error in main loop", { error });
         // Continue to next iteration (don't crash)
       }
     }
@@ -168,49 +211,80 @@ export class Wave0Runner {
       return null;
     }
 
-    // For Wave 0: Simple line-by-line parsing (not full YAML parser)
-    // Look for lines like: "- id: T1.2.3" followed by "status: pending"
-    const content = fs.readFileSync(roadmapPath, "utf-8");
-    const lines = content.split("\n");
+    try {
+      // Parse YAML properly to handle nested structure
+      const content = fs.readFileSync(roadmapPath, "utf-8");
+      const roadmap = YAML.parse(content);
 
-    let currentTask: Partial<Task> | null = null;
+      const findPendingTask = (obj: any, context: { epicId?: string } = {}): Task | null => {
+        if (!obj) return null;
 
-    for (const line of lines) {
-      // Match task ID
-      const idMatch = line.match(/^\s*-?\s*id:\s*["']?([^"'\s]+)["']?/);
-      if (idMatch) {
-        currentTask = { id: idMatch[1] };
-        continue;
-      }
+        let epicId = context.epicId;
 
-      // Match title (if we have a current task)
-      if (currentTask && !currentTask.title) {
-        const titleMatch = line.match(/^\s*title:\s*["']?(.+?)["']?\s*$/);
-        if (titleMatch) {
-          currentTask.title = titleMatch[1];
-          continue;
+        if (obj.milestones && Array.isArray(obj.milestones) && typeof obj.id === "string") {
+          epicId = obj.id;
         }
-      }
 
-      // Match status (if we have a current task)
-      if (currentTask && !currentTask.status) {
-        const statusMatch = line.match(/^\s*status:\s*["']?(\w+)["']?/);
-        if (statusMatch) {
-          currentTask.status = statusMatch[1] as Task["status"];
-
-          // If pending, return this task
-          if (currentTask.status === "pending" && currentTask.id && currentTask.title) {
-            logInfo("Wave0Runner: Found pending task", { task: currentTask });
-            return currentTask as Task;
+        if (
+          obj.id &&
+          obj.title &&
+          typeof obj.status === "string" &&
+          obj.status === "pending" &&
+          !Array.isArray(obj.milestones) &&
+          !Array.isArray(obj.tasks)
+        ) {
+          if (this.targetEpics && this.targetEpics.length > 0) {
+            if (!epicId || !this.targetEpics.includes(epicId)) {
+              return null;
+            }
           }
 
-          // Reset for next task
-          currentTask = null;
+          logInfo("Wave0Runner: Found pending task", { task: { id: obj.id, title: obj.title, epicId } });
+          return {
+            id: obj.id,
+            title: obj.title,
+            status: "pending"
+          };
         }
-      }
-    }
 
-    return null;
+        // Recursively search nested structures
+        if (obj.tasks && Array.isArray(obj.tasks)) {
+          for (const task of obj.tasks) {
+            const found = findPendingTask(task, { epicId });
+            if (found) return found;
+          }
+        }
+
+        if (obj.milestones && Array.isArray(obj.milestones)) {
+          for (const milestone of obj.milestones) {
+            const found = findPendingTask(milestone, { epicId });
+            if (found) return found;
+          }
+        }
+
+        if (obj.epics && Array.isArray(obj.epics)) {
+          for (const epic of obj.epics) {
+            const found = findPendingTask(epic, { epicId: epic?.id ?? epicId });
+            if (found) return found;
+          }
+        }
+
+        // Handle flat arrays at root level
+        if (Array.isArray(obj)) {
+          for (const item of obj) {
+            const found = findPendingTask(item, { epicId });
+            if (found) return found;
+          }
+        }
+
+        return null;
+      };
+
+      return findPendingTask(roadmap);
+    } catch (error) {
+      logError("Wave0Runner: Error parsing roadmap.yaml", { error: String(error) });
+      return null;
+    }
   }
 
   private async updateTaskStatus(taskId: string, status: Task["status"]): Promise<void> {
@@ -274,5 +348,83 @@ export class Wave0Runner {
 
   private async sleep(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
+  private async updateExecutionMetadata(
+    taskId: string,
+    mode: "autopilot" | "manual",
+    source: string,
+  ): Promise<void> {
+    try {
+      const metadataPath = path.join(this.stateRoot, "evidence", taskId, "metadata.json");
+      const metadataDir = path.dirname(metadataPath);
+      if (!fs.existsSync(metadataDir)) {
+        fs.mkdirSync(metadataDir, { recursive: true });
+      }
+
+      let metadata: Record<string, unknown> = {};
+      if (fs.existsSync(metadataPath)) {
+        try {
+          metadata = JSON.parse(fs.readFileSync(metadataPath, "utf-8")) || {};
+        } catch (error) {
+          logWarning("Wave0Runner: Unable to parse existing metadata.json; overwriting", {
+            taskId,
+            error: String(error),
+          });
+        }
+      }
+
+      const entry = {
+        ...metadata,
+        execution_mode: mode,
+        lastUpdatedAt: new Date().toISOString(),
+        lastUpdatedBy: source,
+      };
+
+      fs.writeFileSync(metadataPath, JSON.stringify(entry, null, 2), "utf-8");
+    } catch (error) {
+      logError("Wave0Runner: Failed to record execution metadata", {
+        taskId,
+        error: String(error),
+      });
+    }
+  }
+
+  private resolveRateLimit(): number {
+    const env = process.env.WAVE0_RATE_LIMIT_MS;
+    const parsed = env ? Number(env) : NaN;
+    if (!Number.isNaN(parsed) && parsed > 0) {
+      return parsed;
+    }
+    return 5 * 60 * 1000;
+  }
+
+  private resolveEmptyRetryLimit(): number {
+    const env = process.env.WAVE0_EMPTY_RETRY_LIMIT;
+    const parsed = env ? Number(env) : NaN;
+    if (!Number.isNaN(parsed) && parsed > 0) {
+      return parsed;
+    }
+    return 3;
+  }
+
+  private resolveSingleRun(options: Wave0Options): boolean {
+    if (typeof options.singleRun === "boolean") {
+      return options.singleRun;
+    }
+    return process.env.WAVE0_SINGLE_RUN === "1";
+  }
+
+  private resolveTargetEpics(options: Wave0Options): string[] | null {
+    if (options.targetEpics && options.targetEpics.length > 0) {
+      return options.targetEpics;
+    }
+    const env = process.env.WAVE0_TARGET_EPICS;
+    if (!env) return null;
+    const epics = env
+      .split(",")
+      .map((value) => value.trim())
+      .filter((value) => value.length > 0);
+    return epics.length > 0 ? epics : null;
   }
 }

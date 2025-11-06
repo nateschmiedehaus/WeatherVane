@@ -31,6 +31,8 @@ Act as WeatherVane's strategic reviewer and escalation partner. Provide deep rea
    - **Via negativa**: Can you DELETE instead of add?
    - **Refactor not repair**: Can you REFACTOR instead of patch?
    - Architecture, files to change, LOC estimate (≤5 files, ≤150 LOC)
+   - Author the automated/manual tests VERIFY will run. Tests may be failing or skipped at this stage, but they must exist before IMPLEMENT; note explicit exemptions (e.g., docs-only) in PLAN.
+   - Autopilot features must detail Wave 0 live testing (e.g., `npm run wave0`, `ps aux | grep wave0`, TaskFlow live smoke). No autopilot change proceeds without these steps in PLAN.
 
 4. **THINK** - Reason through edge cases and failure modes
    - What can go wrong?
@@ -104,13 +106,20 @@ Act as WeatherVane's strategic reviewer and escalation partner. Provide deep rea
 6. **IMPLEMENT** - Write code (ONLY after GATE approval, constraints: ≤5 files, ≤150 net LOC)
    - Refactor not patch
    - Prefer deletion over addition
+   - Make the PLAN-authored tests pass. If you discover missing coverage, STOP and return to PLAN to author those tests before continuing.
 
 7. **VERIFY** - Test it works (see Verification Loop below)
+   - Execute the PLAN-authored automated/manual tests. Do not create new tests here—missing coverage means you must loop back to PLAN prior to resuming VERIFY.
+   - Autopilot tasks must execute the Wave 0 live loop exactly as documented (run Wave 0, observe lifecycle telemetry). Capture evidence or escalate if credentials block the run—there is no bypass.
 
 8. **REVIEW** - Quality check
    - Verify phase compliance
    - Run integrity tests
    - Confirm AFP/SCAS principles upheld
+   - Stage, commit, and push all related changes (code, docs, evidence). Work that stays local is not “done”.
+   - Run the **Daily Artifact Health** audit at least once every 24 hours: `git status --short` (must be clean), `node tools/wvo_mcp/scripts/rotate_overrides.mjs --dry-run` followed by the real rotation if needed, and file the outcomes in `state/evidence/AFP-ARTIFACT-AUDIT-YYYY-MM-DD/`.
+   - Execute the **Guardrail Monitor** (`node tools/wvo_mcp/scripts/check_guardrails.mjs`) to validate ProcessCritic, rotation, audit freshness, and proof evidence before calling a task done; CI enforces the same check.
+   - Tag execution mode for every task: `node tools/wvo_mcp/scripts/set_execution_mode.mjs <TASK-ID> manual|autopilot` (Wave 0 runner auto-tags autopilot runs; manual agents must tag before closing).
 
 9. **PR** - Human review
 
@@ -245,6 +254,17 @@ Escalating for architectural guidance.
 - **Run the integrity batch:** Execute `bash tools/wvo_mcp/scripts/run_integrity_tests.sh` before declaring stability. Attach failures to the consensus record so Atlas can remediate with the right batch step.
 - **Checkpoint regularly:** Use `state_save` after major updates and ensure blockers/decisions land in the context file so Atlas and Dana receive complete briefs.
 - **VERIFY BEFORE CLAIMING DONE:** Follow the Mandatory Verification checklist above for EVERY task. No exceptions.
+- **TEST WITH LIVE AUTOPILOT:** For autopilot changes or when validating new features, use Wave 0 live testing instead of just build verification:
+  - **CRITICAL: Wave 0 is evolutionary, not frozen** - it improves over time as autopilot capabilities advance
+  - Wave 0 = current autopilot version (0.1, 0.2, 0.3...) - gets better at harder tasks as it evolves
+  - Check Wave 0 status: `ps aux | grep wave0` (should show PID if running)
+  - Start if needed: `cd tools/wvo_mcp && npm run wave0 &`
+  - Monitor logs: `tail -f state/analytics/wave0_startup.log`
+  - Add tasks to `state/roadmap.yaml` and verify Wave 0 picks them up autonomously
+  - Success = agent completes tasks without human intervention (not just "build passing")
+  - See `docs/orchestration/AUTOPILOT_VALIDATION_RULES.md` for full criteria
+  - Use TaskFlow test harness (`tools/taskflow/`) for safe validation separate from production
+  - Progressive complexity: Tier 1 (easy) → Tier 2 (moderate) → Tier 3 (hard) → Tier 4 (expert) validates Wave 0 improvements
 
 ## Decision Framework
 - **Consensus:** Uphold quorum rules. When a decision escalates, gather proposals from critics, codify disagreements, and outline the safest path to resolution. Only override follow-up tasks if the telemetry shows quorum restored and blockers cleared.

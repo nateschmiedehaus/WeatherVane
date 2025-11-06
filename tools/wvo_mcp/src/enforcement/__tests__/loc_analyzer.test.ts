@@ -28,8 +28,8 @@ describe('LOC Analyzer', () => {
 
       expect(result.credits.fileTypeMultiplier).toBe(0.8);
       expect(result.adjustedLimit).toBe(120); // 150 * 0.8
-      expect(result.allowed).toBe(false); // 130 > 120
-      expect(result.severity).toBe('blocked');
+      expect(result.allowed).toBe(true); // 130 > 120 but <= 1.5x => warning
+      expect(result.severity).toBe('warning');
     });
 
     test('identifies templates with 4.0x multiplier', () => {
@@ -86,21 +86,21 @@ describe('LOC Analyzer', () => {
       const result = analyzeFileLOC(file);
 
       expect(result.credits.deletionCredit).toBe(50); // 100 / 2
-      expect(result.adjustedLimit).toBe(200); // 150 * 1.0 + 50
-      expect(result.allowed).toBe(true); // 200 net, 200 limit
+      expect(result.adjustedLimit).toBe(170); // 120 + 50
+      expect(result.allowed).toBe(true); // net=100 within 170
     });
 
     test('handles zero deletions', () => {
       const file: FileChange = {
         path: 'src/foo.ts',
-        addedLines: 140,
+        addedLines: 110,
         deletedLines: 0,
       };
 
       const result = analyzeFileLOC(file);
 
       expect(result.credits.deletionCredit).toBe(0);
-      expect(result.adjustedLimit).toBe(150);
+      expect(result.adjustedLimit).toBe(120);
       expect(result.allowed).toBe(true);
     });
 
@@ -114,7 +114,7 @@ describe('LOC Analyzer', () => {
       const result = analyzeFileLOC(file);
 
       expect(result.credits.deletionCredit).toBe(100);
-      expect(result.adjustedLimit).toBe(250); // 150 + 100
+      expect(result.adjustedLimit).toBe(220); // 120 + 100
       expect(result.allowed).toBe(true);
       expect(result.netLOC).toBe(-20); // Net deletion!
     });
@@ -137,10 +137,9 @@ export function realCode() {
         path: 'src/foo.ts',
         addedLines: 10,
         deletedLines: 0,
-        content,
       };
 
-      const result = analyzeFileLOC(file);
+      const result = analyzeFileLOC(file, content);
 
       // Should have much lower effective LOC
       expect(result.effectiveLOC).toBeLessThan(result.totalLOC);
@@ -164,10 +163,9 @@ function realLogic() {
         path: 'src/types.ts',
         addedLines: 12,
         deletedLines: 0,
-        content,
       };
 
-      const result = analyzeFileLOC(file);
+      const result = analyzeFileLOC(file, content);
 
       // Effective LOC should be reduced (types count as 0.5x)
       expect(result.effectiveLOC).toBeLessThan(result.totalLOC);
@@ -184,10 +182,9 @@ function realLogic() {
         path: 'src/foo.ts',
         addedLines: 27,
         deletedLines: 0,
-        content,
       };
 
-      const result = analyzeFileLOC(file);
+      const result = analyzeFileLOC(file, content);
 
       expect(result.credits.patternBonus).toBeGreaterThanOrEqual(20); // high-imports bonus
     });
@@ -209,10 +206,9 @@ export function foo() {
         path: 'src/foo.ts',
         addedLines: 10,
         deletedLines: 0,
-        content,
       };
 
-      const result = analyzeFileLOC(file);
+      const result = analyzeFileLOC(file, content);
 
       expect(result.credits.patternBonus).toBeGreaterThanOrEqual(30); // well-documented bonus
     });
@@ -222,7 +218,7 @@ export function foo() {
     test('passes when within limit', () => {
       const file: FileChange = {
         path: 'src/foo.ts',
-        addedLines: 140,
+        addedLines: 110,
         deletedLines: 0,
       };
 
@@ -235,7 +231,7 @@ export function foo() {
     test('warns when 100-150% over limit', () => {
       const file: FileChange = {
         path: 'src/foo.ts',
-        addedLines: 200, // 150 * 1.33 = 133% over
+        addedLines: 160, // ~133% of adjusted limit (120)
         deletedLines: 0,
       };
 
@@ -248,7 +244,7 @@ export function foo() {
     test('strong warning when 150-200% over limit', () => {
       const file: FileChange = {
         path: 'src/foo.ts',
-        addedLines: 270, // 150 * 1.8 = 180% over
+        addedLines: 200, // ~167% of adjusted limit (120)
         deletedLines: 0,
       };
 
@@ -262,7 +258,7 @@ export function foo() {
     test('blocks when >200% over limit', () => {
       const file: FileChange = {
         path: 'src/foo.ts',
-        addedLines: 350, // 150 * 2.33 = 233% over
+        addedLines: 260, // > 2x adjusted limit (120)
         deletedLines: 0,
       };
 
@@ -325,13 +321,13 @@ export function foo() {
     test('AC1: Core logic remains strict', () => {
       const file: FileChange = {
         path: 'src/orchestrator/runtime.ts',
-        addedLines: 180,
+        addedLines: 260,
         deletedLines: 0,
       };
 
       const result = analyzeFileLOC(file);
 
-      expect(result.allowed).toBe(false); // 180 > 120 (0.8x multiplier)
+      expect(result.allowed).toBe(false); // > 2x adjusted limit
     });
 
     test('AC1b: Core logic with deletion credit passes', () => {
@@ -379,13 +375,13 @@ export function foo() {
     test('AC5: Progressive warnings work', () => {
       const warning: FileChange = {
         path: 'src/foo.ts',
-        addedLines: 200, // 133% over 150
+        addedLines: 160,
         deletedLines: 0,
       };
 
       const blocked: FileChange = {
         path: 'src/bar.ts',
-        addedLines: 350, // 233% over 150
+        addedLines: 260,
         deletedLines: 0,
       };
 

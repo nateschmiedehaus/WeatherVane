@@ -36,6 +36,7 @@ Every agent must complete these checks BEFORE proceeding to implementation.
   - Tests: Automated/manual tests now exist (failing/skipped is acceptable) or PLAN explicitly documents why tests are not applicable
   - Autopilot work: PLAN must list Wave 0 live testing steps (e.g., `npm run wave0`, `ps aux | grep wave0`, TaskFlow live smoke). No autopilot code may merge without these steps.
 - [ ] **Daily artifact audit complete (≤24h)**: I ran the checklist in `docs/checklists/daily_artifact_health.md`, rotated overrides if needed, and committed `state/evidence/AFP-ARTIFACT-AUDIT-YYYY-MM-DD/summary.md`.
+- [ ] **Guardrail monitor passing**: `node tools/wvo_mcp/scripts/check_guardrails.mjs` reports success (or CI guardrail job is green) before marking the task done.
 
 - [ ] **THINK complete**: I have reasoned through the solution
   - Documented: Edge cases, failure modes, AFP/SCAS validation

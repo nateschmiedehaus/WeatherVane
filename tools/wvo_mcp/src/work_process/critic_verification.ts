@@ -25,7 +25,7 @@ export interface CriticApprovalCheck {
  */
 function checkCriticApproval(
   taskId: string,
-  artifact: 'strategy' | 'think' | 'design'
+  artifact: 'strategy' | 'think' | 'design' | 'spec' | 'plan'
 ): CriticApprovalCheck {
   const artifactPath = join(
     WORKSPACE_ROOT,
@@ -49,7 +49,9 @@ function checkCriticApproval(
   const logMap = {
     strategy: 'strategy_reviews.jsonl',
     think: 'thinking_reviews.jsonl',
-    design: 'gate_reviews.jsonl'
+    design: 'gate_reviews.jsonl',
+    spec: 'spec_reviews.jsonl',
+    plan: 'plan_reviews.jsonl'
   };
 
   const logPath = join(WORKSPACE_ROOT, 'state', 'analytics', logMap[artifact]);
@@ -110,12 +112,31 @@ function checkCriticApproval(
   };
 }
 
+function checkArtifactPresence(taskId: string, artifactFile: string): CriticApprovalCheck {
+  const artifactPath = join(WORKSPACE_ROOT, 'state', 'evidence', taskId, artifactFile);
+  if (!existsSync(artifactPath)) {
+    return {
+      required: true,
+      artifact: artifactFile,
+      approved: false,
+      message: `${artifactFile} not found at ${artifactPath}`
+    };
+  }
+
+  return {
+    required: true,
+    artifact: artifactFile,
+    approved: true,
+    message: `${artifactFile} present ✓`
+  };
+}
+
 /**
  * Verify that required critics have approved before allowing phase transition
  *
  * Rules:
  * - Transitioning FROM STRATEGIZE (phase 1): strategy.md must be approved
- * - Transitioning FROM THINK (phase 4): think.md must be approved
+ * - Transitioning FROM THINK (phase 4): strategy/spec/plan/think artifacts must exist and strategy+think must be approved
  * - Transitioning FROM GATE (phase 5): design.md must be approved
  */
 export function verifyCriticApprovals(
@@ -126,10 +147,14 @@ export function verifyCriticApprovals(
   const checks: CriticApprovalCheck[] = [];
 
   // Define which critics must approve for which phase transitions
-  const requirements: Record<string, Array<'strategy' | 'think' | 'design'>> = {
+  const requirements: Record<string, Array<'strategy' | 'think' | 'design' | 'spec' | 'plan'>> = {
     strategize: ['strategy'],
-    think: ['think'],
+    think: ['strategy', 'spec', 'plan', 'think'],
     gate: ['design']
+  };
+
+  const artifactRequirements: Record<string, string[]> = {
+    think: ['strategy.md', 'spec.md', 'plan.md', 'think.md']
   };
 
   // Check if we're transitioning FROM a phase that requires critic approval
@@ -139,6 +164,12 @@ export function verifyCriticApprovals(
     for (const artifact of requiredArtifacts) {
       const check = checkCriticApproval(taskId, artifact);
       checks.push(check);
+    }
+  }
+
+  if (fromPhase && fromPhase in artifactRequirements) {
+    for (const artifactFile of artifactRequirements[fromPhase]) {
+      checks.push(checkArtifactPresence(taskId, artifactFile));
     }
   }
 

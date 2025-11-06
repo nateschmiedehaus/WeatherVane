@@ -103,6 +103,15 @@ How tasks flow from creation to completion.
   3. Audit (0 vulnerabilities)
   4. Runtime (works end-to-end)
   5. Documentation (complete)
+- Spec & Plan reviewers approved:
+  ```bash
+  npm run spec:review -- <TASK-ID>
+  npm run plan:review -- <TASK-ID>
+  ```
+  Approvals logged in `state/analytics/spec_reviews.jsonl` and `plan_reviews.jsonl`.
+  See `docs/workflows/AFP_REVIEWER_ROUTINE.md` for the full reviewer + Wave 0 command flow and log locations.
+- Daily artifact health audit committed within the last 24 hours (rotate overrides + summary)
+- Guardrail monitor (`node tools/wvo_mcp/scripts/check_guardrails.mjs`) reports PASS (or CI guardrail job is green)
 - Quality gates pass
 - Agent marks as done
 
@@ -287,18 +296,20 @@ git commit  # Hook will run DesignReviewer automatically
 ```typescript
 // NOW you can implement (ONLY after GATE approval)
 // Implement feature
-// Write tests
+// Make the PLAN-authored tests pass (no new tests here—return to PLAN if coverage is missing)
 // Document changes
+// Autopilot work: integrate Wave 0 supervision and keep PLAN's live steps in sync
 ```
 
 **d. Verify (Phase 7: VERIFY)**:
 ```typescript
 // Complete verification loop (iteratively)
 // 1. Build (0 errors)
-// 2. Test (all pass, 7/7 coverage)
+// 2. Run the tests authored during PLAN (all pass, 7/7 coverage). Need new tests? Go back to PLAN first.
 // 3. Audit (0 vulnerabilities)
 // 4. Runtime (works end-to-end)
 // 5. Documentation (complete)
+// Autopilot work: execute Wave 0 live loop exactly as written in PLAN (start Wave 0, observe task completion, capture telemetry)
 ```
 
 **e. Review (Phase 8: REVIEW)**:

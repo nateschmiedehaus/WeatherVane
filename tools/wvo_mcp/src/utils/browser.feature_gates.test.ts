@@ -2,19 +2,17 @@ import { describe, it, expect } from 'vitest';
 import { BrowserManager } from './browser.js';
 import type { FeatureGatesReader } from '../orchestrator/feature_gates.js';
 import type { LiveFlagsReader } from '../state/live_flags.js';
+import { createFeatureGatesStub } from '../orchestrator/__tests__/feature_gate_stub.js';
 
 function createFeatureGates(mode: 'pool' | 'none'): FeatureGatesReader {
-  return {
-    isCompactPromptMode: () => false,
-    getPromptMode: () => 'verbose',
-    isSandboxPoolEnabled: () => mode === 'pool',
-    getSandboxMode: () => mode,
-    getSchedulerMode: () => 'legacy',
-    isAdminToolsEnabled: () => false,
-    isUpgradeToolsEnabled: () => false,
-    isRoutingToolsEnabled: () => false,
-    isOutcomeLoggingEnabled: () => true,
-  };
+  return createFeatureGatesStub({
+    snapshot: {
+      sandboxMode: mode,
+      promptMode: 'verbose',
+      schedulerMode: 'legacy',
+      outcomeLoggingEnabled: true,
+    },
+  });
 }
 
 function createLiveFlags(mode: 'pool' | 'none'): LiveFlagsReader {

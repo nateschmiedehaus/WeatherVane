@@ -1,0 +1,1548 @@
+epics:
+  - id: WAVE-0
+    title: Wave 0 – Foundation Stabilisation
+    status: in_progress
+    domain: mcp
+    milestones:
+      - id: W0.M1
+        title: Reboot Autopilot Core
+        status: in_progress
+        tasks:
+          - id: AFP-W0-M1-ROADMAP-FAST-AUTONOMY-AUDIT
+            title: Audit roadmap for fast autonomy + self-improvement
+            status: done
+            dependencies: []
+            exit_criteria:
+              - Wave roadmap drafted with <4 week path to autonomy
+              - Self-editing + self-improvement tasks enumerated
+              - Fast-path milestones documented in state/evidence bundle
+            domain: mcp
+            description: >
+              Completed audit that re-sequenced the roadmap toward autonomy.
+              Provides baseline evidence bundle
+              (`state/evidence/AFP-ROADMAP-FAST-AUTONOMY-AUDIT`) and informs the
+              wave rewrite.
+          - id: AFP-W0-M1-MVP-SUPERVISOR-SCAFFOLD
+            title: MVP supervisor scaffold
+            status: done
+            dependencies: []
+            exit_criteria:
+              - "`autopilot_mvp/supervisor` reinstated with lease management
+                stubs"
+              - Telemetry hooks for task lifecycle implemented
+              - Passing integration smoke exercising supervisor loop
+            domain: mcp
+            description: >
+              Restore the stripped supervisor skeleton so Autopilot can own task
+              orchestration. Implements minimal leasing, logging, and evidence
+              capture to unblock downstream agents.
+          - id: TEST-SUPERVISOR-INTEGRATION-001
+            title: Test supervisor integration with Wave0 (verification task)
+            status: done
+            dependencies: []
+            exit_criteria:
+              - Wave0 picks up and executes this task
+              - Lifecycle events emitted to supervisor_lifecycle.jsonl
+              - Lease acquired and released properly
+              - All 4 lifecycle events present (selected, assigned, started,
+                completed)
+            domain: mcp
+            description: >
+              Verification task for AFP-W0-M1-MVP-SUPERVISOR-INTEGRATION. Tests
+              that supervisor components work with live Wave0 autopilot. This is
+              a minimal no-op task to verify orchestration.
+          - id: AFP-W0-VALIDATE-PROOF-LOOP
+            title: Validate proof-driven Wave 0 loop
+            status: done
+            dependencies: []
+            exit_criteria:
+              - Wave 0 executes this task with proof system enabled and marks it done
+              - Proof system generates verify.md for the task
+              - Lifecycle telemetry + achievements recorded in evidence bundle
+            domain: mcp
+            description: >
+              Synthetic validation task executed during
+              AFP-PROOF-DRIVEN-GAMIFICATION-20251106-REDO to prove the proof-driven
+              gamification loop works end to end.
+          - id: AFP-W0-M1-MVP-AGENTS-SCAFFOLD
+            title: MVP agents scaffold
+            status: done
+            dependencies:
+              - AFP-W0-M1-MVP-SUPERVISOR-SCAFFOLD
+            exit_criteria:
+              - Planner, builder, reviewer, and SRE agents reinstated with task
+                contracts
+              - Agent registry documented with responsibilities + escalation
+                policies
+              - Unit tests covering happy path + failure escalation
+            domain: mcp
+            description: >
+              Provide minimal agent implementations wired into the supervisor so
+              end-to-end flows can execute. Focus on contracts, evidence
+              emission, and safe fallbacks.
+          - id: AFP-W0-M1-MVP-LIBS-SCAFFOLD
+            title: MVP shared libraries scaffold
+            status: done
+            dependencies:
+              - AFP-W0-M1-MVP-SUPERVISOR-SCAFFOLD
+            exit_criteria:
+              - Shared telemetry, context, and filesystem helpers reintroduced
+              - Type-safe contracts between agents and supervisor exported
+              - Library README updated with via negativa guardrails
+            domain: mcp
+            description: >
+              Rehydrate the shared utilities Autopilot uses (telemetry, prompts,
+              IO). Keep lean and document patterns.
+          - id: AFP-W0-M1-MVP-ADAPTERS-SCAFFOLD
+            title: MVP adapters scaffold
+            status: done
+            dependencies:
+              - AFP-W0-M1-MVP-LIBS-SCAFFOLD
+            exit_criteria:
+              - Legacy orchestrator integration restored via adapters
+              - TTL documented (90 days) with sunset plan
+              - End-to-end smoke passes with adapter layer enabled
+            domain: mcp
+            description: >
+              Bridge legacy orchestration paths with the revived MVP stack so
+              Autopilot can pilot existing workloads while new APIs harden.
+          - id: AFP-W0-M1-AUTOPILOT-MVP-STRANGLER
+            title: Autopilot MVP clean-room integration
+            status: blocked
+            dependencies:
+              - AFP-W0-M1-MVP-SUPERVISOR-SCAFFOLD
+              - AFP-W0-M1-MVP-AGENTS-SCAFFOLD
+              - AFP-W0-M1-MVP-LIBS-SCAFFOLD
+              - AFP-W0-M1-MVP-ADAPTERS-SCAFFOLD
+            exit_criteria:
+              - Clean-room autopilot demo passes CI
+              - Legacy orchestrator routes traffic through adapter layer
+              - Demo evidence package published
+            domain: mcp
+            description: >
+              Meta task that closes when the MVP stack successfully runs the
+              end-to-end demo with the revived scaffolds.
+          - id: AFP-W0-M1-SCAFFOLD-EXECUTION
+            title: Execute Wave 0 scaffold bring-up
+            status: blocked
+            dependencies:
+              - AFP-W0-M1-MVP-SUPERVISOR-SCAFFOLD
+              - AFP-W0-M1-MVP-AGENTS-SCAFFOLD
+              - AFP-W0-M1-MVP-LIBS-SCAFFOLD
+              - AFP-W0-M1-MVP-ADAPTERS-SCAFFOLD
+              - AFP-W0-M1-DPS-BUILD
+              - AFP-W0-M1-MEMORY-CORE
+            exit_criteria:
+              - Scaffolds deployed in unattended run producing evidence in
+                `state/evidence/AFP-W0-SCAFFOLD-EXECUTION`
+              - Wave 0 task board reviewed and owners assigned in
+                `state/context.md`
+              - Follow-up backlog (if any) documented as remediation tasks
+            domain: mcp
+            description: >
+              Operational wrapper ensuring the foundational scaffolds
+              (supervisor, agents, libs, adapters, DPS, memory) are stood up
+              promptly with ownership, evidence, and remediation tracking so
+              Wave 0 momentum is maintained.
+          - id: AFP-W0-M1-DPS-BUILD
+            title: Dynamic Prompt System build
+            status: blocked
+            dependencies:
+              - AFP-W0-M1-MVP-SUPERVISOR-SCAFFOLD
+              - AFP-W0-M1-MVP-AGENTS-SCAFFOLD
+            exit_criteria:
+              - DPS registry reinstated with template coverage for revived agents
+              - Prompt schema validated against new roadmap patterns
+              - Documentation updated under `docs/autopilot/dps.md`
+            domain: mcp
+            description: >
+              Rebuild the Dynamic Prompt System once supervisor + agents
+              scaffolds exist so Autopilot can reason with updated templates.
+          - id: AFP-W0-M1-MEMORY-CORE
+            title: Memory core bootstrap
+            status: blocked
+            dependencies:
+              - AFP-W0-M1-DPS-BUILD
+            exit_criteria:
+              - Semantic memory store seeded with lessons + telemetry
+              - APIs exposed for agents to read/write learnings
+              - Memory integrity tests added
+            domain: mcp
+            description: >
+              Stand up the semantic memory layer that powers lesson persistence
+              and future self-improvement loops.
+          - id: AFP-W0-M1-WORKTREE-STABILIZE
+            title: Worktree stability & git hygiene
+            status: done
+            dependencies: []
+            exit_criteria:
+              - No git index.lock incidents across 5 consecutive Autopilot runs
+              - Git hygiene critic passes with zero warnings
+              - Stash/restore flows documented and automated
+            domain: mcp
+            description: >
+              Repair git hygiene (stashes, locks, dirty trees) so Autopilot can
+              operate unattended without corrupting the repo.
+          - id: AFP-W0-M1-GUARDRAIL-BASELINE
+            title: Baseline AFP/SCAS guardrail enforcement
+            status: done
+            dependencies:
+              - AFP-W0-M1-MVP-SUPERVISOR-SCAFFOLD
+              - AFP-W0-M1-MVP-AGENTS-SCAFFOLD
+            exit_criteria:
+              - Ledger integrity checker automated
+              - Override log review cadence defined
+              - Smart LOC + micro-batching guardrails verified on revived stack
+            domain: mcp
+            description: >
+              Ensure core guardrails (ledger, override controls, micro-batching)
+              hold after the MVP scaffolds return.
+          - id: AFP-W0-M1-EXIT-READINESS
+            title: Wave 0 exit readiness review
+            status: blocked
+            dependencies:
+              - AFP-W0-M1-AUTOPILOT-MVP-STRANGLER
+              - AFP-W0-M1-GUARDRAIL-BASELINE
+              - AFP-W0-M1-WORKTREE-STABILIZE
+            exit_criteria:
+              - Supervisor + agents running in unattended loop (>=4 hour soak)
+              - Guardrail dashboard green
+              - Evidence bundle published in
+                `state/evidence/AFP-W0-EXIT-READINESS`
+            domain: mcp
+            description: >
+              Formal gate confirming Autopilot can run for extended periods
+              without human babysitting before governance tightening begins.
+          - id: AFP-W0-M1-DEVICE-PROFILE-STABILITY
+            title: Stabilize device profile memory safeguards
+            status: blocked
+            dependencies:
+              - AFP-W0-M1-GUARDRAIL-BASELINE
+            exit_criteria:
+              - "device_profile resource limits Vitest suite passes without memory overruns"
+              - Resource heuristic documented in state/evidence bundle
+              - Evidence captured in state/evidence/AFP-MODULE-REMEDIATION-20251105-Q
+            domain: mcp
+            description: >
+              Resolve the device profile memory regression so Autopilot resource
+              caps remain enforceable in verification and live runs.
+          - id: AFP-W0-M1-DOMAIN-EXPERT-TEMPLATES
+            title: Refresh domain expert reviewer templates
+            status: blocked
+            dependencies:
+              - AFP-W0-M1-AUTOPILOT-MVP-STRANGLER
+            exit_criteria:
+              - Domain expert reviewer Vitest suite passes with updated prompts
+              - Template files versioned with AFP evidence
+              - Documentation describes prompt locations and update workflow
+            domain: mcp
+            description: >
+              Align domain expert reviewer prompts with current content so
+              autopilot reviews surface accurate guidance for specialised tasks.
+          - id: AFP-W0-M1-WAVE0-PROCESS-INVESTIGATION
+            title: Investigate Wave 0 process behavior
+            status: blocked
+            dependencies: []
+            exit_criteria:
+              - Document observed process count and behavior in evidence bundle
+              - Identify expected vs actual process spawning patterns
+              - Record findings in state/evidence/AFP-W0-PROCESS-INVESTIGATION
+            domain: mcp
+            description: >
+              Multiple Wave 0 processes observed running concurrently in background.
+              Investigation to understand process lifecycle, spawning behavior,
+              cleanup mechanisms, and whether current state matches intended design.
+              Factual observation and documentation without pre-evaluation.
+          - id: AFP-W5-M1-PROCESS-CRITIC
+            title: Implement ProcessCritic for PLAN/VERIFY test sequencing
+            status: done
+            dependencies: []
+            exit_criteria:
+              - ProcessCritic blocks commits when PLAN lacks authored tests
+              - Critic detects VERIFY-introduced tests and requires PLAN updates
+              - Documentation added describing remediation workflow
+            domain: mcp
+            description: Build a critic to enforce that tests are authored during PLAN and
+              not added during VERIFY. Integrate into pre-commit hooks and
+              document usage.
+      - id: W0.M2
+        title: Autopilot Test Harness Validation
+        status: done
+        tasks:
+          - id: AFP-AUTOPILOT-LIVE-VALIDATION
+            title: Validate agents can invoke and test with live Wave 0 autopilot
+            status: done
+            dependencies:
+              - AFP-W0-M1-EXIT-READINESS
+            exit_criteria:
+              - Agents successfully check Wave 0 status (ps aux | grep wave0)
+              - Agents successfully start Wave 0 if not running
+              - Agents successfully add test tasks to roadmap
+              - Wave 0 autonomously picks up and completes test tasks
+              - Evidence captured of autonomous execution (logs, status updates)
+              - Success defined as autonomous completion (not just build passing)
+              - TaskFlow test harness (tools/taskflow/) validated as safe test
+                environment
+            domain: mcp
+            description: >
+              Prove agents can use the live Wave 0 autopilot for testing
+              following the new guidance in claude.md and AGENTS.md. This
+              validates the testing workflow and ensures future development can
+              leverage autonomous validation instead of just manual build/test
+              verification. Uses TaskFlow CLI as safe test environment.
+      - id: W0.M3
+        title: Hierarchical Process System
+        status: in_progress
+        description: >
+          Implement 5-level hierarchical work process (META/PROJECT/EPIC/SET/TASK)
+          with mandatory embedding, enforced phase completion, and bidirectional
+          pattern flow. First task: Create WAVE-0 epic phase docs (we're already
+          in W0 but missing super-task structures).
+        sets:
+          - id: wave0-epic-bootstrap
+            title: Create WAVE-0 Epic Phase Docs (we're already in it!)
+            status: in_progress
+            description: >
+              CRITICAL FIRST STEP: Create strategy/spec/plan/think/design for
+              WAVE-0 epic itself. We're already executing W0 tasks but missing
+              the epic-level phase docs. Bootstrap the hierarchy by documenting
+              what WAVE-0 IS before building the system.
+            tasks:
+              - id: AFP-W0-EPIC-BOOTSTRAP
+                title: Create WAVE-0 epic strategy/spec/plan/think/design
+                status: pending
+                dependencies: []
+                set_id: wave0-epic-bootstrap
+                epic_id: WAVE-0
+                exit_criteria:
+                  - state/epics/WAVE-0/strategy.md created (why WAVE-0, urgency)
+                  - state/epics/WAVE-0/spec.md created (outcomes, metrics)
+                  - state/epics/WAVE-0/plan.md created (milestones, integration)
+                  - state/epics/WAVE-0/think.md created (risks, dependencies)
+                  - state/epics/WAVE-0/design.md created (architecture, patterns)
+                  - All docs validated by OutcomeCritic
+                domain: mcp
+                description: >
+                  Bootstrap hierarchical process by creating epic-level phase docs
+                  for WAVE-0 itself. This is meta-work: documenting the epic we're
+                  already in. Required before we can enforce epic gates on future
+                  epics.
+
+          - id: hierarchy-structure
+            title: Create 5-Level Structure (META/PROJECT/EPIC/SET/TASK)
+            status: pending
+            description: >
+              Create directory structure and templates for all 5 levels of
+              hierarchy. Includes META level for process itself.
+            tasks:
+              - id: AFP-HIERARCHY-META-STRUCTURE
+                title: Create META-level structure and templates
+                status: pending
+                dependencies:
+                  - AFP-W0-EPIC-BOOTSTRAP
+                set_id: hierarchy-structure
+                epic_id: WAVE-0
+                exit_criteria:
+                  - state/meta/ directory created with strategy/spec/plan/think/design
+                  - AFP principles documented in meta/plan/principles/
+                  - Process evolution rules in meta/design.md
+                  - MetaCritic specification complete
+                domain: mcp
+                description: >
+                  Create META level for process governance itself. Documents AFP/SCAS
+                  principles, process evolution policy, and how hierarchy works.
+
+              - id: AFP-HIERARCHY-PROJECT-STRUCTURE
+                title: Create PROJECT-level structure and templates
+                status: pending
+                dependencies:
+                  - AFP-HIERARCHY-META-STRUCTURE
+                set_id: hierarchy-structure
+                epic_id: WAVE-0
+                exit_criteria:
+                  - state/project/WEATHERVANE-2025/ created
+                  - Project strategy/spec/plan/think/design templates created
+                  - Architecture, tech stack, constraints documented
+                  - VisionCritic specification complete
+                domain: mcp
+                description: >
+                  Create PROJECT level structure. Document WEATHERVANE's architecture,
+                  tech stack (TypeScript/Python), constraints (≤150 LOC), and governance.
+
+              - id: AFP-HIERARCHY-SET-TEMPLATES
+                title: Create SET-level templates
+                status: pending
+                dependencies:
+                  - AFP-HIERARCHY-PROJECT-STRUCTURE
+                set_id: hierarchy-structure
+                epic_id: WAVE-0
+                exit_criteria:
+                  - docs/templates/set_strategy_template.md created
+                  - docs/templates/set_spec_template.md created
+                  - docs/templates/set_plan_template.md created
+                  - ClusterCritic specification complete
+                domain: mcp
+                description: >
+                  Create templates for SET (task group) level. Lightweight phase
+                  docs for clustering related tasks.
+
+          - id: hierarchy-enforcement
+            title: Enforce Hierarchy Gates and Embedding
+            status: pending
+            description: >
+              Implement pre-commit enforcement: Epic/Set must have phase docs
+              before tasks can be added. Tasks must be embedded in sets.
+            tasks:
+              - id: AFP-HIERARCHY-GATE-ENFORCER
+                title: Implement epic/set gate enforcement
+                status: pending
+                dependencies:
+                  - AFP-HIERARCHY-SET-TEMPLATES
+                set_id: hierarchy-enforcement
+                epic_id: WAVE-0
+                exit_criteria:
+                  - tools/wvo_mcp/src/enforcement/hierarchy_gates.ts created
+                  - enforceEpicGate() blocks tasks without epic phase docs
+                  - enforceSetGate() blocks tasks without set phase docs
+                  - enforceTaskEmbedding() requires set_id and epic_id
+                  - Unit tests pass (80% coverage)
+                domain: mcp
+                description: >
+                  Implement gate enforcement logic. Pre-commit hook blocks adding
+                  tasks to epic/set until strategy/spec/plan/think/design exist.
+
+              - id: AFP-HIERARCHY-PRECOMMIT-HOOKS
+                title: Integrate enforcement into pre-commit
+                status: pending
+                dependencies:
+                  - AFP-HIERARCHY-GATE-ENFORCER
+                set_id: hierarchy-enforcement
+                epic_id: WAVE-0
+                exit_criteria:
+                  - .husky/pre-commit updated with hierarchy checks
+                  - Git commit blocked if epic missing phase docs
+                  - Git commit blocked if set missing phase docs
+                  - Git commit blocked if task missing set_id/epic_id
+                  - Error messages clear and actionable
+                domain: mcp
+                description: >
+                  Add hierarchy enforcement to pre-commit hooks. Make violations
+                  IMPOSSIBLE (not just warned).
+
+          - id: hierarchy-critics
+            title: Implement Hierarchical Critics
+            status: pending
+            description: >
+              MetaCritic (process health), VisionCritic (project), OutcomeCritic
+              (epic), ClusterCritic (set).
+            tasks:
+              - id: AFP-HIERARCHY-META-CRITIC
+                title: Implement MetaCritic for process validation
+                status: pending
+                dependencies:
+                  - AFP-HIERARCHY-PRECOMMIT-HOOKS
+                set_id: hierarchy-critics
+                epic_id: WAVE-0
+                exit_criteria:
+                  - tools/wvo_mcp/src/critics/meta_critic.ts created
+                  - Validates process delivering outcomes (metrics check)
+                  - Validates patterns evolving (fitness scores)
+                  - Quarterly review automation
+                  - Tests pass
+                domain: mcp
+                description: >
+                  MetaCritic validates the process itself. Runs quarterly, checks
+                  if hierarchy is delivering value or becoming bureaucracy.
+
+              - id: AFP-HIERARCHY-LEVEL-CRITICS
+                title: Implement VisionCritic, OutcomeCritic, ClusterCritic
+                status: pending
+                dependencies:
+                  - AFP-HIERARCHY-META-CRITIC
+                set_id: hierarchy-critics
+                epic_id: WAVE-0
+                exit_criteria:
+                  - VisionCritic validates project vision clarity
+                  - OutcomeCritic validates epic outcomes measurability
+                  - ClusterCritic validates set grouping rationale
+                  - All integrated with pre-commit
+                  - Tests pass
+                domain: mcp
+                description: >
+                  Implement level-specific critics. Each validates phase docs
+                  at appropriate level.
+
+          - id: hierarchy-migration
+            title: Migrate Existing Work to Hierarchy
+            status: pending
+            description: >
+              Organize existing W0.M1/M2 tasks into sets, create set phase docs,
+              validate structure.
+            tasks:
+              - id: AFP-HIERARCHY-W0M1-MIGRATION
+                title: Organize W0.M1 tasks into sets
+                status: pending
+                dependencies:
+                  - AFP-HIERARCHY-LEVEL-CRITICS
+                set_id: hierarchy-migration
+                epic_id: WAVE-0
+                exit_criteria:
+                  - W0.M1 tasks organized into 3-5 sets
+                  - Each set has strategy/spec/plan phase docs
+                  - roadmap.yaml updated with set embedding
+                  - No orphaned tasks
+                domain: mcp
+                description: >
+                  Retroactively organize W0.M1's ~30 tasks into logical sets
+                  (proof-system, supervisor-integration, scaffold-bringup, etc).
+                  Create lightweight phase docs for each set.
+
+              - id: AFP-HIERARCHY-DOCUMENTATION
+                title: Write hierarchical process documentation
+                status: pending
+                dependencies:
+                  - AFP-HIERARCHY-W0M1-MIGRATION
+                set_id: hierarchy-migration
+                epic_id: WAVE-0
+                exit_criteria:
+                  - docs/processes/hierarchical_overview.md complete
+                  - docs/processes/meta_lifecycle.md complete
+                  - docs/processes/project_lifecycle.md complete
+                  - docs/processes/epic_lifecycle.md complete
+                  - docs/processes/set_lifecycle.md complete
+                  - Examples from WAVE-0 included
+                domain: mcp
+                description: >
+                  Document the hierarchical process system. Include examples from
+                  WAVE-0 migration showing how it works in practice.
+  - id: WAVE-1
+    title: Wave 1 – Governance & AFP Enforcement
+    status: pending
+    domain: mcp
+    milestones:
+      - id: W1.M1
+        title: Enforce AFP lifecycle & roadmap gating
+        status: done
+        tasks:
+          - id: AFP-W1-M1-S1-BOOTSTRAP
+            title: Stage 1 bootstrap audit
+            status: in_progress
+            dependencies:
+              - AFP-W0-M1-EXIT-READINESS
+            exit_criteria:
+              - Stage 1 checklist reconciled with revived MVP stack
+              - Evidence bundle updated for gaps
+              - Blocking issues escalated to roadmap
+            domain: mcp
+            description: >
+              Confirm Stage 1 foundations remain intact post Wave 0 and document
+              delta work.
+          - id: AFP-W1-M1-S1-GUARDRAILS
+            title: Baseline guardrail catalog
+            status: done
+            dependencies:
+              - AFP-W1-M1-S1-BOOTSTRAP
+            exit_criteria:
+              - Guardrail catalog in `meta/afp_scas_guardrails.yaml`
+              - Automated evaluation script passes
+              - Guardrail documentation updated
+            domain: mcp
+            description: >
+              Ensure guardrail catalog + enforcement extend across revived stack.
+          - id: AFP-W1-M1-S1-LEDGER
+            title: Work ledger verification
+            status: done
+            dependencies:
+              - AFP-W1-M1-S1-BOOTSTRAP
+            exit_criteria:
+              - Ledger schema validated
+              - Tamper detection tests passing
+              - Ledger maintenance runbook published
+            domain: mcp
+            description: >
+              Harden ledger pipeline, confirm tamper detection, and document
+              response paths.
+          - id: AFP-W1-M1-S1-WORK-PROCESS-ENFORCE
+            title: Work process enforcement
+            status: done
+            dependencies:
+              - AFP-W1-M1-S1-GUARDRAILS
+              - AFP-W1-M1-S1-LEDGER
+            exit_criteria:
+              - Pre-commit hook rejects missing evidence phases
+              - Automated overrides report delivered weekly
+              - DesignReviewer integrated into workflow
+            domain: mcp
+            description: >
+              Close the loop so agents cannot skip AFP phases or bypass
+              guardrails unnoticed.
+          - id: AFP-W1-M1-S1-ENFORCEMENT-PROOF
+            title: Guardrail enforcement proof
+            status: blocked
+            dependencies:
+              - AFP-W1-M1-S1-WORK-PROCESS-ENFORCE
+            exit_criteria:
+              - Live run demonstrating guardrail catch + remediation
+              - Report stored in `state/analytics/guardrail_enforcement.json`
+              - Dana sign-off recorded in roadmap notes
+            domain: mcp
+            description: >
+              Demonstrate end-to-end enforcement by intentionally triggering a
+              violation and capturing recovery evidence.
+          - id: AFP-W1-M1-GOVERNANCE-LOCK
+            title: Update governance docs & mandates
+            status: done
+            dependencies:
+              - AFP-W1-M1-S1-WORK-PROCESS-ENFORCE
+            exit_criteria:
+              - "`AGENTS.md`, `MANDATORY_WORK_CHECKLIST.md`, roadmap rules all
+                reference waves"
+              - Wave-first execution policy communicated
+              - Compliance audit checklist published
+            domain: mcp
+            description: >
+              Align documentation and human processes with the new wave roadmap
+              and enforcement requirements.
+          - id: AFP-W1-M1-DESIGNREVIEWER-LOOP
+            title: DesignReviewer & remediation loop
+            status: done
+            dependencies:
+              - AFP-W1-M1-S1-WORK-PROCESS-ENFORCE
+            exit_criteria:
+              - "`npm run gate:review` automated in workflow"
+              - Remediation task template defined
+              - Analytics log `state/analytics/design_reviews.jsonl` populated
+            domain: mcp
+            description: >
+              Ensure design reviews are enforced, logged, and produce actionable
+              remediation when blocked.
+          - id: AFP-W1-M1-ROADMAP-GUARDRAILS
+            title: Roadmap gating automation
+            status: done
+            dependencies:
+              - AFP-W1-M1-GOVERNANCE-LOCK
+              - AFP-W1-M1-DESIGNREVIEWER-LOOP
+            exit_criteria:
+              - "`plan_next` highlights wave order"
+              - Roadmap parser rejects off-wave tasks without exception
+              - Intake workflow updated with wave metadata
+            domain: mcp
+            description: >
+              Wire wave priorities into MCP tooling so agents and Autopilot
+              receive consistent guidance.
+          - id: AFP-W1-M1-EXIT-READINESS
+            title: Wave 1 exit readiness review
+            status: blocked
+            dependencies:
+              - AFP-W1-M1-S1-ENFORCEMENT-PROOF
+              - AFP-W1-M1-ROADMAP-GUARDRAILS
+            exit_criteria:
+              - Governance audit report complete
+              - Zero outstanding guardrail violations
+              - Evidence bundle `state/evidence/AFP-W1-EXIT-READINESS` published
+            domain: mcp
+            description: >
+              Gate ensuring AFP enforcement is working before investing in
+              knowledge base automation.
+  - id: WAVE-2
+    title: Wave 2 – Local Knowledge Base Deployment
+    status: pending
+    domain: mcp
+    milestones:
+      - id: W2.M1
+        title: README automation & structural health
+        status: done
+        tasks:
+          - id: AFP-W2-M1-README-TEMPLATE
+            title: Module README template & guidance
+            status: done
+            dependencies:
+              - AFP-W1-M1-EXIT-READINESS
+            exit_criteria:
+              - "`docs/templates/module_readme_template.md` created"
+              - Usage guide added to `docs/README_AUTOMATION.md`
+              - Examples generated for ≥3 core modules
+            domain: mcp
+            description: >
+              Provide a reusable template so teams can add contextual notes
+              above the generated block.
+          - id: AFP-W2-M1-README-GENERATION
+            title: Generate missing module READMEs
+            status: done
+            dependencies:
+              - AFP-W2-M1-README-TEMPLATE
+            exit_criteria:
+              - At least 25 missing READMEs generated
+              - READMEs include critical evaluation section
+              - Manifest updated with new directories
+            domain: mcp
+            description: >
+              Run docsync to seed missing knowledge with curated allowlists and
+              manifest updates.
+          - id: AFP-W2-M1-MODULE-INDEX
+            title: Module navigation index
+            status: done
+            dependencies:
+              - AFP-W2-M1-README-GENERATION
+            exit_criteria:
+              - "`docs/MODULE_INDEX.md` generated from manifest"
+              - Index linked from `AGENTS.md`
+              - Update script documented
+            domain: mcp
+            description: >
+              Create a single entry point for agents to locate modules, owners,
+              dependents, and key docs.
+          - id: AFP-W2-M1-DEPENDENCY-DIAGRAMS
+            title: Dependency diagrams
+            status: done
+            dependencies:
+              - AFP-W2-M1-README-GENERATION
+            exit_criteria:
+              - Mermaid diagrams produced for tracked modules
+              - Diagrams embedded in READMEs or linked index
+              - CI check ensures diagrams regenerate when manifest changes
+            domain: mcp
+            description: >
+              Visualise module relationships to boost locality awareness for
+              agents and Autopilot.
+          - id: AFP-W2-M1-FIRST-TIME-GUIDES
+            title: First-time here guides
+            status: done
+            dependencies:
+              - AFP-W2-M1-MODULE-INDEX
+            exit_criteria:
+              - "`docs/FIRST_TIME_ORCHESTRATOR.md` authored"
+              - Template for module onboarding created
+              - Linked from relevant READMEs
+            domain: mcp
+            description: >
+              Provide concise onboarding instructions for new contributors to
+              reduce ramp friction.
+          - id: AFP-W2-M1-AUTO-UPDATES
+            title: README auto-update guardrails
+            status: done
+            dependencies:
+              - AFP-W2-M1-README-GENERATION
+            exit_criteria:
+              - "`.docsyncignore` finalized and committed"
+              - Analyzer directory cap enforced via tests
+              - CI job ensures manifest stays current
+            domain: mcp
+            description: >
+              Harden docsync to avoid runaway generations and ensure manifest
+              accuracy.
+          - id: AFP-W2-M1-MANIFEST-TELEMETRY
+            title: Manifest telemetry & remediation loop
+            status: done
+            dependencies:
+              - AFP-W2-M1-AUTO-UPDATES
+            exit_criteria:
+              - "`state/analytics/readme_manifest.json` captures metrics &
+                warning counts"
+              - Automation opens roadmap tasks for critical warnings
+              - README sync log reviewed weekly
+            domain: mcp
+            description: >
+              Connect README metrics to roadmap/critics so structural issues
+              trigger action.
+          - id: AFP-W2-M1-WARNING-REMEDIATION
+            title: README warning remediation queue
+            status: blocked
+            dependencies:
+              - AFP-W2-M1-MANIFEST-TELEMETRY
+            exit_criteria:
+              - Critical/high warnings triaged into executable roadmap or
+                backlog tasks
+              - Automated report summarising outstanding warnings generated in
+                `state/analytics/readme_warnings.json`
+              - First remediation sprint completed with outcomes logged
+            domain: mcp
+            description: >
+              Stand up a repeatable process to drain high-severity README
+              warnings captured by docsync, converting them into actionable
+              roadmap items and tracking burn-down metrics.
+          - id: AFP-W2-M1-EXIT-READINESS
+            title: Wave 2 exit readiness review
+            status: blocked
+            dependencies:
+              - AFP-W2-M1-MODULE-INDEX
+              - AFP-W2-M1-AUTO-UPDATES
+              - AFP-W2-M1-MANIFEST-TELEMETRY
+            exit_criteria:
+              - README automation runs clean in CI
+              - Knowledge base scorecard published
+              - Evidence bundle `state/evidence/AFP-W2-EXIT-READINESS` complete
+            domain: mcp
+            description: >
+              Gate verifying the knowledge base is trustworthy before running
+              autonomy stress tests.
+      - id: W2.M2
+        title: Prompt architecture & lifecycle
+        status: done
+        tasks:
+          - id: AFP-W2-M2-PROMPT-RESEARCH
+            title: Prompt research & taxonomy
+            status: done
+            dependencies:
+              - AFP-W1-M1-EXIT-READINESS
+            exit_criteria:
+              - Research dossier synthesising 2024–2025 open literature,
+                industry playbooks, and AFP/SCAS implications
+              - Prompt taxonomy covering roles, objectives, safeguards, and
+                escalation patterns
+              - Strategy stored in `docs/autonomy/prompt_strategy.md` with cited
+                sources
+            domain: mcp
+            description: >
+              Establish a strategic foundation for prompts by surveying
+              state-of-the-art techniques and mapping them to AFP/SCAS
+              principles.
+          - id: AFP-W2-M2-PROMPT-LIFECYCLE
+            title: Prompt registry & lifecycle engine
+            status: done
+            dependencies:
+              - AFP-W2-M2-PROMPT-RESEARCH
+            exit_criteria:
+              - Versioned prompt registry with metadata (role, owner, risk
+                level, evaluation status)
+              - Lifecycle policy (draft→review→rollout→retire) documented and
+                enforced via CI
+              - Audit trail persists in `state/analytics/prompt_registry.json`
+            domain: mcp
+            description: >
+              Treat prompts as governed assets with ownership, history, and
+              promotion rules so changes are auditable and reversible.
+          - id: AFP-W2-M2-PROMPT-EVAL
+            title: Prompt evaluation harness
+            status: done
+            dependencies:
+              - AFP-W2-M2-PROMPT-RESEARCH
+            exit_criteria:
+              - Automated evaluation harness covering planner, builder,
+                reviewer, researcher, critic, SRE, and PM roles
+              - Golden conversation suites + synthetic scenarios versioned
+                alongside prompts
+              - Metrics published to `state/analytics/prompt_eval.json` with
+                regression thresholds
+            domain: mcp
+            description: >
+              Provide objective signal on prompt quality using automated tasks,
+              metrics, and regression detection.
+          - id: AFP-W2-M2-PROMPT-ROLE-LIBRARY
+            title: Role-specific prompt library
+            status: done
+            dependencies:
+              - AFP-W2-M2-PROMPT-RESEARCH
+              - AFP-W2-M2-PROMPT-LIFECYCLE
+            exit_criteria:
+              - Prompt stacks shipped for planner, builder, reviewer,
+                researcher, critic, SRE, and program steward roles
+              - Each stack documents escalation, override, and AFP/SCAS
+                guardrails
+              - Library catalogued in registry with usage examples and
+                dependencies
+            domain: mcp
+            description: >
+              Supply curated prompt compositions per Autopilot role so
+              behaviours stay consistent across scenarios.
+          - id: AFP-W2-M2-PROMPT-AUTO-GEN
+            title: Autopilot prompt generator
+            status: blocked
+            dependencies:
+              - AFP-W2-M2-PROMPT-LIFECYCLE
+              - AFP-W2-M2-PROMPT-EVAL
+            exit_criteria:
+              - Autopilot can draft prompt variants under policy guardrails with
+                evaluation feedback loops
+              - Successful prompt improvement merged via automated run and
+                logged in registry
+              - Safety rails detect regressions and roll back automatically
+            domain: mcp
+            description: >
+              Empower Autopilot to propose and refine prompts programmatically
+              while staying inside lifecycle guardrails.
+          - id: AFP-W2-M2-PROMPT-CRITIC
+            title: Prompt critic & review automation
+            status: blocked
+            dependencies:
+              - AFP-W2-M2-PROMPT-EVAL
+              - AFP-W2-M2-PROMPT-AUTO-GEN
+            exit_criteria:
+              - Dedicated prompt critic integrated into review pipeline with
+                remediation workflow
+              - Critic output logged to `state/analytics/prompt_reviews.jsonl`
+              - Demonstrated catch of risky prompt change in sandbox test (with
+                documented fix)
+            domain: mcp
+            description: >
+              Install automated reviewers to scrutinize human- and
+              Autopilot-generated prompts before rollout.
+          - id: AFP-W2-M2-PROMPT-PATTERN-LAB
+            title: Prompt pattern lab & playbook
+            status: done
+            dependencies:
+              - AFP-W2-M2-PROMPT-RESEARCH
+            exit_criteria:
+              - Pattern catalog published (prompt skeletons, anti-patterns,
+                AFP/SCAS checklists)
+              - Style guide + “prompt via negativa” guidelines added to
+                `docs/autonomy/prompt_patterns.md`
+              - Training sessions or self-serve docs for agents recorded
+            domain: mcp
+            description: >
+              Capture best-known prompt patterns, rewrite them for different
+              roles, and ensure agents have concrete guidance when authoring new
+              prompts.
+          - id: AFP-W2-M2-PROMPT-TELEMETRY
+            title: Prompt telemetry & analytics
+            status: blocked
+            dependencies:
+              - AFP-W2-M2-PROMPT-LIFECYCLE
+              - AFP-W2-M2-PROMPT-EVAL
+            exit_criteria:
+              - Prompt usage metrics (success, drift, overrides) logged to
+                `state/analytics/prompt_metrics.json`
+              - Dashboard visualising health, regressions, and adoption trends
+                online
+              - Alerts for drift or high override rates configured
+            domain: mcp
+            description: >
+              Instrument prompts so we can observe performance, detect drift,
+              and prioritise remediation.
+          - id: AFP-W2-M2-PROMPT-REDTEAM
+            title: Prompt red-team & safety drills
+            status: blocked
+            dependencies:
+              - AFP-W2-M2-PROMPT-EVAL
+              - AFP-W2-M2-PROMPT-TELEMETRY
+            exit_criteria:
+              - Adversarial test suite covering jailbreaks, hallucinations,
+                bias, and escalations
+              - Quarterly red-team runbook with remediation workflow
+              - Safety metrics reported alongside evaluation results
+            domain: mcp
+            description: >
+              Stress-test prompts under adversarial and safety-sensitive
+              conditions, ensuring failures trigger structured remediation.
+          - id: AFP-W2-M2-PROMPT-PLAYGROUND
+            title: Prompt playground & sandbox
+            status: blocked
+            dependencies:
+              - AFP-W2-M2-PROMPT-LIFECYCLE
+            exit_criteria:
+              - Guardrailed playground for humans/agents to experiment with
+                prompts
+              - Session logs captured for learning without polluting production
+                registry
+              - Integration with evaluation harness for quick feedback loops
+            domain: mcp
+            description: >
+              Provide a safe environment to trial prompt ideas, observe
+              behaviours, and graduate successful variants into the registry.
+          - id: AFP-W2-M2-PROMPT-EXIT-READINESS
+            title: Prompt architecture exit readiness review
+            status: blocked
+            dependencies:
+              - AFP-W2-M2-PROMPT-LIFECYCLE
+              - AFP-W2-M2-PROMPT-EVAL
+              - AFP-W2-M2-PROMPT-CRITIC
+              - AFP-W2-M2-PROMPT-TELEMETRY
+              - AFP-W2-M2-PROMPT-REDTEAM
+            exit_criteria:
+              - Prompt dashboards covering registry, evaluation, and critic
+                findings published
+              - Telemetry, red-team, and pattern playbooks reviewed with
+                leadership
+              - Evidence bundle `state/evidence/AFP-W2-PROMPT-EXIT-READINESS`
+                complete
+              - Approval recorded to advance to Wave 3 with prompt governance in
+                place
+            domain: mcp
+            description: >
+              Confirm prompt design, evaluation, and lifecycle automation meet
+              AFP/SCAS requirements before autonomy stress tests.
+  - id: WAVE-3
+    title: Wave 3 – Autonomy Stress Tests & Reliability
+    status: pending
+    domain: mcp
+    milestones:
+      - id: W3.M1
+        title: Prove Autopilot reliability on WeatherVane work
+        status: done
+        tasks:
+          - id: AFP-W3-M1-AUTONOMY-PLAYBOOKS
+            title: Autonomy task playbooks
+            status: done
+            dependencies:
+              - AFP-W2-M1-EXIT-READINESS
+            exit_criteria:
+              - Catalogue of ≥5 representative WeatherVane tasks
+              - For each task: prerequisites, critics, verification script
+              - Stored in `docs/autonomy/autonomy_playbooks.md`
+            domain: mcp
+            description: >
+              Define the scenarios Autopilot must execute to claim reliability
+              (schema change, worker fix, UI tweak, etc.).
+          - id: AFP-W3-M1-EXECUTE-QUEUE
+            title: Execute autonomy queue
+            status: blocked
+            dependencies:
+              - AFP-W3-M1-AUTONOMY-PLAYBOOKS
+            exit_criteria:
+              - Autopilot completes ≥5 playbooks end-to-end
+              - Evidence packages stored under `state/evidence/autonomy_runs/`
+              - Success rate ≥95%
+            domain: mcp
+            description: >
+              Run the curated queue unattended; capture metrics, remediation,
+              and human audits.
+          - id: AFP-W3-M1-FAULT-DRILLS
+            title: Fault drills & chaos tests
+            status: done
+            dependencies:
+              - AFP-W3-M1-AUTONOMY-PLAYBOOKS
+            exit_criteria:
+              - Simulated git conflict, critic failure, build break executed
+              - Autopilot recovery documented with timeline + fix
+              - Chaos drill report logged in
+                `state/analytics/autonomy_faults.json`
+            domain: mcp
+            description: >
+              Prove Autopilot can recover gracefully from expected failure
+              scenarios.
+          - id: AFP-W3-M1-ROLLBACK-READINESS
+            title: Rollback & kill-switch rehearsal
+            status: done
+            dependencies:
+              - AFP-W3-M1-FAULT-DRILLS
+            exit_criteria:
+              - Rollback procedure executed and timed
+              - Kill-switch documented and tested
+              - On-call escalation tree finalized
+            domain: ops
+            description: >
+              Ensure operations can quickly disable Autopilot or revert changes
+              when required.
+          - id: AFP-W3-M1-RELIABILITY-DASHBOARD
+            title: Reliability dashboard
+            status: blocked
+            dependencies:
+              - AFP-W3-M1-EXECUTE-QUEUE
+              - AFP-W3-M1-ROLLBACK-READINESS
+            exit_criteria:
+              - Dashboard added under `dashboards/`
+              - Metrics include success rate, MTTR, guardrail incidents
+              - Alerts configured for regressions
+            domain: ops
+            description: >
+              Provide persistent visibility into autonomy performance and
+              guardrail health.
+          - id: AFP-W3-M1-EXIT-READINESS
+            title: Wave 3 exit readiness review
+            status: blocked
+            dependencies:
+              - AFP-W3-M1-EXECUTE-QUEUE
+              - AFP-W3-RELIABILITY-DASHBOARD
+            exit_criteria:
+              - Reliability report delivered to leadership
+              - Audit trail stored in `state/evidence/AFP-W3-EXIT-READINESS`
+              - Approval recorded for proceeding to gauntlet
+            domain: mcp
+            description: >
+              Confirms Autopilot is reliable enough to tackle the autonomy
+              gauntlet.
+  - id: WAVE-4
+    title: Wave 4 – Autonomy Proof Gauntlet
+    status: pending
+    domain: mcp
+    milestones:
+      - id: W4.M1
+        title: Build arbitrary software end-to-end
+        status: done
+        tasks:
+          - id: AFP-W4-M1-BUILD-GAME
+            title: Autopilot builds a game
+            status: blocked
+            dependencies:
+              - AFP-W3-M1-EXIT-READINESS
+            exit_criteria:
+              - New repo module `experiments/autopilot_game` created entirely by
+                Autopilot
+              - Includes tests, README, and CI pipeline
+              - Human review verifies zero manual edits beyond audit
+            domain: product
+            description: >
+              Demonstrate creative build capability by shipping a small
+              interactive game using Autopilot only.
+          - id: AFP-W4-M1-BUILD-CLI
+            title: Autopilot builds a CLI tool
+            status: blocked
+            dependencies:
+              - AFP-W3-M1-EXIT-READINESS
+            exit_criteria:
+              - CLI tool published under `tools/` with packaging + README
+              - "`make test` suite covers commands"
+              - Release notes + telemetry captured
+            domain: mcp
+            description: >
+              Prove Autopilot can design, implement, and document a command-line
+              utility from scratch.
+          - id: AFP-W4-M1-BUILD-SERVICE
+            title: Autopilot builds an API/service
+            status: blocked
+            dependencies:
+              - AFP-W3-M1-EXIT-READINESS
+            exit_criteria:
+              - Service deployed locally (FastAPI/Next.js) with README + tests
+              - Observability hooks integrated
+              - Deployment instructions validated by reviewer
+            domain: mcp
+            description: >
+              Produce a functioning service demonstrating Autopilot’s ability to
+              stitch backend + documentation.
+          - id: AFP-W4-M1-DOCUMENTATION-AUDIT
+            title: Documentation & knowledge audit
+            status: blocked
+            dependencies:
+              - AFP-W4-M1-BUILD-GAME
+              - AFP-W4-M1-BUILD-CLI
+              - AFP-W4-M1-BUILD-SERVICE
+            exit_criteria:
+              - README automation adapts to new modules automatically
+              - Auditor verifies knowledge propagation up/down hierarchy
+              - Audit stored in `docs/AUTONOMY_PROOF_REPORT.md`
+            domain: mcp
+            description: >
+              Ensure new modules integrate seamlessly into knowledge base and
+              structural health systems.
+          - id: AFP-W4-M1-RELIABILITY-100
+            title: 100% reliability proof
+            status: blocked
+            dependencies:
+              - AFP-W4-M1-DOCUMENTATION-AUDIT
+            exit_criteria:
+              - Telemetry demonstrates 100% success across gauntlet tasks
+              - Third-party review certifies autonomy proof
+              - Executive sign-off captured
+            domain: ops
+            description: >
+              Formal declaration Autopilot can program anything we need, backed
+              by metrics and audit.
+          - id: AFP-W4-M1-EXIT-READINESS
+            title: Wave 4 exit readiness review
+            status: blocked
+            dependencies:
+              - AFP-W4-RELIABILITY-100
+            exit_criteria:
+              - Autonomy proof report delivered
+              - Lessons learned logged to knowledge base
+              - Approval granted to move into continuous evolution
+            domain: mcp
+            description: |
+              Gate verifying the autonomy gauntlet is complete and documented.
+  - id: WAVE-5
+    title: Wave 5 – Continuous Evolution & Monitoring
+    status: pending
+    domain: mcp
+    milestones:
+      - id: W5.M1
+        title: Institutionalise autonomy operations
+        status: done
+        tasks:
+          - id: AFP-W5-M1-ROADMAP-SCHEMA
+            title: Roadmap schema & validation
+            status: done
+            dependencies:
+              - AFP-W4-M1-EXIT-READINESS
+            exit_criteria:
+              - JSON schema for roadmap published
+              - Validation script integrated into CI
+              - Documentation added to `docs/roadmap/schema.md`
+            domain: mcp
+            description: >
+              Define and validate the roadmap schema so Autopilot can safely
+              mutate it.
+          - id: AFP-W5-M1-ROADMAP-MUTATION-API
+            title: Roadmap mutation API
+            status: done
+            dependencies:
+              - AFP-W5-M1-ROADMAP-SCHEMA
+            exit_criteria:
+              - Programmatic API for roadmap edits implemented
+              - Permission model + guardrails enforced
+              - Unit tests cover add/update/remove flows
+            domain: mcp
+            description: >
+              Enable Autopilot to evolve the roadmap autonomously under strict
+              guardrails. COMPLETED: Implemented in
+              tools/wvo_mcp/src/orchestrator/roadmap_mutations.ts (462 LOC) with
+              full dependency validation (cycles, orphans, self-dependencies),
+              impact analysis, rate limiting (100/day), conflict detection, and
+              audit trail. Tests: roadmap_mutations.test.ts (315 LOC, 10/10
+              passing). Commit: db831ea59.
+          - id: AFP-W5-M1-ROADMAP-GUARDRAILS
+            title: Roadmap mutation guardrails
+            status: in_progress
+            dependencies:
+              - AFP-W5-M1-ROADMAP-MUTATION-API
+            exit_criteria:
+              - Guardrails prevent regressions (cycles, orphans,
+                self-dependencies) ✅ DONE
+              - Rate limiting enforced (max 100 mutations/day) ✅ DONE
+              - Conflict detection for parallel mutations ✅ DONE
+              - Fuzz tests simulate invalid mutations (REMAINING)
+              - Alerts fire when guardrails triggered (REMAINING)
+            domain: mcp
+            description: >
+              Protect roadmap integrity when mutations occur automatically.
+              PARTIAL: Core guardrails (dependency validation, rate limiting,
+              conflict detection) implemented in mutation API. Remaining work:
+              Fuzz testing and alerting infrastructure.
+          - id: AFP-W5-M1-ROADMAP-VALIDATION
+            title: Roadmap validation pipeline
+            status: done
+            dependencies:
+              - AFP-W5-M1-ROADMAP-SCHEMA
+              - AFP-W5-M1-ROADMAP-GUARDRAILS
+            exit_criteria:
+              - CI workflow validating roadmap on every PR
+              - Validation summary appended to PR comment
+              - Documentation linked from governance section
+            domain: mcp
+            description: |
+              Provide continuous verification before roadmap changes merge.
+          - id: AFP-W5-M1-QUALITY-METRICS
+            title: Autonomy quality metrics
+            status: done
+            dependencies:
+              - AFP-W4-M1-EXIT-READINESS
+            exit_criteria:
+              - Metrics defined (throughput, defect rate, overrides)
+              - Data pipeline populates `state/analytics/autonomy_metrics.json`
+              - Dashboard visualising metrics online
+            domain: ops
+            description: |
+              Provide ongoing insight into autonomy performance.
+          - id: AFP-W5-M1-FEEDBACK-LOOP
+            title: Autonomy feedback loop
+            status: done
+            dependencies:
+              - AFP-W5-M1-QUALITY-METRICS
+              - AFP-W0-M1-MEMORY-CORE
+            exit_criteria:
+              - Feedback loop spec documented
+              - Automated process learns from metrics and creates improvement
+                tasks
+              - At least one improvement cycle executed
+            domain: mcp
+            description: |
+              Close the loop so Autopilot iteratively improves based on metrics.
+          - id: AFP-W5-M1-SELF-REFACTOR
+            title: Self-refactor capability
+            status: done
+            dependencies:
+              - AFP-W5-M1-FEEDBACK-LOOP
+            exit_criteria:
+              - Autopilot performs a self-directed refactor with verification
+              - Evidence package stored under
+                `state/evidence/autonomy_refactors/`
+              - Post-mortem documents benefits and learnings
+            domain: mcp
+            description: |
+              Demonstrate Autopilot can refactor its own code safely.
+          - id: AFP-W5-M1-LESSON-PERSISTENCE
+            title: Lesson persistence & memory
+            status: done
+            dependencies:
+              - AFP-W0-M1-MEMORY-CORE
+              - AFP-W5-M1-FEEDBACK-LOOP
+            exit_criteria:
+              - Lessons persisted across sessions
+              - Memory audit shows retrieval working
+              - Lessons integrated into playbooks
+            domain: mcp
+            description: >
+              Ensure Autopilot retains insights from prior runs and uses them in
+              future decisions.
+          - id: AFP-W5-M1-WORK-PROCESS-SCHEMA
+            title: Work process type system & schema
+            status: done
+            dependencies:
+              - AFP-W5-M1-ROADMAP-MUTATION-API
+            exit_criteria:
+              - TypeScript types for hierarchical processes (task set, epic)
+              - Meta-review types (effectiveness metrics, flaws, remediation)
+              - Template evolution types (A/B testing, incremental improvements)
+              - Process enforcement types
+            domain: mcp
+            description: >
+              Foundation type system for hierarchical work processes enabling
+              meta-review and self-improvement. COMPLETED: Implemented in
+              tools/wvo_mcp/src/schemas/work_process_schema.ts (501 LOC).
+              Defines complete type system for task set processes (6 phases),
+              epic processes (7 phases), meta-review, remediation tasks,
+              template evolution, and enforcement. Commit: db831ea59.
+          - id: AFP-W5-M1-WORK-PROCESS-EXECUTOR
+            title: Hierarchical work process executor
+            status: done
+            dependencies:
+              - AFP-W5-M1-WORK-PROCESS-SCHEMA
+            exit_criteria:
+              - Hierarchical executor implemented (~300 LOC)
+              - Task set process executes (6 phases
+                ASSESS→VALIDATE→VIA_NEGATIVA→OPTIMIZE→DOCUMENT→META-REVIEW)
+              - Epic process executes (7 phases
+                STRATEGIZE→ALTERNATIVES→ROI→VIA_NEGATIVA→STRUCTURE→DOCUMENT→META-REVIEW)
+              - Meta-review analyzer runs automatically after each execution
+              - Remediation tasks created when flaws detected
+              - Integration tests validate all process types
+            domain: mcp
+            description: >
+              Core execution engine for hierarchical work processes. Enables
+              autopilot to reason at organizational levels (task set coherence,
+              epic strategic validation). Meta-review identifies process flaws
+              (effectiveness, efficiency, coverage) and creates mandatory
+              remediation tasks. Model-agnostic: Works with any agent (Claude,
+              Codex, etc).
+          - id: AFP-W5-M1-WORK-PROCESS-TEMPLATES
+            title: Work process templates & evidence enhancement
+            status: done
+            dependencies:
+              - AFP-W5-M1-WORK-PROCESS-EXECUTOR
+            exit_criteria:
+              - Task set process template exists
+                (docs/templates/task_set_process_template.md)
+              - Epic process template exists
+                (docs/templates/epic_process_template.md)
+              - Evidence template enhanced with tasks.md and context.md
+              - Template versioning system implemented
+              - Metrics collection integrated
+            domain: mcp
+            description: >
+              Process templates defining execution structure for task sets and
+              epics. Includes enhancement to evidence bundle template (adding
+              tasks.md checklist and context.md for key decisions). Templates
+              support incremental evolution with A/B testing framework.
+              Integrates best practice: enhanced evidence template for better
+              session resume.
+          - id: AFP-W5-M1-PROCESS-ENFORCEMENT
+            title: Work process enforcement & quality gates
+            status: done
+            dependencies:
+              - AFP-W5-M1-WORK-PROCESS-TEMPLATES
+            exit_criteria:
+              - ProcessEnforcementCritic validates compliance (~150 LOC)
+              - Pre-commit hooks enforce process execution before completion
+              - Test-and-fix loop prevents bad commits (blocks until all checks
+                pass)
+              - Helper scripts for validation (find incomplete task sets/epics)
+              - End-to-end enforcement tests passing
+            domain: mcp
+            description: >
+              Multi-layer enforcement ensuring process compliance. Layer 1:
+              Pre-commit hooks block commits without process evidence. Layer 2:
+              ProcessEnforcementCritic validates in CI. Layer 3: Autopilot
+              self-check before marking complete. Integrates best practice:
+              test-and-fix loop with /tmp/agent-pre-commit-pass marker for
+              iterative quality gates.
+          - id: AFP-W5-M1-TEMPLATE-EVOLUTION
+            title: Process template evolution & A/B testing
+            status: done
+            dependencies:
+              - AFP-W5-M1-FEEDBACK-LOOP
+              - AFP-W5-M1-WORK-PROCESS-TEMPLATES
+            exit_criteria:
+              - Templates evolve incrementally (max 20% change per iteration)
+              - A/B testing framework operational (50/50 split, min 10
+                executions)
+              - Statistical significance testing (p < 0.05)
+              - Auto-rollback on degradation (>5% metric drop)
+              - Cooldown enforced (1 week between template changes)
+              - Template version history tracked
+            domain: mcp
+            description: >
+              Open evolution system enabling templates to improve continuously
+              based on effectiveness metrics. Meta-review identifies template
+              flaws, proposes incremental improvements, A/B tests new vs old
+              template, and auto-rolls back if metrics degrade. Ensures
+              processes get "better" over time with quantitative measurement.
+          - id: AFP-W5-M1-TASK-SUFFIX-AUTOMATION
+            title: Programmatic task ID suffix generation & updates
+            status: done
+            dependencies:
+              - AFP-W5-M1-ROADMAP-MUTATION-API
+            exit_criteria:
+              - Script generates/updates task IDs with location-based suffix
+                (WAVE-MILESTONE-TASKNAME)
+              - All existing tasks updated to new naming convention
+              - Automation runs on roadmap structure changes
+              - Documentation added to docs/roadmap/task_naming.md
+              - Integration tests validate suffix generation logic
+            domain: mcp
+            description: >
+              Implement tooling to automatically generate and update task IDs
+              based on their location in the roadmap hierarchy. Tasks get suffix
+              matching their wave and milestone (e.g., AFP-W5-M1-TASK-NAME for
+              Wave 5, Milestone 1 tasks). Enables consistent naming and
+              automatic updates when tasks move between milestones or waves.
+              Uses roadmap mutation API for safe programmatic updates with full
+              audit trail.
+          - id: AFP-W5-M1-PROPERTY-BASED-TESTING
+            title: Property-based testing implementation
+            status: in_progress
+            dependencies: []
+            exit_criteria:
+              - Documentation added to UNIVERSAL_TEST_STANDARDS.md ✅ DONE
+              - fast-check installed in wvo_mcp (REMAINING)
+              - 3+ property tests written for mutation API (REMAINING)
+              - Integrated into CI (REMAINING)
+              - Examples documented for common properties (idempotence, inverse
+                operations, invariants)
+            domain: mcp
+            description: >
+              Implement property-based testing using fast-check library. Test
+              invariants rather than specific cases, generating hundreds of test
+              cases automatically. Universal practice (model-agnostic). PARTIAL:
+              Documentation added (285 lines in UNIVERSAL_TEST_STANDARDS.md).
+              Remaining: Install fast-check, write property tests for roadmap
+              mutation API to validate core invariants (cycles never created,
+              dependencies always valid, rate limits enforced).
+          - id: AFP-W5-M1-VISUAL-REFERENCE-WORKFLOW
+            title: Visual reference workflow documentation
+            status: done
+            dependencies: []
+            exit_criteria:
+              - Workflow documented in CLAUDE.md
+              - Integration with design_system critic explained
+              - Example screenshots in docs
+              - Best practice: iterate with screenshots (mock → code → screenshot → compare →
+                  iterate)
+            domain: mcp
+            description: >
+              Document workflow for using screenshot tools (screenshot_capture,
+              screenshot_session) to iterate on UI design. Universal practice
+              (model-agnostic). Pattern: provide visual mock/design, implement
+              in code, capture screenshot, compare and iterate (typically 2-3
+              rounds). Tools already available, just need workflow
+              documentation.
+          - id: AFP-W5-M1-UTILITY-SCRIPTS
+            title: Utility scripts library
+            status: done
+            dependencies: []
+            exit_criteria:
+              - Scripts created in tools/scripts/ (test-auth-route.js,
+                format-code.sh, check-quality.sh)
+              - Documentation for each script
+              - Used in at least 3 workflows
+              - Universal practice (model-agnostic)
+            domain: mcp
+            description: >
+              Create library of ready-to-use utility scripts for common tasks.
+              Universal practice (model-agnostic). Prevents wheel reinvention,
+              provides faster execution. Scripts accumulate over time as common
+              patterns emerge.
+          - id: AFP-W5-M1-SKILLS-SYSTEM
+            title: Skills system with auto-activation (Claude-specific)
+            status: done
+            dependencies: []
+            exit_criteria:
+              - Hook-based auto-activation working (UserPromptSubmit hook)
+              - skill-rules.json with trigger patterns
+              - 3-5 example skills created
+              - Token usage measured (expect 40-60% savings)
+              - Progressive disclosure pattern implemented (main <500 lines +
+                resource files)
+              - Codex alternative documented: progressive disclosure in CLAUDE.md (manual activation)
+            domain: mcp
+            description: >
+              Implement Skills System with hook-based auto-activation for Claude
+              sessions. Skills are Claude Code feature, not available in Codex.
+              Hook analyzes prompt for keywords and automatically activates
+              relevant skills. Delivers 40-60% token efficiency improvement.
+              CODEX ALTERNATIVE: Use progressive disclosure pattern in CLAUDE.md
+              with manual activation.
+          - id: AFP-W5-M1-HIERARCHICAL-PROCESS-ENFORCEMENT
+            title: Hierarchical work process enforcement
+            status: done
+            dependencies: []
+            exit_criteria:
+              - Pre-execution check validates correct process level
+                (task/task-set/epic)
+              - Blocks execution without evidence bundle for appropriate level
+              - Task level requires strategy.md (AFP 10-phase)
+              - Task-set level requires assessment.md (6-phase ASSESS →
+                META-REVIEW)
+              - Epic level requires strategic_analysis.md (7-phase STRATEGIZE →
+                META-REVIEW)
+              - Clear error messages guide agents to correct process
+              - Override via SKIP_HIERARCHY_CHECK=1 logged to overrides.jsonl
+            domain: mcp
+            description: >
+              Enforces the HIERARCHY of work processes, not just individual task
+              compliance. Ensures agents execute at the appropriate cognitive
+              level: individual tasks use AFP 10-phase, task sets use 6-phase
+              process (ASSESS → META-REVIEW), epics use 7-phase process
+              (STRATEGIZE → META-REVIEW). Prevents jumping straight to
+              implementation without executing the required cognitive work at
+              the appropriate hierarchical level. Complements
+              AFP-W5-M1-PROCESS-ENFORCEMENT (which enforces compliance within a
+              single level).
+          - id: AFP-W5-M1-MONITORING-DECK
+            title: Autonomy monitoring deck
+            status: done
+            dependencies:
+              - AFP-W5-M1-QUALITY-METRICS
+            exit_criteria:
+              - Executive-ready deck summarising autonomy health
+              - Updated monthly via automation
+              - Shared in `/dashboards/autonomy/monitoring.md`
+            domain: ops
+            description: >
+              Provide leadership with ongoing visibility into autonomy status
+              and improvements.
+          - id: AFP-W5-M1-EXIT-READINESS
+            title: Wave 5 exit readiness review
+            status: blocked
+            dependencies:
+              - AFP-W5-M1-ROADMAP-VALIDATION
+              - AFP-W5-M1-LESSON-PERSISTENCE
+              - AFP-W5-M1-MONITORING-DECK
+            exit_criteria:
+              - Continuous evolution loop proven for 90 days
+              - Monitoring & mutation guardrails green
+              - Evidence bundle `state/evidence/AFP-W5-EXIT-READINESS` published
+            domain: mcp
+            description: >
+              Final gate: confirms autonomy is self-sustaining and well
+              monitored.
+  - id: LEGACY-BACKLOG
+    title: Legacy Product Backlog (post-autonomy)
+    status: blocked
+    domain: product
+    milestones:
+      - id: LEGACY.MARKETING
+        title: Marketing product backlog
+        status: blocked
+        tasks:
+          - id: LEGACY-PHASE0
+            title: Phase 0 – Measurement & Confidence (archived)
+            status: blocked
+            dependencies:
+              - AFP-W5-M1-EXIT-READINESS
+            exit_criteria:
+              - Reactivated only after autonomy proof complete
+            domain: product
+            description: >
+              Historical product roadmap phases retained for reference.
+              Reactivate once autonomy waves complete.
+          - id: LEGACY-PHASE1
+            title: Phase 1 – Experience Delivery (archived)
+            status: blocked
+            dependencies:
+              - AFP-W5-M1-EXIT-READINESS
+            exit_criteria:
+              - Autonomy sign-off to resume customer roadmap
+            domain: product
+            description: >
+              Consolidated placeholder for prior Phase 1 backlog. Details reside
+              in git history.

@@ -64,6 +64,10 @@ rm -rf dist && npm run build
 
 ### Step 2: TEST Verification
 
+**The tests you run here were authored during PLAN.**  
+If you discover missing coverage, STOP, return to PLAN, create the tests, then re-run IMPLEMENT. VERIFY is **execution-only**, not a time to write new tests tailored to the fresh implementation.
+- Autopilot work must include a live Wave 0 loop: start `npm run wave0` (or TaskFlow live smoke), confirm `ps aux | grep wave0`, and document results. No shortcuts—PLAN defines the live steps VERIFY executes.
+
 ```bash
 npm test  # Run all tests
 
@@ -76,6 +80,13 @@ bash ../../scripts/validate_test_quality.sh path/to/test.ts
 
 **Exit Criteria:**
 - ✅ All tests **PASS**
+- ✅ Tests match what PLAN documented (including any manual checks) and no new tests were authored in VERIFY
+- ✅ Spec/Plan reviewers executed (after THINK, before IMPLEMENT) for every task approaching the gate:
+  ```bash
+  npm run spec:review -- <TASK-ID>
+  npm run plan:review -- <TASK-ID>
+  ```
+  Approvals must appear in `state/analytics/spec_reviews.jsonl` and `state/analytics/plan_reviews.jsonl`.
 - ✅ Tests cover all 7 dimensions (see UNIVERSAL_TEST_STANDARDS.md):
   1. Happy path
   2. Edge cases
@@ -96,10 +107,14 @@ bash ../../scripts/validate_test_quality.sh path/to/test.ts
 
 ```bash
 npm audit
+node tools/wvo_mcp/scripts/rotate_overrides.mjs --dry-run
+node tools/wvo_mcp/scripts/rotate_overrides.mjs
 ```
 
 **Exit Criteria:**
 - ✅ **ZERO vulnerabilities** (none, not even low severity)
+- ✅ Overrides older than 24h archived (if `--dry-run` indicated rotation needed)
+- ✅ `state/evidence/AFP-ARTIFACT-AUDIT-YYYY-MM-DD/summary.md` updated with commands + outcomes
 
 **If vulnerabilities found:**
 - ❌ Task is NOT complete
@@ -152,6 +167,8 @@ npm audit
 - ✅ Feature runs without errors (if applicable)
 - ✅ Resources stay bounded (if applicable)
 - ✅ Documentation is complete
+- ✅ Daily Artifact Health report exists for the current 24-hour window (rotation script run, results committed)
+- ✅ Guardrail Monitor (`node tools/wvo_mcp/scripts/check_guardrails.mjs`) reports PASS (or CI guardrail job is green)
 
 **If even ONE criterion fails, you MUST iterate: fix → build → test → audit → repeat.**
 

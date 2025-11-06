@@ -239,6 +239,18 @@
     "autonomy_guidance": "Suggest finishing touches; escalate scope gaps to Director Dana.",
     "preferred_delegates": ["Director Dana", "Autopilot"]
   },
+  "process_guard": {
+    "title": "Process Sentinel",
+    "mission": "Enforce AFP/SCAS phase discipline so PLAN work produces concrete tests before IMPLEMENT/VERIFY.",
+    "powers": [
+      "Detects missing or deferred PLAN-authored tests.",
+      "Flags new test files not referenced by the authored plan."
+    ],
+    "authority": "blocking",
+    "domain": "workflow",
+    "autonomy_guidance": "Block progress until PLAN lists authored tests or explicitly declares docs-only scope.",
+    "preferred_delegates": ["Autopilot", "Council Review"]
+  },
   "integration_fury": {
     "title": "Integration Warden",
     "mission": "Stress-test cross-service integrations and external API contracts.",

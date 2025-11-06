@@ -87,6 +87,7 @@ tools/wvo_mcp/state/
 state/analytics/**/*.jsonl.gz
 state/analytics/archives/
 state/backups/db/
+!state/analytics/guardrail_compliance.jsonl
 
 # Next.js build output
 apps/web/out/
@@ -142,3 +143,4 @@ weather-vane/
 state/.mcp.pid
 state/limits/usage_log.json
 state/analytics/provider_capacity_metrics.json
+state/roadmap.json.tmp
