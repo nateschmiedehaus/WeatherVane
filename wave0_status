@@ -1,0 +1,20 @@
+#!/usr/bin/env node
+'use strict';
+
+const { collectWave0Status } = require('./wave0_status_lib/collect');
+const { formatStatusReport, parseArgs, runCli } = require('./wave0_status_lib/ui');
+
+if (require.main === module) {
+  try {
+    runCli();
+  } catch (error) {
+    console.error('[wave0_status] Failed to collect status:', error);
+    process.exitCode = 1;
+  }
+}
+
+module.exports = {
+  collectWave0Status,
+  formatStatusReport,
+  parseArgs,
+};

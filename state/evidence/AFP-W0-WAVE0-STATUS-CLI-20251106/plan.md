@@ -17,6 +17,7 @@
 1. **Status Collector** – implement helper functions:
    - `readLockFile`, `isPidAlive`, `readRecentJsonl`, `summarizeLifecycle`, `collectWave0Status`, and `formatStatusReport`.
    - Ensure missing files simply produce warnings and fallback text.
+   - Keep helpers small (<150 LOC each) so guardrails stay green even when CLI grows.
 2. **CLI Wiring**
    - Parse simple flags (no dependency) and call collector.
    - Provide `--json` output and text table with relative timestamps.

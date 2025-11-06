@@ -22,3 +22,4 @@ Reviewer runs (2025-11-06 UTC):
 - SpecReviewer ✅ (`npm run spec:review -- AFP-W0-WAVE0-STATUS-CLI-20251106`)
 - PlanReviewer ✅ (`npm run plan:review -- AFP-W0-WAVE0-STATUS-CLI-20251106`)
 - DesignReviewer ✅ (`npm run gate:review -- AFP-W0-WAVE0-STATUS-CLI-20251106`)
+- Added CLI refactor evidence on 2025-11-06 (modular helpers + status CLI smoke)
