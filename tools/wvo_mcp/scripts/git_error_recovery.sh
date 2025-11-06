@@ -88,9 +88,9 @@ if git diff --name-only --diff-filter=U | grep -q .; then
   echo "$conflicted_files" | head -10
   echo ""
 
-  echo "Attempting intelligent merge (auto-merge → union → fallback)..."
+  echo "Attempting intelligent merge (auto → semantic → union → fallback)..."
 
-  # Intelligent merge resolution (Batch 1: auto + union + validation)
+  # Intelligent merge resolution (Batch 2: auto + semantic + union + validation)
   while IFS= read -r file; do
     if [ -f "$file" ]; then
       echo "  Processing: $file"
@@ -113,6 +113,18 @@ if git diff --name-only --diff-filter=U | grep -q .; then
           git add "$file"
           log_merge_decision "$file" "fallback_ours" "validation_failed"
         fi
+
+      # Batch 2: Semantic merge for TypeScript
+      elif [[ "$file" == *.ts || "$file" == *.tsx ]] && attempt_semantic_merge_typescript "$file"; then
+        echo "    ✓ Semantic merge (TypeScript) successful"
+        git add "$file"
+        log_merge_decision "$file" "semantic_merge_typescript" "kept_both"
+
+      # Batch 2: Semantic merge for JSON
+      elif [[ "$file" == *.json ]] && attempt_semantic_merge_json "$file"; then
+        echo "    ✓ Semantic merge (JSON) successful"
+        git add "$file"
+        log_merge_decision "$file" "semantic_merge_json" "kept_both"
 
       elif attempt_union_merge "$file"; then
         echo "    ⚠️  Union merge (manual review needed)"

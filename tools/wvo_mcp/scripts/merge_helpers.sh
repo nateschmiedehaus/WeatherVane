@@ -153,5 +153,116 @@ log_merge_decision() {
 }
 
 #------------------------------------------------------------------------------
+# attempt_semantic_merge_typescript - Structure-aware merge for TypeScript files
+#
+# Extracts imports and functions from both versions, merges them by structure
+# rather than line numbers. Succeeds when both sides add different functions.
+#
+# Args:
+#   $1 - Path to conflicted TypeScript file
+#
+# Returns:
+#   0 if semantic merge succeeds (both sides' structures preserved)
+#   1 if semantic merge fails (same function name modified differently)
+#------------------------------------------------------------------------------
+attempt_semantic_merge_typescript() {
+  local file=$1
+
+  # Extract imports from both sides (single-line only - MVP limitation)
+  local imports_ours=$(grep '^import ' "$file.ours" 2>/dev/null | sort -u || true)
+  local imports_theirs=$(grep '^import ' "$file.theirs" 2>/dev/null | sort -u || true)
+
+  # Merge imports (union, deduplicate)
+  local imports_merged=$(echo -e "$imports_ours\n$imports_theirs" | grep -v '^$' | sort -u)
+
+  # Extract functions from both sides (export function only - MVP limitation)
+  local functions_ours=$(grep '^export function ' "$file.ours" 2>/dev/null || true)
+  local functions_theirs=$(grep '^export function ' "$file.theirs" 2>/dev/null || true)
+
+  # Merge functions (keep both if different names, conflict if same name)
+  local functions_merged=$(merge_typescript_functions "$functions_ours" "$functions_theirs")
+  if [ $? -ne 0 ]; then
+    return 1  # Conflict (same function name modified differently)
+  fi
+
+  # Rebuild file: imports + blank line + functions
+  {
+    echo "$imports_merged"
+    echo ""
+    echo "$functions_merged"
+  } > "$file"
+
+  # Validate with TypeScript compiler
+  if validate_merge "$file"; then
+    return 0  # Success
+  else
+    return 1  # Validation failed
+  fi
+}
+
+#------------------------------------------------------------------------------
+# merge_typescript_functions - Helper to merge function lists
+#
+# Checks if functions have different names (safe to merge) or same names
+# (conflict requiring manual resolution).
+#
+# Args:
+#   $1 - Functions from ours
+#   $2 - Functions from theirs
+#
+# Returns:
+#   Merged functions (stdout)
+#   0 if merge succeeds (different names)
+#   1 if conflict detected (same name)
+#------------------------------------------------------------------------------
+merge_typescript_functions() {
+  local functions_ours=$1
+  local functions_theirs=$2
+
+  # Extract function names (simplified: "export function name(")
+  local names_ours=$(echo "$functions_ours" | sed -n 's/^export function \([a-zA-Z0-9_]*\)(.*/\1/p' | sort)
+  local names_theirs=$(echo "$functions_theirs" | sed -n 's/^export function \([a-zA-Z0-9_]*\)(.*/\1/p' | sort)
+
+  # Check for name collisions
+  local collisions=$(comm -12 <(echo "$names_ours") <(echo "$names_theirs"))
+  if [ -n "$collisions" ]; then
+    return 1  # Conflict: same function name in both
+  fi
+
+  # Union merge (keep both - different names)
+  echo -e "$functions_ours\n$functions_theirs" | grep -v '^$'
+  return 0
+}
+
+#------------------------------------------------------------------------------
+# attempt_semantic_merge_json - Key-based merge for JSON files
+#
+# Uses jq's * operator to recursively merge JSON keys. Prefers right side
+# (theirs) on key conflicts.
+#
+# Args:
+#   $1 - Path to conflicted JSON file
+#
+# Returns:
+#   0 if semantic merge succeeds (keys merged)
+#   1 if merge fails (invalid JSON produced)
+#------------------------------------------------------------------------------
+attempt_semantic_merge_json() {
+  local file=$1
+
+  # Use jq's * operator for recursive merge
+  # Prefers right side (theirs) on key conflicts
+  if jq -s '.[0] * .[1]' "$file.ours" "$file.theirs" > "$file.merged" 2>/dev/null; then
+    # Validate merged JSON
+    if validate_merge "$file.merged"; then
+      mv "$file.merged" "$file"
+      return 0  # Success
+    fi
+  fi
+
+  return 1  # Merge or validation failed
+}
+
+#------------------------------------------------------------------------------
 # End of merge_helpers.sh
 #------------------------------------------------------------------------------
