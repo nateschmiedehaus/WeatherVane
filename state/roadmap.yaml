@@ -44,12 +44,13 @@ epics:
               - Wave0 picks up and executes this task
               - Lifecycle events emitted to supervisor_lifecycle.jsonl
               - Lease acquired and released properly
-              - All 4 lifecycle events present (selected, assigned, started, completed)
+              - All 4 lifecycle events present (selected, assigned, started,
+                completed)
             domain: mcp
             description: >
-              Verification task for AFP-W0-M1-MVP-SUPERVISOR-INTEGRATION.
-              Tests that supervisor components work with live Wave0 autopilot.
-              This is a minimal no-op task to verify orchestration.
+              Verification task for AFP-W0-M1-MVP-SUPERVISOR-INTEGRATION. Tests
+              that supervisor components work with live Wave0 autopilot. This is
+              a minimal no-op task to verify orchestration.
           - id: AFP-W0-M1-MVP-AGENTS-SCAFFOLD
             title: MVP agents scaffold
             status: done
@@ -159,7 +160,7 @@ epics:
               and future self-improvement loops.
           - id: AFP-W0-M1-WORKTREE-STABILIZE
             title: Worktree stability & git hygiene
-            status: in_progress
+            status: done
             dependencies: []
             exit_criteria:
               - No git index.lock incidents across 5 consecutive Autopilot runs
