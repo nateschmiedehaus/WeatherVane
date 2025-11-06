@@ -2,6 +2,7 @@ import type { Task } from './state_machine.js';
 import type { AssembledContext } from './context_assembler.js';
 
 export type ReasoningLevel = 'minimal' | 'low' | 'medium' | 'high';
+export type WorkType = 'cognitive' | 'implementation' | 'remediation' | 'observational';
 
 export interface ReasoningSignal {
   reason: string;
@@ -25,11 +26,73 @@ interface OverrideResult {
 type MetadataRecord = Record<string, unknown>;
 
 /**
+ * Infer work type from task metadata, phase, or title.
+ * Work type is orthogonal to reasoning level: WHAT kind of work vs HOW DEEP to think.
+ */
+export function inferWorkType(task: Task): WorkType {
+  // 1. Explicit metadata (highest priority)
+  if (task.metadata?.work_type) {
+    return task.metadata.work_type as WorkType;
+  }
+
+  // 2. Infer from AFP phase
+  const phase = task.metadata?.current_phase as string;
+  if (phase) {
+    const COGNITIVE_PHASES = ['STRATEGIZE', 'SPEC', 'PLAN', 'THINK', 'GATE', 'REVIEW'];
+    if (COGNITIVE_PHASES.includes(phase)) {
+      return 'cognitive';
+    }
+    if (['IMPLEMENT', 'VERIFY'].includes(phase)) {
+      return 'implementation';
+    }
+  }
+
+  // 3. Infer from title
+  const title = task.title.toUpperCase();
+  if (title.includes('REMEDIATION') || title.includes('FIX') || title.includes('HOTFIX')) {
+    return 'remediation';
+  }
+  if (title.includes('MONITOR') || title.includes('OBSERVE')) {
+    return 'observational';
+  }
+
+  // 4. Default
+  return 'implementation';
+}
+
+/**
  * Infer the reasoning level required for a task using lightweight heuristics.
  * The goal is to dynamically adapt reasoning depth for each task rather than
  * relying on a static preset or global toggle.
+ *
+ * Now enhanced with work_type awareness: cognitive work gets high reasoning by default.
  */
 export function inferReasoningRequirement(task: Task, context: AssembledContext): ReasoningDecision {
+  // NEW: Work type is highest priority signal
+  const workType = inferWorkType(task);
+
+  if (workType === 'cognitive') {
+    const phase = task.metadata?.current_phase || 'inferred';
+    return {
+      level: 'high',
+      score: 2.0,
+      confidence: 0.95,
+      signals: [{ reason: `Cognitive work (${phase}) requires deep thinking`, weight: 2.0 }],
+      override: 'metadata'
+    };
+  }
+
+  if (workType === 'remediation') {
+    return {
+      level: 'low',
+      score: 0.5,
+      confidence: 0.90,
+      signals: [{ reason: 'Remediation prioritizes fast iteration', weight: 0.5 }],
+      override: 'metadata'
+    };
+  }
+
+  // EXISTING: Continue with task-based inference for implementation/observational work
   const override = extractMetadataOverride(task.metadata);
   if (override) {
     return {
@@ -362,4 +425,34 @@ function levelToScore(level: ReasoningLevel): number {
 
 function round(value: number): number {
   return Math.round(value * 100) / 100;
+}
+
+/**
+ * Get Claude extended thinking budget based on reasoning level.
+ *
+ * Extended thinking allows Claude to spend more time on complex reasoning.
+ * Budget is specified in tokens (minimum 1024, maximum 128000).
+ *
+ * Usage: Add to Claude API request:
+ * ```typescript
+ * const budget = getThinkingBudget(reasoningLevel);
+ * if (budget > 0) {
+ *   request.thinking = {
+ *     type: 'enabled',
+ *     budget_tokens: budget
+ *   };
+ * }
+ * ```
+ *
+ * @param reasoningLevel - The inferred reasoning level for the task
+ * @returns Token budget for extended thinking (0 = disabled)
+ */
+export function getThinkingBudget(reasoningLevel: ReasoningLevel): number {
+  const budgets: Record<ReasoningLevel, number> = {
+    high: 12000,      // Cognitive work: deep strategic thinking
+    medium: 4000,     // Complex implementation: moderate analysis
+    low: 0,           // Standard work: no extended thinking needed
+    minimal: 0        // Observational/monitoring: no thinking needed
+  };
+  return budgets[reasoningLevel] || 0;
 }

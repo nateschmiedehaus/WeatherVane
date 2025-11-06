@@ -13,6 +13,18 @@
         "warningCount": 1
       }
     },
+    "apps/api": {
+      "digest": "6a89960e985fe92670dfbea0af8537bca1aa9a84",
+      "lastUpdated": "2025-11-05T23:29:07.544Z",
+      "metrics": {
+        "coherenceScore": 5,
+        "economyScore": 5,
+        "localityScore": 5,
+        "visibilityScore": 3,
+        "evolutionScore": 5,
+        "warningCount": 1
+      }
+    },
     "apps/api/db": {
       "digest": "8f161c4c8b7157cd3385a595cf287e7bbef19154",
       "lastUpdated": "2025-11-05T23:29:07.543Z",
@@ -37,8 +49,8 @@
         "warningCount": 1
       }
     },
-    "apps/api/routes/models": {
-      "digest": "7c829063d4258f0e38fa951640d851e18c12624e",
+    "apps/api/routes": {
+      "digest": "6cbee74a81c9635374fc27335887f5a6ae1519ae",
       "lastUpdated": "2025-11-05T23:29:07.544Z",
       "metrics": {
         "coherenceScore": 5,
@@ -49,8 +61,8 @@
         "warningCount": 1
       }
     },
-    "apps/api/routes": {
-      "digest": "6cbee74a81c9635374fc27335887f5a6ae1519ae",
+    "apps/api/routes/models": {
+      "digest": "7c829063d4258f0e38fa951640d851e18c12624e",
       "lastUpdated": "2025-11-05T23:29:07.544Z",
       "metrics": {
         "coherenceScore": 5,
@@ -85,9 +97,9 @@
         "warningCount": 1
       }
     },
-    "apps/api": {
-      "digest": "6a89960e985fe92670dfbea0af8537bca1aa9a84",
-      "lastUpdated": "2025-11-05T23:29:07.544Z",
+    "apps/model": {
+      "digest": "7cdb5067b7753896863f38849aa06f3afe26390e",
+      "lastUpdated": "2025-11-05T23:29:07.545Z",
       "metrics": {
         "coherenceScore": 5,
         "economyScore": 5,
@@ -133,8 +145,20 @@
         "warningCount": 1
       }
     },
-    "apps/model": {
-      "digest": "7cdb5067b7753896863f38849aa06f3afe26390e",
+    "apps/shopify_app": {
+      "digest": "b5661030e472f0cfaf7d05a803d74dae89b723dd",
+      "lastUpdated": "2025-11-05T23:27:13.386Z",
+      "metrics": {
+        "coherenceScore": 4,
+        "economyScore": 5,
+        "localityScore": 5,
+        "visibilityScore": 5,
+        "evolutionScore": 5,
+        "warningCount": 1
+      }
+    },
+    "apps/shopify_app/src": {
+      "digest": "4437330b2a92eb66003c43b7babe30237451816a",
       "lastUpdated": "2025-11-05T23:29:07.545Z",
       "metrics": {
         "coherenceScore": 5,
@@ -169,18 +193,6 @@
         "warningCount": 1
       }
     },
-    "apps/shopify_app/src": {
-      "digest": "4437330b2a92eb66003c43b7babe30237451816a",
-      "lastUpdated": "2025-11-05T23:29:07.545Z",
-      "metrics": {
-        "coherenceScore": 5,
-        "economyScore": 5,
-        "localityScore": 5,
-        "visibilityScore": 3,
-        "evolutionScore": 5,
-        "warningCount": 1
-      }
-    },
     "apps/shopify_app/storage": {
       "digest": "e61c513b55fe5dcfe3ab3428d3bb3f441a18a367",
       "lastUpdated": "2025-11-05T23:29:07.546Z",
@@ -191,18 +203,6 @@
         "visibilityScore": 5,
         "evolutionScore": 5,
         "warningCount": 0
-      }
-    },
-    "apps/shopify_app": {
-      "digest": "b5661030e472f0cfaf7d05a803d74dae89b723dd",
-      "lastUpdated": "2025-11-05T23:27:13.386Z",
-      "metrics": {
-        "coherenceScore": 4,
-        "economyScore": 5,
-        "localityScore": 5,
-        "visibilityScore": 5,
-        "evolutionScore": 5,
-        "warningCount": 1
       }
     },
     "apps/simulator": {
@@ -229,9 +229,21 @@
         "warningCount": 1
       }
     },
-    "apps/web/src/components/__tests__": {
-      "digest": "f9e481a65bebd8e84749a2eae3b949783827e0e0",
-      "lastUpdated": "2025-11-05T23:29:07.546Z",
+    "apps/web": {
+      "digest": "a4dbc5b33c2be8bb3be5d8449a17e2e69c610340",
+      "lastUpdated": "2025-11-05T23:29:07.548Z",
+      "metrics": {
+        "coherenceScore": 4,
+        "economyScore": 5,
+        "localityScore": 5,
+        "visibilityScore": 3,
+        "evolutionScore": 5,
+        "warningCount": 2
+      }
+    },
+    "apps/web/src": {
+      "digest": "1017817e7e4fae0c1f488e82e7a1d723d65a3e7b",
+      "lastUpdated": "2025-11-05T23:29:07.548Z",
       "metrics": {
         "coherenceScore": 5,
         "economyScore": 5,
@@ -251,6 +263,18 @@
         "visibilityScore": 3,
         "evolutionScore": 5,
         "warningCount": 2
+      }
+    },
+    "apps/web/src/components/__tests__": {
+      "digest": "f9e481a65bebd8e84749a2eae3b949783827e0e0",
+      "lastUpdated": "2025-11-05T23:29:07.546Z",
+      "metrics": {
+        "coherenceScore": 5,
+        "economyScore": 5,
+        "localityScore": 5,
+        "visibilityScore": 5,
+        "evolutionScore": 5,
+        "warningCount": 0
       }
     },
     "apps/web/src/demo": {
@@ -277,18 +301,6 @@
         "warningCount": 1
       }
     },
-    "apps/web/src/lib/__tests__": {
-      "digest": "8700f939dbabd2cd05df8d9f4ad6149a51b9ee8a",
-      "lastUpdated": "2025-11-05T23:29:07.547Z",
-      "metrics": {
-        "coherenceScore": 5,
-        "economyScore": 5,
-        "localityScore": 5,
-        "visibilityScore": 5,
-        "evolutionScore": 5,
-        "warningCount": 0
-      }
-    },
     "apps/web/src/lib": {
       "digest": "0d6b84bbbede53916239337194aeda7bae219769",
       "lastUpdated": "2025-11-05T23:29:07.547Z",
@@ -301,8 +313,8 @@
         "warningCount": 1
       }
     },
-    "apps/web/src/pages/__tests__": {
-      "digest": "3dcdad423e5110452f290bd8859b7faed4df01e2",
+    "apps/web/src/lib/__tests__": {
+      "digest": "8700f939dbabd2cd05df8d9f4ad6149a51b9ee8a",
       "lastUpdated": "2025-11-05T23:29:07.547Z",
       "metrics": {
         "coherenceScore": 5,
@@ -323,6 +335,18 @@
         "visibilityScore": 3,
         "evolutionScore": 5,
         "warningCount": 2
+      }
+    },
+    "apps/web/src/pages/__tests__": {
+      "digest": "3dcdad423e5110452f290bd8859b7faed4df01e2",
+      "lastUpdated": "2025-11-05T23:29:07.547Z",
+      "metrics": {
+        "coherenceScore": 5,
+        "economyScore": 5,
+        "localityScore": 5,
+        "visibilityScore": 5,
+        "evolutionScore": 5,
+        "warningCount": 0
       }
     },
     "apps/web/src/styles": {
@@ -349,8 +373,8 @@
         "warningCount": 1
       }
     },
-    "apps/web/src": {
-      "digest": "1017817e7e4fae0c1f488e82e7a1d723d65a3e7b",
+    "apps/web/styles": {
+      "digest": "470235d088bfd5a0fcbb0cc626b4908caf23b531",
       "lastUpdated": "2025-11-05T23:29:07.548Z",
       "metrics": {
         "coherenceScore": 5,
@@ -373,9 +397,9 @@
         "warningCount": 1
       }
     },
-    "apps/web/styles": {
-      "digest": "470235d088bfd5a0fcbb0cc626b4908caf23b531",
-      "lastUpdated": "2025-11-05T23:29:07.548Z",
+    "docs/agent_library": {
+      "digest": "396b58433208d6521d09c8c6c08b48e4f632d312",
+      "lastUpdated": "2025-11-05T23:29:07.550Z",
       "metrics": {
         "coherenceScore": 5,
         "economyScore": 5,
@@ -385,16 +409,16 @@
         "warningCount": 0
       }
     },
-    "apps/web": {
-      "digest": "a4dbc5b33c2be8bb3be5d8449a17e2e69c610340",
-      "lastUpdated": "2025-11-05T23:29:07.548Z",
+    "docs/agent_library/common": {
+      "digest": "32c6ea78030521116d14ec922c9dd8172dd19a8d",
+      "lastUpdated": "2025-11-05T23:29:07.549Z",
       "metrics": {
-        "coherenceScore": 4,
+        "coherenceScore": 5,
         "economyScore": 5,
         "localityScore": 5,
-        "visibilityScore": 3,
+        "visibilityScore": 5,
         "evolutionScore": 5,
-        "warningCount": 2
+        "warningCount": 0
       }
     },
     "docs/agent_library/common/concepts": {
@@ -433,8 +457,8 @@
         "warningCount": 0
       }
     },
-    "docs/agent_library/common": {
-      "digest": "32c6ea78030521116d14ec922c9dd8172dd19a8d",
+    "docs/agent_library/domains": {
+      "digest": "d19a7432a43000bf1f3d00b7bc8cd0324f3f9ea8",
       "lastUpdated": "2025-11-05T23:29:07.549Z",
       "metrics": {
         "coherenceScore": 5,
@@ -493,9 +517,9 @@
         "warningCount": 0
       }
     },
-    "docs/agent_library/domains": {
-      "digest": "d19a7432a43000bf1f3d00b7bc8cd0324f3f9ea8",
-      "lastUpdated": "2025-11-05T23:29:07.549Z",
+    "docs/agent_library/roles": {
+      "digest": "50f5a6e81036a5ffd5cb842573b5604768d3dadb",
+      "lastUpdated": "2025-11-05T23:29:07.550Z",
       "metrics": {
         "coherenceScore": 5,
         "economyScore": 5,
@@ -543,30 +567,6 @@
     },
     "docs/agent_library/roles/workers": {
       "digest": "2b569f248c98be57dce5740be42406100ee526b5",
-      "lastUpdated": "2025-11-05T23:29:07.550Z",
-      "metrics": {
-        "coherenceScore": 5,
-        "economyScore": 5,
-        "localityScore": 5,
-        "visibilityScore": 5,
-        "evolutionScore": 5,
-        "warningCount": 0
-      }
-    },
-    "docs/agent_library/roles": {
-      "digest": "50f5a6e81036a5ffd5cb842573b5604768d3dadb",
-      "lastUpdated": "2025-11-05T23:29:07.550Z",
-      "metrics": {
-        "coherenceScore": 5,
-        "economyScore": 5,
-        "localityScore": 5,
-        "visibilityScore": 5,
-        "evolutionScore": 5,
-        "warningCount": 0
-      }
-    },
-    "docs/agent_library": {
-      "digest": "396b58433208d6521d09c8c6c08b48e4f632d312",
       "lastUpdated": "2025-11-05T23:29:07.550Z",
       "metrics": {
         "coherenceScore": 5,
@@ -817,18 +817,6 @@
         "warningCount": 1
       }
     },
-    "shared/data/geography": {
-      "digest": "cfd048bd2b6b6ac897d03650ce081a43c0baa86d",
-      "lastUpdated": "2025-11-05T23:29:07.553Z",
-      "metrics": {
-        "coherenceScore": 5,
-        "economyScore": 5,
-        "localityScore": 5,
-        "visibilityScore": 5,
-        "evolutionScore": 5,
-        "warningCount": 0
-      }
-    },
     "shared/data": {
       "digest": "0bc31f7ec3be05bae234f1983e8a869479a838c1",
       "lastUpdated": "2025-11-05T23:29:07.553Z",
@@ -865,9 +853,33 @@
         "warningCount": 1
       }
     },
+    "shared/data/geography": {
+      "digest": "cfd048bd2b6b6ac897d03650ce081a43c0baa86d",
+      "lastUpdated": "2025-11-05T23:29:07.553Z",
+      "metrics": {
+        "coherenceScore": 5,
+        "economyScore": 5,
+        "localityScore": 5,
+        "visibilityScore": 5,
+        "evolutionScore": 5,
+        "warningCount": 0
+      }
+    },
     "shared/feature_store": {
       "digest": "3be0314d9b78bbe1832cd67685c634244630752a",
       "lastUpdated": "2025-11-05T23:29:07.554Z",
+      "metrics": {
+        "coherenceScore": 5,
+        "economyScore": 5,
+        "localityScore": 5,
+        "visibilityScore": 3,
+        "evolutionScore": 5,
+        "warningCount": 1
+      }
+    },
+    "shared/libs": {
+      "digest": "18edc49c92d9822b6b645097db9fcfa6b4e4fd0e",
+      "lastUpdated": "2025-11-05T23:29:07.555Z",
       "metrics": {
         "coherenceScore": 5,
         "economyScore": 5,
@@ -1021,18 +1033,6 @@
         "warningCount": 1
       }
     },
-    "shared/libs": {
-      "digest": "18edc49c92d9822b6b645097db9fcfa6b4e4fd0e",
-      "lastUpdated": "2025-11-05T23:29:07.555Z",
-      "metrics": {
-        "coherenceScore": 5,
-        "economyScore": 5,
-        "localityScore": 5,
-        "visibilityScore": 3,
-        "evolutionScore": 5,
-        "warningCount": 1
-      }
-    },
     "shared/observability": {
       "digest": "adb2363b935b99a1d88e3b5c3dbb9aefd2482081",
       "lastUpdated": "2025-11-05T23:29:07.556Z",
@@ -1057,8 +1057,8 @@
         "warningCount": 1
       }
     },
-    "shared/services/onboarding": {
-      "digest": "9d53873d4f1a8d83fc0d2ca6bc590477b86fafec",
+    "shared/services": {
+      "digest": "7ed20d0a47b56deec704480d79e584493dd67cad",
       "lastUpdated": "2025-11-05T23:29:07.556Z",
       "metrics": {
         "coherenceScore": 5,
@@ -1069,8 +1069,8 @@
         "warningCount": 1
       }
     },
-    "shared/services": {
-      "digest": "7ed20d0a47b56deec704480d79e584493dd67cad",
+    "shared/services/onboarding": {
+      "digest": "9d53873d4f1a8d83fc0d2ca6bc590477b86fafec",
       "lastUpdated": "2025-11-05T23:29:07.556Z",
       "metrics": {
         "coherenceScore": 5,
@@ -1094,472 +1094,666 @@
       }
     },
     "tools/docsync": {
-      "digest": "92129b17804598e887674ef38e03c00af66a0a06",
-      "lastUpdated": "2025-11-05T23:27:13.399Z",
+      "digest": "b2f6f7665d9cc56bb9a48a8c83dbb207c60a7013",
+      "lastUpdated": "2025-11-06T21:18:50.219Z",
       "metrics": {
-        "coherenceScore": 5,
-        "economyScore": 5,
-        "localityScore": 5,
-        "visibilityScore": 3,
-        "evolutionScore": 5,
-        "warningCount": 1
+        "summary": {
+          "coherenceScore": 5,
+          "economyScore": 5,
+          "localityScore": 5,
+          "visibilityScore": 5,
+          "evolutionScore": 5
+        },
+        "warningCount": 0
       }
     },
     "tools/wvo_mcp/scripts": {
-      "digest": "3f6158c97962a6574b13923a9a5c54d0f9dc0422",
-      "lastUpdated": "2025-11-05T23:29:07.556Z",
+      "digest": "0e292ab690cca175846431302f09708c21e64a0d",
+      "lastUpdated": "2025-11-06T21:18:50.221Z",
       "metrics": {
-        "coherenceScore": 4,
-        "economyScore": 5,
-        "localityScore": 4,
-        "visibilityScore": 3,
-        "evolutionScore": 5,
-        "warningCount": 3
-      }
-    },
-    "tools/wvo_mcp/src/analytics/__tests__": {
-      "digest": "500f913798416a035959d0b524bcde57d71c6906",
-      "lastUpdated": "2025-11-05T23:29:07.557Z",
-      "metrics": {
-        "coherenceScore": 5,
-        "economyScore": 5,
-        "localityScore": 5,
-        "visibilityScore": 5,
-        "evolutionScore": 5,
-        "warningCount": 0
-      }
-    },
-    "tools/wvo_mcp/src/analytics": {
-      "digest": "3cb513385d137ff5b02a1d0c93dcb0c2a12ab884",
-      "lastUpdated": "2025-11-05T23:29:07.557Z",
-      "metrics": {
-        "coherenceScore": 5,
-        "economyScore": 5,
-        "localityScore": 5,
-        "visibilityScore": 3,
-        "evolutionScore": 5,
-        "warningCount": 1
-      }
-    },
-    "tools/wvo_mcp/src/auth": {
-      "digest": "60c19c42ef7cd18f95e09c6a71a58f2883172606",
-      "lastUpdated": "2025-11-05T23:29:07.557Z",
-      "metrics": {
-        "coherenceScore": 5,
-        "economyScore": 5,
-        "localityScore": 5,
-        "visibilityScore": 3,
-        "evolutionScore": 5,
-        "warningCount": 1
-      }
-    },
-    "tools/wvo_mcp/src/critics/__tests__": {
-      "digest": "d6ff20f6b4b2b30543521f2a95e2fb07b30cd531",
-      "lastUpdated": "2025-11-05T23:29:07.557Z",
-      "metrics": {
-        "coherenceScore": 5,
-        "economyScore": 5,
-        "localityScore": 5,
-        "visibilityScore": 5,
-        "evolutionScore": 5,
-        "warningCount": 0
-      }
-    },
-    "tools/wvo_mcp/src/critics/utils": {
-      "digest": "7174d7a924dedfd27cb00365412026493f6815c6",
-      "lastUpdated": "2025-11-05T23:29:07.557Z",
-      "metrics": {
-        "coherenceScore": 5,
-        "economyScore": 5,
-        "localityScore": 5,
-        "visibilityScore": 5,
-        "evolutionScore": 5,
-        "warningCount": 0
-      }
-    },
-    "tools/wvo_mcp/src/critics": {
-      "digest": "067de83a7c0651d8c6f3711848ff749387c65264",
-      "lastUpdated": "2025-11-05T23:29:07.557Z",
-      "metrics": {
-        "coherenceScore": 5,
-        "economyScore": 5,
-        "localityScore": 4,
-        "visibilityScore": 5,
-        "evolutionScore": 4,
-        "warningCount": 2
-      }
-    },
-    "tools/wvo_mcp/src/enforcement/__tests__": {
-      "digest": "46dde175c031d266f3f1982b82360117a7959dfa",
-      "lastUpdated": "2025-11-05T23:29:07.557Z",
-      "metrics": {
-        "coherenceScore": 5,
-        "economyScore": 5,
-        "localityScore": 5,
-        "visibilityScore": 5,
-        "evolutionScore": 5,
-        "warningCount": 0
-      }
-    },
-    "tools/wvo_mcp/src/enforcement": {
-      "digest": "dd4829519cc662d266adf52c33d3f87f6f199080",
-      "lastUpdated": "2025-11-05T23:29:07.558Z",
-      "metrics": {
-        "coherenceScore": 5,
-        "economyScore": 5,
-        "localityScore": 5,
-        "visibilityScore": 3,
-        "evolutionScore": 5,
-        "warningCount": 1
-      }
-    },
-    "tools/wvo_mcp/src/executor": {
-      "digest": "922ee440e10508bdef102a32784e26891a653df8",
-      "lastUpdated": "2025-11-05T23:29:07.558Z",
-      "metrics": {
-        "coherenceScore": 5,
-        "economyScore": 5,
-        "localityScore": 5,
-        "visibilityScore": 3,
-        "evolutionScore": 5,
-        "warningCount": 1
-      }
-    },
-    "tools/wvo_mcp/src/git/__tests__": {
-      "digest": "a02d9f60fbc7dbf384031d3e612577f216ee5639",
-      "lastUpdated": "2025-11-05T23:29:07.558Z",
-      "metrics": {
-        "coherenceScore": 5,
-        "economyScore": 5,
-        "localityScore": 5,
-        "visibilityScore": 5,
-        "evolutionScore": 5,
-        "warningCount": 0
-      }
-    },
-    "tools/wvo_mcp/src/git": {
-      "digest": "e371933dfbe867de5fe2ed9b364131eb6957b6fd",
-      "lastUpdated": "2025-11-05T23:29:07.558Z",
-      "metrics": {
-        "coherenceScore": 5,
-        "economyScore": 5,
-        "localityScore": 5,
-        "visibilityScore": 3,
-        "evolutionScore": 5,
-        "warningCount": 1
-      }
-    },
-    "tools/wvo_mcp/src/guardrails/__tests__": {
-      "digest": "a6752c2826193d3f0fe2960a24ec3acd0549e579",
-      "lastUpdated": "2025-11-05T23:29:07.558Z",
-      "metrics": {
-        "coherenceScore": 5,
-        "economyScore": 5,
-        "localityScore": 5,
-        "visibilityScore": 5,
-        "evolutionScore": 5,
-        "warningCount": 0
-      }
-    },
-    "tools/wvo_mcp/src/guardrails": {
-      "digest": "e02a9e8f6dc591ffba2ed76a6ef301341c85105a",
-      "lastUpdated": "2025-11-05T23:29:07.558Z",
-      "metrics": {
-        "coherenceScore": 5,
-        "economyScore": 5,
-        "localityScore": 5,
-        "visibilityScore": 3,
-        "evolutionScore": 5,
-        "warningCount": 1
-      }
-    },
-    "tools/wvo_mcp/src/intelligence/__tests__": {
-      "digest": "caf0684e9b18d48d0f86264e192c92139e59ae48",
-      "lastUpdated": "2025-11-05T23:29:07.558Z",
-      "metrics": {
-        "coherenceScore": 5,
-        "economyScore": 5,
-        "localityScore": 5,
-        "visibilityScore": 5,
-        "evolutionScore": 5,
-        "warningCount": 0
-      }
-    },
-    "tools/wvo_mcp/src/intelligence": {
-      "digest": "5a439371ef8824e22203c3990ee1dc53c1a5aa08",
-      "lastUpdated": "2025-11-05T23:29:07.559Z",
-      "metrics": {
-        "coherenceScore": 5,
-        "economyScore": 5,
-        "localityScore": 5,
-        "visibilityScore": 3,
-        "evolutionScore": 5,
-        "warningCount": 1
-      }
-    },
-    "tools/wvo_mcp/src/limits": {
-      "digest": "08374e37a8666e2b1be80c9dfc095154919d6788",
-      "lastUpdated": "2025-11-05T23:29:07.559Z",
-      "metrics": {
-        "coherenceScore": 5,
-        "economyScore": 5,
-        "localityScore": 5,
-        "visibilityScore": 3,
-        "evolutionScore": 5,
-        "warningCount": 1
-      }
-    },
-    "tools/wvo_mcp/src/lsp": {
-      "digest": "0df2552a4aa55e47aa71e6360d8be541c0c51592",
-      "lastUpdated": "2025-11-05T23:29:07.559Z",
-      "metrics": {
-        "coherenceScore": 5,
-        "economyScore": 5,
-        "localityScore": 5,
-        "visibilityScore": 5,
-        "evolutionScore": 5,
-        "warningCount": 0
-      }
-    },
-    "tools/wvo_mcp/src/models": {
-      "digest": "d5eb79f113b92f8ec4152a9cd69e0a811d48652e",
-      "lastUpdated": "2025-11-05T23:29:07.559Z",
-      "metrics": {
-        "coherenceScore": 5,
-        "economyScore": 5,
-        "localityScore": 5,
-        "visibilityScore": 3,
-        "evolutionScore": 5,
-        "warningCount": 1
-      }
-    },
-    "tools/wvo_mcp/src/observability": {
-      "digest": "5b2ccba096d5625b36b0f6d23c66803674309ba1",
-      "lastUpdated": "2025-11-05T23:29:07.559Z",
-      "metrics": {
-        "coherenceScore": 5,
-        "economyScore": 5,
-        "localityScore": 5,
-        "visibilityScore": 5,
-        "evolutionScore": 5,
-        "warningCount": 0
-      }
-    },
-    "tools/wvo_mcp/src/orchestrator/consensus": {
-      "digest": "8861ee09a29b06494d5ab20be92ca7fdfa20e3aa",
-      "lastUpdated": "2025-11-05T23:29:07.559Z",
-      "metrics": {
-        "coherenceScore": 5,
-        "economyScore": 5,
-        "localityScore": 5,
-        "visibilityScore": 3,
-        "evolutionScore": 5,
-        "warningCount": 1
-      }
-    },
-    "tools/wvo_mcp/src/orchestrator": {
-      "digest": "b75ac2c51cd975fec6e0c43a6cbbe9b0ef698305",
-      "lastUpdated": "2025-11-05T23:29:07.560Z",
-      "metrics": {
-        "coherenceScore": 4,
-        "economyScore": 5,
-        "localityScore": 4,
-        "visibilityScore": 5,
-        "evolutionScore": 5,
-        "warningCount": 2
-      }
-    },
-    "tools/wvo_mcp/src/planner": {
-      "digest": "d6bf89baf643e3934545a5a001c5f78f4953b815",
-      "lastUpdated": "2025-11-05T23:29:07.560Z",
-      "metrics": {
-        "coherenceScore": 5,
-        "economyScore": 5,
-        "localityScore": 5,
-        "visibilityScore": 3,
-        "evolutionScore": 5,
-        "warningCount": 1
-      }
-    },
-    "tools/wvo_mcp/src/providers": {
-      "digest": "e099575790ed1df82c9c753ec53cc6a37cd151f7",
-      "lastUpdated": "2025-11-05T23:29:07.560Z",
-      "metrics": {
-        "coherenceScore": 5,
-        "economyScore": 5,
-        "localityScore": 5,
-        "visibilityScore": 3,
-        "evolutionScore": 5,
-        "warningCount": 1
-      }
-    },
-    "tools/wvo_mcp/src/quality": {
-      "digest": "b7f313a148e3644095010f0cfcc0fa7813d5806c",
-      "lastUpdated": "2025-11-05T23:29:07.560Z",
-      "metrics": {
-        "coherenceScore": 5,
-        "economyScore": 5,
-        "localityScore": 5,
-        "visibilityScore": 3,
-        "evolutionScore": 5,
-        "warningCount": 1
-      }
-    },
-    "tools/wvo_mcp/src/simulations": {
-      "digest": "c0b8468343f468f1ecaff42ec2710676a37b0434",
-      "lastUpdated": "2025-11-05T23:29:07.560Z",
-      "metrics": {
-        "coherenceScore": 5,
-        "economyScore": 5,
-        "localityScore": 5,
-        "visibilityScore": 5,
-        "evolutionScore": 5,
-        "warningCount": 0
-      }
-    },
-    "tools/wvo_mcp/src/state": {
-      "digest": "7bea70de39e48ff3e7aa477ee8052e58d41804f1",
-      "lastUpdated": "2025-11-05T23:29:07.560Z",
-      "metrics": {
-        "coherenceScore": 5,
-        "economyScore": 5,
-        "localityScore": 5,
-        "visibilityScore": 5,
-        "evolutionScore": 5,
-        "warningCount": 0
-      }
-    },
-    "tools/wvo_mcp/src/telemetry": {
-      "digest": "4870a967af17d9c4d5914e50eafa667c74bc1e97",
-      "lastUpdated": "2025-11-05T23:29:07.560Z",
-      "metrics": {
-        "coherenceScore": 5,
-        "economyScore": 5,
-        "localityScore": 5,
-        "visibilityScore": 5,
-        "evolutionScore": 5,
-        "warningCount": 0
-      }
-    },
-    "tools/wvo_mcp/src/tests/helpers": {
-      "digest": "4c32c5bb8a63ed5605c569b7b954d544efadf800",
-      "lastUpdated": "2025-11-05T23:29:07.561Z",
-      "metrics": {
-        "coherenceScore": 5,
-        "economyScore": 5,
-        "localityScore": 5,
-        "visibilityScore": 3,
-        "evolutionScore": 5,
-        "warningCount": 1
-      }
-    },
-    "tools/wvo_mcp/src/tests": {
-      "digest": "498150c23714996b695a76602d3e67fa7ec60ca5",
-      "lastUpdated": "2025-11-05T23:29:07.561Z",
-      "metrics": {
-        "coherenceScore": 5,
-        "economyScore": 5,
-        "localityScore": 4,
-        "visibilityScore": 5,
-        "evolutionScore": 5,
-        "warningCount": 1
-      }
-    },
-    "tools/wvo_mcp/src/tools": {
-      "digest": "a97803e10581febe4ff737a295b4022e37ef3892",
-      "lastUpdated": "2025-11-05T23:29:07.561Z",
-      "metrics": {
-        "coherenceScore": 5,
-        "economyScore": 5,
-        "localityScore": 5,
-        "visibilityScore": 3,
-        "evolutionScore": 5,
-        "warningCount": 1
-      }
-    },
-    "tools/wvo_mcp/src/types": {
-      "digest": "a8be3a76720d2255d53655d4d1697f26e624209a",
-      "lastUpdated": "2025-11-05T23:29:07.561Z",
-      "metrics": {
-        "coherenceScore": 5,
-        "economyScore": 5,
-        "localityScore": 5,
-        "visibilityScore": 3,
-        "evolutionScore": 5,
-        "warningCount": 1
-      }
-    },
-    "tools/wvo_mcp/src/upgrade": {
-      "digest": "3b54520c46c9b03d57e412c445d781e992a0ece1",
-      "lastUpdated": "2025-11-05T23:29:07.561Z",
-      "metrics": {
-        "coherenceScore": 5,
-        "economyScore": 5,
-        "localityScore": 5,
-        "visibilityScore": 5,
-        "evolutionScore": 5,
-        "warningCount": 0
-      }
-    },
-    "tools/wvo_mcp/src/utils": {
-      "digest": "f0c41fd43ea48ca2451197521e9fb4eb1fc959c9",
-      "lastUpdated": "2025-11-05T23:29:07.561Z",
-      "metrics": {
-        "coherenceScore": 5,
-        "economyScore": 5,
-        "localityScore": 4,
-        "visibilityScore": 5,
-        "evolutionScore": 5,
-        "warningCount": 1
-      }
-    },
-    "tools/wvo_mcp/src/web_tools": {
-      "digest": "d817951618907fb14b5f1806ca5a9f73c612f79a",
-      "lastUpdated": "2025-11-05T23:29:07.561Z",
-      "metrics": {
-        "coherenceScore": 5,
-        "economyScore": 5,
-        "localityScore": 5,
-        "visibilityScore": 3,
-        "evolutionScore": 5,
-        "warningCount": 1
-      }
-    },
-    "tools/wvo_mcp/src/work_process": {
-      "digest": "080e8188b7a70d36c60852ba1058fca1737519e3",
-      "lastUpdated": "2025-11-05T23:29:07.562Z",
-      "metrics": {
-        "coherenceScore": 5,
-        "economyScore": 5,
-        "localityScore": 5,
-        "visibilityScore": 5,
-        "evolutionScore": 5,
-        "warningCount": 0
-      }
-    },
-    "tools/wvo_mcp/src/worker": {
-      "digest": "f956f42096e5e7d59a6d6f35f3bb94cd5c6c69e5",
-      "lastUpdated": "2025-11-05T23:29:07.562Z",
-      "metrics": {
-        "coherenceScore": 5,
-        "economyScore": 5,
-        "localityScore": 4,
-        "visibilityScore": 3,
-        "evolutionScore": 5,
+        "summary": {
+          "coherenceScore": 4,
+          "economyScore": 5,
+          "localityScore": 4,
+          "visibilityScore": 5,
+          "evolutionScore": 5
+        },
         "warningCount": 2
       }
     },
     "tools/wvo_mcp/src": {
-      "digest": "560fa6bf1ce332536206f4295da92c09cc6a129e",
-      "lastUpdated": "2025-11-05T23:29:07.562Z",
+      "digest": "3c2c8f1247c3002d555b5d672a4eb5354384836d",
+      "lastUpdated": "2025-11-06T21:18:50.240Z",
       "metrics": {
-        "coherenceScore": 5,
-        "economyScore": 5,
-        "localityScore": 4,
-        "visibilityScore": 3,
-        "evolutionScore": 5,
+        "summary": {
+          "coherenceScore": 5,
+          "economyScore": 5,
+          "localityScore": 4,
+          "visibilityScore": 3,
+          "evolutionScore": 5
+        },
+        "warningCount": 2
+      }
+    },
+    "tools/wvo_mcp/src/analytics": {
+      "digest": "36ac286d1f4aa6321853d3720ca57712e63b66bc",
+      "lastUpdated": "2025-11-06T21:18:50.222Z",
+      "metrics": {
+        "summary": {
+          "coherenceScore": 5,
+          "economyScore": 5,
+          "localityScore": 5,
+          "visibilityScore": 3,
+          "evolutionScore": 5
+        },
+        "warningCount": 1
+      }
+    },
+    "tools/wvo_mcp/src/analytics/__tests__": {
+      "digest": "8675b40de1b6948c22c0923ec70d35981f30177d",
+      "lastUpdated": "2025-11-06T21:18:50.221Z",
+      "metrics": {
+        "summary": {
+          "coherenceScore": 5,
+          "economyScore": 5,
+          "localityScore": 5,
+          "visibilityScore": 5,
+          "evolutionScore": 5
+        },
+        "warningCount": 0
+      }
+    },
+    "tools/wvo_mcp/src/auth": {
+      "digest": "cf893c17289999e0512a090912e9f061d3b23947",
+      "lastUpdated": "2025-11-06T21:18:50.222Z",
+      "metrics": {
+        "summary": {
+          "coherenceScore": 5,
+          "economyScore": 5,
+          "localityScore": 5,
+          "visibilityScore": 3,
+          "evolutionScore": 5
+        },
+        "warningCount": 1
+      }
+    },
+    "tools/wvo_mcp/src/cli": {
+      "digest": "f33bb12f1e6d8c8c60745a46f743e085c0ea8c97",
+      "lastUpdated": "2025-11-06T21:18:50.223Z",
+      "metrics": {
+        "summary": {
+          "coherenceScore": 5,
+          "economyScore": 5,
+          "localityScore": 5,
+          "visibilityScore": 3,
+          "evolutionScore": 5
+        },
+        "warningCount": 1
+      }
+    },
+    "tools/wvo_mcp/src/critics": {
+      "digest": "30095ada802816f78d96d5e52f205cce216a71c3",
+      "lastUpdated": "2025-11-06T21:18:50.224Z",
+      "metrics": {
+        "summary": {
+          "coherenceScore": 5,
+          "economyScore": 5,
+          "localityScore": 4,
+          "visibilityScore": 5,
+          "evolutionScore": 4
+        },
+        "warningCount": 2
+      }
+    },
+    "tools/wvo_mcp/src/critics/__tests__": {
+      "digest": "f9243e5f41e663c7fccfdab1f2f4a0541e26dfd6",
+      "lastUpdated": "2025-11-06T21:18:50.223Z",
+      "metrics": {
+        "summary": {
+          "coherenceScore": 5,
+          "economyScore": 5,
+          "localityScore": 5,
+          "visibilityScore": 5,
+          "evolutionScore": 5
+        },
+        "warningCount": 0
+      }
+    },
+    "tools/wvo_mcp/src/critics/utils": {
+      "digest": "8dcd3d0c129618c664b11e9f5871a4758e9a97e7",
+      "lastUpdated": "2025-11-06T21:18:50.223Z",
+      "metrics": {
+        "summary": {
+          "coherenceScore": 5,
+          "economyScore": 5,
+          "localityScore": 5,
+          "visibilityScore": 5,
+          "evolutionScore": 5
+        },
+        "warningCount": 0
+      }
+    },
+    "tools/wvo_mcp/src/enforcement": {
+      "digest": "a786fbd773e138dd9536cd717c6c70a223645f1f",
+      "lastUpdated": "2025-11-06T21:18:50.225Z",
+      "metrics": {
+        "summary": {
+          "coherenceScore": 5,
+          "economyScore": 5,
+          "localityScore": 5,
+          "visibilityScore": 3,
+          "evolutionScore": 5
+        },
+        "warningCount": 1
+      }
+    },
+    "tools/wvo_mcp/src/enforcement/__tests__": {
+      "digest": "8ff55dc2df2ecadc5afdda85841d60e21212b984",
+      "lastUpdated": "2025-11-06T21:18:50.224Z",
+      "metrics": {
+        "summary": {
+          "coherenceScore": 5,
+          "economyScore": 5,
+          "localityScore": 5,
+          "visibilityScore": 5,
+          "evolutionScore": 5
+        },
+        "warningCount": 0
+      }
+    },
+    "tools/wvo_mcp/src/executor": {
+      "digest": "88a60fa601572877c32f3a62102995145773c6b2",
+      "lastUpdated": "2025-11-06T21:18:50.225Z",
+      "metrics": {
+        "summary": {
+          "coherenceScore": 5,
+          "economyScore": 5,
+          "localityScore": 4,
+          "visibilityScore": 3,
+          "evolutionScore": 5
+        },
+        "warningCount": 2
+      }
+    },
+    "tools/wvo_mcp/src/git": {
+      "digest": "324cb1796a545baebfa80cd7dca53979e2b3792a",
+      "lastUpdated": "2025-11-06T21:18:50.226Z",
+      "metrics": {
+        "summary": {
+          "coherenceScore": 5,
+          "economyScore": 5,
+          "localityScore": 5,
+          "visibilityScore": 3,
+          "evolutionScore": 5
+        },
+        "warningCount": 1
+      }
+    },
+    "tools/wvo_mcp/src/git/__tests__": {
+      "digest": "80dd8e81e2226e290caea85612bb8adf1557a73a",
+      "lastUpdated": "2025-11-06T21:18:50.226Z",
+      "metrics": {
+        "summary": {
+          "coherenceScore": 5,
+          "economyScore": 5,
+          "localityScore": 5,
+          "visibilityScore": 5,
+          "evolutionScore": 5
+        },
+        "warningCount": 0
+      }
+    },
+    "tools/wvo_mcp/src/guardrails": {
+      "digest": "d430f6f9f496b21fb7fde8517bc49675460fecff",
+      "lastUpdated": "2025-11-06T21:18:50.228Z",
+      "metrics": {
+        "summary": {
+          "coherenceScore": 5,
+          "economyScore": 5,
+          "localityScore": 5,
+          "visibilityScore": 3,
+          "evolutionScore": 5
+        },
+        "warningCount": 1
+      }
+    },
+    "tools/wvo_mcp/src/guardrails/__tests__": {
+      "digest": "dfcf7ad63fef074b80d5775e5d52e145a4b4284e",
+      "lastUpdated": "2025-11-06T21:18:50.227Z",
+      "metrics": {
+        "summary": {
+          "coherenceScore": 5,
+          "economyScore": 5,
+          "localityScore": 5,
+          "visibilityScore": 5,
+          "evolutionScore": 5
+        },
+        "warningCount": 0
+      }
+    },
+    "tools/wvo_mcp/src/intelligence": {
+      "digest": "d362b5a7aa722950716870872b70f1089787073e",
+      "lastUpdated": "2025-11-06T21:18:50.230Z",
+      "metrics": {
+        "summary": {
+          "coherenceScore": 5,
+          "economyScore": 5,
+          "localityScore": 5,
+          "visibilityScore": 3,
+          "evolutionScore": 5
+        },
+        "warningCount": 1
+      }
+    },
+    "tools/wvo_mcp/src/intelligence/__tests__": {
+      "digest": "ffc6bdd951394db0b88954c27dbba048b414422e",
+      "lastUpdated": "2025-11-06T21:18:50.230Z",
+      "metrics": {
+        "summary": {
+          "coherenceScore": 5,
+          "economyScore": 5,
+          "localityScore": 5,
+          "visibilityScore": 5,
+          "evolutionScore": 5
+        },
+        "warningCount": 0
+      }
+    },
+    "tools/wvo_mcp/src/limits": {
+      "digest": "8225d786b1d20dbbf572a310450dff5685fa7cac",
+      "lastUpdated": "2025-11-06T21:18:50.230Z",
+      "metrics": {
+        "summary": {
+          "coherenceScore": 5,
+          "economyScore": 5,
+          "localityScore": 5,
+          "visibilityScore": 3,
+          "evolutionScore": 5
+        },
+        "warningCount": 1
+      }
+    },
+    "tools/wvo_mcp/src/lsp": {
+      "digest": "6d5385c3c2b2338eb7d678794074d4f6721762ac",
+      "lastUpdated": "2025-11-06T21:18:50.231Z",
+      "metrics": {
+        "summary": {
+          "coherenceScore": 5,
+          "economyScore": 5,
+          "localityScore": 5,
+          "visibilityScore": 5,
+          "evolutionScore": 5
+        },
+        "warningCount": 0
+      }
+    },
+    "tools/wvo_mcp/src/models": {
+      "digest": "7d9ed22350061b129248e37fbe8efd55b7978d3d",
+      "lastUpdated": "2025-11-06T21:18:50.231Z",
+      "metrics": {
+        "summary": {
+          "coherenceScore": 5,
+          "economyScore": 5,
+          "localityScore": 5,
+          "visibilityScore": 3,
+          "evolutionScore": 5
+        },
+        "warningCount": 1
+      }
+    },
+    "tools/wvo_mcp/src/observability": {
+      "digest": "b79770c12a4342dab7df1e5a64f7a722ba6cc339",
+      "lastUpdated": "2025-11-06T21:18:50.231Z",
+      "metrics": {
+        "summary": {
+          "coherenceScore": 5,
+          "economyScore": 5,
+          "localityScore": 5,
+          "visibilityScore": 5,
+          "evolutionScore": 5
+        },
+        "warningCount": 0
+      }
+    },
+    "tools/wvo_mcp/src/orchestrator": {
+      "digest": "74668d6f798aa76dc5666d219a6874d718a40e98",
+      "lastUpdated": "2025-11-06T21:18:50.232Z",
+      "metrics": {
+        "summary": {
+          "coherenceScore": 5,
+          "economyScore": 5,
+          "localityScore": 4,
+          "visibilityScore": 5,
+          "evolutionScore": 5
+        },
+        "warningCount": 1
+      }
+    },
+    "tools/wvo_mcp/src/orchestrator/__tests__": {
+      "digest": "369c420594c5814a13988e6ab9a82a2c2fdc2a39",
+      "lastUpdated": "2025-11-06T21:18:50.232Z",
+      "metrics": {
+        "summary": {
+          "coherenceScore": 5,
+          "economyScore": 5,
+          "localityScore": 5,
+          "visibilityScore": 5,
+          "evolutionScore": 5
+        },
+        "warningCount": 0
+      }
+    },
+    "tools/wvo_mcp/src/orchestrator/consensus": {
+      "digest": "b997c8d2cc3260fe26e9726a4fe9f2d204403760",
+      "lastUpdated": "2025-11-06T21:18:50.232Z",
+      "metrics": {
+        "summary": {
+          "coherenceScore": 5,
+          "economyScore": 5,
+          "localityScore": 5,
+          "visibilityScore": 3,
+          "evolutionScore": 5
+        },
+        "warningCount": 1
+      }
+    },
+    "tools/wvo_mcp/src/planner": {
+      "digest": "a624e114a3ab0d48af9ea0a914408b014e24c57f",
+      "lastUpdated": "2025-11-06T21:18:50.233Z",
+      "metrics": {
+        "summary": {
+          "coherenceScore": 5,
+          "economyScore": 5,
+          "localityScore": 5,
+          "visibilityScore": 3,
+          "evolutionScore": 5
+        },
+        "warningCount": 1
+      }
+    },
+    "tools/wvo_mcp/src/prove": {
+      "digest": "ac9ed86c22fb2c5a5052f621072c943f92e233cc",
+      "lastUpdated": "2025-11-06T21:07:17.830Z",
+      "metrics": {
+        "summary": {
+          "coherenceScore": 5,
+          "economyScore": 5,
+          "localityScore": 5,
+          "visibilityScore": 3,
+          "evolutionScore": 5
+        },
+        "warningCount": 1
+      }
+    },
+    "tools/wvo_mcp/src/prove/__tests__": {
+      "digest": "7cccc0ea5f46c73a676c477af240ccb50c37d97f",
+      "lastUpdated": "2025-11-06T21:18:50.233Z",
+      "metrics": {
+        "summary": {
+          "coherenceScore": 5,
+          "economyScore": 5,
+          "localityScore": 5,
+          "visibilityScore": 5,
+          "evolutionScore": 5
+        },
+        "warningCount": 0
+      }
+    },
+    "tools/wvo_mcp/src/providers": {
+      "digest": "bfbdd7d5a3e826cda3818262567e2a9aaa5ae268",
+      "lastUpdated": "2025-11-06T21:18:50.234Z",
+      "metrics": {
+        "summary": {
+          "coherenceScore": 5,
+          "economyScore": 5,
+          "localityScore": 5,
+          "visibilityScore": 3,
+          "evolutionScore": 5
+        },
+        "warningCount": 1
+      }
+    },
+    "tools/wvo_mcp/src/quality": {
+      "digest": "ffb6861bddf33b3586b7469567ff820c705f5337",
+      "lastUpdated": "2025-11-06T21:18:50.234Z",
+      "metrics": {
+        "summary": {
+          "coherenceScore": 5,
+          "economyScore": 5,
+          "localityScore": 5,
+          "visibilityScore": 3,
+          "evolutionScore": 5
+        },
+        "warningCount": 1
+      }
+    },
+    "tools/wvo_mcp/src/schemas": {
+      "digest": "bef903bb8bbf7e6334ff17855ba980d554a0f532",
+      "lastUpdated": "2025-11-06T21:18:50.234Z",
+      "metrics": {
+        "summary": {
+          "coherenceScore": 5,
+          "economyScore": 5,
+          "localityScore": 5,
+          "visibilityScore": 3,
+          "evolutionScore": 5
+        },
+        "warningCount": 1
+      }
+    },
+    "tools/wvo_mcp/src/simulations": {
+      "digest": "f72b8776cf64da78cc3a64baf75065ac583b2f1c",
+      "lastUpdated": "2025-11-06T21:18:50.235Z",
+      "metrics": {
+        "summary": {
+          "coherenceScore": 5,
+          "economyScore": 5,
+          "localityScore": 5,
+          "visibilityScore": 5,
+          "evolutionScore": 5
+        },
+        "warningCount": 0
+      }
+    },
+    "tools/wvo_mcp/src/state": {
+      "digest": "c41ae2eb30f22892b65ca922fb4d726c64883f5a",
+      "lastUpdated": "2025-11-06T21:18:50.235Z",
+      "metrics": {
+        "summary": {
+          "coherenceScore": 5,
+          "economyScore": 5,
+          "localityScore": 5,
+          "visibilityScore": 5,
+          "evolutionScore": 5
+        },
+        "warningCount": 0
+      }
+    },
+    "tools/wvo_mcp/src/supervisor": {
+      "digest": "6eab17eae3b78ba4d4341f2caf074faabc7c0680",
+      "lastUpdated": "2025-11-06T21:18:50.235Z",
+      "metrics": {
+        "summary": {
+          "coherenceScore": 5,
+          "economyScore": 5,
+          "localityScore": 5,
+          "visibilityScore": 3,
+          "evolutionScore": 5
+        },
+        "warningCount": 1
+      }
+    },
+    "tools/wvo_mcp/src/telemetry": {
+      "digest": "80a8b65d9d9832378595628e8f08ffd53703a11e",
+      "lastUpdated": "2025-11-06T21:18:50.235Z",
+      "metrics": {
+        "summary": {
+          "coherenceScore": 5,
+          "economyScore": 5,
+          "localityScore": 5,
+          "visibilityScore": 5,
+          "evolutionScore": 5
+        },
+        "warningCount": 0
+      }
+    },
+    "tools/wvo_mcp/src/tests": {
+      "digest": "1a7d6d74a0007f8a8ab5c2ec6146ca1496dd207b",
+      "lastUpdated": "2025-11-06T21:18:50.236Z",
+      "metrics": {
+        "summary": {
+          "coherenceScore": 5,
+          "economyScore": 5,
+          "localityScore": 4,
+          "visibilityScore": 5,
+          "evolutionScore": 5
+        },
+        "warningCount": 1
+      }
+    },
+    "tools/wvo_mcp/src/tests/helpers": {
+      "digest": "25269f9ec7c632e09659b7add298dedd1f17c87d",
+      "lastUpdated": "2025-11-06T21:18:50.236Z",
+      "metrics": {
+        "summary": {
+          "coherenceScore": 5,
+          "economyScore": 5,
+          "localityScore": 5,
+          "visibilityScore": 3,
+          "evolutionScore": 5
+        },
+        "warningCount": 1
+      }
+    },
+    "tools/wvo_mcp/src/tools": {
+      "digest": "828fb4c2fd3cf8a340ac2bdc2db9d42698853aed",
+      "lastUpdated": "2025-11-06T21:18:50.237Z",
+      "metrics": {
+        "summary": {
+          "coherenceScore": 5,
+          "economyScore": 5,
+          "localityScore": 5,
+          "visibilityScore": 3,
+          "evolutionScore": 5
+        },
+        "warningCount": 1
+      }
+    },
+    "tools/wvo_mcp/src/types": {
+      "digest": "937a66367071e2460b77e199be2a2492acdd37d5",
+      "lastUpdated": "2025-11-06T21:18:50.237Z",
+      "metrics": {
+        "summary": {
+          "coherenceScore": 5,
+          "economyScore": 5,
+          "localityScore": 5,
+          "visibilityScore": 3,
+          "evolutionScore": 5
+        },
+        "warningCount": 1
+      }
+    },
+    "tools/wvo_mcp/src/upgrade": {
+      "digest": "cbb1722832d5d4872117cf8ee1610cb44eb1c3fd",
+      "lastUpdated": "2025-11-06T21:18:50.237Z",
+      "metrics": {
+        "summary": {
+          "coherenceScore": 5,
+          "economyScore": 5,
+          "localityScore": 5,
+          "visibilityScore": 5,
+          "evolutionScore": 5
+        },
+        "warningCount": 0
+      }
+    },
+    "tools/wvo_mcp/src/utils": {
+      "digest": "ca663882f0ab2263534408759c808b21e828f62e",
+      "lastUpdated": "2025-11-06T21:18:50.238Z",
+      "metrics": {
+        "summary": {
+          "coherenceScore": 5,
+          "economyScore": 5,
+          "localityScore": 4,
+          "visibilityScore": 5,
+          "evolutionScore": 5
+        },
+        "warningCount": 1
+      }
+    },
+    "tools/wvo_mcp/src/wave0": {
+      "digest": "0b52f91b9b8e17e2af4153b7cd3e4c488f638872",
+      "lastUpdated": "2025-11-06T21:07:17.836Z",
+      "metrics": {
+        "summary": {
+          "coherenceScore": 5,
+          "economyScore": 5,
+          "localityScore": 4,
+          "visibilityScore": 3,
+          "evolutionScore": 5
+        },
+        "warningCount": 2
+      }
+    },
+    "tools/wvo_mcp/src/wave0/__tests__": {
+      "digest": "37f7bc39ab75e598530de80b674478dc93ec8835",
+      "lastUpdated": "2025-11-06T21:18:50.238Z",
+      "metrics": {
+        "summary": {
+          "coherenceScore": 5,
+          "economyScore": 5,
+          "localityScore": 5,
+          "visibilityScore": 5,
+          "evolutionScore": 5
+        },
+        "warningCount": 0
+      }
+    },
+    "tools/wvo_mcp/src/web_tools": {
+      "digest": "64e6680c34967c5fdf8d605b27a2e2d8d4109a20",
+      "lastUpdated": "2025-11-06T21:18:50.239Z",
+      "metrics": {
+        "summary": {
+          "coherenceScore": 5,
+          "economyScore": 5,
+          "localityScore": 5,
+          "visibilityScore": 3,
+          "evolutionScore": 5
+        },
+        "warningCount": 1
+      }
+    },
+    "tools/wvo_mcp/src/work_process": {
+      "digest": "10d04e6b02b99818e14d631d7010cd2512e227e9",
+      "lastUpdated": "2025-11-06T21:18:50.239Z",
+      "metrics": {
+        "summary": {
+          "coherenceScore": 5,
+          "economyScore": 5,
+          "localityScore": 5,
+          "visibilityScore": 5,
+          "evolutionScore": 5
+        },
+        "warningCount": 0
+      }
+    },
+    "tools/wvo_mcp/src/worker": {
+      "digest": "2a089a7a6a187eb238a7b0addcb5765e6597959b",
+      "lastUpdated": "2025-11-06T21:18:50.239Z",
+      "metrics": {
+        "summary": {
+          "coherenceScore": 5,
+          "economyScore": 5,
+          "localityScore": 4,
+          "visibilityScore": 3,
+          "evolutionScore": 5
+        },
         "warningCount": 2
       }
     }
+  },
+  "generatedAt": "2025-11-06T21:18:50.240Z",
+  "stats": {
+    "trackedDirectories": 138
   }
 }

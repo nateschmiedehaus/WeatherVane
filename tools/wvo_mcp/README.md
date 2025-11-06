@@ -2,6 +2,21 @@
 
 This package implements the Model Context Protocol (MCP) server that powers the autonomous **WeatherVane Orchestrator (WVO)**. It exposes planning, context, filesystem, command, and critic tools so MCP clients can manage the WeatherVane repository end-to-end.
 
+## Recent Changes (2025-11-06)
+
+✅ **Proof System Complete (3 Layers)**
+- Layer 1: Structural enforcement (auto-verification)
+- Layer 2: Multi-critic validation (future)
+- Layer 3: Production feedback tracking (**NEW**)
+- Self-improvement: Auto-creates improvement tasks (**NEW**)
+- Wave 0: Fully integrated with proof validation (**NEW**)
+
+✅ **Wave 0 Fundamental Fixes**
+- Fixed roadmap parser: Replaced regex with YAML.parse()
+- Added `npm run wave0` script for easy autopilot launch
+
+See: `src/prove/README.md`, `src/wave0/README.md` for details.
+
 **This package supports two MCP client variants:**
 - **Codex** - via `index.ts` entry point
 - **Claude Code** - via `index-claude.ts` entry point
