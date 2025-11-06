@@ -202,7 +202,7 @@ epics:
               without human babysitting before governance tightening begins.
           - id: AFP-W5-M1-PROCESS-CRITIC
             title: Implement ProcessCritic for PLAN/VERIFY test sequencing
-            status: planned
+            status: done
             dependencies: []
             exit_criteria:
               - ProcessCritic blocks commits when PLAN lacks authored tests
