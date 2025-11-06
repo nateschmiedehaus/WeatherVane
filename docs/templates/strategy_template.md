@@ -19,6 +19,39 @@ This document captures **WHY** this task matters and **WHAT** we're trying to ac
 
 ---
 
+## Hierarchical Context
+
+**Check for existing READMEs before starting analysis:**
+
+**Epic context:** [Check state/epics/[EPIC-ID]/README.md if task belongs to epic]
+**Milestone context:** [Check state/milestones/[MILESTONE-ID]/README.md if task belongs to milestone]
+**Task group context:** [Check state/task_groups/[GROUP-ID]/README.md if task belongs to group]
+**Module context:** [Check [working-directory]/README.md if working in specific module]
+
+**Example:**
+```
+Checked READMEs:
+- ✅ state/epics/WAVE-0/README.md - Found: Autopilot foundation strategy (see Purpose section)
+- ✅ state/milestones/W0.M1/README.md - Found: Proof system milestone plan
+- ✅ tools/wvo_mcp/src/critics/README.md - Found: Critic architecture patterns
+- ❌ state/task_groups/proof-system/README.md - Not found (no task group for this work)
+
+Key insights from READMEs:
+- WAVE-0 epic goal: Stabilize autopilot foundation for autonomous operation (<4 week path to autonomy)
+- W0.M1 milestone: Implementing 3-layer proof system (structural, critic, production feedback)
+- Critics module uses CriticResult interface for all quality checks
+```
+
+**Purpose of this section:**
+- Discover strategic context that already exists (don't duplicate effort)
+- Understand how this task fits into larger goals (epic/milestone strategy)
+- Find proven patterns in the module (module README documents architecture)
+- Document what context informed your analysis (reproducibility)
+
+**If READMEs don't exist:** That's fine! This is a discovery step, not a requirement. Just note that you checked and proceed with analysis.
+
+---
+
 ## Problem Statement
 
 **What is the actual problem we're solving?**
