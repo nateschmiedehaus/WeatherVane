@@ -109,6 +109,7 @@ How tasks flow from creation to completion.
   npm run plan:review -- <TASK-ID>
   ```
   Approvals logged in `state/analytics/spec_reviews.jsonl` and `plan_reviews.jsonl`.
+  See `docs/workflows/AFP_REVIEWER_ROUTINE.md` for the full reviewer + Wave 0 command flow and log locations.
 - Daily artifact health audit committed within the last 24 hours (rotate overrides + summary)
 - Guardrail monitor (`node tools/wvo_mcp/scripts/check_guardrails.mjs`) reports PASS (or CI guardrail job is green)
 - Quality gates pass

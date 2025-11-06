@@ -398,8 +398,8 @@
       }
     },
     "docs/agent_library": {
-      "digest": "fc3bdc7cfcbc8770fbe58ff1318a4f33104d04b4",
-      "lastUpdated": "2025-11-06T21:41:12.265Z",
+      "digest": "328f01c1d05f247ebb8803b60de55ba1bf34450d",
+      "lastUpdated": "2025-11-06T21:41:43.458Z",
       "metrics": {
         "summary": {
           "coherenceScore": 5,
@@ -412,8 +412,8 @@
       }
     },
     "docs/agent_library/common": {
-      "digest": "8e80fb904719cfe103a4551c9bc7a9d4436f1b1c",
-      "lastUpdated": "2025-11-06T21:41:12.261Z",
+      "digest": "b3d5ccbe86d850963b33e3c7beb3d8d7be247837",
+      "lastUpdated": "2025-11-06T21:41:43.456Z",
       "metrics": {
         "summary": {
           "coherenceScore": 5,
@@ -426,8 +426,8 @@
       }
     },
     "docs/agent_library/common/concepts": {
-      "digest": "efc862c35e741fa832d16809116babda1130dbb8",
-      "lastUpdated": "2025-11-06T21:41:12.259Z",
+      "digest": "f54259d709e50f9612b3a27c23db735777844afe",
+      "lastUpdated": "2025-11-06T21:41:43.454Z",
       "metrics": {
         "summary": {
           "coherenceScore": 5,
@@ -440,8 +440,8 @@
       }
     },
     "docs/agent_library/common/processes": {
-      "digest": "cac5d759e09e4901957cc9685caf354389bd9a24",
-      "lastUpdated": "2025-11-06T21:41:12.260Z",
+      "digest": "200512070be273a8fe39e50c5424e72483f40ded",
+      "lastUpdated": "2025-11-06T21:41:43.455Z",
       "metrics": {
         "summary": {
           "coherenceScore": 5,
@@ -454,8 +454,8 @@
       }
     },
     "docs/agent_library/common/standards": {
-      "digest": "d092b27fe708a709286ad14c8135adc43c3565e6",
-      "lastUpdated": "2025-11-06T21:41:12.261Z",
+      "digest": "1d2d202981aa624618a02fc5193c8b56d8e706ec",
+      "lastUpdated": "2025-11-06T21:41:43.456Z",
       "metrics": {
         "summary": {
           "coherenceScore": 5,
@@ -468,8 +468,8 @@
       }
     },
     "docs/agent_library/domains": {
-      "digest": "cf8cacdbd533ef620437ce0fb84d920bd2b67749",
-      "lastUpdated": "2025-11-06T21:41:12.263Z",
+      "digest": "078c870d58c23f8ae7b9febcbaf8f233aadbb65f",
+      "lastUpdated": "2025-11-06T21:41:43.457Z",
       "metrics": {
         "summary": {
           "coherenceScore": 5,
@@ -482,8 +482,8 @@
       }
     },
     "docs/agent_library/domains/infrastructure": {
-      "digest": "f809cfe153dfde2e84fdff8ed58e87b439029404",
-      "lastUpdated": "2025-11-06T21:41:12.262Z",
+      "digest": "bfddd150cccd729738a1c4e93db8dc9f08b6ed80",
+      "lastUpdated": "2025-11-06T21:41:43.456Z",
       "metrics": {
         "summary": {
           "coherenceScore": 5,
@@ -496,8 +496,8 @@
       }
     },
     "docs/agent_library/domains/ml": {
-      "digest": "cb4abd911252ce1dc8418aba677ff6634f7270ef",
-      "lastUpdated": "2025-11-06T21:41:12.262Z",
+      "digest": "1f6fdbe49c37d9ef6ba77a78ef0518bbc9825ee2",
+      "lastUpdated": "2025-11-06T21:41:43.456Z",
       "metrics": {
         "summary": {
           "coherenceScore": 5,
@@ -510,8 +510,8 @@
       }
     },
     "docs/agent_library/domains/product": {
-      "digest": "2c4fe12d7f81790e35680acbe8bf0dcbfef1d441",
-      "lastUpdated": "2025-11-06T21:41:12.262Z",
+      "digest": "a130c9e5198b8fe1e4b590febe59309c11674ee5",
+      "lastUpdated": "2025-11-06T21:41:43.457Z",
       "metrics": {
         "summary": {
           "coherenceScore": 5,
@@ -524,8 +524,8 @@
       }
     },
     "docs/agent_library/domains/security": {
-      "digest": "e45e8e9c9b9aeb8117a3646d932508bf83ba5d4f",
-      "lastUpdated": "2025-11-06T21:41:12.263Z",
+      "digest": "acac96e4acab5f73fd288406bbd1e70605b06592",
+      "lastUpdated": "2025-11-06T21:41:43.457Z",
       "metrics": {
         "summary": {
           "coherenceScore": 5,
@@ -538,8 +538,8 @@
       }
     },
     "docs/agent_library/roles": {
-      "digest": "d42740645205b389b12f779ea3a71b936a99467c",
-      "lastUpdated": "2025-11-06T21:41:12.265Z",
+      "digest": "fcfea28a4e32276235a121cd7b03b8bca177a292",
+      "lastUpdated": "2025-11-06T21:41:43.458Z",
       "metrics": {
         "summary": {
           "coherenceScore": 5,
@@ -552,8 +552,8 @@
       }
     },
     "docs/agent_library/roles/atlas": {
-      "digest": "fe3135bb4e2e2928bbbe656ac8cb30acf2bea51d",
-      "lastUpdated": "2025-11-06T21:41:12.264Z",
+      "digest": "41050fbc2aa3073fa93e43d14debd4fb9ca5dec6",
+      "lastUpdated": "2025-11-06T21:41:43.458Z",
       "metrics": {
         "summary": {
           "coherenceScore": 5,
@@ -566,8 +566,8 @@
       }
     },
     "docs/agent_library/roles/critics": {
-      "digest": "a1a0e1bb2240f81bd822315a3a25b221af6523d7",
-      "lastUpdated": "2025-11-06T21:41:12.264Z",
+      "digest": "9f969e68a47a0451d551450ea4fb5f9a639f02d1",
+      "lastUpdated": "2025-11-06T21:41:43.458Z",
       "metrics": {
         "summary": {
           "coherenceScore": 5,
@@ -580,8 +580,8 @@
       }
     },
     "docs/agent_library/roles/director_dana": {
-      "digest": "5ed0d274f591ccd4633a524b9996e19499e59680",
-      "lastUpdated": "2025-11-06T21:41:12.264Z",
+      "digest": "c36c78f545d43cf5c4dbe6d984096b7956a26adf",
+      "lastUpdated": "2025-11-06T21:41:43.458Z",
       "metrics": {
         "summary": {
           "coherenceScore": 5,
@@ -594,8 +594,8 @@
       }
     },
     "docs/agent_library/roles/workers": {
-      "digest": "bf61cd3b967e8c030d00717fcf870f35551adbca",
-      "lastUpdated": "2025-11-06T21:41:12.265Z",
+      "digest": "2790ffe318b0f9e9f049839009662736d235437c",
+      "lastUpdated": "2025-11-06T21:41:43.458Z",
       "metrics": {
         "summary": {
           "coherenceScore": 5,
@@ -608,8 +608,8 @@
       }
     },
     "docs/api": {
-      "digest": "c3f89ba5fd47a60d1b95f906a96c80d6ed561a17",
-      "lastUpdated": "2025-11-06T21:41:12.266Z",
+      "digest": "1b2d99a11a5d0447a595d1aa11072613eb1c62af",
+      "lastUpdated": "2025-11-06T21:41:43.459Z",
       "metrics": {
         "summary": {
           "coherenceScore": 5,
@@ -622,8 +622,8 @@
       }
     },
     "docs/checklists": {
-      "digest": "2168b7d0b5e2c1d7d6b8de26c1979da945379dd2",
-      "lastUpdated": "2025-11-06T21:41:12.266Z",
+      "digest": "2a06a78e98b7a81227784f12efd92090557a81a9",
+      "lastUpdated": "2025-11-06T21:41:43.459Z",
       "metrics": {
         "summary": {
           "coherenceScore": 5,
@@ -636,8 +636,8 @@
       }
     },
     "docs/concepts": {
-      "digest": "df72d35f4463328fe799a60cab86f88b38886323",
-      "lastUpdated": "2025-11-06T21:41:12.267Z",
+      "digest": "8b644555f7daf7d52fb81afc191c41c55e68f26d",
+      "lastUpdated": "2025-11-06T21:41:43.459Z",
       "metrics": {
         "summary": {
           "coherenceScore": 5,
@@ -650,8 +650,8 @@
       }
     },
     "docs/critics": {
-      "digest": "e47ac1e20e68e10659c6983de60d2854d4c946d6",
-      "lastUpdated": "2025-11-06T21:41:12.267Z",
+      "digest": "ce1364f23ddc5deda801fe7e6a2969dbe3d7486c",
+      "lastUpdated": "2025-11-06T21:41:43.459Z",
       "metrics": {
         "summary": {
           "coherenceScore": 5,
@@ -664,8 +664,8 @@
       }
     },
     "docs/enforcement": {
-      "digest": "fbf7ac9ca6b0acca95a774eb3f7ef6179e3c871d",
-      "lastUpdated": "2025-11-06T21:41:12.267Z",
+      "digest": "ffab58a6e820918ce621ec6fec6c569bb74b104f",
+      "lastUpdated": "2025-11-06T21:41:43.459Z",
       "metrics": {
         "summary": {
           "coherenceScore": 5,
@@ -678,8 +678,8 @@
       }
     },
     "docs/features": {
-      "digest": "e3a01807b63ddf6c99077a76cf40e47ab6fad71c",
-      "lastUpdated": "2025-11-06T21:41:12.268Z",
+      "digest": "fe4c8debc317a16af8080e0cf0cc3ce2956094e8",
+      "lastUpdated": "2025-11-06T21:41:43.459Z",
       "metrics": {
         "summary": {
           "coherenceScore": 5,
@@ -692,8 +692,8 @@
       }
     },
     "docs/idempotency": {
-      "digest": "6dccaf5000fa62a79aef60eabb407122d1f6a260",
-      "lastUpdated": "2025-11-06T21:41:12.268Z",
+      "digest": "b42b195744ec9bdbb03cc3b4e4f06cecbd8ccc13",
+      "lastUpdated": "2025-11-06T21:41:43.460Z",
       "metrics": {
         "summary": {
           "coherenceScore": 5,
@@ -706,8 +706,8 @@
       }
     },
     "docs/implementations": {
-      "digest": "1376d47d59199636c5b2123c14489e37e77ec728",
-      "lastUpdated": "2025-11-06T21:41:12.268Z",
+      "digest": "6e064147b57b1e4a09b5923ea21065b40f7fcad3",
+      "lastUpdated": "2025-11-06T21:41:43.460Z",
       "metrics": {
         "summary": {
           "coherenceScore": 5,
@@ -720,8 +720,8 @@
       }
     },
     "docs/intelligence": {
-      "digest": "286163f0b915c5b51a57c1b1db2d5b72a3daa68c",
-      "lastUpdated": "2025-11-06T21:41:12.268Z",
+      "digest": "afb01a13dd2339470d49336c7f6c1bc1c1e30135",
+      "lastUpdated": "2025-11-06T21:41:43.460Z",
       "metrics": {
         "summary": {
           "coherenceScore": 5,
@@ -734,8 +734,8 @@
       }
     },
     "docs/modeling": {
-      "digest": "8a23ee2bf0a8d91e3ed7edabc472aeccd598d89b",
-      "lastUpdated": "2025-11-06T21:41:12.269Z",
+      "digest": "0b7aa1ba5b142b6366bf9ee80b5901853d6f0c45",
+      "lastUpdated": "2025-11-06T21:41:43.460Z",
       "metrics": {
         "summary": {
           "coherenceScore": 5,
@@ -748,8 +748,8 @@
       }
     },
     "docs/models": {
-      "digest": "d7c1cd07dd3b1968ff9f01bf66ef453f68284a36",
-      "lastUpdated": "2025-11-06T21:41:12.269Z",
+      "digest": "88dcc6aa8a80f7e18817a803798c240b21fcee1a",
+      "lastUpdated": "2025-11-06T21:41:43.460Z",
       "metrics": {
         "summary": {
           "coherenceScore": 5,
@@ -762,8 +762,8 @@
       }
     },
     "docs/orchestration": {
-      "digest": "5de43f9ebdc619c92a123a501e9622e81d6e73f5",
-      "lastUpdated": "2025-11-06T21:41:12.269Z",
+      "digest": "d35b796c5885839c5b41310d0d86b2b42d1d7841",
+      "lastUpdated": "2025-11-06T21:41:43.460Z",
       "metrics": {
         "summary": {
           "coherenceScore": 5,
@@ -776,8 +776,8 @@
       }
     },
     "docs/product": {
-      "digest": "cee0ca151c80995c197ed2bf9f71b7f7b8840e16",
-      "lastUpdated": "2025-11-06T21:41:12.270Z",
+      "digest": "60f1264a066f5dcf15838f3306e0f72a42db2ea0",
+      "lastUpdated": "2025-11-06T21:41:43.461Z",
       "metrics": {
         "summary": {
           "coherenceScore": 5,
@@ -790,8 +790,8 @@
       }
     },
     "docs/research": {
-      "digest": "5054628d516e35161d55300e0b90ac9739cb6f40",
-      "lastUpdated": "2025-11-06T21:41:12.270Z",
+      "digest": "51760157c158147f14286951c6b9f19afc44224f",
+      "lastUpdated": "2025-11-06T21:41:43.461Z",
       "metrics": {
         "summary": {
           "coherenceScore": 5,
@@ -804,8 +804,8 @@
       }
     },
     "docs/reviews": {
-      "digest": "5919033a0ebd065c3e1f0da50a16f9179ba394e4",
-      "lastUpdated": "2025-11-06T21:41:12.270Z",
+      "digest": "69d079360d9064a5af1aae34ee02677681b7995f",
+      "lastUpdated": "2025-11-06T21:41:43.461Z",
       "metrics": {
         "summary": {
           "coherenceScore": 5,
@@ -818,8 +818,8 @@
       }
     },
     "docs/runbooks": {
-      "digest": "6155da0a064659d758146d26f568c8aae6767bdf",
-      "lastUpdated": "2025-11-06T21:41:12.270Z",
+      "digest": "201b8afccf80b0c9b28649ce9d15bba149ae468c",
+      "lastUpdated": "2025-11-06T21:41:43.461Z",
       "metrics": {
         "summary": {
           "coherenceScore": 5,
@@ -832,8 +832,8 @@
       }
     },
     "docs/security": {
-      "digest": "f63ee83144df613079260584f6910baa6ec6530d",
-      "lastUpdated": "2025-11-06T21:41:12.271Z",
+      "digest": "66ca5bba3354f35252ddf3350505e62f5bd24327",
+      "lastUpdated": "2025-11-06T21:41:43.461Z",
       "metrics": {
         "summary": {
           "coherenceScore": 5,
@@ -846,8 +846,8 @@
       }
     },
     "docs/templates": {
-      "digest": "a70fcec98df47203b8c0820f938dc68603b974d3",
-      "lastUpdated": "2025-11-06T21:41:12.271Z",
+      "digest": "72cc740845236be0f8dd077bedd997cc5eacbb7c",
+      "lastUpdated": "2025-11-06T21:41:43.462Z",
       "metrics": {
         "summary": {
           "coherenceScore": 5,
@@ -874,8 +874,8 @@
       }
     },
     "docs/testing": {
-      "digest": "a34e134cc031a249f3629c1eccbb5b684924b599",
-      "lastUpdated": "2025-11-06T21:41:12.272Z",
+      "digest": "c719cd08c7b5e582d03c1e15dfcdc8d6d02461a7",
+      "lastUpdated": "2025-11-06T21:41:43.462Z",
       "metrics": {
         "summary": {
           "coherenceScore": 5,
@@ -888,8 +888,8 @@
       }
     },
     "docs/verification": {
-      "digest": "e4bcf7a8ab963f2e3db5edba157bb5671ae22b35",
-      "lastUpdated": "2025-11-06T21:41:12.272Z",
+      "digest": "d34cd8c7c67712d548fc5005082bee8c906a5fb0",
+      "lastUpdated": "2025-11-06T21:41:43.463Z",
       "metrics": {
         "summary": {
           "coherenceScore": 5,
@@ -902,8 +902,8 @@
       }
     },
     "docs/workflows": {
-      "digest": "0717660e00d6ed06118aea2a5742f7479dc174f7",
-      "lastUpdated": "2025-11-06T21:41:12.272Z",
+      "digest": "bf0d9b32759421373062c8b4781f7b07f75270f9",
+      "lastUpdated": "2025-11-06T21:41:43.463Z",
       "metrics": {
         "summary": {
           "coherenceScore": 5,
@@ -1204,8 +1204,8 @@
       }
     },
     "tools/docsync": {
-      "digest": "b2f6f7665d9cc56bb9a48a8c83dbb207c60a7013",
-      "lastUpdated": "2025-11-06T21:18:50.219Z",
+      "digest": "0d4921ca878d33d3c2a72cb9c7e30005a20c0cdc",
+      "lastUpdated": "2025-11-06T21:41:43.464Z",
       "metrics": {
         "summary": {
           "coherenceScore": 5,
@@ -1218,8 +1218,8 @@
       }
     },
     "tools/wvo_mcp/scripts": {
-      "digest": "0e292ab690cca175846431302f09708c21e64a0d",
-      "lastUpdated": "2025-11-06T21:18:50.221Z",
+      "digest": "510bd0c21354f197a2f37580ea3b250d7cd2047b",
+      "lastUpdated": "2025-11-06T21:41:43.464Z",
       "metrics": {
         "summary": {
           "coherenceScore": 4,
@@ -1232,8 +1232,8 @@
       }
     },
     "tools/wvo_mcp/src": {
-      "digest": "3c2c8f1247c3002d555b5d672a4eb5354384836d",
-      "lastUpdated": "2025-11-06T21:18:50.240Z",
+      "digest": "1bd00aa311eb0483fd458068196614dee7236b76",
+      "lastUpdated": "2025-11-06T21:41:43.482Z",
       "metrics": {
         "summary": {
           "coherenceScore": 5,
@@ -1246,8 +1246,8 @@
       }
     },
     "tools/wvo_mcp/src/analytics": {
-      "digest": "36ac286d1f4aa6321853d3720ca57712e63b66bc",
-      "lastUpdated": "2025-11-06T21:18:50.222Z",
+      "digest": "5f864e3c356f54aaa2b6e86414b9d90106aeb5a5",
+      "lastUpdated": "2025-11-06T21:41:43.465Z",
       "metrics": {
         "summary": {
           "coherenceScore": 5,
@@ -1260,8 +1260,8 @@
       }
     },
     "tools/wvo_mcp/src/analytics/__tests__": {
-      "digest": "8675b40de1b6948c22c0923ec70d35981f30177d",
-      "lastUpdated": "2025-11-06T21:18:50.221Z",
+      "digest": "ddc181d61c60402a16c3ebada41752c3ebcf8048",
+      "lastUpdated": "2025-11-06T21:41:43.465Z",
       "metrics": {
         "summary": {
           "coherenceScore": 5,
@@ -1274,8 +1274,8 @@
       }
     },
     "tools/wvo_mcp/src/auth": {
-      "digest": "cf893c17289999e0512a090912e9f061d3b23947",
-      "lastUpdated": "2025-11-06T21:18:50.222Z",
+      "digest": "0dd74ca4d7ae6e68696400601d14774b1887fecc",
+      "lastUpdated": "2025-11-06T21:41:43.466Z",
       "metrics": {
         "summary": {
           "coherenceScore": 5,
@@ -1288,8 +1288,8 @@
       }
     },
     "tools/wvo_mcp/src/cli": {
-      "digest": "f33bb12f1e6d8c8c60745a46f743e085c0ea8c97",
-      "lastUpdated": "2025-11-06T21:18:50.223Z",
+      "digest": "9873588d29bba2898624a4beb8188392ddc07c1f",
+      "lastUpdated": "2025-11-06T21:41:43.466Z",
       "metrics": {
         "summary": {
           "coherenceScore": 5,
@@ -1302,8 +1302,8 @@
       }
     },
     "tools/wvo_mcp/src/critics": {
-      "digest": "30095ada802816f78d96d5e52f205cce216a71c3",
-      "lastUpdated": "2025-11-06T21:18:50.224Z",
+      "digest": "77db6b887d4932c9fdf84c998e9772066a04c05a",
+      "lastUpdated": "2025-11-06T21:41:43.467Z",
       "metrics": {
         "summary": {
           "coherenceScore": 5,
@@ -1316,8 +1316,8 @@
       }
     },
     "tools/wvo_mcp/src/critics/__tests__": {
-      "digest": "f9243e5f41e663c7fccfdab1f2f4a0541e26dfd6",
-      "lastUpdated": "2025-11-06T21:18:50.223Z",
+      "digest": "33150ccd214e36bad1b43ae908d4520360fdf48b",
+      "lastUpdated": "2025-11-06T21:41:43.467Z",
       "metrics": {
         "summary": {
           "coherenceScore": 5,
@@ -1330,8 +1330,8 @@
       }
     },
     "tools/wvo_mcp/src/critics/utils": {
-      "digest": "8dcd3d0c129618c664b11e9f5871a4758e9a97e7",
-      "lastUpdated": "2025-11-06T21:18:50.223Z",
+      "digest": "08bbf715721597054eb1fd92f4e692b031bc76d0",
+      "lastUpdated": "2025-11-06T21:41:43.467Z",
       "metrics": {
         "summary": {
           "coherenceScore": 5,
@@ -1344,8 +1344,8 @@
       }
     },
     "tools/wvo_mcp/src/enforcement": {
-      "digest": "a786fbd773e138dd9536cd717c6c70a223645f1f",
-      "lastUpdated": "2025-11-06T21:18:50.225Z",
+      "digest": "92b90673b2d9b46cd932d99b551359a55e60ad47",
+      "lastUpdated": "2025-11-06T21:41:43.468Z",
       "metrics": {
         "summary": {
           "coherenceScore": 5,
@@ -1358,8 +1358,8 @@
       }
     },
     "tools/wvo_mcp/src/enforcement/__tests__": {
-      "digest": "8ff55dc2df2ecadc5afdda85841d60e21212b984",
-      "lastUpdated": "2025-11-06T21:18:50.224Z",
+      "digest": "6de2b24ef970aa1f72d8e7f32bfaf7a722459fed",
+      "lastUpdated": "2025-11-06T21:41:43.468Z",
       "metrics": {
         "summary": {
           "coherenceScore": 5,
@@ -1372,8 +1372,8 @@
       }
     },
     "tools/wvo_mcp/src/executor": {
-      "digest": "88a60fa601572877c32f3a62102995145773c6b2",
-      "lastUpdated": "2025-11-06T21:18:50.225Z",
+      "digest": "22881346d8955e87cb528e4c2e662dc7e8ae3c55",
+      "lastUpdated": "2025-11-06T21:41:43.468Z",
       "metrics": {
         "summary": {
           "coherenceScore": 5,
@@ -1386,8 +1386,8 @@
       }
     },
     "tools/wvo_mcp/src/git": {
-      "digest": "324cb1796a545baebfa80cd7dca53979e2b3792a",
-      "lastUpdated": "2025-11-06T21:18:50.226Z",
+      "digest": "61aa990960b5c9804c0fe21a7ccd76c068471055",
+      "lastUpdated": "2025-11-06T21:41:43.469Z",
       "metrics": {
         "summary": {
           "coherenceScore": 5,
@@ -1400,8 +1400,8 @@
       }
     },
     "tools/wvo_mcp/src/git/__tests__": {
-      "digest": "80dd8e81e2226e290caea85612bb8adf1557a73a",
-      "lastUpdated": "2025-11-06T21:18:50.226Z",
+      "digest": "5ff4a084b841c7997080d946d7456e3108bf835f",
+      "lastUpdated": "2025-11-06T21:41:43.469Z",
       "metrics": {
         "summary": {
           "coherenceScore": 5,
@@ -1414,8 +1414,8 @@
       }
     },
     "tools/wvo_mcp/src/guardrails": {
-      "digest": "d430f6f9f496b21fb7fde8517bc49675460fecff",
-      "lastUpdated": "2025-11-06T21:18:50.228Z",
+      "digest": "09affa1eaee5768b1b744de6e343f9d7acd0fbd1",
+      "lastUpdated": "2025-11-06T21:41:43.470Z",
       "metrics": {
         "summary": {
           "coherenceScore": 5,
@@ -1428,8 +1428,8 @@
       }
     },
     "tools/wvo_mcp/src/guardrails/__tests__": {
-      "digest": "dfcf7ad63fef074b80d5775e5d52e145a4b4284e",
-      "lastUpdated": "2025-11-06T21:18:50.227Z",
+      "digest": "13ac7d930a09b7937dce6f37fc64f01d31b5d90e",
+      "lastUpdated": "2025-11-06T21:41:43.470Z",
       "metrics": {
         "summary": {
           "coherenceScore": 5,
@@ -1442,8 +1442,8 @@
       }
     },
     "tools/wvo_mcp/src/intelligence": {
-      "digest": "d362b5a7aa722950716870872b70f1089787073e",
-      "lastUpdated": "2025-11-06T21:18:50.230Z",
+      "digest": "1ec0ef18d0c683364729b487614d8f1d49342527",
+      "lastUpdated": "2025-11-06T21:41:43.471Z",
       "metrics": {
         "summary": {
           "coherenceScore": 5,
@@ -1456,8 +1456,8 @@
       }
     },
     "tools/wvo_mcp/src/intelligence/__tests__": {
-      "digest": "ffc6bdd951394db0b88954c27dbba048b414422e",
-      "lastUpdated": "2025-11-06T21:18:50.230Z",
+      "digest": "7cb08687ae5a2f65dbba51a74990093c72a898b0",
+      "lastUpdated": "2025-11-06T21:41:43.470Z",
       "metrics": {
         "summary": {
           "coherenceScore": 5,
@@ -1470,8 +1470,8 @@
       }
     },
     "tools/wvo_mcp/src/limits": {
-      "digest": "8225d786b1d20dbbf572a310450dff5685fa7cac",
-      "lastUpdated": "2025-11-06T21:18:50.230Z",
+      "digest": "5ea76b38d1c66fceba0de1f2f7ae507626b630de",
+      "lastUpdated": "2025-11-06T21:41:43.471Z",
       "metrics": {
         "summary": {
           "coherenceScore": 5,
@@ -1484,8 +1484,8 @@
       }
     },
     "tools/wvo_mcp/src/lsp": {
-      "digest": "6d5385c3c2b2338eb7d678794074d4f6721762ac",
-      "lastUpdated": "2025-11-06T21:18:50.231Z",
+      "digest": "6822b389c057064cc1abf7770b40e86085ac8c95",
+      "lastUpdated": "2025-11-06T21:41:43.471Z",
       "metrics": {
         "summary": {
           "coherenceScore": 5,
@@ -1498,8 +1498,8 @@
       }
     },
     "tools/wvo_mcp/src/models": {
-      "digest": "7d9ed22350061b129248e37fbe8efd55b7978d3d",
-      "lastUpdated": "2025-11-06T21:18:50.231Z",
+      "digest": "674518ebcbda0e3ac45327ecda7f6ef8f8617b97",
+      "lastUpdated": "2025-11-06T21:41:43.472Z",
       "metrics": {
         "summary": {
           "coherenceScore": 5,
@@ -1512,8 +1512,8 @@
       }
     },
     "tools/wvo_mcp/src/observability": {
-      "digest": "b79770c12a4342dab7df1e5a64f7a722ba6cc339",
-      "lastUpdated": "2025-11-06T21:18:50.231Z",
+      "digest": "bbf2a148ebc1717181228a829e7170c948c88d61",
+      "lastUpdated": "2025-11-06T21:41:43.472Z",
       "metrics": {
         "summary": {
           "coherenceScore": 5,
@@ -1526,8 +1526,8 @@
       }
     },
     "tools/wvo_mcp/src/orchestrator": {
-      "digest": "74668d6f798aa76dc5666d219a6874d718a40e98",
-      "lastUpdated": "2025-11-06T21:18:50.232Z",
+      "digest": "4114e4e67cf02f55052cc4fa3da8b051dc684d1c",
+      "lastUpdated": "2025-11-06T21:41:43.473Z",
       "metrics": {
         "summary": {
           "coherenceScore": 5,
@@ -1540,8 +1540,8 @@
       }
     },
     "tools/wvo_mcp/src/orchestrator/__tests__": {
-      "digest": "369c420594c5814a13988e6ab9a82a2c2fdc2a39",
-      "lastUpdated": "2025-11-06T21:18:50.232Z",
+      "digest": "2a9949dc29fe086984687aacee6d451743fc03c9",
+      "lastUpdated": "2025-11-06T21:41:43.472Z",
       "metrics": {
         "summary": {
           "coherenceScore": 5,
@@ -1554,8 +1554,8 @@
       }
     },
     "tools/wvo_mcp/src/orchestrator/consensus": {
-      "digest": "b997c8d2cc3260fe26e9726a4fe9f2d204403760",
-      "lastUpdated": "2025-11-06T21:18:50.232Z",
+      "digest": "b5035ab88f7380172561e7524f3834e88692b648",
+      "lastUpdated": "2025-11-06T21:41:43.473Z",
       "metrics": {
         "summary": {
           "coherenceScore": 5,
@@ -1568,8 +1568,8 @@
       }
     },
     "tools/wvo_mcp/src/planner": {
-      "digest": "a624e114a3ab0d48af9ea0a914408b014e24c57f",
-      "lastUpdated": "2025-11-06T21:18:50.233Z",
+      "digest": "232c932666fe67431146f1e05c984b59caebde10",
+      "lastUpdated": "2025-11-06T21:41:43.473Z",
       "metrics": {
         "summary": {
           "coherenceScore": 5,
@@ -1596,8 +1596,8 @@
       }
     },
     "tools/wvo_mcp/src/prove/__tests__": {
-      "digest": "7cccc0ea5f46c73a676c477af240ccb50c37d97f",
-      "lastUpdated": "2025-11-06T21:18:50.233Z",
+      "digest": "5a3442a88cebc143bdb1f5a2c7eb0725fe785531",
+      "lastUpdated": "2025-11-06T21:41:43.474Z",
       "metrics": {
         "summary": {
           "coherenceScore": 5,
@@ -1610,8 +1610,8 @@
       }
     },
     "tools/wvo_mcp/src/providers": {
-      "digest": "bfbdd7d5a3e826cda3818262567e2a9aaa5ae268",
-      "lastUpdated": "2025-11-06T21:18:50.234Z",
+      "digest": "ae472616724b183480a381aef578068837a8c21c",
+      "lastUpdated": "2025-11-06T21:41:43.474Z",
       "metrics": {
         "summary": {
           "coherenceScore": 5,
@@ -1624,8 +1624,8 @@
       }
     },
     "tools/wvo_mcp/src/quality": {
-      "digest": "ffb6861bddf33b3586b7469567ff820c705f5337",
-      "lastUpdated": "2025-11-06T21:18:50.234Z",
+      "digest": "2bba54996901366c2cd86d08cb87bc57e2f32b55",
+      "lastUpdated": "2025-11-06T21:41:43.474Z",
       "metrics": {
         "summary": {
           "coherenceScore": 5,
@@ -1638,8 +1638,8 @@
       }
     },
     "tools/wvo_mcp/src/schemas": {
-      "digest": "bef903bb8bbf7e6334ff17855ba980d554a0f532",
-      "lastUpdated": "2025-11-06T21:18:50.234Z",
+      "digest": "e4a50101b99ff98335dbf3850ea97b746a7dec7e",
+      "lastUpdated": "2025-11-06T21:41:43.475Z",
       "metrics": {
         "summary": {
           "coherenceScore": 5,
@@ -1652,8 +1652,8 @@
       }
     },
     "tools/wvo_mcp/src/simulations": {
-      "digest": "f72b8776cf64da78cc3a64baf75065ac583b2f1c",
-      "lastUpdated": "2025-11-06T21:18:50.235Z",
+      "digest": "3944255e995b6a77943af2dc30ebebee571e3e5d",
+      "lastUpdated": "2025-11-06T21:41:43.475Z",
       "metrics": {
         "summary": {
           "coherenceScore": 5,
@@ -1666,8 +1666,8 @@
       }
     },
     "tools/wvo_mcp/src/state": {
-      "digest": "c41ae2eb30f22892b65ca922fb4d726c64883f5a",
-      "lastUpdated": "2025-11-06T21:18:50.235Z",
+      "digest": "3a398c8d92e522d1fb9742a8994c77c32b08bda7",
+      "lastUpdated": "2025-11-06T21:41:43.475Z",
       "metrics": {
         "summary": {
           "coherenceScore": 5,
@@ -1680,8 +1680,8 @@
       }
     },
     "tools/wvo_mcp/src/supervisor": {
-      "digest": "6eab17eae3b78ba4d4341f2caf074faabc7c0680",
-      "lastUpdated": "2025-11-06T21:18:50.235Z",
+      "digest": "3e61896f4395d8fd7217998807b57f7b54d48250",
+      "lastUpdated": "2025-11-06T21:41:43.476Z",
       "metrics": {
         "summary": {
           "coherenceScore": 5,
@@ -1694,8 +1694,8 @@
       }
     },
     "tools/wvo_mcp/src/telemetry": {
-      "digest": "80a8b65d9d9832378595628e8f08ffd53703a11e",
-      "lastUpdated": "2025-11-06T21:18:50.235Z",
+      "digest": "14adb7b2d7094e0f3a78477772f610bf90599e8d",
+      "lastUpdated": "2025-11-06T21:41:43.476Z",
       "metrics": {
         "summary": {
           "coherenceScore": 5,
@@ -1708,8 +1708,8 @@
       }
     },
     "tools/wvo_mcp/src/tests": {
-      "digest": "1a7d6d74a0007f8a8ab5c2ec6146ca1496dd207b",
-      "lastUpdated": "2025-11-06T21:18:50.236Z",
+      "digest": "b5b3ab0bc777fe91a20f3e2342c17a45239895dd",
+      "lastUpdated": "2025-11-06T21:41:43.477Z",
       "metrics": {
         "summary": {
           "coherenceScore": 5,
@@ -1722,8 +1722,8 @@
       }
     },
     "tools/wvo_mcp/src/tests/helpers": {
-      "digest": "25269f9ec7c632e09659b7add298dedd1f17c87d",
-      "lastUpdated": "2025-11-06T21:18:50.236Z",
+      "digest": "73e44be1c8b6a391106888f8d1b9f7a2f5a3dfdf",
+      "lastUpdated": "2025-11-06T21:41:43.476Z",
       "metrics": {
         "summary": {
           "coherenceScore": 5,
@@ -1736,8 +1736,8 @@
       }
     },
     "tools/wvo_mcp/src/tools": {
-      "digest": "828fb4c2fd3cf8a340ac2bdc2db9d42698853aed",
-      "lastUpdated": "2025-11-06T21:18:50.237Z",
+      "digest": "4ee4067c94c3747a1e69dcf43a903717c7e67556",
+      "lastUpdated": "2025-11-06T21:41:43.477Z",
       "metrics": {
         "summary": {
           "coherenceScore": 5,
@@ -1750,8 +1750,8 @@
       }
     },
     "tools/wvo_mcp/src/types": {
-      "digest": "937a66367071e2460b77e199be2a2492acdd37d5",
-      "lastUpdated": "2025-11-06T21:18:50.237Z",
+      "digest": "b639b8b5ee9040fe0e5e0dab6674e12e13aae295",
+      "lastUpdated": "2025-11-06T21:41:43.478Z",
       "metrics": {
         "summary": {
           "coherenceScore": 5,
@@ -1764,8 +1764,8 @@
       }
     },
     "tools/wvo_mcp/src/upgrade": {
-      "digest": "cbb1722832d5d4872117cf8ee1610cb44eb1c3fd",
-      "lastUpdated": "2025-11-06T21:18:50.237Z",
+      "digest": "fc55860bbd70957678986fde834fdb93978e2775",
+      "lastUpdated": "2025-11-06T21:41:43.478Z",
       "metrics": {
         "summary": {
           "coherenceScore": 5,
@@ -1778,8 +1778,8 @@
       }
     },
     "tools/wvo_mcp/src/utils": {
-      "digest": "ca663882f0ab2263534408759c808b21e828f62e",
-      "lastUpdated": "2025-11-06T21:18:50.238Z",
+      "digest": "92a88536e7bb813518c946aedbdbbee746516d2b",
+      "lastUpdated": "2025-11-06T21:41:43.479Z",
       "metrics": {
         "summary": {
           "coherenceScore": 5,
@@ -1792,8 +1792,8 @@
       }
     },
     "tools/wvo_mcp/src/wave0": {
-      "digest": "0b52f91b9b8e17e2af4153b7cd3e4c488f638872",
-      "lastUpdated": "2025-11-06T21:07:17.836Z",
+      "digest": "8dd05e026cada5d238dbbc8b45b4e6fa6ba76c3d",
+      "lastUpdated": "2025-11-06T21:41:43.480Z",
       "metrics": {
         "summary": {
           "coherenceScore": 5,
@@ -1806,8 +1806,8 @@
       }
     },
     "tools/wvo_mcp/src/wave0/__tests__": {
-      "digest": "37f7bc39ab75e598530de80b674478dc93ec8835",
-      "lastUpdated": "2025-11-06T21:18:50.238Z",
+      "digest": "4927fdfbfbdfb3e728c1a2cc514b8da10e453484",
+      "lastUpdated": "2025-11-06T21:41:43.479Z",
       "metrics": {
         "summary": {
           "coherenceScore": 5,
@@ -1820,8 +1820,8 @@
       }
     },
     "tools/wvo_mcp/src/web_tools": {
-      "digest": "64e6680c34967c5fdf8d605b27a2e2d8d4109a20",
-      "lastUpdated": "2025-11-06T21:18:50.239Z",
+      "digest": "cfb9b3bea852a732ff5d8d52eeafd3320005a428",
+      "lastUpdated": "2025-11-06T21:41:43.481Z",
       "metrics": {
         "summary": {
           "coherenceScore": 5,
@@ -1834,8 +1834,8 @@
       }
     },
     "tools/wvo_mcp/src/work_process": {
-      "digest": "10d04e6b02b99818e14d631d7010cd2512e227e9",
-      "lastUpdated": "2025-11-06T21:18:50.239Z",
+      "digest": "30333135072b885f5dccc8c931dfc1f80a25f793",
+      "lastUpdated": "2025-11-06T21:41:43.481Z",
       "metrics": {
         "summary": {
           "coherenceScore": 5,
@@ -1848,8 +1848,8 @@
       }
     },
     "tools/wvo_mcp/src/worker": {
-      "digest": "2a089a7a6a187eb238a7b0addcb5765e6597959b",
-      "lastUpdated": "2025-11-06T21:18:50.239Z",
+      "digest": "790f00dd18c48afcfe6806e53f3331cfe7c420e4",
+      "lastUpdated": "2025-11-06T21:41:43.482Z",
       "metrics": {
         "summary": {
           "coherenceScore": 5,
@@ -1862,7 +1862,7 @@
       }
     }
   },
-  "generatedAt": "2025-11-06T21:41:12.281Z",
+  "generatedAt": "2025-11-06T21:41:43.482Z",
   "stats": {
     "trackedDirectories": 141
   }

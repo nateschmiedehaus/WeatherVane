@@ -11,15 +11,19 @@
    - Missing archive after rotation → rerun script and inspect permissions.
 4. Scan `state/evidence/` for new AFP tasks created since last audit; ensure each has STRATEGIZE→PLAN artifacts staged.  
    - If any are missing, block IMPLEMENT work until lifecycle artifacts are in place.
-5. Run spec/plan reviewers for tasks approaching the gate (after THINK phase):  
+5. Confirm execution metadata exists for every task touched in the last 24 hours.  
+   - Each evidence folder must contain `metadata.json` with `execution_mode: manual|autopilot`.  
+   - For manual work, run `node tools/wvo_mcp/scripts/set_execution_mode.mjs <TASK-ID> manual` (Wave 0 tags itself automatically).  
+   - Block REVIEW if any task lacks metadata.
+6. Run spec/plan reviewers for tasks approaching the gate (after THINK phase):  
    ```bash
    cd tools/wvo_mcp
    npm run spec:review -- <TASK-ID>
    npm run plan:review -- <TASK-ID>
    ```
    - Verify corresponding approvals appear in `state/analytics/spec_reviews.jsonl` and `state/analytics/plan_reviews.jsonl`.
-5. Document results in `state/evidence/AFP-ARTIFACT-AUDIT-YYYY-MM-DD/summary.md` using the daily template (include commands run + outcomes).
-6. Run `node tools/wvo_mcp/scripts/check_guardrails.mjs` (or inspect CI results) to confirm guardrails passing; address failures immediately.
-7. Push the audit evidence and notify ProcessCritic owner if any remediation is required.
+7. Document results in `state/evidence/AFP-ARTIFACT-AUDIT-YYYY-MM-DD/summary.md` using the daily template (include commands run + outcomes).
+8. Run `node tools/wvo_mcp/scripts/check_guardrails.mjs` (or inspect CI results) to confirm guardrails passing; address failures immediately.
+9. Push the audit evidence and notify ProcessCritic owner if any remediation is required.
 
 **Escalation:** If rotation fails or the repository still shows untracked items after remediation, open a follow-up task immediately and tag the Autopilot Council. Do not proceed to IMPLEMENT on unrelated work until the audit passes.
