@@ -51,6 +51,19 @@ epics:
               Verification task for AFP-W0-M1-MVP-SUPERVISOR-INTEGRATION. Tests
               that supervisor components work with live Wave0 autopilot. This is
               a minimal no-op task to verify orchestration.
+          - id: AFP-W0-VALIDATE-PROOF-LOOP
+            title: Validate proof-driven Wave 0 loop
+            status: done
+            dependencies: []
+            exit_criteria:
+              - Wave 0 executes this task with proof system enabled and marks it done
+              - Proof system generates verify.md for the task
+              - Lifecycle telemetry + achievements recorded in evidence bundle
+            domain: mcp
+            description: >
+              Synthetic validation task executed during
+              AFP-PROOF-DRIVEN-GAMIFICATION-20251106-REDO to prove the proof-driven
+              gamification loop works end to end.
           - id: AFP-W0-M1-MVP-AGENTS-SCAFFOLD
             title: MVP agents scaffold
             status: done
@@ -237,6 +250,231 @@ epics:
               validates the testing workflow and ensures future development can
               leverage autonomous validation instead of just manual build/test
               verification. Uses TaskFlow CLI as safe test environment.
+      - id: W0.M3
+        title: Hierarchical Process System
+        status: in_progress
+        description: >
+          Implement 5-level hierarchical work process (META/PROJECT/EPIC/SET/TASK)
+          with mandatory embedding, enforced phase completion, and bidirectional
+          pattern flow. First task: Create WAVE-0 epic phase docs (we're already
+          in W0 but missing super-task structures).
+        sets:
+          - id: wave0-epic-bootstrap
+            title: Create WAVE-0 Epic Phase Docs (we're already in it!)
+            status: in_progress
+            description: >
+              CRITICAL FIRST STEP: Create strategy/spec/plan/think/design for
+              WAVE-0 epic itself. We're already executing W0 tasks but missing
+              the epic-level phase docs. Bootstrap the hierarchy by documenting
+              what WAVE-0 IS before building the system.
+            tasks:
+              - id: AFP-W0-EPIC-BOOTSTRAP
+                title: Create WAVE-0 epic strategy/spec/plan/think/design
+                status: pending
+                dependencies: []
+                set_id: wave0-epic-bootstrap
+                epic_id: WAVE-0
+                exit_criteria:
+                  - state/epics/WAVE-0/strategy.md created (why WAVE-0, urgency)
+                  - state/epics/WAVE-0/spec.md created (outcomes, metrics)
+                  - state/epics/WAVE-0/plan.md created (milestones, integration)
+                  - state/epics/WAVE-0/think.md created (risks, dependencies)
+                  - state/epics/WAVE-0/design.md created (architecture, patterns)
+                  - All docs validated by OutcomeCritic
+                domain: mcp
+                description: >
+                  Bootstrap hierarchical process by creating epic-level phase docs
+                  for WAVE-0 itself. This is meta-work: documenting the epic we're
+                  already in. Required before we can enforce epic gates on future
+                  epics.
+
+          - id: hierarchy-structure
+            title: Create 5-Level Structure (META/PROJECT/EPIC/SET/TASK)
+            status: pending
+            description: >
+              Create directory structure and templates for all 5 levels of
+              hierarchy. Includes META level for process itself.
+            tasks:
+              - id: AFP-HIERARCHY-META-STRUCTURE
+                title: Create META-level structure and templates
+                status: pending
+                dependencies:
+                  - AFP-W0-EPIC-BOOTSTRAP
+                set_id: hierarchy-structure
+                epic_id: WAVE-0
+                exit_criteria:
+                  - state/meta/ directory created with strategy/spec/plan/think/design
+                  - AFP principles documented in meta/plan/principles/
+                  - Process evolution rules in meta/design.md
+                  - MetaCritic specification complete
+                domain: mcp
+                description: >
+                  Create META level for process governance itself. Documents AFP/SCAS
+                  principles, process evolution policy, and how hierarchy works.
+
+              - id: AFP-HIERARCHY-PROJECT-STRUCTURE
+                title: Create PROJECT-level structure and templates
+                status: pending
+                dependencies:
+                  - AFP-HIERARCHY-META-STRUCTURE
+                set_id: hierarchy-structure
+                epic_id: WAVE-0
+                exit_criteria:
+                  - state/project/WEATHERVANE-2025/ created
+                  - Project strategy/spec/plan/think/design templates created
+                  - Architecture, tech stack, constraints documented
+                  - VisionCritic specification complete
+                domain: mcp
+                description: >
+                  Create PROJECT level structure. Document WEATHERVANE's architecture,
+                  tech stack (TypeScript/Python), constraints (≤150 LOC), and governance.
+
+              - id: AFP-HIERARCHY-SET-TEMPLATES
+                title: Create SET-level templates
+                status: pending
+                dependencies:
+                  - AFP-HIERARCHY-PROJECT-STRUCTURE
+                set_id: hierarchy-structure
+                epic_id: WAVE-0
+                exit_criteria:
+                  - docs/templates/set_strategy_template.md created
+                  - docs/templates/set_spec_template.md created
+                  - docs/templates/set_plan_template.md created
+                  - ClusterCritic specification complete
+                domain: mcp
+                description: >
+                  Create templates for SET (task group) level. Lightweight phase
+                  docs for clustering related tasks.
+
+          - id: hierarchy-enforcement
+            title: Enforce Hierarchy Gates and Embedding
+            status: pending
+            description: >
+              Implement pre-commit enforcement: Epic/Set must have phase docs
+              before tasks can be added. Tasks must be embedded in sets.
+            tasks:
+              - id: AFP-HIERARCHY-GATE-ENFORCER
+                title: Implement epic/set gate enforcement
+                status: pending
+                dependencies:
+                  - AFP-HIERARCHY-SET-TEMPLATES
+                set_id: hierarchy-enforcement
+                epic_id: WAVE-0
+                exit_criteria:
+                  - tools/wvo_mcp/src/enforcement/hierarchy_gates.ts created
+                  - enforceEpicGate() blocks tasks without epic phase docs
+                  - enforceSetGate() blocks tasks without set phase docs
+                  - enforceTaskEmbedding() requires set_id and epic_id
+                  - Unit tests pass (80% coverage)
+                domain: mcp
+                description: >
+                  Implement gate enforcement logic. Pre-commit hook blocks adding
+                  tasks to epic/set until strategy/spec/plan/think/design exist.
+
+              - id: AFP-HIERARCHY-PRECOMMIT-HOOKS
+                title: Integrate enforcement into pre-commit
+                status: pending
+                dependencies:
+                  - AFP-HIERARCHY-GATE-ENFORCER
+                set_id: hierarchy-enforcement
+                epic_id: WAVE-0
+                exit_criteria:
+                  - .husky/pre-commit updated with hierarchy checks
+                  - Git commit blocked if epic missing phase docs
+                  - Git commit blocked if set missing phase docs
+                  - Git commit blocked if task missing set_id/epic_id
+                  - Error messages clear and actionable
+                domain: mcp
+                description: >
+                  Add hierarchy enforcement to pre-commit hooks. Make violations
+                  IMPOSSIBLE (not just warned).
+
+          - id: hierarchy-critics
+            title: Implement Hierarchical Critics
+            status: pending
+            description: >
+              MetaCritic (process health), VisionCritic (project), OutcomeCritic
+              (epic), ClusterCritic (set).
+            tasks:
+              - id: AFP-HIERARCHY-META-CRITIC
+                title: Implement MetaCritic for process validation
+                status: pending
+                dependencies:
+                  - AFP-HIERARCHY-PRECOMMIT-HOOKS
+                set_id: hierarchy-critics
+                epic_id: WAVE-0
+                exit_criteria:
+                  - tools/wvo_mcp/src/critics/meta_critic.ts created
+                  - Validates process delivering outcomes (metrics check)
+                  - Validates patterns evolving (fitness scores)
+                  - Quarterly review automation
+                  - Tests pass
+                domain: mcp
+                description: >
+                  MetaCritic validates the process itself. Runs quarterly, checks
+                  if hierarchy is delivering value or becoming bureaucracy.
+
+              - id: AFP-HIERARCHY-LEVEL-CRITICS
+                title: Implement VisionCritic, OutcomeCritic, ClusterCritic
+                status: pending
+                dependencies:
+                  - AFP-HIERARCHY-META-CRITIC
+                set_id: hierarchy-critics
+                epic_id: WAVE-0
+                exit_criteria:
+                  - VisionCritic validates project vision clarity
+                  - OutcomeCritic validates epic outcomes measurability
+                  - ClusterCritic validates set grouping rationale
+                  - All integrated with pre-commit
+                  - Tests pass
+                domain: mcp
+                description: >
+                  Implement level-specific critics. Each validates phase docs
+                  at appropriate level.
+
+          - id: hierarchy-migration
+            title: Migrate Existing Work to Hierarchy
+            status: pending
+            description: >
+              Organize existing W0.M1/M2 tasks into sets, create set phase docs,
+              validate structure.
+            tasks:
+              - id: AFP-HIERARCHY-W0M1-MIGRATION
+                title: Organize W0.M1 tasks into sets
+                status: pending
+                dependencies:
+                  - AFP-HIERARCHY-LEVEL-CRITICS
+                set_id: hierarchy-migration
+                epic_id: WAVE-0
+                exit_criteria:
+                  - W0.M1 tasks organized into 3-5 sets
+                  - Each set has strategy/spec/plan phase docs
+                  - roadmap.yaml updated with set embedding
+                  - No orphaned tasks
+                domain: mcp
+                description: >
+                  Retroactively organize W0.M1's ~30 tasks into logical sets
+                  (proof-system, supervisor-integration, scaffold-bringup, etc).
+                  Create lightweight phase docs for each set.
+
+              - id: AFP-HIERARCHY-DOCUMENTATION
+                title: Write hierarchical process documentation
+                status: pending
+                dependencies:
+                  - AFP-HIERARCHY-W0M1-MIGRATION
+                set_id: hierarchy-migration
+                epic_id: WAVE-0
+                exit_criteria:
+                  - docs/processes/hierarchical_overview.md complete
+                  - docs/processes/meta_lifecycle.md complete
+                  - docs/processes/project_lifecycle.md complete
+                  - docs/processes/epic_lifecycle.md complete
+                  - docs/processes/set_lifecycle.md complete
+                  - Examples from WAVE-0 included
+                domain: mcp
+                description: >
+                  Document the hierarchical process system. Include examples from
+                  WAVE-0 migration showing how it works in practice.
   - id: WAVE-1
     title: Wave 1 – Governance & AFP Enforcement
     status: done
