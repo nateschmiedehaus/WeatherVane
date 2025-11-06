@@ -105,6 +105,8 @@ Once configured, the following tools are available:
 
 ### Quality & Critics
 - **critics_run** - 🔍 Run quality critic suites (build, tests, typecheck, security, etc.)
+- 🚨 **ProcessCritic** now enforces that `plan.md` lists authored tests (no deferrals/placeholders) and that new test files match the plan. Fix plan/test sequencing before attempting VERIFY.
+- 🛰️ Autopilot features must stage PLAN updates with Wave 0 live testing steps (`npm run wave0`, `ps aux | grep wave0`, TaskFlow smoke) and VERIFY must run them; commits touching autopilot/wave0 code without that plan will fail.
 
 ### Autopilot & Background Tasks
 - **autopilot_record_audit** - 🤖 Record QA audits

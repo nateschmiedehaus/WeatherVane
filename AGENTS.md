@@ -15,7 +15,8 @@
    - Document: Acceptance criteria, functional + non-functional requirements
 
 3. **PLAN** - Design approach
-   - Document: Architecture, files to change, module structure
+   - Document: Architecture, files to change, module structure, and the verification tests you will author now
+   - Write or update the automated/manual tests that VERIFY will execute. Tests may start failing or skipped, but they must exist before IMPLEMENT. If tests are not applicable (docs-only work), document that decision explicitly in PLAN.
 
 4. **THINK** - Reason through solution
    - Document: Edge cases, failure modes, AFP/SCAS validation
@@ -75,6 +76,7 @@
    - Constraints: ≤5 files, ≤150 net LOC, refactor not patch
 
 7. **VERIFY** - Test it works
+   - Run the PLAN-authored tests (and any documented manual checks). Do not write new tests here—if additional coverage is required, loop back to PLAN to author them before re-entering IMPLEMENT.
    - See `MANDATORY_VERIFICATION_LOOP.md` for full requirements
 
 8. **REVIEW** - Quality check
@@ -106,6 +108,19 @@
 - Route follow-up tasks created by the consensus engine (critical or non-quorum decisions) to Atlas or Director Dana instead of bypassing review.
 - Run the consolidated test batch via `bash tools/wvo_mcp/scripts/run_integrity_tests.sh` so TestsCritic sees the real pass/fail state; do not rely on piecemeal `make test`.
 - Keep `state/context.md` concise (<1000 words). `TokenEfficiencyManager` trims overflow automatically and stores backups in `state/backups/context/`; review before restoring.
+- ProcessCritic now blocks commits when PLAN lacks authored tests or new tests appear without PLAN updates. Fix the plan (or document docs-only work) before continuing.
+- Autopilot work must stage PLAN updates that list Wave 0 live testing steps (e.g., `npm run wave0`, `ps aux | grep wave0`, TaskFlow live smoke). VERIFY is expected to execute those steps—commits touching autopilot/wave0 code without the plan updates will fail.
+- **TEST WITH LIVE AUTOPILOT:** For autopilot changes or new features, use Wave 0 live testing instead of just build verification:
+  - **CRITICAL: Wave 0 is evolutionary, not frozen** - it improves over time as autopilot capabilities advance
+  - Wave 0 = current autopilot version (0.1, 0.2, 0.3...) - gets better at harder tasks as it evolves
+  - Check if running: `ps aux | grep wave0`
+  - Start if needed: `cd tools/wvo_mcp && npm run wave0 &`
+  - Monitor: `tail -f state/analytics/wave0_startup.log`
+  - Add tasks to roadmap and verify autonomous completion
+  - Success = agent completes tasks without human intervention (not just "build passing")
+  - See `docs/orchestration/AUTOPILOT_VALIDATION_RULES.md`
+  - Use TaskFlow (`tools/taskflow/`) for safe validation separate from production
+  - Progressive complexity: Tier 1 (easy) → Tier 2 (moderate) → Tier 3 (hard) → Tier 4 (expert) validates Wave 0 improvements
 
 ## Project Structure & Module Organization
 - `apps/api/` – FastAPI services, routes, config, and database layer (`apps/api/services`, `apps/api/routes`).
