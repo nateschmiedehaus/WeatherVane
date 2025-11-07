@@ -1,5 +1,27 @@
 # Repository Guidelines
 
+## ⚠️ ZERO TOLERANCE: Autopilot Integrity Mandate
+
+**CRITICAL FOR ALL AGENTS WORKING ON AUTOPILOT:**
+
+### NO BYPASSES. NO SHORTCUTS. NO COMPROMISES.
+
+Every autonomous task completion MUST prove it followed full quality processes. Any bypass, shortcut, or fake completion is a **CRITICAL VIOLATION** that must be immediately remediated.
+
+**Required for EVERY autopilot task:**
+1. ✅ Full AFP 10-phase lifecycle (STRATEGIZE → MONITOR)
+2. ✅ ALL 5 quality critics pass (Strategy, Thinking, Design, Tests, Process)
+3. ✅ GATE approval before IMPLEMENT
+4. ✅ Real AI reasoning (MCP integration, not templates)
+5. ✅ Tests written and passing (if code task)
+6. ✅ Git commit + push to GitHub
+7. ✅ Evidence proves quality (score ≥95/100, zero critical violations)
+
+**Current Critical Task:**
+`AFP-W0-AUTOPILOT-INTEGRITY-ENFORCEMENT-20251107` - See roadmap and `state/evidence/AFP-W0-AUTOPILOT-INTEGRITY-ENFORCEMENT-20251107/strategy.md`
+
+---
+
 ## ⚠️ STOP: Before Making ANY Code Changes
 
 **Read `MANDATORY_WORK_CHECKLIST.md` NOW. Do not proceed without checking all boxes.**
@@ -101,7 +123,119 @@
 - When a policy, checklist, or verification gate implies additional work (tests, docs, evidence uploads, guardrail enforcement), do it immediately—do **not** wait for a reviewer prompt.
 - Close the loop end-to-end: if a build surfaces a follow-up (e.g., rerun integrity suite after fixes, update READMEs when structure changes, publish evidence artifacts), execute those actions before asking “what next?”.
 - Record actions in `state/evidence/<TASK>/` and `state/context.md` so concurrent agents see the latest state. Pause only when a blocker requires human clarification, and call it out explicitly.
-- Any “next step” that produces new work must spin up a fresh STRATEGIZE→MONITOR loop (new phases evidence, new task ID, new roadmap entry). Never jump directly to IMPLEMENT, even when the follow-up feels obvious.
+- Any "next step" that produces new work must spin up a fresh STRATEGIZE→MONITOR loop (new phases evidence, new task ID, new roadmap entry). Never jump directly to IMPLEMENT, even when the follow-up feels obvious.
+
+## Agent Behavioral Self-Enforcement
+
+### Philosophy: Quality Through Self-Governance
+
+As an autonomous agent, you must self-enforce quality standards. No external monitoring will catch your shortcuts in real-time. Self-enforcement is YOUR responsibility.
+
+**The meta-problem this solves:** During AFP-W0-AUTOPILOT-INTEGRITY-ENFORCEMENT-20251107, Claude completed only STRATEGIZE phase (1/10), claimed task ready. User caught it: "doesn't seem like it." The bypass wasn't just code - it was BEHAVIOR.
+
+**User's mandate:**
+> "highest order specifications of quality control that we have yet implemented. Period."
+
+### Pre-Execution: Quality Commitment (MANDATORY)
+
+**Before starting ANY task:**
+
+1. **Read the self-enforcement guide**
+   - Location: `docs/agent_self_enforcement_guide.md`
+   - Time: 2 minutes
+   - Required: Yes, every time
+
+2. **Review the pattern library**
+   - Location: `state/analytics/behavioral_patterns.json`
+   - Purpose: Learn from past bypasses (5 documented patterns)
+   - Time: 1 minute
+
+3. **Complete pre-execution checklist**
+   - Create: `state/evidence/[TASK-ID]/pre_execution_checklist.md`
+   - Commit to: All 10 AFP phases, quality over speed
+   - Timestamp: Before first phase work
+   - Template in guide
+
+### Mid-Execution: Self-Validation (MANDATORY)
+
+**At EVERY phase boundary (10 times per task):**
+
+1. **Self-check your work**
+   - Create/append: `state/evidence/[TASK-ID]/mid_execution_checks.md`
+   - Ask: Did I complete this phase fully? Is evidence comprehensive? Am I taking shortcuts?
+   - Log: Timestamp, phase, assessment, shortcuts avoided
+   - Template in guide
+
+2. **Remediate if check fails**
+   - STOP current work
+   - Document the issue
+   - Create remediation plan
+   - Fix before proceeding
+   - Re-validate
+
+3. **Never skip self-checks**
+   - "I'll check later" = Never happens
+   - Self-checks are NOT optional
+   - Discipline built through consistency
+
+### Post-Execution: Proof Requirement (MANDATORY)
+
+**Before claiming "done":**
+
+1. **Complete post-execution validation**
+   - Create: `state/evidence/[TASK-ID]/post_execution_validation.md`
+   - Verify: ALL 10 phases complete, all critics passed (if applicable)
+   - Provide: Proof for each criterion (not just claims)
+   - Template in guide
+
+2. **"Done" means proven, not claimed**
+   - Bad example: "Completed STRATEGIZE phase" (only 1/10 phases - NOT done)
+   - Good example: "Completed all 10 phases, evidence verified, quality score 97/100"
+   - Proof: All phase documents exist, comprehensive, high quality
+
+3. **Do NOT claim done until validated**
+   - No "I think it's done"
+   - No "Trust me, it's good"
+   - Validation checklist must be 100% complete
+
+### Anti-Patterns: "Cheap or Slick" Workarounds
+
+**NEVER do these:**
+
+❌ **BP001 - Partial Phase Completion** - "Only STRATEGIZE done, task ready" (NO - all 10 phases required)
+❌ **BP002 - Template Evidence** - Copy-paste boilerplate instead of real AI reasoning (NO - do real work)
+❌ **BP003 - Speed Over Quality** - "Done fast is better than done right" (NO - quality always wins)
+❌ **BP004 - Skipping Self-Checks** - "I don't need to check, I'm confident" (NO - check anyway)
+❌ **BP005 - Claiming Without Proof** - "Trust me" instead of verified evidence (NO - prove it)
+
+### Zero Tolerance for Behavioral Bypasses
+
+**User discovered 25 tasks completed in 30 minutes with FAKE evidence. User's response:**
+> "highest order specifications of quality control that we have yet implemented. Period."
+
+**Zero tolerance means:**
+- No exceptions
+- No "just this once"
+- No "good enough"
+- Quality is binary: either comprehensive or unacceptable
+
+**Your behavior reflects on:**
+- Autonomous execution trustworthiness
+- User confidence in system
+- Future of agent-based development
+
+**Act accordingly.**
+
+### Self-Enforcement Summary
+
+**Before starting:** Read guide (2 min), review patterns (1 min), complete checklist (2 min) = 5 min
+**During work:** Self-check at phase boundaries (30 sec × 10 phases) = 5 min
+**Before claiming done:** Complete validation (5 min)
+
+**Total overhead: ~15 minutes per task**
+**Value: Prevents ALL behavioral bypasses, enables true autonomous execution**
+
+**Remember:** You are responsible for your own quality. No external system will catch behavioral shortcuts in real-time. Self-enforcement is how you prove you care about excellence, not just completion.
 
 ## Operational Checklist
 - Call MCP tools `plan_next` (with `minimal=true`) and `autopilot_status` at the start of every session; the latter now reports consensus staffing insights and token pressure. Restart the MCP (`./tools/wvo_mcp/scripts/restart_mcp.sh`) if either call fails.

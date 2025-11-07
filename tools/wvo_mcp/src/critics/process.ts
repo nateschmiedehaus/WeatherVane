@@ -16,6 +16,25 @@ type ProcessIssue = {
   details?: Record<string, unknown>;
 };
 
+// DRQC (Deep Research Quality Control) citation types
+type DRQCCitation = {
+  page: number;
+  section: string;
+  quote: string;
+  interpretation?: string;
+};
+
+type ConcordanceEntry = {
+  action: string;
+  citation: string;
+  artifact: string;
+};
+
+type ConcordanceTable = {
+  phase: string;
+  entries: ConcordanceEntry[];
+};
+
 const TEST_FILE_PATTERNS = [
   /(^|\/)tests?\//i,
   /(^|\/)__tests__\//i,
@@ -184,6 +203,15 @@ export class ProcessCritic extends Critic {
 
   private inspectPlanDocument(planPath: string, content: string): ProcessIssue[] {
     const issues: ProcessIssue[] = [];
+
+    // Detect phase from filename (strategy.md, spec.md, plan.md, etc.)
+    const phaseMatch = planPath.match(/\/(strategize|strategy|spec|plan|think|design|implement|verify|review|pr|monitor)\.md$/i);
+    if (phaseMatch) {
+      const phase = phaseMatch[1].toUpperCase();
+      const drqcIssues = this.validateDRQCCompliance(planPath, content, phase);
+      issues.push(...drqcIssues);
+    }
+
     const testsSection = this.extractTestsSection(content);
     if (!testsSection) {
       issues.push({
@@ -532,5 +560,160 @@ export class ProcessCritic extends Critic {
 
     audits.sort((a, b) => b.date.getTime() - a.date.getTime());
     return audits[0];
+  }
+
+  /**
+   * Extract DRQC citations from phase document content.
+   * Format: **DRQC Citation:** Page N, "Section Name" > Quote
+   */
+  private extractDRQCCitations(content: string): DRQCCitation[] {
+    const citations: DRQCCitation[] = [];
+
+    // Regex: Allow variations like "Citation:" or "DRQC Citation:", optional quotes around section
+    // Capture: Page number, section name, quote (may be multi-line)
+    const citationRegex = /\*\*(?:DRQC )?Citation:\*\* Page (\d+),\s*"?([^"\n]+)"?\s*>\s*([\s\S]+?)(?=\n\*\*|#{2,}|$)/gs;
+
+    let match;
+    while ((match = citationRegex.exec(content)) !== null) {
+      const page = parseInt(match[1], 10);
+      const section = match[2].trim();
+      const quote = match[3].trim();
+
+      // Look for optional interpretation after the quote
+      const interpretationRegex = new RegExp(
+        `\\*\\*Interpretation:\\*\\*\\s*([\\s\\S]+?)(?=\\n\\*\\*|#{2,}|$)`,
+        's'
+      );
+      const interpretMatch = content.slice(match.index + match[0].length).match(interpretationRegex);
+      const interpretation = interpretMatch ? interpretMatch[1].trim() : undefined;
+
+      citations.push({ page, section, quote, interpretation });
+    }
+
+    return citations;
+  }
+
+  /**
+   * Validate that cited page numbers are within PDF bounds.
+   * DRQC PDF has 45 pages (hardcoded, update if PDF changes).
+   */
+  private validatePageReferences(citations: DRQCCitation[]): ProcessIssue[] {
+    const issues: ProcessIssue[] = [];
+    const MAX_PAGES = 45; // Deep Research Into Quality Control for Agentic Coding.pdf
+
+    for (const citation of citations) {
+      if (citation.page < 1 || citation.page > MAX_PAGES) {
+        issues.push({
+          code: 'drqc_page_invalid',
+          message: `DRQC citation references invalid page ${citation.page} (PDF has ${MAX_PAGES} pages). Check page number in section "${citation.section}".`,
+        });
+      }
+    }
+
+    return issues;
+  }
+
+  /**
+   * Extract concordance table from phase document.
+   * Format: ### Concordance (Phase) with table columns: Action | DRQC Citation | Artifact
+   */
+  private extractConcordance(content: string): ConcordanceTable | null {
+    // Regex: Find "### Concordance (Phase)" followed by markdown table
+    const concordanceRegex = /###\s+Concordance\s+\(([^)]+)\)\s*\n\s*\|.*\|.*\|.*\|\s*\n\s*\|[-:]+\|[-:]+\|[-:]+\|\s*\n((?:\|.*\|.*\|.*\|\s*\n)+)/m;
+
+    const match = content.match(concordanceRegex);
+    if (!match) return null;
+
+    const phase = match[1].trim();
+    const tableContent = match[2];
+
+    // Parse table rows (permissive: accept 2-3 columns, ignore empty rows)
+    const rows = tableContent.split('\n').filter(line => line.trim().length > 0);
+    const entries: ConcordanceEntry[] = [];
+
+    for (const row of rows) {
+      const cells = row.split('|').map(c => c.trim()).filter(c => c.length > 0);
+      if (cells.length >= 2) {
+        entries.push({
+          action: cells[0],
+          citation: cells[1],
+          artifact: cells.length >= 3 ? cells[2] : cells[1], // Merge if only 2 columns
+        });
+      }
+    }
+
+    return entries.length > 0 ? { phase, entries } : null;
+  }
+
+  /**
+   * Check if VERIFY phase document contains live-fire evidence (execution logs).
+   * DRQC: "Always run the program (or a realistic harness), not just lints."
+   */
+  private checkLiveFireEvidence(content: string): boolean {
+    // Look for execution log sections with actual output
+    const logPatterns = [
+      /##\s+Test Execution/i,
+      /##\s+Live-Fire/i,
+      /```[\s\S]{100,}```/, // Code block with ≥100 chars (real logs, not placeholder)
+      /npm test[\s\S]{50,}/, // npm test output
+      /pytest[\s\S]{50,}/, // pytest output
+      /\$ .*\n[\s\S]{50,}/, // Shell command with output
+    ];
+
+    return logPatterns.some(pattern => pattern.test(content));
+  }
+
+  /**
+   * Validate DRQC compliance for a phase document.
+   * Returns issues if missing citations, concordance, or live-fire evidence (VERIFY only).
+   */
+  private validateDRQCCompliance(planPath: string, content: string, phase: string): ProcessIssue[] {
+    const issues: ProcessIssue[] = [];
+
+    // Extract citations
+    const citations = this.extractDRQCCitations(content);
+
+    // Check if citations exist (require ≥1 per phase)
+    if (citations.length === 0) {
+      issues.push({
+        code: 'drqc_citations_missing',
+        message: `DRQC citations missing in ${phase} phase. At least 1 DRQC citation required. Format: **DRQC Citation:** Page X, "Section" > Quote. See docs/DRQC_CITATION_GUIDE.md`,
+        file: planPath,
+      });
+    } else {
+      // Validate page references
+      const pageIssues = this.validatePageReferences(citations);
+      issues.push(...pageIssues.map(issue => ({ ...issue, file: planPath })));
+    }
+
+    // Check for concordance table (required for most phases)
+    const phasesRequiringConcordance = [
+      'STRATEGIZE', 'SPEC', 'PLAN', 'THINK', 'GATE', 'VERIFY', 'REVIEW', 'PR'
+    ];
+
+    if (phasesRequiringConcordance.includes(phase.toUpperCase())) {
+      const concordance = this.extractConcordance(content);
+      if (!concordance || concordance.entries.length === 0) {
+        issues.push({
+          code: 'drqc_concordance_missing',
+          message: `Concordance table missing in ${phase} phase. Required format: ### Concordance (${phase}) with table: Action | DRQC Citation | Artifact`,
+          file: planPath,
+        });
+      }
+    }
+
+    // Check for live-fire evidence (VERIFY only)
+    if (phase.toUpperCase() === 'VERIFY') {
+      const hasLiveFire = this.checkLiveFireEvidence(content);
+      if (!hasLiveFire) {
+        issues.push({
+          code: 'live_fire_missing',
+          message: `Live-fire evidence missing in VERIFY phase. DRQC requires execution logs, not just compile success. Include actual test output, coverage reports, or harness logs.`,
+          file: planPath,
+        });
+      }
+    }
+
+    return issues;
   }
 }

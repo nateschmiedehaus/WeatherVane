@@ -199,6 +199,37 @@ Why this matters:
 
 ---
 
+## Addendum – Autopilot Evidence Gap (2025‑11‑07)
+
+### Updated Observation
+- Wave 0 now produces **complete but meaningless** evidence bundles. Files such as `state/evidence/AFP-W0M1-STABILITY-AND-GUARDRAILS-REFORM/strategy.md` and `plan.md` still contain only the scaffolder boilerplate even though the task exit criteria demand AFP/SCAS research and reform proposals.
+- Implementation logs always read “Wave 0 autopilot executed the placeholder implementation step (no code changes were made).” There is no reference to the targeted set, dependency analysis, or via negativa decisions.
+- Summary.md files claim success while roadmap tasks remain conceptually untouched, so management dashboards show misleading progress.
+
+### Root Cause (2nd order)
+1. **TaskExecutor has no task-type logic** – it never inspects `set_id`, dependencies, or evidence, so every task devolves to the placeholder implementation.
+2. **EvidenceScaffolder only seeds templates** – upstream phases stay `seeded` because nothing rewrites Strategy/Spec/Plan/Think/Design with real content or marks them `done`.
+3. **No deterministic modules for Review/Reform tasks** – the roadmap expects antagonistic analysis per set (e.g., w0m1-stability-and-guardrails), but Wave 0 lacks modules to compute health metrics, dependency readiness, or via negativa opportunities from `state/roadmap.yaml` and `state/evidence`.
+4. **Proof loop lacks substance checks** – ProofIntegration verifies build/test only, so empty evidence still passes, masking the missing work.
+
+### Goal for this iteration
+- Introduce a **task-module runner** that can derive set-level metrics (status counts, dependency blockers, evidence coverage) for Review/Reform tasks and use that data to populate Strategy/Spec/Plan/Think/Design/Implement/Review/Monitor documents.
+- Update EvidenceScaffolder so phases can be overwritten with meaningful markdown and marked `done` once content exists.
+- Require Wave 0 to execute a pending Review/Reform task end-to-end, generating substantive recommendations plus monitor hooks before we consider the task finished.
+
+### Stakeholders Affected
+- **Autopilot operators & Director Dana** – need trustworthy evidence to prioritize remaining remediation work.
+- **Process reviewers (Strategy/Think/Spec/Plan)** – require actual content to audit compliance; blank templates prevent meaningful review.
+- **Downstream remediation owners (tasks Q/R/S/T/U)** – depend on the findings from Review/Reform tasks to scope their fixes.
+
+### Measures of Success
+1. Evidence bundles created after this change contain set-specific analysis (tables summarizing task status, dependency readiness, recommended deletions/refactors).
+2. `phases.json` marks Strategy/Spec/Plan/Think/Design as `done` with notes referencing the generated content instead of leaving them `seeded`.
+3. Implementation logs list concrete actions (e.g., “Analyzed 6 tasks in w0m1-stability-and-guardrails; identified 2 blocked by AFP-W0-M1-DPS-BUILD”).
+4. Wave 0 run on a pending Review/Reform task yields actionable recommendations and monitoring commitments, not just a placeholder summary.
+
+This addendum updates the WHY for task V: passing tests was necessary but not sufficient. We now treat “autopilot produces substantive AFP/SCAS evidence automatically” as the north star.
+
 ## Open Questions
 
 **What don't we know yet?**

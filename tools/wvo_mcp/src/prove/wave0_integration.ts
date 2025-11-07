@@ -6,7 +6,7 @@
  */
 
 import type { Task } from '../wave0/task_executor.js';
-import type { TaskWithPhases } from './types.js';
+import type { ProofResult, TaskWithPhases } from './types.js';
 import { PhaseManager } from './phase_manager.js';
 import { ProofSystem } from './proof_system.js';
 import { DiscoveryReframer } from './discovery_reframer.js';
@@ -29,6 +29,7 @@ export class ProofIntegration {
   private progressTracker: ProgressTracker;
   private achievementSystem: AchievementSystem;
   private sessionId: string;
+  private lastProofResult: ProofResult | null = null;
 
   constructor(
     workspaceRoot: string,
@@ -51,12 +52,13 @@ export class ProofIntegration {
   async processTaskAfterExecution(
     task: Task,
     executionStatus: 'completed' | 'failed'
-  ): Promise<'proven' | 'discovering' | 'blocked'> {
+  ): Promise<{ phaseStatus: 'proven' | 'discovering' | 'blocked'; proofResult?: ProofResult | null }> {
     // Convert task to TaskWithPhases
     const taskWithPhases = this.ensurePhases(task);
 
     if (executionStatus === 'failed') {
-      return 'blocked';
+      this.lastProofResult = null;
+      return { phaseStatus: 'blocked', proofResult: null };
     }
 
     // Complete implementation phase
@@ -81,6 +83,7 @@ export class ProofIntegration {
     // Attempt proof
     logInfo(`ProofIntegration: Attempting proof for ${task.id}`);
     const proofResult = await this.proofSystem.attemptProof(task.id);
+    this.lastProofResult = proofResult;
 
     // Reframe result
     const reframed = this.reframer.reframeProofResult(proofResult);
@@ -137,7 +140,7 @@ export class ProofIntegration {
         taskWithPhases.stats.firstTimeProven = true;
       }
 
-      return 'proven';
+      return { phaseStatus: 'proven', proofResult };
     } else {
       // Unproven - discoveries found
       logInfo(`ProofIntegration: Found ${proofResult.discoveries.length} discoveries`);
@@ -173,7 +176,7 @@ export class ProofIntegration {
       // Display progress (shows improvement phases)
       this.progressTracker.displayProgress(taskWithPhases);
 
-      return 'discovering';
+      return { phaseStatus: 'discovering', proofResult };
     }
   }
 
@@ -197,6 +200,10 @@ export class ProofIntegration {
     const achievements = this.achievementSystem.getAchievements(this.sessionId);
     const summary = this.progressTracker.getSessionSummary(tasks, achievements);
     this.progressTracker.displaySessionSummary(summary);
+  }
+
+  getLastProofResult(): ProofResult | null {
+    return this.lastProofResult;
   }
 
   /**

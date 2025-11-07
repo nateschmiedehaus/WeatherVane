@@ -142,3 +142,30 @@ Deleted: none
 ## GATE Review Tracking
 
 _Pending reviewer feedback once design reviewer runs._
+
+---
+
+## Addendum – Wave 0 Task Module Design (2025‑11‑07)
+
+### Motivation
+Tests are green, but Wave 0 still produces placeholder evidence. We need architecture that enables deterministic, data-driven outputs for Review/Reform tasks so “done” statuses actually carry AFP/SCAS substance.
+
+### Key Design Decisions
+1. **TaskModuleRunner** – new orchestrator component that parses `state/roadmap.yaml`, indexes tasks by `set_id`, and routes execution to specialized modules (starting with Review + Reform). Keeps TaskExecutor slim and enables future modules (e.g., Execution tasks) without large rewrites.
+2. **ReviewTaskModule / ReformTaskModule** – deterministic analyzers that:
+   - Compute status counts, dependency readiness, evidence coverage for every task in the targeted set.
+   - Highlight blockers and via negativa opportunities, referencing concrete task IDs.
+   - Produce markdown for Strategy/Spec/Plan/Think/Design/Implement/Review/Monitor phases so reviewers receive actionable insights.
+3. **EvidenceScaffolder Enhancements** – expose `writePhaseDocument` + export `PhaseKey`/`PhaseStatus` so modules can overwrite boilerplate and set phase states to `done` once populated.
+4. **TaskExecutor Integration** – call the module runner inside `performImplementation`, apply the generated phase updates, append implementation logs, and feed module summary back into `summary.md`. Fall back to the placeholder path for unsupported tasks (logged + marked for follow-up).
+
+### AFP/SCAS Alignment
+- **Via Negativa:** Modules explicitly search for tasks that can be deleted/combined when the set shows redundant work.
+- **Refactor > Repair:** Instead of manually editing evidence bundles, we refactor Wave 0 architecture so every future task benefits from deterministic analysis.
+- **Complexity Control:** Core logic lives in one new module file (<150 LOC net); existing classes gain small helper methods.
+- **Visibility:** Generated markdown prioritizes top blockers and recommendations, making it obvious what autopilot actually did.
+
+### Testing & Verification
+- Extend `evidence_scaffolder.test.ts` (already in tree) to cover the new document-overwrite helpers.
+- Add a dedicated module test that feeds a miniature roadmap fixture and asserts the output includes accurate counts, dependency summaries, and recommendations for both Review and Reform tasks.
+- After implementation, rerun `npm run wave0 -- --once --epic=WAVE-0` and verify the selected task’s evidence contains the new structured content, not templates.

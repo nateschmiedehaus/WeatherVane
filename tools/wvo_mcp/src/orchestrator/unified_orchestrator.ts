@@ -58,6 +58,13 @@ import type { TaskEvidence } from './adversarial_bullshit_detector.js';
 import { TaskProgressTracker } from './task_progress_tracker.js';
 import { ProcessManager, type ProcessHandle } from './process_manager.js';
 import { TaskReadinessChecker } from './task_readiness.js';
+import {
+  inferWorkType,
+  inferReasoningRequirement,
+  getThinkingBudget,
+  type WorkType,
+  type ReasoningLevel,
+} from './reasoning_classifier.js';
 
 export type Provider = 'codex' | 'claude';
 export type AgentRole = 'orchestrator' | 'worker' | 'critic' | 'architecture_planner' | 'architecture_reviewer';
@@ -148,7 +155,15 @@ function calculateExecutionTimeout(complexity?: number): number {
  * CLI executor abstraction for multi-provider support
  */
 export interface CLIExecutor {
-  exec(model: string, prompt: string, mcpServer?: string, taskId?: string, complexity?: number): Promise<ExecutionResult>;
+  exec(
+    model: string,
+    prompt: string,
+    mcpServer?: string,
+    taskId?: string,
+    complexity?: number,
+    permissionMode?: 'plan' | 'auto' | 'normal',
+    thinkingBudget?: number
+  ): Promise<ExecutionResult>;
   checkAuth(): Promise<boolean>;
   setProcessManager(manager: ProcessManager): void;
 }
@@ -168,7 +183,15 @@ export class CodexExecutor implements CLIExecutor {
     this.processManager = manager;
   }
 
-  async exec(model: string, prompt: string, mcpServer?: string, taskId: string = 'unknown', complexity?: number): Promise<ExecutionResult> {
+  async exec(
+    model: string,
+    prompt: string,
+    mcpServer?: string,
+    taskId: string = 'unknown',
+    complexity?: number,
+    _permissionMode?: 'plan' | 'auto' | 'normal',
+    _thinkingBudget?: number
+  ): Promise<ExecutionResult> {
     const startTime = Date.now();
     const timeout = calculateExecutionTimeout(complexity);
 
@@ -316,7 +339,15 @@ export class ClaudeExecutor implements CLIExecutor {
     this.processManager = manager;
   }
 
-  async exec(model: string, prompt: string, mcpServer?: string, taskId: string = 'unknown', complexity?: number): Promise<ExecutionResult> {
+  async exec(
+    model: string,
+    prompt: string,
+    mcpServer?: string,
+    taskId: string = 'unknown',
+    complexity?: number,
+    permissionMode?: 'plan' | 'auto' | 'normal',
+    thinkingBudget?: number
+  ): Promise<ExecutionResult> {
     const startTime = Date.now();
     const timeout = calculateExecutionTimeout(complexity);
 
@@ -346,17 +377,30 @@ export class ClaudeExecutor implements CLIExecutor {
         '--model', model,
       ];
 
+      // Add permission mode for cognitive work (plan mode enables extended thinking)
+      if (permissionMode) {
+        args.push('--permission-mode', permissionMode);
+      }
+
       if (mcpServer) {
         args.push('--mcp', mcpServer);
       }
 
-      const env = {
-        ...process.env,
+      const env: Record<string, string> = {
+        ...process.env as Record<string, string>,
         CLAUDE_CONFIG_DIR: this.configDir,
       };
 
-      logDebug('Spawning claude process with dynamic timeout', {
+      // Set thinking budget for extended thinking (cognitive phases)
+      if (thinkingBudget && thinkingBudget > 0) {
+        env.MAX_THINKING_TOKENS = String(thinkingBudget);
+      }
+
+      logDebug('Spawning claude process with cognitive routing', {
         taskId,
+        model,
+        permissionMode,
+        thinkingBudget,
         complexity,
         timeoutMs: timeout,
         timeoutMinutes: Math.round(timeout / 60000),
@@ -1996,14 +2040,45 @@ Please manually investigate and fix, then change status from 'blocked' to 'pendi
         model: modelSelection.model,
       });
 
+      // 🧠 COGNITIVE ROUTING: Infer work type and reasoning requirements
+      const workType: WorkType = inferWorkType(task);
+      const reasoningDecision = inferReasoningRequirement(task);
+      const reasoningLevel: ReasoningLevel = reasoningDecision.level;
+      const thinkingBudget = getThinkingBudget(reasoningLevel);
+
+      // Determine permission mode based on work type
+      let permissionMode: 'plan' | 'auto' | 'normal' | undefined;
+      if (agent.config.provider === 'claude') {
+        permissionMode = workType === 'cognitive' ? 'plan' : 'auto';
+      }
+
+      // For Claude: Use opus for cognitive work, otherwise use selected model
+      let effectiveModel = modelSelection.model;
+      if (agent.config.provider === 'claude' && workType === 'cognitive') {
+        effectiveModel = 'opus'; // Use latest Opus for cognitive phases
+      }
+
+      logDebug('Cognitive routing applied', {
+        taskId: task.id,
+        workType,
+        reasoningLevel: reasoningDecision.level,
+        thinkingBudget,
+        permissionMode,
+        originalModel: modelSelection.model,
+        effectiveModel,
+        provider: agent.config.provider,
+      });
+
       this.updateAgentProgress(agent.id, 'Executing task with AI model');
       this.taskProgressTracker.updateStep(task.id, 'Executing with AI');
       const result = await executor.exec(
-        modelSelection.model,
+        effectiveModel,
         prompt,
         this.config.mcpServerPath,
         task.id,
-        task.estimated_complexity // Pass complexity for dynamic timeout
+        task.estimated_complexity, // Pass complexity for dynamic timeout
+        permissionMode, // Plan mode for cognitive work
+        thinkingBudget // Extended thinking budget
       );
       this.updateAgentProgress(agent.id, 'Processing execution results');
       this.taskProgressTracker.updateStep(task.id, 'Processing results');

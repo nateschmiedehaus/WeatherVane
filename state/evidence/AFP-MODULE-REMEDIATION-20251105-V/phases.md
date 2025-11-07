@@ -16,3 +16,16 @@
 ## THINK
 - Edge cases (workspace detection failure, temp dir leaks, autopilot run still blocked) and failure modes documented in think.md.  
 - Assumptions recorded (catalog exists, enforcer accepts custom root, etc.); mitigation includes explicit errors + cleanup hooks.
+
+## IMPLEMENT
+- Guardrail catalog tests now resolve the repo root dynamically so they can read `meta/afp_scas_guardrails.yaml` regardless of where Vitest is launched.
+- Work-process enforcement tests seed temporary evidence + critic approvals under `/tmp`, keeping AFP gate logic intact while tests run deterministically.
+- Domain expert reviewer regained the expected template tokens and now records per-domain metadata (`domainId`, `concerns`, `modelUsed`, timestamps) plus aggregated `criticalConcerns`.
+- Knowledge extraction/storage improvements: workspace detection climbs to `.git`, `extractFromFile` stores functions/edges (filtering unknown callees), function parsing handles TypeScript return types + nested braces, and complexity scoring accounts for multi-statement bodies.
+- ML task aggregator regex fix + critical-language sanitizer prevent false blockers, enabling the ML meta-critic to trust high-quality reports.
+- Added `docs/workflows/AFP_REVIEWER_ROUTINE.md` so spec/plan reviewers + Wave 0 smoke commands are wired into the standard routine.
+
+## VERIFY
+- Targeted Vitest suites for guardrails, work-process, domain reviewer, ML aggregator, knowledge extractor, and ML meta-critic all green post-fix.
+- `npm run test --prefix tools/wvo_mcp` now passes (73 files / 1,133 tests) and proof-system integration tests emit `verify.md`.
+- Wave 0 run (`npm run wave0 -- --once --epic=WAVE-0`) proved `AFP-W0M1-SUPPORTING-INFRASTRUCTURE-REFORM` end-to-end (status `done`, zero discoveries). Evidence + `state/analytics/wave0_runs.jsonl` capture the successful session.

@@ -50,15 +50,6 @@ export class KnowledgeExtractor {
 
           functionsExtracted += result.functions.length;
           edgesExtracted += result.edges.length;
-
-          // Store in database
-          for (const fn of result.functions) {
-            this.storage.storeFunctionKnowledge(fn);
-          }
-
-          for (const edge of result.edges) {
-            this.storage.storeCallGraphEdge(edge);
-          }
         } catch (error) {
           console.warn(`Failed to extract from ${file}:`, error);
         }
@@ -142,6 +133,20 @@ export class KnowledgeExtractor {
       }
     }
 
+    const knownFunctionIds = new Set<string>();
+
+    for (const fn of functions) {
+      this.storage.storeFunctionKnowledge(fn);
+      knownFunctionIds.add(fn.id);
+    }
+
+    for (const edge of edges) {
+      if (!knownFunctionIds.has(edge.to)) {
+        continue;
+      }
+      this.storage.storeCallGraphEdge(edge);
+    }
+
     return { functions, edges };
   }
 
@@ -156,43 +161,65 @@ export class KnowledgeExtractor {
     const results: Array<{ name: string; body: string; lineNumber: number }> = [];
 
     // Match function declarations: function name(...) { ... }
-    const funcRegex = /function\s+(\w+)\s*\([^)]*\)\s*\{([^}]*)\}/gs;
+    const funcRegex = /function\s+(\w+)\s*\([^)]*\)\s*(?::\s*[^{]+)?\{/g;
     let match;
 
     while ((match = funcRegex.exec(content)) !== null) {
       const name = match[1];
-      const body = match[2];
+      const braceIndex = funcRegex.lastIndex - 1;
+      const block = this.extractBlock(content, braceIndex);
+      if (!block) continue;
       const lineNumber = content.substring(0, match.index).split('\n').length;
-
-      results.push({ name, body, lineNumber });
+      results.push({ name, body: block.body, lineNumber });
     }
 
     // Match arrow functions: const name = (...) => { ... }
-    const arrowRegex = /(?:const|let|var)\s+(\w+)\s*=\s*(?:async\s+)?\([^)]*\)\s*=>\s*\{([^}]*)\}/gs;
+    const arrowRegex = /(?:const|let|var)\s+(\w+)\s*=\s*(?:async\s+)?\([^)]*\)\s*(?::\s*[^{=]+)?=>\s*\{/g;
 
     while ((match = arrowRegex.exec(content)) !== null) {
       const name = match[1];
-      const body = match[2];
+      const braceIndex = arrowRegex.lastIndex - 1;
+      const block = this.extractBlock(content, braceIndex);
+      if (!block) continue;
       const lineNumber = content.substring(0, match.index).split('\n').length;
-
-      results.push({ name, body, lineNumber });
+      results.push({ name, body: block.body, lineNumber });
     }
 
     // Match class methods: methodName(...) { ... }
-    const methodRegex = /(?:async\s+)?(\w+)\s*\([^)]*\)\s*\{([^}]*)\}/gs;
+    const methodRegex = /(?:async\s+)?(\w+)\s*\([^)]*\)\s*(?::\s*[^{]+)?\{/g;
 
     while ((match = methodRegex.exec(content)) !== null) {
       const name = match[1];
-      const body = match[2];
-      const lineNumber = content.substring(0, match.index).split('\n').length;
-
       // Skip if it looks like a function keyword (already captured)
-      if (!content.substring(Math.max(0, match.index - 10), match.index).includes('function')) {
-        results.push({ name, body, lineNumber });
-      }
+      const prefix = content.substring(Math.max(0, match.index - 10), match.index);
+      if (/\bfunction\b/.test(prefix) || /[=]/.test(prefix)) continue;
+      const braceIndex = methodRegex.lastIndex - 1;
+      const block = this.extractBlock(content, braceIndex);
+      if (!block) continue;
+      const lineNumber = content.substring(0, match.index).split('\n').length;
+      results.push({ name, body: block.body, lineNumber });
     }
 
     return results;
+  }
+
+  private extractBlock(content: string, startIndex: number): { body: string; endIndex: number } | null {
+    let depth = 0;
+    for (let index = startIndex; index < content.length; index += 1) {
+      const char = content[index];
+      if (char === '{') {
+        depth += 1;
+      } else if (char === '}') {
+        depth -= 1;
+        if (depth === 0) {
+          return {
+            body: content.slice(startIndex + 1, index),
+            endIndex: index,
+          };
+        }
+      }
+    }
+    return null;
   }
 
   /**
@@ -206,13 +233,14 @@ export class KnowledgeExtractor {
     const words = name.replace(/([A-Z])/g, ' $1').trim().toLowerCase();
 
     // Detect patterns
-    if (name.startsWith('get')) return `Retrieves ${words.replace('get ', '')}`;
-    if (name.startsWith('set')) return `Updates ${words.replace('set ', '')}`;
-    if (name.startsWith('create')) return `Creates new ${words.replace('create ', '')}`;
-    if (name.startsWith('delete')) return `Removes ${words.replace('delete ', '')}`;
-    if (name.startsWith('validate')) return `Validates ${words.replace('validate ', '')}`;
-    if (name.startsWith('calculate')) return `Computes ${words.replace('calculate ', '')}`;
-    if (name.startsWith('is') || name.startsWith('has')) return `Checks if ${words}`;
+    const lowerName = name.toLowerCase();
+    if (lowerName.startsWith('get')) return `get ${words.replace('get ', '')}`;
+    if (lowerName.startsWith('set')) return `set ${words.replace('set ', '')}`;
+    if (lowerName.startsWith('create')) return `create ${words.replace('create ', '')}`;
+    if (lowerName.startsWith('delete')) return `delete ${words.replace('delete ', '')}`;
+    if (lowerName.startsWith('validate')) return `validate ${words.replace('validate ', '')}`;
+    if (lowerName.startsWith('calculate')) return `calculate ${words.replace('calculate ', '')}`;
+    if (lowerName.startsWith('is') || lowerName.startsWith('has')) return `check if ${words}`;
 
     // Check for common keywords in body
     if (body.includes('return')) return `Returns ${words} based on logic`;
@@ -246,6 +274,16 @@ export class KnowledgeExtractor {
     for (const pattern of branches) {
       const matches = body.match(pattern);
       if (matches) complexity += matches.length;
+    }
+
+    if (complexity === 1) {
+      const statementCount = body
+        .split(';')
+        .map((statement) => statement.trim())
+        .filter(Boolean).length;
+      if (statementCount > 2) {
+        complexity += Math.min(2, Math.floor(statementCount / 3));
+      }
     }
 
     return complexity;

@@ -57,3 +57,29 @@
 - Changing ProofSystem behavior or altering which suites it runs.
 - Broad refactors of the domain expert reviewer beyond template/parsing adjustments needed for the tests.
 - Adding new guardrail checks or work-process phases (handled by other tasks).
+
+---
+
+## Addendum – Wave 0 Evidence Automation (2025‑11‑07)
+
+### Additional Success Criteria
+7. Wave 0 tasks executed after this change produce Strategy/Spec/Plan/Think/Design files that reference real roadmap data (e.g., counts of tasks in the targeted `set_id`, dependency readiness, evidence coverage). Boilerplate text alone is insufficient.
+8. Implementation logs capture at least three concrete actions performed by automation (set scan, dependency audit, recommendation synthesis) per task.
+9. Review + Monitor phases include findings and follow-up hooks linked to specific task IDs within the set, so downstream owners know what to fix next.
+10. `phases.json` marks upstream phases as `done` with notes referencing generated insights, demonstrating that AFP lifecycle work occurred before ProofSystem ran.
+
+### Additional Functional Requirements
+6. Introduce a task-module runner that can inspect `state/roadmap.yaml`, group tasks by `set_id`, and compute metrics (status counts, blockers, missing evidence) used to populate evidence documents.
+7. Provide specialized modules for Review/Reform tasks that generate:
+   - A markdown table of every task in the set with status, dependencies, and evidence status.
+   - A findings section highlighting blockers, via negativa opportunities, and dependency bottlenecks.
+   - Recommended next steps prioritized by impact (e.g., “Unblock AFP-W0-M1-DPS-BUILD to free 3 dependent tasks”).
+8. EvidenceScaffolder must expose an API to overwrite phase documents and update statuses so Wave 0 can record substantive content.
+9. TaskExecutor uses the module output to update Strategy/Spec/Plan/Think/Design/Review/Monitor files instead of leaving scaffolder stubs untouched.
+10. Wave 0 run targets a pending Review/Reform task (e.g., `AFP-W0M1-VALIDATION-AND-READINESS-REVIEW`) and produces the above artifacts end-to-end.
+
+### Additional Non-Functional Requirements
+- Keep module logic deterministic: no network calls or LLM invocations; rely on local roadmap/evidence data so runs are repeatable and CI-safe.
+- Preserve AFP guardrails (≤5 files touched in code, ≤150 net LOC) by centralizing module logic in one new file plus focused tests.
+- Ensure generated markdown stays under 200 lines per phase to avoid bloating evidence bundles while still delivering actionable insights.
+- Document module behavior + limitations in verify/review so reviewers understand what automation covered vs. what still needs human follow-up.

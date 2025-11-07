@@ -25,6 +25,8 @@ import { LeaseManager } from "../supervisor/lease_manager.js";
 import { LifecycleTelemetry } from "../supervisor/lifecycle_telemetry.js";
 import { ProofIntegration } from "../prove/wave0_integration.js";
 import { SelfImprovementSystem } from "../prove/self_improvement.js";
+import { EvidenceScaffolder } from "./evidence_scaffolder.js";
+import type { ProofResult } from "../prove/types.js";
 
 interface Wave0Options {
   singleRun?: boolean;
@@ -46,6 +48,7 @@ export class Wave0Runner {
   private emptyRetryLimit: number;
   private singleRun: boolean;
   private targetEpics: string[] | null;
+  private evidenceScaffolder: EvidenceScaffolder;
 
   constructor(workspaceRoot: string, options: Wave0Options = {}) {
     this.workspaceRoot = workspaceRoot;
@@ -56,6 +59,7 @@ export class Wave0Runner {
     this.telemetry = new LifecycleTelemetry(workspaceRoot);
     this.proofIntegration = new ProofIntegration(workspaceRoot, `wave0-${Date.now()}`);
     this.selfImprovement = new SelfImprovementSystem(workspaceRoot);
+    this.evidenceScaffolder = new EvidenceScaffolder(workspaceRoot);
     this.rateLimitMs = this.resolveRateLimit();
     this.emptyRetryLimit = this.resolveEmptyRetryLimit();
     this.singleRun = this.resolveSingleRun(options);
@@ -149,16 +153,31 @@ export class Wave0Runner {
 
           // 7. Run proof system (if enabled)
           let finalStatus: Task["status"];
+          let proofOutcome:
+            | { phaseStatus: "proven" | "discovering" | "blocked"; proofResult?: ProofResult | null }
+            | null = null;
           if (ProofIntegration.isEnabled()) {
-            const proofStatus = await this.proofIntegration.processTaskAfterExecution(
+            proofOutcome = await this.proofIntegration.processTaskAfterExecution(
               task,
-              result.status === "completed" ? "completed" : "failed"
+              result.status === "completed" ? "completed" : "failed",
             );
-            // Map proof statuses to Task statuses
-            finalStatus = proofStatus === "proven" ? "done" : "blocked";
+            finalStatus = proofOutcome.phaseStatus === "proven" ? "done" : "blocked";
           } else {
-            // Legacy behavior (no proof system)
             finalStatus = result.status === "completed" ? "done" : "blocked";
+          }
+
+          // Update evidence summary/review/monitor
+          if (finalStatus === "done" || finalStatus === "blocked") {
+            const proofResult =
+              proofOutcome?.proofResult ?? this.proofIntegration.getLastProofResult();
+            this.evidenceScaffolder.finalizeTask(task.id, {
+              taskTitle: task.title,
+              finalStatus,
+              proofResult,
+              note: ProofIntegration.isEnabled()
+                ? undefined
+                : "Proof system disabled; manual verification required.",
+            });
           }
 
           // 8. Record execution metadata

@@ -13,10 +13,28 @@
 
 import { describe, it, expect } from 'vitest';
 import * as fs from 'fs/promises';
+import { existsSync } from 'fs';
 import * as path from 'path';
 import { evaluateGuardrails } from '../catalog.js';
 
-const TEST_WORKSPACE = path.join(__dirname, '../../../../../../');
+function resolveWorkspaceRoot(startDir = __dirname): string {
+  let current = startDir;
+  for (let depth = 0; depth < 10; depth += 1) {
+    const gitDir = path.join(current, '.git');
+    const roadmapFile = path.join(current, 'state', 'roadmap.yaml');
+    if (existsSync(gitDir) && existsSync(roadmapFile)) {
+      return current;
+    }
+    const parent = path.dirname(current);
+    if (parent === current) {
+      break;
+    }
+    current = parent;
+  }
+  throw new Error(`Unable to resolve workspace root from ${startDir}`);
+}
+
+const TEST_WORKSPACE = resolveWorkspaceRoot();
 
 describe('Guardrail Catalog', () => {
   describe('Schema Validation', () => {

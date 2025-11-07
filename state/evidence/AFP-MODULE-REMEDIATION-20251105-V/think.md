@@ -83,3 +83,27 @@
 3. `node --test tests/wave0_status.test.js` — ensure status CLI reports stale locks and healthy runs deterministically.  
 4. `npm --prefix tools/wvo_mcp run wave0 -- --once --epic=WAVE-0` — prove autopilot loop completes after fixes.  
 5. `node tools/wvo_mcp/scripts/check_guardrails.mjs` — verify catalog + work-process guardrails show green before closing the task.
+
+---
+
+## Addendum – Task Module Edge Cases (2025‑11‑07)
+
+### New Edge Cases
+11. **Missing `set_id`** – modules rely on set context; if absent, Wave 0 must stop early, mark implementation blocked, and request human input instead of fabricating findings.
+12. **Unknown dependencies** – roadmap references that no longer exist should be listed explicitly so reviewers know which IDs to clean up.
+13. **Evidence drift** – completed tasks with no evidence should be flagged as remediation candidates rather than treated as success.
+14. **Large sets** – sets with >20 tasks need pagination/summary caps so generated markdown stays scannable; automation should highlight top blockers and reference the rest in an appendix section.
+15. **Markdown escaping** – descriptions that include pipes/backticks must be sanitized to avoid breaking tables.
+
+### Additional Failure Modes
+| ID | Description | Likelihood | Impact | Detection | Mitigation |
+|----|-------------|------------|--------|-----------|------------|
+| FM6 | Module misclassifies task type (e.g., non-review tasks) | Medium | Medium | TaskExecutor logs module resolution & tests cover detection | Use explicit keyword mapping and fallback placeholder path |
+| FM7 | Markdown generation crashes due to undefined data | Low | Medium | Unit tests for helper functions | Provide defaults (`N/A`) and guard every optional lookup |
+| FM8 | EvidenceScaffolder overwrite conflicts with ProofSystem writing `verify.md` | Low | High | Regression tests around new APIs | Restrict module writes to Strategy/Spec/Plan/Think/Design/Implement/Review/Monitor |
+| FM9 | Roadmap parsing slows Wave 0 loop | Low | Low | Timing logs per run | Cache parsed roadmap per run; invalidate on file mtime changes |
+| FM10 | Recommendations cite wrong IDs | Medium | High | Markdown assertions verifying ID + title pairing | Build helper to format IDs consistently and include both ID + title in bullet list |
+
+### Monitoring / Recovery Updates
+- Implementation logs must capture: set ID analyzed, task count, blocked tasks, dependencies missing, and follow-up suggestions so reviewers can audit automation quality.
+- `monitor.md` should include TODOs referencing the recommendations (e.g., “Follow up on AFP-W0-M1-DPS-BUILD unblock within 48h”).

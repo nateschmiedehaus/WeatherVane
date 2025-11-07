@@ -1,11 +1,11 @@
 {
   "critic": "designreviewer",
   "code": 0,
-  "stdout": "Design approved: Design shows good AFP/SCAS thinking (7 strengths, 0 concerns)\n{\n  \"strengths\": [\n    \"Referenced 1 real files (verified to exist)\",\n    \"Considered via negativa (deletion/simplification)\",\n    \"Considered refactoring approach (not just patching)\",\n    \"Explored 5+ alternative approaches\",\n    \"Analyzed complexity trade-offs\",\n    \"Estimated implementation scope\",\n    \"Considered risks and edge cases\"\n  ],\n  \"recommendation\": \"proceed\"\n}",
+  "stdout": "Design approved with recommendations: Design shows good AFP/SCAS thinking (6 strengths, 1 concerns)\n{\n  \"concerns\": [\n    {\n      \"type\": \"fake_file_references\",\n      \"severity\": \"high\",\n      \"guidance\": \"You mentioned files that don't exist:\\n  - tools/wvo_mcp/src/wave0/__tests__/no_bypass.test.ts\\n  - tools/wvo_mcp/src/wave0/__tests__/mcp_required.test.ts\\n  - tools/wvo_mcp/src/wave0/__tests__/critic_enforcement.test.ts\\n  - tools/wvo_mcp/src/wave0/__tests__/gate_enforcement.test.ts\\nProvide REAL file paths you actually examined. Don't make up files.\"\n    }\n  ],\n  \"guidance\": \"Address these concerns:\\n1. [HIGH] fake_file_references:\\nYou mentioned files that don't exist:\\n  - tools/wvo_mcp/src/wave0/__tests__/no_bypass.test.ts\\n  - tools/wvo_mcp/src/wave0/__tests__/mcp_required.test.ts\\n  - tools/wvo_mcp/src/wave0/__tests__/critic_enforcement.test.ts\\n  - tools/wvo_mcp/src/wave0/__tests__/gate_enforcement.test.ts\\nProvide REAL file paths you actually examined. Don't make up files.\",\n  \"recommendation\": \"proceed_with_caution\"\n}",
   "stderr": "",
   "passed": true,
   "analysis": null,
-  "git_sha": "c02a3e9e3c87a2b5642136a4b75a2ecc8a2ee573",
-  "timestamp": "2025-11-06T22:36:27.391Z",
+  "git_sha": "3322bff3632d110ff0c6b794eeb85fc92bf1e327",
+  "timestamp": "2025-11-07T14:37:38.909Z",
   "identity": null
 }

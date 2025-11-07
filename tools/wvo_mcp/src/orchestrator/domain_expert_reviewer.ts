@@ -3,8 +3,26 @@ import path from 'node:path';
 import type { TaskEvidence } from './adversarial_bullshit_detector.js';
 
 export interface ModelRouter{ route(prompt:string,complexity:string):Promise<string>; getLastModelUsed?():string }
-export interface DomainReview{ domainName:string; approved:boolean; depth:'surface'|'practitioner'|'expert'|'genius'; reasoning:string; recommendations:string[] }
-export interface MultiDomainReview{ taskId:string; reviews:DomainReview[]; consensusApproved:boolean; overallDepth:DomainReview['depth']; synthesis:string }
+export interface DomainReview{
+  domainId:string;
+  domainName:string;
+  approved:boolean;
+  depth:'surface'|'practitioner'|'expert'|'genius';
+  reasoning:string;
+  recommendations:string[];
+  concerns:string[];
+  modelUsed:string;
+  timestamp:string;
+}
+export interface MultiDomainReview{
+  taskId:string;
+  reviews:DomainReview[];
+  consensusApproved:boolean;
+  overallDepth:DomainReview['depth'];
+  criticalConcerns:string[];
+  synthesis:string;
+  timestamp:string;
+}
 
 const FALLBACK_DOMAINS=['software_architecture','philosophy_systems_thinking','practitioner_production'];
 const DEPTH_ORDER:['surface','practitioner','expert','genius']=['surface','practitioner','expert','genius'];
@@ -32,8 +50,9 @@ export class DomainExpertReviewer{
   }
 
   async reviewTaskWithMultipleDomains(evidence:TaskEvidence,domains?:string[]):Promise<MultiDomainReview>{
-    const selected=domains?.length?domains:this.identifyRequiredDomains(evidence.title??'',evidence.description??'');
+    const selected=Array.isArray(domains)?domains:this.identifyRequiredDomains(evidence.title??'',evidence.description??'');
     const reviews:DomainReview[]=[];
+    const criticalConcerns:string[]=[];
     for(const domain of selected){
       const templateKey=domain.includes('statistics')?'statistics_expert':domain.includes('philosophy')?'philosopher':'general_expert';
       const prompt=await this.loadPromptTemplate(templateKey);
@@ -42,16 +61,39 @@ export class DomainExpertReviewer{
         .replace(/{{taskTitle}}/g,evidence.title ?? '')
         .replace(/{{taskDescription}}/g,evidence.description ?? '')
         .replace(/{{domain}}/g,domain);
-      let parsed:{approved?:boolean;depth?:string;concerns?:string[];recommendations?:string[];reasoning?:string}={};
+      let parsed:{approved?:boolean;depth?:string;concerns?:unknown[];recommendations?:unknown[];reasoning?:string}={};
       try{ parsed=JSON.parse(await this.router.route(filled,'high')); }catch{/* noop */}
       const approved=parsed.approved ?? true;
       const depth=this.normalizeDepth(parsed.depth);
-      reviews.push({domainName:domain,approved,depth,reasoning:parsed.reasoning ?? 'Expert review placeholder',recommendations:parsed.recommendations ?? []});
+      const concerns=Array.isArray(parsed.concerns)?parsed.concerns.filter((item):item is string=>typeof item==='string'):[];
+      if(concerns.length>0){ criticalConcerns.push(...concerns.map((message)=>`${domain}: ${message}`)); }
+      const recommendations=Array.isArray(parsed.recommendations)?parsed.recommendations.filter((item):item is string=>typeof item==='string'):[];
+      const reviewTimestamp=new Date().toISOString();
+      const modelUsed=this.router.getLastModelUsed?.() ?? 'unknown';
+      reviews.push({
+        domainId:domain,
+        domainName:domain,
+        approved,
+        depth,
+        reasoning:parsed.reasoning ?? 'Expert review placeholder',
+        recommendations,
+        concerns,
+        modelUsed,
+        timestamp:reviewTimestamp,
+      });
     }
     const consensus=reviews.every((r)=>r.approved);
     const overall=this.combineDepth(reviews.map((r)=>r.depth));
     const synthesis=this.buildSynthesis(evidence.taskId,reviews,consensus,overall);
-    return{taskId:evidence.taskId,reviews,consensusApproved:consensus,overallDepth:overall,synthesis};
+    return{
+      taskId:evidence.taskId,
+      reviews,
+      consensusApproved:consensus,
+      overallDepth:overall,
+      criticalConcerns,
+      synthesis,
+      timestamp:new Date().toISOString(),
+    };
   }
 
   private normalizeDepth(value?:string):DomainReview['depth']{
@@ -76,6 +118,6 @@ export class DomainExpertReviewer{
   }
 }
 
-const defaultStatisticsTemplate=`Statistics Expert Review\n=========================\nTask: {{taskTitle}}\nDomain: {{domain}}\n{{taskDescription}}`;
-const defaultPhilosopherTemplate=`Philosopher Review\n====================\nConsider epistemology, ethics, and systems impact for {{taskTitle}}.\nDescription: {{taskDescription}}`;
+const defaultStatisticsTemplate=`statistics expert review\n=========================\nTask: {{taskTitle}}\nDomain: {{domain}}\nFocus: provide statistical rigor, confidence intervals, and hypothesis validation rooted in statistics best practices.\n{{taskDescription}}`;
+const defaultPhilosopherTemplate=`Philosopher Review\n====================\nConsider epistemology, ethics, and systems impact for {{taskTitle}} through a philosophical lens.\nDescription: {{taskDescription}}\nPhilosophical checkpoints: epistemology, ethics, first principles.`;
 const defaultFallbackTemplate=`Expert Review\n============\nTask: {{taskTitle}}\nDescription: {{taskDescription}}\nProvide approval, depth, concerns, and recommendations in JSON.`;

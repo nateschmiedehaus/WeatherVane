@@ -58,6 +58,7 @@ cd ../..
 ```
 
 - Logs land in `state/analytics/wave0_runs.jsonl`.
+- Capture the current runner snapshot with `./wave0_status --json` and attach the output to `verify.md` or the task evidence bundle.
 - Each task run emits or updates `state/evidence/<TASK-ID>/` with proof artifacts.
 - If ProofSystem reports test failures, create/append the remediation entry under `state/evidence/AFP-MODULE-REMEDIATION-20251105/followups.md` and open a new subtask (suffixes Q/R/S/etc).
 
@@ -66,6 +67,7 @@ cd ../..
 - **Missing plan/spec**: create from templates under `docs/templates/` before re-running reviewers.
 - **Reviewer concerns**: address the comment inline, update evidence, re-run the same command until approval logged.
 - **Wave 0 lock stuck**: remove `state/wave0.lock` only after confirming no runner is active (`ps aux | grep wave0`).
+- **Need status at a glance?** Run `./wave0_status` (or `--json` for structured output) to see lock/PID health plus the last few executions.
 - **Test failures during Wave 0**: run `npm run test --prefix tools/wvo_mcp` locally, capture failing suites, and update the remediation tracker.
 
 ## References
