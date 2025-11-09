@@ -1,0 +1,23 @@
+{
+  "task": "AFP-W0-STEP5-MUTATION",
+  "version": 1,
+  "enforce_coverage_intersection": false,
+  "enforce_docsync": false,
+  "enforce_prompt_eval": false,
+  "enforce_safety_probes": false,
+  "enforce_attestation": false,
+  "seeds": {
+    "pbt": 12345,
+    "sgat": 67890
+  },
+  "thresholds": {
+    "coverage_pct_changed_min": 0.5,
+    "prompt_high_severity_max": 0,
+    "safety_high_severity_max": 0
+  },
+  "relaxed_template_detector": {
+    "min_citations": 3,
+    "requires_kb": true,
+    "requires_reranker_section": true
+  }
+}
