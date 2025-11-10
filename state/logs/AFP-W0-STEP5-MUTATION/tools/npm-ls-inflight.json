@@ -1,0 +1,5 @@
+{
+  "command": "npm ls inflight --prefix tools/wvo_mcp",
+  "generated_at": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+  "output": "$(npm ls inflight --prefix tools/wvo_mcp 2>&1 | sed 's/"/\\"/g')"
+}
