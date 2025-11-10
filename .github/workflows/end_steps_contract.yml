@@ -1,0 +1,16 @@
+name: End Steps Contract (soft)
+
+on:
+  pull_request:
+
+jobs:
+  end-steps:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: End-steps check (soft)
+        run: node tools/wvo_mcp/scripts/check_end_steps.mjs || echo "soft-pass"
+

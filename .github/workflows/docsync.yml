@@ -1,0 +1,13 @@
+name: Doc Drift (soft)
+
+on:
+  pull_request:
+
+jobs:
+  docsync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Doc drift check (soft)
+        run: node scripts/check_doc_edits.mjs || true
+
