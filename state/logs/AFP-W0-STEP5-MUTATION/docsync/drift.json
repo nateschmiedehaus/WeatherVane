@@ -20,5 +20,6 @@
   "actions": [
     "Document Step 18 CI gates in V3 plan",
     "Link docsync workflow to drift ledger"
-  ]
+  ],
+  "last_checked_at": "2025-11-10T16:18:31.573Z"
 }
