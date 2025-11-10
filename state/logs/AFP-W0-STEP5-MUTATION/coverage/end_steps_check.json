@@ -1,0 +1,33 @@
+{
+  "task": "AFP-W0-STEP5-MUTATION",
+  "ok": true,
+  "errors": [],
+  "checked": [
+    {
+      "path": "state/logs/AFP-W0-STEP5-MUTATION/verify/verify.log",
+      "min": 1024,
+      "json": false
+    },
+    {
+      "path": "state/logs/AFP-W0-STEP5-MUTATION/coverage/coverage.json",
+      "min": null,
+      "json": false
+    },
+    {
+      "path": "state/logs/AFP-W0-STEP5-MUTATION/critics/template_detector.json",
+      "min": null,
+      "json": false
+    },
+    {
+      "path": "state/logs/AFP-W0-STEP5-MUTATION/critics/guardrails.json",
+      "min": null,
+      "json": false
+    },
+    {
+      "path": "state/logs/AFP-W0-STEP5-MUTATION/attest/scas.json",
+      "min": null,
+      "json": true
+    }
+  ],
+  "generated_at": "2025-11-10T01:40:50.183Z"
+}

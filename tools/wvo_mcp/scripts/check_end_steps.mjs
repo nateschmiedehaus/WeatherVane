@@ -57,8 +57,15 @@ for (const r of reqs) {
   }
 }
 
-// Soft mode: never fail CI yet; just emit summary
-const out = errors.length ? { task, ok: false, errors } : { task, ok: true };
-console.log(JSON.stringify(out, null, 2));
-process.exit(0);
-
+const summary = {
+  task,
+  ok: errors.length === 0,
+  errors,
+  checked: reqs.map((entry) => ({ path: entry.p, min: entry.min ?? null, json: Boolean(entry.json) })),
+  generated_at: new Date().toISOString(),
+};
+const coverageDir = path.join(base, 'coverage');
+fs.mkdirSync(coverageDir, { recursive: true });
+fs.writeFileSync(path.join(coverageDir, 'end_steps_check.json'), JSON.stringify(summary, null, 2));
+console.log(JSON.stringify(summary, null, 2));
+process.exit(errors.length ? 1 : 0);
