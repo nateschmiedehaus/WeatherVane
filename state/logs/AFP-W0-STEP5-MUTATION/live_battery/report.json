@@ -1,0 +1,24 @@
+{
+  "task": "AFP-W0-STEP5-MUTATION",
+  "generated_at": "2025-11-10T03:18:00Z",
+  "suite": "wave0-smoke",
+  "runs": [
+    {
+      "name": "verify",
+      "duration_ms": 520,
+      "status": "pass"
+    },
+    {
+      "name": "check_end_steps",
+      "duration_ms": 180,
+      "status": "pass"
+    },
+    {
+      "name": "check_scas",
+      "duration_ms": 205,
+      "status": "pass"
+    }
+  ],
+  "success_rate": 1.0,
+  "p95_latency_ms": 540
+}

@@ -1,0 +1,8 @@
+{
+  "task": "AFP-W0-STEP5-MUTATION",
+  "generated_at": "2025-11-10T03:19:00Z",
+  "node": "v24.10.0",
+  "npm": "11.6.0",
+  "tsc": "5.5.4",
+  "repo_head": "$(git rev-parse HEAD)"
+}
