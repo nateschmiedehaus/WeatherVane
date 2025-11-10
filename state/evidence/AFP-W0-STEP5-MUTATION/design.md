@@ -126,8 +126,78 @@ Risks
 - Deprecation remediation (ESLint 9) might require additional config; fallback is to isolate issue and open follow-up.
 
 Acceptance (Phase 0–3 Addendum)
-- Verify workflow produces canonical artifacts and SCAS trailer; `verify.log` ≥1 KB.  
-- SCAS + End-Steps scripts fail closed with budgets + artifact checks.  
-- TemplateDetector uses body-only analysis + new config; critics outputs stored under `critics/`.  
-- CI workflows pinned to Node 20, contract tests recompute critics + SCAS.  
+- Verify workflow produces canonical artifacts and SCAS trailer; `verify.log` ≥1 KB.
+- SCAS + End-Steps scripts fail closed with budgets + artifact checks.
+- TemplateDetector uses body-only analysis + new config; critics outputs stored under `critics/`.
+- CI workflows pinned to Node 20, contract tests recompute critics + SCAS.
 - Deprecation warnings addressed or documented (with follow-up issue if migration blocked).
+
+---
+
+## Design Extension — Steps 17–19, Watchdogs, & Provenance (2025-11-11)
+
+Problem Statement
+- Post-Phase-3 we still lack continuous assurance: contract-tests recompute logic isn’t committed, watchdog scripts + daily workflow are incomplete, doc drift ledger updates aren’t enforced, inflight/rimraf/glob deprecations linger, and Step 19 (provenance) tooling is absent.
+
+Goals
+- Finish Step 18 delivery plane by recomputing critics/SCAS in CI, hashing results, and running watchdogs both per-PR and daily.
+- Add watchdog bundle (verify stub detection, coverage/critics path canon, SCAS fail-open, doc drift ledger) plus `artifact_health.yml`.
+- Keep doc drift ledger (`state/logs/<TASK>/docsync/drift.json`) updated with `last_checked_at` during watchdog runs.
+- Remedy inflight warnings via targeted overrides/migrations inside `tools/wvo_mcp/package.json` (glob ≥10, rimraf ≥5) and evaluate ESLint v9 flat config adoption (fallback: document follow-up).
+- Implement Step 19 provenance by adding `run_with_attest.mjs` (build→verify→critics→SCAS pipeline that hashes artifacts and appends `RUN:<id>` to verify log) and `check_provenance.mjs` (recompute + hash-compare + timestamp sanity) wired into End-Steps + Contract-Tests workflows.
+
+Constraints & Via Negativa
+- Continue ≤5 files/≤150 net LOC per micro-commit; watchers grouped logically (e.g., two scripts + workflow) with staged design evidence.
+- Deterministic inputs: `TZ=UTC`, `SOURCE_DATE_EPOCH=1700000000`, Node 20 pinned in every workflow touched.
+- Provenance attestation uses existing artifacts only (verify log, coverage, critics, SCAS) to avoid format drift; no new binary formats.
+- Avoid editing unrelated documentation; doc rebaseline remains a future PR with drift ledger references.
+
+Alternatives Considered
+1. **Single mega-commit** bundling watchdogs, CI, provenance, deprecations — rejected (risk + budgets).
+2. **CI-only watchdogs** without daily sweep — rejected (lack of continuous monitoring outside PRs).
+3. **Minimal provenance stub** (log message only) — rejected (needs artifact hashes + RUN ID for replayability).
+4. **New dependency for hashing/reporting** — rejected (Node crypto + fs enough).
+5. **Doc drift automation via git apply** — rejected (DocSync rebaseline handled in separate PR).
+
+Implementation Plan
+- **Contract-Tests recompute & hash**
+  - Land helpers (`recompute_critics_ci.mjs`, `hash_compare.mjs`) and ensure workflow runs them, comparing template detector, guardrails, and SCAS outputs.
+  - Confirm `.tmp/recompute/<TASK>` path is ignored/cleaned.
+- **Watchdogs & Daily Health**
+  - Finalize watchers (doc drift, SCAS fail-open, critics path, coverage path, stub verify) + new `artifact_health.yml` workflow running on cron + dispatch.
+  - Wire watchers into contract-tests after hash compare.
+  - `watch_doc_drift` updates `last_checked_at` but stays deterministic (ISO timestamp).
+  - Add documentation in `state/overrides.jsonl` when env overrides used.
+- **Doc drift ledger maintenance**
+  - Keep ledger under `state/logs/<TASK>/docsync/drift.json`; watchers append `last_checked_at`.
+  - Pre-commit presence-only already writes ledger; ensure watchers don’t clobber root keys.
+- **Deprecations**
+  - Use package `overrides` to force `glob@^10.3.12`, `rimraf@^5.0.5` (resolves `inflight`).
+  - Migrate ESLint to flat config if plugin compatibility holds; otherwise pin latest v8 + record follow-up.
+  - Re-run `npm ls inflight` to confirm removal; store results in `state/logs/<TASK>/verify/changed_files.json`.
+- **Step 19 Provenance**
+  - `run_with_attest.mjs`: orchestrates build→verify→process critic→check_scas→run_template_detector→guardrail_snapshot; collects SHA-256 for key artifacts; writes `state/logs/<TASK>/attest/run.json` with {task, run_id, commit_sha, node_version, dist_hash, artifacts[]} and appends `RUN: <run_id>` to verify log.
+  - `check_provenance.mjs`: re-runs the same pipeline in temp dir, recomputes hashes, ensures RUN line exists, verifies mtimes <= finished_at, and exits non-zero on mismatch.
+  - Update End-Steps and Contract-Tests workflows to call run_with_attest (generation) and check_provenance (validation).
+  - Artifacts hashed: verify.log, coverage.json, critics/*.json, attest/scas.json, guardrails snapshot, changed_files.json.
+
+Testing & Verification
+- Each commit: `npm --prefix tools/wvo_mcp run build`, `WVO_STATE_ROOT=$PWD/state node tools/wvo_mcp/dist/executor/verify.js --task AFP-W0-STEP5-MUTATION`, `node tools/wvo_mcp/scripts/check_scas.mjs`, `node tools/wvo_mcp/scripts/check_end_steps.mjs`.
+- For watchdog bundle: run each script locally with `TASK_ID=AFP-W0-STEP5-MUTATION` and confirm exit codes (use `|| true` where non-blocking).
+- For provenance: simulate run via `node tools/wvo_mcp/scripts/run_with_attest.mjs --task AFP-W0-STEP5-MUTATION`, then `node tools/wvo_mcp/scripts/check_provenance.mjs --task AFP-W0-STEP5-MUTATION`.
+- ESLint migration: run `npx eslint --version` inside `tools/wvo_mcp`; ensure tests unaffected.
+- Contract-tests workflow dry-run via `act` (optional) or manual script invocation for hash compare.
+
+Risks
+- ISO timestamps from watchdogs may create constant diffs; mitigate by committing ledger only when intentional (presence-only watchers run locally but not within commits).
+- Provenance script complexity: keep <150 LOC, reuse helper utilities; ensure aborted runs clean temp dirs.
+- ESLint plugin incompatibility: if encountered, revert to overrides-only fix and log follow-up.
+- Hash compare false positives if artifacts include timestamps; enforce deterministic JSON ordering/sorting output before hashing.
+
+Acceptance
+- Contract-tests (and daily artifact health) run watchdog bundle + recompute/hash compare under deterministic env.
+- Doc drift ledger stored + updated by watchers without blocking commits.
+- `npm ls inflight` returns empty; ESLint either on flat config (v9) or documented fallback.
+- `state/logs/AFP-W0-STEP5-MUTATION/attest/run.json` exists; verify log ends with `RUN: <id>`; `check_provenance` passes locally + CI.
+- Workflows pinned to Node 20 with `TZ`/`SOURCE_DATE_EPOCH`; `artifact_health.yml` scheduled daily.
+- Evidence: updated `verify.log`, coverage, critics, SCAS, agreements, idempotency, drift ledger, provenance run.
