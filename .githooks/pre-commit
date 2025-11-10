@@ -280,7 +280,12 @@ else
     fi
 
     # Get commit message (try multiple sources)
-    COMMIT_MSG=$(git log -1 --pretty=%B 2>/dev/null || cat .git/COMMIT_EDITMSG 2>/dev/null || echo "")
+    MSG_FILE="${GIT_DIR:-.git}/COMMIT_EDITMSG"
+    if [ -f "$MSG_FILE" ]; then
+      COMMIT_MSG=$(cat "$MSG_FILE")
+    else
+      COMMIT_MSG=$(git log -1 --pretty=%B 2>/dev/null || echo "")
+    fi
 
     if echo "$COMMIT_MSG" | grep -q "^Revert"; then
       IS_REVERT=1
@@ -301,6 +306,7 @@ else
         echo "   Five forces require COHERENCE + EVOLUTION checks:"
         echo "   Add 'Pattern: <name>' if reusing existing pattern"
         echo "   Add 'New pattern: <reason>' if creating new pattern"
+        echo "   (Edit ${MSG_FILE} before retrying if git commit aborted early.)"
         echo ""
         echo "   Examples:"
         echo "     Pattern: error_logging_with_context"
@@ -416,7 +422,7 @@ if [ $FILES_CHANGED -gt 1 ] || [ $NET_LOC -gt 20 ]; then
     echo -e "${GREEN}✅ Design evidence found${NC}"
 
     # If design.md is staged, run DesignReviewer to enforce quality
-    DESIGN_MD_STAGED=$(git diff --cached --name-only | grep -E 'state/evidence/.*/design\.md$')
+    DESIGN_MD_STAGED=$(git diff --cached --name-only | grep -E 'state/evidence/.*/design\.md$' || true)
 
     if [ -n "$DESIGN_MD_STAGED" ]; then
       echo ""
@@ -470,7 +476,7 @@ fi
 # ============================================================
 
 # If strategy.md is staged, run StrategyReviewer to enforce quality
-STRATEGY_MD_STAGED=$(git diff --cached --name-only | grep -E 'state/evidence/.*/strategy\.md$')
+STRATEGY_MD_STAGED=$(git diff --cached --name-only | grep -E 'state/evidence/.*/strategy\.md$' || true)
 
 if [ -n "$STRATEGY_MD_STAGED" ]; then
   echo ""
@@ -520,7 +526,7 @@ fi
 # ============================================================
 
 # If think.md is staged, run ThinkingCritic to enforce quality
-THINK_MD_STAGED=$(git diff --cached --name-only | grep -E 'state/evidence/.*/think\.md$')
+THINK_MD_STAGED=$(git diff --cached --name-only | grep -E 'state/evidence/.*/think\.md$' || true)
 
 if [ -n "$THINK_MD_STAGED" ]; then
   echo ""
@@ -674,7 +680,12 @@ echo ""
 echo -e "${YELLOW}🔄 Validating work process phases...${NC}"
 
 # Extract task ID from commit message or branch
-COMMIT_MSG=$(git log -1 --pretty=%B 2>/dev/null || cat .git/COMMIT_EDITMSG 2>/dev/null || echo "")
+MSG_FILE="${GIT_DIR:-.git}/COMMIT_EDITMSG"
+if [ -f "$MSG_FILE" ]; then
+  COMMIT_MSG=$(cat "$MSG_FILE")
+else
+  COMMIT_MSG=$(git log -1 --pretty=%B 2>/dev/null || echo "")
+fi
 TASK_ID=$(echo "$COMMIT_MSG" | grep -oE '\[([A-Z0-9_-]+)\]' | tr -d '[]' | head -1)
 
 # Fallback 1: Check branch name
@@ -990,7 +1001,8 @@ if [[ -n "$BRANCH" ]]; then
 
   # Block direct commits to main (unless merge commit)
   if [[ "$BRANCH" == "main" || "$BRANCH" == "master" ]]; then
-    COMMIT_MSG=$(cat .git/COMMIT_EDITMSG 2>/dev/null || echo "")
+MSG_FILE="${GIT_DIR:-.git}/COMMIT_EDITMSG"
+COMMIT_MSG=$(cat "$MSG_FILE" 2>/dev/null || git log -1 --pretty=%B 2>/dev/null || echo "")
 
     # Allow merge commits (they start with "Merge")
     # Allow commits from auto-push system
