@@ -1,0 +1,16 @@
+{
+  "session_id": "audit_20251109T225323Z_stage7",
+  "target_session": "stage7_finalize",
+  "start": "2025-11-09T22:53:23Z",
+  "end": "2025-11-10T00:08:00Z",
+  "used_micro_patches": 6,
+  "used_merges": 1,
+  "stages_done": ["stage7"],
+  "next_stage": null,
+  "stop_reason": "stage7 complete",
+  "artifacts": [
+    "state/logs/AFP-W0-STEP5-MUTATION/structure/report.json",
+    "state/logs/AFP-W0-STEP5-MUTATION/validation_matrix_stage7.md",
+    "state/logs/AUDIT_20251109T225323Z/ledger_stage7.json"
+  ]
+}
