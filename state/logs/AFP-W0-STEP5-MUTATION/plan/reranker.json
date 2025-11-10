@@ -1,0 +1,22 @@
+{
+  "task": "AFP-W0-STEP5-MUTATION",
+  "generated_at": "2025-11-10T01:35:30Z",
+  "candidates": [
+    {
+      "id": "real-artifacts",
+      "score": 0.81,
+      "notes": "Executor artifacts missing; rerun verify + coverage first"
+    },
+    {
+      "id": "critics",
+      "score": 0.73,
+      "notes": "Template + guardrail proofs unblock critics ledger"
+    },
+    {
+      "id": "hard-gate",
+      "score": 0.69,
+      "notes": "Gate flip only after evidence exists"
+    }
+  ],
+  "selected": "real-artifacts"
+}

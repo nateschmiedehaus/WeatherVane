@@ -1,0 +1,21 @@
+{
+  "task": "AFP-W0-STEP5-MUTATION",
+  "generated_at": "2025-11-10T01:35:40Z",
+  "citations": [
+    {
+      "id": "verify-log",
+      "artifact": "state/logs/AFP-W0-STEP5-MUTATION/verify/verify.log",
+      "reason": "Shows executor heartbeat and failing suites requiring coverage refresh"
+    },
+    {
+      "id": "coverage-json",
+      "artifact": "state/logs/AFP-W0-STEP5-MUTATION/coverage/coverage.json",
+      "reason": "Diff-aware summary ensures net LOC budgets remain tracked"
+    },
+    {
+      "id": "guardrails-json",
+      "artifact": "state/logs/AFP-W0-STEP5-MUTATION/critics/guardrails.json",
+      "reason": "Records audit freshness + override rotation signals"
+    }
+  ]
+}
