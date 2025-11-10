@@ -1,0 +1,49 @@
+name: Verify
+
+on:
+  pull_request:
+    paths:
+      - tools/wvo_mcp/**
+      - apps/**
+      - shared/**
+  workflow_dispatch:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: Install root dependencies
+        run: npm ci --prefer-offline
+
+      - name: Install tools/wvo_mcp dependencies
+        run: npm ci --prefer-offline
+        working-directory: tools/wvo_mcp
+
+      - name: Build
+        run: npm run build
+        working-directory: tools/wvo_mcp
+
+      - name: Run verify suite
+        env:
+          WVO_STATE_ROOT: ${{ github.workspace }}/state
+        run: npm run verify -- --task CI-VERIFY
+        working-directory: tools/wvo_mcp
+
+      - name: Upload verify artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: verify-logs
+          path: |
+            state/logs/CI-VERIFY/verify/verify.log
+            state/logs/CI-VERIFY/coverage/coverage.json
+            state/logs/CI-VERIFY/verify/changed_files.json
