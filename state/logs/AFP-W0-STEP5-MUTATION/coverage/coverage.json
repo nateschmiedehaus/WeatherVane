@@ -12,8 +12,11 @@
     }
   },
   "summary": {
+    "files": 2,
     "statements": 20,
     "hits": 20,
-    "percent": 1
+    "percent": 1,
+    "covered_line_count": 20,
+    "total_line_count": 20
   }
 }
