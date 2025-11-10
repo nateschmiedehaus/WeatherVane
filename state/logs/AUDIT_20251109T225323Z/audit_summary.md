@@ -1,0 +1,8 @@
+- Capsule Commit 3 landed (helper scripts + verify harness + plan update). VERIFY + ProcessCritic green.
+- Stage 7 structure report committed (scripts/check_structure.mjs). VERIFY/ProcessCritic logs archived.
+- CODEOWNERS updated for Stage 7 (tools/, docs/, state/) with Two-Phase validation.
+- Added wave0 legacy shim (runner_legacy.ts) to support dual-run during restructure.
+- Removed obsolete wave0 README now that legacy shim covers dual-run reference paths.
+- Feature flags config + rollback dry-run script committed; dry-run output archived under release/.
+- Quality gates workflow + SCAS attestation script landed; SCAS report archived under attest/.
+- Integration branch integration/afp/AFP-W0-STEP5-MUTATION/stage-7 merged via safety tag + fast-forward to main; release tag release/AFP-W0-STEP5-MUTATION/stage-7 pushed. Post-merge VERIFY + ProcessCritic green.

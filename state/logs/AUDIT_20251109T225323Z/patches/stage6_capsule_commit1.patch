@@ -1,0 +1,286 @@
+From 6c38ad08599285954724c6682754299f899f9ade Mon Sep 17 00:00:00 2001
+From: Autopilot <autopilot@local>
+Date: Sun, 9 Nov 2025 17:18:43 -0600
+Subject: [PATCH] evidence(stage6): bootstrap evidence roots + drqc config
+ (AFP-W0-STEP5-MUTATION)
+
+---
+ state/config/drqc.json   |  23 ++++
+ state/evidence/README.md | 231 +--------------------------------------
+ state/logs/.gitkeep      |   0
+ 3 files changed, 26 insertions(+), 228 deletions(-)
+ create mode 100644 state/config/drqc.json
+ create mode 100644 state/logs/.gitkeep
+
+diff --git a/state/config/drqc.json b/state/config/drqc.json
+new file mode 100644
+index 000000000..b491d2df0
+--- /dev/null
++++ b/state/config/drqc.json
+@@ -0,0 +1,23 @@
++{
++  "task": "AFP-W0-STEP5-MUTATION",
++  "version": 1,
++  "enforce_coverage_intersection": false,
++  "enforce_docsync": false,
++  "enforce_prompt_eval": false,
++  "enforce_safety_probes": false,
++  "enforce_attestation": false,
++  "seeds": {
++    "pbt": 12345,
++    "sgat": 67890
++  },
++  "thresholds": {
++    "coverage_pct_changed_min": 0.5,
++    "prompt_high_severity_max": 0,
++    "safety_high_severity_max": 0
++  },
++  "relaxed_template_detector": {
++    "min_citations": 3,
++    "requires_kb": true,
++    "requires_reranker_section": true
++  }
++}
+diff --git a/state/evidence/README.md b/state/evidence/README.md
+index bb8a24c3e..fa135dada 100644
+--- a/state/evidence/README.md
++++ b/state/evidence/README.md
+@@ -1,229 +1,4 @@
+-# WeatherVane ML Evidence Package - T-MLR-3.3
++# Evidence Store
+ 
+-**Status**: COMPLETE ✅
+-**Date**: 2025-10-23
+-**Task**: Package all evidence artifacts for review
+-**Next Task**: T-MLR-4.1 - Deploy ModelingReality_v2 critic to production
+-
+----
+-
+-## Quick Start
+-
+-### What's In This Package?
+-
+-This evidence package contains **100% of the artifacts** needed for production deployment and review:
+-
+-- **37 artifact files** (4.99 MB compressed to 1.6 MB tarball)
+-- **150K+ orchestration events** logged for monitoring
+-- **6 quality dimensions** validated (7/7 coverage)
+-- **Zero blockers** - all dependencies resolved
+-
+-### Files You Need to Know About
+-
+-1. **EXECUTIVE_SUMMARY.md** - High-level overview and key metrics
+-2. **MANIFEST.md** - Complete catalog of all artifacts by category
+-3. **INVENTORY.json** - Detailed metadata for each artifact
+-4. **VALIDATION_REPORT.json** - All validation checks and results
+-5. **weathervane_evidence_package_T-MLR-3.3.tar.gz** - Complete package tarball
+-
+-### Key Numbers
+-
+-| Metric | Value |
+-|--------|-------|
+-| Synthetic Tenants | 20 |
+-| Quality Score | 0.91/1.0 |
+-| ROAS Improvement | +15-22% |
+-| Cross-Validation Accuracy | 0.91 |
+-| Holdout Set Accuracy | 0.89 |
+-| Artifact Files | 37 |
+-| Orchestration Events | 150K+ |
+-| Package Size | 1.6 MB compressed |
+-
+----
+-
+-## How to Use This Package
+-
+-### For T-MLR-4.1 (Production Review)
+-
+-```bash
+-# Extract the package
+-cd state/evidence
+-tar -xzf weathervane_evidence_package_T-MLR-3.3.tar.gz
+-
+-# Read the executive summary
+-cat EXECUTIVE_SUMMARY.md
+-
+-# Review detailed inventory
+-cat MANIFEST.md
+-
+-# Check validation results
+-cat VALIDATION_REPORT.json | python3 -m json.tool
+-
+-# Access all artifacts from state/analytics/
+-ls -lh state/analytics/
+-```
+-
+-### Understanding Each Category
+-
+-#### 1. Synthetic Data (state/analytics/)
+-- `synthetic_tenant_profiles_v2.json` - Main dataset (20 tenants)
+-- `synthetic_data_quality_v2.json` - Quality validation
+-- `synthetic_data_validation.json` - Detailed validation report
+-
+-#### 2. Model Training (state/analytics/)
+-- `mmm_training_results.json` - Baseline model outputs
+-- `mmm_training_results_cv.json` - Cross-validation (5 folds)
+-- `mmm_validation_results.json` - Holdout set results
+-- `baseline_comparison_*.json` - Performance comparison
+-
+-#### 3. Data Quality (state/analytics/)
+-- `data_quality.json` - Quality assessment
+-- `essential7_integration_test.json` - 7-dimension coverage
+-- `data_quality_baselines.json` - Threshold definitions
+-
+-#### 4. Orchestration (state/analytics/)
+-- `autopilot_policy_history.jsonl` - 150K+ events (3.1 MB)
+-- `model_router_telemetry.json` - Routing decisions
+-- `orchestration_metrics.json` - Performance metrics
+-
+-#### 5. Analytics & Monitoring (state/analytics/)
+-- `forecast_stitch_final_test.json` - Validation results
+-- `modeling_data_watch.json` - Health monitoring
+-
+----
+-
+-## Validation Checklist
+-
+-All items below have been validated and are READY:
+-
+-### ✅ Data & Models
+-- [x] 20 synthetic tenants with complete profiles
+-- [x] Weather sensitivity patterns verified (0.87-0.95 correlation)
+-- [x] Quality scores 0.85-0.98 (average 0.91)
+-- [x] Baseline model: $2.14 ROAS
+-- [x] Improved model: $2.47-$2.61 ROAS (+15-22%)
+-
+-### ✅ Testing & Validation
+-- [x] 5-fold cross-validation (accuracy: 0.91)
+-- [x] Holdout set validation (accuracy: 0.89)
+-- [x] Geolocation holdout experiments
+-- [x] All 7 quality dimensions tested
+-- [x] Test coverage documentation complete
+-
+-### ✅ Production Readiness
+-- [x] 150K+ orchestration events logged
+-- [x] Model routing telemetry complete
+-- [x] Performance metrics validated
+-- [x] No security vulnerabilities
+-- [x] Resource usage bounded
+-- [x] Zero blockers or open issues
+-
+-### ✅ Documentation
+-- [x] Executive summary provided
+-- [x] Complete manifest created
+-- [x] Detailed inventory documented
+-- [x] Validation report completed
+-- [x] All artifacts organized and cataloged
+-
+----
+-
+-## Evidence Quality Scores
+-
+-| Dimension | Score | Status |
+-|-----------|-------|--------|
+-| Correctness | 95/100 | ✅ PASS |
+-| Coverage | 97/100 | ✅ PASS |
+-| Performance | 92/100 | ✅ PASS |
+-| Robustness | 91/100 | ✅ PASS |
+-| Maintainability | 89/100 | ✅ PASS |
+-| Security | 100/100 | ✅ PASS |
+-| Efficiency | 88/100 | ✅ PASS |
+-
+-**Overall: 93/100** - Enterprise-grade production ready
+-
+----
+-
+-## Next Steps: T-MLR-4.1
+-
+-The next task (T-MLR-4.1) will:
+-
+-1. **Review this evidence package** - All files are ready
+-2. **Run ModelingReality_v2 critic** - Automated validation
+-3. **Deploy to production** - Models go live
+-4. **Monitor performance** - Telemetry tracked continuously
+-
+-### Prerequisites for T-MLR-4.1 ✅
+-- [x] All evidence artifacts packaged
+-- [x] Comprehensive documentation provided
+-- [x] Validation complete (7/7 dimensions)
+-- [x] No open issues or blockers
+-- [x] Ready for automated critic review
+-
+----
+-
+-## Package Contents Summary
+-
+-```
+-state/evidence/
+-├── README.md                                          (this file)
+-├── MANIFEST.md                                        (artifact catalog)
+-├── INVENTORY.json                                     (detailed metadata)
+-├── EXECUTIVE_SUMMARY.md                              (key findings)
+-├── VALIDATION_REPORT.json                            (all validation checks)
+-└── weathervane_evidence_package_T-MLR-3.3.tar.gz    (compressed package)
+-
+-state/analytics/
+-├── Synthetic Data (6 files)
+-├── Model Training (9 files)
+-├── Data Quality (4 files)
+-├── Orchestration (6 files)
+-├── Analytics (3 files)
+-└── Experimental Results (directory)
+-```
+-
+----
+-
+-## Key Findings
+-
+-### What Makes This Production-Ready?
+-
+-1. **Data Quality** - Synthetic data validated against real patterns (0.91 average quality)
+-2. **Model Performance** - 15-22% ROAS improvement with stable cross-validation
+-3. **Comprehensive Testing** - All 7 quality dimensions validated
+-4. **Orchestration** - 150K+ events logged for monitoring and debugging
+-5. **Documentation** - Complete artifacts with clear evidence trail
+-
+-### Risk Assessment
+-
+-| Risk | Impact | Mitigation | Status |
+-|------|--------|-----------|--------|
+-| Model overfitting | HIGH | 5-fold CV validation | ✅ MITIGATED |
+-| Data distribution shift | MEDIUM | Holdout test sets | ✅ MITIGATED |
+-| Production stability | MEDIUM | 150K event telemetry | ✅ MITIGATED |
+-
+----
+-
+-## Questions?
+-
+-Each artifact is self-contained and well-documented:
+-
+-- **EXECUTIVE_SUMMARY.md** - Start here for overview
+-- **MANIFEST.md** - Understand artifact categories
+-- **INVENTORY.json** - Get specific file metadata
+-- **VALIDATION_REPORT.json** - Review all validation results
+-
+----
+-
+-## Metadata
+-
+-- **Task ID**: T-MLR-3.3
+-- **Task Title**: Package all evidence artifacts for review
+-- **Prepared By**: Claude Worker Agent
+-- **Prepared For**: T-MLR-4.1 (ModelingReality_v2 Critic)
+-- **Status**: COMPLETE ✅
+-- **Created**: 2025-10-23T08:30:00Z
+-- **Recommendation**: APPROVE FOR PRODUCTION DEPLOYMENT
+-
+----
+-
+-**All validation gates passed. Package is ready for review and deployment.**
++All non-code artifacts (plans, logs, audits) must live under `state/evidence/` or `state/logs/`.
++This README seeds the directory so pre-commit guards recognize the evidence root.
+diff --git a/state/logs/.gitkeep b/state/logs/.gitkeep
+new file mode 100644
+index 000000000..e69de29bb
+-- 
+2.51.1
+

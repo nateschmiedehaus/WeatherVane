@@ -1,0 +1,417 @@
+From 74256b43886afe8c4771b13fb5eff33576a3ff73 Mon Sep 17 00:00:00 2001
+From: Autopilot <autopilot@local>
+Date: Sun, 9 Nov 2025 17:54:16 -0600
+Subject: [PATCH] stage7: add structure report (AFP-W0-STEP5-MUTATION)
+
+---
+ scripts/check_structure.mjs                   |  42 +++
+ .../structure/report.json                     | 347 ++++++++++++++++++
+ 2 files changed, 389 insertions(+)
+ create mode 100755 scripts/check_structure.mjs
+ create mode 100644 state/logs/AFP-W0-STEP5-MUTATION/structure/report.json
+
+diff --git a/scripts/check_structure.mjs b/scripts/check_structure.mjs
+new file mode 100755
+index 000000000..cd01f483e
+--- /dev/null
++++ b/scripts/check_structure.mjs
+@@ -0,0 +1,42 @@
++#!/usr/bin/env node
++import fs from "node:fs";
++import path from "node:path";
++
++const PROJECT_ROOT = process.cwd();
++const STRUCTURE_TARGETS = [
++  "tools/wvo_mcp/src",
++  "tools/wvo_mcp/scripts",
++  "tools/wvo_mcp/tests",
++  "tools/autopilot/scripts",
++  "docs/templates",
++  "state/logs",
++  "state/evidence",
++];
++
++function summarizeDir(dir) {
++  try {
++    const entries = fs.readdirSync(dir, { withFileTypes: true });
++    const files = entries.filter((entry) => entry.isFile()).map((entry) => entry.name);
++    const subdirs = entries.filter((entry) => entry.isDirectory()).map((entry) => entry.name);
++    return { exists: true, files, subdirs };
++  } catch (error) {
++    return { exists: false, error: String(error) };
++  }
++}
++
++const report = {
++  generated_at: new Date().toISOString(),
++  project_root: PROJECT_ROOT,
++  targets: {},
++};
++
++for (const relPath of STRUCTURE_TARGETS) {
++  const abs = path.join(PROJECT_ROOT, relPath);
++  report.targets[relPath] = summarizeDir(abs);
++}
++
++const outDir = path.join(PROJECT_ROOT, "state", "logs", "AFP-W0-STEP5-MUTATION", "structure");
++fs.mkdirSync(outDir, { recursive: true });
++const outPath = path.join(outDir, "report.json");
++fs.writeFileSync(outPath, JSON.stringify(report, null, 2));
++console.log(`Structure report written to ${outPath}`);
+diff --git a/state/logs/AFP-W0-STEP5-MUTATION/structure/report.json b/state/logs/AFP-W0-STEP5-MUTATION/structure/report.json
+new file mode 100644
+index 000000000..6ded7b4ff
+--- /dev/null
++++ b/state/logs/AFP-W0-STEP5-MUTATION/structure/report.json
+@@ -0,0 +1,347 @@
++{
++  "generated_at": "2025-11-09T23:53:27.496Z",
++  "project_root": "/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/.tmp/audit_20251109T225323Z",
++  "targets": {
++    "tools/wvo_mcp/src": {
++      "exists": true,
++      "files": [
++        "README.md",
++        "index-claude.ts",
++        "index-orchestrator.ts.disabled",
++        "index.ts",
++        "session.ts"
++      ],
++      "subdirs": [
++        "analytics",
++        "auth",
++        "cli",
++        "critics",
++        "enforcement",
++        "executor",
++        "git",
++        "guardrails",
++        "intelligence",
++        "limits",
++        "lsp",
++        "models",
++        "observability",
++        "orchestrator",
++        "planner",
++        "prove",
++        "providers",
++        "quality",
++        "schemas",
++        "simulations",
++        "state",
++        "supervisor",
++        "telemetry",
++        "tests",
++        "tools",
++        "types",
++        "upgrade",
++        "utils",
++        "wave0",
++        "web_tools",
++        "work_process",
++        "worker"
++      ]
++    },
++    "tools/wvo_mcp/scripts": {
++      "exists": true,
++      "files": [
++        "README.md",
++        "account_manager.py",
++        "account_setup.py",
++        "activity_feed.py",
++        "add_phase0_phase1_tasks.py",
++        "analyze_feedback_loops.ts",
++        "analyze_outcomes.ts",
++        "architecture_kb.py",
++        "attest_stub.mjs",
++        "autopilot.sh",
++        "autopilot_console_menu.py",
++        "autopilot_git_handler.sh",
++        "autopilot_policy.py",
++        "autopilot_policy_sim.py",
++        "autopilot_status_line.py",
++        "autopilot_tmux.sh",
++        "autopilot_unified.sh",
++        "check_failover_guardrail.d.mts",
++        "check_failover_guardrail.mjs",
++        "check_guardrails.mjs",
++        "check_manager_state.mjs",
++        "check_modeling_env.sh",
++        "check_network_access.sh",
++        "check_org_pm_state.mjs",
++        "check_product_completeness.mjs",
++        "check_prompt_budget.mjs",
++        "check_roadmap_parity.ts",
++        "check_upgrade_drift.ts",
++        "cleanup_inspiration.sh",
++        "cleanup_workspace.py",
++        "collect_performance_benchmarks.py",
++        "configure_codex_profile.py",
++        "critic_integration.sh",
++        "demo_quality_gates.ts",
++        "dynamic_throttle.sh",
++        "ensure-sqlite-build.mjs",
++        "format_telemetry.mjs",
++        "generate_module_index.ts",
++        "git_error_recovery.sh",
++        "init_architecture_db.sql",
++        "live_flags.ts",
++        "maintenance.sh",
++        "mcp_safe_upgrade.mjs",
++        "mcp_safe_upgrade.sh",
++        "mcp_tool_cli.mjs",
++        "mcp_upgrade_preflight.ts",
++        "merge_helpers.sh",
++        "migrate_to_sqlite.ts",
++        "ml_task_meta_critic.py",
++        "monitor_autopilot.sh",
++        "nightly_mmm_backtest.py",
++        "offline_summary.py",
++        "populate_architecture.py",
++        "prompt_safety_stub.mjs",
++        "resource_guard.sh",
++        "roadmap_inbox.py",
++        "roadmap_weights.py",
++        "rotate_overrides.mjs",
++        "rotate_overrides.test.mjs",
++        "run_allocator_checks.mjs",
++        "run_causal_critic.py",
++        "run_consensus_simulation.mjs",
++        "run_critics.py",
++        "run_design_review.ts",
++        "run_error_recovery_test.mjs",
++        "run_exec_review_checks.mjs",
++        "run_fierce_integration_tests.sh",
++        "run_health_check.mjs",
++        "run_integrity_tests.sh",
++        "run_meta_critique.py",
++        "run_modeling_reality_critic.py",
++        "run_process_critic.mjs",
++        "run_provider_failover_test.mjs",
++        "run_security_checks.mjs",
++        "run_strategy_review.ts",
++        "run_thinking_review.ts",
++        "run_vitest.mjs",
++        "run_wave0.mjs",
++        "run_wave0.ts",
++        "run_wave0_test.ts",
++        "run_with_claude.sh",
++        "run_with_codex.sh",
++        "set_execution_mode.mjs",
++        "test_cli_execution.sh",
++        "test_codex_execution.sh",
++        "test_codex_only_tiers.sh",
++        "test_codex_tiers.sh",
++        "test_essential7_production.ts",
++        "test_mcp_client.mjs",
++        "test_new_features.mjs",
++        "test_orchestrator.ts",
++        "test_real_execution.sh",
++        "test_single_task.sh",
++        "test_unified_autopilot.sh",
++        "validate_module_index.ts",
++        "validate_unified_autopilot.sh",
++        "verify_crash_fixes.sh",
++        "verify_real_accounts.sh",
++        "verify_real_accounts_simple.sh"
++      ],
++      "subdirs": []
++    },
++    "tools/wvo_mcp/tests": {
++      "exists": true,
++      "files": [],
++      "subdirs": [
++        "model"
++      ]
++    },
++    "tools/autopilot/scripts": {
++      "exists": true,
++      "files": [
++        "lkl_gen.mjs"
++      ],
++      "subdirs": []
++    },
++    "docs/templates": {
++      "exists": true,
++      "files": [
++        "README.md",
++        "daily_artifact_health_template.md",
++        "design_template.md",
++        "epic_readme_template.md",
++        "milestone_readme_template.md",
++        "readme_template.md",
++        "strategy_template.md",
++        "task_group_readme_template.md",
++        "think_template.md"
++      ],
++      "subdirs": [
++        "hierarchical"
++      ]
++    },
++    "state/logs": {
++      "exists": true,
++      "files": [
++        ".gitkeep"
++      ],
++      "subdirs": [
++        "AFP-W0-STEP5-MUTATION",
++        "AUDIT_20251109T225323Z"
++      ]
++    },
++    "state/evidence": {
++      "exists": true,
++      "files": [
++        "EXECUTIVE_SUMMARY.md",
++        "INVENTORY.json",
++        "MANIFEST.md",
++        "README.md",
++        "VALIDATION_REPORT.json",
++        "weathervane_evidence_package_T-MLR-3.3.tar.gz"
++      ],
++      "subdirs": [
++        "AFP-AGENT-INTELLIGENCE-20251105",
++        "AFP-ARTIFACT-AUDIT-20251106",
++        "AFP-AUTOPILOT-LIVE-ENFORCEMENT-20251106",
++        "AFP-AUTOPILOT-LIVE-VALIDATION",
++        "AFP-AUTOPILOT-TEST-PROJECT-20251105",
++        "AFP-BEST-PRACTICES-EVAL-20251105",
++        "AFP-BOOTSTRAP-UNBLOCK-20251128",
++        "AFP-COGNITIVE-MODEL-ROUTING-20251106",
++        "AFP-DISTRIBUTED-KNOWLEDGE-BASE-AUTO-SYNC-20251106",
++        "AFP-DOC-EMBEDDING-20251105",
++        "AFP-EXECUTION-TAGGING-20251106",
++        "AFP-FIVE-FORCES-DEPLOY-20251105",
++        "AFP-GATE-ITERATIVE-DOC-20251105",
++        "AFP-GATE-META-ANALYSIS-20251105",
++        "AFP-GATE-REVIEWER-FIX-20251105",
++        "AFP-GATE-TEST-MACRO-20251105",
++        "AFP-GATE-TEST-REVIEW-AGENTCOORD-20251105",
++        "AFP-GATE-TEST-REVIEW-BASECRITIC-20251105",
++        "AFP-GATE-TEST-REVIEW-CONTEXTASM-20251105",
++        "AFP-GATE-TEST-REVIEW-ORCHESTRATOR-20251105",
++        "AFP-GATE-TEST-REVIEW-SEVENLENS-20251105",
++        "AFP-GATE-VIA-NEGATIVA-20251105",
++        "AFP-GUARDRAIL-HARDENING-20251106",
++        "AFP-GUARDRAILS-ENFORCE-CI-20251115",
++        "AFP-HIERARCHICAL-DOC-ENFORCEMENT-20251106",
++        "AFP-HIERARCHICAL-WORK-PROCESSES-20251105",
++        "AFP-LEGACY-ARTIFACTS-20251106",
++        "AFP-MODULE-REMEDIATION-20251105",
++        "AFP-MODULE-REMEDIATION-20251105-B",
++        "AFP-MODULE-REMEDIATION-20251105-C",
++        "AFP-MODULE-REMEDIATION-20251105-G",
++        "AFP-MODULE-REMEDIATION-20251105-H",
++        "AFP-MODULE-REMEDIATION-20251105-I",
++        "AFP-MODULE-REMEDIATION-20251105-J",
++        "AFP-MODULE-REMEDIATION-20251105-K",
++        "AFP-MODULE-REMEDIATION-20251105-L",
++        "AFP-MODULE-REMEDIATION-20251105-M",
++        "AFP-MODULE-REMEDIATION-20251105-N",
++        "AFP-MODULE-REMEDIATION-20251105-O",
++        "AFP-MODULE-REMEDIATION-20251105-P",
++        "AFP-MODULE-REMEDIATION-20251105-P2",
++        "AFP-MODULE-REMEDIATION-20251105-P3",
++        "AFP-MVP-ADAPTERS-SCAFFOLD",
++        "AFP-MVP-AGENTS-SCAFFOLD",
++        "AFP-MVP-LIBS-SCAFFOLD",
++        "AFP-OVERRIDE-ROTATION-20251106",
++        "AFP-PRE-COMMIT-OVERRIDE-SYSTEM-20251106",
++        "AFP-PRE-IMPLEMENTATION-ENFORCEMENT-20251105",
++        "AFP-PROCESS-CRITIC-20251106",
++        "AFP-PROCESS-HIERARCHY-20251106",
++        "AFP-PROCESS-TEST-SEQUENCE-20251106",
++        "AFP-PROOF-DRIVEN-GAMIFICATION-20251106",
++        "AFP-PROOF-DRIVEN-GAMIFICATION-20251106-REDO",
++        "AFP-PROOF-SYSTEM-COMPLETE-DEPLOYMENT-20251106",
++        "AFP-REACHABILITY-CLEANUP-20251114",
++        "AFP-ROADMAP-AUTONOMY-DOCSYNC-20251105",
++        "AFP-ROADMAP-FAST-AUTONOMY-AUDIT",
++        "AFP-ROADMAP-HIERARCHY-BOOTSTRAP-20251106",
++        "AFP-S1-ENFORCEMENT-PROOF",
++        "AFP-S1-GUARDRAILS",
++        "AFP-S1-LEDGER",
++        "AFP-S1-WORK-PROCESS-ENFORCE",
++        "AFP-S2-GIT-HYGIENE-AUTOPUSH",
++        "AFP-S3-CRITIC-SYSTEM-ANALYSIS",
++        "AFP-SMART-LOC-ENFORCEMENT-20251105",
++        "AFP-STRATEGY-THINK-CRITICS-20251105",
++        "AFP-TOOLCHAIN-NORMALIZE-20251114",
++        "AFP-W0-GUARDRAIL-BASELINE",
++        "AFP-W0-M1-DEVICE-PROFILE-STABILITY",
++        "AFP-W0-M1-DOMAIN-EXPERT-TEMPLATES",
++        "AFP-W0-M1-MVP-SUPERVISOR-INTEGRATION",
++        "AFP-W0-M1-MVP-SUPERVISOR-SCAFFOLD",
++        "AFP-W0-M1-WAVE0-PROCESS-INVESTIGATION",
++        "AFP-W0-M1-WORKTREE-STABILIZE",
++        "AFP-W0-M1-WORKTREE-STABILIZE-SEMANTIC",
++        "AFP-W0-M2-HIERARCHICAL-PROCESS-SYSTEM-20251106",
++        "AFP-W0-STEP5-MUTATION",
++        "AFP-W0-VALIDATE-PROOF-LOOP",
++        "AFP-W0-WAVE0-STATUS-CLI-20251106",
++        "AFP-W0M1-SUPERVISOR-AGENT-INTEGRATION-REFORM",
++        "AFP-W0M1-SUPERVISOR-AGENT-INTEGRATION-REVIEW",
++        "AFP-W1-M1-DESIGNREVIEWER-LOOP",
++        "AFP-W1-M1-GOVERNANCE-LOCK",
++        "AFP-W1-M1-ROADMAP-GUARDRAILS",
++        "AFP-W1-M1-S1-WORK-PROCESS-ENFORCE",
++        "AFP-W2-M1-AUTO-UPDATES",
++        "AFP-W2-M1-DEPENDENCY-DIAGRAMS",
++        "AFP-W2-M1-FIRST-TIME-GUIDES",
++        "AFP-W2-M1-MANIFEST-TELEMETRY",
++        "AFP-W2-M1-MODULE-INDEX",
++        "AFP-W2-M1-README-GENERATION",
++        "AFP-W2-M1-README-TEMPLATE",
++        "AFP-W2-M2-PROMPT-EVAL",
++        "AFP-W2-M2-PROMPT-LIFECYCLE",
++        "AFP-W2-M2-PROMPT-PATTERN-LAB",
++        "AFP-W2-M2-PROMPT-RESEARCH",
++        "AFP-W2-M2-PROMPT-ROLE-LIBRARY",
++        "AFP-W3-M1-AUTONOMY-PLAYBOOKS",
++        "AFP-W3-M1-FAULT-DRILLS",
++        "AFP-W3-M1-ROLLBACK-READINESS",
++        "AFP-W5-M1-FEEDBACK-LOOP",
++        "AFP-W5-M1-HIERARCHICAL-PROCESS-ENFORCEMENT",
++        "AFP-W5-M1-LESSON-PERSISTENCE",
++        "AFP-W5-M1-MONITORING-DECK",
++        "AFP-W5-M1-PROCESS-ENFORCEMENT",
++        "AFP-W5-M1-PROPERTY-BASED-TESTING",
++        "AFP-W5-M1-QUALITY-METRICS",
++        "AFP-W5-M1-ROADMAP-SCHEMA",
++        "AFP-W5-M1-ROADMAP-VALIDATION",
++        "AFP-W5-M1-SELF-REFACTOR",
++        "AFP-W5-M1-SKILLS-SYSTEM",
++        "AFP-W5-M1-TASK-SUFFIX-AUTOMATION",
++        "AFP-W5-M1-TEMPLATE-EVOLUTION",
++        "AFP-W5-M1-UTILITY-SCRIPTS",
++        "AFP-W5-M1-VISUAL-REFERENCE-WORKFLOW",
++        "AFP-W5-M1-WORK-PROCESS-EXECUTOR",
++        "AFP-W5-M1-WORK-PROCESS-TEMPLATES",
++        "AFP-WAVE0-AUTOPILOT-20251105",
++        "AFP-WORKTREE-STABILIZE-20251109",
++        "FEEDBACK-TRACK-20251105",
++        "INTENT-APPS-STEWARDSHIP-20251114",
++        "INTENT-GLOBAL-BUILD-SCRIPT-20251114",
++        "INTENT-TOOLING-NORMALIZE-20251113",
++        "MODULE-INDEX-20251105",
++        "OUTCOME-LOG-20251105",
++        "TEST-SUPERVISOR-INTEGRATION-001",
++        "W0.M2",
++        "W1.M1",
++        "W2.M1",
++        "W2.M2",
++        "W3.M1",
++        "W4.M1",
++        "W5.M1",
++        "WAVE-1",
++        "WAVE-2",
++        "WAVE-3",
++        "WAVE-4",
++        "WAVE-5"
++      ]
++    }
++  }
++}
+\ No newline at end of file
+-- 
+2.51.1
+

@@ -1,0 +1,45 @@
+[
+  {
+    "provider": "codex",
+    "step": "capsule_commit1",
+    "description": "Bootstrap evidence roots + drqc config",
+    "commit": "6c38ad085c69db730b3b55094c23c091e68bfb61",
+    "patch": {
+      "path": ".tmp/audit_20251109T225323Z/patches/stage6_capsule_commit1.patch",
+      "sha256": "be1ac62f457219d76c59248290d30ae7e76d6134851c59e40ba4817f564a6d96"
+    },
+    "artifacts": [
+      "state/logs/AFP-W0-STEP5-MUTATION/verify/verify.log",
+      "state/logs/AFP-W0-STEP5-MUTATION/verify/coverage.json"
+    ]
+  },
+  {
+    "provider": "codex",
+    "step": "capsule_commit2",
+    "description": "Scoped docsync workflow + presence guard",
+    "commit": "34b40a6c1229ab7d837df66e94e1b3e123cd6c3f",
+    "patch": {
+      "path": ".tmp/audit_20251109T225323Z/patches/stage6_capsule_commit2.patch",
+      "sha256": "728f2e0938689b186fef4fe72bbcb0368e21f5b5944879c37e2138ad63f56e84"
+    },
+    "artifacts": [
+      "state/logs/AFP-W0-STEP5-MUTATION/verify/verify.log",
+      "state/logs/AFP-W0-STEP5-MUTATION/verify/coverage.json"
+    ]
+  },
+  {
+    "provider": "codex",
+    "step": "capsule_commit3",
+    "description": "Helper stubs + verify harness",
+    "commit": "168c60a38eaa4ea7a1f29348645ef73e1eccd996",
+    "patch": {
+      "path": ".tmp/audit_20251109T225323Z/patches/stage6_capsule_commit3.patch",
+      "sha256": "a8d79e75740c5c11b6dfc006662d7e11fa431ca685152276173f804d77cd4b87"
+    },
+    "artifacts": [
+      "state/logs/AFP-W0-STEP5-MUTATION/verify/verify.log",
+      "state/logs/AFP-W0-STEP5-MUTATION/verify/coverage.json",
+      "state/logs/AFP-W0-STEP5-MUTATION/verify/changed_files.json"
+    ]
+  }
+]

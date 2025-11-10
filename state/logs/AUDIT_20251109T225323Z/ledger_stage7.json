@@ -1,0 +1,67 @@
+[
+  {
+    "step": "stage7_structure",
+    "commit": "74256b4383cd3cdfd1a908f970047373f2e42345",
+    "patch": ".tmp/audit_20251109T225323Z/patches/stage7_structure.patch",
+    "sha256": "9db7025e1652aa3dd34387785b308e755dbedecb8f9826e6a80d6dae701a3815",
+    "artifacts": [
+      "state/logs/AFP-W0-STEP5-MUTATION/structure/report.json",
+      "state/logs/AFP-W0-STEP5-MUTATION/verify/verify.log"
+    ]
+  },
+  {
+    "step": "stage7_codeowners",
+    "commit": "29c289d60ec30a40411af2791f6b43cfbaacb56b",
+    "patch": ".tmp/audit_20251109T225323Z/patches/stage7_codeowners.patch",
+    "sha256": "1a0d32f2446d235edbcfa501cb98601b948faa2ed43dc9769a685ff4ba1cd4e0",
+    "artifacts": [
+      "state/logs/AFP-W0-STEP5-MUTATION/verify/verify.log",
+      "state/logs/AFP-W0-STEP5-MUTATION/structure/report.json"
+    ]
+  },
+  {
+    "step": "stage7_shim",
+    "commit": "08e1ece57c2da73d454e8ce84e5bb12ed4b69903",
+    "patch": ".tmp/audit_20251109T225323Z/patches/stage7_shim.patch",
+    "sha256": "1538593150e84adb1a50c0832192dafa1a2f08ebb17bbf6c1b4e22eb54864233",
+    "artifacts": [
+      "state/logs/AFP-W0-STEP5-MUTATION/verify/verify.log"
+    ]
+  },
+  {
+    "step": "stage7_cleanup",
+    "commit": "0729636b86bf28a3c164c09a2d0a92d1fc77ff71",
+    "patch": ".tmp/audit_20251109T225323Z/patches/stage7_cleanup.patch",
+    "sha256": "1687e83b36d57261981a89ebb28501ea21dc954a670bd5dbffd4a347ff396241",
+    "artifacts": [
+      "state/logs/AFP-W0-STEP5-MUTATION/verify/verify.log"
+    ]
+  },
+  {
+    "step": "stage7_flags",
+    "commit": "5377ac3867f1af6fe93d0f0c4f82a074041633cc",
+    "patch": ".tmp/audit_20251109T225323Z/patches/stage7_flags.patch",
+    "sha256": "b8f464241643e2b2a8e274a5f91beeddf3ede3a1acf217e9fc9a0f7ef5511f99",
+    "artifacts": [
+      "state/logs/AFP-W0-STEP5-MUTATION/release/rollback_dryrun_20251110T000314Z.txt"
+    ]
+  },
+  {
+    "step": "stage7_quality_gates",
+    "commit": "832188889cbcccb675b93814701f97e2935be514",
+    "patch": ".tmp/audit_20251109T225323Z/patches/stage7_quality_gates.patch",
+    "sha256": "4e004037110529baf188a67fc461d9421c1ec5f9df8a3395cccf0ffeaec5bb9e",
+    "artifacts": [
+      "state/logs/AFP-W0-STEP5-MUTATION/attest/scas.json",
+      "state/logs/AFP-W0-STEP5-MUTATION/verify/verify.log"
+    ]
+  },
+  {
+    "step": "stage7_merge",
+    "integration_branch": "integration/afp/AFP-W0-STEP5-MUTATION/stage-7",
+    "default_branch": "main",
+    "safety_tag": "safety/AFP-W0-STEP5-MUTATION/stage-7-pre",
+    "release_tag": "release/AFP-W0-STEP5-MUTATION/stage-7",
+    "commit": "832188889cbcccb675b93814701f97e2935be514"
+  }
+]

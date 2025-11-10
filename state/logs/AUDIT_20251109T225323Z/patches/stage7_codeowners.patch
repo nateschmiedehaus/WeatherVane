@@ -1,0 +1,26 @@
+From 29c289d6035a9b1fc0518b72870ce69172ab46bd Mon Sep 17 00:00:00 2001
+From: Autopilot <autopilot@local>
+Date: Sun, 9 Nov 2025 17:56:44 -0600
+Subject: [PATCH] stage7: update CODEOWNERS for autopilot trees
+ (AFP-W0-STEP5-MUTATION)
+
+---
+ CODEOWNERS | 7 +++++++
+ 1 file changed, 7 insertions(+)
+
+diff --git a/CODEOWNERS b/CODEOWNERS
+index 3b331252b..4467fd596 100644
+--- a/CODEOWNERS
++++ b/CODEOWNERS
+@@ -1 +1,8 @@
++# Default owners
+ * @maintainers-team
++
++# Stage 7 structure: ensure focused review for key trees
++tools/wvo_mcp/** @maintainers-team
++tools/autopilot/** @maintainers-team
++docs/** @maintainers-team
++state/** @maintainers-team
+-- 
+2.51.1
+

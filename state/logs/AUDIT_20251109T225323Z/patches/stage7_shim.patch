@@ -1,0 +1,34 @@
+From 08e1ece575b07e8f3caed081278c2a91f87078bf Mon Sep 17 00:00:00 2001
+From: Autopilot <autopilot@local>
+Date: Sun, 9 Nov 2025 17:59:11 -0600
+Subject: [PATCH] stage7: add wave0 legacy shim (AFP-W0-STEP5-MUTATION)
+
+---
+ tools/wvo_mcp/src/wave0/runner_legacy.ts | 15 +++++++++++++++
+ 1 file changed, 15 insertions(+)
+ create mode 100644 tools/wvo_mcp/src/wave0/runner_legacy.ts
+
+diff --git a/tools/wvo_mcp/src/wave0/runner_legacy.ts b/tools/wvo_mcp/src/wave0/runner_legacy.ts
+new file mode 100644
+index 000000000..15a465013
+--- /dev/null
++++ b/tools/wvo_mcp/src/wave0/runner_legacy.ts
+@@ -0,0 +1,15 @@
++import { Wave0Runner } from "./runner.js";
++
++export type LegacyWave0Options = {
++  singleRun?: boolean;
++  targetEpics?: string[];
++};
++
++/**
++ * Compatibility shim so legacy scripts can continue importing the old runner path
++ * while Stage 7 restructures land. Delegates directly to the current Wave0Runner.
++ */
++export async function runLegacyWave0(options: LegacyWave0Options = {}): Promise<void> {
++  const runner = new Wave0Runner(process.cwd(), options);
++  await runner.run();
++}
+-- 
+2.51.1
+

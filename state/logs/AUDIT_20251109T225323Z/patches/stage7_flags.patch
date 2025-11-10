@@ -1,0 +1,63 @@
+From 5377ac386e0431860719da25fa7af9d76a66f0a7 Mon Sep 17 00:00:00 2001
+From: Autopilot <autopilot@local>
+Date: Sun, 9 Nov 2025 18:04:01 -0600
+Subject: [PATCH] stage7: add feature flags + rollback dry-run
+ (AFP-W0-STEP5-MUTATION)
+
+---
+ scripts/rollback.mjs                            | 17 +++++++++++++++++
+ state/config/feature_flags.json                 |  5 +++++
+ .../rollback_dryrun_20251110T000314Z.txt        |  5 +++++
+ 3 files changed, 27 insertions(+)
+ create mode 100755 scripts/rollback.mjs
+ create mode 100644 state/config/feature_flags.json
+ create mode 100644 state/logs/AFP-W0-STEP5-MUTATION/release/rollback_dryrun_20251110T000314Z.txt
+
+diff --git a/scripts/rollback.mjs b/scripts/rollback.mjs
+new file mode 100755
+index 000000000..26f29777c
+--- /dev/null
++++ b/scripts/rollback.mjs
+@@ -0,0 +1,17 @@
++#!/usr/bin/env node
++import process from "node:process";
++
++const target = process.argv[2] ?? "safety/AFP-W0-STEP5-MUTATION/stage-7-pre";
++const defaultBranch = process.env.DEFAULT_BRANCH || "origin/main";
++
++const plan = [
++  `git fetch origin`,
++  `git checkout ${defaultBranch.replace('origin/', '')}`,
++  `git reset --hard ${target}`,
++  `git push --force-with-lease origin ${defaultBranch.replace('origin/', '')}`,
++];
++
++console.log(`# rollback dry-run for target: ${target}`);
++for (const cmd of plan) {
++  console.log(cmd);
++}
+diff --git a/state/config/feature_flags.json b/state/config/feature_flags.json
+new file mode 100644
+index 000000000..510b8c1e5
+--- /dev/null
++++ b/state/config/feature_flags.json
+@@ -0,0 +1,5 @@
++{
++  "wave0_dual_run": false,
++  "docs_guardrail_enforced": false,
++  "semantic_candidates_enabled": false
++}
+diff --git a/state/logs/AFP-W0-STEP5-MUTATION/release/rollback_dryrun_20251110T000314Z.txt b/state/logs/AFP-W0-STEP5-MUTATION/release/rollback_dryrun_20251110T000314Z.txt
+new file mode 100644
+index 000000000..f206138f8
+--- /dev/null
++++ b/state/logs/AFP-W0-STEP5-MUTATION/release/rollback_dryrun_20251110T000314Z.txt
+@@ -0,0 +1,5 @@
++# rollback dry-run for target: safety/AFP-W0-STEP5-MUTATION/stage-7-pre
++git fetch origin
++git checkout main
++git reset --hard safety/AFP-W0-STEP5-MUTATION/stage-7-pre
++git push --force-with-lease origin main
+-- 
+2.51.1
+
