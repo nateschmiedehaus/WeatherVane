@@ -59,3 +59,18 @@ jobs:
 
       - name: Compare SCAS attestation hash
         run: node tools/wvo_mcp/scripts/hash_compare.mjs --label scas --expected state/logs/AFP-W0-STEP5-MUTATION/attest/scas.json --actual .tmp/recompute/AFP-W0-STEP5-MUTATION/scas.json
+
+      - name: Watchdog – verify log
+        run: node tools/wvo_mcp/scripts/watch_stub_verify.mjs --task AFP-W0-STEP5-MUTATION
+
+      - name: Watchdog – coverage path
+        run: node tools/wvo_mcp/scripts/watch_coverage_path.mjs --task AFP-W0-STEP5-MUTATION
+
+      - name: Watchdog – critics path
+        run: node tools/wvo_mcp/scripts/watch_critics_path.mjs --task AFP-W0-STEP5-MUTATION
+
+      - name: Watchdog – SCAS fail-open
+        run: node tools/wvo_mcp/scripts/watch_scas_failopen.mjs --task AFP-W0-STEP5-MUTATION
+
+      - name: Watchdog – doc drift ledger
+        run: node tools/wvo_mcp/scripts/watch_doc_drift.mjs --task AFP-W0-STEP5-MUTATION
