@@ -11,6 +11,8 @@ on:
 jobs:
   contract-tests:
     runs-on: ubuntu-latest
+    env:
+      TASK_ID: AFP-W0-STEP5-MUTATION
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -74,3 +76,5 @@ jobs:
 
       - name: Watchdog – doc drift ledger
         run: node tools/wvo_mcp/scripts/watch_doc_drift.mjs --task AFP-W0-STEP5-MUTATION
+      - name: Provenance check
+        run: node tools/wvo_mcp/scripts/check_provenance.mjs --task AFP-W0-STEP5-MUTATION
