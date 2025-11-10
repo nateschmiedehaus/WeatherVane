@@ -1,1 +1,14 @@
-{"pass": false, "record_only": true, "reason": "bootstrap"}
+{
+  "task": "AFP-W0-STEP5-MUTATION",
+  "base": "HEAD~1",
+  "head": "HEAD",
+  "files_changed": 4,
+  "net_loc": 4,
+  "loc_budget": 150,
+  "file_budget": 5,
+  "require_design": true,
+  "design_present": true,
+  "allowlisted": false,
+  "pass": true,
+  "generated_at": "2025-11-10T01:39:50.499Z"
+}
