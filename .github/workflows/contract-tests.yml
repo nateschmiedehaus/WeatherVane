@@ -47,3 +47,15 @@ jobs:
 
       - name: Doc edit guard
         run: node scripts/check_doc_edits.mjs --ci
+
+      - name: Recompute critics + SCAS
+        run: node tools/wvo_mcp/scripts/recompute_critics_ci.mjs --task AFP-W0-STEP5-MUTATION --output .tmp/recompute/AFP-W0-STEP5-MUTATION
+
+      - name: Compare template detector hash
+        run: node tools/wvo_mcp/scripts/hash_compare.mjs --label template_detector --expected state/logs/AFP-W0-STEP5-MUTATION/critics/template_detector.json --actual .tmp/recompute/AFP-W0-STEP5-MUTATION/template_detector.json
+
+      - name: Compare guardrails hash
+        run: node tools/wvo_mcp/scripts/hash_compare.mjs --label guardrails --expected state/logs/AFP-W0-STEP5-MUTATION/critics/guardrails.json --actual .tmp/recompute/AFP-W0-STEP5-MUTATION/guardrails.json
+
+      - name: Compare SCAS attestation hash
+        run: node tools/wvo_mcp/scripts/hash_compare.mjs --label scas --expected state/logs/AFP-W0-STEP5-MUTATION/attest/scas.json --actual .tmp/recompute/AFP-W0-STEP5-MUTATION/scas.json
