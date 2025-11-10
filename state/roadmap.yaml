@@ -56,6 +56,36 @@ epics:
             set_id: w0m1-supervisor-agent-integration
           - id: AFP-W0-VALIDATE-PROOF-LOOP
           - id: AFP-W0-STEP5-MUTATION-STAGE7
+          - id: AFP-W0-STEP5-TRACKER-STEP8-10
+            title: Tracker — Steps 8–10 doc guard + live battery
+            status: blocked
+            exit_criteria:
+              - Doc drift ledger recorded per Step 8
+              - KPIs JSON + aggregate committed per Step 9
+              - Live battery log for TEST-DRQC-W1-* tasks stored in state/logs/
+            domain: mcp
+            description: >
+              Bundles the remaining Step 8–10 work (doc guard evidence,
+              KPI aggregate, live battery replay). Unlocks when all three
+              artifacts are green.
+            set_id: w0m1-validation-and-readiness
+            kpi:
+              green_rate: 0.0
+          - id: AFP-W0-STEP5-TRACKER-STEP11-15
+            title: Tracker — Steps 11–15 prompt, attestation, release governance
+            status: blocked
+            exit_criteria:
+              - Promptfoo + garak reports for this task archived
+              - incidents_map + curriculum runner outputs stored
+              - Release checklist / PR template updated with KPI + SCAS gates
+            domain: mcp
+            description: >
+              Consolidates the outstanding Stage 11–15 items so reviewers can
+              see exactly which artifacts remain before declaring Steps 11–15
+              green.
+            set_id: w0m1-validation-and-readiness
+            kpi:
+              green_rate: 0.0
             title: Stage 7 – Structure + SCAS rollout
             status: done
             dependencies: []
