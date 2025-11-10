@@ -1,0 +1,19 @@
+{
+  "task": "AFP-W0-STEP5-MUTATION",
+  "generated_at": "2025-11-10T03:09:00Z",
+  "cases": 50,
+  "seed": 20231107,
+  "adversarial_checks": [
+    {
+      "name": "permutation invariance",
+      "pass": true,
+      "evidence": "Tracked / ignored / allowlisted buckets identical across permutations"
+    },
+    {
+      "name": "idempotent buckets",
+      "pass": true,
+      "evidence": "Re-running filterChangedFiles on each bucket yields stable classification"
+    }
+  ],
+  "status": "pass"
+}

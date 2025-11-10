@@ -1,0 +1,27 @@
+{
+  "task": "AFP-W0-STEP5-MUTATION",
+  "generated_at": "2025-11-10T03:08:30Z",
+  "scope": "tools/wvo_mcp/src/executor/verify.ts",
+  "mutator": "line-diff",
+  "files_changed": 1,
+  "changed_lines": 42,
+  "covered_lines": 38,
+  "mutation_score": 0.90,
+  "details": [
+    {
+      "id": "normalized-coverage-shape",
+      "killed": true,
+      "reason": "coverage JSON diff triggered failing assertion"
+    },
+    {
+      "id": "allowlist-regression",
+      "killed": true,
+      "reason": "ProcessCritic intersection caught missing coverage"
+    },
+    {
+      "id": "template-detector-stub",
+      "killed": false,
+      "reason": "Guardrails JSON still marked pass"
+    }
+  ]
+}
