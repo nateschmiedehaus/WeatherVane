@@ -81,8 +81,10 @@ const runWithAttest = () => {
   run('node', ['tools/wvo_mcp/scripts/run_template_detector.mjs', '--task', task]);
   run('node', ['tools/wvo_mcp/scripts/guardrail_snapshot.mjs', '--task', task]);
   verifyArtifacts();
-
   const runId = `RUN-${Date.now()}`;
+  const verifyLog = path.join(stateRoot, 'logs', task, 'verify', 'verify.log');
+  appendRunTrailer(verifyLog, runId);
+
   const payload = {
     task,
     run_id: runId,
@@ -104,9 +106,6 @@ const runWithAttest = () => {
   const attestDir = path.join(stateRoot, 'logs', task, 'attest');
   fs.mkdirSync(attestDir, { recursive: true });
   fs.writeFileSync(path.join(attestDir, 'run.json'), JSON.stringify(payload, null, 2));
-
-  const verifyLog = path.join(stateRoot, 'logs', task, 'verify', 'verify.log');
-  appendRunTrailer(verifyLog, runId);
   console.log(JSON.stringify({ task, run_id: runId, artifacts: payload.artifacts.length }, null, 2));
 };
 
