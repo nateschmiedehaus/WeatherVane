@@ -103,6 +103,9 @@ Implementation Plan (Phases)
   - Move relax configuration into `state/config/drqc.json` under `template_detector.relaxed_when`.  
   - Rebuild + run template detector to refresh artifacts.
   - Ensure the KB ledger (`state/logs/<TASK>/kb/<TASK>.json`) stores the reranker context referenced by TemplateDetector relax mode so doc guard/watchdogs can audit citations.
+- **Phase 4 (Provider policy & idempotency):**  
+  - Reject `offline-sim` providers inside `phase_execution_manager.ts` unless `OFFLINE_OK=1` and we are not on CI; fail the phase loudly so fake transcripts can’t land in evidence.  
+  - Replace the previous length-delta idempotency heuristic with SHA-256 equality and persist hashes per phase in `state/logs/<TASK>/verify/idempotency.json`.
 - **CI Sweep / Deprecation Fixes:**  
   - Pin Node 20.x in `.github/workflows/{verify.yml,end_steps_contract.yml,contract-tests.yml}`; set `TZ=UTC`, `SOURCE_DATE_EPOCH=1700000000`, `actions/checkout` `fetch-depth: 0`.  
   - Extend contract tests to recompute critics & SCAS, hash-compare outputs.  
