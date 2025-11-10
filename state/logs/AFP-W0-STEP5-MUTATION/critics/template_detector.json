@@ -1,1 +1,8 @@
-{"record_only": true, "reason": "bootstrap"}
+{
+  "banned_hits": [],
+  "unique_token_ratio": 0.921875,
+  "trigram_repetition": 0,
+  "passes": true,
+  "mode": "strict",
+  "generated_at": "2025-11-10T01:38:35.680Z"
+}
