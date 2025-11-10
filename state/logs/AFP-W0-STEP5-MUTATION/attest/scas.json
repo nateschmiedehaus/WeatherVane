@@ -1,0 +1,11 @@
+{
+  "task": "AFP-W0-STEP5-MUTATION",
+  "generated_at": "2025-11-10T00:05:27.520Z",
+  "gates": {
+    "coverage_intersection": true,
+    "template_detector": true,
+    "docsync": true,
+    "prompt_safety": "record-only",
+    "attestation_present": true
+  }
+}

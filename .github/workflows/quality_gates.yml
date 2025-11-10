@@ -1,0 +1,47 @@
+name: Quality Gates Roll-up
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+env:
+  TASK_ID: AFP-W0-STEP5-MUTATION
+
+jobs:
+  gates:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Ensure state directories
+        run: |
+          mkdir -p state/logs/$TASK_ID/verify
+          mkdir -p state/logs/$TASK_ID/attest
+
+      - name: Install deps
+        run: npm --prefix tools/wvo_mcp ci --omit=optional --no-audit
+
+      - name: Build
+        run: npm --prefix tools/wvo_mcp run build
+
+      - name: VERIFY smoke
+        env:
+          WVO_STATE_ROOT: ${{ github.workspace }}/state
+        run: node tools/wvo_mcp/dist/executor/verify.js --task $TASK_ID
+
+      - name: ProcessCritic coverage gate
+        run: node tools/wvo_mcp/scripts/run_process_critic.mjs --task $TASK_ID
+
+      - name: SCAS attestation
+        env:
+          WVO_STATE_ROOT: ${{ github.workspace }}/state
+        run: node tools/wvo_mcp/scripts/check_scas.mjs --task $TASK_ID
+
+      - name: Upload SCAS artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: scas-report
+          path: state/logs/$TASK_ID/attest/scas.json
