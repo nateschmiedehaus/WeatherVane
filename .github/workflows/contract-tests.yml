@@ -1,0 +1,49 @@
+name: Contract Tests
+
+on:
+  pull_request:
+    paths:
+      - tools/wvo_mcp/**
+      - state/evidence/**
+      - scripts/check_doc_edits.mjs
+  workflow_dispatch:
+
+jobs:
+  contract-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Load deterministic env
+        run: |
+          source scripts/env.d/ci.sh
+          echo "TZ=$TZ" >> $GITHUB_ENV
+          echo "SOURCE_DATE_EPOCH=$SOURCE_DATE_EPOCH" >> $GITHUB_ENV
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install root deps
+        run: npm ci
+
+      - name: Install MCP deps
+        run: npm ci
+        working-directory: tools/wvo_mcp
+
+      - name: Build MCP bundle
+        run: npm run build
+        working-directory: tools/wvo_mcp
+
+      - name: Contract runner
+        env:
+          WVO_STATE_ROOT: state
+        run: node tools/wvo_mcp/dist/cli/contract_runner.js --all-staged
+
+      - name: Doc edit guard
+        run: node scripts/check_doc_edits.mjs --ci
