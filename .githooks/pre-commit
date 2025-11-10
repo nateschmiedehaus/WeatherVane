@@ -370,15 +370,10 @@ fi  # End SKIP_AFP_CHECKS wrapper
 # PART 1c: README & Directory Health Sync (docsync)
 # ============================================================
 
-echo -e "${YELLOW}📚 README/structure sync (docsync)${NC}"
-
-node --import tsx tools/docsync/index.ts update --mode staged --quiet || {
-  STATUS=$?
-  if [ $STATUS -ne 0 ]; then
-    echo -e "${RED}❌ README automation flagged issues. Run 'npm run readme:update -- --mode staged' to review.${NC}"
-    exit $STATUS
-  fi
-}
+echo -e "${YELLOW}📚 README/structure sync (presence-only)${NC}"
+DOCSYNC_LEDGER="state/logs/AFP-W0-STEP5-MUTATION/docsync"
+mkdir -p "$DOCSYNC_LEDGER"
+node scripts/check_doc_edits.mjs --staged --ledger "$DOCSYNC_LEDGER/drift.json" || true
 
 
 # ============================================================

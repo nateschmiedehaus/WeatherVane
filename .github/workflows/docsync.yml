@@ -1,4 +1,4 @@
-name: Doc Drift (soft)
+name: Doc Drift
 
 on:
   pull_request:
@@ -8,6 +8,19 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Doc drift check (soft)
-        run: node scripts/check_doc_edits.mjs || true
-
+      - name: Detect doc changes
+        id: changes
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            docs:
+              - 'docs/**'
+              - 'AGENTS.md'
+              - 'claude.md'
+              - 'AUTOPILOT_MASTER_PLAN_V3.md'
+      - name: Doc drift check (hard on docs paths)
+        if: steps.changes.outputs.docs == 'true'
+        run: node scripts/check_doc_edits.mjs --ci
+      - name: Doc drift check (soft on code-only PRs)
+        if: steps.changes.outputs.docs != 'true'
+        run: node scripts/check_doc_edits.mjs --ci || true
