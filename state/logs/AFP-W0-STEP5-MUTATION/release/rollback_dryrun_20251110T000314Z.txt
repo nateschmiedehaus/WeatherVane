@@ -1,0 +1,5 @@
+# rollback dry-run for target: safety/AFP-W0-STEP5-MUTATION/stage-7-pre
+git fetch origin
+git checkout main
+git reset --hard safety/AFP-W0-STEP5-MUTATION/stage-7-pre
+git push --force-with-lease origin main
