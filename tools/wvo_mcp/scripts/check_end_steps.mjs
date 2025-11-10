@@ -28,7 +28,7 @@ function getField(obj, pathArr) {
 const task = deriveTask();
 const base = path.join('state', 'logs', task);
 const reqs = [
-  { p: path.join(base, 'verify', 'verify.log'), min: 1024 },
+  { p: path.join(base, 'verify', 'verify.log'), min: 1024, tag: 'verify_log' },
   { p: path.join(base, 'coverage', 'coverage.json') },
   { p: path.join(base, 'critics', 'template_detector.json') },
   { p: path.join(base, 'critics', 'guardrails.json') },
@@ -36,6 +36,7 @@ const reqs = [
 ];
 
 const errors = [];
+let scasTrailerPresent = null;
 
 for (const r of reqs) {
   if (!fs.existsSync(r.p)) {
@@ -45,6 +46,14 @@ for (const r of reqs) {
   if (r.min) {
     const size = fs.statSync(r.p).size;
     if (size < r.min) errors.push(`short:${r.p}:${size}`);
+  }
+  if (r.tag === 'verify_log') {
+    try {
+      const contents = fs.readFileSync(r.p, 'utf8');
+      scasTrailerPresent = /SCAS:\s*pass=/.test(contents);
+    } catch {
+      scasTrailerPresent = false;
+    }
   }
   if (r.json) {
     const data = readJson(r.p);
@@ -62,6 +71,7 @@ const summary = {
   ok: errors.length === 0,
   errors,
   checked: reqs.map((entry) => ({ path: entry.p, min: entry.min ?? null, json: Boolean(entry.json) })),
+  scas_trailer_present: scasTrailerPresent,
   generated_at: new Date().toISOString(),
 };
 const coverageDir = path.join(base, 'coverage');
