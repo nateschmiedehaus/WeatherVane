@@ -37,3 +37,7 @@
 - npm --prefix tools/wvo_mcp run build
 - WVO_STATE_ROOT=$PWD/state node tools/wvo_mcp/dist/executor/verify.js --task AFP-W0-STEP5-MUTATION
 - node tools/wvo_mcp/scripts/run_process_critic.mjs --task AFP-W0-STEP5-MUTATION
+### evidence_stage7_push
+- npm --prefix tools/wvo_mcp run build
+- WVO_STATE_ROOT=$PWD/state node tools/wvo_mcp/dist/executor/verify.js --task AFP-W0-STEP5-MUTATION
+- node tools/wvo_mcp/scripts/run_process_critic.mjs --task AFP-W0-STEP5-MUTATION

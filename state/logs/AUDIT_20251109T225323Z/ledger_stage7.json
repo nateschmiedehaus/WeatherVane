@@ -63,5 +63,14 @@
     "safety_tag": "safety/AFP-W0-STEP5-MUTATION/stage-7-pre",
     "release_tag": "release/AFP-W0-STEP5-MUTATION/stage-7",
     "commit": "832188889cbcccb675b93814701f97e2935be514"
+  },
+  {
+    "step": "stage7_evidence",
+    "commit": "77ce107d7a8f6a90418aeae3a2cc6c1c08cbee4a",
+    "artifacts": [
+      "state/logs/AFP-W0-STEP5-MUTATION/validation_matrix_stage6.md",
+      "state/logs/AFP-W0-STEP5-MUTATION/validation_matrix_stage7.md",
+      "state/logs/AUDIT_20251109T225323Z/audit_summary.md"
+    ]
   }
 ]
