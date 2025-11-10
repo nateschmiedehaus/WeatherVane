@@ -1,21 +1,30 @@
 {
   "task": "AFP-W0-STEP5-MUTATION",
-  "generated_at": "2025-11-10T01:35:40Z",
+  "generated_at": "2025-11-10T03:05:00Z",
   "citations": [
     {
       "id": "verify-log",
       "artifact": "state/logs/AFP-W0-STEP5-MUTATION/verify/verify.log",
-      "reason": "Shows executor heartbeat and failing suites requiring coverage refresh"
+      "start_line": 1,
+      "end_line": 40,
+      "sha256": "41f4814eb7d086cddc7bcc3bc04c91b7cfe3e40e2316ccec0ed7d0ba01e3dcad",
+      "reason": "Heartbeat spam without SCAS footer proves verify artifacts need regeneration."
     },
     {
       "id": "coverage-json",
       "artifact": "state/logs/AFP-W0-STEP5-MUTATION/coverage/coverage.json",
-      "reason": "Diff-aware summary ensures net LOC budgets remain tracked"
+      "start_line": 1,
+      "end_line": 80,
+      "sha256": "162dc6deecf4356b156e7a0b75f360b8369c03243839cb17098a8ef5f7be943e",
+      "reason": "Legacy diff-aware coverage only tracks two files; must refresh for new scopes."
     },
     {
       "id": "guardrails-json",
       "artifact": "state/logs/AFP-W0-STEP5-MUTATION/critics/guardrails.json",
-      "reason": "Records audit freshness + override rotation signals"
+      "start_line": 1,
+      "end_line": 80,
+      "sha256": "c6bf5fb2e97d672ea01dccac51f59916e854686d9febec4ada24533e1be5c5fc",
+      "reason": "Daily audit + verify size checks pass but KPIs missing; informs critics plan."
     }
   ]
 }

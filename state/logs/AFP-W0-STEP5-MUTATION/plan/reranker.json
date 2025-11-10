@@ -1,22 +1,42 @@
 {
   "task": "AFP-W0-STEP5-MUTATION",
-  "generated_at": "2025-11-10T01:35:30Z",
-  "candidates": [
+  "generated_at": "2025-11-10T03:05:00Z",
+  "evidence_sha256": [
     {
-      "id": "real-artifacts",
-      "score": 0.81,
-      "notes": "Executor artifacts missing; rerun verify + coverage first"
-    },
-    {
-      "id": "critics",
-      "score": 0.73,
-      "notes": "Template + guardrail proofs unblock critics ledger"
-    },
-    {
-      "id": "hard-gate",
-      "score": 0.69,
-      "notes": "Gate flip only after evidence exists"
+      "artifact": "state/logs/AFP-W0-STEP5-MUTATION/plan/plan.md",
+      "sha256": "8e1f56b0175a8e9ef4e262f4af15b51c35b83a19ff85bac81cbbcfb7854c315d"
     }
   ],
-  "selected": "real-artifacts"
+  "signals": [
+    "verify.log heartbeat repeated without SCAS summary → need fresh artifacts",
+    "coverage.json only tracks two files → expand diff-aware records",
+    "critics/guardrails.json missing KPI roll-up"
+  ],
+  "candidates": [
+    {
+      "id": "artifacts-first",
+      "score": 0.86,
+      "actions": [
+        "Regenerate verify/coverage under Steps 1–2",
+        "Author reranker/citations with sha256 spans"
+      ]
+    },
+    {
+      "id": "critics-ledger",
+      "score": 0.74,
+      "actions": [
+        "Run template detector + guardrail snapshot",
+        "Summarize KPIs for Steps 9+"
+      ]
+    },
+    {
+      "id": "gate-hardening",
+      "score": 0.69,
+      "actions": [
+        "Wire SCAS + End-Steps CI workflows",
+        "Append SCAS summary to verify.log"
+      ]
+    }
+  ],
+  "selected": "artifacts-first"
 }
