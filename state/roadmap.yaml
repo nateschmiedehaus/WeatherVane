@@ -55,6 +55,24 @@ epics:
               a minimal no-op task to verify orchestration.
             set_id: w0m1-supervisor-agent-integration
           - id: AFP-W0-VALIDATE-PROOF-LOOP
+          - id: AFP-W0-STEP5-MUTATION-STAGE7
+            title: Stage 7 – Structure + SCAS rollout
+            status: done
+            dependencies: []
+            exit_criteria:
+              - steps_coverage.md captured under state/logs/AFP-W0-STEP5-MUTATION/coverage/
+              - CODEOWNERS + check_structure.mjs merged with validation matrix updates
+              - SCAS workflow (quality_gates.yml) and rollback dry-run recorded
+            domain: mcp
+            description: >
+              Captures the Wave 0 Stage 7 deliverables: coverage report,
+              CODEOWNERS refresh, structure audit script, feature flags, SCAS
+              attestation, and rollback drills. Provides the evidence baseline
+              for future steps 8–17.
+            set_id: w0m1-validation-and-readiness
+            kpi:
+              latency_hours: 6
+              green_rate: 1.0
             title: Validate proof-driven Wave 0 loop
             status: done
             dependencies: []
