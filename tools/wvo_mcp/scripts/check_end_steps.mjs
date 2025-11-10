@@ -1,13 +1,7 @@
 #!/usr/bin/env node
 import fs from 'node:fs';
 import path from 'node:path';
-
-function deriveTask() {
-  const envTask = process.env.TASK_ID || '';
-  const ref = process.env.GITHUB_HEAD_REF || process.env.GITHUB_REF_NAME || '';
-  const match = (envTask || ref).match(/AFP-[A-Z0-9-]+/);
-  return match ? match[0] : 'AFP-W0-STEP5-MUTATION';
-}
+import { deriveTaskId } from './lib/derive_task.mjs';
 
 function readJson(filePath) {
   try {
@@ -25,7 +19,7 @@ function getField(obj, pathArr) {
   );
 }
 
-const task = deriveTask();
+const task = deriveTaskId();
 const base = path.join('state', 'logs', task);
 const reqs = [
   { p: path.join(base, 'verify', 'verify.log'), min: 1024, tag: 'verify_log' },

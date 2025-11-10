@@ -2,10 +2,11 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { execSync } from 'node:child_process';
+import { deriveTaskId } from './lib/derive_task.mjs';
 
 const here = path.dirname(new URL(import.meta.url).pathname);
 const workspace = path.resolve(path.join(here, '..', '..', '..'));
-const task = process.env.TASK_ID || 'AFP-W0-STEP5-MUTATION';
+const task = deriveTaskId();
 const stateRoot = process.env.WVO_STATE_ROOT ? path.resolve(process.env.WVO_STATE_ROOT) : path.join(workspace, 'state');
 const configPath = path.join(stateRoot, 'config', 'drqc.json');
 const baseRef = process.env.SCAS_BASE || process.env.GITHUB_BASE_REF || 'HEAD~1';
