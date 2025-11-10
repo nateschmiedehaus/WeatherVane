@@ -102,6 +102,7 @@ Implementation Plan (Phases)
   - Update `tools/wvo_mcp/scripts/run_template_detector.mjs` to always write `state/logs/<TASK>/critics/template_detector.json` (remove rename/move), reusing deterministic ordering.  
   - Move relax configuration into `state/config/drqc.json` under `template_detector.relaxed_when`.  
   - Rebuild + run template detector to refresh artifacts.
+  - Ensure the KB ledger (`state/logs/<TASK>/kb/<TASK>.json`) stores the reranker context referenced by TemplateDetector relax mode so doc guard/watchdogs can audit citations.
 - **CI Sweep / Deprecation Fixes:**  
   - Pin Node 20.x in `.github/workflows/{verify.yml,end_steps_contract.yml,contract-tests.yml}`; set `TZ=UTC`, `SOURCE_DATE_EPOCH=1700000000`, `actions/checkout` `fetch-depth: 0`.  
   - Extend contract tests to recompute critics & SCAS, hash-compare outputs.  

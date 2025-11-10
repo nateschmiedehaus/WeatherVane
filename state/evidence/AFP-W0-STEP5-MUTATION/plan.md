@@ -43,6 +43,7 @@ drqc_citations:
 | 2b | Phase 2 End-Steps canonicalization (≥1KB log, SCAS line, critics paths) | tools/wvo_mcp/scripts/check_end_steps.mjs |
 | 2c | Phase 3 TemplateDetector body-only + canonical critics path + relaxed_when config | tools/wvo_mcp/src/critics/template_detector.ts, tools/wvo_mcp/scripts/run_template_detector.mjs, state/config/drqc.json |
 | 2d | Contract-tests workflow pins Node 20, recomputes critics/SCAS, hash-compares; End-Steps workflow updated similarly | .github/workflows/contract-tests.yml, .github/workflows/end_steps_contract.yml |
+| 2e | Template detector paraphrase guard: document how body-only parsing + critics ledgering prevent template reuse; list manual parity command to inspect `state/logs/<TASK>/critics/template_detector.json` | plan.md (this section), state/logs/<TASK>/critics/template_detector.json |
 | 3a | Add property-based test harness and seeds | tools/wvo_mcp/vitest.pbt.config.ts, tools/wvo_mcp/tests/reranker_property.test.ts, state/logs/.../pbt/shrinks.json |
 | 3b | Mutation stub script + verify/mutation.json | tools/wvo_mcp/scripts/mutation_stub.mjs, state/logs/.../verify/mutation.json |
 | 3c | SGAT adversary test + repro log | tools/wvo_mcp/tests/reranker_sgat.test.ts, state/logs/.../sgat/*.json |
@@ -53,6 +54,7 @@ drqc_citations:
 - `SCAS budget gate`: `node tools/wvo_mcp/scripts/check_scas.mjs --task AFP-W0-STEP5-MUTATION` (fail closed when diffs exceed drqc budgets; writes attest/scas.json)
 - `End-Steps gate`: `node tools/wvo_mcp/scripts/check_end_steps.mjs --task AFP-W0-STEP5-MUTATION` (reject missing SCAS line or canonical artifacts)
 - `TemplateDetector critics refresh`: `TASK_ID=AFP-W0-STEP5-MUTATION node tools/wvo_mcp/scripts/run_template_detector.mjs`
+- `TemplateDetector spot-check`: `node tools/wvo_mcp/dist/critics/template_detector.js --file state/logs/AFP-W0-STEP5-MUTATION/plan/plan.md --task AFP-W0-STEP5-MUTATION` (verifies body-only parsing keeps unique-token ratio healthy and logs reasons in critics output)
 - `Property harness`: `npm --prefix tools/wvo_mcp run test:pbt` (deterministic seeds recorded)
 - `Mutation stub`: `WVO_STATE_ROOT=$PWD/state node tools/wvo_mcp/scripts/mutation_stub.mjs --task AFP-W0-STEP5-MUTATION` (creates mutation.json with stub metadata)
 - `SGAT repro`: `npm --prefix tools/wvo_mcp run test:pbt --rerun-only tests/reranker_sgat.test.ts` (guards reranker path weighting)

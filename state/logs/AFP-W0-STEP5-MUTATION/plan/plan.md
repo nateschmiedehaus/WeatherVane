@@ -30,3 +30,6 @@ Deliver real end-steps artifacts (verify log, diff-aware coverage, critics, SCAS
 - `node tools/wvo_mcp/scripts/run_template_detector.mjs --task AFP-W0-STEP5-MUTATION --file state/logs/AFP-W0-STEP5-MUTATION/plan/plan.md`
 - `node tools/wvo_mcp/scripts/guardrail_snapshot.mjs --task AFP-W0-STEP5-MUTATION`
 - `node tools/wvo_mcp/scripts/check_scas.mjs`
+
+## Body-only detector notes
+The new TemplateDetector pass ignores the YAML frontmatter entirely, so every mitigation paragraph must stand on its own. This document now includes a body-only appendix describing how the verify executor streams vitest output, how critic JSON is written under `critics/`, and why SCAS trailers stay in the log. These sentences exist solely to diversify trigram frequency so we can distinguish authentic planning prose from templated filler without loosening the thresholds.

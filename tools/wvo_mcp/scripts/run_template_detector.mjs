@@ -14,8 +14,8 @@ const child = spawnSync('node', ['tools/wvo_mcp/dist/critics/template_detector.j
   stdio: 'inherit',
 });
 if (child.status && child.status !== 0) process.exit(child.status);
-const legacy = path.join(stateRoot, 'logs', task, 'template_detector.json');
-const criticsDir = path.join(stateRoot, 'logs', task, 'critics');
-fs.mkdirSync(criticsDir, { recursive: true });
-if (fs.existsSync(legacy)) fs.renameSync(legacy, path.join(criticsDir, 'template_detector.json'));
-else console.warn(`Template detector output not found at ${legacy}`);
+const targetPath = path.join(stateRoot, 'logs', task, 'critics', 'template_detector.json');
+if (!fs.existsSync(targetPath)) {
+  console.error(`Expected template detector output at ${targetPath}`);
+  process.exit(1);
+}

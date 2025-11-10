@@ -20,9 +20,12 @@
     "max_net_loc": 150,
     "allow": []
   },
-  "relaxed_template_detector": {
-    "min_citations": 3,
-    "requires_kb": true,
-    "requires_reranker_section": true
+  "template_detector": {
+    "relaxed_when": {
+      "min_citations": 3,
+      "require_kb": true,
+      "require_reranker_section": true,
+      "require_drqc_citations": false
+    }
   }
 }
