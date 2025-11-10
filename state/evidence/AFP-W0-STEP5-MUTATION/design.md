@@ -90,7 +90,7 @@ Implementation Plan (Phases)
 - **Phase 0:**  
   - Add `npm run verify` script (node dist/executor/verify.js).  
   - Update `.github/workflows/verify.yml` with Node 20, `npm ci` root + tools, `npm run build`, `npm run verify -- --task CI-VERIFY`, artifact uploads.  
-  - Enhance `verify.ts` to run vitest verify suite before writing artifacts, normalize coverage to `coverage/coverage.json`, pad/annotate `verify.log`, append SCAS trailer when available.
+  - Enhance `verify.ts` to run vitest verify suite before writing artifacts, normalize coverage to `coverage/coverage.json`, pad/annotate `verify.log`, append SCAS trailer when available. To keep complexity manageable, split logging/coverage helpers into `verify_log.ts`, `verify_coverage.ts`, `verify_coverage_utils.ts`, and shared `verify_types.ts`.
 - **Phase 1:**  
   - Update `tools/wvo_mcp/scripts/check_scas.mjs` to treat git diff errors as fatal, fall back to `git merge-base` when base invalid, read budgets (`max_files`, `max_net_loc`, `allow`) from `state/config/drqc.json` with env overrides.  
   - Emit structured JSON: `{task,pass,files_changed,net_loc,reasons}` under `state/logs/<TASK>/attest/scas.json`.
