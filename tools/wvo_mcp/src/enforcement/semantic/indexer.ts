@@ -8,7 +8,7 @@
 import fs from 'node:fs/promises';
 import fsSync from 'node:fs';
 import path from 'node:path';
-import glob from 'glob';
+import { globSync } from 'glob';
 import { ChunkMetadata } from './vector_store.js';
 import crypto from 'node:crypto';
 
@@ -332,7 +332,7 @@ export class Indexer {
    * Find files matching pattern
    */
   private async findFiles(pattern: string): Promise<string[]> {
-    const files = glob.sync(pattern, {
+    const files = globSync(pattern, {
       cwd: this.config.workspaceRoot,
       ignore: ['**/node_modules/**', '**/dist/**', '**/.git/**'],
       absolute: true
