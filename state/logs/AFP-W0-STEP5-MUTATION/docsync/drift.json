@@ -1,0 +1,24 @@
+{
+  "task": "AFP-W0-STEP5-MUTATION",
+  "generated_at": "2025-11-10T03:12:00Z",
+  "upstream_docs": [
+    "AGENTS.md",
+    "AUTOPILOT_MASTER_PLAN_V3.md"
+  ],
+  "changes_detected": [
+    {
+      "path": "AGENTS.md",
+      "status": "modified",
+      "reason": "Added Wave-0 enforcement instructions"
+    },
+    {
+      "path": "AUTOPILOT_MASTER_PLAN_V3.md",
+      "status": "pending",
+      "reason": "Step 18 needs CI hardening section"
+    }
+  ],
+  "actions": [
+    "Document Step 18 CI gates in V3 plan",
+    "Link docsync workflow to drift ledger"
+  ]
+}
