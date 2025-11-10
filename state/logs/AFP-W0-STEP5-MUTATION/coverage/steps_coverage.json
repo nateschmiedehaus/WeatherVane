@@ -1,0 +1,154 @@
+{
+  "task": "AFP-W0-STEP5-MUTATION",
+  "generated_at": "2025-11-10T00:38:36.747181Z",
+  "steps": [
+    {
+      "step": 0,
+      "title": "Step 0 \u2014 Bootstrap Contracts & Guards",
+      "status": "done",
+      "evidence_paths": [
+        "state/evidence/AFP-W0-STEP5-MUTATION/plan.md",
+        "state/evidence/AFP-W0-STEP5-MUTATION/spec.md",
+        "state/logs/AUDIT_20251109T225323Z/ledger_stage6.json"
+      ],
+      "notes": "Phase docs and ledgers in place; presence-only guard active."
+    },
+    {
+      "step": 1,
+      "title": "Step 1 \u2014 VERIFY Standardization (Coverage + Logs)",
+      "status": "done",
+      "evidence_paths": [
+        "state/logs/AFP-W0-STEP5-MUTATION/verify/verify.log",
+        "state/logs/AFP-W0-STEP5-MUTATION/verify/coverage.json"
+      ],
+      "notes": "VERIFY harness writes deterministic log + coverage artifacts."
+    },
+    {
+      "step": 2,
+      "title": "Step 2 \u2014 Coverage Intersection Gate (ProcessCritic)",
+      "status": "missing",
+      "evidence_paths": [],
+      "notes": "critic_results.json not present in current evidence tree."
+    },
+    {
+      "step": 3,
+      "title": "Step 3 \u2014 PLAN Reranker-Lite + Hashed Citations",
+      "status": "missing",
+      "evidence_paths": [],
+      "notes": "kb JSON / citation contracts absent in state/logs."
+    },
+    {
+      "step": 4,
+      "title": "Step 4 \u2014 Property-Based Test (fast-check/Hypothesis)",
+      "status": "missing",
+      "evidence_paths": [],
+      "notes": "No pbt/shrinks artifacts discovered under state/logs."
+    },
+    {
+      "step": 5,
+      "title": "Step 5 \u2014 Mutation Baseline (record-only allowed)",
+      "status": "missing",
+      "evidence_paths": [],
+      "notes": "mutation.json not found for AFP-W0-STEP5-MUTATION."
+    },
+    {
+      "step": 6,
+      "title": "Step 6 \u2014 SGAT (Spec-Guided Adversarial Test)",
+      "status": "missing",
+      "evidence_paths": [],
+      "notes": "sgat repro logs not checked in."
+    },
+    {
+      "step": 7,
+      "title": "Step 7 \u2014 Round-Trip Review (Spec \u2194 Implementation)",
+      "status": "missing",
+      "evidence_paths": [],
+      "notes": "review_diff.md not located under state/logs."
+    },
+    {
+      "step": 8,
+      "title": "Step 8 \u2014 Doc-Edit Guard (Pre-commit) + DocSync 2.0 (CI)",
+      "status": "partial",
+      "evidence_paths": [
+        ".github/workflows/docsync.yml",
+        "scripts/precommit_presence.mjs"
+      ],
+      "notes": "Scoped docsync + presence-only guard landed; no doc drift ledger yet."
+    },
+    {
+      "step": 9,
+      "title": "Step 9 \u2014 KPIs & Critic Roll-up",
+      "status": "missing",
+      "evidence_paths": [],
+      "notes": "kpi/<phase>.json not yet generated."
+    },
+    {
+      "step": 10,
+      "title": "Step 10 \u2014 Live Validation Battery (\u22653 tasks)",
+      "status": "missing",
+      "evidence_paths": [],
+      "notes": "No battery run evidence under state/logs."
+    },
+    {
+      "step": 11,
+      "title": "Step 11 \u2014 Prompt Governance & Safety Harnesses",
+      "status": "partial",
+      "evidence_paths": [
+        "tools/wvo_mcp/scripts/prompt_safety_stub.mjs"
+      ],
+      "notes": "Stub script exists but no promptfoo/garak reports checked in."
+    },
+    {
+      "step": 12,
+      "title": "Step 12 \u2014 Attestations & Tracing",
+      "status": "partial",
+      "evidence_paths": [
+        "tools/wvo_mcp/scripts/attest_stub.mjs",
+        "state/logs/AFP-W0-STEP5-MUTATION/attest/scas.json"
+      ],
+      "notes": "Stub attestation + SCAS report present; tracing still TODO."
+    },
+    {
+      "step": 13,
+      "title": "Step 13 \u2014 Incidents \u2192 Tests Automation",
+      "status": "missing",
+      "evidence_paths": [],
+      "notes": "incidents_map.json absent; automation scripts not executed."
+    },
+    {
+      "step": 14,
+      "title": "Step 14 \u2014 Skills & Curriculum Runner",
+      "status": "missing",
+      "evidence_paths": [],
+      "notes": "skills.json/curriculum logs not recorded for this task."
+    },
+    {
+      "step": 15,
+      "title": "Step 15 \u2014 Release Governance",
+      "status": "partial",
+      "evidence_paths": [
+        "scripts/rollback.mjs",
+        "state/logs/AFP-W0-STEP5-MUTATION/release/rollback_dryrun_20251110T000314Z.txt"
+      ],
+      "notes": "Rollback dry-run scripted; PR template / release matrix still pending."
+    },
+    {
+      "step": 16,
+      "title": "Step 16 \u2014 Adaptive Bootstrap & Orchestrator (Meta-Governance, SCAS-Compliant)",
+      "status": "done",
+      "evidence_paths": [
+        "tools/wvo_mcp/scripts/check_scas.mjs",
+        "state/logs/AFP-W0-STEP5-MUTATION/attest/scas.json",
+        ".github/workflows/quality_gates.yml"
+      ],
+      "notes": "SCAS attestation + quality gates workflow wired and producing artifacts."
+    },
+    {
+      "step": 17,
+      "title": "Step 17 \u2014 Orchestrated Quality (CAS Essentials)",
+      "status": "missing",
+      "evidence_paths": [],
+      "notes": "Step 17 scaffold not yet implemented; roadmap trackers pending."
+    }
+  ]
+}

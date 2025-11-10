@@ -55,6 +55,54 @@ epics:
               a minimal no-op task to verify orchestration.
             set_id: w0m1-supervisor-agent-integration
           - id: AFP-W0-VALIDATE-PROOF-LOOP
+          - id: AFP-W0-STEP5-MUTATION-STAGE7
+          - id: AFP-W0-STEP5-TRACKER-STEP8-10
+            title: Tracker — Steps 8–10 doc guard + live battery
+            status: blocked
+            exit_criteria:
+              - Doc drift ledger recorded per Step 8
+              - KPIs JSON + aggregate committed per Step 9
+              - Live battery log for TEST-DRQC-W1-* tasks stored in state/logs/
+            domain: mcp
+            description: >
+              Bundles the remaining Step 8–10 work (doc guard evidence,
+              KPI aggregate, live battery replay). Unlocks when all three
+              artifacts are green.
+            set_id: w0m1-validation-and-readiness
+            kpi:
+              green_rate: 0.0
+          - id: AFP-W0-STEP5-TRACKER-STEP11-15
+            title: Tracker — Steps 11–15 prompt, attestation, release governance
+            status: blocked
+            exit_criteria:
+              - Promptfoo + garak reports for this task archived
+              - incidents_map + curriculum runner outputs stored
+              - Release checklist / PR template updated with KPI + SCAS gates
+            domain: mcp
+            description: >
+              Consolidates the outstanding Stage 11–15 items so reviewers can
+              see exactly which artifacts remain before declaring Steps 11–15
+              green.
+            set_id: w0m1-validation-and-readiness
+            kpi:
+              green_rate: 0.0
+            title: Stage 7 – Structure + SCAS rollout
+            status: done
+            dependencies: []
+            exit_criteria:
+              - steps_coverage.md captured under state/logs/AFP-W0-STEP5-MUTATION/coverage/
+              - CODEOWNERS + check_structure.mjs merged with validation matrix updates
+              - SCAS workflow (quality_gates.yml) and rollback dry-run recorded
+            domain: mcp
+            description: >
+              Captures the Wave 0 Stage 7 deliverables: coverage report,
+              CODEOWNERS refresh, structure audit script, feature flags, SCAS
+              attestation, and rollback drills. Provides the evidence baseline
+              for future steps 8–17.
+            set_id: w0m1-validation-and-readiness
+            kpi:
+              latency_hours: 6
+              green_rate: 1.0
             title: Validate proof-driven Wave 0 loop
             status: done
             dependencies: []
