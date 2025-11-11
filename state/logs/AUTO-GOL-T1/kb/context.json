@@ -1,0 +1,14 @@
+{
+  "task": "AUTO-GOL-T1",
+  "referenced_files": [
+    "tools/wvo_mcp/src/wave0/runner.ts",
+    "tools/wvo_mcp/src/enforcement/stigmergic_enforcer.ts",
+    "tools/wvo_mcp/src/enforcement/semantic/semantic_enforcer.ts"
+  ],
+  "search_queries": [
+    "WAVE0_FORCE_TASK_ID",
+    "WAVE0_SKIP_REMEDIATION",
+    "WVO_DISABLE_SEMANTIC_ENFORCER"
+  ],
+  "timestamp": "2025-11-10T22:08:58.091Z"
+}
