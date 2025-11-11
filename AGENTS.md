@@ -238,7 +238,7 @@ As an autonomous agent, you must self-enforce quality standards. No external mon
 **Remember:** You are responsible for your own quality. No external system will catch behavioral shortcuts in real-time. Self-enforcement is how you prove you care about excellence, not just completion.
 
 ## Operational Checklist
-- Call MCP tools `plan_next` (with `minimal=true`) and `autopilot_status` at the start of every session; the latter now reports consensus staffing insights and token pressure. Restart the MCP (`./tools/wvo_mcp/scripts/restart_mcp.sh`) if either call fails.
+- Call MCP tools `plan_next` (with `minimal=true`) and `autopilot_status` at the start of every session; the latter now reports consensus staffing insights and token pressure. Restart the MCP (`./tools/wvo_mcp/scripts/restart_mcp.sh (now exists)`) if either call fails.
 - Route follow-up tasks created by the consensus engine (critical or non-quorum decisions) to Atlas or Director Dana instead of bypassing review.
 - Run the consolidated test batch via `bash tools/wvo_mcp/scripts/run_integrity_tests.sh` so TestsCritic sees the real pass/fail state; do not rely on piecemeal `make test`.
 - Keep `state/context.md` concise (<1000 words). `TokenEfficiencyManager` trims overflow automatically and stores backups in `state/backups/context/`; review before restoring.

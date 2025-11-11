@@ -2995,3 +2995,37 @@ epics:
     concerns:
       - quality_concern: spec
       - quality_concern: strategize
+
+# FOUNDATION-REPAIR TASKS
+- id: FOUNDATION-FIX-NODE-ABI-001
+  title: "Fix Node ABI mismatch"
+  status: pending
+  priority: critical
+  epic: FOUNDATION-REPAIR
+  acceptance:
+    - Node 20 LTS installed and on PATH
+    - MCP tools (`plan_next`, `autopilot_status`) run without ABI errors
+- id: FOUNDATION-FIX-PYTHON-VERSION-001
+  title: "Install Python 3.11 for consolidated tests"
+  status: pending
+  priority: high
+  epic: FOUNDATION-REPAIR
+  acceptance:
+    - python3.11 available and used for `.venv`
+    - `bash tools/wvo_mcp/scripts/run_integrity_tests.sh` completes successfully
+- id: FOUNDATION-FIX-NUMPY-VENDOR-001
+  title: "Remove NumPy vendoring"
+  status: pending
+  priority: medium
+  epic: FOUNDATION-REPAIR
+  acceptance:
+    - `.deps/numpy` no longer on PYTHONPATH
+    - `python -c "import numpy"` succeeds inside venv
+- id: FOUNDATION-FIX-APPLE-LOCK-001
+  title: "Generate Apple Silicon requirements lock"
+  status: pending
+  priority: low
+  epic: FOUNDATION-REPAIR
+  acceptance:
+    - requirements/apple-silicon.lock exists or Makefile no longer references it
+    - `make bootstrap` succeeds on Apple Silicon hosts
