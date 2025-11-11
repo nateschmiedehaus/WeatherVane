@@ -38,7 +38,9 @@ import {
   settingsUpdateInput,
   upgradeApplyPatchInput,
   routeSwitchInput,
+  llmChatInput,
 } from "./tools/input_schemas.js";
+import { llmChat } from "./tools/llm_chat.js";
 
 type JsonSchema = ReturnType<typeof toJsonSchema>;
 type McpToolResponse = CallToolResult;
@@ -164,6 +166,7 @@ async function main() {
   const settingsUpdateSchema = toJsonSchema(settingsUpdateInput, "SettingsUpdateInput");
   const upgradeApplyPatchSchema = toJsonSchema(upgradeApplyPatchInput, "UpgradeApplyPatchInput");
   const routeSwitchSchema = toJsonSchema(routeSwitchInput, "RouteSwitchInput");
+  const llmChatSchema = toJsonSchema(llmChatInput, "LlmChatInput");
 
   const proxyTools: ProxyToolDefinition[] = [
     {
@@ -458,6 +461,28 @@ async function main() {
             message: "Rollback routing is not yet implemented; use promote_canary action only.",
           },
         });
+      },
+    );
+
+    server.registerTool(
+      "llm_chat",
+      {
+        description: "Call Claude AI for reasoning, analysis, and code generation using subscription credentials.",
+        inputSchema: llmChatSchema,
+      },
+      async (input) => {
+        const parsed = llmChatInput.parse(input ?? {});
+
+        // Note: llmChat expects an MCP client to delegate to Claude Code's Task tool
+        // When running inside Claude Code, we have subscription auth automatically
+        // For now, llmChat will handle this delegation internally
+        const result = await llmChat({
+          messages: parsed.messages,
+          model: parsed.model as "haiku" | "sonnet" | "opus" | undefined,
+          maxTokens: parsed.maxTokens,
+          temperature: parsed.temperature,
+        });
+        return jsonResponse(result);
       },
     );
 

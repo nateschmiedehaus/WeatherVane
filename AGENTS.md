@@ -1,5 +1,23 @@
 # Repository Guidelines
 
+## 🔑 CREDENTIALS: Subscription Authentication
+
+**CRITICAL: Read before working on WeatherVane or Wave 0**
+
+WeatherVane uses **subscription-based authentication** (NO API KEYS):
+- Codex: `~/.codex/auth.json` (OpenAI OAuth tokens)
+- Claude Code: `~/.claude.json` + `~/.claude/session-env/` (session tokens)
+- **NEVER** look for or require `ANTHROPIC_API_KEY`
+
+**📖 Complete Guide:** `docs/SUBSCRIPTION_CREDENTIALS.md`
+
+**Quick Reference:**
+- Wave 0: `mcpClient.executeTool("Task", ...)` - auth automatic
+- Codex: `codex exec "your prompt"` - auth automatic
+- Test: `codex exec "Say: credentials work!"`
+
+---
+
 ## ⚠️ ZERO TOLERANCE: Autopilot Integrity Mandate
 
 **CRITICAL FOR ALL AGENTS WORKING ON AUTOPILOT:**
