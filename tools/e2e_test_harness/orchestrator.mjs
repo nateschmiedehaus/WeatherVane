@@ -41,6 +41,17 @@ class E2ETestOrchestrator {
     // Create the roadmap.yaml file here to ensure it exists
     await fs.writeFile(path.join(TEST_STATE_ROOT, 'roadmap.yaml'), 'tasks: []\n', 'utf-8');
 
+    // Create empty orchestrator.db for LiveFlags
+    // Note: This requires sqlite3 to be installed
+    try {
+      execSync(`sqlite3 ${path.join(TEST_STATE_ROOT, 'orchestrator.db')} "CREATE TABLE IF NOT EXISTS live_flags (key TEXT PRIMARY KEY, value TEXT); VACUUM;"`, { stdio: 'pipe' });
+      console.log('  Created orchestrator.db for LiveFlags');
+    } catch (error) {
+      console.log('  Warning: Could not create orchestrator.db (sqlite3 not found)');
+      // Create empty file as fallback
+      await fs.writeFile(path.join(TEST_STATE_ROOT, 'orchestrator.db'), '', 'utf-8');
+    }
+
     // Initialize git branch for tests
     await this.initializeGitBranch();
 
