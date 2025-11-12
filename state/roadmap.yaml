@@ -21,49 +21,56 @@ epics:
               - Git commits created and pushed for all completions
               - Pre-commit hooks block any bypass attempts
               - ProcessCritic fails commits that skip work
-              - "Live-fire validation: 1 task completed end-to-end with full quality"
-              - "Quality score ≥95/100 with all critics approved"
+              - "Live-fire validation: 1 task completed end-to-end with full
+                quality"
+              - Quality score ≥95/100 with all critics approved
               - Zero tolerance policy documented and enforced
             domain: mcp
             description: >
-              CRITICAL FIX: Current autonomous runner bypasses ALL quality systems,
-              creating fake completions in 0.5 seconds without doing any work.
-              This task ELIMINATES ALL BYPASSES and enforces full AFP 10-phase
-              lifecycle, all 5 critics, all gates, all hooks, real evidence
-              generation, testing, and proof of quality. No compromises. User
-              explicitly demanded "highest order specifications of quality control"
-              - we must deliver that, not fake completions. Blocks all other
-              autopilot work until fixed. Evidence: state/evidence/AFP-W0-AUTOPILOT-INTEGRITY-ENFORCEMENT-20251107/
+              CRITICAL FIX: Current autonomous runner bypasses ALL quality
+              systems, creating fake completions in 0.5 seconds without doing
+              any work. This task ELIMINATES ALL BYPASSES and enforces full AFP
+              10-phase lifecycle, all 5 critics, all gates, all hooks, real
+              evidence generation, testing, and proof of quality. No
+              compromises. User explicitly demanded "highest order
+              specifications of quality control" - we must deliver that, not
+              fake completions. Blocks all other autopilot work until fixed.
+              Evidence:
+              state/evidence/AFP-W0-AUTOPILOT-INTEGRITY-ENFORCEMENT-20251107/
             set_id: w0m1-quality-automation
           - id: AFP-W0-AGENT-SELF-ENFORCEMENT-20251107
-            title: "Agent Behavioral Self-Enforcement - Block Cheap Workarounds"
+            title: Agent Behavioral Self-Enforcement - Block Cheap Workarounds
             status: pending
             dependencies:
               - AFP-W0-AUTOPILOT-INTEGRITY-ENFORCEMENT-20251107
             exit_criteria:
-              - Agent instruction files updated with explicit anti-bypass directives
-              - Pre-execution checklist mandates quality commitment before starting
+              - Agent instruction files updated with explicit anti-bypass
+                directives
+              - Pre-execution checklist mandates quality commitment before
+                starting
               - Mid-execution quality checks prevent shortcuts during work
-              - Post-execution validation ensures standards met before claiming done
+              - Post-execution validation ensures standards met before claiming
+                done
               - Behavioral patterns that bypass quality detected and blocked
               - Examples documented of "cheap or slick" workarounds to prevent
               - Zero tolerance mindset embedded in agent instructions
               - All agents (Claude, Atlas, Dana, etc.) covered by enforcement
               - Live validation proves agents self-enforce without supervision
-              - "Quality score ≥95/100 with behavioral enforcement demonstrated"
+              - Quality score ≥95/100 with behavioral enforcement demonstrated
             domain: mcp
             description: >
               FOLLOW-UP TO AFP-W0-AUTOPILOT-INTEGRITY-ENFORCEMENT-20251107: The
               previous task eliminated code-level bypasses. This task prevents
               AGENT-LEVEL bypasses. User directive: "ensure agents themselves
-              follow these standards...anything else that could be cheap or slick
-              to get around quality standards not only gets blocked but can't
-              happen in the first place." Focuses on behavioral enforcement:
-              pre-commit checks, mid-execution validation, post-completion
-              verification. Addresses the meta-problem: I took shortcuts while
-              implementing bypass removal (only did STRATEGIZE, claimed done).
-              This task ensures agents enforce quality on THEMSELVES, not just on
-              the code they write. Evidence: state/evidence/AFP-W0-AGENT-SELF-ENFORCEMENT-20251107/
+              follow these standards...anything else that could be cheap or
+              slick to get around quality standards not only gets blocked but
+              can't happen in the first place." Focuses on behavioral
+              enforcement: pre-commit checks, mid-execution validation,
+              post-completion verification. Addresses the meta-problem: I took
+              shortcuts while implementing bypass removal (only did STRATEGIZE,
+              claimed done). This task ensures agents enforce quality on
+              THEMSELVES, not just on the code they write. Evidence:
+              state/evidence/AFP-W0-AGENT-SELF-ENFORCEMENT-20251107/
             set_id: w0m1-quality-automation
           - id: AFP-W0-M1-ROADMAP-FAST-AUTONOMY-AUDIT
             title: Audit roadmap for fast autonomy + self-improvement
@@ -2923,7 +2930,6 @@ epics:
             description: >
               Consolidated placeholder for prior Phase 1 backlog. Details reside
               in git history.
-
   - id: TEST-LIVE-ENFORCEMENT-001-REMEDIATION-1762548101688
     title: "REMEDIATION: Fix bypass pattern BP001 in TEST-LIVE-ENFORCEMENT-001"
     status: pending
@@ -2931,11 +2937,11 @@ epics:
     created_by: stigmergic_enforcer
     created_at: 2025-11-07T20:41:41.702Z
     original_task: TEST-LIVE-ENFORCEMENT-001
+    milestones: []
     bypass_pattern: BP001
     concerns:
       - quality_concern: strategize
       - present_bias_detected: strategize
-
   - id: TEST-LIVE-ENFORCEMENT-001-REMEDIATION-1762548101840
     title: "REMEDIATION: Fix bypass pattern BP001 in TEST-LIVE-ENFORCEMENT-001"
     status: pending
@@ -2943,11 +2949,11 @@ epics:
     created_by: stigmergic_enforcer
     created_at: 2025-11-07T20:41:41.852Z
     original_task: TEST-LIVE-ENFORCEMENT-001
+    milestones: []
     bypass_pattern: BP001
     concerns:
       - quality_concern: strategize
       - present_bias_detected: strategize
-
   - id: TEST-LIVE-ENFORCEMENT-001-REMEDIATION-1762548139753
     title: "REMEDIATION: Fix bypass pattern BP001 in TEST-LIVE-ENFORCEMENT-001"
     status: pending
@@ -2955,11 +2961,11 @@ epics:
     created_by: stigmergic_enforcer
     created_at: 2025-11-07T20:42:19.766Z
     original_task: TEST-LIVE-ENFORCEMENT-001
+    milestones: []
     bypass_pattern: BP001
     concerns:
       - quality_concern: strategize
       - present_bias_detected: strategize
-
   - id: TEST-TASK-001-REMEDIATION-1762550455758
     title: "REMEDIATION: Fix bypass pattern BP001 in TEST-TASK-001"
     status: pending
@@ -2967,11 +2973,11 @@ epics:
     created_by: stigmergic_enforcer
     created_at: 2025-11-07T21:20:55.771Z
     original_task: TEST-TASK-001
+    milestones: []
     bypass_pattern: BP001
     concerns:
       - quality_concern: strategize
       - present_bias_detected: strategize
-
   - id: TEST-TASK-001-REMEDIATION-1762550455954
     title: "REMEDIATION: Fix bypass pattern BP001 in TEST-TASK-001"
     status: pending
@@ -2979,11 +2985,11 @@ epics:
     created_by: stigmergic_enforcer
     created_at: 2025-11-07T21:20:55.966Z
     original_task: TEST-TASK-001
+    milestones: []
     bypass_pattern: BP001
     concerns:
       - quality_concern: verify
       - present_bias_detected: verify
-
   - id: TEST-TASK-001-REMEDIATION-1762550456049
     title: "REMEDIATION: Fix bypass pattern BP001 in TEST-TASK-001"
     status: pending
@@ -2991,53 +2997,146 @@ epics:
     created_by: stigmergic_enforcer
     created_at: 2025-11-07T21:20:56.061Z
     original_task: TEST-TASK-001
+    milestones: []
     bypass_pattern: BP001
     concerns:
       - quality_concern: spec
       - quality_concern: strategize
-
 tasks:
-  # FOUNDATION-REPAIR TASKS
   - id: FOUNDATION-FIX-NODE-ABI-001
-    title: "Fix Node ABI mismatch"
-    status: pending
+    title: Fix Node ABI mismatch
+    status: blocked
     priority: critical
     epic: FOUNDATION-REPAIR
     acceptance:
       - Node 20 LTS installed and on PATH
       - MCP tools (`plan_next`, `autopilot_status`) run without ABI errors
   - id: FOUNDATION-FIX-PYTHON-VERSION-001
-    title: "Install Python 3.11 for consolidated tests"
+    title: Install Python 3.11 for consolidated tests
     status: pending
     priority: high
     epic: FOUNDATION-REPAIR
     acceptance:
       - python3.11 available and used for `.venv`
-      - "`bash tools/wvo_mcp/scripts/run_integrity_tests.sh` completes successfully"
+      - "`bash tools/wvo_mcp/scripts/run_integrity_tests.sh` completes
+        successfully"
   - id: FOUNDATION-FIX-NUMPY-VENDOR-001
-    title: "Remove NumPy vendoring"
+    title: Remove NumPy vendoring
     status: pending
     priority: medium
     epic: FOUNDATION-REPAIR
     acceptance:
       - "`.deps/numpy` no longer on PYTHONPATH"
-      - "`python -c \"import numpy\"` succeeds inside venv"
+      - '`python -c "import numpy"` succeeds inside venv'
   - id: FOUNDATION-FIX-APPLE-LOCK-001
-    title: "Generate Apple Silicon requirements lock"
+    title: Generate Apple Silicon requirements lock
     status: pending
     priority: low
     epic: FOUNDATION-REPAIR
     acceptance:
-      - requirements/apple-silicon.lock exists or Makefile no longer references it
+      - requirements/apple-silicon.lock exists or Makefile no longer references
+        it
       - "`make bootstrap` succeeds on Apple Silicon hosts"
   - id: GOL-DEMO-001
-    title: "Conway's Game of Life Autonomous Demo"
-    status: pending
+    title: Conway's Game of Life Autonomous Demo
+    status: blocked
     epic: WAVE0-AUTONOMY
     priority: high
-    description: "Validate full autonomous Wave 0 implementation of Conway's Game of Life"
+    execution_mode: autonomous
+    description: Validate full autonomous Wave 0 implementation of Conway's Game of Life
     acceptance:
       - Implementation file at state/demos/gol/game_of_life.ts (<=150 LOC)
       - Tests at state/demos/gol/game_of_life.test.ts (<=100 LOC)
+  - id: AFP-E2E-ONLINE-TESTING-MODULE-20251112
+    title: E2E Online Testing Module with Operator Monitoring
+    status: pending
+    epic: WAVE0-AUTONOMY
+    priority: critical
+    execution_mode: manual
+    description: >
+      Build comprehensive E2E testing module with isolated environments, automatic error
+      recovery, operator monitoring (Claude/Codex instances), and GOL task chaining (T1→T2→T3).
+      Ensures all tests run autonomously with perfect git hygiene and GitHub integration.
+    acceptance:
+      - Isolated test environment at /tmp/e2e_test_state
+      - Test orchestrator manages Wave 0 instances
+      - Operator monitor detects and fixes errors/loops
+      - GOL tasks chain properly (T1 feeds T2 feeds T3)
+      - Automatic state reset between test runs
+      - All changes committed and pushed to GitHub
+      - Zero manual intervention required
+      - Full E2E suite completes in < 10 minutes
+      - 95%+ test success rate with auto-recovery
+    dependencies:
+      - AFP-MCP-PID-LOCK-FIX-20251112
       - CLI demo runs 5 generations of glider
       - All critics and gates pass without overrides
+  - id: AFP-W0-ENFORCEMENT-SPLIT-20251111
+    title: "Split stigmergic vs semantic enforcement layers"
+    status: pending
+    epic: WAVE0-AUTONOMY
+    priority: critical
+    description: >
+      Ensure WVO_DISABLE_SEMANTIC_ENFORCER only skips semantic quality layers
+      (L5-L6) while L1-L4 stigmergic layers continue running to create
+      remediation tasks and detect bypass patterns.
+    acceptance:
+      - L1-L4 enforcement runs regardless of WVO_DISABLE_SEMANTIC_ENFORCER
+      - Semantic layers log skip and do not execute when the flag is set
+      - Remediation tasks still created for stigmergic violations
+      - runStigmergicEnforcement/runSemanticEnforcement exist in
+        tools/wvo_mcp/src/enforcement/stigmergic_enforcer.ts
+      - `cd tools/wvo_mcp && npm test` passes
+  - id: AFP-W0-DELETE-FAKE-MCPCLIENT-20251111
+    title: "Remove stub MCPClient and use RealMCPClient everywhere"
+    status: pending
+    epic: WAVE0-AUTONOMY
+    priority: critical
+    description: >
+      Delete the legacy MCPClient stub (direct fs/child_process) and ensure
+      all Wave 0 components depend on the real MCP client so AI interactions
+      cannot silently fall back to local execution.
+    acceptance:
+      - `tools/wvo_mcp/src/wave0/mcp_client.ts` removed (or renamed with warning)
+      - All imports updated to `RealMCPClient`
+      - Build and test suites pass (`npm run build`, `npm test`)
+      - Evidence captures STRATEGIZE→MONITOR lifecycle
+  - id: AFP-W0-COMPLETE-DRQC-IMPLEMENTATION-20251111
+    title: "Batch 2 – complete DRQC phase executor implementation"
+    status: pending
+    epic: WAVE0-AUTONOMY
+    priority: critical
+    description: >
+      Implement the remaining DRQC phases (implement/verify/review/pr/monitor),
+      integrate template detection, and expose the new executors so Wave 0 can
+      run the full 10-phase AFP lifecycle using real AI outputs.
+    acceptance:
+      - `template_detector.ts` created with entropy + phrase checks
+      - `phase_executors_drqc.ts` exports all 10 execute* functions
+      - VERIFY phase performs template detection before AI verification
+      - Build/tests plus phase completeness script pass
+  - id: AFP-W0-ADD-TELEMETRY-20251111
+    title: "Batch 3A – telemetry for DRQC AI calls"
+    status: pending
+    epic: WAVE0-AUTONOMY
+    priority: high
+    description: >
+      Emit structured telemetry for every DRQC execution to prove Wave 0 is
+      invoking Anthropic instead of templates (provider, duration, tokens,
+      entropy per phase).
+    acceptance:
+      - `phase_executors_drqc.ts` imports telemetry and records provider,
+        duration, entropy, token usage after each MCP call
+      - WARNING logged when provider !== 'anthropic'
+      - Build/tests succeed and verification commands in batch brief pass
+
+- id: WAVE0-CRED-TEST-001
+  title: "Test subscription credentials"
+  description: "Simple test to verify Wave 0 can use Claude Code subscription credentials (no API keys)"
+  status: pending
+  type: task
+  acceptance:
+    - AI call succeeds using Claude Code subscription auth (no API keys)
+    - Documents CLI steps (claude login, CLAUDE_CONFIG_DIR)
+    - Generates real output (not TODO stub)
+  evidenceDir: state/evidence/WAVE0-CRED-TEST-001
