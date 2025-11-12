@@ -1,0 +1,22 @@
+{
+  "name": "e2e-test-harness",
+  "version": "1.0.0",
+  "description": "E2E Online Testing Module with Operator Monitoring",
+  "type": "module",
+  "main": "run_e2e_tests.mjs",
+  "scripts": {
+    "test": "node run_e2e_tests.mjs",
+    "test:orchestrator": "node orchestrator.mjs",
+    "test:monitor": "node operator_monitor.mjs",
+    "test:quick": "WAVE0_SINGLE_RUN=1 node run_e2e_tests.mjs",
+    "clean": "rm -rf /tmp/e2e_test_state /tmp/wave0_gol_state"
+  },
+  "dependencies": {
+    "yaml": "^2.3.0"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "author": "WeatherVane Team",
+  "license": "MIT"
+}
