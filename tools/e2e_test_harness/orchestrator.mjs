@@ -34,6 +34,12 @@ class E2ETestOrchestrator {
     await fs.mkdir(TEST_STATE_ROOT, { recursive: true });
     await fs.mkdir(path.join(TEST_STATE_ROOT, 'logs'), { recursive: true });
     await fs.mkdir(path.join(TEST_STATE_ROOT, 'evidence'), { recursive: true });
+    await fs.mkdir(path.join(TEST_STATE_ROOT, 'analytics'), { recursive: true });
+    await fs.mkdir(path.join(TEST_STATE_ROOT, 'critics'), { recursive: true });
+    await fs.mkdir(path.join(TEST_STATE_ROOT, 'kb'), { recursive: true });
+
+    // Create the roadmap.yaml file here to ensure it exists
+    await fs.writeFile(path.join(TEST_STATE_ROOT, 'roadmap.yaml'), 'tasks: []\n', 'utf-8');
 
     // Initialize git branch for tests
     await this.initializeGitBranch();
