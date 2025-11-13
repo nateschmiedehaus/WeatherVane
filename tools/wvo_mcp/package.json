@@ -37,7 +37,10 @@
     "plan:review": "node --loader ts-node/esm ./src/cli/run_plan_review.ts",
     "work-process:check": "node ./scripts/check_work_process_artifacts.mjs",
     "wave0": "node ./scripts/run_wave0.mjs",
-    "verify": "node dist/executor/verify.js"
+    "verify": "node dist/executor/verify.js",
+    "commit:check": "node ./scripts/enforce_commits.mjs --check",
+    "commit:enforce": "node ./scripts/enforce_commits.mjs --enforce",
+    "commit:watch": "node ./scripts/enforce_commits.mjs --watch"
   },
   "author": "",
   "license": "MIT",
