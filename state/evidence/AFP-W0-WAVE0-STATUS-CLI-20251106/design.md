@@ -184,7 +184,7 @@ Before implementing, verify:
 
 ## Notes
 
-[Any additional context, decisions, or references]
+- 2025-11-06: Implementation refines the CLI into separate `collect`, `files`, and `ui` helpers so every file stays under the 150 LOC AFP guardrail while keeping the root `wave0_status` entry point tiny.
 
 ---
 

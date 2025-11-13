@@ -49,6 +49,12 @@
 - [ ] Added tests for new functionality (if applicable)
 - [ ] Manually verified changes work as expected
 
+## End-Steps Evidence
+- [ ] `state/logs/<TASK>/verify/verify.log` ≥1KB and ends with SCAS summary line
+- [ ] `state/logs/<TASK>/coverage/coverage.json` updated for this change
+- [ ] critics/template_detector + guardrails JSON refreshed (with KPIs)
+- [ ] `state/logs/<TASK>/attest/scas.json` shows pass=true with files/net_loc recorded
+
 ---
 
 **Reviewer:** Verify all checkboxes are checked before approving. Pre-commit hook enforces micro-batching limits.

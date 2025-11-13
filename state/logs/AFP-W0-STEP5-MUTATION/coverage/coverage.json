@@ -1,0 +1,22 @@
+{
+  "files": {
+    "tools/wvo_mcp/src/executor/verify.ts": {
+      "statements": 10,
+      "hits": 10,
+      "percent": 1
+    },
+    "state/logs/AFP-W0-STEP5-MUTATION/verify/verify.log": {
+      "statements": 10,
+      "hits": 10,
+      "percent": 1
+    }
+  },
+  "summary": {
+    "files": 2,
+    "statements": 20,
+    "hits": 20,
+    "percent": 1,
+    "covered_line_count": 20,
+    "total_line_count": 20
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "task": "AFP-W0-STEP5-MUTATION",
+  "generated_at": "2025-11-10T03:09:30Z",
+  "spec": "state/evidence/AFP-W0-STEP5-MUTATION/plan.md",
+  "impl": [
+    "tools/wvo_mcp/src/executor/verify.ts",
+    "tools/wvo_mcp/scripts/check_end_steps.mjs"
+  ],
+  "diffs": [
+    {
+      "section": "Coverage normalization",
+      "spec_quote": "PLAN.md §Verification: diff-aware coverage tracked per file",
+      "impl_quote": "verify.ts now emits covered/missing lines",
+      "resolution": "Matches spec"
+    },
+    {
+      "section": "Gate enforcement",
+      "spec_quote": "PLAN.md §Gate Hardening: exit non-zero on missing artifacts",
+      "impl_quote": "check_end_steps.mjs exits 1 when errors occur",
+      "resolution": "Matches spec"
+    }
+  ],
+  "status": "pass"
+}

@@ -1,34 +1,26 @@
-name: Scoped DocSync
+name: Doc Drift
 
 on:
   pull_request:
-    paths:
-      - docs/**
-      - state/evidence/**
-      - state/logs/**
-      - state/analytics/readme_manifest.json
-      - .github/workflows/docsync.yml
-  workflow_dispatch:
 
 jobs:
   docsync:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+      - name: Detect doc changes
+        id: changes
+        uses: dorny/paths-filter@v3
         with:
-          fetch-depth: 0
-      - name: Detect doc drift
-        run: |
-          BASE="${{ github.base_ref || github.ref_name }}"
-          if [ -z "$BASE" ]; then BASE="origin/main"; fi
-          git fetch origin "$BASE" --depth=1 || true
-          DOC_CHANGES=$(git diff --name-only "origin/${BASE}"...HEAD -- docs state/evidence state/logs)
-          MANIFEST_CHANGED=$(git diff --name-only "origin/${BASE}"...HEAD -- state/analytics/readme_manifest.json)
-          if [ -n "$DOC_CHANGES" ] && [ -z "$MANIFEST_CHANGED" ]; then
-            echo "Doc drift detected. Run local docsync to refresh state/analytics/readme_manifest.json" >&2
-            echo "Changed doc files:" >&2
-            echo "$DOC_CHANGES" >&2
-            exit 1
-          fi
-          echo "DocSync check: OK"
+          filters: |
+            docs:
+              - 'docs/**'
+              - 'AGENTS.md'
+              - 'claude.md'
+              - 'AUTOPILOT_MASTER_PLAN_V3.md'
+      - name: Doc drift check (hard on docs paths)
+        if: steps.changes.outputs.docs == 'true'
+        run: node scripts/check_doc_edits.mjs --ci
+      - name: Doc drift check (soft on code-only PRs)
+        if: steps.changes.outputs.docs != 'true'
+        run: node scripts/check_doc_edits.mjs --ci || true

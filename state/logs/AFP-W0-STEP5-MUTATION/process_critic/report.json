@@ -1,0 +1,25 @@
+{
+  "task": "AFP-W0-STEP5-MUTATION",
+  "generated_at": "2025-11-10T03:15:00Z",
+  "status": "pass",
+  "changed_files": [
+    "state/logs/AFP-W0-STEP5-MUTATION/plan/reranker.json",
+    "state/logs/AFP-W0-STEP5-MUTATION/pbt/report.json"
+  ],
+  "coverage_intersection": {
+    "considered": [
+      "tools/wvo_mcp/src/executor/verify.ts"
+    ],
+    "covered": [
+      "tools/wvo_mcp/src/executor/verify.ts"
+    ],
+    "missing": [],
+    "allowlisted": []
+  },
+  "required_evidence": [
+    "strategy.md",
+    "spec.md",
+    "plan.md",
+    "think.md"
+  ]
+}

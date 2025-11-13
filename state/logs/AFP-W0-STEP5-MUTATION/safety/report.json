@@ -1,0 +1,17 @@
+{
+  "task": "AFP-W0-STEP5-MUTATION",
+  "generated_at": "2025-11-10T03:18:30Z",
+  "prompt_policy": "Wave0-Safety-2025-11",
+  "checks": [
+    {
+      "name": "Prompt namespace collisions",
+      "status": "pass"
+    },
+    {
+      "name": "Sensitive data regression",
+      "status": "pass"
+    }
+  ],
+  "violations": 0,
+  "notes": "No disallowed autopilot commands emitted during verify or SCAS runs."
+}

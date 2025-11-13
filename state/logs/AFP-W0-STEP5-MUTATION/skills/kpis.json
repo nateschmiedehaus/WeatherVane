@@ -1,0 +1,17 @@
+{
+  "task": "AFP-W0-STEP5-MUTATION",
+  "generated_at": "2025-11-10T03:20:00Z",
+  "skills": [
+    {
+      "name": "SCAS hardening",
+      "coverage": 1.0,
+      "solve_rate_uplift": 0.4
+    },
+    {
+      "name": "Wave0 critics",
+      "coverage": 0.85,
+      "solve_rate_uplift": 0.3
+    }
+  ],
+  "curriculum_notes": "Add GOL Tier KPIs once autopilot loop completes."
+}

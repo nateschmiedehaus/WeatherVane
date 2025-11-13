@@ -1,0 +1,7 @@
+2025-11-10T03:20:30Z
+scenario: quality_gates failure
+steps:
+ 1. git checkout integration
+ 2. git reset --hard safety/scas-stage7-endsteps-$(date +%F)
+ 3. git push origin integration --force-with-lease
+ 4. investigate failing workflow, re-run SCAS + End-Steps locally, open remediation PR

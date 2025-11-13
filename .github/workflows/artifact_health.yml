@@ -1,0 +1,43 @@
+name: Artifact Health
+
+on:
+  schedule:
+    - cron: '0 9 * * *'
+  workflow_dispatch:
+
+jobs:
+  watchdogs:
+    runs-on: ubuntu-latest
+    env:
+      TASK_ID: AFP-W0-STEP5-MUTATION
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Load deterministic env
+        run: |
+          source scripts/env.d/ci.sh
+          echo "TZ=$TZ" >> $GITHUB_ENV
+          echo "SOURCE_DATE_EPOCH=$SOURCE_DATE_EPOCH" >> $GITHUB_ENV
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Watch verify log
+        run: node tools/wvo_mcp/scripts/watch_stub_verify.mjs --task AFP-W0-STEP5-MUTATION
+
+      - name: Watch coverage path
+        run: node tools/wvo_mcp/scripts/watch_coverage_path.mjs --task AFP-W0-STEP5-MUTATION
+
+      - name: Watch critics path
+        run: node tools/wvo_mcp/scripts/watch_critics_path.mjs --task AFP-W0-STEP5-MUTATION
+
+      - name: Watch SCAS fail-open
+        run: node tools/wvo_mcp/scripts/watch_scas_failopen.mjs --task AFP-W0-STEP5-MUTATION
+
+      - name: Watch doc drift ledger
+        run: node tools/wvo_mcp/scripts/watch_doc_drift.mjs --task AFP-W0-STEP5-MUTATION

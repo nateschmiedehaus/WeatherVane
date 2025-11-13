@@ -1,0 +1,27 @@
+{
+  "current": {
+    "status": "stopped",
+    "startTime": "2025-11-07T03:47:32.305Z",
+    "tasksCompleted": 1,
+    "qualityScore": 100,
+    "throughput": 912767,
+    "memory": {
+      "rss": 69451776,
+      "heapTotal": 20037632,
+      "heapUsed": 11636064,
+      "external": 2103967,
+      "arrayBuffers": 45203
+    },
+    "providers": {
+      "claude": {
+        "tokensUsed": 0,
+        "rateLimit": 100000
+      },
+      "codex": {
+        "tokensUsed": 0,
+        "rateLimit": 150000
+      }
+    }
+  },
+  "history": []
+}

@@ -1,0 +1,80 @@
+name: Contract Tests
+
+on:
+  pull_request:
+    paths:
+      - tools/wvo_mcp/**
+      - state/evidence/**
+      - scripts/check_doc_edits.mjs
+  workflow_dispatch:
+
+jobs:
+  contract-tests:
+    runs-on: ubuntu-latest
+    env:
+      TASK_ID: AFP-W0-STEP5-MUTATION
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Load deterministic env
+        run: |
+          source scripts/env.d/ci.sh
+          echo "TZ=$TZ" >> $GITHUB_ENV
+          echo "SOURCE_DATE_EPOCH=$SOURCE_DATE_EPOCH" >> $GITHUB_ENV
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install root deps
+        run: npm ci
+
+      - name: Install MCP deps
+        run: npm ci
+        working-directory: tools/wvo_mcp
+
+      - name: Build MCP bundle
+        run: npm run build
+        working-directory: tools/wvo_mcp
+
+      - name: Contract runner
+        env:
+          WVO_STATE_ROOT: state
+        run: node tools/wvo_mcp/dist/cli/contract_runner.js --all-staged
+
+      - name: Doc edit guard
+        run: node scripts/check_doc_edits.mjs --ci
+
+      - name: Recompute critics + SCAS
+        run: node tools/wvo_mcp/scripts/recompute_critics_ci.mjs --task AFP-W0-STEP5-MUTATION --output .tmp/recompute/AFP-W0-STEP5-MUTATION
+
+      - name: Compare template detector hash
+        run: node tools/wvo_mcp/scripts/hash_compare.mjs --label template_detector --expected state/logs/AFP-W0-STEP5-MUTATION/critics/template_detector.json --actual .tmp/recompute/AFP-W0-STEP5-MUTATION/template_detector.json
+
+      - name: Compare guardrails hash
+        run: node tools/wvo_mcp/scripts/hash_compare.mjs --label guardrails --expected state/logs/AFP-W0-STEP5-MUTATION/critics/guardrails.json --actual .tmp/recompute/AFP-W0-STEP5-MUTATION/guardrails.json
+
+      - name: Compare SCAS attestation hash
+        run: node tools/wvo_mcp/scripts/hash_compare.mjs --label scas --expected state/logs/AFP-W0-STEP5-MUTATION/attest/scas.json --actual .tmp/recompute/AFP-W0-STEP5-MUTATION/scas.json
+
+      - name: Watchdog – verify log
+        run: node tools/wvo_mcp/scripts/watch_stub_verify.mjs --task AFP-W0-STEP5-MUTATION
+
+      - name: Watchdog – coverage path
+        run: node tools/wvo_mcp/scripts/watch_coverage_path.mjs --task AFP-W0-STEP5-MUTATION
+
+      - name: Watchdog – critics path
+        run: node tools/wvo_mcp/scripts/watch_critics_path.mjs --task AFP-W0-STEP5-MUTATION
+
+      - name: Watchdog – SCAS fail-open
+        run: node tools/wvo_mcp/scripts/watch_scas_failopen.mjs --task AFP-W0-STEP5-MUTATION
+
+      - name: Watchdog – doc drift ledger
+        run: node tools/wvo_mcp/scripts/watch_doc_drift.mjs --task AFP-W0-STEP5-MUTATION
+      - name: Provenance check
+        run: node tools/wvo_mcp/scripts/check_provenance.mjs --task AFP-W0-STEP5-MUTATION

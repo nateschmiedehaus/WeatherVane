@@ -1,0 +1,46 @@
+{
+  "task": "AFP-W0-STEP5-MUTATION",
+  "run_id": "RUN-1762792900564",
+  "commit_sha": "851529651b8e69fcf7deddd086dd662b99e7d989",
+  "node_version": "v24.10.0",
+  "dist_sha256": "24d71eb217f3ea5ae437c9d5b7f994251875ebcbb936603d12d55444baff0dc2",
+  "artifacts": [
+    {
+      "label": "verify_log",
+      "path": "state/logs/AFP-W0-STEP5-MUTATION/verify/verify.log",
+      "sha256": "3c279c16dd5ef0a5375e7d20639bb8c8abd5dfc39340111e5bf572d92eabe21a"
+    },
+    {
+      "label": "changed_files",
+      "path": "state/logs/AFP-W0-STEP5-MUTATION/verify/changed_files.json",
+      "sha256": "6d9696ad76e238789bbf7fe6673154601309e2ebeb76a384f99ccbdef16e7d85"
+    },
+    {
+      "label": "coverage",
+      "path": "state/logs/AFP-W0-STEP5-MUTATION/coverage/coverage.json",
+      "sha256": "271d21ebc5ec60a58c3701cf3652f2dce91d8d26bb3b9630b60cf1309b70df70"
+    },
+    {
+      "label": "template_detector",
+      "path": "state/logs/AFP-W0-STEP5-MUTATION/critics/template_detector.json",
+      "sha256": "014fac3d41b18e70b0ad12864edfafb8b62b090eaa1324b6b4cbad067222f0e4"
+    },
+    {
+      "label": "guardrails",
+      "path": "state/logs/AFP-W0-STEP5-MUTATION/critics/guardrails.json",
+      "sha256": "f59d85e811555444e89e3a6f1ed316613cea5f4f13b4240b6dde4654750dd81a"
+    },
+    {
+      "label": "scas",
+      "path": "state/logs/AFP-W0-STEP5-MUTATION/attest/scas.json",
+      "sha256": "013bc851a2d21191dee2581ccfb8f5c050b719e9a4f3712d7a1bb3de3f14a86d"
+    },
+    {
+      "label": "agreements",
+      "path": "state/logs/AFP-W0-STEP5-MUTATION/attest/agreements.json",
+      "sha256": "05a8c047dfb58e469ffa43c550a02b51b4effd055e9dfc7c0d82b8ad249aaec9"
+    }
+  ],
+  "started_at": "2025-11-10T16:41:30.783Z",
+  "finished_at": "2025-11-10T16:41:40.607Z"
+}

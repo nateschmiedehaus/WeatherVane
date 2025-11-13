@@ -57,8 +57,10 @@ describe('ProofIntegration', () => {
       { proofSystem: proofSystem as any }
     );
 
-    const status = await integration.processTaskAfterExecution(task, 'completed');
-    expect(status).toBe('proven');
+    const outcome = await integration.processTaskAfterExecution(task, 'completed');
+    expect(outcome.phaseStatus).toBe('proven');
+    expect(outcome.proofResult?.status).toBe('proven');
+    expect(integration.getLastProofResult()?.status).toBe('proven');
     expect(task.phases?.some((phase: TaskPhase) => phase.status === 'complete')).toBe(true);
   });
 
@@ -86,8 +88,9 @@ describe('ProofIntegration', () => {
       { proofSystem: proofSystem as any }
     );
 
-    const status = await integration.processTaskAfterExecution(task, 'completed');
-    expect(status).toBe('discovering');
+    const outcome = await integration.processTaskAfterExecution(task, 'completed');
+    expect(outcome.phaseStatus).toBe('discovering');
+    expect(outcome.proofResult?.discoveries.length).toBe(1);
     const improvementPhase = task.phases?.find((phase) => phase.type === 'improvement');
     expect(improvementPhase).toBeDefined();
   });
@@ -102,7 +105,9 @@ describe('ProofIntegration', () => {
       { proofSystem: proofSystem as any }
     );
 
-    const status = await integration.processTaskAfterExecution(task, 'failed');
-    expect(status).toBe('blocked');
+    const outcome = await integration.processTaskAfterExecution(task, 'failed');
+    expect(outcome.phaseStatus).toBe('blocked');
+    expect(outcome.proofResult).toBeNull();
+    expect(integration.getLastProofResult()).toBeNull();
   });
 });

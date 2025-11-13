@@ -35,21 +35,31 @@ drqc_citations:
 | --- | --- | --- |
 | 0 | Seed spec/plan docs + archive Stage 0–3 patches as tar+sha under `state/evidence/AFP-W0-STEP5-MUTATION/` | spec.md, plan.md, patch tarball, manual parity notes |
 | 1a | Add vitest verify config + deterministic smoke test touching utils/config + verify/process helpers | tools/wvo_mcp/vitest.verify.config.ts, tools/wvo_mcp/tests/verify_smoke.test.ts |
-| 1b | Update VERIFY harness (export normalizeCoverageShape, ensure artifacts) | tools/wvo_mcp/src/executor/verify.ts |
+| 1b | Update VERIFY harness (export normalizeCoverageShape, ensure artifacts, append SCAS trailer) + package.json script | tools/wvo_mcp/src/executor/verify.ts, tools/wvo_mcp/package.json |
 | 1c | Implement coverage intersection gate | tools/wvo_mcp/src/critics/process.ts, critic_results.json |
 | 1d | Wire TemplateDetector relaxed mode via drqc.json | tools/wvo_mcp/src/critics/template_detector.ts, state/config/drqc.json |
-| 2a | Add property-based test harness and seeds | tools/wvo_mcp/vitest.pbt.config.ts, tools/wvo_mcp/tests/reranker_property.test.ts, state/logs/.../pbt/shrinks.json |
-| 2b | Mutation stub script + verify/mutation.json | tools/wvo_mcp/scripts/mutation_stub.mjs, state/logs/.../verify/mutation.json |
-| 2c | SGAT adversary test + repro log | tools/wvo_mcp/tests/reranker_sgat.test.ts, state/logs/.../sgat/*.json |
+| 1e | Phase 0 CI alignment + Node 20 jobs + verify workflow artifacts | .github/workflows/verify.yml, state/logs/CI-VERIFY/** |
+| 2a | Phase 1 SCAS fail-closed budgets + attest outputs | tools/wvo_mcp/scripts/check_scas.mjs, state/logs/<TASK>/attest/scas.json |
+| 2b | Phase 2 End-Steps canonicalization (≥1KB log, SCAS line, critics paths) | tools/wvo_mcp/scripts/check_end_steps.mjs |
+| 2c | Phase 3 TemplateDetector body-only + canonical critics path + relaxed_when config | tools/wvo_mcp/src/critics/template_detector.ts, tools/wvo_mcp/scripts/run_template_detector.mjs, state/config/drqc.json |
+| 2d | Contract-tests workflow pins Node 20, recomputes critics/SCAS, hash-compares; End-Steps workflow updated similarly | .github/workflows/contract-tests.yml, .github/workflows/end_steps_contract.yml |
+| 2e | Template detector paraphrase guard: document how body-only parsing + critics ledgering prevent template reuse; list manual parity command to inspect `state/logs/<TASK>/critics/template_detector.json` | plan.md (this section), state/logs/<TASK>/critics/template_detector.json |
+| 3a | Add property-based test harness and seeds | tools/wvo_mcp/vitest.pbt.config.ts, tools/wvo_mcp/tests/reranker_property.test.ts, state/logs/.../pbt/shrinks.json |
+| 3b | Mutation stub script + verify/mutation.json | tools/wvo_mcp/scripts/mutation_stub.mjs, state/logs/.../verify/mutation.json |
+| 3c | SGAT adversary test + repro log | tools/wvo_mcp/tests/reranker_sgat.test.ts, state/logs/.../sgat/*.json |
 
 # PLAN-Authored Tests (For VERIFY Phase)
-- `VERIFY smoke`: `npm --prefix tools/wvo_mcp run build` then `WVO_STATE_ROOT=$PWD/state node tools/wvo_mcp/dist/executor/verify.js --task AFP-W0-STEP5-MUTATION` (assert log ≥1 KB, coverage JSON produced)
+- `VERIFY smoke`: `npm --prefix tools/wvo_mcp run build` then `WVO_STATE_ROOT=$PWD/state node tools/wvo_mcp/dist/executor/verify.js --task AFP-W0-STEP5-MUTATION` (assert log ≥1 KB, coverage JSON produced, SCAS trailer appended)
 - `ProcessCritic coverage gate`: `node tools/wvo_mcp/scripts/run_process_critic.mjs --task AFP-W0-STEP5-MUTATION` (expect non-empty intersection once smoke hits verify.ts & process.ts)
+- `SCAS budget gate`: `node tools/wvo_mcp/scripts/check_scas.mjs --task AFP-W0-STEP5-MUTATION` (fail closed when diffs exceed drqc budgets; writes attest/scas.json)
+- `End-Steps gate`: `node tools/wvo_mcp/scripts/check_end_steps.mjs --task AFP-W0-STEP5-MUTATION` (reject missing SCAS line or canonical artifacts)
+- `TemplateDetector critics refresh`: `TASK_ID=AFP-W0-STEP5-MUTATION node tools/wvo_mcp/scripts/run_template_detector.mjs`
+- `TemplateDetector spot-check`: `node tools/wvo_mcp/dist/critics/template_detector.js --file state/logs/AFP-W0-STEP5-MUTATION/plan/plan.md --task AFP-W0-STEP5-MUTATION` (verifies body-only parsing keeps unique-token ratio healthy and logs reasons in critics output)
 - `Property harness`: `npm --prefix tools/wvo_mcp run test:pbt` (deterministic seeds recorded)
 - `Mutation stub`: `WVO_STATE_ROOT=$PWD/state node tools/wvo_mcp/scripts/mutation_stub.mjs --task AFP-W0-STEP5-MUTATION` (creates mutation.json with stub metadata)
 - `SGAT repro`: `npm --prefix tools/wvo_mcp run test:pbt --rerun-only tests/reranker_sgat.test.ts` (guards reranker path weighting)
 - `DocSync + LKL`: `node tools/autopilot/scripts/lkl_gen.mjs --dirs tools/wvo_mcp/src/utils,tools/wvo_mcp/src/critics` (refresh LOCAL_KB.yaml, proves Autopilot doc pipeline before committing helper scripts)
-- `Wave 0 live smoke`: `npm --prefix tools/wvo_mcp run wave0 && ps aux | grep wave0` (prove Autopilot loop actually runs before helper scripts land; capture TaskFlow output in state/logs/AFP-W0-STEP5-MUTATION/wave0/)
+- `Wave 0 live loop`: `cd tools/wvo_mcp && npm run wave0 &`, confirm process via `ps aux | grep wave0`, monitor `tail -f state/analytics/wave0_startup.log`, and record hand-off results in roadmap/ledger before stopping the background job.
 
 # Milestones & Timeline
 1. **Day 0:** Seed spec/plan + patch archive; update manual_parity/audit_summary.

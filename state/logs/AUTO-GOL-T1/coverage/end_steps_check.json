@@ -1,0 +1,40 @@
+{
+  "task": "AUTO-GOL-T1",
+  "ok": false,
+  "errors": [
+    "missing:/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/state/autopilot/wave0/logs/AUTO-GOL-T1/verify/verify.log",
+    "missing:/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/state/autopilot/wave0/logs/AUTO-GOL-T1/coverage/coverage.json",
+    "missing:/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/state/autopilot/wave0/logs/AUTO-GOL-T1/critics/template_detector.json",
+    "missing:/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/state/autopilot/wave0/logs/AUTO-GOL-T1/critics/guardrails.json",
+    "missing:/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/state/autopilot/wave0/logs/AUTO-GOL-T1/attest/scas.json"
+  ],
+  "checked": [
+    {
+      "path": "/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/state/autopilot/wave0/logs/AUTO-GOL-T1/verify/verify.log",
+      "min": 1024,
+      "json": false
+    },
+    {
+      "path": "/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/state/autopilot/wave0/logs/AUTO-GOL-T1/coverage/coverage.json",
+      "min": null,
+      "json": false
+    },
+    {
+      "path": "/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/state/autopilot/wave0/logs/AUTO-GOL-T1/critics/template_detector.json",
+      "min": null,
+      "json": false
+    },
+    {
+      "path": "/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/state/autopilot/wave0/logs/AUTO-GOL-T1/critics/guardrails.json",
+      "min": null,
+      "json": false
+    },
+    {
+      "path": "/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/state/autopilot/wave0/logs/AUTO-GOL-T1/attest/scas.json",
+      "min": null,
+      "json": true
+    }
+  ],
+  "scas_trailer_present": null,
+  "generated_at": "2025-11-10T20:47:39.999Z"
+}

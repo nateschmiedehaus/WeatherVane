@@ -1,0 +1,18 @@
+{
+  "task": "AFP-W0-STEP5-MUTATION",
+  "generated_at": "2025-11-10T03:19:45Z",
+  "incidents": [
+    {
+      "id": "INC-verify-coverage",
+      "summary": "ProcessCritic flagged missing coverage for gol modules",
+      "test_added": "tests/gol/test_gol_basic.ts",
+      "status": "added"
+    },
+    {
+      "id": "INC-template-detector",
+      "summary": "Template detector flagged plan boilerplate",
+      "test_added": "tests/wave0/test_template_detector.ts",
+      "status": "planned"
+    }
+  ]
+}

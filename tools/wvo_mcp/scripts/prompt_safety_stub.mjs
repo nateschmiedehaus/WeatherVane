@@ -14,8 +14,8 @@ fs.mkdirSync(safetyDir, { recursive: true });
 const report = {
   task: taskId,
   generated_at: new Date().toISOString(),
-  promptfoo: { high_severity: 0, notes: "Stub prompt eval" },
-  garak: { high_severity: 0, notes: "Stub safety probe" },
+  promptfoo: { high_severity: 0, notes: "Stub run" },
+  garak: { high_severity: 0, notes: "Stub run" },
   status: "record-only",
 };
 const target = path.join(safetyDir, "prompt_eval.json");

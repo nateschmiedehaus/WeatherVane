@@ -10,7 +10,7 @@ import {
 } from "./worker/worker_client.js";
 import { logError, logInfo, logWarning } from "./telemetry/logger.js";
 import { initTracing } from "./telemetry/tracing.js";
-import { resolveWorkspaceRoot } from "./utils/config.js";
+import { resolveWorkspaceRoot, resolveStateRoot } from "./utils/config.js";
 import { SERVER_NAME, SERVER_VERSION } from "./utils/version.js";
 import { toJsonSchema } from "./utils/schema.js";
 import { planNextInputSchema } from "./utils/schemas.js";
@@ -38,7 +38,9 @@ import {
   settingsUpdateInput,
   upgradeApplyPatchInput,
   routeSwitchInput,
+  llmChatInput,
 } from "./tools/input_schemas.js";
+import { llmChat } from "./tools/llm_chat.js";
 
 type JsonSchema = ReturnType<typeof toJsonSchema>;
 type McpToolResponse = CallToolResult;
@@ -77,9 +79,10 @@ function unwrapWorkerResult(tool: string, result: unknown): McpToolResponse {
 
 async function main() {
   const workspaceRoot = resolveWorkspaceRoot();
+  const stateRoot = resolveStateRoot(workspaceRoot);
 
   // PID lock file to prevent duplicate servers
-  const pidLockPath = `${workspaceRoot}/state/.mcp.pid`;
+  const pidLockPath = `${stateRoot}/.mcp.pid`;
   const currentPid = process.pid;
 
   // Check for existing lock
@@ -164,6 +167,7 @@ async function main() {
   const settingsUpdateSchema = toJsonSchema(settingsUpdateInput, "SettingsUpdateInput");
   const upgradeApplyPatchSchema = toJsonSchema(upgradeApplyPatchInput, "UpgradeApplyPatchInput");
   const routeSwitchSchema = toJsonSchema(routeSwitchInput, "RouteSwitchInput");
+  const llmChatSchema = toJsonSchema(llmChatInput, "LlmChatInput");
 
   const proxyTools: ProxyToolDefinition[] = [
     {
@@ -458,6 +462,24 @@ async function main() {
             message: "Rollback routing is not yet implemented; use promote_canary action only.",
           },
         });
+      },
+    );
+
+    server.registerTool(
+      "llm_chat",
+      {
+        description: "Call Anthropic Claude via Claude Code subscription credentials.",
+        inputSchema: llmChatSchema,
+      },
+      async (input) => {
+        const parsed = llmChatInput.parse(input ?? {});
+        const result = await llmChat({
+          messages: parsed.messages,
+          model: parsed.model,
+          maxTokens: parsed.maxTokens,
+          temperature: parsed.temperature,
+        });
+        return jsonResponse(result);
       },
     );
 

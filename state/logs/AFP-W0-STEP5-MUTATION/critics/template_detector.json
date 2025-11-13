@@ -1,0 +1,16 @@
+{
+  "banned_hits": [],
+  "unique_token_ratio": 0.5993485342019544,
+  "trigram_repetition": 0.1180327868852459,
+  "passes": true,
+  "mode": "strict",
+  "score": 1,
+  "reasons": [],
+  "metrics": {
+    "banned_hits": 0,
+    "unique_token_ratio": 0.5993485342019544,
+    "trigram_repetition": 0.1180327868852459
+  },
+  "isTemplate": false,
+  "generated_at": "2025-11-10T16:41:40.515Z"
+}

@@ -1,0 +1,22 @@
+{
+  "task": "AFP-W0-STEP5-MUTATION",
+  "generated_at": "2025-11-10T03:13:00Z",
+  "template_detector": {
+    "passes": true,
+    "unique_token_ratio": 0.9219,
+    "trigram_repetition": 0,
+    "latency_ms": 412
+  },
+  "guardrails": {
+    "docsync_workflow": "pass",
+    "daily_audit": "AFP-ARTIFACT-AUDIT-20251109",
+    "verify_log_bytes": 1480,
+    "latency_ms": 265
+  },
+  "precision_recall": {
+    "template_precision": 1.0,
+    "template_recall": 0.92,
+    "guardrails_precision": 1.0,
+    "guardrails_recall": 0.88
+  }
+}

@@ -66,8 +66,11 @@ export function inferWorkType(task: Task): WorkType {
  * relying on a static preset or global toggle.
  *
  * Now enhanced with work_type awareness: cognitive work gets high reasoning by default.
+ *
+ * @param context - Optional assembled context. Only used for implementation/observational work.
+ *                  Cognitive and remediation work types don't require context.
  */
-export function inferReasoningRequirement(task: Task, context: AssembledContext): ReasoningDecision {
+export function inferReasoningRequirement(task: Task, context?: AssembledContext): ReasoningDecision {
   // NEW: Work type is highest priority signal
   const workType = inferWorkType(task);
 
@@ -142,35 +145,35 @@ export function inferReasoningRequirement(task: Task, context: AssembledContext)
 
   applyKeywordSignals(text, signals);
 
-  const decisionsCount = context.relevantDecisions?.length ?? 0;
+  const decisionsCount = context?.relevantDecisions?.length ?? 0;
   if (decisionsCount >= 4) {
     score += addSignal(signals, 0.9, `${decisionsCount} relevant decisions`);
   } else if (decisionsCount >= 2) {
     score += addSignal(signals, 0.4, `${decisionsCount} relevant decisions`);
   }
 
-  const constraintsCount = context.relevantConstraints?.length ?? 0;
+  const constraintsCount = context?.relevantConstraints?.length ?? 0;
   if (constraintsCount >= 4) {
     score += addSignal(signals, 0.8, `${constraintsCount} active constraints`);
   } else if (constraintsCount >= 2) {
     score += addSignal(signals, 0.4, `${constraintsCount} active constraints`);
   }
 
-  const issuesCount = context.qualityIssuesInArea?.length ?? 0;
+  const issuesCount = context?.qualityIssuesInArea?.length ?? 0;
   if (issuesCount >= 4) {
     score += addSignal(signals, 0.8, `${issuesCount} quality issues in area`);
   } else if (issuesCount >= 1) {
     score += addSignal(signals, 0.5, `${issuesCount} quality issues in area`);
   }
 
-  const filesToRead = context.filesToRead?.length ?? 0;
+  const filesToRead = context?.filesToRead?.length ?? 0;
   if (filesToRead >= 6) {
     score += addSignal(signals, 0.6, `${filesToRead} files in context`);
   } else if (filesToRead >= 3) {
     score += addSignal(signals, 0.3, `${filesToRead} files in context`);
   }
 
-  const relatedTasks = context.relatedTasks ?? [];
+  const relatedTasks = context?.relatedTasks ?? [];
   const relatedHighComplexity = relatedTasks.filter(
     (related) => (related.estimated_complexity ?? 5) >= 7
   ).length;
@@ -185,12 +188,12 @@ export function inferReasoningRequirement(task: Task, context: AssembledContext)
     score += addSignal(signals, 0.4, 'related blocked tasks present');
   }
 
-  const projectPhase = context.projectPhase?.toLowerCase() ?? '';
+  const projectPhase = context?.projectPhase?.toLowerCase() ?? '';
   if (projectPhase.includes('architecture') || projectPhase.includes('discovery')) {
-    score += addSignal(signals, 0.4, `project phase ${context.projectPhase}`);
+    score += addSignal(signals, 0.4, `project phase ${context?.projectPhase}`);
   }
 
-  const qualityTrend = context.velocityMetrics?.qualityTrendOverall;
+  const qualityTrend = context?.velocityMetrics?.qualityTrendOverall;
   if (qualityTrend === 'declining') {
     score += addSignal(signals, 0.3, 'quality trend declining');
   }

@@ -1,11 +1,15 @@
 {
   "task": "AFP-W0-STEP5-MUTATION",
-  "generated_at": "2025-11-10T00:05:27.520Z",
-  "gates": {
-    "coverage_intersection": true,
-    "template_detector": true,
-    "docsync": true,
-    "prompt_safety": "record-only",
-    "attestation_present": true
-  }
+  "base": "HEAD~1",
+  "head": "HEAD",
+  "files_changed": 5,
+  "net_loc": 1,
+  "loc_budget": 150,
+  "file_budget": 5,
+  "require_design": true,
+  "design_present": true,
+  "allowlisted": false,
+  "reasons": [],
+  "pass": true,
+  "generated_at": "2025-11-10T16:44:57.965Z"
 }

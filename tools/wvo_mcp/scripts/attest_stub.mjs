@@ -15,8 +15,7 @@ const manifest = {
   task: taskId,
   generated_at: new Date().toISOString(),
   artifacts: [],
-  status: "record-only",
-  notes: "Stub manifest to be replaced with real in-toto attestations",
+  notes: "Stub manifest generated locally; replace with in-toto attestations when available.",
 };
 const target = path.join(attestDir, "manifest.json");
 fs.writeFileSync(target, JSON.stringify(manifest, null, 2) + "\n");

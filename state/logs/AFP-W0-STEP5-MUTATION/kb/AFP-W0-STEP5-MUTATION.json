@@ -1,0 +1,24 @@
+{
+  "task": "AFP-W0-STEP5-MUTATION",
+  "generated_at": "2025-11-10T14:34:40Z",
+  "queries": [
+    {
+      "text": "verify executor coverage artifacts",
+      "results": [
+        {
+          "path": "tools/wvo_mcp/src/executor/verify.ts",
+          "score": 0.91,
+          "summary": "Streams vitest output, normalizes coverage, appends SCAS trailer"
+        }
+      ]
+    }
+  ],
+  "chosen": [
+    {
+      "path": "tools/wvo_mcp/src/executor/verify.ts",
+      "score": 0.91,
+      "reason": "Describes canonical verify log + coverage pipeline"
+    }
+  ],
+  "kb_sha256": "$(shasum -a 256 tools/wvo_mcp/src/executor/verify.ts | awk '{print $1}')"
+}

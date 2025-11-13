@@ -15,7 +15,7 @@ const makeClock = () => {
   return () => new Date(Date.UTC(2025, 0, 1, 0, 0, tick++));
 };
 
-const WORKSPACE_ROOT = path.resolve(process.cwd());
+const WORKSPACE_ROOT = resolveWorkspaceRoot();
 const EVIDENCE_ROOT = path.join(WORKSPACE_ROOT, 'state', 'evidence');
 const ANALYTICS_ROOT = path.join(WORKSPACE_ROOT, 'state', 'analytics');
 
@@ -46,6 +46,22 @@ const evidencePathForPhase = (taskId: string, phase: WorkProcessPhase): string =
   const fileName = PHASE_ARTIFACTS[phase] ?? `${phase}.md`;
   return path.join('state', 'evidence', taskId, fileName);
 };
+
+function resolveWorkspaceRoot(startDir = path.resolve(process.cwd())): string {
+  let current = startDir;
+  for (let depth = 0; depth < 10; depth += 1) {
+    const isRepo = existsSync(path.join(current, '.git')) && existsSync(path.join(current, 'state'));
+    if (isRepo) {
+      return current;
+    }
+    const parent = path.dirname(current);
+    if (parent === current) {
+      break;
+    }
+    current = parent;
+  }
+  throw new Error(`Unable to locate workspace root from ${startDir}`);
+}
 
 async function ensurePhaseArtifact(taskId: string, phase: WorkProcessPhase, filename?: string): Promise<void> {
   const relativePath = filename ?? evidencePathForPhase(taskId, phase);

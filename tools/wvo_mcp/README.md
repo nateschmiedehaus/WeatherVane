@@ -28,6 +28,18 @@ Both variants share the same core functionality and differ only in CLI command a
 - npm ≥ 9
 - Run all commands from the WeatherVane repo root unless stated otherwise.
 
+## Authentication
+
+**IMPORTANT:** This MCP server uses **monthly subscriptions for Claude & Codex**, NOT API keys.
+
+- ❌ NO `ANTHROPIC_API_KEY` or `OPENAI_API_KEY`
+- ✅ Monthly Claude subscription (Desktop app)
+- ✅ Monthly Codex subscription (CLI)
+
+**Repo-constrained agents:** Use `.accounts/claude/` and `.accounts/codex/` (symlinks to home credentials)
+
+**Full policy:** See [`../../docs/AUTH_POLICY.md`](../../docs/AUTH_POLICY.md)
+
 ## Installation
 ```bash
 cd tools/wvo_mcp

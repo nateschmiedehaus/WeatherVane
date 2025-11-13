@@ -80,7 +80,7 @@ export class MLTaskAggregator {
         .map(([critic, result]) =>
           result.raw ? `Critic failure (${critic}): ${result.raw}` : `Critic failure (${critic})`
         ),
-      ...(content.match(/critical issue|blocker|regression|failure/i) ? ['Reported critical issues'] : []),
+      ...(hasCriticalLanguage(content) ? ['Reported critical issues'] : []),
     ]);
 
     return {
@@ -198,8 +198,11 @@ export class MLTaskAggregator {
 
 const extractTitle = (content: string) => content.match(/^#\s+(.+)$/m)?.[1]?.trim() ?? null;
 
-const extractSection = (content: string, heading: string) =>
-  content.match(new RegExp(`##\s+${heading}[\s\S]*?(?=\n##\s+|$)`, 'i'))?.[0] ?? '';
+const extractSection = (content: string, heading: string) => {
+  const escapedHeading = heading.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const pattern = new RegExp(`##\\s+${escapedHeading}[\\s\\S]*?(?=\\n##\\s+|$)`, 'i');
+  return content.match(pattern)?.[0] ?? '';
+};
 
 const extractList = (content: string, heading: string) =>
   extractSection(content, heading)
@@ -244,6 +247,17 @@ const extractCoverageDimensions = (content: string) => {
   if (bullets > 0) return bullets;
   const mentions = (block.match(/covered/gi) ?? []).length;
   return mentions > 0 ? mentions : null;
+};
+
+const sanitizeCriticalMentions = (content: string) =>
+  content
+    .toLowerCase()
+    .replace(/\bno\s+(critical issues?|blockers?|regressions?|failures?)\b/g, '')
+    .replace(/\bwithout\s+(critical issues?|blockers?|regressions?|failures?)\b/g, '');
+
+const hasCriticalLanguage = (content: string) => {
+  const sanitized = sanitizeCriticalMentions(content);
+  return /(critical issue|blocker|regression|failure)/i.test(sanitized);
 };
 
 const criticAliases: Record<string, string> = {

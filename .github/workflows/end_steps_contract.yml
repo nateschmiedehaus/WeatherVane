@@ -1,0 +1,28 @@
+name: End Steps Contract
+
+on:
+  pull_request:
+
+jobs:
+  end-steps:
+    runs-on: ubuntu-latest
+    env:
+      TASK_ID: AFP-W0-STEP5-MUTATION
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Load deterministic env
+        run: |
+          source scripts/env.d/ci.sh
+          echo "TZ=$TZ" >> $GITHUB_ENV
+          echo "SOURCE_DATE_EPOCH=$SOURCE_DATE_EPOCH" >> $GITHUB_ENV
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: End-steps check
+        run: node tools/wvo_mcp/scripts/check_end_steps.mjs
+      - name: Provenance attestation
+        run: node tools/wvo_mcp/scripts/check_provenance.mjs --task AFP-W0-STEP5-MUTATION

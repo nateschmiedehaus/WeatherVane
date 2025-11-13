@@ -1,0 +1,19 @@
+{
+  "task": "AFP-W0-STEP5-MUTATION",
+  "generated_at": "2025-11-10T03:19:15Z",
+  "otel_enabled": false,
+  "samples": [
+    {
+      "event": "verify",
+      "span_id": "wave0-verify",
+      "status": "pass",
+      "duration_ms": 520
+    },
+    {
+      "event": "check_end_steps",
+      "span_id": "wave0-end-steps",
+      "status": "pass",
+      "duration_ms": 180
+    }
+  ]
+}

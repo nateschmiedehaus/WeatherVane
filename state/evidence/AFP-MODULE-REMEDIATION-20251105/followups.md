@@ -20,6 +20,7 @@
 | AFP-MODULE-REMEDIATION-20251105-P | Add spec/plan reviewers and CLI flows. | Enables gate to require spec/plan approvals. | ✅ done |
 | AFP-MODULE-REMEDIATION-20251105-P3 | Run spec/plan reviewers on live task evidence. | Proves end-to-end workflow and logs approvals. | ✅ done |
 | AFP-MODULE-REMEDIATION-20251105-P2 | Integrate spec/plan reviewers into routines & docs. | Checklist/docs/test suite updates. | ✅ done |
+| AFP-MODULE-REMEDIATION-20251105-V | Clear Wave 0-blocking tests and prove autopilot loop. | Repairs guardrail/work-process/domain reviewer/ML meta suites and reruns Wave 0 to completion. | ✅ done |
 | AFP-MODULE-REMEDIATION-20251105-Q | Address device profile memory regression test. | Fix memory threshold or implementation leak. | 🆕 pending |
 | AFP-MODULE-REMEDIATION-20251105-R | Refresh domain expert reviewer templates/tests. | Align prompts & expectations to current template format. | 🆕 pending |
 | AFP-MODULE-REMEDIATION-20251105-I | Catalogue TypeScript baseline errors and define remediation strategy. | Enables build stability planning. | 🚧 in_progress |
