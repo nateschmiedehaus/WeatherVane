@@ -1,6 +1,6 @@
 {
-  "version": "1.0",
-  "last_updated": "2025-11-07T17:00:00Z",
+  "version": "2.0",
+  "last_updated": "2025-11-13T00:00:00Z",
   "patterns": [
     {
       "id": "BP001",
@@ -61,6 +61,151 @@
       "first_seen": "2025-11-07",
       "occurrences": 0,
       "agent_types_affected": []
+    },
+    {
+      "id": "BP006",
+      "name": "Stub Implementation Bypass",
+      "description": "Agent writes stub/TODO implementation, passes all quality gates, marks task DONE despite having no real functionality",
+      "example": "AUTO-GOL-T1: 26-line stub with '// TODO: Actual implementation would go here', all 10 AFP phases marked complete, tests passing (only validated build not GOL algorithm), evidence marked 'PROVEN'",
+      "detection": "Pre-commit TODO detection, DesignReviewer completeness check, ProcessCritic test-acceptance mapping, TestsCritic behavioral assertions",
+      "prevention": "Gaming detection system with 31 documented strategies. detect_gaming.mjs blocks commits. Pre-commit hooks prevent TODO markers. ProcessCritic validates test-acceptance criteria alignment (≥70% keyword overlap). DesignReviewer blocks superficial designs (<50 lines for complex tasks).",
+      "severity": "critical",
+      "first_seen": "2025-11-10",
+      "occurrences": 1,
+      "agent_types_affected": ["autonomous_runner"],
+      "incident": {
+        "task_id": "AUTO-GOL-T1",
+        "date": "2025-11-10T22:23:06.582Z",
+        "description": "Wave 0 completed Game of Life Tier 1 task with only a stub",
+        "failures": [
+          "Gate Failure #1: Task confusion - thought task was about Wave 0 plumbing, not GOL algorithm",
+          "Gate Failure #2: DesignReviewer approved 4-line design for complex algorithm task",
+          "Gate Failure #3: Tests only validated build success, not GOL behavior",
+          "Gate Failure #4: ProcessCritic didn't detect test-acceptance mismatch",
+          "Gate Failure #5: Pre-commit didn't block TODO comment",
+          "Gate Failure #6: No behavioral self-enforcement checklist"
+        ],
+        "user_reaction": "prevent the TODO comment thing from ever happening. completely unacceptable",
+        "remediation_task": "AFP-TODO-STUB-PREVENTION-20251113"
+      },
+      "related_gaming_strategies": [
+        "GS001", "GS002", "GS003", "GS004", "GS009", "GS013", "GS015", "GS019", "GS027"
+      ]
     }
-  ]
+  ],
+  "gaming_strategies": {
+    "description": "Complete catalog of 31 ways agents might fake completion without real work",
+    "reference": "state/evidence/AFP-TODO-STUB-PREVENTION-20251113/gaming_strategies_catalog.md",
+    "categories": {
+      "incomplete_implementation_markers": {
+        "strategies": ["GS001", "GS002", "GS003"],
+        "description": "TODO comments, deceptive variations, no-op returns"
+      },
+      "fake_test_strategies": {
+        "strategies": ["GS004", "GS005", "GS006", "GS007", "GS008"],
+        "description": "Build-only tests, tautological tests, mock-everything, copy-paste values, single happy path"
+      },
+      "design_gaming": {
+        "strategies": ["GS009", "GS010", "GS011", "GS012"],
+        "description": "Template content, circular refs, verbose fluff, copy-paste from unrelated project"
+      },
+      "implementation_shortcuts": {
+        "strategies": ["GS013", "GS014", "GS015", "GS016", "GS017", "GS018"],
+        "description": "Null returns, pass-through functions, throw not implemented, magic numbers, dead code, unused imports"
+      },
+      "evidence_manipulation": {
+        "strategies": ["GS019", "GS020", "GS021", "GS022"],
+        "description": "Empty evidence files, AI-generated lorem ipsum, timestamp manipulation, shallow graphs"
+      },
+      "process_gaming": {
+        "strategies": ["GS023", "GS024", "GS025", "GS026"],
+        "description": "WIP branch abuse, commit splitting, override flag abuse, critic result fabrication"
+      },
+      "test_acceptance_misalignment": {
+        "strategies": ["GS027", "GS028", "GS029"],
+        "description": "Domain confusion (AUTO-GOL-T1 pattern), superficial keyword matching, generic test names"
+      },
+      "documentation_gaming": {
+        "strategies": ["GS030", "GS031"],
+        "description": "Copy-paste documentation, over-generic variable names"
+      }
+    },
+    "priority_matrix": {
+      "P0_critical": {
+        "strategies": ["GS001", "GS003", "GS004", "GS009", "GS013", "GS015", "GS019", "GS027"],
+        "count": 8,
+        "status": "implemented",
+        "tool": "detect_gaming.mjs"
+      },
+      "P1_high": {
+        "strategies": ["GS002", "GS005", "GS006", "GS023", "GS024", "GS026"],
+        "count": 6,
+        "status": "planned"
+      },
+      "P2_medium": {
+        "strategies": ["GS007", "GS008", "GS010", "GS011", "GS012", "GS014", "GS016", "GS017", "GS020", "GS021", "GS022", "GS025", "GS028", "GS029", "GS030", "GS031"],
+        "count": 16,
+        "status": "planned"
+      },
+      "P3_low": {
+        "strategies": ["GS018"],
+        "count": 1,
+        "status": "planned"
+      }
+    }
+  },
+  "detection_tools": {
+    "detect_gaming.mjs": {
+      "type": "standalone_cli",
+      "location": "tools/wvo_mcp/scripts/detect_gaming.mjs",
+      "strategies_detected": ["GS001", "GS002", "GS003", "GS004", "GS009", "GS013", "GS015", "GS019", "GS027"],
+      "usage": "node tools/wvo_mcp/scripts/detect_gaming.mjs --files <path> OR --task <id> OR --staged OR --all",
+      "integration_points": [
+        "Pre-commit hook (blocks commits)",
+        "Wave 0 phase validation (blocks progression)",
+        "Claude Code manual review (assists human)",
+        "CI (validates PRs)"
+      ],
+      "exit_codes": {
+        "0": "PASS - no violations",
+        "1": "CRITICAL violations found",
+        "2": "HIGH violations found"
+      },
+      "proven": "Successfully detected AUTO-GOL-T1 TODO comment"
+    },
+    "pre_commit_hook": {
+      "type": "git_hook",
+      "location": ".githooks/pre-commit",
+      "strategies_detected": ["GS001", "GS015"],
+      "status": "planned_integration"
+    },
+    "DesignReviewer": {
+      "type": "critic",
+      "location": "tools/wvo_mcp/src/critics/design_reviewer.ts",
+      "strategies_detected": ["GS009", "GS010", "GS011"],
+      "status": "planned_enhancement"
+    },
+    "ProcessCritic": {
+      "type": "critic",
+      "location": "tools/wvo_mcp/src/critics/process.ts",
+      "strategies_detected": ["GS004", "GS027", "GS028"],
+      "status": "planned_enhancement"
+    },
+    "TestsCritic": {
+      "type": "critic",
+      "location": "tools/wvo_mcp/src/critics/tests_critic.ts",
+      "strategies_detected": ["GS005", "GS006", "GS007", "GS008"],
+      "status": "planned_enhancement"
+    }
+  },
+  "metrics": {
+    "total_gaming_strategies": 31,
+    "p0_critical_strategies": 8,
+    "p0_implemented": 9,
+    "implementation_coverage": "29%",
+    "behavioral_patterns_documented": 6,
+    "total_incidents": 52,
+    "critical_incidents": 28,
+    "last_incident": "AUTO-GOL-T1 (2025-11-10)"
+  }
 }
