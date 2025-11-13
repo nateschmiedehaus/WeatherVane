@@ -1,7 +1,0 @@
-_polars_runtime_32/.gitkeep,sha256=47DEQpj8HBSa-_TImW-5JCeuQeRkm5NMpJWZG3hSuFU,0
-_polars_runtime_32/_polars_runtime_32.abi3.so,sha256=yDo3PMNi6YxM-FR_36C8J-AKFPc__7IGZ67UnmywlUE,110158304
-polars_runtime_32-1.34.0.dist-info/INSTALLER,sha256=zuuue4knoyJ-UwPPXg8fezS7VCrXJQrAP7zeNuwvFQg,4
-polars_runtime_32-1.34.0.dist-info/METADATA,sha256=c1W50uSPLL0VyqYkkOCAw185PP2qbl1deyUf-U7SYJk,1516
-polars_runtime_32-1.34.0.dist-info/RECORD,,
-polars_runtime_32-1.34.0.dist-info/WHEEL,sha256=8o4OwL9DEHvYoHffy8Jg4kpRikqV8pJpkbxz_mtiXQk,102
-polars_runtime_32-1.34.0.dist-info/licenses/LICENSE,sha256=TSDKkMRxpvPXNgVdp1bbHOJAOMKGmk31x4vlZo2voVs,1143
