@@ -64,7 +64,8 @@ User → Desktop App (Claude/Codex with subscription)
 
 **Claude:**
 - **Desktop app session:** `~/Library/Application Support/Claude/Cookies` (SQLite database with claude.ai session cookies) ← **THE authentication**
-- **CLI session:** `~/.accounts/claude/claude_primary` (standardized location)
+- **CLI session (home):** `~/.accounts/claude/claude_primary` (standardized location)
+- **CLI session (repo):** `/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/.accounts/claude/claude_primary` (symlink to home)
 - **Config & settings:** `~/.claude/` directory
   - User config: `~/.claude.json` (contains hashed userID, project settings)
   - Settings: `~/.claude/settings.json`
@@ -75,9 +76,30 @@ User → Desktop App (Claude/Codex with subscription)
 **Codex:**
 - **Auth file:** `~/.codex/auth.json` ← **THE authentication**
 - **Config:** `~/.codex/config.toml`
-- **CLI session:** `~/.accounts/codex/codex_personal` (standardized location)
+- **CLI session (home):** `~/.accounts/codex/codex_personal` (standardized location)
+- **CLI session (repo):** `/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/.accounts/codex/codex_personal` (symlink to home)
 - **Sessions:** `~/.codex/sessions/`
 - **History:** `~/.codex/history.jsonl`
+
+### Repo-Constrained Agent Access
+
+For agents that can only access the WeatherVane repository (not the full home directory), symlinks provide access:
+
+```
+WeatherVane/.accounts/claude → ~/.claude
+WeatherVane/.accounts/codex → ~/.codex
+```
+
+**Usage for repo-constrained agents:**
+- Set `CLAUDE_CONFIG_DIR=/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/.accounts/claude`
+- Set `CODEX_HOME=/Volumes/BigSSD4/nathanielschmiedehaus/Documents/WeatherVane/.accounts/codex`
+- Access via: `$REPO_ROOT/.accounts/claude/claude_primary`
+
+**Verification:**
+```bash
+ls -la .accounts/  # Shows symlinks
+ls .accounts/claude/claude_primary  # Resolves to actual credential
+```
 
 **CRITICAL:** These are **NOT** API keys. They are session tokens/credentials managed by desktop apps or CLI tools. **DO NOT** read, modify, or reference these files in application code unless you're implementing auth diagnostics. Authentication is transparent through MCP/desktop apps.
 

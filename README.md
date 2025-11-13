@@ -19,11 +19,15 @@ WeatherVane turns public weather intelligence, your storefront data, and ad plat
 
 **Exact Credential Locations:**
 - **Claude Desktop session:** `~/Library/Application Support/Claude/Cookies` (SQLite DB)
-- **Claude CLI:** `~/.accounts/claude/claude_primary`
+- **Claude CLI (home):** `~/.accounts/claude/claude_primary`
+- **Claude CLI (repo):** `.accounts/claude/claude_primary` (symlink to home)
 - **Claude config:** `~/.claude/` and `~/.claude.json`
 - **Codex auth:** `~/.codex/auth.json`
-- **Codex CLI:** `~/.accounts/codex/codex_personal`
+- **Codex CLI (home):** `~/.accounts/codex/codex_personal`
+- **Codex CLI (repo):** `.accounts/codex/codex_personal` (symlink to home)
 - **Codex config:** `~/.codex/config.toml`
+
+**For repo-constrained agents:** Use `.accounts/claude/` and `.accounts/codex/` (symlinks resolve to home credentials)
 
 **Full authentication policy:** See [`docs/AUTH_POLICY.md`](docs/AUTH_POLICY.md)
 

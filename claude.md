@@ -22,11 +22,15 @@
 
 **Exact Credential Locations:**
 - **Claude Desktop:** `~/Library/Application Support/Claude/Cookies` (SQLite DB with session)
-- **Claude CLI:** `~/.accounts/claude/claude_primary`
+- **Claude CLI (home):** `~/.accounts/claude/claude_primary`
+- **Claude CLI (repo):** `.accounts/claude/claude_primary` (symlink → `~/.claude`)
 - **Claude config:** `~/.claude/` and `~/.claude.json`
 - **Codex auth:** `~/.codex/auth.json` ← authentication file
-- **Codex CLI:** `~/.accounts/codex/codex_personal`
+- **Codex CLI (home):** `~/.accounts/codex/codex_personal`
+- **Codex CLI (repo):** `.accounts/codex/codex_personal` (symlink → `~/.codex`)
 - **Codex config:** `~/.codex/config.toml`
+
+**Repo-constrained agents:** Use `.accounts/claude/` and `.accounts/codex/` paths (symlinks to home credentials)
 
 **If you see timeout/MCP errors:**
 - **NOT** an API key issue

@@ -128,7 +128,11 @@ If tests fail repeatedly:
 1. Check environment: `node run_e2e_tests.mjs` (validates prerequisites)
 2. Clean state: `npm run clean`
 3. Check MCP build: `cd ../wvo_mcp && npm run build`
-4. Verify credentials: Ensure Claude CLI is authenticated
+4. Verify authentication:
+   - **Uses monthly subscriptions**, NOT API keys
+   - Claude: Verify `.accounts/claude/claude_primary` accessible (symlink to `~/.claude`)
+   - Codex: Verify `.accounts/codex/codex_personal` accessible (symlink to `~/.codex`)
+   - See [`../../docs/AUTH_POLICY.md`](../../docs/AUTH_POLICY.md) for details
 
 ## Development
 
