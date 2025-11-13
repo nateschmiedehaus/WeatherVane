@@ -145,3 +145,4 @@ state/.mcp.pid
 state/limits/usage_log.json
 state/analytics/provider_capacity_metrics.json
 state/roadmap.json.tmp
+state/.commit_enforcement_state.json
