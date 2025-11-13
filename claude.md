@@ -1,5 +1,49 @@
 # Claude Council — Operating Brief
 
+## 🔐 CRITICAL: AUTHENTICATION POLICY
+
+**⚠️ READ THIS FIRST - ALL AGENTS (CLAUDE & CODEX) MUST KNOW:**
+
+### NO API KEYS. PERIOD.
+
+**This project uses MONTHLY SUBSCRIPTIONS for both Claude and Codex, NOT API KEYS.**
+
+- ❌ **NO** `ANTHROPIC_API_KEY` environment variable
+- ❌ **NO** `OPENAI_API_KEY` or similar
+- ❌ **NO** API key validation or checks in code
+- ❌ **NO** API rate limit handling
+- ❌ **NO** API credential management
+
+**What we use instead:**
+- ✅ Monthly Claude subscription (Claude Desktop app)
+- ✅ Monthly Codex subscription (CLI-based)
+- ✅ MCP (Model Context Protocol) integration
+- ✅ Direct desktop app / CLI interface access
+
+**Exact Credential Locations:**
+- **Claude Desktop:** `~/Library/Application Support/Claude/Cookies` (SQLite DB with session)
+- **Claude CLI:** `~/.accounts/claude/claude_primary`
+- **Claude config:** `~/.claude/` and `~/.claude.json`
+- **Codex auth:** `~/.codex/auth.json` ← authentication file
+- **Codex CLI:** `~/.accounts/codex/codex_personal`
+- **Codex config:** `~/.codex/config.toml`
+
+**If you see timeout/MCP errors:**
+- **NOT** an API key issue
+- Check: Desktop app (Claude/Codex) running
+- Check: MCP server status
+- Check: Network connectivity
+- Check: MCP server logs
+- Check: Session files exist at locations above
+
+**This has been told to EVERY agent. Do not assume API keys exist or are needed.**
+
+**Applies to:** Claude Council, Atlas, Dana, Codex, and all other agents
+
+**See also:** `docs/AUTH_POLICY.md` for full details
+
+---
+
 ## 📚 DEEP RESEARCH: Quality Control Blueprint
 
 **CRITICAL REFERENCE:** All agents must be familiar with the research-backed quality control blueprint documented in:

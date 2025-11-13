@@ -2,9 +2,32 @@
 
 WeatherVane turns public weather intelligence, your storefront data, and ad platform history into weather-aware budget plans that marketers can approve or auto-push safely.
 
-> **Honesty first:** WeatherVane does not guarantee performance. It analyses your history, today’s forecast, and your guardrails to propose plans with expected ranges and clear assumptions. You choose how changes get applied.
+> **Honesty first:** WeatherVane does not guarantee performance. It analyses your history, today's forecast, and your guardrails to propose plans with expected ranges and clear assumptions. You choose how changes get applied.
 
 > **Causal transparency:** Current models capture historical correlations. See [`docs/CAUSAL_LIMITATIONS.md`](docs/CAUSAL_LIMITATIONS.md) for what we can and cannot claim until causal modelling work (Phase 4) completes.
+
+---
+
+## 🔐 For AI Agents & Developers
+
+**IMPORTANT:** WeatherVane uses **monthly subscriptions** for AI agents (Claude & Codex), **NOT API keys**.
+
+**Authentication:**
+- **Claude:** Monthly subscription via Claude Desktop app
+- **Codex:** Monthly subscription (CLI-based)
+- **NO** API keys (`ANTHROPIC_API_KEY`, `OPENAI_API_KEY`) are used
+
+**Exact Credential Locations:**
+- **Claude Desktop session:** `~/Library/Application Support/Claude/Cookies` (SQLite DB)
+- **Claude CLI:** `~/.accounts/claude/claude_primary`
+- **Claude config:** `~/.claude/` and `~/.claude.json`
+- **Codex auth:** `~/.codex/auth.json`
+- **Codex CLI:** `~/.accounts/codex/codex_personal`
+- **Codex config:** `~/.codex/config.toml`
+
+**Full authentication policy:** See [`docs/AUTH_POLICY.md`](docs/AUTH_POLICY.md)
+
+**Agent operating brief:** See [`CLAUDE.md`](CLAUDE.md) for complete development guidelines
 
 ---
 

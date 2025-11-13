@@ -1,5 +1,17 @@
 # agent_library
 
+## 🔐 Authentication & Credentials
+
+**CRITICAL FOR ALL AGENTS:** WeatherVane uses **monthly subscriptions**, NOT API keys.
+
+- ❌ NO `ANTHROPIC_API_KEY` or `OPENAI_API_KEY`
+- ✅ Claude: Monthly subscription via Claude Desktop (`~/.claude/`, `~/.claude.json`)
+- ✅ Codex: Monthly subscription (`codex_personal`)
+
+**See:** [`docs/AUTH_POLICY.md`](../AUTH_POLICY.md) and [`CLAUDE.md`](../../CLAUDE.md)
+
+---
+
 <!-- BEGIN DOCSYNC -->
 
 ## Local Knowledge (generated 2025-11-05T23:27:13.392Z)
