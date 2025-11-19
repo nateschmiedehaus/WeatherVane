@@ -29,8 +29,11 @@ export class DebiasLayer {
     'verify': 45,
     'review': 30
   };
+  private presentBiasExpectedMinutes: number;
 
-  constructor(private environment: ScentEnvironment) {}
+  constructor(private environment: ScentEnvironment) {
+    this.presentBiasExpectedMinutes = this.computePresentBiasExpectedMinutes();
+  }
 
   /**
    * Patrol task completions for cognitive biases.
@@ -38,10 +41,11 @@ export class DebiasLayer {
    */
   async patrol(completions: TaskCompletion[]): Promise<void> {
     for (const task of completions) {
-      const expected = this.expectedDurations[task.phase] || 30;
+      const baseExpected = this.expectedDurations[task.phase] || 30;
+      const effectiveExpected = Math.min(baseExpected, this.presentBiasExpectedMinutes);
 
       // Present bias check (rushed completion)
-      if (task.duration < expected * 0.5) {
+      if (task.duration < effectiveExpected * 0.5) {
         await this.environment.leaveScent({
           type: ScentType.PRESENT_BIAS_DETECTED,
           strength: 0.85,
@@ -51,9 +55,9 @@ export class DebiasLayer {
           metadata: {
             phase: task.phase,
             actualDuration: task.duration,
-            expectedDuration: expected,
-            ratio: task.duration / expected,
-            warning: `Completed in ${task.duration}min, expected ${expected}min (${((task.duration / expected) * 100).toFixed(0)}%)`
+            expectedDuration: effectiveExpected,
+            ratio: task.duration / effectiveExpected,
+            warning: `Completed in ${task.duration}min, expected ${effectiveExpected}min (${((task.duration / effectiveExpected) * 100).toFixed(0)}%)`
           }
         });
       }
@@ -75,5 +79,19 @@ export class DebiasLayer {
         });
       }
     }
+  }
+
+  private computePresentBiasExpectedMinutes(): number {
+    const minDurationMs = Number(process.env.WVO_MIN_PHASE_DURATION_MS ?? "0");
+    if (!Number.isNaN(minDurationMs) && minDurationMs > 0) {
+      const minutes = Math.max(0.01, (minDurationMs / 60000) * 1.8);
+      return minutes;
+    }
+
+    const override = Number(process.env.WVO_PRESENT_BIAS_EXPECTED_MINUTES ?? "0.02");
+    if (!Number.isNaN(override) && override > 0) {
+      return Math.max(0.01, override);
+    }
+    return 0.02;
   }
 }

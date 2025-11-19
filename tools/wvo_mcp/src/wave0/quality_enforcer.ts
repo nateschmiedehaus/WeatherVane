@@ -92,9 +92,13 @@ export class QualityEnforcer {
     result.critics?.push('StrategyReviewer');
 
     // Check for strategic thinking depth
-    const hasWhyAnalysis = input.code.includes('WHY') || input.code.includes('root cause');
-    const hasAlternatives = input.code.includes('alternative') || input.code.includes('option');
-    const hasMetrics = input.code.includes('metric') || input.code.includes('measure');
+    const normalized = input.code.toLowerCase();
+    const mentionsWhy = normalized.includes('why');
+    const hasWhyAnalysis = (mentionsWhy && !normalized.includes('no why')) || normalized.includes('root cause');
+    const mentionsAlternative = normalized.includes('alternative') || normalized.includes('option');
+    const hasAlternatives = mentionsAlternative && !normalized.includes('no alternative');
+    const mentionsMetrics = normalized.includes('metric') || normalized.includes('measure');
+    const hasMetrics = mentionsMetrics && !normalized.includes('no metric');
 
     if (!hasWhyAnalysis) {
       result.violations?.push('Missing WHY analysis - no root cause investigation');
@@ -114,9 +118,14 @@ export class QualityEnforcer {
     result.critics?.push('ThinkingCritic');
 
     // Check for depth of analysis
-    const hasEdgeCases = input.code.includes('edge case') || input.code.includes('failure');
-    const hasComplexity = input.code.includes('complexity') || input.code.includes('O(');
-    const hasMitigation = input.code.includes('mitigation') || input.code.includes('prevent');
+    const normalized = input.code.toLowerCase();
+    const mentionsEdge = normalized.includes('edge case');
+    const mentionsFailure = normalized.includes('failure');
+    const hasEdgeCases = (mentionsEdge && !normalized.includes('no edge case')) || mentionsFailure;
+    const mentionsComplexity = normalized.includes('complexity') || normalized.includes('o(');
+    const hasComplexity = mentionsComplexity && !normalized.includes('no complexity');
+    const mentionsMitigation = normalized.includes('mitigation') || normalized.includes('prevent');
+    const hasMitigation = mentionsMitigation && !normalized.includes('no mitigation');
 
     if (!hasEdgeCases) {
       result.violations?.push('No edge cases considered');
@@ -136,9 +145,11 @@ export class QualityEnforcer {
     result.critics?.push('DesignReviewer');
 
     // Check AFP/SCAS principles
-    const hasViaNegativa = input.code.includes('delete') || input.code.includes('remove');
-    const hasRefactor = input.code.includes('refactor') && !input.code.includes('patch');
-    const hasSimplicity = !input.code.includes('complex') || input.code.includes('simple');
+    const normalized = input.code.toLowerCase();
+    const hasViaNegativa = normalized.includes('delete') || normalized.includes('remove');
+    const mentionsPatch = normalized.includes('patch') && !normalized.includes('not patch');
+    const hasRefactor = normalized.includes('refactor') && !mentionsPatch;
+    const hasSimplicity = normalized.includes('simple') || !normalized.includes('complex');
 
     if (!hasViaNegativa) {
       result.violations?.push('No Via Negativa consideration - prefer deletion');

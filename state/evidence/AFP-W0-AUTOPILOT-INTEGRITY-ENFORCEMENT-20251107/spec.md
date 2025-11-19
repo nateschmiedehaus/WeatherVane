@@ -41,6 +41,18 @@
 - [ ] Git commit created and pushed
 - [ ] Quality score ≥95/100 documented
 
+**6. TaskExecutor emits DRQC-grade AFP evidence**
+- [ ] `tools/wvo_mcp/src/wave0/task_executor.ts` calls `PhaseExecutionManager` (or deterministic `TaskModuleRunner`) for STRATEGIZE/SPEC/PLAN/THINK/DESIGN/IMPLEMENT/VERIFY/REVIEW.
+- [ ] Phase outputs include YAML frontmatter with drqc_citations + concordance + transcript hashes (TemplateDetector score ≥0.85).
+- [ ] `state/logs/<TASK>/phase/*.jsonl` transcripts exist for every executed phase, proving RealMCPClient.chat() ran.
+- [ ] ProofSystem no longer reports “missing strategize evidence” for first Wave 0 task.
+
+**7. E2E harness success criteria**
+- [ ] `cd tools/e2e_test_harness && npm test` reports ≥95 % success (E2E-GOL chain executes or blocks for a real, cited reason).
+- [ ] VERIFY artefacts capture harness output plus KPI deltas.
+- [ ] MONITOR documents follow-up actions (e.g., W0-E2E-PROOF, W0-E2E-AUTO) until green.
+
+
 ### Should Have (Important)
 
 **6. Pre-commit Hook Enforcement**
@@ -66,6 +78,20 @@
 - [ ] AUTOPILOT_VALIDATION_RULES.md updated with new enforcement
 - [ ] Examples of correct vs incorrect task completion
 - [ ] Troubleshooting guide for MCP issues
+
+## 2025-11-14 Specification Delta — E2E Harness Debut
+
+**Functional Must-Haves**
+1. **Deterministic GOL workflow:** `tools/e2e_test_harness/orchestrator.mjs` assigns a shared `set_id` to E2E-GOL tasks so TaskModuleRunner invokes `GameOfLifeTaskModule`. Module execution must generate actual artefacts (seed grid, outputs, analysis) under `state/logs/E2E-GOL-T*/`.
+2. **Proof criteria embedded:** Every plan created for `E2E-GOL-*` contains a literal `## Proof Criteria` section listing: `npm run build` + `npm test` inside `tools/wvo_mcp`, and the harness loop (`cd tools/e2e_test_harness && npm test`). ProofSystem may no longer default to discovery.
+3. **llm_chat resilience:** Timeouts or signal-based exits trigger at least one retry with exponential backoff before surfacing an error to PhaseExecutionManager. Failures record stderr/stdout in the evidence bundle for forensic proof.
+4. **Integrity suite runnable:** `.deps` contains a compiled NumPy wheel so `bash tools/wvo_mcp/scripts/run_integrity_tests.sh` reaches actual Pytest assertions (ImportError is unacceptable). If tests fail legitimately, capture the report in verify.md.
+
+**Non-Functional**
+- ≤5 non-evidence files touched in this batch.
+- Maintain ≤150 net LOC change (prefer refactors over new code).
+- GOL outputs must be deterministic (same files if rerun with identical inputs) to honor idempotency checks.
+- PLAN must cite the verifications listed above; VERIFY executes exactly those commands (no surprise additions).
 
 **10. Automated Testing**
 - [ ] Integration tests for full task lifecycle

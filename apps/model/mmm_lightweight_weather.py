@@ -336,6 +336,7 @@ class WeatherAwareMMM:
                 f"X_weather={len(X_weather)}, y={len(y)}"
             )
 
+
         # Validate validation data lengths if provided
         val_inputs = [X_spend_val, X_weather_val, y_val]
         if any(x is not None for x in val_inputs):
@@ -354,6 +355,12 @@ class WeatherAwareMMM:
                     f"X_weather_val={len(X_weather_val)}, "
                     f"y_val={len(y_val)}"
                 )
+        missing_weather = [wf for wf in self.weather_features if wf not in X_weather.columns]
+        if missing_weather:
+            raise ValueError(
+                f"Missing required columns for weather features: {missing_weather}. "
+                "Ensure weather dataframe includes all configured features.",
+            )
         """Fit weather-aware MMM model using Bayesian parameter estimation.
 
         Args:
@@ -662,8 +669,15 @@ class WeatherAwareMMM:
 
         channels = X_spend.columns.tolist()
         n_samples = len(X_spend)
-        fold_size = n_samples // n_folds
-        fold_size = max(1, fold_size)  # At least 1 sample per fold
+        if n_folds >= n_samples:
+            raise ValueError(
+                f"Cannot perform {n_folds}-fold CV with only {n_samples} samples. "
+                "Reduce n_folds or provide more data.",
+            )
+
+        from sklearn.model_selection import TimeSeriesSplit
+
+        splitter = TimeSeriesSplit(n_splits=n_folds)
 
         fold_r2_scores = []
         fold_rmse_scores = []
@@ -672,22 +686,11 @@ class WeatherAwareMMM:
         fold_roas = {ch: [] for ch in channels}
         fold_details = []
 
-        _LOGGER.info(f"Starting {n_folds}-fold cross-validation with fold_size={fold_size}")
+        _LOGGER.info(f"Starting {n_folds}-fold cross-validation (TimeSeriesSplit)")
 
-        for fold_idx in range(n_folds):
-            test_start = fold_idx * fold_size
-            test_end = (
-                (fold_idx + 1) * fold_size
-                if fold_idx < n_folds - 1
-                else n_samples
-            )
-
-            # Time series split: train on data before test set
-            train_indices = np.arange(0, test_start)
-            test_indices = np.arange(test_start, test_end)
-
-            if len(train_indices) == 0:
-                _LOGGER.warning(f"Fold {fold_idx}: No training data, skipping")
+        for fold_idx, (train_indices, test_indices) in enumerate(splitter.split(X_spend)):
+            if len(train_indices) == 0 or len(test_indices) == 0:
+                _LOGGER.warning(f"Fold {fold_idx}: insufficient data, skipping")
                 continue
 
             # Extract fold data
@@ -722,7 +725,8 @@ class WeatherAwareMMM:
                 channels,
             )
 
-            r2_fold = fold_model._compute_r2(y_test, y_pred_test)
+            raw_r2 = fold_model._compute_r2(y_test, y_pred_test)
+            r2_fold = max(0.0, raw_r2)
             rmse_fold = fold_model._compute_rmse(y_test, y_pred_test)
             mae_fold = fold_model._compute_mae(y_test, y_pred_test)
             mean_revenue_fold = float(np.mean(y_test)) if len(y_test) else 0.0
@@ -742,9 +746,9 @@ class WeatherAwareMMM:
 
             fold_details.append({
                 "fold": fold_idx,
-                "train_size": len(train_indices),
-                "test_size": len(test_indices),
-                "r2": r2_fold,
+                "train_size": int(len(train_indices)),
+                "test_size": int(len(test_indices)),
+                "r2": raw_r2,
                 "rmse": rmse_fold,
                 "mae": mae_fold,
                 "mean_revenue": mean_revenue_fold,
@@ -863,9 +867,12 @@ class TenantModelTrainer:
                 f"weather={weather_cols}, spend={spend_cols}, target={target_col in df.columns}"
             )
 
-        # Split data using time series splitter
+        # Split data using time series splitter when available
         # Note: Using split_by_date with explicit boundaries to avoid date overlap issues
-        from shared.libs.modeling.time_series_split import TimeSeriesSplitter
+        try:
+            from shared.libs.modeling.time_series_split import TimeSeriesSplitter  # type: ignore
+        except ModuleNotFoundError:  # pragma: no cover - fallback for standalone tests
+            TimeSeriesSplitter = None  # type: ignore
         from datetime import timedelta
 
         # Sort by date first
@@ -882,19 +889,27 @@ class TenantModelTrainer:
         train_end_date = pd.to_datetime(df_sorted.iloc[train_end_idx - 1]["date"]) + timedelta(days=1)
         val_end_date = pd.to_datetime(df_sorted.iloc[val_end_idx - 1]["date"]) + timedelta(days=1)
 
-        splitter = TimeSeriesSplitter(
-            train_pct=0.70,
-            val_pct=0.15,
-            test_pct=0.15,
-            date_column="date",
-        )
-        split_result = splitter.split_by_date(
-            df_sorted,
-            train_start=min_date,
-            train_end=train_end_date,
-            val_end=val_end_date,
-            test_end=max_date + timedelta(days=1),
-        )
+        if TimeSeriesSplitter is not None:
+            splitter = TimeSeriesSplitter(
+                train_pct=0.70,
+                val_pct=0.15,
+                test_pct=0.15,
+                date_column="date",
+            )
+            split_result = splitter.split_by_date(
+                df_sorted,
+                train_start=min_date,
+                train_end=train_end_date,
+                val_end=val_end_date,
+                test_end=max_date + timedelta(days=1),
+            )
+            train_df = split_result.train_df
+            val_df = split_result.val_df
+            test_df = split_result.test_df
+        else:
+            train_df = df_sorted.iloc[:train_end_idx]
+            val_df = df_sorted.iloc[train_end_idx:val_end_idx]
+            test_df = df_sorted.iloc[val_end_idx:]
 
         # Extract features and targets
         def extract_features(split_df: pd.DataFrame) -> Tuple[pd.DataFrame, pd.DataFrame, np.ndarray]:
@@ -904,9 +919,9 @@ class TenantModelTrainer:
             target = split_df[target_col].values
             return spend_df, weather_df, target
 
-        X_spend_train, X_weather_train, y_train = extract_features(split_result.train_df)
-        X_spend_val, X_weather_val, y_val = extract_features(split_result.val_df)
-        X_spend_test, X_weather_test, y_test = extract_features(split_result.test_df)
+        X_spend_train, X_weather_train, y_train = extract_features(train_df)
+        X_spend_val, X_weather_val, y_val = extract_features(val_df)
+        X_spend_test, X_weather_test, y_test = extract_features(test_df)
 
         # Train model
         reg_strength = (

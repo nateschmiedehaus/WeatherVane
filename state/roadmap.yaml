@@ -40,7 +40,7 @@ epics:
             set_id: w0m1-quality-automation
           - id: AFP-W0-AGENT-SELF-ENFORCEMENT-20251107
             title: Agent Behavioral Self-Enforcement - Block Cheap Workarounds
-            status: pending
+            status: in_progress
             dependencies:
               - AFP-W0-AUTOPILOT-INTEGRITY-ENFORCEMENT-20251107
             exit_criteria:
@@ -118,8 +118,6 @@ epics:
               that supervisor components work with live Wave0 autopilot. This is
               a minimal no-op task to verify orchestration.
             set_id: w0m1-supervisor-agent-integration
-          - id: AFP-W0-VALIDATE-PROOF-LOOP
-          - id: AFP-W0-STEP5-MUTATION-STAGE7
           - id: AFP-W0-STEP5-TRACKER-STEP8-10
             title: Tracker — Steps 8–10 doc guard + live battery
             status: blocked
@@ -129,12 +127,12 @@ epics:
               - Live battery log for TEST-DRQC-W1-* tasks stored in state/logs/
             domain: mcp
             description: >
-              Bundles the remaining Step 8–10 work (doc guard evidence,
-              KPI aggregate, live battery replay). Unlocks when all three
-              artifacts are green.
+              Bundles the remaining Step 8–10 work (doc guard evidence, KPI
+              aggregate, live battery replay). Unlocks when all three artifacts
+              are green.
             set_id: w0m1-validation-and-readiness
             kpi:
-              green_rate: 0.0
+              green_rate: 0
           - id: AFP-W0-STEP5-TRACKER-STEP11-15
             title: Tracker — Steps 11–15 prompt, attestation, release governance
             status: blocked
@@ -149,13 +147,16 @@ epics:
               green.
             set_id: w0m1-validation-and-readiness
             kpi:
-              green_rate: 0.0
+              green_rate: 0
+          - id: AFP-W0-STEP5-MUTATION-STAGE7
             title: Stage 7 – Structure + SCAS rollout
             status: done
             dependencies: []
             exit_criteria:
-              - steps_coverage.md captured under state/logs/AFP-W0-STEP5-MUTATION/coverage/
-              - CODEOWNERS + check_structure.mjs merged with validation matrix updates
+              - steps_coverage.md captured under
+                state/logs/AFP-W0-STEP5-MUTATION/coverage/
+              - CODEOWNERS + check_structure.mjs merged with validation matrix
+                updates
               - SCAS workflow (quality_gates.yml) and rollback dry-run recorded
             domain: mcp
             description: >
@@ -166,7 +167,8 @@ epics:
             set_id: w0m1-validation-and-readiness
             kpi:
               latency_hours: 6
-              green_rate: 1.0
+              green_rate: 1
+          - id: AFP-W0-VALIDATE-PROOF-LOOP
             title: Validate proof-driven Wave 0 loop
             status: done
             dependencies: []
@@ -2983,7 +2985,7 @@ epics:
     status: pending
     priority: critical
     created_by: stigmergic_enforcer
-    created_at: 2025-11-07T20:41:41.702Z
+    created_at: 2025-11-07 20:41:41.702000+00:00
     original_task: TEST-LIVE-ENFORCEMENT-001
     milestones: []
     bypass_pattern: BP001
@@ -2995,7 +2997,7 @@ epics:
     status: pending
     priority: critical
     created_by: stigmergic_enforcer
-    created_at: 2025-11-07T20:41:41.852Z
+    created_at: 2025-11-07 20:41:41.852000+00:00
     original_task: TEST-LIVE-ENFORCEMENT-001
     milestones: []
     bypass_pattern: BP001
@@ -3007,7 +3009,7 @@ epics:
     status: pending
     priority: critical
     created_by: stigmergic_enforcer
-    created_at: 2025-11-07T20:42:19.766Z
+    created_at: 2025-11-07 20:42:19.766000+00:00
     original_task: TEST-LIVE-ENFORCEMENT-001
     milestones: []
     bypass_pattern: BP001
@@ -3019,7 +3021,7 @@ epics:
     status: pending
     priority: critical
     created_by: stigmergic_enforcer
-    created_at: 2025-11-07T21:20:55.771Z
+    created_at: 2025-11-07 21:20:55.771000+00:00
     original_task: TEST-TASK-001
     milestones: []
     bypass_pattern: BP001
@@ -3031,7 +3033,7 @@ epics:
     status: pending
     priority: critical
     created_by: stigmergic_enforcer
-    created_at: 2025-11-07T21:20:55.966Z
+    created_at: 2025-11-07 21:20:55.966000+00:00
     original_task: TEST-TASK-001
     milestones: []
     bypass_pattern: BP001
@@ -3043,7 +3045,7 @@ epics:
     status: pending
     priority: critical
     created_by: stigmergic_enforcer
-    created_at: 2025-11-07T21:20:56.061Z
+    created_at: 2025-11-07 21:20:56.061000+00:00
     original_task: TEST-TASK-001
     milestones: []
     bypass_pattern: BP001
@@ -3102,9 +3104,10 @@ tasks:
     priority: critical
     execution_mode: manual
     description: >
-      Build comprehensive E2E testing module with isolated environments, automatic error
-      recovery, operator monitoring (Claude/Codex instances), and GOL task chaining (T1→T2→T3).
-      Ensures all tests run autonomously with perfect git hygiene and GitHub integration.
+      Build comprehensive E2E testing module with isolated environments,
+      automatic error recovery, operator monitoring (Claude/Codex instances),
+      and GOL task chaining (T1→T2→T3). Ensures all tests run autonomously with
+      perfect git hygiene and GitHub integration.
     acceptance:
       - Isolated test environment at /tmp/e2e_test_state
       - Test orchestrator manages Wave 0 instances
@@ -3120,7 +3123,7 @@ tasks:
       - CLI demo runs 5 generations of glider
       - All critics and gates pass without overrides
   - id: AFP-W0-ENFORCEMENT-SPLIT-20251111
-    title: "Split stigmergic vs semantic enforcement layers"
+    title: Split stigmergic vs semantic enforcement layers
     status: pending
     epic: WAVE0-AUTONOMY
     priority: critical
@@ -3134,23 +3137,23 @@ tasks:
       - Remediation tasks still created for stigmergic violations
       - runStigmergicEnforcement/runSemanticEnforcement exist in
         tools/wvo_mcp/src/enforcement/stigmergic_enforcer.ts
-      - `cd tools/wvo_mcp && npm test` passes
+      - Command cd tools/wvo_mcp && npm test passes
   - id: AFP-W0-DELETE-FAKE-MCPCLIENT-20251111
-    title: "Remove stub MCPClient and use RealMCPClient everywhere"
+    title: Remove stub MCPClient and use RealMCPClient everywhere
     status: pending
     epic: WAVE0-AUTONOMY
     priority: critical
     description: >
-      Delete the legacy MCPClient stub (direct fs/child_process) and ensure
-      all Wave 0 components depend on the real MCP client so AI interactions
-      cannot silently fall back to local execution.
+      Delete the legacy MCPClient stub (direct fs/child_process) and ensure all
+      Wave 0 components depend on the real MCP client so AI interactions cannot
+      silently fall back to local execution.
     acceptance:
-      - `tools/wvo_mcp/src/wave0/mcp_client.ts` removed (or renamed with warning)
+      - tools/wvo_mcp/src/wave0/mcp_client.ts removed (or renamed with warning)
       - All imports updated to `RealMCPClient`
       - Build and test suites pass (`npm run build`, `npm test`)
       - Evidence captures STRATEGIZE→MONITOR lifecycle
   - id: AFP-W0-COMPLETE-DRQC-IMPLEMENTATION-20251111
-    title: "Batch 2 – complete DRQC phase executor implementation"
+    title: Batch 2 – complete DRQC phase executor implementation
     status: pending
     epic: WAVE0-AUTONOMY
     priority: critical
@@ -3159,12 +3162,12 @@ tasks:
       integrate template detection, and expose the new executors so Wave 0 can
       run the full 10-phase AFP lifecycle using real AI outputs.
     acceptance:
-      - `template_detector.ts` created with entropy + phrase checks
-      - `phase_executors_drqc.ts` exports all 10 execute* functions
+      - template_detector.ts created with entropy + phrase checks
+      - phase_executors_drqc.ts exports all 10 execute* functions
       - VERIFY phase performs template detection before AI verification
       - Build/tests plus phase completeness script pass
   - id: AFP-W0-ADD-TELEMETRY-20251111
-    title: "Batch 3A – telemetry for DRQC AI calls"
+    title: Batch 3A – telemetry for DRQC AI calls
     status: pending
     epic: WAVE0-AUTONOMY
     priority: high
@@ -3173,18 +3176,95 @@ tasks:
       invoking Anthropic instead of templates (provider, duration, tokens,
       entropy per phase).
     acceptance:
-      - `phase_executors_drqc.ts` imports telemetry and records provider,
+      - phase_executors_drqc.ts imports telemetry and records provider,
         duration, entropy, token usage after each MCP call
       - WARNING logged when provider !== 'anthropic'
       - Build/tests succeed and verification commands in batch brief pass
-
-- id: WAVE0-CRED-TEST-001
-  title: "Test subscription credentials"
-  description: "Simple test to verify Wave 0 can use Claude Code subscription credentials (no API keys)"
-  status: pending
-  type: task
-  acceptance:
-    - AI call succeeds using Claude Code subscription auth (no API keys)
-    - Documents CLI steps (claude login, CLAUDE_CONFIG_DIR)
-    - Generates real output (not TODO stub)
-  evidenceDir: state/evidence/WAVE0-CRED-TEST-001
+  - id: WAVE0-CRED-TEST-001
+    title: Test subscription credentials
+    description: Simple test to verify Wave 0 can use Claude Code subscription
+      credentials (no API keys)
+    status: pending
+    type: task
+    acceptance:
+      - AI call succeeds using Claude Code subscription auth (no API keys)
+      - Documents CLI steps (claude login, CLAUDE_CONFIG_DIR)
+      - Generates real output (not TODO stub)
+    evidenceDir: state/evidence/WAVE0-CRED-TEST-001
+  - id: TEST-TASK-001-REMEDIATION-1763087405568
+    title: "REMEDIATION: Fix bypass pattern BP001 in TEST-TASK-001"
+    status: pending
+    priority: critical
+    created_by: stigmergic_enforcer
+    created_at: 2025-11-14 02:30:05.579000+00:00
+    original_task: TEST-TASK-001
+    bypass_pattern: BP001
+    concerns:
+      - quality_concern: strategize
+      - present_bias_detected: strategize
+  - id: TEST-TASK-001-REMEDIATION-1763087405754
+    title: "REMEDIATION: Fix bypass pattern BP001 in TEST-TASK-001"
+    status: pending
+    priority: critical
+    created_by: stigmergic_enforcer
+    created_at: 2025-11-14 02:30:05.765000+00:00
+    original_task: TEST-TASK-001
+    bypass_pattern: BP001
+    concerns:
+      - quality_concern: verify
+      - present_bias_detected: verify
+  - id: TEST-TASK-001-REMEDIATION-1763087405842
+    title: "REMEDIATION: Fix bypass pattern BP001 in TEST-TASK-001"
+    status: pending
+    priority: critical
+    created_by: stigmergic_enforcer
+    created_at: 2025-11-14 02:30:05.853000+00:00
+    original_task: TEST-TASK-001
+    bypass_pattern: BP001
+    concerns:
+      - quality_concern: spec
+      - quality_concern: strategize
+  - id: TEST-LIVE-ENFORCEMENT-001-REMEDIATION-1763087411989
+    title: "REMEDIATION: Fix bypass pattern BP001 in TEST-LIVE-ENFORCEMENT-001"
+    status: pending
+    priority: critical
+    created_by: stigmergic_enforcer
+    created_at: 2025-11-14 02:30:12.001000+00:00
+    original_task: TEST-LIVE-ENFORCEMENT-001
+    bypass_pattern: BP001
+    concerns:
+      - quality_concern: strategize
+      - present_bias_detected: strategize
+  - id: TEST-TASK-001-REMEDIATION-1763310687422
+    title: "REMEDIATION: Fix bypass pattern BP001 in TEST-TASK-001"
+    status: pending
+    priority: critical
+    created_by: stigmergic_enforcer
+    created_at: 2025-11-16 16:31:27.436000+00:00
+    original_task: TEST-TASK-001
+    bypass_pattern: BP001
+    concerns:
+      - quality_concern: strategize
+      - present_bias_detected: strategize
+  - id: TEST-TASK-001-REMEDIATION-1763310687637
+    title: "REMEDIATION: Fix bypass pattern BP001 in TEST-TASK-001"
+    status: pending
+    priority: critical
+    created_by: stigmergic_enforcer
+    created_at: 2025-11-16 16:31:27.647000+00:00
+    original_task: TEST-TASK-001
+    bypass_pattern: BP001
+    concerns:
+      - quality_concern: verify
+      - present_bias_detected: verify
+  - id: TEST-TASK-001-REMEDIATION-1763310687725
+    title: "REMEDIATION: Fix bypass pattern BP001 in TEST-TASK-001"
+    status: pending
+    priority: critical
+    created_by: stigmergic_enforcer
+    created_at: 2025-11-16 16:31:27.736000+00:00
+    original_task: TEST-TASK-001
+    bypass_pattern: BP001
+    concerns:
+      - quality_concern: spec
+      - quality_concern: strategize

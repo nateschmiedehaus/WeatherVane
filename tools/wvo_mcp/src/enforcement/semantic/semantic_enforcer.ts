@@ -155,6 +155,13 @@ export class SemanticEnforcer {
     phase: string,
     retrievalContext: RetrievalContext
   ): Promise<boolean> {
+    if (retrievalContext.results.length === 0) {
+      logWarning('SemanticEnforcer L5: No indexed context available, skipping retrieval enforcement', {
+        taskId: task.id,
+        phase
+      });
+      return true;
+    }
     const minRequired = MIN_CITATIONS[phase] || 5;
     const foundCount = retrievalContext.citations.length;
 

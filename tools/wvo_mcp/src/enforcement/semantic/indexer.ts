@@ -91,6 +91,10 @@ export class Indexer {
     type: ChunkMetadata['type']
   ): Promise<ChunkMetadata[]> {
     try {
+      const stats = await fs.stat(filePath);
+      if (stats.isDirectory()) {
+        return [];
+      }
       const content = await fs.readFile(filePath, 'utf-8');
       const relativePath = path.relative(this.config.workspaceRoot, filePath);
 

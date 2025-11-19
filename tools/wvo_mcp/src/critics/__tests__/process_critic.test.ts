@@ -6,6 +6,24 @@ import { execSync } from "node:child_process";
 
 import { ProcessCritic } from "../process.js";
 
+function expectPass(result: Awaited<ReturnType<ProcessCritic["run"]>>) {
+  if (!result.passed) {
+    console.error("ProcessCritic failure", result);
+  }
+  expect(result.passed).toBe(true);
+}
+
+const DRQC_BLOCK = `## DRQC Evidence
+
+**DRQC Citation:** Page 5, "Quality Rails" > Always link tests to artifacts
+**Interpretation:** Reinforces explicit evidence mapping between DRQC guidance and our test plan.
+
+### Concordance (PLAN)
+| Action | DRQC Citation | Artifact |
+|---|---|---|
+| Map DRQC guidance to tests | Page 5, "Quality Rails" | Evidence bundle |
+`;
+
 const PLAN_TEMPLATE = `# PLAN: TEST-TASK
 
 ## Architecture / Approach
@@ -20,6 +38,7 @@ const PLAN_TEMPLATE = `# PLAN: TEST-TASK
 - PLAN-authored tests: REPLACE_ME
 - Estimated LOC: +10 -0 = net +10 LOC
 
+${DRQC_BLOCK}
 `;
 
 const AUTOPLAN_TEMPLATE = `# PLAN: AFP-W0-M1-MVP-SUPERVISOR-INTEGRATION
@@ -32,12 +51,15 @@ const AUTOPLAN_TEMPLATE = `# PLAN: AFP-W0-M1-MVP-SUPERVISOR-INTEGRATION
 **Scope:**
 - PLAN-authored tests: REPLACE_AUTOPILOT
 - Estimated LOC: +50 -10 = net +40 LOC
+
+${DRQC_BLOCK}
 `;
 
 function initGitRepository(root: string) {
   execSync("git init", { cwd: root, stdio: "ignore" });
   execSync('git config user.name "ProcessCritic Test"', { cwd: root });
   execSync('git config user.email "process-critic@test.local"', { cwd: root });
+  execSync('git commit --allow-empty -m "initial"', { cwd: root, stdio: "ignore" });
 }
 
 async function writeFileAndStage(root: string, relativePath: string, content: string) {
@@ -103,7 +125,7 @@ describe("ProcessCritic", () => {
 
   it("fails when plan lacks PLAN-authored tests section", async () => {
     await seedHealthyDailyState(workspace);
-    const planContent = PLAN_TEMPLATE.replace("**Scope:**\n- PLAN-authored tests: REPLACE_ME\n- Estimated LOC: +10 -0 = net +10 LOC\n", "**Scope:**\n- Estimated LOC: +10 -0 = net +10 LOC\n");
+    const planContent = PLAN_TEMPLATE.replace("- PLAN-authored tests: REPLACE_ME\n", "");
     await writeFileAndStage(workspace, "state/evidence/TEST/plan.md", planContent);
     const result = await critic.run("default");
     expect(result.passed).toBe(false);
@@ -127,7 +149,7 @@ describe("ProcessCritic", () => {
     );
     await writeFileAndStage(workspace, "state/evidence/TEST/plan.md", planContent);
     const result = await critic.run("default");
-    expect(result.passed).toBe(true);
+    expectPass(result);
   });
 
   it("allows docs-only plan when explicitly marked", async () => {
@@ -138,7 +160,7 @@ describe("ProcessCritic", () => {
     );
     await writeFileAndStage(workspace, "state/evidence/TEST/plan.md", planContent);
     const result = await critic.run("default");
-    expect(result.passed).toBe(true);
+    expectPass(result);
   });
 
   it("blocks new test files without corresponding PLAN entry", async () => {
@@ -169,7 +191,7 @@ describe("ProcessCritic", () => {
     );
 
     const result = await critic.run("default");
-    expect(result.passed).toBe(true);
+    expectPass(result);
   });
 
   it("fails when autopilot plan lacks Wave 0 live keyword", async () => {
@@ -192,7 +214,7 @@ describe("ProcessCritic", () => {
     );
     await writeFileAndStage(workspace, "state/evidence/AFP-W0/plan.md", planContent);
     const result = await critic.run("default");
-    expect(result.passed).toBe(true);
+    expectPass(result);
   });
 
   it("fails when autopilot code changes without plan update", async () => {
@@ -258,6 +280,6 @@ describe("ProcessCritic", () => {
     await writeFileAndStage(workspace, "state/evidence/TEST/plan.md", planContent);
 
     const result = await critic.run("default");
-    expect(result.passed).toBe(true);
+    expectPass(result);
   });
 });

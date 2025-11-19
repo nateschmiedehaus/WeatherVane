@@ -7,6 +7,7 @@
 
 import { spawn, fork } from 'child_process';
 import fs from 'fs/promises';
+import fsSync from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { execSync } from 'child_process';
@@ -19,6 +20,8 @@ class E2ETestRunner {
     this.startTime = Date.now();
     this.orchestratorProcess = null;
     this.monitorProcess = null;
+    this.lastReportSummary = null;
+    this.lastReportPath = null;
   }
 
   async validateEnvironment() {
@@ -67,10 +70,28 @@ class E2ETestRunner {
     }
   }
 
+  async verifyInternetConnectivity() {
+    console.log('🌐 Checking internet connectivity...');
+    const probeUrl = process.env.E2E_CONNECTIVITY_URL ?? 'https://www.apple.com';
+    try {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 10000);
+      const response = await fetch(probeUrl, { method: 'HEAD', cache: 'no-store', signal: controller.signal });
+      clearTimeout(timer);
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+      console.log(`  ✅ Connectivity verified via ${probeUrl}`);
+    } catch (error) {
+      throw new Error(`Internet connectivity check failed (${error?.message ?? error}). Live agents require outbound access.`);
+    }
+  }
+
   async startOperatorMonitor() {
     console.log('🚀 Starting Operator Monitor...');
 
     return new Promise((resolve, reject) => {
+      let resolved = false;
       this.monitorProcess = fork(
         path.join(__dirname, 'operator_monitor.mjs'),
         [],
@@ -84,16 +105,20 @@ class E2ETestRunner {
       this.monitorProcess.on('error', reject);
 
       this.monitorProcess.on('message', (msg) => {
-        if (msg.type === 'ready') {
+        if (msg?.type === 'ready' && !resolved) {
+          resolved = true;
           console.log('✅ Operator Monitor ready\n');
           resolve();
         }
       });
 
-      // Give it time to start
+      // Give it time to start if no IPC message arrives
       setTimeout(() => {
-        console.log('✅ Operator Monitor started\n');
-        resolve();
+        if (!resolved) {
+          resolved = true;
+          console.log('✅ Operator Monitor started\n');
+          resolve();
+        }
       }, 3000);
     });
   }
@@ -101,7 +126,13 @@ class E2ETestRunner {
   async runOrchestrator() {
     console.log('🎯 Starting Test Orchestrator...\n');
 
-    return new Promise((resolve, reject) => {
+    const reportFallback = this.watchReportFile({
+      reportPath: this.getDefaultReportPath(),
+      startTime: Date.now(),
+    });
+
+    const completionPromise = new Promise((resolve, reject) => {
+      let resolved = false;
       this.orchestratorProcess = fork(
         path.join(__dirname, 'orchestrator.mjs'),
         [],
@@ -112,16 +143,53 @@ class E2ETestRunner {
         }
       );
 
+      const resolveOnce = (source) => {
+        if (!resolved) {
+          resolved = true;
+          resolve({ source });
+        }
+      };
+
+      this.orchestratorProcess.on('message', (msg) => {
+        if (msg?.type === 'suite-complete') {
+          this.lastReportSummary = msg.summary ?? null;
+          this.lastReportPath = msg.reportPath ?? this.getDefaultReportPath();
+          resolveOnce('orchestrator');
+        } else if (msg?.type === 'suite-error') {
+          if (!resolved) {
+            resolved = true;
+            reject(new Error(msg.error || 'Orchestrator reported failure'));
+          }
+        }
+      });
+
       this.orchestratorProcess.on('exit', (code) => {
+        if (resolved) {
+          return;
+        }
         if (code === 0) {
-          resolve();
+          resolved = true;
+          resolve({ source: 'orchestrator-exit' });
         } else {
+          resolved = true;
           reject(new Error(`Orchestrator exited with code ${code}`));
         }
       });
 
       this.orchestratorProcess.on('error', reject);
     });
+
+    try {
+      const result = await Promise.race([completionPromise, reportFallback.promise]);
+      reportFallback.cancel();
+      if (result?.source === 'report-fallback' && this.orchestratorProcess) {
+        console.warn('⚠️  Report file detected but orchestrator promise never resolved. Forcing cleanup.');
+        this.orchestratorProcess.kill('SIGTERM');
+      }
+    } catch (error) {
+      reportFallback.cancel();
+      throw error;
+    }
   }
 
   async cleanup() {
@@ -152,7 +220,7 @@ class E2ETestRunner {
     console.log('═══════════════════════════════════════');
 
     try {
-      const reportPath = '/tmp/e2e_test_state/e2e_test_report.json';
+      const reportPath = this.lastReportPath ?? '/tmp/e2e_test_state/e2e_test_report.json';
       const report = JSON.parse(await fs.readFile(reportPath, 'utf-8'));
 
       console.log(`\nTest Execution Summary:`);
@@ -190,9 +258,20 @@ class E2ETestRunner {
     console.log('║   With Operator Monitoring & Recovery  ║');
     console.log('╚═══════════════════════════════════════╝\n');
 
+    const autopilotOnly = process.env.E2E_AUTOPILOT_ONLY === '1';
+    const forcedProvider = process.env.FORCE_PROVIDER?.trim();
+    if (autopilotOnly) {
+      console.log('🔒 Autopilot-only guard enabled: exported logs will be locked read-only, and tampering will abort the run.\n');
+    }
+    if (forcedProvider) {
+      console.log(`🧠 FORCE_PROVIDER=${forcedProvider} (Wave 0 will refuse to fall back)\n`);
+    }
+
+    let exitCode = 0;
     try {
       // Validate environment
       await this.validateEnvironment();
+      await this.verifyInternetConnectivity();
 
       // Build MCP server
       await this.ensureBuild();
@@ -207,15 +286,73 @@ class E2ETestRunner {
       await this.generateFinalReport();
 
       console.log('✨ E2E Test Suite Complete!\n');
-      process.exit(0);
-
     } catch (error) {
       console.error('\n❌ E2E Test Suite Failed:', error.message);
-      process.exit(1);
+      exitCode = 1;
 
     } finally {
       await this.cleanup();
+      process.exit(exitCode);
     }
+  }
+
+  getDefaultReportPath() {
+    return this.lastReportPath ?? path.join('/tmp/e2e_test_state', 'e2e_test_report.json');
+  }
+
+  async hydrateReportMetadata(reportPath) {
+    try {
+      const contents = await fs.readFile(reportPath, 'utf-8');
+      const payload = JSON.parse(contents);
+      this.lastReportSummary = payload.summary ?? this.lastReportSummary;
+      this.lastReportPath = reportPath;
+    } catch {
+      // ignore parse errors / missing file
+    }
+  }
+
+  watchReportFile({ reportPath, startTime, timeoutMs = 20 * 60 * 1000 }) {
+    let cancelled = false;
+    let timer = null;
+    let timeoutTimer = null;
+
+    const promise = new Promise((resolve, reject) => {
+      const checkFile = async () => {
+        if (cancelled) {
+          return;
+        }
+        try {
+          const stats = await fs.stat(reportPath);
+          if (stats.mtimeMs >= startTime) {
+            await this.hydrateReportMetadata(reportPath);
+            clearInterval(timer);
+            clearTimeout(timeoutTimer);
+            resolve({ source: 'report-fallback' });
+          }
+        } catch (error) {
+          if (error.code !== 'ENOENT') {
+            console.warn(`⚠️  Report watcher error: ${error.message}`);
+          }
+        }
+      };
+
+      timer = setInterval(checkFile, 3000);
+      timeoutTimer = setTimeout(() => {
+        clearInterval(timer);
+        if (!cancelled) {
+          reject(new Error('Report watcher timed out after 20 minutes.'));
+        }
+      }, timeoutMs);
+    });
+
+    return {
+      promise,
+      cancel: () => {
+        cancelled = true;
+        if (timer) clearInterval(timer);
+        if (timeoutTimer) clearTimeout(timeoutTimer);
+      },
+    };
   }
 }
 

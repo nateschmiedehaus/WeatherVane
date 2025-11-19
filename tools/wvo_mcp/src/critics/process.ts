@@ -172,8 +172,10 @@ export class ProcessCritic extends Critic {
       }
     }
 
-    const autopilotCodeTouched = stagedFiles.some((file) =>
-      AUTOPILOT_PATH_PATTERNS.some((pattern) => pattern.test(file.path)),
+    const autopilotCodeTouched = stagedFiles.some(
+      (file) =>
+        !file.path.startsWith("state/evidence/") &&
+        AUTOPILOT_PATH_PATTERNS.some((pattern) => pattern.test(file.path)),
     );
 
     if (autopilotCodeTouched && planFiles.length === 0) {

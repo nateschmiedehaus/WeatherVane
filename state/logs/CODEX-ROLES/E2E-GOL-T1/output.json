@@ -1,0 +1,8 @@
+{
+  "seed": ".#.\n..#\n###",
+  "afterOne": "#.#\n.##\n.#.",
+  "liveCells": {
+    "seed": 5,
+    "afterOne": 5
+  }
+}

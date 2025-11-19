@@ -12,12 +12,14 @@ import { ProviderRouter } from './provider_router.js';
 import { QualityEnforcer } from './quality_enforcer.js';
 import { logInfo, logError, logWarning } from '../telemetry/logger.js';
 import fs from 'fs/promises';
+import * as fsSync from 'node:fs';
 import path from 'path';
 import YAML from 'yaml';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 
 const execAsync = promisify(exec);
+const MIN_PHASE_DURATION_MS = Number(process.env.WVO_MIN_PHASE_DURATION_MS ?? '150');
 
 interface Task {
   id: string;
@@ -52,7 +54,8 @@ export class AutonomousRunner {
 
   constructor(workspaceRoot: string) {
     this.workspaceRoot = workspaceRoot;
-    this.stateDir = path.join(workspaceRoot, 'state');
+    const inlineRoadmap = fsSync.existsSync(path.join(workspaceRoot, 'roadmap.yaml'));
+    this.stateDir = inlineRoadmap ? workspaceRoot : path.join(workspaceRoot, 'state');
     this.roadmapPath = path.join(this.stateDir, 'roadmap.yaml');
     this.mcpClient = new RealMCPClient();
     this.providerRouter = new ProviderRouter();
@@ -322,10 +325,14 @@ Work autonomously and produce production-quality output.`;
     ];
 
     for (const phase of phases) {
+      const fileName = phase === 'strategize' ? 'strategy' : phase;
       const content = await this.generatePhaseContent(task, phase);
-      const filePath = path.join(evidenceDir, `${phase}.md`);
+      const filePath = path.join(evidenceDir, `${fileName}.md`);
       await fs.writeFile(filePath, content, 'utf-8');
       logInfo(`✓ Created ${phase}.md`);
+      if (MIN_PHASE_DURATION_MS > 0) {
+        await this.sleep(MIN_PHASE_DURATION_MS);
+      }
     }
   }
 

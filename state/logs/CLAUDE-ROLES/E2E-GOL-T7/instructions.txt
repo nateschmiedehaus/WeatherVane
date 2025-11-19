@@ -1,0 +1,15 @@
+# Game of Life – Desktop Launcher
+
+Usage (from repo root):
+1. Run: ./state/logs/CLAUDE-ROLES/E2E-GOL-T7/run_gol.sh (during harness run: /tmp/e2e_test_state/logs/E2E-GOL-T7/run_gol.sh)
+2. Or open: ./state/logs/CLAUDE-ROLES/E2E-GOL-T7/gol_ui.html directly if you prefer a static launch
+3. Controls:
+   - Click cells to toggle
+   - Start/Stop buttons control simulation
+   - Step advances one generation
+   - Clear wipes the board
+   - Preset buttons load glider/blinker/toad/beacon
+
+This shell script opens a dedicated canvas UI using your desktop browser—no terminal controls required.
+
+Autopilot-exported artefacts are read-only when E2E_AUTOPILOT_ONLY=1 to prevent manual tampering.

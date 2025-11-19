@@ -1,0 +1,12 @@
+{
+  "totalGenerations": 10,
+  "uniqueStates": 4,
+  "firstRepeat": {
+    "first": 1,
+    "repeat": 5
+  },
+  "liveCellRange": {
+    "min": 5,
+    "max": 5
+  }
+}

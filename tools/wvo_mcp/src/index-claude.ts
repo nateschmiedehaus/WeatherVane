@@ -69,8 +69,8 @@ async function main() {
     codexWorkers: 3,
     targetCodexRatio: 5,
   });
-  // NOTE: Don't start runtime for Claude Code MCP - let it be passive and tool-driven
-  // runtime.start();
+  // Start runtime for Claude Code MCP to enable active orchestration features
+  await runtime.start();
   activeRuntime = runtime;
 
   const session = new SessionContext(runtime);

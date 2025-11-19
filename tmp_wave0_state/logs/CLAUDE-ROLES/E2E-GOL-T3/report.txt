@@ -1,0 +1,5 @@
+# Game of Life – T3 Analysis
+Total generations analyzed: 10
+Unique state count: 4
+Cycle detected: generation 1 reappears at generation 5
+Live cell range: 5–5

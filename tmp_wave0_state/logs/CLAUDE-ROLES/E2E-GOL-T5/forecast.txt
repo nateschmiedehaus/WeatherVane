@@ -1,0 +1,8 @@
+# Game of Life – T5 Stability Forecast
+Generations analyzed: 30 (forecast: 20)
+Peak live cells: 5
+Min live cells: 5
+Average live cells: 5
+Stability index (unique/total): 0.133
+Trend: steady
+R-pentomino peak live cells: 46

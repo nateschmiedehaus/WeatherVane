@@ -66,11 +66,11 @@ Icon?
 state/orchestrator.db*
 state/telemetry/*.jsonl
 state/checkpoint.json
-state/context.md
+# state/context.md
 state/accounts_runtime.json
 state/accounts.yaml
 state/mcp_registry.json
-state/task_memos/
+# state/task_memos/
 state/worker_pid
 state/backups/
 state/analytics/*.jsonl

@@ -1,0 +1,11 @@
+# Game of Life – T2 (10 Generations)
+
+Start pattern:
+#.#
+.##
+.#.
+
+Final pattern after 10 generations:
+#..
+.##
+##.

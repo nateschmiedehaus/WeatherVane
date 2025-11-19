@@ -4,11 +4,13 @@
     "module": "ES2022",
     "moduleResolution": "Bundler",
     "baseUrl": ".",
+    "rootDirs": ["src", "../state/demos"],
     "paths": {
       "@modelcontextprotocol/sdk/server": ["node_modules/@modelcontextprotocol/sdk/dist/esm/server/index.d.ts"],
       "@modelcontextprotocol/sdk/server/index.js": ["node_modules/@modelcontextprotocol/sdk/dist/esm/server/index.d.ts"],
       "@modelcontextprotocol/sdk/server/stdio.js": ["node_modules/@modelcontextprotocol/sdk/dist/esm/server/stdio.d.ts"],
-      "@modelcontextprotocol/sdk/transports/stdio": ["node_modules/@modelcontextprotocol/sdk/dist/esm/server/stdio.d.ts"]
+      "@modelcontextprotocol/sdk/transports/stdio": ["node_modules/@modelcontextprotocol/sdk/dist/esm/server/stdio.d.ts"],
+      "@demos/*": ["../state/demos/*"]
     },
     "declaration": true,
     "outDir": "dist",
@@ -20,6 +22,6 @@
     "resolveJsonModule": true,
     "types": ["node"]
   },
-  "include": ["src/**/*.ts", "src/**/*.d.ts"],
+  "include": ["src/**/*.ts", "src/**/*.d.ts", "../state/demos/**/*.d.ts"],
   "exclude": ["node_modules", "dist"]
 }

@@ -345,12 +345,15 @@ class TestTrainValTestSplitReadiness:
 
     def test_temporal_continuity(self, sample_data):
         """Verify data can be split temporally without gaps."""
+        if sample_data is None:
+            pytest.skip("Synthetic_v2 seed data not available locally.")
         dates = pd.to_datetime(sample_data["date"]).unique()
         dates_sorted = np.sort(dates)
 
         # Check no large gaps (allow weekends/holidays = up to 3-day gaps)
-        date_diffs = np.diff(dates_sorted.astype("datetime64[D]"))
-        large_gaps = (date_diffs > 3).sum()
+        date_ints = dates_sorted.astype("datetime64[D]").astype("int64")
+        date_diffs = np.diff(date_ints)
+        large_gaps = int((date_diffs > 3).sum())
 
         assert large_gaps == 0, f"Found {large_gaps} gaps >3 days"
 

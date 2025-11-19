@@ -1,0 +1,7 @@
+# Game of Life – T4 Oscillator Diagnostics
+Seeds analyzed: 4
+
+- Glider: cycle 4 detected at generation 4, peak 5 live cells, displacement (5, 5)
+- Blinker: cycle 2 detected at generation 2, peak 3 live cells, displacement (2, 2)
+- Toad: no repeat within 16 generations, peak 36 live cells, displacement (0, 0)
+- Beacon: cycle 2 detected at generation 2, peak 8 live cells, displacement (2, 2)

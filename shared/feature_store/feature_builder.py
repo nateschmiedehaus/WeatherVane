@@ -56,6 +56,13 @@ class FeatureMatrix:
     weather_coverage_ratio: float
     weather_coverage_threshold: float
     latest_observed_date: Optional[str]
+    observed_rows: int
+    join_mode: str
+    geocoded_order_ratio: Optional[float]
+    weather_missing_rows: int
+    weather_missing_records: List[dict]
+    geography_level: str
+    geography_fallback_reason: Optional[str]
 
 
 class FeatureBuilder:
@@ -98,6 +105,23 @@ class FeatureBuilder:
         weather = self._load_latest(tenant_id, "weather_daily")
 
         # Generate daily features
+        geocoded_order_ratio: Optional[float] = None
+        join_mode = "date_global"
+        geography_level = "global"
+        geography_fallback_reason: Optional[str] = None
+        if not orders.is_empty():
+            if "ship_geohash" in orders.columns:
+                total_orders = max(1, orders.height)
+                geocoded_orders = orders.filter(pl.col("ship_geohash").is_not_null()).height
+                geocoded_order_ratio = geocoded_orders / total_orders
+                if geocoded_order_ratio >= 0.5:
+                    join_mode = "date_dma"
+                    geography_level = "dma"
+                else:
+                    geography_fallback_reason = "insufficient_geocoded_orders"
+            else:
+                geography_fallback_reason = "missing_geohash"
+
         orders_daily = self._orders_daily(orders)
         ads_daily = self._ads_daily(ads_meta, ads_google)
         promos_daily = self._promos_daily(promos)
@@ -121,11 +145,6 @@ class FeatureBuilder:
         frame = frame.join(ads_daily, on="date", how="left")
         frame = frame.join(promos_daily, on="date", how="left")
 
-        # Fill nulls with zeros for numeric columns
-        numeric_cols = frame.select(pl.col([col for col in frame.columns if frame[col].dtype in {pl.Float64, pl.Int64}])).columns
-        for col in numeric_cols:
-            frame = frame.with_columns(pl.col(col).fill_null(0))
-
         # Filter date range
         frame = frame.filter(pl.col("date").is_between(pl.lit(start_str), pl.lit(end_str)))
 
@@ -140,7 +159,14 @@ class FeatureBuilder:
             raise ValueError(f"Weather features missing from matrix: {missing_weather}")
 
         # Calculate weather coverage
-        weather_coverage_ratio = self._weather_coverage_ratio(frame)
+        weather_coverage_ratio, weather_missing_rows, weather_missing_records = self._weather_coverage_stats(frame)
+
+        # Fill nulls with zeros for numeric columns (after coverage stats)
+        numeric_cols = frame.select(
+            pl.col([col for col in frame.columns if frame[col].dtype in {pl.Float64, pl.Int64}])
+        ).columns
+        for col in numeric_cols:
+            frame = frame.with_columns(pl.col(col).fill_null(0))
 
         # Filter observed rows and handle leakage
         observed_frame = frame.filter(pl.col("target_available"))
@@ -172,6 +198,13 @@ class FeatureBuilder:
             weather_coverage_ratio=weather_coverage_ratio,
             weather_coverage_threshold=0.85,
             latest_observed_date=str(latest_observed) if latest_observed else None,
+            observed_rows=observed_rows,
+            join_mode=join_mode,
+            geocoded_order_ratio=geocoded_order_ratio,
+            weather_missing_rows=weather_missing_rows,
+            weather_missing_records=weather_missing_records,
+            geography_level=geography_level,
+            geography_fallback_reason=geography_fallback_reason,
         )
 
     def _load_latest(self, tenant_id: str, dataset: str, drop_null_revenue: bool = False) -> pl.DataFrame:
@@ -311,19 +344,31 @@ class FeatureBuilder:
             raise ValueError(f"Weather dataset missing columns: {missing}")
         return frame
 
-    def _weather_coverage_ratio(self, frame: pl.DataFrame) -> float:
-        """Calculate weather data coverage ratio."""
+    def _weather_coverage_stats(self, frame: pl.DataFrame) -> tuple[float, int, List[dict]]:
+        """Calculate weather data coverage ratio and missing records."""
         if frame.is_empty():
-            return 0.0
+            return 0.0, 0, []
 
         coverage_cols = [col for col in WEATHER_COVERAGE_COLS if col in frame.columns]
         if not coverage_cols:
-            return 1.0
+            return 1.0, 0, []
 
         mask = pl.col(coverage_cols[0]).is_not_null()
         for col in coverage_cols[1:]:
             mask = mask & pl.col(col).is_not_null()
 
-        covered_rows = frame.filter(mask).height
+        covered = frame.filter(mask)
+        covered_rows = covered.height
         ratio = float(covered_rows) / float(frame.height)
-        return max(0.0, min(1.0, ratio))
+        ratio = max(0.0, min(1.0, ratio))
+
+        missing_rows = frame.height - covered_rows
+        missing_records: List[dict] = []
+        if missing_rows > 0 and "date" in frame.columns:
+            cols = ["date"]
+            if "geo_scope" in frame.columns:
+                cols.append("geo_scope")
+            subset = frame.filter(~mask).select(cols)
+            for record in subset.to_dicts():
+                missing_records.append(record)
+        return ratio, missing_rows, missing_records

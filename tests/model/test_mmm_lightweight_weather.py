@@ -121,9 +121,10 @@ class TestWeatherAwareMMM:
         # - 2 channels (adstocked)
         # - 2 channels (saturated)
         # - 3 weather features
+        # - 3 polynomial weather terms
         # - 2*3 = 6 interactions
-        # Total: 2 + 2 + 3 + 6 = 13 features
-        assert X.shape == (n_periods, 13)
+        # Total: 2 + 2 + 3 + 3 + 6 = 16 features
+        assert X.shape == (n_periods, 16)
 
     def test_fit_basic(self):
         """Test basic model fitting."""

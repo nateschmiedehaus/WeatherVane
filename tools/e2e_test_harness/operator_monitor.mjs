@@ -55,6 +55,9 @@ class OperatorMonitor {
 
   async startMonitoring() {
     console.log('👁️‍🗨️ Operator Monitor started...');
+    if (typeof process.send === 'function') {
+      process.send({ type: 'ready' });
+    }
 
     // Monitor log files
     this.monitorLogs();

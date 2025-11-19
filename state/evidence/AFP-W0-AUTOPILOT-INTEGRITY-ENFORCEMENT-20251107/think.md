@@ -207,6 +207,28 @@
 - Audit trail preserved
 - If frequent: DesignReviewer needs tuning (separate task)
 
+### 13. PhaseExecutionManager returns stub provider
+
+**Edge Case:** `RealMCPClient.chat()` falls back to the stub/offline provider (e.g., CODEX profile missing, sandbox refuses Codex CLI).
+
+**Impact:** Phase output lacks transcript hashes, TemplateDetector flags every document, ProofSystem still claims "missing strategize evidence."
+
+**Mitigation:**
+- Fail fast if `provider === 'stub'` (current PhaseExecutionManager already throws, but TaskExecutor must surface the error and mark the task `blocked` instead of pretending success).
+- Document `OFFLINE_OK=1` requirements for local testing; otherwise require engineers to provision real Codex credentials before running e2e.
+- Cache the workspace transcript path so we can inspect which provider responded when triaging harness logs.
+
+### 14. TaskModuleRunner drift vs LLM phases
+
+**Edge Case:** Deterministic modules (review/reform) produce stale reports (e.g., roadmap structure changed) and we skip the LLM phases entirely, leaving Strategy/Spec outdated.
+
+**Impact:** Critics flag "evidence contradicts roadmap", yet TaskExecutor thinks the work is done. Harness fails unpredictably.
+
+**Mitigation:**
+- After applying a module result, still record concordance + timeline in `context` so StigmergicEnforcer has accurate metadata.
+- Add fallback: if module output is older than the roadmap timestamp or lacks required DRQC sections, rerun the phase through PhaseExecutionManager instead of blindly trusting deterministic text.
+- Emit monitor tasks to refresh modules whenever roadmap schema changes.
+
 ## Complexity Analysis
 
 ### Cyclomatic Complexity
@@ -356,6 +378,22 @@ if (task.id.includes('-REVIEW')) {
 - Optimize (separate task)
 - Don't compromise quality
 
+### Scenario 5: "llm_chat Removed → No Real Reasoning"
+
+**What if:** We keep llm_chat deleted because the previous implementation was flawed?
+
+**Implications:**
+- PhaseExecutionManager and EnhancedTaskExecutor both depend on `RealMCPClient.chat()`
+- Without the tool, Wave 0 can only emit template placeholders, so critics immediately fail
+- Operator monitor in the E2E harness restarts forever because no phase KPIs are written
+
+**Resolution:**
+- Restore llm_chat with a server-owned CLI wrapper (no `mcpClient` parameter)
+- Treat any failure from `codex exec` as a hard blocker so we never fabricate templates again
+- Write KPIs so the operator monitor + VERIFY phase have concrete telemetry
+
+**Key takeaway:** Removing bypasses is necessary but not sufficient—the system must also be able to think. The E2E debut requires both the deletion work *and* a functioning LLM channel.
+
 ## Assumptions to Validate
 
 ### Assumption 1: MCP Can Be Fixed
@@ -420,6 +458,19 @@ if (task.id.includes('-REVIEW')) {
 **Layer 5:** Audit trail (evidence of compliance)
 
 **All 5 layers must hold.**
+
+## 2025-11-14 Edge Case Analysis — E2E Harness Debut
+
+1. **Game-of-Life module bypassed** — Without `set_id`, TaskModuleRunner declines to run the deterministic module. Evidence reverts to Codex prompts, plan lacks `## Proof Criteria`, and ProofSystem reports `discovering`.
+   - *Mitigation:* Assign a shared `set_id` in the harness roadmap; add a smoke test later that fails if `set_id` missing. Module should log when it executes so we can confirm via `state/logs`.
+2. **Non-idempotent artefacts** — Writing timestamps/random content into `state/logs/E2E-GOL-T*/output.txt` causes TemplateDetector/idempotency enforcement to flag each rerun.
+   - *Mitigation:* Use deterministic board rendering (`renderPattern`) and include metadata (grid size, hash) separately to keep outputs stable.
+3. **llm_chat timeouts** — Codex CLI exits with SIGTERM after 180 s; current implementation surfaces the error immediately, leaving phases blocked and harness stuck.
+   - *Mitigation:* Add retry/backoff plus a longer configurable timeout; capture stderr so operators can diagnose profile/backlog issues quickly.
+4. **NumPy import failure** — `.deps/numpy` contains only Python stubs; Pytest tries to import `_multiarray_umath` and aborts before any actual test runs.
+   - *Mitigation:* Remove the stub folder and `pip install` the official wheel into `.deps`; verify `.so` files exist before rerunning tests.
+5. **Proof criteria detection** — ProcessCritic expects a literal `## Proof Criteria` heading; prior plan text used bold text inside a numbered list, so detection failed and ProofSystem defaulted to “build/test”.
+   - *Mitigation:* Add the heading plus explicit command list (build, vitest, integrity, harness) and ensure VERIFY executes exactly those commands.
 
 ## Success Criteria Validation
 

@@ -12,6 +12,7 @@
 import { spawn, ChildProcess } from 'child_process';
 import * as path from 'path';
 import * as fs from 'fs';
+import { fileURLToPath } from 'node:url';
 import { logInfo, logError, logWarning } from '../telemetry/logger.js';
 
 export interface MCPToolResult {
@@ -24,6 +25,23 @@ export interface MCPToolInfo {
   name: string;
   description: string;
   inputSchema?: any;
+}
+
+export interface ChatRequest {
+  messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }>;
+  model?: string;
+  max_tokens?: number;
+  temperature?: number;
+  tools?: string[];
+}
+
+export interface ChatResponse {
+  content: string;
+  provider?: string;
+  usage?: {
+    inputTokens?: number;
+    outputTokens?: number;
+  };
 }
 
 export class RealMCPClient {
@@ -44,6 +62,7 @@ export class RealMCPClient {
   }>();
 
   private availableTools: MCPToolInfo[] = [];
+  private requestTimeoutMs = Number(process.env.MCP_REQUEST_TIMEOUT_MS ?? '240000');
 
   /**
    * Initialize and connect to MCP server
@@ -69,9 +88,10 @@ export class RealMCPClient {
       const workspaceRoot = this.findWorkspaceRoot();
 
       // Spawn the MCP server process
+      const serverCwd = path.join(workspaceRoot, 'tools', 'wvo_mcp');
       this.mcpProcess = spawn('node', [serverPath], {
         stdio: ['pipe', 'pipe', 'pipe'],
-        cwd: path.dirname(serverPath),
+        cwd: serverCwd,
         env: {
           ...process.env,
           MCP_MODE: 'stdio',
@@ -112,12 +132,13 @@ export class RealMCPClient {
    * Find the MCP server executable
    */
   private findMCPServerPath(): string | null {
+    const moduleDir = path.dirname(fileURLToPath(import.meta.url));
     const candidates = [
       './dist/index.js',
       '../dist/index.js',
       '../../dist/index.js',
-      path.join(__dirname, '../index.js'),
-      path.join(__dirname, '../../index.js'),
+      path.join(moduleDir, '../index.js'),
+      path.join(moduleDir, '../../index.js'),
       path.join(process.cwd(), 'tools/wvo_mcp/dist/index.js')
     ];
 
@@ -246,7 +267,10 @@ export class RealMCPClient {
    * Send JSON-RPC request with retry logic
    */
   private async sendRequest(method: string, params?: any): Promise<any> {
-    if (!this.mcpProcess || !this.isConnected) {
+    if (!this.mcpProcess) {
+      throw new Error('MCP process not started');
+    }
+    if (!this.isConnected && method !== 'initialize') {
       throw new Error('MCP not connected');
     }
 
@@ -270,9 +294,9 @@ export class RealMCPClient {
         setTimeout(() => {
           if (this.pendingRequests.has(id)) {
             this.pendingRequests.delete(id);
-            reject(new Error(`Request ${method} timed out`));
+            reject(new Error(`Request ${method} timed out after ${this.requestTimeoutMs}ms`));
           }
-        }, 30000);
+        }, this.requestTimeoutMs);
       });
     });
   }
@@ -460,6 +484,44 @@ export class RealMCPClient {
     if (!result.success) {
       throw new Error(`Failed to update task: ${result.error}`);
     }
+  }
+
+  /**
+   * LLM chat helper
+   */
+  async chat(request: ChatRequest): Promise<ChatResponse> {
+    const payload = {
+      messages: request.messages,
+      model: request.model,
+      maxTokens: request.max_tokens,
+      temperature: request.temperature
+    };
+    const result = await this.executeTool('llm_chat', payload);
+    if (!result.success) {
+      throw new Error(`llm_chat failed: ${result.error}`);
+    }
+
+    const response: any = result.result ?? {};
+    if (typeof response === 'string') {
+      if (!response.trim()) {
+        throw new Error('llm_chat returned an empty response');
+      }
+      return {
+        provider: 'codex',
+        content: response.trim()
+      };
+    }
+
+    const content = response.content ?? '';
+    if (!content.trim()) {
+      throw new Error('llm_chat returned no content');
+    }
+
+    return {
+      provider: response.provider ?? 'codex',
+      content: content.trim(),
+      usage: response.usage
+    };
   }
 
   /**

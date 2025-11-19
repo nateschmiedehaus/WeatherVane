@@ -16,6 +16,38 @@ from shared.libs.testing.synthetic import (
     seed_synthetic_tenant,
 )
 
+NUMERIC_DTYPES = {
+    pl.Float64,
+    pl.Float32,
+    pl.Int64,
+    pl.Int32,
+    pl.Int16,
+    pl.Int8,
+    pl.UInt64,
+    pl.UInt32,
+    pl.UInt16,
+    pl.UInt8,
+}
+
+
+def _flatten_weather_signals(lake_root: Path, tenant_id: str) -> None:
+    """Rewrite weather parquet files with constant values to simulate a no-signal tenant."""
+    weather_dir = lake_root / f"{tenant_id}_weather_daily"
+    if not weather_dir.exists():
+        return
+    for parquet_file in weather_dir.glob("*.parquet"):
+        frame = pl.read_parquet(parquet_file)
+        replacements = []
+        for column, dtype in frame.schema.items():
+            if column in {"tenant_id", "date", "geohash", "lat", "lon"}:
+                continue
+            if dtype in NUMERIC_DTYPES:
+                zero_value = 0.0 if dtype in {pl.Float32, pl.Float64} else 0
+                replacements.append(pl.lit(zero_value).cast(dtype).alias(column))
+        if replacements:
+            frame = frame.with_columns(replacements)
+        frame.write_parquet(parquet_file)
+
 
 def test_train_baseline_persists_artifacts(tmp_path: Path) -> None:
     lake_root = tmp_path / "lake"
@@ -77,6 +109,7 @@ def test_weather_fit_flags_low_signal(tmp_path: Path) -> None:
 
     neutral = next(s for s in DEFAULT_BRAND_SCENARIOS if s.tenant_id == "brand-neutral-goods")
     seed_synthetic_tenant(lake_root, neutral.tenant_id, days=90, scenario=neutral)
+    _flatten_weather_signals(lake_root, neutral.tenant_id)
 
     start = SYNTHETIC_ANCHOR_DATE - timedelta(days=89)
     end = SYNTHETIC_ANCHOR_DATE

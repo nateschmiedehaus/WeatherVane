@@ -130,6 +130,18 @@ export const adminFlagsInput = z.object({
   flag: z.string().optional().describe("Single flag to get or reset"),
 });
 
+const llmMessageSchema = z.object({
+  role: z.enum(["system", "user", "assistant"]),
+  content: z.string().min(1),
+});
+
+export const llmChatInput = z.object({
+  messages: z.array(llmMessageSchema).min(1),
+  model: z.string().min(1).optional(),
+  maxTokens: z.number().int().positive().optional(),
+  temperature: z.number().min(0).max(2).optional(),
+});
+
 export type PlanUpdateInput = z.infer<typeof planUpdateInput>;
 export type ContextWriteInput = z.infer<typeof contextWriteInput>;
 export type ContextSnapshotInput = z.infer<typeof contextSnapshotInput>;
@@ -150,3 +162,4 @@ export type LspHoverInput = z.infer<typeof lspHoverInput>;
 export type LspServerStatusInput = z.infer<typeof lspServerStatusInput>;
 export type LspInitializeInput = z.infer<typeof lspInitializeInput>;
 export type AdminFlagsInput = z.infer<typeof adminFlagsInput>;
+export type LlmChatInput = z.infer<typeof llmChatInput>;

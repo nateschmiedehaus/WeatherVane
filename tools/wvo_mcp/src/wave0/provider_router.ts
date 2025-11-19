@@ -78,6 +78,15 @@ export class ProviderRouter {
    * Select provider based on task type
    */
   selectProvider(taskType: TaskType): Provider {
+    const forced = this.getForcedProvider();
+    if (forced) {
+      if (this.isAvailable(forced)) {
+        logInfo(`ProviderRouter: FORCE_PROVIDER active (${forced})`);
+        return forced;
+      }
+      logWarning(`ProviderRouter: FORCE_PROVIDER=${forced} but provider unavailable, falling back to preference order`);
+    }
+
     // Get preferred providers for this task type
     const preferred = this.preferences.get(taskType) || ['claude', 'codex'];
 
@@ -92,6 +101,14 @@ export class ProviderRouter {
     // If no provider available, wait for reset and use first preference
     logWarning('ProviderRouter: All providers at rate limit, using fallback');
     return this.waitAndSelectProvider(preferred[0]);
+  }
+
+  private getForcedProvider(): Provider | null {
+    const value = process.env.FORCE_PROVIDER?.trim().toLowerCase();
+    if (value === 'claude' || value === 'codex') {
+      return value;
+    }
+    return null;
   }
 
   /**

@@ -180,6 +180,16 @@ Every autonomous task completion must:
 - Alert on any bypass attempts
 - Reject any task marked "done" without proof
 
+## Current Blocker (2025-11-13)
+
+The strategy now has a concrete bottleneck surfaced by the operator harness run in `state/evidence/AFP-W0-AUTOPILOT-INTEGRITY-ENFORCEMENT-20251107/verify.md`: Wave 0 cannot clear Proof because `TaskExecutor` still emits placeholder AFP documents. We already restored the llm_chat MCP tool and added KPI logging, yet:
+
+- `tools/wvo_mcp/src/wave0/task_executor.ts` keeps calling `executeStrategize/executeSpec/...` which hard-code boilerplate text, so TemplateDetector and ProcessCritic flag every phase.
+- `PhaseExecutionManager` (with transcript hashing, template detection, DRQC concordance, and KPI emission) is unused; the new telemetry never runs during real tasks.
+- The E2E harness (`tools/e2e_test_harness/orchestrator.mjs`) now fails fast with `blocked` because ProofSystem cannot find Strategize evidence for `E2E-GOL-T1`, so `npm test` inside the harness will continue to fail until TaskExecutor emits real STRATEGIZE/SPEC/PLAN/THINK content.
+
+Strategic imperative: refactor TaskExecutor so every phase routes through PhaseExecutionManager (or a deterministic TaskModule) before entering IMPLEMENT. Only then can ProofSystem observe DRQC evidence and unblock the "debut the e2e testing module" milestone.
+
 ## Risks & Mitigation
 
 **Risk 1: MCP Connection Failures**
@@ -252,6 +262,33 @@ Every autonomous task completion must:
 We will not stand for anything less than full, complete, productive, high-quality autopilot with proof of its workings in fidelity to everything we've been institutionalizing: work process, gates, critics, hooks, testing, evidence, and quality control.
 
 **No bypasses. No shortcuts. No compromises. No exceptions.**
+
+## 2025-11-14 Addendum — Debut of the E2E Testing Module
+
+**Why this matters now:** The Wave 0 integrity stack finally emits DRQC evidence for every phase, yet the e2e harness still fails at the first hurdle. `e2e_latest.log` shows ProofSystem blocking `E2E-GOL-T1` because the task’s `plan.md` lacks a `## Proof Criteria` section and the Game-of-Life acceptance work never happens. Meanwhile, llm_chat requests now time out after two minutes when Codex backs up, freezing PhaseExecutionManager, and the Python integrity suite crashes immediately because `.deps/numpy` is a source-only stub with no compiled `_multiarray_umath`.
+
+**Symptoms observed 2025-11-14:**
+- `tools/e2e_test_harness/orchestrator.mjs` creates tasks with no `set_id`, so TaskModuleRunner refuses to run the deterministic Game-of-Life module—every phase falls back to Codex prompts (see log excerpt at 19:04:46Z where provider=`codex` for strategize/plan/think/design).
+- Plan files for `E2E-GOL-T1` miss the literal `## Proof Criteria` header, so ProofSystem defaults to build/test heuristics and immediately declares a discovery (“Build failed”).
+- `tools/wvo_mcp/src/tools/llm_chat.ts` kills Codex after 180 s without retry; Wave 0 sees `llm_chat failed (exit 143)` at least twice per harness run, forcing manual restarts.
+- `bash tools/wvo_mcp/scripts/run_integrity_tests.sh` fails 128/223 tests because `.deps/numpy` lacks binary wheels, causing `ImportError: No module named 'numpy._core._multiarray_umath'`.
+
+**Strategic intent:** Debut the e2e module with proof by (1) guaranteeing the deterministic Game-of-Life module runs (force roadmap `set_id`, run the canonical demo code, persist outputs to `state/logs/E2E-GOL-T*/`), (2) wiring explicit `## Proof Criteria` content so ProofSystem has the right checklist, (3) hardening llm_chat retries/timeouts so the PhaseExecutionManager never stalls during strategize/spec/plan, and (4) restoring NumPy by vendoring an actual wheel into `.deps` so the integrity suite becomes actionable again. These actions unlock the harness ≥95 % success metric and unblock W0-E2E-PROOF/W0-E2E-AUTO follow-ups documented in monitor.md.
+
+**Key dependencies & references:**
+- Evidence bundle: `state/evidence/AFP-W0-AUTOPILOT-INTEGRITY-ENFORCEMENT-20251107/*` (verify.md + monitor.md capture the open GOL proof gap).
+- Harness state: `/tmp/e2e_test_state/e2e_test_report.json`, `e2e_latest.log` for reproducible logs.
+- Canonical Game-of-Life implementation/tests: `state/demos/gol/game_of_life.ts` + `.test.ts`, imported via `tools/wvo_mcp/src/__tests__/game_of_life_state.test.ts`.
+- MCP llm_chat tool implementation: `tools/wvo_mcp/src/tools/llm_chat.ts`.
+- Integrity suite launcher: `tools/wvo_mcp/scripts/run_integrity_tests.sh`.
+
+**Success metrics for this addendum:**
+1. `cd tools/e2e_test_harness && E2E_PRESERVE_STATE=1 npm test` reports ≥95 % success, with logs showing Game-of-Life outputs saved under `state/logs/E2E-GOL-T*/`.
+2. ProofSystem consumes the new `## Proof Criteria` section and marks `E2E-GOL-T1` proven (or surfaces a real downstream defect, not a placeholder).
+3. PhaseExecutionManager completes strategize/spec/plan/think in <90 s without llm_chat timeouts during three consecutive harness executions.
+4. `bash tools/wvo_mcp/scripts/run_integrity_tests.sh` runs to completion (expected Pytest results instead of import crash) after vendoring a compiled NumPy wheel.
+
+This strategy extension keeps us laser-focused on the blockers surfaced by VERIFY/MONITOR so we can declare the e2e testing module truly debuted, not theoretically planned.
 
 ---
 Generated by Claude Council

@@ -7,8 +7,10 @@
 
 import { spawn, execSync } from 'child_process';
 import fs from 'fs/promises';
+import crypto from 'crypto';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import YAML from 'yaml';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const WORKSPACE_ROOT = path.resolve(__dirname, '../..');
@@ -16,12 +18,27 @@ const TEST_STATE_ROOT = '/tmp/e2e_test_state';
 const TEST_LOG_FILE = path.join(TEST_STATE_ROOT, 'e2e_test.log');
 const MAX_RETRIES = 3;
 const CYCLE_TIMEOUT = 60000; // 1 minute per cycle
+const LOGS_ROOT = path.join(WORKSPACE_ROOT, 'state', 'logs');
 
 class E2ETestOrchestrator {
   constructor() {
     this.processes = new Map();
     this.testResults = [];
     this.currentTest = null;
+    this.runId = new Date().toISOString();
+    this.autopilotOnly = process.env.E2E_AUTOPILOT_ONLY === '1';
+    this.autopilotLockPath = null;
+    this.logTag = process.env.E2E_LOG_EXPORT_TAG?.trim() || null;
+    this.forcedProvider = process.env.FORCE_PROVIDER?.trim()?.toLowerCase() || null;
+    if (this.forcedProvider && !['claude', 'codex'].includes(this.forcedProvider)) {
+      throw new Error(`Unsupported FORCE_PROVIDER value: ${this.forcedProvider}`);
+    }
+  }
+
+  notifyParent(type, payload = {}) {
+    if (typeof process.send === 'function') {
+      process.send({ type, ...payload });
+    }
   }
 
   async initialize() {
@@ -29,6 +46,7 @@ class E2ETestOrchestrator {
 
     // Clean up any existing test state
     await this.cleanup();
+    await this.ensureAutopilotLock();
 
     // Create fresh test directory structure
     await fs.mkdir(TEST_STATE_ROOT, { recursive: true });
@@ -39,18 +57,12 @@ class E2ETestOrchestrator {
     await fs.mkdir(path.join(TEST_STATE_ROOT, 'kb'), { recursive: true });
 
     // Create the roadmap.yaml file here to ensure it exists
-    await fs.writeFile(path.join(TEST_STATE_ROOT, 'roadmap.yaml'), 'tasks: []\n', 'utf-8');
+    const emptyRoadmap = {
+      epics: []
+    };
+    await fs.writeFile(path.join(TEST_STATE_ROOT, 'roadmap.yaml'), YAML.stringify(emptyRoadmap), 'utf-8');
 
-    // Create empty orchestrator.db for LiveFlags
-    // Note: This requires sqlite3 to be installed
-    try {
-      execSync(`sqlite3 ${path.join(TEST_STATE_ROOT, 'orchestrator.db')} "CREATE TABLE IF NOT EXISTS live_flags (key TEXT PRIMARY KEY, value TEXT); VACUUM;"`, { stdio: 'pipe' });
-      console.log('  Created orchestrator.db for LiveFlags');
-    } catch (error) {
-      console.log('  Warning: Could not create orchestrator.db (sqlite3 not found)');
-      // Create empty file as fallback
-      await fs.writeFile(path.join(TEST_STATE_ROOT, 'orchestrator.db'), '', 'utf-8');
-    }
+    // Note: orchestrator.db is no longer created here - LiveFlags handles missing database gracefully
 
     // Initialize git branch for tests
     await this.initializeGitBranch();
@@ -58,8 +70,9 @@ class E2ETestOrchestrator {
     console.log('✅ Test environment initialized');
   }
 
-  async cleanup() {
-    console.log('🧹 Cleaning up test environment...');
+  async cleanup(options = {}) {
+    const preserveState = options.preserveState === true;
+    console.log(`🧹 Cleaning up test environment...${preserveState ? ' (state preserved)' : ''}`);
 
     // Kill any running processes
     for (const [name, proc] of this.processes) {
@@ -69,10 +82,14 @@ class E2ETestOrchestrator {
     this.processes.clear();
 
     // Remove test state directory
-    try {
-      await fs.rm(TEST_STATE_ROOT, { recursive: true, force: true });
-    } catch (error) {
-      // Directory might not exist
+    if (!preserveState) {
+      try {
+        await fs.rm(TEST_STATE_ROOT, { recursive: true, force: true });
+      } catch (error) {
+        // Directory might not exist
+      }
+    } else {
+      console.log('  Skipping /tmp/e2e_test_state removal');
     }
 
     // Remove any stale PID locks
@@ -80,6 +97,38 @@ class E2ETestOrchestrator {
       await fs.unlink(path.join(TEST_STATE_ROOT, '.mcp.pid'));
     } catch (error) {
       // File might not exist
+    }
+
+    if (options.releaseLock) {
+      await this.releaseAutopilotLock();
+    }
+  }
+
+  async ensureAutopilotLock() {
+    if (!this.autopilotOnly) {
+      return;
+    }
+    await fs.mkdir(LOGS_ROOT, { recursive: true });
+    const lockPath = path.join(LOGS_ROOT, '.autopilot_lock');
+    if (await pathExists(lockPath)) {
+      const existing = await fs.readFile(lockPath, 'utf-8').catch(() => 'unknown');
+      throw new Error(
+        `Autopilot lock already present at ${lockPath}. Another run may be active or manual edits were detected.\n${existing}`,
+      );
+    }
+    const payload = {
+      runId: this.runId,
+      pid: process.pid,
+      startedAt: new Date().toISOString(),
+    };
+    await fs.writeFile(lockPath, JSON.stringify(payload, null, 2), 'utf-8');
+    this.autopilotLockPath = lockPath;
+  }
+
+  async releaseAutopilotLock() {
+    if (this.autopilotLockPath) {
+      await fs.rm(this.autopilotLockPath, { force: true }).catch(() => {});
+      this.autopilotLockPath = null;
     }
   }
 
@@ -103,86 +152,130 @@ class E2ETestOrchestrator {
     console.log('📝 Creating GOL task roadmap...');
 
     const roadmap = {
-      tasks: [
+      epics: [
         {
-          id: 'E2E-GOL-T1',
-          title: 'Game of Life: Basic Glider Pattern',
-          status: 'pending',
-          epic: 'E2E-TEST',
-          priority: 'high',
-          description: 'Implement basic glider pattern simulation',
-          acceptance: [
-            'Glider pattern initialized successfully',
-            'One generation computed correctly',
-            'Output saved to state/logs/E2E-GOL-T1/output.txt'
-          ],
-          dependencies: []
-        },
-        {
-          id: 'E2E-GOL-T2',
-          title: 'Game of Life: Multi-Generation Evolution',
-          status: 'pending',
-          epic: 'E2E-TEST',
-          priority: 'high',
-          description: 'Evolve pattern for multiple generations',
-          acceptance: [
-            'Pattern loaded from T1 output',
-            '10 generations computed',
-            'State transitions verified',
-            'Results saved to state/logs/E2E-GOL-T2/output.txt'
-          ],
-          dependencies: ['E2E-GOL-T1']
-        },
-        {
-          id: 'E2E-GOL-T3',
-          title: 'Game of Life: Pattern Analysis',
-          status: 'pending',
-          epic: 'E2E-TEST',
-          priority: 'high',
-          description: 'Analyze pattern evolution and detect cycles',
-          acceptance: [
-            'Pattern history from T2 loaded',
-            'Cycle detection implemented',
-            'Statistics calculated',
-            'Final report saved to state/logs/E2E-GOL-T3/report.txt'
-          ],
-          dependencies: ['E2E-GOL-T2']
+          id: 'E2E-GOL',
+          title: 'E2E Game of Life Chain',
+          status: 'in_progress',
+          domain: 'e2e',
+          milestones: [
+            {
+              id: 'E2E-GOL-M1',
+              title: 'Sequential Wave 0 Validation',
+              status: 'in_progress',
+              tasks: [
+                {
+                  id: 'E2E-GOL-T1',
+                  title: 'Game of Life: Basic Glider Pattern',
+                  status: 'pending',
+                  priority: 'high',
+                  set_id: 'wave0-gol',
+                  description: 'Implement basic glider pattern simulation',
+                  dependencies: [],
+                  acceptance: [
+                    'Glider pattern initialized successfully',
+                    'One generation computed correctly',
+                    'Output saved to state/logs/E2E-GOL-T1/output.txt'
+                  ]
+                },
+                {
+                  id: 'E2E-GOL-T2',
+                  title: 'Game of Life: Multi-Generation Evolution',
+                  status: 'pending',
+                  priority: 'high',
+                  set_id: 'wave0-gol',
+                  description: 'Evolve pattern for multiple generations',
+                  dependencies: ['E2E-GOL-T1'],
+                  acceptance: [
+                    'Pattern loaded from T1 output',
+                    '10 generations computed',
+                    'State transitions verified',
+                    'Results saved to state/logs/E2E-GOL-T2/output.txt'
+                  ]
+                },
+                {
+                  id: 'E2E-GOL-T3',
+                  title: 'Game of Life: Pattern Analysis',
+                  status: 'pending',
+                  priority: 'high',
+                  set_id: 'wave0-gol',
+                  description: 'Analyze pattern evolution and detect cycles',
+                  dependencies: ['E2E-GOL-T2'],
+                  acceptance: [
+                    'Pattern history from T2 loaded',
+                    'Cycle detection implemented',
+                    'Statistics calculated',
+                    'Final report saved to state/logs/E2E-GOL-T3/report.txt'
+                  ]
+                },
+                {
+                  id: 'E2E-GOL-T4',
+                  title: 'Game of Life: Oscillator Diagnostics',
+                  status: 'pending',
+                  priority: 'high',
+                  set_id: 'wave0-gol',
+                  description: 'Classify multiple seed patterns and measure translation vectors',
+                  dependencies: ['E2E-GOL-T3'],
+                  acceptance: [
+                    'Blinker, Toad, Beacon, and Glider analyzed',
+                    'Cycle periods and displacement recorded',
+                    'Summary saved to state/logs/E2E-GOL-T4/oscillators.txt'
+                  ]
+                },
+                {
+                  id: 'E2E-GOL-T5',
+                  title: 'Game of Life: Stability Forecasting',
+                  status: 'pending',
+                  priority: 'high',
+                  set_id: 'wave0-gol',
+                  description: 'Extend simulation timeline and compute stability metrics',
+                  dependencies: ['E2E-GOL-T4'],
+                  acceptance: [
+                    'History extended with 20 forecasted generations',
+                    'Peak/min/avg live cell counts computed',
+                    'Trend + stability index written to state/logs/E2E-GOL-T5/forecast.txt'
+                  ]
+                },
+                {
+                  id: 'E2E-GOL-T6',
+                  title: 'Game of Life: Interactive CLI Experience',
+                  status: 'pending',
+                  priority: 'high',
+                  set_id: 'wave0-gol',
+                  description: 'Ship a self-contained CLI Game of Life tool people can run locally',
+                  dependencies: ['E2E-GOL-T5'],
+                  acceptance: [
+                    'CLI script saved alongside prior artefacts (state/logs/E2E-GOL-T6/cli_gol.js)',
+                    'Instructions include usage examples (initial board, commands, quit)',
+                    'Supports editing cells, stepping generations, running multiple steps, and loading preset patterns'
+                  ]
+                },
+                {
+                  id: 'E2E-GOL-T7',
+                  title: 'Game of Life: Desktop Launcher',
+                  status: 'pending',
+                  priority: 'high',
+                  set_id: 'wave0-gol',
+                  description: 'Provide a shell command that starts a lightweight desktop app with a GOL grid rendered in a browser window (no terminal interaction).',
+                  dependencies: ['E2E-GOL-T6'],
+                  acceptance: [
+                    'Launcher script saved (state/logs/E2E-GOL-T7/run_gol.sh) and marked executable.',
+                    'HTML/JS assets emitted so the launcher opens a local browser window (no terminal UI).',
+                    'Controls documented: mouse clicks toggle cells, buttons start/step/clear/load presets, with instructions in state/logs/E2E-GOL-T7/instructions.txt.'
+                  ]
+                }
+              ]
+            }
+          ]
         }
       ]
     };
 
     const roadmapPath = path.join(TEST_STATE_ROOT, 'roadmap.yaml');
-    const yaml = this.objectToYAML(roadmap);
-    await fs.writeFile(roadmapPath, yaml, 'utf-8');
+    const yamlDoc = YAML.stringify(roadmap);
+    await fs.writeFile(roadmapPath, yamlDoc, 'utf-8');
 
     console.log('✅ Roadmap created with GOL task chain');
-  }
-
-  objectToYAML(obj, indent = 0) {
-    let yaml = '';
-    const spaces = '  '.repeat(indent);
-
-    for (const [key, value] of Object.entries(obj)) {
-      if (Array.isArray(value)) {
-        yaml += `${spaces}${key}:\n`;
-        for (const item of value) {
-          if (typeof item === 'object') {
-            yaml += `${spaces}  - `;
-            const itemYaml = this.objectToYAML(item, indent + 2);
-            yaml += itemYaml.trim().replace(/\n/g, '\n' + spaces + '    ') + '\n';
-          } else {
-            yaml += `${spaces}  - ${item}\n`;
-          }
-        }
-      } else if (typeof value === 'object') {
-        yaml += `${spaces}${key}:\n`;
-        yaml += this.objectToYAML(value, indent + 1);
-      } else {
-        yaml += `${spaces}${key}: ${value}\n`;
-      }
-    }
-
-    return yaml;
   }
 
   async startWave0() {
@@ -193,10 +286,14 @@ class E2ETestOrchestrator {
         cwd: path.join(WORKSPACE_ROOT, 'tools/wvo_mcp'),
         env: {
           ...process.env,
+          WVO_WORKSPACE_ROOT: WORKSPACE_ROOT,
           WVO_STATE_ROOT: TEST_STATE_ROOT,
           WVO_DRY_RUN: '0',
           WVO_DISABLE_SEMANTIC_ENFORCER: '1',
-          WAVE0_SINGLE_RUN: '0'
+          WAVE0_RATE_LIMIT_MS: '1000',
+          WAVE0_EMPTY_RETRY_LIMIT: '1',
+          WAVE0_TARGET_EPICS: 'E2E-GOL',
+          PROOF_SYSTEM_ENABLED: '0'
         },
         stdio: ['pipe', 'pipe', 'pipe']
       });
@@ -241,14 +338,14 @@ class E2ETestOrchestrator {
       // Check if task completed
       const status = await this.getTaskStatus(taskId);
 
-      if (status === 'completed') {
+      if (status === 'completed' || status === 'done') {
         console.log(`✅ Task ${taskId} completed successfully`);
         return { success: true, taskId };
       }
 
-      if (status === 'failed') {
-        console.log(`❌ Task ${taskId} failed`);
-        return { success: false, taskId, reason: 'Task failed' };
+      if (status === 'failed' || status === 'blocked') {
+        console.log(`❌ Task ${taskId} ${status}`);
+        return { success: false, taskId, reason: status === 'blocked' ? 'Task blocked' : 'Task failed' };
       }
 
       // Check for infinite loops or hanging
@@ -320,10 +417,108 @@ class E2ETestOrchestrator {
     await fs.writeFile(roadmapPath, content, 'utf-8');
   }
 
+  async exportArtifacts(report) {
+    const sourceDir = path.join(TEST_STATE_ROOT, 'logs');
+    const tag = this.logTag;
+    const destinationDir = tag
+      ? path.join(WORKSPACE_ROOT, 'state', 'logs', tag)
+      : path.join(WORKSPACE_ROOT, 'state', 'logs');
+    try {
+      await fs.mkdir(destinationDir, { recursive: true });
+      const entries = await fs.readdir(sourceDir);
+      const summaries = [];
+      for (const entry of entries) {
+        const src = path.join(sourceDir, entry);
+        const dest = path.join(destinationDir, entry);
+        await this.verifyExistingExport(dest);
+        await fs.rm(dest, { recursive: true, force: true });
+        await fs.cp(src, dest, { recursive: true });
+        const summary = await computeDirectoryHash(dest);
+        await this.writeTaskProvenance(dest, summary);
+        if (this.autopilotOnly) {
+          await chmodRecursive(dest);
+        }
+        summaries.push({
+          taskId: entry,
+          repoPath: dest.replace(`${WORKSPACE_ROOT}${path.sep}`, ''),
+          files: summary.files,
+          sha256: summary.sha256,
+        });
+      }
+      await this.writeRunMeta(destinationDir, summaries, report);
+      console.log(`📦 Artifacts exported to ${destinationDir}`);
+    } catch (error) {
+      console.warn('⚠️  Failed to export artifacts:', error.message);
+    }
+  }
+
+  async verifyExistingExport(dest) {
+    if (!this.autopilotOnly) {
+      return;
+    }
+    const provenancePath = path.join(dest, 'autopilot_provenance.json');
+    if (!(await pathExists(provenancePath))) {
+      return;
+    }
+    try {
+      const expected = JSON.parse(await fs.readFile(provenancePath, 'utf-8'));
+      const actual = await computeDirectoryHash(dest);
+      if (expected.sha256 && expected.sha256 !== actual.sha256) {
+        throw new Error(
+          `Detected manual edits in ${dest}. Remove the directory or disable E2E_AUTOPILOT_ONLY before re-running.`,
+        );
+      }
+    } catch (error) {
+      if (error.code !== 'ENOENT') {
+        throw error;
+      }
+    }
+  }
+
+  async writeTaskProvenance(dest, summary) {
+    const payload = {
+      runId: this.runId,
+      provider: this.forcedProvider ?? 'auto',
+      autopilotOnly: this.autopilotOnly,
+      generatedAt: new Date().toISOString(),
+      files: summary.files,
+      sha256: summary.sha256,
+    };
+    const filePath = path.join(dest, 'autopilot_provenance.json');
+    await fs.writeFile(filePath, JSON.stringify(payload, null, 2), 'utf-8');
+    if (this.autopilotOnly) {
+      await fs.chmod(filePath, 0o444).catch(() => {});
+    }
+  }
+
+  async writeRunMeta(destinationDir, summaries, report) {
+    try {
+      const payload = {
+        runId: this.runId,
+        startedAt: new Date(this.startTime).toISOString(),
+        finishedAt: new Date().toISOString(),
+        autopilotOnly: this.autopilotOnly,
+        providerOverride: this.forcedProvider ?? null,
+        logTag: this.logTag,
+        tasks: summaries,
+      };
+      if (report?.summary) {
+        payload.summary = report.summary;
+      }
+      const filePath = path.join(destinationDir, 'run_meta.json');
+      await fs.writeFile(filePath, JSON.stringify(payload, null, 2), 'utf-8');
+      if (this.autopilotOnly) {
+        await fs.chmod(filePath, 0o444).catch(() => {});
+      }
+    } catch (error) {
+      console.warn('⚠️  Failed to write run_meta.json:', error.message);
+    }
+  }
+
   async runTestSuite() {
     console.log('\n🎯 Starting E2E Test Suite...\n');
 
-    const tasks = ['E2E-GOL-T1', 'E2E-GOL-T2', 'E2E-GOL-T3'];
+    const tasks = ['E2E-GOL-T1', 'E2E-GOL-T2', 'E2E-GOL-T3', 'E2E-GOL-T4', 'E2E-GOL-T5', 'E2E-GOL-T6', 'E2E-GOL-T7'];
     const results = [];
 
     for (const taskId of tasks) {
@@ -371,6 +566,8 @@ class E2ETestOrchestrator {
     const reportPath = path.join(TEST_STATE_ROOT, 'e2e_test_report.json');
     await fs.writeFile(reportPath, JSON.stringify(report, null, 2), 'utf-8');
 
+    await this.exportArtifacts(report);
+
     console.log('Test Summary:');
     console.log(`  Total: ${report.summary.total}`);
     console.log(`  Passed: ${report.summary.passed}`);
@@ -382,18 +579,7 @@ class E2ETestOrchestrator {
 
   async commitResults(report) {
     console.log('\n📤 Committing test results to GitHub...');
-
-    try {
-      const message = `test(e2e): automated test run - ${report.summary.passed}/${report.summary.total} passed`;
-
-      execSync(`git add -A`, { cwd: WORKSPACE_ROOT });
-      execSync(`git commit -m "${message}"`, { cwd: WORKSPACE_ROOT });
-      execSync(`git push origin test/e2e-harness`, { cwd: WORKSPACE_ROOT });
-
-      console.log('✅ Results committed and pushed to GitHub');
-    } catch (error) {
-      console.warn('⚠️  Failed to commit results:', error.message);
-    }
+    console.log('⚠️  Commit skipped in harness mode (results recorded locally only).');
   }
 
   sleep(ms) {
@@ -410,19 +596,86 @@ class E2ETestOrchestrator {
 
       const results = await this.runTestSuite();
       const report = await this.generateReport(results);
+      this.testResults = results;
 
       await this.commitResults(report);
 
       console.log('\n✨ E2E Test Suite Complete!\n');
-
+      this.notifyParent('suite-complete', {
+        reportPath: path.join(TEST_STATE_ROOT, 'e2e_test_report.json'),
+        summary: report?.summary ?? null,
+      });
     } catch (error) {
       console.error('❌ Test suite failed:', error);
+      this.notifyParent('suite-error', { error: error?.message ?? String(error) });
+      throw error;
     } finally {
-      await this.cleanup();
+      await this.cleanup({
+        preserveState: process.env.E2E_PRESERVE_STATE === '1',
+        releaseLock: true,
+      });
+      this.notifyParent('suite-cleanup-complete', {
+        preserved: process.env.E2E_PRESERVE_STATE === '1',
+      });
+      await this.releaseAutopilotLock();
     }
   }
 }
 
 // Run the orchestrator
 const orchestrator = new E2ETestOrchestrator();
-orchestrator.run().catch(console.error);
+orchestrator.run().catch((error) => {
+  console.error(error);
+  process.exitCode = 1;
+});
+
+async function pathExists(target) {
+  try {
+    await fs.access(target);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function computeDirectoryHash(target) {
+  const hash = crypto.createHash('sha256');
+  let files = 0;
+
+  async function walk(current, relative = '.') {
+    const stats = await fs.lstat(current);
+    if (stats.isDirectory()) {
+      const entries = await fs.readdir(current);
+      for (const entry of entries) {
+        await walk(path.join(current, entry), path.join(relative, entry));
+      }
+      return;
+    }
+    if (stats.isFile()) {
+      files += 1;
+      hash.update(`${relative}:${stats.size}:`);
+      const data = await fs.readFile(current);
+      hash.update(data);
+    }
+  }
+
+  await walk(target);
+  return { files, sha256: hash.digest('hex') };
+}
+
+async function chmodRecursive(target) {
+  try {
+    const stats = await fs.lstat(target);
+    if (stats.isDirectory()) {
+      await fs.chmod(target, 0o555).catch(() => {});
+      const entries = await fs.readdir(target);
+      for (const entry of entries) {
+        await chmodRecursive(path.join(target, entry));
+      }
+    } else if (stats.isFile()) {
+      await fs.chmod(target, 0o444).catch(() => {});
+    }
+  } catch {
+    // ignore permission errors for locking
+  }
+}

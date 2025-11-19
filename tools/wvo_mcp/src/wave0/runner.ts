@@ -259,10 +259,23 @@ export class Wave0Runner {
           }
 
           logInfo("Wave0Runner: Found pending task", { task: { id: obj.id, title: obj.title, epicId } });
+          const exitCriteria =
+            Array.isArray(obj.exit_criteria)
+              ? obj.exit_criteria.map((item: unknown) => String(item))
+              : Array.isArray(obj.acceptance)
+                ? obj.acceptance.map((item: unknown) => String(item))
+                : undefined;
           return {
             id: obj.id,
             title: obj.title,
-            status: "pending"
+            status: "pending",
+            description: typeof obj.description === "string" ? obj.description : undefined,
+            set_id: typeof obj.set_id === "string" ? obj.set_id : undefined,
+            dependencies: Array.isArray(obj.dependencies)
+              ? obj.dependencies.map((item: unknown) => String(item))
+              : undefined,
+            exit_criteria: exitCriteria,
+            domain: typeof obj.domain === "string" ? obj.domain : undefined,
           };
         }
 

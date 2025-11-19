@@ -3,6 +3,7 @@ set -euo pipefail
 
 ROOT_DIR="$(git rev-parse --show-toplevel)"
 cd "$ROOT_DIR"
+export PYTHONPATH=".deps:."
 
 function section() {
   printf '\n== %s ==\n' "$1"

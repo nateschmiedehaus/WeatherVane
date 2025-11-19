@@ -2,6 +2,7 @@ import path from 'node:path';
 
 import DatabaseConstructor from 'better-sqlite3';
 
+import { resolveStateRoot } from '../utils/config.js';
 import {
   DEFAULT_LIVE_FLAGS,
   type LiveFlagKey,
@@ -25,14 +26,27 @@ export interface LiveFlagsReader {
 export class LiveFlags implements LiveFlagsReader {
   private readonly pollInterval: number;
   private readonly timer: NodeJS.Timeout;
-  private readonly db: ReturnType<typeof DatabaseConstructor>;
+  private readonly db: ReturnType<typeof DatabaseConstructor> | null;
   private cache: LiveFlagSnapshot = { ...DEFAULT_LIVE_FLAGS };
   private disposed = false;
 
   constructor(private readonly options: LiveFlagsOptions) {
     this.pollInterval = Math.max(100, options.pollIntervalMs ?? 500);
-    this.db = new DatabaseConstructor(this.sqlitePath, { readonly: true });
-    this.refresh();
+
+    // Try to open database, but gracefully degrade to defaults if it fails
+    try {
+      const dbPath = this.options.sqlitePath ??
+        path.join(resolveStateRoot(this.options.workspaceRoot), 'orchestrator.db');
+      this.db = new DatabaseConstructor(dbPath, { readonly: true });
+      this.refresh();
+    } catch (error) {
+      // Graceful degradation - use defaults
+      this.db = null;
+      if (error instanceof Error) {
+        this.options.onError?.(error);
+      }
+    }
+
     this.timer = setInterval(() => {
       this.refresh();
     }, this.pollInterval);
@@ -50,19 +64,12 @@ export class LiveFlags implements LiveFlagsReader {
   dispose(): void {
     if (this.disposed) return;
     clearInterval(this.timer);
-    this.db.close();
+    this.db?.close();
     this.disposed = true;
   }
 
-  private get sqlitePath(): string {
-    return (
-      this.options.sqlitePath ??
-      path.join(this.options.workspaceRoot, 'state', 'orchestrator.db')
-    );
-  }
-
   private refresh(): void {
-    if (this.disposed) return;
+    if (this.disposed || !this.db) return;
     try {
       const snapshot: LiveFlagSnapshot = { ...DEFAULT_LIVE_FLAGS };
       const rows = this.db

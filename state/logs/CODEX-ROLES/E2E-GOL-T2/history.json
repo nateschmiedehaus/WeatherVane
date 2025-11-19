@@ -1,0 +1,55 @@
+{
+  "start": "#.#\n.##\n.#.",
+  "generations": [
+    {
+      "generation": 1,
+      "pattern": "..#\n#.#\n.##",
+      "liveCells": 5
+    },
+    {
+      "generation": 2,
+      "pattern": "#..\n.##\n##.",
+      "liveCells": 5
+    },
+    {
+      "generation": 3,
+      "pattern": ".#.\n..#\n###",
+      "liveCells": 5
+    },
+    {
+      "generation": 4,
+      "pattern": "#.#\n.##\n.#.",
+      "liveCells": 5
+    },
+    {
+      "generation": 5,
+      "pattern": "..#\n#.#\n.##",
+      "liveCells": 5
+    },
+    {
+      "generation": 6,
+      "pattern": "#..\n.##\n##.",
+      "liveCells": 5
+    },
+    {
+      "generation": 7,
+      "pattern": ".#.\n..#\n###",
+      "liveCells": 5
+    },
+    {
+      "generation": 8,
+      "pattern": "#.#\n.##\n.#.",
+      "liveCells": 5
+    },
+    {
+      "generation": 9,
+      "pattern": "..#\n#.#\n.##",
+      "liveCells": 5
+    },
+    {
+      "generation": 10,
+      "pattern": "#..\n.##\n##.",
+      "liveCells": 5
+    }
+  ]
+}

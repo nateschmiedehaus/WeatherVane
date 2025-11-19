@@ -1,0 +1,458 @@
+{
+  "baseline": [
+    {
+      "generation": 1,
+      "pattern": "..#\n#.#\n.##",
+      "liveCells": 5,
+      "width": 3,
+      "height": 3,
+      "density": 0.556
+    },
+    {
+      "generation": 2,
+      "pattern": "#..\n.##\n##.",
+      "liveCells": 5,
+      "width": 3,
+      "height": 3,
+      "density": 0.556
+    },
+    {
+      "generation": 3,
+      "pattern": ".#.\n..#\n###",
+      "liveCells": 5,
+      "width": 3,
+      "height": 3,
+      "density": 0.556
+    },
+    {
+      "generation": 4,
+      "pattern": "#.#\n.##\n.#.",
+      "liveCells": 5,
+      "width": 3,
+      "height": 3,
+      "density": 0.556
+    },
+    {
+      "generation": 5,
+      "pattern": "..#\n#.#\n.##",
+      "liveCells": 5,
+      "width": 3,
+      "height": 3,
+      "density": 0.556
+    },
+    {
+      "generation": 6,
+      "pattern": "#..\n.##\n##.",
+      "liveCells": 5,
+      "width": 3,
+      "height": 3,
+      "density": 0.556
+    },
+    {
+      "generation": 7,
+      "pattern": ".#.\n..#\n###",
+      "liveCells": 5,
+      "width": 3,
+      "height": 3,
+      "density": 0.556
+    },
+    {
+      "generation": 8,
+      "pattern": "#.#\n.##\n.#.",
+      "liveCells": 5,
+      "width": 3,
+      "height": 3,
+      "density": 0.556
+    },
+    {
+      "generation": 9,
+      "pattern": "..#\n#.#\n.##",
+      "liveCells": 5,
+      "width": 3,
+      "height": 3,
+      "density": 0.556
+    },
+    {
+      "generation": 10,
+      "pattern": "#..\n.##\n##.",
+      "liveCells": 5,
+      "width": 3,
+      "height": 3,
+      "density": 0.556
+    }
+  ],
+  "forecast": [
+    {
+      "generation": 11,
+      "pattern": ".#.\n..#\n###",
+      "liveCells": 5,
+      "width": 3,
+      "height": 3,
+      "density": 0.556
+    },
+    {
+      "generation": 12,
+      "pattern": "#.#\n.##\n.#.",
+      "liveCells": 5,
+      "width": 3,
+      "height": 3,
+      "density": 0.556
+    },
+    {
+      "generation": 13,
+      "pattern": "..#\n#.#\n.##",
+      "liveCells": 5,
+      "width": 3,
+      "height": 3,
+      "density": 0.556
+    },
+    {
+      "generation": 14,
+      "pattern": "#..\n.##\n##.",
+      "liveCells": 5,
+      "width": 3,
+      "height": 3,
+      "density": 0.556
+    },
+    {
+      "generation": 15,
+      "pattern": ".#.\n..#\n###",
+      "liveCells": 5,
+      "width": 3,
+      "height": 3,
+      "density": 0.556
+    },
+    {
+      "generation": 16,
+      "pattern": "#.#\n.##\n.#.",
+      "liveCells": 5,
+      "width": 3,
+      "height": 3,
+      "density": 0.556
+    },
+    {
+      "generation": 17,
+      "pattern": "..#\n#.#\n.##",
+      "liveCells": 5,
+      "width": 3,
+      "height": 3,
+      "density": 0.556
+    },
+    {
+      "generation": 18,
+      "pattern": "#..\n.##\n##.",
+      "liveCells": 5,
+      "width": 3,
+      "height": 3,
+      "density": 0.556
+    },
+    {
+      "generation": 19,
+      "pattern": ".#.\n..#\n###",
+      "liveCells": 5,
+      "width": 3,
+      "height": 3,
+      "density": 0.556
+    },
+    {
+      "generation": 20,
+      "pattern": "#.#\n.##\n.#.",
+      "liveCells": 5,
+      "width": 3,
+      "height": 3,
+      "density": 0.556
+    },
+    {
+      "generation": 21,
+      "pattern": "..#\n#.#\n.##",
+      "liveCells": 5,
+      "width": 3,
+      "height": 3,
+      "density": 0.556
+    },
+    {
+      "generation": 22,
+      "pattern": "#..\n.##\n##.",
+      "liveCells": 5,
+      "width": 3,
+      "height": 3,
+      "density": 0.556
+    },
+    {
+      "generation": 23,
+      "pattern": ".#.\n..#\n###",
+      "liveCells": 5,
+      "width": 3,
+      "height": 3,
+      "density": 0.556
+    },
+    {
+      "generation": 24,
+      "pattern": "#.#\n.##\n.#.",
+      "liveCells": 5,
+      "width": 3,
+      "height": 3,
+      "density": 0.556
+    },
+    {
+      "generation": 25,
+      "pattern": "..#\n#.#\n.##",
+      "liveCells": 5,
+      "width": 3,
+      "height": 3,
+      "density": 0.556
+    },
+    {
+      "generation": 26,
+      "pattern": "#..\n.##\n##.",
+      "liveCells": 5,
+      "width": 3,
+      "height": 3,
+      "density": 0.556
+    },
+    {
+      "generation": 27,
+      "pattern": ".#.\n..#\n###",
+      "liveCells": 5,
+      "width": 3,
+      "height": 3,
+      "density": 0.556
+    },
+    {
+      "generation": 28,
+      "pattern": "#.#\n.##\n.#.",
+      "liveCells": 5,
+      "width": 3,
+      "height": 3,
+      "density": 0.556
+    },
+    {
+      "generation": 29,
+      "pattern": "..#\n#.#\n.##",
+      "liveCells": 5,
+      "width": 3,
+      "height": 3,
+      "density": 0.556
+    },
+    {
+      "generation": 30,
+      "pattern": "#..\n.##\n##.",
+      "liveCells": 5,
+      "width": 3,
+      "height": 3,
+      "density": 0.556
+    }
+  ],
+  "reference": [
+    {
+      "generation": 1,
+      "pattern": "###\n#..\n##.",
+      "liveCells": 6,
+      "width": 3,
+      "height": 3,
+      "density": 0.667
+    },
+    {
+      "generation": 2,
+      "pattern": "..#.\n.##.\n#..#\n.##.",
+      "liveCells": 7,
+      "width": 4,
+      "height": 4,
+      "density": 0.438
+    },
+    {
+      "generation": 3,
+      "pattern": ".##.\n.###\n#..#\n.##.",
+      "liveCells": 9,
+      "width": 4,
+      "height": 4,
+      "density": 0.563
+    },
+    {
+      "generation": 4,
+      "pattern": ".#.#\n#..#\n#..#\n.##.",
+      "liveCells": 8,
+      "width": 4,
+      "height": 4,
+      "density": 0.5
+    },
+    {
+      "generation": 5,
+      "pattern": "..#..\n##.##\n#..#.\n.##..",
+      "liveCells": 9,
+      "width": 5,
+      "height": 4,
+      "density": 0.45
+    },
+    {
+      "generation": 6,
+      "pattern": ".###.\n##.##\n#..##\n.##..",
+      "liveCells": 12,
+      "width": 5,
+      "height": 4,
+      "density": 0.6
+    },
+    {
+      "generation": 7,
+      "pattern": "..#..\n##.##\n#....\n#...#\n.###.",
+      "liveCells": 11,
+      "width": 5,
+      "height": 5,
+      "density": 0.44
+    },
+    {
+      "generation": 8,
+      "pattern": "..###.\n.####.\n##..##\n.#.##.\n..###.\n...#..",
+      "liveCells": 18,
+      "width": 6,
+      "height": 6,
+      "density": 0.5
+    },
+    {
+      "generation": 9,
+      "pattern": "...#..\n.#..#.\n#.....\n#....#\n##....\n......\n..###.",
+      "liveCells": 11,
+      "width": 6,
+      "height": 7,
+      "density": 0.262
+    },
+    {
+      "generation": 10,
+      "pattern": ".##..\n##...\n.##..\n..###\n....#\n....#",
+      "liveCells": 11,
+      "width": 5,
+      "height": 6,
+      "density": 0.367
+    },
+    {
+      "generation": 11,
+      "pattern": "###...\n#.....\n#.....\n.##.#.\n....##",
+      "liveCells": 10,
+      "width": 6,
+      "height": 5,
+      "density": 0.333
+    },
+    {
+      "generation": 12,
+      "pattern": "..#....\n.##....\n##.....\n.#.....\n..#.###\n....###",
+      "liveCells": 13,
+      "width": 7,
+      "height": 6,
+      "density": 0.31
+    },
+    {
+      "generation": 13,
+      "pattern": ".##....\n#.#....\n#......\n###..#.\n...##.#\n...##.#\n.....#.",
+      "liveCells": 16,
+      "width": 7,
+      "height": 7,
+      "density": 0.327
+    },
+    {
+      "generation": 14,
+      "pattern": "..##....\n.#.#....\n##.#....\n.######.\n..#....#\n....#..#\n.....##.",
+      "liveCells": 19,
+      "width": 8,
+      "height": 7,
+      "density": 0.339
+    },
+    {
+      "generation": 15,
+      "pattern": "..##....\n##.##...\n#....#..\n#...###.\n.##....#\n.....#.#\n.....##.",
+      "liveCells": 19,
+      "width": 8,
+      "height": 7,
+      "density": 0.339
+    },
+    {
+      "generation": 16,
+      "pattern": "..####...\n.##.##...\n##..#..#.\n.#...###.\n..#..#..#\n......#.#\n......##.",
+      "liveCells": 23,
+      "width": 9,
+      "height": 7,
+      "density": 0.365
+    },
+    {
+      "generation": 17,
+      "pattern": "...##....\n.##..#...\n#.....#..\n#..##..#.\n###.##.##\n.....#..#\n.....##.#\n......##.",
+      "liveCells": 25,
+      "width": 9,
+      "height": 8,
+      "density": 0.347
+    },
+    {
+      "generation": 18,
+      "pattern": "...###.....\n..#####....\n.#.#####...\n##.###..##.\n.###..#.##.\n..#......##\n......#..#.\n......###..",
+      "liveCells": 35,
+      "width": 11,
+      "height": 8,
+      "density": 0.398
+    },
+    {
+      "generation": 19,
+      "pattern": "....#......\n..#...#....\n.......#...\n##.....##..\n#........#.\n#....#.#...\n.###...#..#\n......#..##\n......###..\n.......#...",
+      "liveCells": 25,
+      "width": 11,
+      "height": 10,
+      "density": 0.227
+    },
+    {
+      "generation": 20,
+      "pattern": "..#....###..\n.##.....##..\n##.....##...\n.#.#...#.#..\n..##....####\n...#...#..##\n.......#.##.\n.......###..",
+      "liveCells": 32,
+      "width": 12,
+      "height": 8,
+      "density": 0.333
+    },
+    {
+      "generation": 21,
+      "pattern": "........#...\n.##....#.#..\n#.#.........\n#......#....\n##.#...#....\n...##..#...#\n..##...#....\n......##...#\n.......#.##.\n........#...",
+      "liveCells": 27,
+      "width": 12,
+      "height": 10,
+      "density": 0.225
+    },
+    {
+      "generation": 22,
+      "pattern": ".........#..\n..##.....#..\n.#.#.....#..\n##.#........\n.#####.###..\n..#..#.###..\n...###..##..\n.......##..#\n.......##.##\n.........##.",
+      "liveCells": 37,
+      "width": 12,
+      "height": 10,
+      "density": 0.308
+    },
+    {
+      "generation": 23,
+      "pattern": "..##....###.\n##.##.......\n#........#..\n#....#.#.#..\n.#........#.\n...###....#.\n....#.#....#\n.......#...#\n........####",
+      "liveCells": 30,
+      "width": 12,
+      "height": 9,
+      "density": 0.278
+    },
+    {
+      "generation": 24,
+      "pattern": "..........#...\n..####....#...\n.##.##...#.#..\n##...#...#....\n.##......###..\n......##..##..\n....###....##.\n....##.#...##.\n........###.##\n.........####.\n..........##..",
+      "liveCells": 46,
+      "width": 14,
+      "height": 11,
+      "density": 0.299
+    },
+    {
+      "generation": 25,
+      "pattern": "...##.........\n.##..#...###..\n#.....#..#....\n#..###..##.#..\n###...#.##.#..\n......##.#....\n....#.........\n....#..###....\n........#....#\n........#....#\n.........#..#.",
+      "liveCells": 39,
+      "width": 14,
+      "height": 11,
+      "density": 0.253
+    }
+  ],
+  "stats": {
+    "totalGenerations": 30,
+    "forecastedGenerations": 20,
+    "peakLiveCells": 5,
+    "minLiveCells": 5,
+    "avgLiveCells": 5,
+    "stabilityIndex": 0.133,
+    "trend": "steady",
+    "referenceForecastPeak": 46
+  }
+}

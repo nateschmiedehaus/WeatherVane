@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Game of Life Desktop UI</title>
+  <style>
+    body { font-family: sans-serif; margin: 20px; }
+    #board { border: 1px solid #ccc; user-select: none; }
+    .controls button { margin-right: 8px; }
+  </style>
+</head>
+<body>
+  <h1>Game of Life</h1>
+  <div class="controls">
+    <button id="start">Start</button>
+    <button id="stop">Stop</button>
+    <button id="step">Step</button>
+    <button id="clear">Clear</button>
+    <button data-pattern="glider">Glider</button>
+    <button data-pattern="blinker">Blinker</button>
+    <button data-pattern="toad">Toad</button>
+    <button data-pattern="beacon">Beacon</button>
+  </div>
+  <canvas id="board" width="600" height="600"></canvas>
+  <script>
+    const ROWS = 30;
+    const COLS = 30;
+    const CELL = 20;
+    let board = Array.from({ length: ROWS }, () => Array(COLS).fill(0));
+    let timer = null;
+    const canvas = document.getElementById('board');
+    const ctx = canvas.getContext('2d');
+    canvas.addEventListener('click', (event) => {
+      const rect = canvas.getBoundingClientRect();
+      const x = event.clientX - rect.left;
+      const y = event.clientY - rect.top;
+      const col = Math.floor(x / CELL);
+      const row = Math.floor(y / CELL);
+      board[row][col] = board[row][col] ? 0 : 1;
+      draw();
+    });
+    document.getElementById('start').onclick = () => {
+      if (timer) return;
+      timer = setInterval(() => { board = step(board); draw(); }, 200);
+    };
+    document.getElementById('stop').onclick = () => {
+      clearInterval(timer);
+      timer = null;
+    };
+    document.getElementById('step').onclick = () => {
+      board = step(board);
+      draw();
+    };
+    document.getElementById('clear').onclick = () => {
+      board = board.map((row) => row.map(() => 0));
+      draw();
+    };
+    document.querySelectorAll('[data-pattern]').forEach((button) => {
+      button.onclick = () => {
+        board = loadPattern(button.dataset.pattern);
+        draw();
+      };
+    });
+    const PRESETS = {
+      glider: ['.#.', '..#', '###'],
+      blinker: ['###'],
+      toad: ['.###', '###.'],
+      beacon: ['##..', '##..', '..##', '..##']
+    };
+    function loadPattern(name) {
+      const pattern = PRESETS[name];
+      if (!pattern) return board;
+      const next = board.map((row) => row.map(() => 0));
+      const rowOffset = Math.floor((ROWS - pattern.length) / 2);
+      const colOffset = Math.floor((COLS - pattern[0].length) / 2);
+      pattern.forEach((row, r) => {
+        row.split('').forEach((char, c) => {
+          next[rowOffset + r][colOffset + c] = char === '#' ? 1 : 0;
+        });
+      });
+      return next;
+    }
+    function step(input) {
+      const next = input.map((row) => row.slice());
+      for (let r = 0; r < ROWS; r += 1) {
+        for (let c = 0; c < COLS; c += 1) {
+          const neighbors = countNeighbors(input, r, c);
+          if (input[r][c]) {
+            next[r][c] = neighbors === 2 || neighbors === 3 ? 1 : 0;
+          } else {
+            next[r][c] = neighbors === 3 ? 1 : 0;
+          }
+        }
+      }
+      return next;
+    }
+    function countNeighbors(input, row, col) {
+      let count = 0;
+      for (let dr = -1; dr <= 1; dr += 1) {
+        for (let dc = -1; dc <= 1; dc += 1) {
+          if (dr === 0 && dc === 0) continue;
+          const r = row + dr;
+          const c = col + dc;
+          if (r >= 0 && r < ROWS && c >= 0 && c < COLS) {
+            count += input[r][c];
+          }
+        }
+      }
+      return count;
+    }
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      for (let r = 0; r < ROWS; r += 1) {
+        for (let c = 0; c < COLS; c += 1) {
+          ctx.fillStyle = board[r][c] ? '#2b8a3e' : '#f1f3f5';
+          ctx.fillRect(c * CELL, r * CELL, CELL - 1, CELL - 1);
+        }
+      }
+    }
+    draw();
+  </script>
+</body>
+</html>

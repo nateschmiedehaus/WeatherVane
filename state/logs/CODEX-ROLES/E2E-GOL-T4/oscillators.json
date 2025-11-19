@@ -1,0 +1,61 @@
+{
+  "oscillators": [
+    {
+      "id": "glider",
+      "title": "Glider",
+      "cycle": {
+        "first": 0,
+        "repeat": 4
+      },
+      "displacement": {
+        "row": 5,
+        "col": 5
+      },
+      "peakLiveCells": 5,
+      "minLiveCells": 5,
+      "densityTrend": 0
+    },
+    {
+      "id": "blinker",
+      "title": "Blinker",
+      "cycle": {
+        "first": 0,
+        "repeat": 2
+      },
+      "displacement": {
+        "row": 2,
+        "col": 2
+      },
+      "peakLiveCells": 3,
+      "minLiveCells": 3,
+      "densityTrend": 0
+    },
+    {
+      "id": "toad",
+      "title": "Toad",
+      "cycle": null,
+      "displacement": {
+        "row": 0,
+        "col": 0
+      },
+      "peakLiveCells": 36,
+      "minLiveCells": 6,
+      "densityTrend": -0.254
+    },
+    {
+      "id": "beacon",
+      "title": "Beacon",
+      "cycle": {
+        "first": 0,
+        "repeat": 2
+      },
+      "displacement": {
+        "row": 2,
+        "col": 2
+      },
+      "peakLiveCells": 8,
+      "minLiveCells": 6,
+      "densityTrend": 0
+    }
+  ]
+}

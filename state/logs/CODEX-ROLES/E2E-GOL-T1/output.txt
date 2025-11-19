@@ -1,0 +1,11 @@
+# Game of Life – T1 (Glider)
+
+Seed:
+.#.
+..#
+###
+
+After one generation:
+#.#
+.##
+.#.

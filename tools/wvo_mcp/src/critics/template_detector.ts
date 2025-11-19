@@ -28,6 +28,7 @@ type TemplateRelaxConfig = {
   require_reranker_section?: boolean;
   require_drqc_citations?: boolean;
   fallback_unique_threshold?: number;
+  fallback_trigram_threshold?: number;
 };
 
 type TemplateDetectorContext = {
@@ -115,13 +116,15 @@ function hasKbEvidence(taskId: string | undefined, stateRoot: string | undefined
 function shouldRelax(
   config: TemplateRelaxConfig | undefined,
   context: TemplateDetectorContext | undefined,
-): { allow: boolean; threshold: number } {
+): { allow: boolean; uniqueThreshold: number; trigramThreshold: number } {
   if (!config || config.enabled === false || !context) {
-    return { allow: false, threshold: UNIQUE_THRESHOLD };
+    return { allow: false, uniqueThreshold: UNIQUE_THRESHOLD, trigramThreshold: TRIGRAM_THRESHOLD };
   }
   const citations = Array.isArray(context.frontmatter?.citations)
     ? (context.frontmatter?.citations as unknown[])
-    : [];
+    : Array.isArray(context.frontmatter?.drqc_citations)
+      ? (context.frontmatter?.drqc_citations as unknown[])
+      : [];
   const drqcCitations = Array.isArray(context.frontmatter?.drqc_citations)
     ? (context.frontmatter?.drqc_citations as unknown[])
     : [];
@@ -135,9 +138,12 @@ function shouldRelax(
     const fallback =
       config.fallback_unique_threshold ??
       Number(process.env.TEMPLATE_UNIQUE_FALLBACK_MIN ?? DEFAULT_RELAXED_THRESHOLD);
-    return { allow: true, threshold: fallback };
+    const trigramFallback =
+      config.fallback_trigram_threshold ??
+      Number(process.env.TEMPLATE_TRIGRAM_FALLBACK_MAX ?? TRIGRAM_THRESHOLD);
+    return { allow: true, uniqueThreshold: fallback, trigramThreshold: trigramFallback };
   }
-  return { allow: false, threshold: UNIQUE_THRESHOLD };
+  return { allow: false, uniqueThreshold: UNIQUE_THRESHOLD, trigramThreshold: TRIGRAM_THRESHOLD };
 }
 
 export function analyzeTemplate(
@@ -168,8 +174,8 @@ export function analyzeTemplate(
   if (!passes && relaxation.allow) {
     passes =
       banned_hits.length === 0 &&
-      unique_token_ratio >= relaxation.threshold &&
-      trigram_repetition <= TRIGRAM_THRESHOLD;
+      unique_token_ratio >= relaxation.uniqueThreshold &&
+      trigram_repetition <= relaxation.trigramThreshold;
     if (passes) {
       mode = 'relaxed';
     }

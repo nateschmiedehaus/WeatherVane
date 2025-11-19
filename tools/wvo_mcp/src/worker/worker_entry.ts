@@ -97,6 +97,10 @@ function startOrchestratorWorker(): void {
   // Store runtime for cleanup on crash
   runtimeInstance = runtime;
 
+  // Start the orchestrator runtime to enable autonomous features (self-improvement, quality monitoring, etc.)
+  // This converts the worker from a passive tool server to an active agentic supervisor.
+  void runtime.start();
+
   const session = new SessionContext(runtime);
   const authChecker = new AuthChecker();
   const router = new WorkerToolRouter(session, runtime, authChecker);

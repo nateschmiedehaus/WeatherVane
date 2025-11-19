@@ -1,19 +1,19 @@
 {
   "headline": {
-    "predicted_ate": 1.9167739032013087,
-    "observed_ate": 1.8978313754597615,
+    "predicted_ate": 1.9167739032013076,
+    "observed_ate": 1.897831375459761,
     "ate_stderr": 0.13851076850528435,
-    "conf_low": 1.6263502691894043,
-    "conf_high": 2.169312481730119,
+    "conf_low": 1.6263502691894038,
+    "conf_high": 2.1693124817301186,
     "p_value": 0.0,
-    "normalized_qini": 0.5933931276250092,
+    "normalized_qini": 0.5933931276250081,
     "sample_size": 2000.0
   },
   "deciles": [
     {
       "decile": 1.0,
       "count": 200.0,
-      "mean_predicted_uplift": 5.487978589618121,
+      "mean_predicted_uplift": 5.487978589618116,
       "mean_dr_uplift": 8.41410114842547,
       "treatment_fraction": 0.615,
       "mean_propensity": 0.6008247959720324
@@ -21,23 +21,23 @@
     {
       "decile": 2.0,
       "count": 200.0,
-      "mean_predicted_uplift": 3.773907535382762,
-      "mean_dr_uplift": 5.785643961918014,
+      "mean_predicted_uplift": 3.773907535382761,
+      "mean_dr_uplift": 5.785643961918015,
       "treatment_fraction": 0.515,
       "mean_propensity": 0.5509084830181716
     },
     {
       "decile": 3.0,
       "count": 200.0,
-      "mean_predicted_uplift": 3.0116369211338263,
-      "mean_dr_uplift": 4.323034056681748,
+      "mean_predicted_uplift": 3.011636921133826,
+      "mean_dr_uplift": 4.323034056681746,
       "treatment_fraction": 0.53,
       "mean_propensity": 0.5230534278129456
     },
     {
       "decile": 4.0,
       "count": 200.0,
-      "mean_predicted_uplift": 2.483769363770427,
+      "mean_predicted_uplift": 2.483769363770425,
       "mean_dr_uplift": 2.982759456191827,
       "treatment_fraction": 0.565,
       "mean_propensity": 0.5171943041511969
@@ -45,40 +45,40 @@
     {
       "decile": 5.0,
       "count": 200.0,
-      "mean_predicted_uplift": 2.0616401616205033,
-      "mean_dr_uplift": 2.6477623199763087,
+      "mean_predicted_uplift": 2.061640161620504,
+      "mean_dr_uplift": 2.6477623199763083,
       "treatment_fraction": 0.525,
       "mean_propensity": 0.4902569808028305
     },
     {
       "decile": 6.0,
       "count": 200.0,
-      "mean_predicted_uplift": 1.6838806203356713,
-      "mean_dr_uplift": 1.2634382260493797,
+      "mean_predicted_uplift": 1.6838806203356698,
+      "mean_dr_uplift": 1.2634382260493782,
       "treatment_fraction": 0.545,
       "mean_propensity": 0.507187912895404
     },
     {
       "decile": 7.0,
       "count": 200.0,
-      "mean_predicted_uplift": 1.274007588711872,
-      "mean_dr_uplift": 0.5082858021766937,
+      "mean_predicted_uplift": 1.2740075887118716,
+      "mean_dr_uplift": 0.508285802176692,
       "treatment_fraction": 0.565,
-      "mean_propensity": 0.4716167366933548
+      "mean_propensity": 0.4716167366933547
     },
     {
       "decile": 8.0,
       "count": 200.0,
-      "mean_predicted_uplift": 0.7498564193335386,
-      "mean_dr_uplift": -0.5050564281271551,
+      "mean_predicted_uplift": 0.7498564193335381,
+      "mean_dr_uplift": -0.5050564281271538,
       "treatment_fraction": 0.54,
       "mean_propensity": 0.4846815898854838
     },
     {
       "decile": 9.0,
       "count": 200.0,
-      "mean_predicted_uplift": 0.07837713333190954,
-      "mean_dr_uplift": -2.3516790076934604,
+      "mean_predicted_uplift": 0.0783771333319104,
+      "mean_dr_uplift": -2.351679007693461,
       "treatment_fraction": 0.435,
       "mean_propensity": 0.4554411174220704
     },
@@ -86,7 +86,7 @@
       "decile": 10.0,
       "count": 200.0,
       "mean_predicted_uplift": -1.4373153012255457,
-      "mean_dr_uplift": -4.089975781001209,
+      "mean_dr_uplift": -4.089975781001208,
       "treatment_fraction": 0.39,
       "mean_propensity": 0.4157138830099462
     }

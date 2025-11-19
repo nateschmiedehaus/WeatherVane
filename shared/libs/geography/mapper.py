@@ -16,7 +16,7 @@ from shapely.strtree import STRtree  # type: ignore
 # Geographic hierarchy thresholds
 DMA_MIN_GEOCODED_RATIO = 0.55  # 55% orders must be geocoded for DMA level
 DMA_MIN_WEATHER_COVERAGE = 0.85  # 85% weather data required for DMA level
-STATE_MIN_GEOCODED_RATIO = 0.25  # 25% orders for state level
+STATE_MIN_GEOCODED_RATIO = 0.20  # 20% orders for state level
 STATE_MIN_WEATHER_COVERAGE = 0.70  # 70% weather data required for state level
 
 DATA_DIR = Path(__file__).resolve().parents[2] / "data" / "geography"
@@ -188,15 +188,16 @@ class GeographyMapper:
             state_eligible = False
             state_fallback_reason = None
 
-            if self._geocoded_ratio is not None and self._weather_coverage is not None:
-                if self._geocoded_ratio < STATE_MIN_GEOCODED_RATIO:
-                    state_fallback_reason = "state_geocoded_ratio_below_threshold"
-                elif self._weather_coverage < STATE_MIN_WEATHER_COVERAGE:
-                    state_fallback_reason = "state_weather_coverage_below_threshold"
-                else:
+            if self._geocoded_ratio is not None and self._geocoded_ratio < STATE_MIN_GEOCODED_RATIO:
+                state_fallback_reason = "state_geocoded_ratio_below_threshold"
+
+            if self._weather_coverage is not None:
+                if self._weather_coverage >= STATE_MIN_WEATHER_COVERAGE:
                     state_eligible = True
+                elif state_fallback_reason is None:
+                    state_fallback_reason = "state_weather_coverage_below_threshold"
             else:
-                state_eligible = True  # No coverage info, try state by default
+                state_eligible = True  # No coverage info, prefer state fallback
 
             if state_eligible:
                 resolution = GeographyResolution(
@@ -213,7 +214,9 @@ class GeographyMapper:
                 return resolution
             else:
                 # If state level isn't eligible either, fall back to global
-                resolution = self._global(key, state_fallback_reason)
+                resolution = self._global(key, state_fallback_reason or fallback_reason)
+                self._cache[key] = resolution
+                return resolution
 
         resolution = self._global(key)
         self._cache[key] = resolution

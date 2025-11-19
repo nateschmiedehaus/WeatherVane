@@ -1,0 +1,18 @@
+# Game of Life – Interactive CLI
+
+Usage (from repo root):
+1. Run: node ./state/logs/CLAUDE-ROLES/E2E-GOL-T6/cli_gol.js
+   (Harness workspace path: node /tmp/e2e_test_state/logs/E2E-GOL-T6/cli_gol.js)
+2. Commands: help, show, step [n], run [n], toggle <row> <col>, random [density],
+   clear, resize <rows> <cols>, load <glider|blinker|toad|beacon>, quit
+
+Boards use zero-based coordinates. After each command the prompt reappears so you can iterate quickly.
+
+Autopilot logs live under state/logs/CLAUDE-ROLES/E2E-GOL-T6; files are read-only when E2E_AUTOPILOT_ONLY=1.
+
+Example session:
+  gol> load glider
+  gol> step 10
+  gol> toggle 4 4
+  gol> run 25
+  gol> quit

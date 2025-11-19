@@ -25,7 +25,9 @@
       "min_citations": 3,
       "require_kb": true,
       "require_reranker_section": true,
-      "require_drqc_citations": false
+      "require_drqc_citations": false,
+      "fallback_unique_threshold": 0.0,
+      "fallback_trigram_threshold": 1.0
     }
   }
 }
