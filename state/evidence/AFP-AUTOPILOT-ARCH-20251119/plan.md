@@ -23,6 +23,7 @@
   - No additional tests beyond the above; docs-only scope, so this list is complete.
 - Guardrails: Document daily audit execution; ensure guardrail monitor rerun captured.
 - Autopilot live loop: Not applicable to this docs-only task; autopilot code tasks must list Wave0 steps in their own PLAN.
+- Note: Monitor updates track follow-ups (MCP STRATEGIZE instrumentation, integrity remediation, clean-room snapshot handling) and do not add new implementation scope.
 
 ## Risks / Mitigations
 - **Risk:** Guardrail monitor continues to fail if audit not recognized. **Mitigation:** Ensure audit summary staged and rerun monitor; adjust summary if needed.
