@@ -35,6 +35,7 @@ Key Decision: Hybrid architecture
 Commits: 3 (build fixes, type fixes, roadmap addition)
 Evidence: state/evidence/AFP-S3-CRITIC-SYSTEM-ANALYSIS/ (163 KB analysis)
 ## Latest Update
+- 2025-11-19: AFP-AUTOPILOT-V2-IMMUNE-20251119 delivered Immune gatekeeper (branch/commit/CI), added Vitest coverage, and updated ARCHITECTURE_V2 with SCAS mapping. `npm run test` still blocked by missing llm_chat/kpi_writer modules; wave0 dry-run fails on missing game_of_life.js.
 - 2025-11-19: AFP-AUTOPILOT-ARCH-20251119 drafting autopilot AFP alignment doc (phase-to-agent mapping, gap/actions, verification hooks) in `docs/orchestration/autopilot_afp_alignment.md`; daily audit refreshed and guardrail rerun planned.
 - 2025-11-06: AFP-MODULE-REMEDIATION-20251105-V fixed the autopilot-blocking suites (guardrail catalog, work-process enforcement, domain reviewer, ML aggregator/meta critic, knowledge extractor), added the reviewer/Wave 0 routine doc, and reran `npm run wave0 -- --once --epic=WAVE-0` to a proven state (`AFP-W0M1-SUPPORTING-INFRASTRUCTURE-REFORM` reached final verification).
 - 2025-11-06: AFP-W0-WAVE0-STATUS-CLI-20251106 added `./wave0_status` (with tests + docs) so reviewers can capture Wave 0 lock/PID state and the latest executions without manual `ps`/log spelunking; use `--json` output in VERIFY evidence.
