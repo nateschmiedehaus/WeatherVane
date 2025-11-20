@@ -17,6 +17,15 @@ export interface ModelCost {
   output: number; // Cost per million tokens (output)
 }
 
+export type ModelProvider = 'claude' | 'codex' | 'gemini' | 'o3';
+
+export interface ModelCapabilities {
+  speed?: boolean;
+  balanced?: boolean;
+  reasoning?: boolean;
+  context?: number; // context window size
+}
+
 export interface ClaudeModel {
   id: string;
   name: string;
@@ -24,8 +33,10 @@ export interface ClaudeModel {
   max_output: number;
   cost_per_mtok: ModelCost;
   capabilities: string[];
+  capability_tags?: ModelCapabilities;
   available: boolean;
   subscription_tier?: 'free' | 'pro' | 'team';
+  last_checked?: string;
 }
 
 export interface CodexModel {
@@ -34,7 +45,9 @@ export interface CodexModel {
   reasoning_levels: string[];
   cost_per_mtok: ModelCost;
   available: boolean;
+  capability_tags?: ModelCapabilities;
   context_window?: number;
+  last_checked?: string;
 }
 
 export interface ProviderModels {
@@ -49,6 +62,8 @@ export interface ModelRegistryData {
   providers: {
     claude?: ProviderModels;
     codex?: ProviderModels;
+    gemini?: ProviderModels;
+    o3?: ProviderModels;
   };
 }
 
@@ -64,34 +79,26 @@ const EMBEDDED_DEFAULTS: ModelRegistryData = {
       access_method: 'subscription',
       models: [
         {
-          id: 'claude-opus-4',
-          name: 'Claude Opus 4',
-          context_window: 200000,
-          max_output: 16384,
-          cost_per_mtok: { input: 15.0, output: 75.0 },
-          capabilities: ['coding', 'reasoning', 'multimodal'],
-          available: true,
-          subscription_tier: 'pro',
-        },
-        {
-          id: 'claude-sonnet-4.5',
-          name: 'Claude Sonnet 4.5',
+          id: 'claude-sonnet-latest',
+          name: 'Claude Sonnet (latest)',
           context_window: 200000,
           max_output: 16384,
           cost_per_mtok: { input: 3.0, output: 15.0 },
           capabilities: ['coding', 'reasoning', 'multimodal'],
+          capability_tags: { balanced: true, reasoning: true, context: 200000 },
           available: true,
           subscription_tier: 'pro',
         },
         {
-          id: 'claude-sonnet-4',
-          name: 'Claude Sonnet 4',
+          id: 'claude-haiku-latest',
+          name: 'Claude Haiku (latest)',
           context_window: 200000,
           max_output: 8192,
-          cost_per_mtok: { input: 3.0, output: 15.0 },
-          capabilities: ['coding', 'reasoning', 'multimodal'],
+          cost_per_mtok: { input: 1.0, output: 5.0 },
+          capabilities: ['coding', 'fast'],
+          capability_tags: { speed: true, balanced: true, context: 200000 },
           available: true,
-          subscription_tier: 'free',
+          subscription_tier: 'team',
         },
       ],
     },
@@ -105,14 +112,57 @@ const EMBEDDED_DEFAULTS: ModelRegistryData = {
           cost_per_mtok: { input: 12.0, output: 24.0 },
           available: true,
           context_window: 128000,
+          capability_tags: { reasoning: true, balanced: true, context: 128000 },
+        },
+      ],
+    },
+    gemini: {
+      access_method: 'api',
+      models: [
+        {
+          id: 'gemini-flash-latest',
+          name: 'Gemini Flash (latest)',
+          context_window: 1000000,
+          max_output: 8192,
+          cost_per_mtok: { input: 0.3, output: 0.8 },
+          capabilities: ['fast', 'general'],
+          capability_tags: { speed: true, balanced: true, context: 1000000 },
+          available: true,
         },
         {
-          id: 'gpt-5',
-          name: 'GPT-5',
-          reasoning_levels: ['minimal', 'low', 'medium', 'high'],
-          cost_per_mtok: { input: 12.0, output: 30.0 },
+          id: 'gemini-pro-latest',
+          name: 'Gemini Pro (latest)',
+          context_window: 2000000,
+          max_output: 8192,
+          cost_per_mtok: { input: 0.6, output: 1.4 },
+          capabilities: ['balanced', 'coding'],
+          capability_tags: { balanced: true, reasoning: true, context: 2000000 },
           available: true,
+        },
+        {
+          id: 'gemini-3-latest',
+          name: 'Gemini 3 (latest)',
+          context_window: 2000000,
+          max_output: 8192,
+          cost_per_mtok: { input: 1.0, output: 2.0 },
+          capabilities: ['deep', 'reasoning'],
+          capability_tags: { reasoning: true, context: 2000000 },
+          available: true,
+        },
+      ],
+    },
+    o3: {
+      access_method: 'api',
+      models: [
+        {
+          id: 'o3-high-latest',
+          name: 'o3 High (latest)',
           context_window: 128000,
+          max_output: 4096,
+          cost_per_mtok: { input: 5.0, output: 15.0 },
+          capabilities: ['deep', 'reasoning'],
+          capability_tags: { reasoning: true, context: 128000 },
+          available: true,
         },
       ],
     },
@@ -197,10 +247,7 @@ export class ModelRegistry {
   /**
    * Update provider models
    */
-  updateProvider(
-    provider: 'claude' | 'codex',
-    models: ProviderModels
-  ): void {
+  updateProvider(provider: ModelProvider, models: ProviderModels): void {
     this.data.providers[provider] = {
       ...models,
       last_checked: new Date().toISOString(),
@@ -211,14 +258,14 @@ export class ModelRegistry {
   /**
    * Get all models for a provider
    */
-  getProviderModels(provider: 'claude' | 'codex'): ProviderModels | undefined {
+  getProviderModels(provider: ModelProvider): ProviderModels | undefined {
     return this.data.providers[provider];
   }
 
   /**
    * Get specific model by ID
    */
-  getModel(provider: 'claude' | 'codex', modelId: string): ClaudeModel | CodexModel | undefined {
+  getModel(provider: ModelProvider, modelId: string): ClaudeModel | CodexModel | undefined {
     const providerData = this.data.providers[provider];
     if (!providerData) return undefined;
     return providerData.models.find((m) => m.id === modelId);
@@ -227,7 +274,7 @@ export class ModelRegistry {
   /**
    * Get model cost
    */
-  getModelCost(provider: 'claude' | 'codex', modelId: string): ModelCost | undefined {
+  getModelCost(provider: ModelProvider, modelId: string): ModelCost | undefined {
     const model = this.getModel(provider, modelId);
     return model?.cost_per_mtok;
   }
@@ -235,7 +282,7 @@ export class ModelRegistry {
   /**
    * Check if a model is available
    */
-  isModelAvailable(provider: 'claude' | 'codex', modelId: string): boolean {
+  isModelAvailable(provider: ModelProvider, modelId: string): boolean {
     const model = this.getModel(provider, modelId);
     return model?.available ?? false;
   }
@@ -243,7 +290,7 @@ export class ModelRegistry {
   /**
    * Get all available models for a provider
    */
-  getAvailableModels(provider: 'claude' | 'codex'): Array<ClaudeModel | CodexModel> {
+  getAvailableModels(provider: ModelProvider): Array<ClaudeModel | CodexModel> {
     const providerData = this.data.providers[provider];
     if (!providerData) return [];
     return providerData.models.filter((m) => m.available);
@@ -252,7 +299,7 @@ export class ModelRegistry {
   /**
    * Get provider access method (subscription vs API)
    */
-  getAccessMethod(provider: 'claude' | 'codex'): 'subscription' | 'api' | undefined {
+  getAccessMethod(provider: ModelProvider): 'subscription' | 'api' | undefined {
     return this.data.providers[provider]?.access_method;
   }
 
@@ -299,5 +346,66 @@ export class ModelRegistry {
         // Then by cost (higher cost = more capable)
         return b.cost_per_mtok.output - a.cost_per_mtok.output;
       });
+  }
+
+  /**
+   * Merge externally discovered models (e.g., from Scout or agent search)
+   */
+  mergeExternalProvider(provider: ModelProvider, models: ProviderModels): void {
+    const existing = this.data.providers[provider];
+    if (!existing) {
+      this.updateProvider(provider, models);
+      return;
+    }
+    const merged = {
+      ...existing,
+      access_method: models.access_method ?? existing.access_method,
+      last_checked: models.last_checked ?? existing.last_checked,
+      models: this.mergeModels(existing.models, models.models),
+    };
+    this.updateProvider(provider, merged);
+  }
+
+  private mergeModels(existing: Array<ClaudeModel | CodexModel>, incoming: Array<ClaudeModel | CodexModel>) {
+    const map = new Map<string, ClaudeModel | CodexModel>();
+    existing.forEach((m) => map.set(m.id, m));
+    incoming.forEach((m) => map.set(m.id, m));
+    return Array.from(map.values());
+  }
+
+  /**
+   * Get best model ID for a lane across providers.
+   */
+  getBestForLane(lane: 'fast' | 'standard' | 'deep'): string | undefined {
+    const scored: Array<{ id: string; score: number }> = [];
+    Object.values(this.data.providers).forEach((pm) => {
+      if (!pm) return;
+      pm.models.forEach((model) => {
+        if (!(model as any).available) return;
+        const caps = (model as any).capability_tags as ModelCapabilities | undefined;
+        const score = this.scoreModelForLane(caps, lane, (model as any).cost_per_mtok, (model as any).context_window);
+        if (score > 0) scored.push({ id: (model as any).id, score });
+      });
+    });
+    scored.sort((a, b) => b.score - a.score);
+    return scored[0]?.id;
+  }
+
+  private scoreModelForLane(
+    cap: ModelCapabilities | undefined,
+    lane: 'fast' | 'standard' | 'deep',
+    cost?: ModelCost,
+    context?: number
+  ): number {
+    const ctx = cap?.context ?? context ?? 0;
+    const costScore = cost ? 1 / (1 + cost.output + cost.input) : 0.1;
+    if (lane === 'fast') {
+      return (cap?.speed ? 5 : 0) + (cap?.balanced ? 1 : 0) + costScore;
+    }
+    if (lane === 'standard') {
+      return (cap?.balanced ? 4 : 0) + (cap?.reasoning ? 2 : 0) + ctx / 1_000_000 + costScore;
+    }
+    // deep
+    return (cap?.reasoning ? 5 : 0) + Math.log10(ctx + 10) + costScore;
   }
 }

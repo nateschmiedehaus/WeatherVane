@@ -1,9 +1,16 @@
 ## Current Focus
-AFP-S3 sequence complete. All tasks executed successfully. System ready for next work.
+AFP-AUTOPILOT-V2-IMMUNE-WIRING-20251120 complete. System ready for next work.
 
-1. Fix orchestrator build (missing imports)
-2. Refactor critics (6 phases: Via Negativa → Plugin System)
-3. Add agentic review to roadmap (REQUIRED for autopilot)
+Wave0 immune system hardened:
+- Auto-cleanup of stale wave0 locks (TTL + PID validation)
+- Test coverage for lock edge cases
+- Guardrails passing
+- Branch pushed to origin
+
+Next priorities from roadmap:
+1. AFP-MVP-SUPERVISOR-SCAFFOLD
+2. AFP-MVP-AGENTS-SCAFFOLD
+3. AFP-MVP-LIBS-SCAFFOLD
 
 Working autonomously end-to-end without interruption.
 
@@ -34,7 +41,11 @@ Key Decision: Hybrid architecture
 
 Commits: 3 (build fixes, type fixes, roadmap addition)
 Evidence: state/evidence/AFP-S3-CRITIC-SYSTEM-ANALYSIS/ (163 KB analysis)
+
 ## Latest Update
+- 2025-11-20: AFP-AUTOPILOT-V2-IMMUNE-WIRING-20251120 completed - wave0 lock hardening with TTL+PID validation, auto-cleanup of stale locks, full test coverage. All 10 AFP phases complete, guardrails passing, commit 1c1a96f4c pushed to feature branch. Evidence in state/evidence/AFP-AUTOPILOT-V2-IMMUNE-WIRING-20251120/.
+- 2025-11-19: AFP-AUTOPILOT-V2-IMMUNE-20251119 delivered Immune gatekeeper (branch/commit/CI), added Vitest coverage, and updated ARCHITECTURE_V2 with SCAS mapping. `npm run test` still blocked by missing llm_chat/kpi_writer modules; wave0 dry-run fails on missing game_of_life.js.
+- 2025-11-19: AFP-AUTOPILOT-V2-IMMUNE-REMEDIATION-20251119 restored missing llm_chat/kpi_writer modules + wave0 demo stub, added doc-check stub, refreshed daily audit (AFP-ARTIFACT-AUDIT-20251119); guardrail monitor now passes. commit:check shows upstream dirty repo; wave0 dry-run blocked by existing .wave0.lock; branch creation for remediation blocked by ref lock.
 - 2025-11-19: AFP-AUTOPILOT-ARCH-20251119 drafting autopilot AFP alignment doc (phase-to-agent mapping, gap/actions, verification hooks) in `docs/orchestration/autopilot_afp_alignment.md`; daily audit refreshed and guardrail rerun planned.
 - 2025-11-06: AFP-MODULE-REMEDIATION-20251105-V fixed the autopilot-blocking suites (guardrail catalog, work-process enforcement, domain reviewer, ML aggregator/meta critic, knowledge extractor), added the reviewer/Wave 0 routine doc, and reran `npm run wave0 -- --once --epic=WAVE-0` to a proven state (`AFP-W0M1-SUPPORTING-INFRASTRUCTURE-REFORM` reached final verification).
 - 2025-11-06: AFP-W0-WAVE0-STATUS-CLI-20251106 added `./wave0_status` (with tests + docs) so reviewers can capture Wave 0 lock/PID state and the latest executions without manual `ps`/log spelunking; use `--json` output in VERIFY evidence.

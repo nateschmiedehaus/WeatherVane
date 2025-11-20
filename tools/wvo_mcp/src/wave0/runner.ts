@@ -28,6 +28,51 @@ import { SelfImprovementSystem } from "../prove/self_improvement.js";
 import { EvidenceScaffolder } from "./evidence_scaffolder.js";
 import type { ProofResult } from "../prove/types.js";
 
+export interface LockStatus {
+  locked: boolean;
+  stale?: boolean;
+  reason?: string;
+  pid?: number;
+  ageMs?: number;
+}
+
+function isProcessAlive(pid: number): boolean {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch (error: any) {
+    if (error?.code === "EPERM") {
+      return true;
+    }
+    return false;
+  }
+}
+
+export function resolveLockStatus(lockPath: string, ttlMs: number): LockStatus {
+  if (!fs.existsSync(lockPath)) {
+    return { locked: false, reason: "missing" };
+  }
+
+  try {
+    const raw = fs.readFileSync(lockPath, "utf-8");
+    const data = JSON.parse(raw);
+    const pid = typeof data?.pid === "number" ? data.pid : undefined;
+    const startTimeMs = data?.startTime ? Date.parse(data.startTime) : NaN;
+    const ageMs = Number.isFinite(startTimeMs) ? Date.now() - startTimeMs : Number.POSITIVE_INFINITY;
+    const alive = pid !== undefined ? isProcessAlive(pid) : false;
+    const stale = !alive || ageMs > ttlMs;
+
+    if (stale) {
+      const reason = !alive ? "pid_not_running" : "lock_ttl_expired";
+      return { locked: false, stale: true, reason, pid, ageMs };
+    }
+
+    return { locked: true, stale: false, reason: "active", pid, ageMs };
+  } catch {
+    return { locked: false, stale: true, reason: "corrupt_lock" };
+  }
+}
+
 interface Wave0Options {
   singleRun?: boolean;
   targetEpics?: string[];
@@ -49,6 +94,7 @@ export class Wave0Runner {
   private singleRun: boolean;
   private targetEpics: string[] | null;
   private evidenceScaffolder: EvidenceScaffolder;
+  private lockTtlMs: number;
 
   constructor(workspaceRoot: string, options: Wave0Options = {}) {
     this.workspaceRoot = workspaceRoot;
@@ -64,6 +110,7 @@ export class Wave0Runner {
     this.emptyRetryLimit = this.resolveEmptyRetryLimit();
     this.singleRun = this.resolveSingleRun(options);
     this.targetEpics = this.resolveTargetEpics(options);
+    this.lockTtlMs = this.resolveLockTtl();
   }
 
   async run(): Promise<void> {
@@ -359,7 +406,13 @@ export class Wave0Runner {
   }
 
   private async checkLock(): Promise<boolean> {
-    return fs.existsSync(this.lockFile);
+    const status = resolveLockStatus(this.lockFile, this.lockTtlMs);
+    if (status.stale === true) {
+      await this.removeLock();
+      logInfo("Wave0Runner: Removed stale lock file", { reason: status.reason });
+      return false;
+    }
+    return status.locked === true;
   }
 
   private async createLock(): Promise<void> {
@@ -376,6 +429,14 @@ export class Wave0Runner {
       fs.unlinkSync(this.lockFile);
       logInfo("Wave0Runner: Removed lock file");
     }
+  }
+
+  private resolveLockTtl(): number {
+    const ttl = Number(process.env.WAVE0_LOCK_TTL_MS ?? 30 * 60 * 1000);
+    if (Number.isFinite(ttl) && ttl > 0) {
+      return ttl;
+    }
+    return 30 * 60 * 1000;
   }
 
   private async sleep(ms: number): Promise<void> {
