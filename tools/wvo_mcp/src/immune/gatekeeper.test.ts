@@ -2,9 +2,9 @@ import { describe, it, expect, vi, afterEach } from 'vitest';
 import { Gatekeeper } from './gatekeeper';
 
 describe('Gatekeeper', () => {
-    afterEach(() => {
-        vi.restoreAllMocks();
-    });
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
 
     describe('validatePush', () => {
         it('blocks protected branches', () => {
@@ -35,20 +35,28 @@ describe('Gatekeeper', () => {
     });
 
     describe('runCiGate', () => {
-        it('passes when CI command exits cleanly', async () => {
-            const gatekeeper = new Gatekeeper();
-            const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
-            const result = await gatekeeper.runCiGate(['node', '-e', 'process.exit(0)']);
-            expect(result).toBe(true);
-            expect(logSpy).toHaveBeenCalled();
-        });
+      it('passes when CI command exits cleanly', async () => {
+        const gatekeeper = new Gatekeeper();
+        const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+        const result = await gatekeeper.runCiGate(['node', '-e', 'process.exit(0)']);
+        expect(result).toBe(true);
+        expect(logSpy).toHaveBeenCalled();
+      });
 
-        it('fails when CI command returns non-zero', async () => {
-            const gatekeeper = new Gatekeeper();
-            const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-            const result = await gatekeeper.runCiGate(['node', '-e', 'process.exit(1)']);
-            expect(result).toBe(false);
-            expect(errSpy).toHaveBeenCalled();
-        });
+      it('fails when CI command returns non-zero', async () => {
+        const gatekeeper = new Gatekeeper();
+        const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+        const result = await gatekeeper.runCiGate(['node', '-e', 'process.exit(1)']);
+        expect(result).toBe(false);
+        expect(errSpy).toHaveBeenCalled();
+      });
+
+      it('fails when CI command missing', async () => {
+        const gatekeeper = new Gatekeeper();
+        const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+        const result = await gatekeeper.runCiGate([]);
+        expect(result).toBe(false);
+        expect(errSpy).toHaveBeenCalled();
+      });
     });
-});
+  });
