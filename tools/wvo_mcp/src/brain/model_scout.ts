@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
-import { mergeCandidates } from "../models/model_registry_merge.js";
+import { logInfo, logWarning } from "../telemetry/logger.js";
+import { mergeCandidates, type ModelCandidate as MergeCandidate } from "../models/model_registry_merge.js";
 import type { ModelRegistryData, ModelProvider } from "../models/model_registry.js";
 
 export interface ModelCandidate {
@@ -121,8 +122,55 @@ export function gatherCandidates(): ModelCandidate[] {
   ];
 }
 
-export function runScout(registryPath: string, backup = true): void {
-  const candidates = gatherCandidates().map((c) => ({
+function fromFile(filePath: string): ModelCandidate[] {
+  try {
+    const raw = fs.readFileSync(filePath, "utf-8");
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) {
+      logWarning("ModelScout: Cached source is not an array; falling back to stubs", { filePath });
+      return [];
+    }
+    const validated: ModelCandidate[] = [];
+    for (const item of parsed) {
+      if (!item?.provider || !item?.id || !item?.observedAt || !item?.context || !item?.lane) {
+        logWarning("ModelScout: Skipping invalid cached entry", { item });
+        continue;
+      }
+      validated.push({
+        provider: item.provider as ModelProvider,
+        id: String(item.id),
+        observedAt: String(item.observedAt),
+        context: Number(item.context),
+        costTier: (item.costTier as any) ?? "standard",
+        capabilities: item.capabilities ?? {},
+        lane: item.lane,
+        notes: item.notes,
+      });
+    }
+    return validated;
+  } catch (error) {
+    logWarning("ModelScout: Failed to load cached source; falling back to stubs", {
+      filePath,
+      error: String(error),
+    });
+    return [];
+  }
+}
+
+export function loadCandidates(): ModelCandidate[] {
+  const source = process.env.WVO_SCOUT_SOURCE;
+  if (source && fs.existsSync(source)) {
+    logInfo("ModelScout: Loading candidates from cached source", { source });
+    const loaded = fromFile(source);
+    if (loaded.length > 0) {
+      return loaded;
+    }
+  }
+  return gatherCandidates();
+}
+
+function toMergeCandidates(candidates: ModelCandidate[]): MergeCandidate[] {
+  return candidates.map((c) => ({
     provider: c.provider,
     id: c.id,
     lane: c.lane,
@@ -135,6 +183,10 @@ export function runScout(registryPath: string, backup = true): void {
     ].filter(Boolean) as string[],
     capabilityTags: c.capabilities,
   }));
+}
+
+export function runScout(registryPath: string, backup = true): void {
+  const candidates = toMergeCandidates(loadCandidates());
   const backupPath = `${registryPath}.bak`;
   if (!fs.existsSync(registryPath)) {
     fs.mkdirSync(path.dirname(registryPath), { recursive: true });

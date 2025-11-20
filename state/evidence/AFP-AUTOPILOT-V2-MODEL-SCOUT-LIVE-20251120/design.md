@@ -28,6 +28,7 @@ Low-medium; manage via validation and small helpers; stay within ≤5 files/≤1
 - Extend merge helper if needed for benchmark fields (optional).  
 - Add tests for live/cached paths and recency/validation.  
 - Run: vitest merge tests, guardrail, wave0 dry-run.
+- Status note: Cached-source wiring + unit test implemented; live fetch to follow via config in next batch.
 
 ## Scope Estimate
 - Files: 4 (scout, merge, merge.test, evidence).  
