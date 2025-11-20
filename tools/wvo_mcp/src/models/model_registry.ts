@@ -36,6 +36,7 @@ export interface ClaudeModel {
   capability_tags?: ModelCapabilities;
   available: boolean;
   subscription_tier?: 'free' | 'pro' | 'team';
+  last_checked?: string;
 }
 
 export interface CodexModel {
@@ -46,6 +47,7 @@ export interface CodexModel {
   available: boolean;
   capability_tags?: ModelCapabilities;
   context_window?: number;
+  last_checked?: string;
 }
 
 export interface ProviderModels {
