@@ -17,6 +17,7 @@
 - Add provider adapters (config-driven, mock if network unavailable) to fetch latest models + optional benchmarks.
 - Merge with recency/version guard; ensure required metadata.
 - Keep LOC ≤150, files ≤5 per batch.
+- Evidence-only commit here; implementation will follow in the next batch.
 
 ## Risks/Mitigations
 - Network blocked -> allow cached/mock data; document.
