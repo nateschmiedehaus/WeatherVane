@@ -21,6 +21,7 @@
 - `cd tools/wvo_mcp && node scripts/check_guardrails.mjs` (ensure unaffected)
 - `cd tools/wvo_mcp && npm run commit:check` (hygiene status capture)
 - Live check (autopilot scope): `cd tools/wvo_mcp && npm run wave0 -- --once --epic=WAVE-0 --dry-run` (document lock/blockers if any)
+- Daily audit: ensure audit <24h fresh before guardrail (run AFP-ARTIFACT-AUDIT-YYYYMMDD if stale)
 
 ## Milestones
 1) Schema/capability additions + seeds.
