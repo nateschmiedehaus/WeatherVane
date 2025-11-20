@@ -1,19 +1,15 @@
 # MONITOR - AFP-AUTOPILOT-V2-MODEL-20251120
 
-## Status
-- ThinkingCritic still failing; needs deeper analysis (likely benchmark-driven Scout plan and explicit recovery playbook).
-- Guardrail monitor failing on stale daily audit (AFP-ARTIFACT-AUDIT-20251119 >24h).
-- Wave0 lock state not rechecked in this cycle; pending.
-- Repo hygiene: external dirtiness remains (state files, worktree), not touched.
+## Follow-ups
+- Wave0 dry-run blocked by `.wave0.lock`; do not delete. Plan controlled restart if needed.
+- commit:check shows repo dirtiness (external files: .worktrees/pr21, analytics/critics logs, overrides, roadmap, evidence followups). Coordinate with owners before cleanup.
+- Seeds are placeholders; schedule weekly Scout to ingest real latest models/benchmarks and update capability tags/costs per ARCHITECTURE_V2.
 
-## Next Actions
-1) Run fresh daily audit (AFP-ARTIFACT-AUDIT-2025-11-20) to clear guardrail stale-audit failure.
-2) Expand think.md with benchmark/Scout plan (sources, cadence, scoring updates) and explicit recovery steps; rerun ThinkingCritic.
-3) Rerun guardrail monitor after audit; rerun critics (thinking) until pass.
-4) Run wave0 dry-run (capture lock) and commit:check; document outcomes.
-5) Commit/push once all critics/guardrail clear.
+## Actions Taken
+- Fresh daily audit AFP-ARTIFACT-AUDIT-20251120; guardrail monitor passing.
+- All critics (strategy/design/thinking) approved for this task.
+- Branch pushed: feature/AFP-AUTOPILOT-V2-MODEL-20251120.
 
-## Telemetry Targets
-- Guardrail monitor: expect PASS after audit.
-- ThinkingCritic: expect PASS after deeper Scout/benchmark detailing.
-- Wave0 dry-run: capture lock or success.
+## Alignment Check to ARCHITECTURE_V2
+- Model Intelligence implemented: capability-tagged registry across providers, lane scoring, Scout merge hook per architecture goals.
+- Remaining architecture items to tackle next: Immune/Git wiring, Membrane HUD, Legacy Cleanup/Grim Reaper, Execution graph gates.
