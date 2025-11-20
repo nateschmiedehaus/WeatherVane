@@ -10,7 +10,7 @@ Gatekeeper exists but not wired into git/CI workflow. Need to enforce branch pro
 - Visibility: clear logs on allow/block.
 - Evolution: configurable branches/CI command.
 
-Pattern: immune_gate_integration. Leverage: medium. Assurance: tests + guardrail.
+Pattern: immune_gate_integration. Leverage: medium. Assurance: tests + guardrail + wave0 lock handling.
 
 ## Via Negativa
 No deletion possible; wiring required. Keep changes minimal.
@@ -28,8 +28,9 @@ Low-medium: small script + tests. Mitigate with clear messages and config.
 ## Implementation Plan
 - Add hook/integration script to call Gatekeeper for branch/commit/CI.
 - Update/extend gatekeeper tests for new wiring paths.
+- Harden wave0 lock handling (stale PID/TTL cleanup); add vitest coverage.
 - Ensure guardrail references Gatekeeper (doc or code).
-- Run tests: vitest gatekeeper, guardrail monitor, commit:check, wave0 dry-run (log lock).
+- Run tests: vitest gatekeeper, vitest wave0 lock, guardrail monitor, commit:check, wave0 dry-run (expect lock auto-clean if stale).
 
 ## Review Checklist
 - [x] Via negativa considered
