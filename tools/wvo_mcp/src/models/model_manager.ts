@@ -121,4 +121,19 @@ export class ModelManager {
       return models[0]?.id;
     }
   }
+
+  /**
+   * Lane helpers using capability tags (fast / standard / deep)
+   */
+  getFastLaneModel(): string | undefined {
+    return this.registry.getBestForLane('fast');
+  }
+
+  getStandardLaneModel(): string | undefined {
+    return this.registry.getBestForLane('standard');
+  }
+
+  getDeepLaneModel(): string | undefined {
+    return this.registry.getBestForLane('deep');
+  }
 }

@@ -24,7 +24,8 @@ export class ModelDiscoveryService {
   constructor(private readonly registry: ModelRegistry) {}
 
   /**
-   * Discover models for all providers
+   * Discover models for all providers (Scout entrypoint)
+   * Note: Providers like Gemini/o3 may require manual/API integration; we seed from registry defaults when no API.
    */
   async discoverAll(options: ModelDiscoveryOptions = {}): Promise<void> {
     // Load existing registry
@@ -69,6 +70,38 @@ export class ModelDiscoveryService {
       }
     } catch (error) {
       logError('Failed to discover Codex models', {
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+
+    // Discover Gemini models (stubbed to registry defaults until API integrated)
+    try {
+      const geminiModels = await this.discoverGeminiModels();
+      if (geminiModels) {
+        this.registry.updateProvider('gemini', geminiModels);
+        logInfo('Gemini models loaded (seeded)', {
+          count: geminiModels.models.length,
+          accessMethod: geminiModels.access_method,
+        });
+      }
+    } catch (error) {
+      logWarning('Failed to load Gemini models (seed)', {
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+
+    // Discover o3 models (stubbed to registry defaults)
+    try {
+      const o3Models = await this.discoverO3Models();
+      if (o3Models) {
+        this.registry.updateProvider('o3', o3Models);
+        logInfo('o3 models loaded (seeded)', {
+          count: o3Models.models.length,
+          accessMethod: o3Models.access_method,
+        });
+      }
+    } catch (error) {
+      logWarning('Failed to load o3 models (seed)', {
         error: error instanceof Error ? error.message : String(error),
       });
     }
@@ -145,6 +178,34 @@ export class ModelDiscoveryService {
       });
       return null;
     }
+  }
+
+  /**
+   * Discover Gemini models (stub: seed from registry defaults)
+   */
+  private async discoverGeminiModels(): Promise<ProviderModels | null> {
+    const provider = this.registry.getProviderModels('gemini');
+    if (provider) {
+      return {
+        access_method: provider.access_method ?? 'api',
+        models: provider.models,
+      };
+    }
+    return null;
+  }
+
+  /**
+   * Discover o3 models (stub: seed from registry defaults)
+   */
+  private async discoverO3Models(): Promise<ProviderModels | null> {
+    const provider = this.registry.getProviderModels('o3');
+    if (provider) {
+      return {
+        access_method: provider.access_method ?? 'api',
+        models: provider.models,
+      };
+    }
+    return null;
   }
 
   /**
